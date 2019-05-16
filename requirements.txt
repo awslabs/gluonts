@@ -1,0 +1,2 @@
+# IMPORTANT: keep this in sync with the dependencies section in the Config file
+gluonts-framework==0.1.*
