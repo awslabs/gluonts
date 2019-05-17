@@ -11,7 +11,7 @@ import pandas as pd
 # First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.core.exception import GluonTSDateBoundsError, assert_data_error
-from gluonts.dataset import DataEntry, Dataset
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import ScaleHistogram
 from gluonts.time_feature import TimeFeature
 

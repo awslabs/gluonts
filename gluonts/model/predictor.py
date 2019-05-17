@@ -16,7 +16,7 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import DType, equals, validated
 from gluonts.core.serde import dump_json, fqname_for, load_json
-from gluonts.dataset import DataEntry, Dataset, ListDataset
+from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.support.util import (

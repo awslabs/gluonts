@@ -9,7 +9,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset import DataEntry, Dataset
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.transform import Transformation
 
 DataBatch = Dict[str, Any]

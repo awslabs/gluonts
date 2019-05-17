@@ -1,5 +1,5 @@
 # First-party imports
-from gluonts.dataset import TimeSeriesItem
+from gluonts.dataset.common import TimeSeriesItem
 from gluonts.dataset.jsonl import JsonLinesFile
 
 

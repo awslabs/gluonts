@@ -37,7 +37,7 @@ import pandas as pd
 import pydantic
 
 # First-party imports
-from gluonts.dataset import TimeSeriesItem
+from gluonts.dataset.common import TimeSeriesItem
 
 
 class TimeSeriesSlice(pydantic.BaseModel):

@@ -11,7 +11,7 @@ import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
-from gluonts.dataset._base import ProcessStartField
+from gluonts.dataset.common import ProcessStartField
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 
 FREQ = '1D'
@@ -256,7 +256,7 @@ def test_CanonicalInstanceSplitter(
 
 def test_Transformation():
     train_length = 100
-    ds = gluonts.dataset.ListDataset(
+    ds = gluonts.dataset.common.ListDataset(
         [{'start': '2012-01-01', 'target': [0.2] * train_length}], freq='1D'
     )
 
@@ -321,7 +321,7 @@ def test_multi_dim_transformation(is_train):
     second_dim = np.arange(11, 21, 1).tolist()
     second_dim[0] = "NaN"
 
-    ds = gluonts.dataset.ListDataset(
+    ds = gluonts.dataset.common.ListDataset(
         data_iter=[{'start': '2012-01-01', 'target': [first_dim, second_dim]}],
         freq='1D',
         one_dim_target=False,
@@ -508,7 +508,7 @@ def make_dataset(N, train_length):
     for i in range(0, n):
         targets[i, :] = targets[i, :] * i
 
-    ds = gluonts.dataset.ListDataset(
+    ds = gluonts.dataset.common.ListDataset(
         data_iter=[
             {'start': '2012-01-01', 'target': targets[i, :]} for i in range(n)
         ],

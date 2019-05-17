@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 # First-party imports
-from gluonts.dataset import (
+from gluonts.dataset.common import (
     BasicFeatureInfo,
     CategoricalFeatureInfo,
     DataEntry,

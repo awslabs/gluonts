@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from gluonts.core import fqname_for
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
-from gluonts.dataset import Dataset
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import get_hybrid_forward_input_names

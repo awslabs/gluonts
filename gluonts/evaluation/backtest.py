@@ -10,7 +10,7 @@ import pandas as pd
 import gluonts  # noqa
 from gluonts import transform
 from gluonts.core.serde import dump_code, load_code
-from gluonts.dataset import DataEntry, Dataset
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.dataset.stat import (
     DatasetStatistics,

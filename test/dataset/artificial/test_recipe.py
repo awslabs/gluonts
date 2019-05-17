@@ -5,7 +5,11 @@ import pytest
 
 # First-party imports
 from gluonts.core.serde import dump_code, load_code
-from gluonts.dataset import BasicFeatureInfo, CategoricalFeatureInfo, MetaData
+from gluonts.dataset.common import (
+    BasicFeatureInfo,
+    CategoricalFeatureInfo,
+    MetaData,
+)
 from gluonts.dataset.artificial import RecipeDataset
 from gluonts.dataset.artificial.recipe import (
     Add,

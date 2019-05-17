@@ -12,7 +12,7 @@ import ujson
 from pandas import Timestamp
 
 # First-party imports
-from gluonts.dataset import (
+from gluonts.dataset.common import (
     FileDataset,
     ListDataset,
     MetaData,
@@ -20,7 +20,7 @@ from gluonts.dataset import (
     save_datasets,
     serialize_data_entry,
 )
-from gluonts.dataset._base import ProcessSF2Dict
+from gluonts.dataset.common import ProcessSF2Dict
 from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 from gluonts.dataset.jsonl import JsonLinesFile
 from gluonts.dataset.util import find_files

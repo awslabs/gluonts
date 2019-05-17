@@ -2,7 +2,7 @@
 import numpy as np
 
 # First-party imports
-from gluonts.dataset import ListDataset
+from gluonts.dataset.common import ListDataset
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.predictor import ParallelizedPredictor, Localizer
 from gluonts.model.testutil import IdentityPredictor, MeanEstimator

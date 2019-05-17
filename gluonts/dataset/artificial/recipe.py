@@ -10,7 +10,7 @@ import pandas as pd
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset import DataEntry
+from gluonts.dataset.common import DataEntry
 
 
 def generate(

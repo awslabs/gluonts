@@ -8,7 +8,7 @@ import pandas as pd
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset import DataEntry, Dataset
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import (
     DatasetStatistics,
     ScaleHistogram,
