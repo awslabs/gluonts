@@ -1,0 +1,466 @@
+# Standard library imports
+import re
+import typing
+from typing import Dict, List, Optional, Union
+
+# Third-party imports
+import mxnet as mx
+import numpy as np
+import pandas as pd
+import pydantic
+
+# First-party imports
+from gluonts.core.exception import GluonTSUserError, assert_gluonts
+
+
+def parse_quantile_input(q: Union[float, str]):
+    """
+    Input can be a float a str representing a float e.g. '0.1' or a quantile str of the form 'pXX'.
+    Return:
+        (q_float_value, q_str_value)
+
+    a tuple of the float and string representation of the quantile
+
+    >>> parse_quantile_input(0.1)
+    (0.1, '0.1')
+
+    >>> parse_quantile_input('0.2')
+    (0.2, '0.2')
+
+    >>> parse_quantile_input('0.20')
+    (0.2, '0.20')
+
+    >>> parse_quantile_input('p99')
+    (0.99, '0.99')
+    """
+    assert isinstance(q, (float, str))
+
+    if isinstance(q, float):
+        q_str = str(q)
+        q_value = q
+    elif re.match(r'^\d\.\d+$', q):
+        q_value = float(q)
+        q_str = q
+    else:
+        m = re.match(r'^p(\d\d)$', q)
+        assert_gluonts(
+            GluonTSUserError,
+            m,
+            'Quantile string should be of the form "p10", "p50", ... or "0.1", "0.5", ... but found {}',
+            q,
+        )
+        q_str = f'0.{m.group(1)}'.rstrip('0')
+        q_value = float(q_str)
+
+    assert_gluonts(
+        GluonTSUserError,
+        0 <= q_value <= 1,
+        'quantile value should be in [0, 1] but found {}',
+        q_value,
+    )
+
+    return (q_value, q_str)
+
+
+class Forecast:
+    start_date: pd.Timestamp
+    freq: str
+    item_id: Optional[str]
+    info: Optional[Dict]
+    prediction_length: int
+    mean: np.ndarray
+    _index = None
+
+    def quantile(self, q: Union[float, str]) -> np.ndarray:
+        """
+        Return an array of the quantile values at each time point in the prediction range
+        """
+        raise NotImplementedError()
+
+    def plot(self, **kwargs):
+        """
+        Plot the forecast
+        """
+        raise NotImplementedError()
+
+    @property
+    def index(self) -> pd.DatetimeIndex:
+        if self._index is None:
+            self._index = pd.date_range(
+                self.start_date, periods=self.prediction_length, freq=self.freq
+            )
+        return self._index
+
+    def dim(self) -> int:
+        """
+        Returns the dimensionality of the forecast object
+        """
+        raise NotImplementedError()
+
+    def copy_dim(self, dim: int):
+        """
+        Returns a new Forecast object with only the selected sub-dimension.
+        :param dim: if dim is set, the returned forecast object will only have samples of the set dimension.
+        :return:
+        """
+        raise NotImplementedError()
+
+
+class SampleForecast(Forecast):
+    def __init__(
+        self,
+        samples,
+        start_date,
+        freq,
+        item_id: Optional[str] = None,
+        info: Optional[Dict] = None,
+    ):
+        """
+        Container for forecasts.
+        :param samples: Array of size (num_samples, prediction_length)
+        :param start_date: start of the forecast
+        :param freq: forecast frequency
+        :param info: additional information that the forecaster may provide e.g. estimated parameters,
+          number of iterations ran etc.
+
+        NOTE: By setting quantile_levels to e.g. [0.5, 0.9] and providing two "samples"
+              that correspond to these quantiles of the marginal distribution, we can
+              incorporate forecasters that output quantiles directly (instead of sample paths.)
+        """
+
+        assert isinstance(
+            samples, (np.ndarray, mx.ndarray.ndarray.NDArray)
+        ), "samples should be either a numpy or an mxnet array"
+        assert (
+            len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3
+        ), "samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {}".format(
+            len(np.shape(samples))
+        )
+        self.samples = (
+            samples if (isinstance(samples, np.ndarray)) else samples.asnumpy()
+        )
+        self._sorted_samples_value = None
+        self._mean = None
+        self._dim = None
+        self.item_id = item_id
+        self.info = info
+
+        assert isinstance(
+            start_date, pd.Timestamp
+        ), "start_date should be a pandas Timestamp object"
+        self.start_date = start_date
+
+        assert isinstance(freq, str), "freq should be a string"
+        self.freq = freq
+
+    @property
+    def _sorted_samples(self):
+        if self._sorted_samples_value is None:
+            self._sorted_samples_value = np.sort(self.samples, axis=0)
+        return self._sorted_samples_value
+
+    @property
+    def num_samples(self):
+        return self.samples.shape[0]
+
+    @property
+    def prediction_length(self):
+        return self.samples.shape[-1]
+
+    @property
+    def mean(self):
+        if self._mean is not None:
+            return self._mean
+        else:
+            return np.mean(self.samples, axis=0)
+
+    @property
+    def mean_ts(self):
+        return pd.Series(self.index, self.mean)
+
+    def quantile(self, q):
+        q, _ = parse_quantile_input(q)
+        sample_idx = int(np.round((self.num_samples - 1) * q))
+        return self._sorted_samples[sample_idx, :]
+
+    def copy_dim(self, dim: int):
+        if len(self.samples.shape) == 2:
+            samples = self.samples
+        else:
+            assert (
+                dim < self.samples.shape[1]
+            ), f'dim should be target_dim - 1, but got dim={dim}, target_dim={self.samples.shape[1]}'
+            samples = self.samples[:, dim]
+
+        return SampleForecast(
+            samples=samples,
+            start_date=self.start_date,
+            freq=self.freq,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
+    def dim(self) -> int:
+        if self._dim is not None:
+            return self._dim
+        else:
+            if (
+                len(self.samples.shape) == 2
+            ):  # 1D target. shape: (num_samples, prediction_length)
+                return 1
+            else:
+                return self.samples.shape[
+                    1
+                ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
+
+    def plot(
+        self,
+        confidence_intervals=(50.0, 90.0),
+        show_mean=False,
+        color='b',
+        label=None,
+        *args,
+        **kwargs,
+    ):
+        """
+        Plots the median of the  forecast as well as confidence bounds.
+        (requires matplotlib and pandas).
+
+        Parameters
+        ----------
+        confidence_intervals : float or list of floats in [0, 100]
+            Confidence interval size(s). If a list, it will stack the error
+            plots for each confidence interval. Only relevant for error styles
+            with "ci" in the name.
+        show_mean : boolean
+            Whether to also show the mean of the forecast.
+        color : matplotlib color name or dictionary
+            The color used for plotting the forecast.
+        label : string
+            A label (prefix) that is used for the forecast
+        args :
+            Other arguments are passed to main plot() call
+        kwargs :
+            Other keyword arguments are passed to main plot() call
+        """
+
+        # matplotlib==2.0.* gives errors in Brazil builds and has to be
+        # imported locally
+        import matplotlib.pyplot as plt
+
+        label_prefix = '' if label is None else label + '-'
+
+        for c in confidence_intervals:
+            assert 0.0 <= c <= 100.0
+
+        ps = [50.0] + [
+            50.0 + f * c / 2.0
+            for c in confidence_intervals
+            for f in [-1.0, +1.0]
+        ]
+        percentiles_sorted = sorted(set(ps))
+
+        def alpha_for_percentile(p):
+            return (p / 100.0) ** 0.3
+
+        ps_data = np.percentile(
+            self._sorted_samples,
+            q=percentiles_sorted,
+            axis=0,
+            interpolation='lower',
+        )
+        i_p50 = len(percentiles_sorted) // 2
+
+        p50_data = ps_data[i_p50]
+        p50_series = pd.Series(data=p50_data, index=self.index)
+        p50_series.plot(color=color, ls='-', label=f'{label_prefix}median')
+
+        if show_mean:
+            mean_data = np.mean(self._sorted_samples, axis=0)
+            pd.Series(data=mean_data, index=self.index).plot(
+                color=color,
+                ls=':',
+                label=f'{label_prefix}mean',
+                *args,
+                **kwargs,
+            )
+
+        for i in range(len(percentiles_sorted) // 2):
+            ptile = percentiles_sorted[i]
+            alpha = alpha_for_percentile(ptile)
+            plt.fill_between(
+                self.index,
+                ps_data[i],
+                ps_data[-i - 1],
+                facecolor=color,
+                alpha=alpha,
+                interpolate=True,
+                *args,
+                **kwargs,
+            )
+            # Hack to create labels for the error intervals.
+            # Doesn't actually plot anything, because we only pass a single data point
+            pd.Series(data=p50_data[:1], index=self.index[:1]).plot(
+                color=color,
+                alpha=alpha,
+                linewidth=10,
+                label=f'{label_prefix}{100 - ptile * 2}%',
+                *args,
+                **kwargs,
+            )
+
+    def __repr__(self):
+        return ', '.join(
+            [
+                f'SampleForecast({self.samples!r})',
+                f'{self.start_date!r}',
+                f'{self.freq!r}',
+                f'item_id={self.item_id!r}',
+                f'info={self.info!r})',
+            ]
+        )
+
+
+class QuantileForecast(Forecast):
+    """
+    A Forecast that contains arrays (i.e. time series) for quantiles and mean
+    """
+
+    def __init__(
+        self,
+        forecast_arrays: np.ndarray,
+        start_date: pd.Timestamp,
+        freq: str,
+        forecast_keys: List[str],
+        item_id: Optional[str] = None,
+        info: Optional[Dict] = None,
+    ):
+        """
+        :param forecast_arrays: An array of forecasts
+        :param start_date:
+        :param freq:
+        :param forecast_keys: A list of quantiles of the form '0.1', '0.9' etc and potentially 'mean'
+          Each entry corresponds to one array in forecast_arrays
+        :param info:
+        """
+        self.forecast_array = forecast_arrays
+        self.start_date = pd.Timestamp(start_date, freq=freq)
+        self.freq = freq
+
+        # normalize keys
+        self.forecast_keys = [
+            parse_quantile_input(k)[1] if k != 'mean' else k
+            for k in forecast_keys
+        ]
+        self.item_id = item_id
+        self.info = info
+        self._dim = None
+
+        shape = self.forecast_array.shape
+        assert shape[0] == len(self.forecast_keys), (
+            f'The forecast_array (shape={shape} should have the same '
+            f'length as the forecast_keys (len={len(self.forecast_keys)}).'
+        )
+        self.prediction_length = shape[-1]
+        self._forecast_dict = {
+            k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
+        }
+
+        self._nan_out = np.array([np.nan] * self.prediction_length)
+
+    def quantile(self, q: Union[float, str]) -> np.ndarray:
+        _, q_str = parse_quantile_input(q)
+        # We return nan here such that evaluation runs through
+        return self._forecast_dict.get(q_str, self._nan_out)
+
+    @property
+    def mean(self):
+        # We return nan here such that evaluation runs through
+        return self._forecast_dict.get('mean', self._nan_out)
+
+    def dim(self) -> int:
+        if self._dim is not None:
+            return self._dim
+        else:
+            if (
+                len(self.forecast_array.shape) == 2
+            ):  # 1D target. shape: (num_samples, prediction_length)
+                return 1
+            else:
+                return self.forecast_array.shape[
+                    1
+                ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
+
+    def plot(
+        self,
+        quantiles=None,
+        show_mean=False,
+        color='b',
+        label=None,
+        *args,
+        **kwargs,
+    ):
+        if show_mean:
+            mean_ts = pd.Series(self.index, self.mean)
+            mean_ts.plot()
+
+        qs = [q for q in self.forecast_keys if q != 'mean']
+        if quantiles is not None:
+            qs = [q for q in qs if q in quantiles]
+        qs = sorted(qs)
+
+        for q in qs:
+            self.quantile(q)
+
+    def __repr__(self):
+        return ', '.join(
+            [
+                f'QuantileForecast({self.forecast_array!r})',
+                f'start_date={self.start_date!r}',
+                f'freq={self.freq!r}',
+                f'forecast_keys={self.forecast_keys!r}',
+                f'item_id={self.item_id!r}',
+                f'info={self.info!r})',
+            ]
+        )
+
+
+class OutputType:
+    values = {'mean', 'samples', 'quantiles'}
+
+    def __init__(self, v):
+        assert (
+            v in OutputType.values
+        ), f'unknown output type {v}, expected one of: {", ".join(OutputType.values)}'
+
+        self.v = v
+
+    def __repr__(self) -> str:
+        return self.v
+
+    def __eq__(self, that):
+        return str(that) == str(self)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    @classmethod
+    def get_validators(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if not isinstance(v, str):
+            raise ValueError(
+                f'strict string: expected string value, got {type(v)}'
+            )
+        try:
+            return OutputType(v)
+        except AssertionError as e:
+            raise ValueError(str(e))
+
+
+class Config(pydantic.BaseModel):
+    num_eval_samples: int
+    output_types: typing.Set[OutputType]
+    quantiles: typing.List[str]  # FIXME: validate list elements

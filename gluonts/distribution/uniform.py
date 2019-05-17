@@ -1,0 +1,77 @@
+# Standard library imports
+from typing import Dict, Optional, Tuple
+
+# First-party imports
+from gluonts.model.common import Tensor
+
+# Relative imports
+from .distribution import Distribution, _sample_multiple, getF, softplus
+from .distribution_output import DistributionOutput
+
+
+class Uniform(Distribution):
+    is_reparameterizable = True
+
+    def __init__(self, low: Tensor, high: Tensor, F=None) -> None:
+        self.low = low
+        self.high = high
+        self.F = F if F else getF(low)
+
+    @property
+    def batch_shape(self) -> Tuple:
+        return self.low.shape
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()
+
+    @property
+    def event_dim(self) -> int:
+        return 0
+
+    def log_prob(self, x: Tensor) -> Tensor:
+        is_in_range = self.F.broadcast_greater_equal(
+            x, self.low
+        ) * self.F.broadcast_lesser(x, self.high)
+        return self.F.log(is_in_range) - self.F.log(self.high - self.low)
+
+    @property
+    def mean(self) -> Tensor:
+        return (self.high + self.low) / 2
+
+    @property
+    def stddev(self) -> Tensor:
+        return (self.high - self.low) / (12 ** 0.5)
+
+    def sample(self, num_samples: Optional[int] = None) -> Tensor:
+        return _sample_multiple(
+            self.F.sample_uniform,
+            low=self.low,
+            high=self.high,
+            num_samples=num_samples,
+        )
+
+    def sample_rep(self, num_samples: Optional[int] = None) -> Tensor:
+        def s(low: Tensor, high: Tensor) -> Tensor:
+            raw_samples = self.F.sample_uniform(
+                low=low.zeros_like(), high=high.ones_like()
+            )
+            return low + raw_samples + high
+
+        return _sample_multiple(
+            s, low=self.low, high=self.high, num_samples=num_samples
+        )
+
+
+class UniformOutput(DistributionOutput):
+    dim_args: Dict[str, int] = {"low": 1, "width": 1}
+    distr_cls: type = Uniform
+
+    @classmethod
+    def domain_map(cls, F, low, width):
+        high = low + softplus(F, width)
+        return low.squeeze(axis=-1), high.squeeze(axis=-1)
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()

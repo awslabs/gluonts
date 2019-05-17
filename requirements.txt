@@ -1,2 +1,13 @@
 # IMPORTANT: keep this in sync with the dependencies section in the Config file
-gluonts-framework==0.1.*
+boto3==1.*
+click==6.*
+flask==1.*
+gunicorn==19.9.*
+holidays==0.9.*
+mxnet==1.3.*
+matplotlib==3.*
+numpy==1.14.*
+pandas==0.22.*
+pydantic==0.12.*
+tqdm==4.23.*
+ujson==1.35

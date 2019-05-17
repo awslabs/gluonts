@@ -230,6 +230,11 @@ setup_kwargs: dict = dict(
     setup_requires=find_requirements("requirements-setup.txt"),
     install_requires=find_requirements("requirements.txt"),
     tests_require=find_requirements("requirements-test.txt"),
+    entry_points=dict(
+        console_scripts=[
+            "gluonts-validate-dataset=gluonts.dataset.validate:run"
+        ]
+    ),
     test_flake8=True,
     cmdclass=dict(
         type_check=TypeCheckCommand,

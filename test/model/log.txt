@@ -1,0 +1,25 @@
+gluonts[train_dataset_stats]: DatasetStatistics(cats=[], integer_dataset=True, max_target=9.0, mean_abs_target=4.5, mean_target=4.5, mean_target_length=24.0, min_target=0.0, num_dynamic_feat=0, num_missing_values=0, num_time_observations=240, num_time_series=10, scale_histogram=gluonts.dataset.stat.ScaleHistogram(base=2.0, bin_counts={0: 1, 1: 2, 2: 4, 3: 3}, empty_target_count=0))
+gluonts[test_dataset_stats]: DatasetStatistics(cats=[], integer_dataset=True, max_target=9.0, mean_abs_target=4.5, mean_target=4.5, mean_target_length=30.0, min_target=0.0, num_dynamic_feat=0, num_missing_values=0, num_time_observations=300, num_time_series=10, scale_histogram=gluonts.dataset.stat.ScaleHistogram(base=2.0, bin_counts={0: 1, 1: 2, 2: 4, 3: 3}, empty_target_count=0))
+gluonts[estimator]: gluonts.model.testutil.MeanEstimator(freq="1H", num_samples=5, prediction_length=2)
+gluonts[metric-MSE]: 8.25
+gluonts[metric-abs_error]: 50.0
+gluonts[metric-abs_target_sum]: 90.0
+gluonts[metric-abs_target_mean]: 4.5
+gluonts[metric-seasonal_error]: float("nan")
+gluonts[metric-MASE]: float("nan")
+gluonts[metric-sMAPE]: 0.6612031819752914
+gluonts[metric-MSIS]: float("nan")
+gluonts[metric-QuantileLoss[0.1]]: 49.99999999999999
+gluonts[metric-Coverage[0.1]]: 0.5
+gluonts[metric-QuantileLoss[0.5]]: 50.0
+gluonts[metric-Coverage[0.5]]: 0.5
+gluonts[metric-QuantileLoss[0.9]]: 50.0
+gluonts[metric-Coverage[0.9]]: 0.5
+gluonts[metric-RMSE]: 2.8722813232690143
+gluonts[metric-NRMSE]: 0.6382847385042254
+gluonts[metric-ND]: 0.5555555555555556
+gluonts[metric-wQuantileLoss[0.1]]: 0.5555555555555555
+gluonts[metric-wQuantileLoss[0.5]]: 0.5555555555555556
+gluonts[metric-wQuantileLoss[0.9]]: 0.5555555555555556
+gluonts[metric-mean_wQuantileLoss]: 0.5555555555555556
+gluonts[metric-MAE_Coverage]: 0.26666666666666666
