@@ -82,6 +82,13 @@ def generate_sf2(
                 ts['target'] = target
             ts.pop('feat_static_cat', None)
             ts.pop('feat_static_real', None)
+            # Chop features in training set
+            if 'feat_dynamic_real' in ts.keys() and 'train' in filename:
+                # TODO: Fix for missing values
+                for i, feat_dynamic_real in enumerate(ts['feat_dynamic_real']):
+                    ts['feat_dynamic_real'][i] = feat_dynamic_real[
+                        : len(ts['target'])
+                    ]
             json.dump(ts, json_file)
             json_file.write('\n')
 
