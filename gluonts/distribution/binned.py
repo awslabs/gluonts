@@ -61,7 +61,7 @@ class Binned(Distribution):
 
     def log_prob(self, x):
         # reshape first to capture both (d,) and (d,1) cases and then add extra dimension
-        x = x.reshape(0, -1).expand_dims(axis=-1)
+        x = x.reshape(shape=(0, -1)).expand_dims(axis=-1)
         # TODO: when mxnet has searchsorted replace this
         left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
         right_edges = self.bin_edges.slice_axis(axis=-1, begin=1, end=None)
