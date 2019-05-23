@@ -10,6 +10,18 @@ from .distribution_output import DistributionOutput
 
 
 class Uniform(Distribution):
+    r"""
+    Uniform distribution.
+
+    Parameters
+    ----------
+    low
+        Tensor containing the lower bound of the distribution domain.
+    high
+        Tensor containing the higher bound of the distribution domain.
+    F
+    """
+
     is_reparameterizable = True
 
     def __init__(self, low: Tensor, high: Tensor, F=None) -> None:

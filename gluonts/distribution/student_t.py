@@ -17,6 +17,22 @@ from .distribution_output import DistributionOutput
 
 
 class StudentT(Distribution):
+    r"""
+    Student's t-distribution.
+
+    Parameters
+    ----------
+    mu
+        Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
+    std
+        Tensor containing the standard deviations, of shape
+        `(*batch_shape, *event_shape)`.
+    nu
+        Nonnegative tensor containing the degrees of freedom of the distribution,
+        of shape `(*batch_shape, *event_shape)`.
+    F
+    """
+
     is_reparameterizable = False
 
     def __init__(self, mu: Tensor, sigma: Tensor, nu: Tensor, F=None) -> None:

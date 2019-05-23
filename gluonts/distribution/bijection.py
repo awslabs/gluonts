@@ -13,23 +13,24 @@ from .distribution import getF
 
 class Bijection:
     def f(self, x: Tensor) -> Tensor:
-        """
+        r"""
         Forward transformation x -> y
         """
         raise NotImplementedError
 
     def f_inv(self, y: Tensor) -> Tensor:
-        """
+        r"""
         Inverse transformation y -> x
         """
         raise NotImplementedError
 
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
-        """
+        r"""
         Receives (x, y) and returns log of the absolute value of the Jacobian
         determinant
 
-            `log |dy/dx|`
+        .. math::
+            \log |dy/dx|
 
         Note that this is the Jacobian determinant of the forward
         transformation x -> y.
@@ -37,7 +38,7 @@ class Bijection:
         raise NotImplementedError
 
     def inverse_bijection(self) -> 'Bijection':
-        """
+        r"""
         Returns a Bijection instance that represents the inverse of this
         transformation.
         """
@@ -101,8 +102,8 @@ class _Log(Bijection):
 
 class _Softrelu(Bijection):
     def _log_expm1(self, F, y: Tensor) -> Tensor:
-        """
-        A numerically stable computation of x = log(exp(y) - 1)
+        r"""
+        A numerically stable computation of :math:`x = \log(e^y - 1)`
         """
         thresh = F.zeros_like(y) + 20.0
         x = F.where(F.broadcast_greater(y, thresh), y, F.log(F.expm1(y)))

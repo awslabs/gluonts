@@ -10,6 +10,19 @@ from .distribution_output import DistributionOutput
 
 
 class Laplace(Distribution):
+    r"""
+    Laplace distribution.
+
+    Parameters
+    ----------
+    mu
+        Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
+    b
+        Tensor containing the distribution scale, of shape
+        `(*batch_shape, *event_shape)`.
+    F
+    """
+
     is_reparameterizable = True
 
     def __init__(self, mu: Tensor, b: Tensor, F=None) -> None:

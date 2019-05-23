@@ -16,7 +16,7 @@ from .transformed_distribution import TransformedDistribution
 
 
 class ArgProj(gluon.HybridBlock):
-    """
+    r"""
     A block that can be used to project from a dense layer to distribution
     arguments.
 
@@ -64,7 +64,7 @@ class ArgProj(gluon.HybridBlock):
 
 
 class Output:
-    """
+    r"""
     Class to connect a network to some output
     """
 
@@ -82,9 +82,8 @@ class Output:
 
 
 class DistributionOutput(Output):
-    """
-    Class to connect a network to a distribution.
-    The arguments of the distribution can have different dimensions.
+    r"""
+    Class to construct a distribution given the output of a network.
     """
 
     distr_cls: type
@@ -96,6 +95,10 @@ class DistributionOutput(Output):
     def distribution(
         self, distr_args, scale: Optional[Tensor] = None
     ) -> Distribution:
+        r"""
+        Construct the associated distribution, given the collection of
+        constructor arguments and, optionally, a scale tensor.
+        """
         if scale is None:
             return self.distr_cls(*distr_args)
         else:
@@ -106,24 +109,22 @@ class DistributionOutput(Output):
 
     @property
     def event_shape(self) -> Tuple:
-        """
-        Shape of each individual event contemplated by the distribution
-        that this object will yield.
-
-        Returns
-        -------
-        tuple
-            Tuple containing the length of the axis corresponding to each
-            individual independent event.
+        r"""
+        Shape of each individual event contemplated by the distributions
+        that this object constructs.
         """
         raise NotImplementedError()
 
     @property
     def event_dim(self) -> int:
+        r"""
+        Number of event dimensions, i.e., length of the `event_shape` tuple,
+        of the distributions that this object constructs.
+        """
         return len(self.event_shape)
 
     def domain_map(self, F, *args: Tensor):
-        """
+        r"""
         Converts arguments to the right shape and domain. The domain depends
         on the type of distribution, while the correct shape is obtained by
         reshaping the trailing axis in such a way that the returned tensors

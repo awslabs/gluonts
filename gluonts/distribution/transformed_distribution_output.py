@@ -21,8 +21,9 @@ from gluonts.model.common import Tensor
 
 
 class TransformedDistributionOutput(DistributionOutput):
-    """
-    Class to connect a network to a distribution that is transformed by a sequence of learnable bijections.
+    r"""
+    Class to connect a network to a distribution that is transformed
+    by a sequence of learnable bijections.
     """
 
     def __init__(

@@ -77,10 +77,14 @@ class BoxCoxTranform(Bijection):
         >>> (y * lambda_1 + 1) ** (1 / lambda_1) + lambda_2
         (-0.0017979146510711471+0.0005279153735965289j)
 
-    Attributes
+    Parameters
     ----------
-    arg_names: list of str
-        names of the parameters of the transformation
+    lambda_1
+    lambda_2
+    tol_lambda_1
+        For numerical stability, treat `lambda_1` as zero if it is less than
+        `tol_lambda_1`
+    F
     """
     arg_names = ['box_cox.lambda_1', 'box_cox.lambda_2']
 
@@ -91,17 +95,6 @@ class BoxCoxTranform(Bijection):
         tol_lambda_1: float = 1e-2,
         F=None,
     ) -> None:
-        """
-        Construct a Box-Cox transformation given the parameters.
-
-        Parameters
-        ----------
-        lambda_1
-        lambda_2
-        tol_lambda_1
-            For numerical stability, treat `lambda_1` as zero if it is less than `tol_lambda_1`
-        F
-        """
         self.lambda_1 = lambda_1
         self.lambda_2 = lambda_2
         self.tol_lambda_1 = tol_lambda_1
@@ -112,7 +105,7 @@ class BoxCoxTranform(Bijection):
 
     @property
     def args(self) -> List:
-        """
+        r"""
         List: current values of the parameters
         """
         return [self.lambda_1, self.lambda_2]
@@ -122,7 +115,7 @@ class BoxCoxTranform(Bijection):
         return 0
 
     def f(self, z: Tensor) -> Tensor:
-        """
+        r"""
         Forward transformation of observations `z`
 
         Parameters
@@ -149,7 +142,7 @@ class BoxCoxTranform(Bijection):
         )
 
     def f_inv(self, y: Tensor) -> Tensor:
-        """Inverse of the Box-Cox Transform
+        r"""Inverse of the Box-Cox Transform
 
         Parameters
         ----------

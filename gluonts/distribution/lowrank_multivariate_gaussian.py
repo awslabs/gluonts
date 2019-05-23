@@ -23,7 +23,7 @@ from gluonts.model.common import Tensor
 
 
 def capacitance_tril(F, rank: Tensor, W: Tensor, D: Tensor) -> Tensor:
-    """
+    r"""
 
     Parameters
     ----------
@@ -52,8 +52,11 @@ def capacitance_tril(F, rank: Tensor, W: Tensor, D: Tensor) -> Tensor:
 
 def log_det(F, batch_D: Tensor, batch_capacitance_tril: Tensor) -> Tensor:
     r"""
-    Uses "matrix determinant lemma"::
+    Uses the matrix determinant lemma.
+
+    .. math::
         log|D + W W^T| = log|C| + log|D|,
+
     where :math:`C` is the capacitance matrix :math:`I + W^T D^{-1} W`, to compute the log determinant.
     Parameters
     ----------
@@ -74,18 +77,25 @@ def mahalanobis_distance(
     F, W: Tensor, D: Tensor, capacitance_tril: Tensor, x: Tensor
 ) -> Tensor:
     r"""
-    Uses "Woodbury matrix identity"::
+    Uses the Woodbury matrix identity
+
+    .. math::
         (W W^T + D)^{-1} = D^{-1} - D^{-1} W C^{-1} W^T D^{-1},
+
     where :math:`C` is the capacitance matrix :math:`I + W^T D^{-1} W`, to compute the squared
     Mahalanobis distance :math:`x^T (W @ W.T + D)^{-1} x`.
 
     Parameters
     ----------
     F
-    W : (..., dim, rank)
-    D : (..., dim)
-    capacitance_tril : (..., rank, rank)
-    x : (..., dim)
+    W
+        (..., dim, rank)
+    D
+        (..., dim)
+    capacitance_tril
+        (..., rank, rank)
+    x
+        (..., dim)
 
     Returns
     -------
@@ -133,28 +143,37 @@ def lowrank_log_likelihood(
 
 
 class LowrankMultivariateGaussian(Distribution):
+    r"""
+    Multivariate Gaussian distribution, with covariance matrix parametrized
+    as the sum of a diagonal matrix and a low-rank matrix
+
+    .. math::
+        \Sigma = D + W W^T
+
+    The implementation is strongly inspired from Pytorch:
+    https://github.com/pytorch/pytorch/blob/master/torch/distributions/lowrank_multivariate_normal.py.
+
+    Complexity to compute log_prob is :math:`O(dim * rank + rank^3)` per element.
+
+    Parameters
+    ----------
+    dim
+        Dimension of the distribution's support
+    rank
+        Rank of W
+    mu
+        Mean tensor, of shape (..., dim)
+    D
+        Diagonal term in the covariance matrix, of shape (..., dim)
+    W
+        Low-rank factor in the covariance matrix, of shape (..., dim, rank)
+    """
 
     is_reparameterizable = True
 
     def __init__(
         self, dim: int, rank: int, mu: Tensor, D: Tensor, W: Tensor
     ) -> None:
-        """
-        Multivariate normal likelihood N(mu, Sigma) with Sigma is parametrized with a low-rank covariance
-            Sigma = D + W W^T
-        The implementation is strongly inspired from Pytorch:
-        https://github.com/pytorch/pytorch/blob/master/torch/distributions/lowrank_multivariate_normal.py.
-
-        Complexity to compute log_prob is O(dim * rank + rank^3) per element.
-
-        Parameters
-        ----------
-        dim : dimension of the noise
-        rank : rank of W
-        mu : mean vector, of shape (..., dim)
-        D : (..., dim)
-        W : (..., dim, rank)
-        """
         self.dim = dim
         self.rank = rank
         self.mu = mu
@@ -204,16 +223,18 @@ class LowrankMultivariateGaussian(Distribution):
         return self.Cov
 
     def sample_rep(self, num_samples: int = None) -> Tensor:
-        """
-        Draw samples from the multivariate Gaussian distributions :
+        r"""
+        Draw samples from the multivariate Gaussian distribution:
 
-            sample = mu + D u + W v,
+        .. math::
+            s = \mu + D u + W v,
 
-        where u and v are standard normal sample.
+        where :math:`u` and :math:`v` are standard normal samples.
 
         Parameters
         ----------
-        num_samples number of samples to be drawn.
+        num_samples
+            number of samples to be drawn.
 
         Returns
         -------
@@ -278,17 +299,23 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
             )
 
     def domain_map(self, F, mu_vector, D_vector, W_vector):
-        """
+        r"""
 
         Parameters
         ----------
         F
-        mu_vector : tensor of shape (..., dim)
-        D_vector : tensor of shape (..., dim)
-        W_vector : tensor of shape (..., dim * rank )
+        mu_vector
+            Tensor of shape (..., dim)
+        D_vector
+            Tensor of shape (..., dim)
+        W_vector
+            Tensor of shape (..., dim * rank )
 
-        Returns (mu, D, W) where relative shapes are (..., dim), (..., dim), (..., dim, rank)
+        Returns
         -------
+        Tuple
+            A tuple containing tensors mu, D, and W, with shapes
+            (..., dim), (..., dim), and (..., dim, rank), respectively.
 
         """
 
