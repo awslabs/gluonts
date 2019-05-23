@@ -54,7 +54,7 @@ For training, we will use data up to midnight on April 5th, 2015.
 ```python
 from gluonts.dataset.common import ListDataset
 training_data = ListDataset(
-    [{"start": df2.index[0], "target": df2.value[:"2015-04-05 00:00:00"]}],
+    [{"start": df.index[0], "target": df.value[:"2015-04-05 00:00:00"]}],
     freq = "5min"
 )
 ```
