@@ -107,21 +107,5 @@ centered around the median (dark blue line).
 The following modules are good entry-points to understand how to use
 other features of GluonTS:
 
-* `gluonts.example.run_simple_feedforward`: how to train and evaluate a model.
-* `gluonts.example.benchmark`: how to evaluate and compare several models.
 * `gluonts.model.seasonal_naive`: how to implement simple models using just NumPy and Pandas.
 * `gluonts.model.simple_feedforward.estimator`: how to define a Gluon model.
-
-<!-- ## Citing
-
-If you find GluonTS useful for your research, please consider including the
-following publications in your bibliographic references:
-
-```
-@article{
-  title={},
-  author={},
-  journal={},
-  year={},
-}
-``` -->
