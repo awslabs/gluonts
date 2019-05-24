@@ -10,6 +10,20 @@ from .distribution_output import DistributionOutput
 
 
 class NegativeBinomial(Distribution):
+    r"""
+    Negative binomial distribution, i.e. the distribution of the number of
+    successes in a sequence of independet Bernoulli trials.
+
+    Parameters
+    ----------
+    mu
+        Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
+    alpha
+        Ratio between the success probability `p` of a single experiment,
+        and the maximum number of failures allowed.
+    F
+    """
+
     is_reparameterizable = False
 
     def __init__(self, mu: Tensor, alpha: Tensor, F=None) -> None:

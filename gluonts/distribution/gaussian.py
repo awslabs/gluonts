@@ -11,6 +11,19 @@ from .distribution_output import DistributionOutput
 
 
 class Gaussian(Distribution):
+    r"""
+    Gaussian distribution.
+
+    Parameters
+    ----------
+    mu
+        Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
+    std
+        Tensor containing the standard deviations, of shape
+        `(*batch_shape, *event_shape)`.
+    F
+    """
+
     is_reparameterizable = True
 
     def __init__(self, mu: Tensor, sigma: Tensor, F=None) -> None:
@@ -73,7 +86,7 @@ class GaussianOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, sigma):
-        """
+        r"""
         Maps raw tensors to valid arguments for constructing a Gaussian
         distribution.
 

@@ -13,6 +13,11 @@ from .distribution import Distribution, getF
 
 
 class TransformedDistribution(Distribution):
+    r"""
+    A distribution obtained by applying a sequence of transformations on top
+    of a base distribution.
+    """
+
     def __init__(
         self, base_distribution: Distribution, *transforms: bij.Bijection
     ) -> None:

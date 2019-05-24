@@ -15,24 +15,30 @@ from .distribution_output import DistributionOutput
 
 
 class Binned(Distribution):
+    r"""
+    A binned distribution that represents a set of bins via
+    bin edges e_i and values v_i
+
+    bins:    [e_0, e1), [e_1, e_2), , ..., [e_{n-1}, e_n)
+    values:      v0,        v1,       ...,      v_{n-1}
+    prob:        p0,        p1,       ...,      p_{n-1}
+
+    Parameters
+    ----------
+    bin_edges
+        1d array of bin edges.
+    bin_values
+        1d array of values representing the bins.
+        This should have one more entry than bin_edges.
+    bin_probs
+        2d array of probability per bin.
+    """
+
     is_reparameterizable = False
 
     def __init__(
         self, bin_probs: Tensor, bin_edges: Tensor, bin_values: Tensor, F=None
     ) -> None:
-        """
-        A binned distribution that represents a set of bins via
-        bin edges e_i and values v_i
-
-        bins:    [e_0, e1), [e_1, e_2), , ..., [e_{n-1}, e_n)
-        values:      v0,        v1,       ...,      v_{n-1}
-        prob:        p0,        p1,       ...,      p_{n-1}
-
-        :param bin_edges: 1d array of bin edges
-        :param bin_values: 1d array of values representing the bins.
-          This should have one more entry than bin_edges
-        :param bin_probs: 2d array of probability per bin
-        """
         self.bin_edges = bin_edges
         self.bin_values = bin_values
         self.bin_probs = bin_probs

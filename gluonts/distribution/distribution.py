@@ -27,11 +27,16 @@ def getF(var: Tensor):
 
 
 class Distribution:
+    r"""
+    A class representing probability distributions.
+    """
+
     arg_names: Tuple
     is_reparameterizable = False
 
     def log_prob(self, x: Tensor) -> Tensor:
-        """
+        r"""
+        Compute the log-density of the distribution at `x`.
 
         Parameters
         ----------
@@ -41,13 +46,15 @@ class Distribution:
         Returns
         -------
         Tensor
-            Tensor of shape `batch_shape` containing the log probabilities
-            of the events contained in `x`.
+            Tensor of shape `batch_shape` containing the log-density of the
+            distribution for each event in `x`.
         """
         raise NotImplementedError()
 
     def crps(self, x: Tensor) -> Tensor:
-        """
+        r"""
+        Compute the *continuous rank probability score* (CRPS) of `x` according
+        to the distribution.
 
         Parameters
         ----------
@@ -57,19 +64,52 @@ class Distribution:
         Returns
         -------
         Tensor
-            Continuous rank probability score of `x`.
+            Tensor of shape `batch_shape` containing the CRPS score,
+            according to the distribution, for each event in `x`.
         """
         raise NotImplementedError()
 
     def loss(self, x: Tensor) -> Tensor:
+        r"""
+        Compute the loss at `x` according to the distribution.
+
+        By default, this method returns the negative of `log_prob`. For some
+        distributions, however, the log-density is not easily computable
+        and therefore other loss functions are computed.
+
+        Parameters
+        ----------
+        x
+            Tensor of shape `(*batch_shape, *event_shape)`.
+
+        Returns
+        -------
+        Tensor
+            Tensor of shape `batch_shape` containing the value of the loss
+            for each event in `x`.
+        """
         return -self.log_prob(x)
 
     def prob(self, x: Tensor) -> Tensor:
+        r"""
+        Compute the density of the distribution at `x`.
+
+        Parameters
+        ----------
+        x
+            Tensor of shape `(*batch_shape, *event_shape)`.
+
+        Returns
+        -------
+        Tensor
+            Tensor of shape `batch_shape` containing the density of the
+            distribution for each event in `x`.
+        """
         return self.log_prob(x).exp()
 
     @property
     def batch_shape(self) -> Tuple:
-        """
+        r"""
         Layout of the set of events contemplated by the distribution.
 
         Invoking `sample()` from a distribution yields a tensor of shape
@@ -77,21 +117,16 @@ class Distribution:
         more in general) on such sample will yield a tensor of shape
         `batch_shape`.
 
-        This method will only work in mx.ndarray mode, when the shape of
-        a distribution arguments are available.
-
-        Returns
-        -------
-        tuple
-            Tuple containing the length of the axis along which independent
-            events are arranged.
+        This property is available in general only in mx.ndarray mode,
+        when the shape of the distribution arguments can be accessed.
         """
         raise NotImplementedError()
 
     @property
     def event_shape(self) -> Tuple:
-        """
+        r"""
         Shape of each individual event contemplated by the distribution.
+
         For example, distributions over scalars have `event_shape = ()`,
         over vectors have `event_shape = (d, )` where `d` is the length
         of the vectors, over matrices have `event_shape = (d1, d2)`, and
@@ -100,46 +135,34 @@ class Distribution:
         Invoking `sample()` from a distribution yields a tensor of shape
         `batch_shape + event_shape`.
 
-        This method will only work in mx.ndarray mode, when the shape of
-        a distribution arguments are available.
-
-        Returns
-        -------
-        tuple
-            Tuple containing the length of the axis corresponding to each
-            individual independent event.
+        This property is available in general only in mx.ndarray mode,
+        when the shape of the distribution arguments can be accessed.
         """
         raise NotImplementedError()
 
     @property
     def event_dim(self) -> int:
-        """
-        Number of event dimensions. This is `0` for distributions over
-        scalars, `1` over vectors, `2` over matrices, and so on.
+        r"""
+        Number of event dimensions, i.e., length of the `event_shape` tuple.
 
-        Returns
-        -------
-        int
-            Product of the elements of `event_shape`.
+        This is `0` for distributions over scalars, `1` over vectors,
+        `2` over matrices, and so on.
         """
         raise NotImplementedError()
 
     @property
     def batch_dim(self) -> int:
-        """
-        Number of batch dimensions.
-
-        Returns
-        -------
-        int
-            Product of the elements of `batch_shape`.
+        r"""
+        Number of batch dimensions, i.e., length of the `batch_shape` tuple.
         """
         return len(self.batch_shape)
 
     def sample(self, num_samples: Optional[int] = None) -> Tensor:
-        """
-        Draw samples. If num_samples is given the first dimension of the
-        output will be num_samples
+        r"""
+        Draw samples from the distribution.
+
+        If num_samples is given the first dimension of the output will be
+        num_samples.
 
         Returns
         -------
@@ -162,14 +185,23 @@ class Distribution:
 
     @property
     def mean(self) -> Tensor:
+        r"""
+        Tensor containing the mean of the distribution.
+        """
         raise NotImplementedError()
 
     @property
     def stddev(self) -> Tensor:
+        r"""
+        Tensor containing the standard deviation of the distribution.
+        """
         raise NotImplementedError()
 
     @property
     def variance(self) -> Tensor:
+        r"""
+        Tensor containing the variance of the distribution.
+        """
         return self.stddev.square()
 
 

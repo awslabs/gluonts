@@ -14,10 +14,10 @@ from .distribution_output import DistributionOutput
 
 
 class MixtureDistribution(Distribution):
-    """
+    r"""
     A mixture distribution where each component is a Distribution.
 
-    Attributes
+    Paremeters
     ----------
     mixture_probs
         A tensor of mixing probabilities. The entries should all be positive

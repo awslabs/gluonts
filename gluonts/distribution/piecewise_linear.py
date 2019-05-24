@@ -15,45 +15,36 @@ from gluonts.support import util
 
 class PiecewiseLinear(Distribution):
     r"""
-    This class implements piecewise linear distributions.
+    Piecewise linear distribution.
 
-    The piecewise linear spline function that is continuous at the knots is defined as
+    This class represents the *quantile function* (i.e., the inverse CDF)
+    associated with the a distribution, as a continuous, non-decreasing,
+    piecewise linear function defined in the [0, 1] interval:
 
-        s(x; \gamma, b, d) = \gamma + \sum_{l=0}^L b_l (x_l - d_l)_+
+    .. math::
+        q(x; \gamma, b, d) = \gamma + \sum_{l=0}^L b_l (x_l - d_l)_+
 
-    where the input to the spline (i.e., the quantile function) is the quantile level, i.e.,
+    where the input :math:`x \in [0,1]` and the parameters are
 
-        x \in [0,1]
-
-    and the parameters of the spline are given by
-
-        \gamma: intercept
-        b:      weights describing the incremental slopes of the function pieces (not same as the slope of each piece)
-        d:      knot positions
-
-    For quantile functions, we have d_l \in [0, 1] with d_0 = 0 and d_L = 1. Note that
-    d_L and b_L can be omitted when computing s(·), as we always have d_L = 1, and bL does
-    not affect the value of s(·) on [0, 1]. Therefore, the total number of parameters is 2L + 1.
-    In the following, we use the following terminology:
-
-        L:              num_pieces
-        d:              knots
-        d_l - d_{l-1}:  knot_spacings
+    - :math:`\gamma`: intercept at 0
+    - :math:`b`: differences of the slopes in consecutive pieces
+    - :math:`d`: knot positions
 
     Parameters
     ----------
     gamma
         Tensor containing the intercepts at zero
     slopes
-        Tensor containing the slopes of each linear piece. All coefficients
-        must be positive.
+        Tensor containing the slopes of each linear piece.
+        All coefficients must be positive.
         Shape: (*gamma.shape, num_pieces)
     knot_spacings
-        Tensor containing the spacings between knots in the splines. All
-        coefficients must be positive and sum to one.
+        Tensor containing the spacings between knots in the splines.
+        All coefficients must be positive and sum to one on the last axis.
         Shape: (*gamma.shape, num_pieces)
     F
     """
+
     is_reparameterizable = False
 
     def __init__(
@@ -72,7 +63,7 @@ class PiecewiseLinear(Distribution):
     def _to_orig_params(
         F, slopes: Tensor, knot_spacings: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        """
+        r"""
         Convert the trainable parameters to the original parameters of the
         splines, i.e., convert the slopes of each piece to the difference
         between slopes of consecutive pieces and knot spacings to knot
@@ -136,8 +127,8 @@ class PiecewiseLinear(Distribution):
         return self.crps(x)
 
     def crps(self, x: Tensor) -> Tensor:
-        """
-        CRPS in analytical form.
+        r"""
+        Compute CRPS in analytical form.
 
         Parameters
         ----------
@@ -177,8 +168,9 @@ class PiecewiseLinear(Distribution):
         return crps
 
     def _cdf(self, x: Tensor) -> Tensor:
-        """
-        Computes the quantile level a_tilde such that s(a_tilde) = x.
+        r"""
+        Computes the quantile level :math:`\alpha` such that
+        :math:`q(\alpha) = x`.
 
         Parameters
         ----------
@@ -187,7 +179,7 @@ class PiecewiseLinear(Distribution):
 
         Returns
         -------
-        a_tilde
+        Tensor
             Tensor of shape gamma.shape
         """
 
@@ -224,14 +216,14 @@ class PiecewiseLinear(Distribution):
         return a_tilde
 
     def quantile(self, x: Tensor, axis: Optional[int] = None) -> Tensor:
-        """
-        Evaluates the quantile function at given quantile levels, contained
-        in x.
+        r"""
+        Evaluates the quantile function at the quantile levels contained in `x`.
 
         Parameters
         ----------
         x
-            Tensor of shape (num_quantiles, *gamma.shape) if axis=None.
+            Tensor of shape *gamma.shape if axis=None, or containing an
+            additional axis on the specified position, otherwise.
         axis
             Index of the axis containing the different quantile levels which
             are to be computed.
@@ -255,7 +247,6 @@ class PiecewiseLinear(Distribution):
             x.expand_dims(axis=-1), knot_positions
         )
 
-        # (..., d)
         quantile = F.broadcast_add(
             gamma, F.sum(F.broadcast_mul(b, F.relu(x_minus_knots)), axis=-1)
         )
