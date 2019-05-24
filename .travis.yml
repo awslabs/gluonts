@@ -1,0 +1,12 @@
+language: python
+python:
+  - "3.6"
+
+install:
+  - pip install -r requirements-setup.txt
+  - pip install -r requirements-test.txt
+  - pip install .
+
+script:
+  - pytest -v
+  - black --check gluonts
