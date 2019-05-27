@@ -20,7 +20,7 @@ def prod(xs):
     return p
 
 
-class AR2N2Network(mx.gluon.HybridBlock):
+class DeepARNetwork(mx.gluon.HybridBlock):
     @validated()
     def __init__(
         self,
@@ -263,7 +263,7 @@ class AR2N2Network(mx.gluon.HybridBlock):
         return outputs, state, scale, static_feat
 
 
-class AR2N2TrainingNetwork(AR2N2Network):
+class DeepARTrainingNetwork(DeepARNetwork):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
@@ -278,7 +278,7 @@ class AR2N2TrainingNetwork(AR2N2Network):
         future_observed_values: Tensor,
     ) -> Tensor:
         """
-        Computes the loss for training AR2N2, all inputs tensors representing time series have NTC layout.
+        Computes the loss for training DeepAR, all inputs tensors representing time series have NTC layout.
 
         Parameters
         ----------
@@ -353,7 +353,7 @@ class AR2N2TrainingNetwork(AR2N2Network):
         return (weighted_loss, loss) + distr_args
 
 
-class AR2N2PredictionNetwork(AR2N2Network):
+class DeepARPredictionNetwork(DeepARNetwork):
     @validated()
     def __init__(self, num_sample_paths: int, **kwargs) -> None:
         super().__init__(**kwargs)

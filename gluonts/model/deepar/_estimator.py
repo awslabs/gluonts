@@ -31,12 +31,18 @@ from gluonts.transform import (
 )
 
 # Relative imports
-from ._network import AR2N2PredictionNetwork, AR2N2TrainingNetwork
+from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
 
 
-class AR2N2Estimator(GluonEstimator):
+class DeepAREstimator(GluonEstimator):
     """
-    Construct an AR2N2 estimator
+    Construct a DeepAR estimator.
+
+    This implements an RNN-based model, close to the one described in
+    `this paper <https://arxiv.org/abs/1704.04110>`_.
+
+    *Note:* the code of this model is unrelated to the implementation behind
+    `SageMaker's DeepAR Forecasting Algorithm <https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html>`_.
 
     Parameters
     ----------
@@ -200,8 +206,8 @@ class AR2N2Estimator(GluonEstimator):
             ]
         )
 
-    def create_training_network(self) -> AR2N2TrainingNetwork:
-        return AR2N2TrainingNetwork(
+    def create_training_network(self) -> DeepARTrainingNetwork:
+        return DeepARTrainingNetwork(
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
@@ -219,7 +225,7 @@ class AR2N2Estimator(GluonEstimator):
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
-        prediction_network = AR2N2PredictionNetwork(
+        prediction_network = DeepARPredictionNetwork(
             num_sample_paths=self.num_sample_paths,
             num_layers=self.num_layers,
             num_cells=self.num_cells,

@@ -4,7 +4,7 @@ from gluonts.distribution import StudentTOutput, StudentT
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.support.util import get_hybrid_forward_input_names
-from gluonts.model.ar2n2 import AR2N2Estimator
+from gluonts.model.deepar import DeepAREstimator
 import mxnet as mx
 from gluonts.trainer import Trainer
 
@@ -19,7 +19,7 @@ def test_shape():
     Makes sure additional tensors can be accessed and have expected shapes
     """
     prediction_length = ds_info.prediction_length
-    estimator = AR2N2Estimator(
+    estimator = DeepAREstimator(
         freq=freq,
         prediction_length=prediction_length,
         trainer=Trainer(epochs=1, num_batches_per_epoch=1),

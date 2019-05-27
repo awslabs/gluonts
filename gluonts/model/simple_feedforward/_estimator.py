@@ -125,7 +125,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
     # conditioning part and a to-predict part, for each training example.
-    # fFr a more complex transformation example, see the `gluonts.model.ar2n2`
+    # fFr a more complex transformation example, see the `gluonts.model.deepar`
     # transformation that includes time features, age feature, observed values
     # indicator, ...
     def create_transformation(self) -> Transformation:
@@ -146,7 +146,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
 
     # defines the network, we get to see one batch to initialize it.
     # the network should return at least one tensor that is used as a loss to minimize in the training loop.
-    # several tensors can be returned for instance for analysis, see AR2N2TrainingNetwork for an example.
+    # several tensors can be returned for instance for analysis, see DeepARTrainingNetwork for an example.
     def create_training_network(self) -> HybridBlock:
         return SimpleFeedForwardTrainingNetwork(
             num_hidden_dimensions=self.num_hidden_dimensions,

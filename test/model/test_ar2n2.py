@@ -5,7 +5,7 @@ import itertools
 import mxnet as mx
 
 # First-party imports
-from gluonts.model.ar2n2._network import AR2N2TrainingNetwork
+from gluonts.model.deepar._network import DeepARTrainingNetwork
 
 
 def test_lagged_subsequences():
@@ -18,7 +18,7 @@ def test_lagged_subsequences():
     S = 48
 
     # (batch_size, sub_seq_len, target_dim, num_lags)
-    lagged_subsequences = AR2N2TrainingNetwork.get_lagged_subsequences(
+    lagged_subsequences = DeepARTrainingNetwork.get_lagged_subsequences(
         F=mx.nd,
         sequence=sequence,
         sequence_length=sequence.shape[1],
