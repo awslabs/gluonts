@@ -4,7 +4,7 @@ import pytest
 # First-party imports
 from gluonts.dataset.artificial import default_synthetic
 from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.model.ar2n2 import AR2N2Estimator
+from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.model.gp_forecaster import GaussianProcessEstimator
 from gluonts.model.wavenet import WaveNetEstimator
@@ -37,9 +37,9 @@ def simple_feedforward_estimator(hybridize: bool = True, batches_per_epoch=1):
     )
 
 
-def ar2n2_estimator(hybridize: bool = False, batches_per_epoch=1):
+def deepar_estimator(hybridize: bool = False, batches_per_epoch=1):
     return (
-        AR2N2Estimator,
+        DeepAREstimator,
         dict(
             ctx='cpu',
             epochs=epochs,
@@ -92,12 +92,12 @@ def wavenet_estimator(hybridize: bool = False, batches_per_epoch=1):
     )
 
 
-@pytest.mark.timeout(5)  # AR2N2 occasionally fails the 5 second timeout
+@pytest.mark.timeout(5)  # DeepAR occasionally fails the 5 second timeout
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
     [
         simple_feedforward_estimator(batches_per_epoch=1) + (10.0,),
-        ar2n2_estimator(batches_per_epoch=1) + (10.0,),
+        deepar_estimator(batches_per_epoch=1) + (10.0,),
         gp_estimator(batches_per_epoch=1) + (10.0,),
         wavenet_estimator(batches_per_epoch=10) + (10.0,),
     ],

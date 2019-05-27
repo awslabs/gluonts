@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 # First-party imports
-from gluonts.model.ar2n2 import AR2N2Estimator
+from gluonts.model.deepar import DeepAREstimator
 from gluonts.transform import FieldName
 
 NUM_TS = 5
@@ -35,7 +35,7 @@ def make_dummy_dataset_with_cat(num_ts, start, freq, ts_length, cardinality):
     "estimator_type, hps",
     [
         (
-            AR2N2Estimator,
+            DeepAREstimator,
             dict(freq="D", prediction_length=7, num_batches_per_epoch=1),
         )
     ],
@@ -64,7 +64,7 @@ def test_no_cat(estimator_type, hps):
     "estimator_type, hps",
     [
         (
-            AR2N2Estimator,
+            DeepAREstimator,
             dict(
                 freq="D",
                 prediction_length=7,
@@ -98,7 +98,7 @@ def test_one_cat(estimator_type, hps):
     "estimator_type, hps",
     [
         (
-            AR2N2Estimator,
+            DeepAREstimator,
             dict(
                 freq="D",
                 prediction_length=7,
