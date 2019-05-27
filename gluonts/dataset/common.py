@@ -132,6 +132,10 @@ class SourceContext(NamedTuple):
 
 
 class Dataset(Sized, Iterable[DataEntry]):
+    """
+    An abstract class for datasets, i.e., iterable collection of DataEntry.
+    """
+
     def __iter__(self) -> Iterator[DataEntry]:
         raise NotImplementedError
 
@@ -152,6 +156,11 @@ class Channel(pydantic.BaseModel):
 
 
 class TrainDatasets(NamedTuple):
+    """
+    A dataset containing two subsets, one to be used for training purposes,
+    and the other for testing purposes, as well as metadata.
+    """
+
     metadata: MetaData
     train: Dataset
     test: Optional[Dataset] = None
@@ -159,15 +168,19 @@ class TrainDatasets(NamedTuple):
 
 class FileDataset(Dataset):
     """
-    Dataset that loads SF2 dictionaries from every file contained in a path.
+    Dataset that loads JSON Lines files contained in a path.
 
-    :param path: path containing the dataset files. Each file is considered
-           and should be valid to the exception of files starting with '.'
-           or ending with '_SUCCESS'. A valid line in a file can be for
-           instance: {"start": "2014-09-07", "target": [0.1, 0.2]}
-    :param freq: Time-series frequency. Must be a valid Pandas frequency.
-    :param one_dim_target: whether to accept only univariate target
-           time-series.
+    Parameters
+    ----------
+    path
+        Path containing the dataset files. Each file is considered
+        and should be valid to the exception of files starting with '.'
+        or ending with '_SUCCESS'. A valid line in a file can be for
+        instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
+    freq
+        Time-series frequency. Must be a valid Pandas frequency.
+    one_dim_target
+        Whether to accept only univariate target time-series.
     """
 
     def __init__(
@@ -189,7 +202,15 @@ class FileDataset(Dataset):
     def __len__(self):
         return sum([len(jsonl.JsonLinesFile(path)) for path in self.files()])
 
-    def files(self):
+    def files(self) -> List[Path]:
+        """
+        List the files that compose the dataset.
+
+        Returns
+        -------
+        List[Path]
+            List of the paths of all files composing the dataset.
+        """
         return util.find_files(self.path, FileDataset.is_valid)
 
     @staticmethod
@@ -202,6 +223,15 @@ class FileDataset(Dataset):
 class ListDataset(Dataset):
     """
     Dataset backed directly by an array of dictionaries.
+
+    data_iter
+        Iterable object yielding all items in the dataset.
+        Each item should be a dictionary mapping strings to values.
+        For instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
+    freq
+        Time-series frequency. Must be a valid Pandas frequency.
+    one_dim_target
+        Whether to accept only univariate target time-series.
     """
 
     def __init__(
@@ -226,6 +256,13 @@ class ListDataset(Dataset):
 class ProcessStartField:
     """
     Transform the start field into a Timestamp with the given frequency.
+
+    Parameters
+    ----------
+    name
+        Name of the field to transform.
+    freq
+        Frequency to use. This must be a valid Pandas frequency string.
     """
 
     def __init__(self, name: str, freq: str) -> None:
@@ -283,8 +320,9 @@ class ProcessItem:
 class ProcessTimeSeriesField:
     """
     Converts a time series field identified by `name` from a list of numbers
-    into a numpy array. Constructor parameters modify the conversion logic in
-    the following way.
+    into a numpy array.
+
+    Constructor parameters modify the conversion logic in the following way:
 
     If `is_required=True`, throws a `GluonTSDataError` if the field is not
     present in the `Data` dictionary.
@@ -296,8 +334,19 @@ class ProcessTimeSeriesField:
     otherwise asserts that the resulting array is 2D. 2D dynamic arrays of
     shape (T) are automatically expanded to shape (1,T).
 
-    TODO: find a fast way to assert absence of nans.
+    Parameters
+    ----------
+    name
+        Name of the field to process.
+    is_required
+        Whether the field must be present.
+    is_cat
+        Whether the field refers to categorical (i.e. integer) values.
+    is_static
+        Whether the field is supposed to have a time dimension.
     """
+
+    # TODO: find a fast way to assert absence of nans.
 
     def __init__(
         self, name, is_required: bool, is_static: bool, is_cat: bool
@@ -388,6 +437,20 @@ def load_datasets(
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
+
+    Parameters
+    ----------
+    metadata
+        Path to the metadata file
+    train
+        Path to the training dataset files.
+    test
+        Path to the test dataset files.
+
+    Returns
+    -------
+    TrainDatasets
+        An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
     train_ds = FileDataset(train, meta.time_granularity)
@@ -400,12 +463,16 @@ def save_datasets(
     dataset: TrainDatasets, path_str: str, overwrite=True
 ) -> None:
     """
-    Saves an SF2 dataset corresponding to train_set, test_set and metadata.
+    Saves an TrainDatasets object to a JSON Lines file.
 
-    :param dataset: The training datasets.
-    :param path_str: where to save the dataset, default to the dataset local
-           repository.
-    :param overwrite: whether to delete previous version in this folder.
+    Parameters
+    ----------
+    dataset
+        The training datasets.
+    path_str
+        Where to save the dataset.
+    overwrite
+        Whether to delete previous version in this folder.
     """
     path = Path(path_str)
 
@@ -435,7 +502,18 @@ def save_datasets(
 def serialize_data_entry(data):
     """
     Encode the numpy values in the a DataEntry dictionary into lists so the
-    dictionary can be json serialized.
+    dictionary can be JSON serialized.
+
+    Parameters
+    ----------
+    data
+        The dictionary to be transformed.
+
+    Returns
+    -------
+    Dict
+        The transformed dictionary, where all fields where transformed into
+        strings.
     """
 
     def serialize_field(field):

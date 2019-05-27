@@ -31,6 +31,16 @@ class Line(NamedTuple):
 
 
 class JsonLinesFile:
+    """
+    An iterable type that draws from a JSON Lines file.
+
+    Paramters
+    ---------
+    path
+        Path of the file to load data from. This should be a valid
+        JSON Lines file.
+    """
+
     def __init__(self, path):
         self.path = path
 

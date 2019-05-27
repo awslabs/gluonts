@@ -63,6 +63,24 @@ class BatchBuffer:
 
 
 class DataLoader(Iterable[DataEntry]):
+    """
+    An abstract Iterable type for iterating and transforming a dataset,
+    in batches of a prescribed size.
+
+    Parameters
+    ----------
+    dataset
+        The dataset from which to load data.
+    transform
+        A transformation to apply to each entry in the dataset.
+    batch_size
+        The size of the batches to emit.
+    ctx
+        MXNet context to use to store data.
+    float_type
+        Floating point type to use.
+    """
+
     def __init__(
         self,
         dataset: Dataset,
@@ -79,6 +97,29 @@ class DataLoader(Iterable[DataEntry]):
 
 
 class TrainDataLoader(DataLoader):
+    """
+    An Iterable type for iterating and transforming a dataset, in batches of a
+    prescribed size, until a given number of batches is reached.
+
+    The transformation are applied with in training mode, i.e. with the flag
+    `is_train = True`.
+
+    Parameters
+    ----------
+    dataset
+        The dataset from which to load data.
+    transform
+        A transformation to apply to each entry in the dataset.
+    batch_size
+        The size of the batches to emit.
+    ctx
+        MXNet context to use to store data.
+    num_batches_per_epoch
+        Number of batches to return in one complete iteration over this object.
+    float_type
+        Floating point type to use.
+    """
+
     def __init__(
         self,
         dataset: Dataset,
@@ -147,6 +188,27 @@ class TrainDataLoader(DataLoader):
 
 
 class InferenceDataLoader(DataLoader):
+    """
+    An Iterable type for iterating and transforming a dataset just once, in
+    batches of a prescribed size.
+
+    The transformation are applied with in inference mode, i.e. with the flag
+    `is_train = False`.
+
+    Parameters
+    ----------
+    dataset
+        The dataset from which to load data.
+    transform
+        A transformation to apply to each entry in the dataset.
+    batch_size
+        The size of the batches to emit.
+    ctx
+        MXNet context to use to store data.
+    float_type
+        Floating point type to use.
+    """
+
     def __iter__(self) -> Iterator[DataBatch]:
         buffer = BatchBuffer(self.batch_size, self.ctx, self.float_type)
         for data_entry in self.transform(iter(self.dataset), is_train=False):

@@ -13,6 +13,21 @@ from gluonts.gluonts_tqdm import tqdm
 
 
 class ScaleHistogram:
+    """
+    Scale histogram of a timeseries dataset
+
+    This counts the number of timeseries whose mean of absolute values is in
+    the `[base ** i, base ** (i+1)]` range for all possible `i`.
+    The number of entries with empty target is counted separately.
+
+    Parameters
+    ----------
+    base
+        Log-width of the histogram's buckets.
+    bin_counts
+    empty_target_count
+    """
+
     @validated()
     def __init__(
         self,
@@ -20,12 +35,6 @@ class ScaleHistogram:
         bin_counts: Optional[dict] = None,
         empty_target_count: int = 0,
     ) -> None:
-        """
-        Scale histogram of a timeseries dataset which counts the number of
-        timeseries whose mean of absolute values is in the
-        [base ** i, base ** (i+1)] range for all possible i.
-        We dedicate a value to count the number of empty target occurrences.
-        """
         self._base = base
         self.bin_counts = defaultdict(
             int, {} if bin_counts is None else bin_counts
@@ -82,6 +91,10 @@ class ScaleHistogram:
 
 
 class DatasetStatistics(NamedTuple):
+    """
+    A NamedTuple to store the statistics of a Dataset.
+    """
+
     cats: List[Set[int]]
     integer_dataset: bool
     max_target: float
@@ -111,11 +124,21 @@ class DatasetStatistics(NamedTuple):
         return True
 
 
-# FIXME: find a way to change Any -> Dataset
-# it's not easy because of a possible circular import
+# TODO: reorganize modules to avoid circular dependency
+# TODO: and substitute Any with Dataset
 def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     """
-    Takes a time series source and calculates statistics.
+    Computes the statistics of a given Dataset.
+
+    Parameters
+    ----------
+    ts_dataset
+        Dataset of which to compute the statistics.
+
+    Returns
+    -------
+    DatasetStatistics
+        NamedTuple containing the statistics.
     """
     num_time_observations = 0
     num_time_series = 0
