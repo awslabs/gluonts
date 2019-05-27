@@ -12,6 +12,13 @@ from .distribution import getF
 
 
 class Bijection:
+    """
+    A bijective transformation.
+
+    This is defined through the forward tranformation (computed by the
+    `f` method) and the inverse transformation (`f_inv`).
+    """
+
     def f(self, x: Tensor) -> Tensor:
         r"""
         Forward transformation x -> y
@@ -50,6 +57,18 @@ class Bijection:
 
 
 class InverseBijection(Bijection):
+    """
+    The inverse of a given transformation.
+
+    This is a wrapper around bijective transformations, that inverts the
+    role of `f` and `f_inv`, and modifies other related methods accordingly.
+
+    Parameters
+    ----------
+    bijection
+        The transformation to invert.
+    """
+
     def __init__(self, bijection: Bijection) -> None:
         self._bijection = bijection
 
@@ -127,6 +146,21 @@ class _Softrelu(Bijection):
 
 
 class AffineTransformation(Bijection):
+    """
+    An affine transformation consisting of a scaling and a translation.
+
+    If translation is specified `loc`, and the scaling by `scale`, then
+    this transformation computes `y = scale * x + loc`, where all operations
+    are element-wise.
+
+    Parameters
+    ----------
+    loc
+        Translation parameter.
+    scale
+        Scaling parameter.
+    """
+
     def __init__(
         self, loc: Optional[Tensor] = None, scale: Optional[Tensor] = None
     ) -> None:
