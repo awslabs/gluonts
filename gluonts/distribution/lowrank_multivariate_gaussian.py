@@ -55,9 +55,10 @@ def log_det(F, batch_D: Tensor, batch_capacitance_tril: Tensor) -> Tensor:
     Uses the matrix determinant lemma.
 
     .. math::
-        log|D + W W^T| = log|C| + log|D|,
+        \log|D + W W^T| = \log|C| + \log|D|,
 
     where :math:`C` is the capacitance matrix :math:`I + W^T D^{-1} W`, to compute the log determinant.
+
     Parameters
     ----------
     F
@@ -83,7 +84,7 @@ def mahalanobis_distance(
         (W W^T + D)^{-1} = D^{-1} - D^{-1} W C^{-1} W^T D^{-1},
 
     where :math:`C` is the capacitance matrix :math:`I + W^T D^{-1} W`, to compute the squared
-    Mahalanobis distance :math:`x^T (W @ W.T + D)^{-1} x`.
+    Mahalanobis distance :math:`x^T (W W^T + D)^{-1} x`.
 
     Parameters
     ----------

@@ -20,52 +20,65 @@ class BoxCoxTranform(Bijection):
     The Box-Cox transformation of an observation :math:`z` is given by
 
     .. math::
-        BoxCox(z; \lambda_1, \lambda_2) = ((z + \lambda_2)^\lambda_1 - 1.0) / \lambda_1,  if \lambda_1 \neq 0 \\
-                                        = \log (z + \lambda_2),                           otherwise.
 
-    Here
+        BoxCox(z; \lambda_1, \lambda_2) = \begin{cases}
+                                              ((z + \lambda_2)^{\lambda_1} - 1) / \lambda_1, \quad & \text{if }
+                                              \lambda_1 \neq 0, \\
+                                              \log (z + \lambda_2), \quad & \text{otherwise.}
+                                          \end{cases}
 
-    :math:`\lambda_1` and :math:`\lambda_2` are learnable parameters.
-
-    Note that the domain of the transformation is not restricted.
+    Here, :math:`\lambda_1` and :math:`\lambda_2` are learnable parameters. Note that the domain
+    of the transformation is not restricted.
 
     For numerical stability, instead of checking :math:`\lambda_1` is exactly zero, we use the condition
 
-    ..math::
-        \abs(`\lambda_1`) < \tol_lambda_1
+    .. math::
+
+        |\lambda_1| < tol\_lambda\_1
 
     for a pre-specified tolerance `tol_lambda_1`.
 
     Inverse of the Box-Cox Transform is given by
 
+    .. math::
+
+        BoxCox^{-1}(y; \lambda_1, \lambda_2) = \begin{cases}
+                                                (y \lambda_1 + 1)^{(1/\lambda_1)} - \lambda_2, \quad & \text{if }
+                                                \lambda_1 \neq 0, \\
+                                                \exp (y) - \lambda_2, \quad & \text{otherwise.}
+                                               \end{cases}
+
+    **Notes on numerical stability:**
+
+    1.  For the forward transformation, :math:`\lambda_2` must always be chosen such that
+
         .. math::
-        BoxCox^-1(y; \lambda_1, \lambda_2) = (y * \lambda_1 + 1.0)^(1/\lambda_1) - \lambda_2,  if \lambda_1 \neq 0 \\
-                                           = \exp (y) - \lambda_2,                             otherwise.
 
-    Notes on numerical stability:
-    =============================
-
-    1. For the forward transformation, :math:`\lambda_2` must always be chosen such that
-        ..math::
             z + \lambda_2 > 0.
 
         To achieve this one needs to know a priori the lower bound on the observations.
-        This is set in `BoxCoxTransformOutput`, since :math:`lambda_2` is learnable.
+        This is set in `BoxCoxTransformOutput`, since :math:`\lambda_2` is learnable.
 
-    2. Similarly for the inverse transformation to work reliably, a sufficient condition is
-        ..math::
-            y * \lambda_1 + 1.0 >= 0,
+    2.  Similarly for the inverse transformation to work reliably, a sufficient condition is
+
+        .. math::
+
+            y \lambda_1 + 1 \geq 0,
 
         where :math:`y` is the input to the inverse transformation.
 
         This cannot always be guaranteed especially when :math:`y` is a sample from a transformed distribution.
-        Hence we always truncate :math:`y * \lambda_1 + 1.0` at zero.
+        Hence we always truncate :math:`y \lambda_1 + 1` at zero.
 
-        An example showing why this could happen in our case.
-        Consider transforming observations from the unit interval (0, 1) with parameters
-        ..math::
-            \lambda_1 = 1.1, \lambda_2 = 0.0.
+        An example showing why this could happen in our case:
+        consider transforming observations from the unit interval (0, 1) with parameters
 
+        .. math::
+
+            \begin{align}
+                \lambda_1 = &\ 1.1, \\
+                \lambda_2 = &\ 0.
+            \end{align}
         Then the range of the transformation is (-0.9090, 0.0).
         If Gaussian is fit to the transformed observations and a sample is drawn from it,
         then it is likely that the sample is outside this range, e.g., when the mean is close to -0.9.
@@ -177,9 +190,10 @@ class BoxCoxTranform(Bijection):
         is given by
 
         .. math::
-        \log \frac{d}{dz} BoxCox(z; \lambda_1, \lambda_2)
-            = \log (z + \lambda_2) * (\lambda_1 - 1.0), if \lambda_1 \neq 0 \\
-            = -\log (z + \lambda_2),                    otherwise.
+            \log \frac{d}{dz} BoxCox(z; \lambda_1, \lambda_2) = \begin{cases}
+                                \log (z + \lambda_2) (\lambda_1 - 1), \quad & \text{if } \lambda_1 \neq 0, \\
+                                -\log (z + \lambda_2), \quad & \text{otherwise.}
+                                \end{cases}
 
         Note that the derivative of the transformation is always non-negative.
 
