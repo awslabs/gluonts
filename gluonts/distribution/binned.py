@@ -35,12 +35,32 @@ class Binned(Distribution):
         self.bin_probs = bin_probs
         self.F = F if F else getF(bin_probs)
 
+        self.bin_edges = Binned._compute_edges(self.F, bin_centers)
+
+    @staticmethod
+    def _compute_edges(F, bin_centers: Tensor) -> Tensor:
+        r"""
+        Computes the edges of the bins based on the centers. The first and last edge are set to :math:`10^{-10}` and
+        :math:`10^{10}`, repsectively.
+
+        Parameters
+        ----------
+        F
+        bin_centers
+            Tensor of shape `(*batch_shape, num_bins)`.
+
+        Returns
+        -------
+        Tensor
+            Tensor of shape (*gamma.shape, num_bins+1)
+        """
+
         low = (
-            self.F.zeros_like(bin_centers.slice_axis(axis=-1, begin=0, end=1))
+            F.zeros_like(bin_centers.slice_axis(axis=-1, begin=0, end=1))
             - 1.0E10
         )
         high = (
-            self.F.zeros_like(bin_centers.slice_axis(axis=-1, begin=0, end=1))
+            F.zeros_like(bin_centers.slice_axis(axis=-1, begin=0, end=1))
             + 1.0E10
         )
 
@@ -48,7 +68,8 @@ class Binned(Distribution):
             bin_centers.slice_axis(axis=-1, begin=1, end=None)
             + bin_centers.slice_axis(axis=-1, begin=0, end=-1)
         ) / 2.0
-        self.bin_edges = self.F.concat(low, means, high, dim=-1)
+
+        return F.concat(low, means, high, dim=-1)
 
     @property
     def batch_shape(self) -> Tuple:
@@ -142,7 +163,7 @@ class BinnedOutput(DistributionOutput):
         self.bin_centers = bc
 
     def get_args_proj(self, *args, **kwargs) -> gluon.nn.HybridBlock:
-        return BinnedArgs(self.bin_centers, **kwargs)
+        return BinnedArgs(self.bin_centers)
 
     def distribution(self, args, scale=None) -> Binned:
         probs, centers = args
