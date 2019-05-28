@@ -37,7 +37,9 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
         quantiles: List[float] = list(),
         trainer: Trainer = Trainer(),
     ) -> None:
-        context_length = prediction_length if context_length is None else context_length
+        context_length = (
+            prediction_length if context_length is None else context_length
+        )
         assert all(
             [d > 0 for d in mlp_hidden_dimension_seq]
         ), "Elements of `mlp_hidden_dimension_seq` should be > 0"
@@ -77,7 +79,9 @@ class MQCNNEstimator(MQDNNEstimator):
         # FIXME: prefix those so clients know that these are decoder params
         mlp_final_dim: int = 20,
         mlp_hidden_dimension_seq: List[int] = list(),
-        quantiles: List[float] = list([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]),
+        quantiles: List[float] = list(
+            [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        ),
         trainer: Trainer = Trainer(),
     ) -> None:
         encoder = HierarchicalCausalConv1DEncoder(
