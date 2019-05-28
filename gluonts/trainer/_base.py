@@ -50,6 +50,41 @@ class BestEpochInfo(NamedTuple):
 
 
 class Trainer:
+    r"""
+    A trainer specifies how a network is going to be trained.
+
+    A trainer is mainly defined by two sets of parameters. The first one determines the number of examples
+    that the network will be trained on (`epochs`, `num_batches_per_epoch` and `batch_size`), while the
+    second one specifies how the gradient updates are performed (`learning_rate`, `learning_rate_decay_factor`,
+    `patience`, `minimum_learning_rate`, `clip_gradient` and `weight_decay`).
+
+    Parameters
+    ----------
+    ctx
+    epochs
+        Number of epochs that the network will train (default: 1).
+    batch_size
+        Number of examples in each batch (default: 32).
+    num_batches_per_epoch
+        Number of batches at each epoch (default: 100).
+    learning_rate
+        Initial learning rate (default: :math:`10^{-3}`).
+    learning_rate_decay_factor
+        Factor (between 0 and 1) by which to decrease the learning rate (default: 0.5).
+    patience
+        The patience to observe before reducing the learning rate, nonnegative integer (default: 10).
+    minimum_learning_rate
+        Lower bound for the learning rate (default: :math:`5\cdot 10^{-5}`).
+    clip_gradient
+        Maximum value of gradient. The gradient is clipped if it is too large (default: 10).
+    weight_decay
+        The weight decay (or L2 regularization) coefficient. Modifies objective by adding a penalty for having
+        large weights (default :math:`10^{-8}`).
+    init
+        Initializer of the weights of the network (default: "xavier").
+    hybridize
+    """
+
     @validated()
     def __init__(
         self,
@@ -64,13 +99,9 @@ class Trainer:
         clip_gradient: float = 10.0,
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = 'xavier',
-        train_log_interval: int = 50,
         hybridize: bool = True,
     ) -> None:
 
-        assert (
-            0 < train_log_interval < float('inf')
-        ), "The value of `train_log_interval` should be > 0"
         assert (
             0 <= epochs < float('inf')
         ), "The value of `epochs` should be >= 0"
@@ -90,9 +121,6 @@ class Trainer:
         ), "The value of `minimum_learning_rate` should be >= 0"
         assert 0 < clip_gradient, "The value of `clip_gradient` should be > 0"
         assert 0 <= weight_decay, "The value of `weight_decay` should be => 0"
-        assert (
-            1 <= train_log_interval
-        ), "The value of `train_log_interval` should be >= 1"
 
         self.epochs = epochs
         self.batch_size = batch_size
@@ -104,7 +132,6 @@ class Trainer:
         self.clip_gradient = clip_gradient
         self.weight_decay = weight_decay
         self.init = init
-        self.train_log_interval = train_log_interval
         self.hybridize = hybridize
         self.ctx = (
             ctx

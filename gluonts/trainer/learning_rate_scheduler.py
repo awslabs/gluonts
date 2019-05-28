@@ -4,7 +4,7 @@ import numpy as np
 
 
 class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
-    """
+    r"""
     This scheduler decreases the learning rate based on the value of some
     validation metric to be optimized (maximized or minimized). The value
     of such metric is provided by calling the `step` method on the scheduler.
@@ -22,6 +22,19 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
 
         `patience = 10`: learning rate is reduced if no improvement in the
         metric is recorded in 10 successive calls to `step`
+
+    Parameters
+    ----------
+    objective
+        String, can either be `"min"` or `"max"`
+    patience
+        The patience to observe before reducing the learning rate, nonnegative integer.
+    base_lr
+        Initial learning rate to be used.
+    decay_factor
+        Factor (between 0 and 1) by which to decrease the learning rate.
+    min_lr
+        Lower bound for the learning rate, learning rate will never go below `min_lr`
     """
 
     def __init__(
@@ -32,16 +45,7 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         decay_factor: float = 0.5,
         min_lr: float = 0.0,
     ) -> None:
-        """
 
-        :param objective: string, can either be `"min"` or `"max"`
-        :param patience:  int, the patience to observe before reducing the
-            learning rate
-        :param base_lr: initial learning rate to be used
-        :param decay_factor: factor by which to decrease the learning rate
-        :param min_lr: lower bound for the learning rate, learning rate will
-            never go below `min_lr`
-        """
         assert base_lr > 0, f"base_lr should be positive, got {base_lr}"
 
         assert (
@@ -79,7 +83,10 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         optimized. This method should be invoked at regular intervals (e.g.
         at the end of every epoch, after computing a validation score).
 
-        :param metric_value: value of the metric that is being optimized.
+        Parameters
+        ----------
+        metric_value
+            Value of the metric that is being optimized.
         """
         if self.curr_lr is None:
             self.curr_lr = self.base_lr
