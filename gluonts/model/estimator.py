@@ -19,14 +19,46 @@ from gluonts.transform import Transformation
 
 
 class Estimator:
+    """
+    An abstract class representing a trainable model.
+
+    The underlying model is trained by calling the `train` method with
+    a training `Dataset`, producing a `Predictor` object.
+    """
+
     prediction_length: int
     freq: str
 
     def train(self, training_data: Dataset) -> Predictor:
+        """
+        Train the estimator on the given data.
+
+        Parameters
+        ----------
+        training_data
+            Dataset to train the model on.
+
+        Returns
+        -------
+        Predictor
+            The predictor containing the trained model.
+        """
         raise NotImplementedError
 
 
 class DummyEstimator(Estimator):
+    """
+    An `Estimator` that, upon training, simply returns a pre-constructed
+    `Predictor`.
+
+    Parameters
+    ----------
+    predictor_cls
+        `Predictor` class to instantiate.
+    **kwargs
+        Keyword arguments to pass to the predictor constructor.
+    """
+
     @validated()
     def __init__(self, predictor_cls: type, **kwargs) -> None:
         self.predictor = predictor_cls(**kwargs)
@@ -41,13 +73,10 @@ class DummyEstimator(Estimator):
 
 class GluonEstimator(Estimator):
     """
-    An estimator with some utilities for creating Estimators from gluon
+    An `Estimator` type with utilities for creating Gluon-based models.
 
-    To use this implement these three methods
-
-    - create_transformation
-    - create_training_network
-    - create_predictor
+    To extend this class, one needs to implement three methods:
+    `create_transformation`, `create_training_network`, `create_predictor`.
     """
 
     @validated()
@@ -79,6 +108,12 @@ class GluonEstimator(Estimator):
     def create_transformation(self) -> Transformation:
         """
         Create and return the transformation needed for training and inference.
+
+        Returns
+        -------
+        Transformation
+            The transformation that will be applied entry-wise to datasets,
+            at training and inference time.
         """
         raise NotImplementedError
 
@@ -86,6 +121,11 @@ class GluonEstimator(Estimator):
         """
         Create and return the network used for training (i.e., computing the
         loss).
+
+        Returns
+        -------
+        HybridBlock
+            The network that computes the loss given input data.
         """
         raise NotImplementedError
 
@@ -94,6 +134,11 @@ class GluonEstimator(Estimator):
     ) -> Predictor:
         """
         Create and return a predictor object.
+
+        Returns
+        -------
+        Predictor
+            A predictor wrapping a `HybridBlock` used for inference.
         """
         raise NotImplementedError
 

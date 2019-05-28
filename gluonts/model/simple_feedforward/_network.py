@@ -13,13 +13,31 @@ from gluonts.model.common import Tensor
 
 class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
     """
-    Defines a Gluon block used for training and predictions.
-    """
+    Abstract base class to implement feed-forward networks for probabilistic
+    time series prediction.
 
-    # This class does not implement hybrid_forward: this is delegated
-    # to the two subclasses SimpleFeedForwardTrainingNetwork and
-    # SimpleFeedForwardPredictionNetwork, that define respectively how to
-    # compute the loss and how to generate predictions
+    This class does not implement hybrid_forward: this is delegated
+    to the two subclasses SimpleFeedForwardTrainingNetwork and
+    SimpleFeedForwardPredictionNetwork, that define respectively how to
+    compute the loss and how to generate predictions.
+
+    Parameters
+    ----------
+    num_hidden_dimensions
+        Number of hidden nodes in each layer.
+    prediction_length
+        Number of time units to predict.
+    context_length
+        Number of time units that condition the predictions.
+    batch_normalization
+        Whether to use batch normalization.
+    mean_scaling
+        Scale the network input by the data mean and the network output by
+        its inverse.
+    distr_output
+        Distribution to fit.
+    kwargs
+    """
 
     # Needs the validated decorator so that arguments types are checked and
     # the block can be serialized.
@@ -62,6 +80,22 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             self.scaler = MeanScaler() if mean_scaling else NOPScaler()
 
     def get_distr(self, F, past_target: Tensor) -> Distribution:
+        """
+        Given past target values, applies the feed-forward network and
+        maps the output to a probability distribution for future observations.
+
+        Parameters
+        ----------
+        F
+        past_target
+            Tensor containing past target observations.
+            Shape: (batch_size, context_length, target_dim).
+
+        Returns
+        -------
+        Distribution
+            The predicted probability distribution for future observations.
+        """
 
         # (batch_size, seq_len, target_dim) and (batch_size, seq_len, target_dim)
         scaled_target, target_scale = self.scaler(
@@ -81,23 +115,30 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         self, F, past_target: Tensor, future_target: Tensor
     ) -> Tensor:
         """
+        Computes a probability distribution for future data given the past,
+        and returns the loss associated with the actual future observations.
 
         Parameters
         ----------
         F
-        past_target : (batch_size, context_length, target_dim)
-        future_target : (batch_size, prediction_length, target_dim)
+        past_target
+            Tensor with past observations.
+            Shape: (batch_size, context_length, target_dim).
+        future_target
+            Tensor with future observations.
+            Shape: (batch_size, prediction_length, target_dim).
 
         Returns
         -------
-
+        Tensor
+            Loss tensor. Shape: (batch_size, ).
         """
         distr = self.get_distr(F, past_target)
 
         # (batch_size, prediction_length, target_dim)
         loss = distr.loss(future_target)
 
-        # (batch_size, target_dim)
+        # (batch_size, )
         return loss.mean(axis=1)
 
 
@@ -110,15 +151,20 @@ class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
         """
+        Computes a probability distribution for future data given the past,
+        and draws samples from it.
 
         Parameters
         ----------
         F
-        past_target : (batch_size, context_length, target_dim)
+        past_target
+            Tensor with past observations.
+            Shape: (batch_size, context_length, target_dim).
 
-        Returns samples with shape (samples, batch_size, prediction_length,)
+        Returns
         -------
-
+        Tensor
+            Prediction sample. Shape: (samples, batch_size, prediction_length).
         """
         distr = self.get_distr(F, past_target)
 

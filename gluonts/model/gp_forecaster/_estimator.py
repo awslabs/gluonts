@@ -38,7 +38,9 @@ from ._network import (
 class GaussianProcessEstimator(GluonEstimator):
     """
     GaussianProcessEstimator shows how to build a local time series model using
-    Gaussian Processes (GP). Each time series has a GP with its own
+    Gaussian Processes (GP).
+
+    Each time series has a GP with its own
     hyper-parameters.  For the radial basis function (RBF) Kernel, the
     learnable hyper-parameters are the amplitude and lengthscale. The periodic
     kernel has those hyper-parameters with an additional learnable frequency
@@ -49,6 +51,37 @@ class GaussianProcessEstimator(GluonEstimator):
     has its set of hyper-parameter that is static in time). The observations
     are the time series values. In this model, the time features are hour of
     the day and day of the week.
+
+    Parameters
+    ----------
+    freq
+        Time series frequency.
+    prediction_length
+        Prediction length.
+    cardinality
+        Number of time series.
+    trainer
+        Trainer instance to be used for model training.
+    context_length
+        Training length.
+    num_eval_samples
+        Number of samples to be drawn.
+    kernel_output
+        KernelOutput instance to determine which kernel subclass to be
+        instantiated.
+    params_scaling
+        Determines whether or not to scale the model parameters.
+    float_type
+        Determines whether to use single or double precision.
+    max_iter_jitter
+        Maximum number of iterations for jitter to iteratively make the matrix positive definite.
+    jitter_method
+        Iteratively jitter method or use eigenvalue decomposition depending on problem size.
+    sample_noise
+        Boolean to determine whether to add :math:`\sigma^2I` to the predictive covariance matrix.
+    time_features
+        Time features to use as inputs of the model (default: None, in which
+        case these are automatically determined based on the frequency.)
     """
 
     @validated()
@@ -68,38 +101,6 @@ class GaussianProcessEstimator(GluonEstimator):
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
     ) -> None:
-        """
-        Parameters
-        ----------
-        freq
-            Time series frequency.
-        prediction_length
-            Prediction length.
-        cardinality
-            Number of time series.
-        trainer
-            Trainer instance to be used for model training.
-        context_length
-            Training length.
-        num_eval_samples
-            Number of samples to be drawn.
-        kernel_output
-            KernelOutput instance to determine which kernel subclass to be
-            instantiated.
-        params_scaling
-            Determines whether or not to scale the model parameters.
-        float_type
-            Determines whether to use single or double precision.
-        max_iter_jitter
-            Maximum number of iterations for jitter to iteratively make the matrix positive definite.
-        jitter_method
-            Iteratively jitter method or use eigenvalue decomposition depending on problem size.
-        sample_noise
-            Boolean to determine whether to add :math:`\sigma^2I` to the predictive covariance matrix.
-        time_features
-            Time features to use as inputs of the model (default: None, in which
-            case these are automatically determined based on the frequency.)
-        """
         self.float_type = float_type
         super().__init__(trainer=trainer, float_type=self.float_type)
 
