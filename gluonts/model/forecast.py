@@ -15,11 +15,8 @@ from gluonts.core.exception import GluonTSUserError, assert_gluonts
 
 def parse_quantile_input(q: Union[float, str]):
     """
-    Input can be a float a str representing a float e.g. '0.1' or a quantile str of the form 'pXX'.
-    Return:
-        (q_float_value, q_str_value)
-
-    a tuple of the float and string representation of the quantile
+    Produces equivalent float and string representation of a given
+    quantile level.
 
     >>> parse_quantile_input(0.1)
     (0.1, '0.1')
@@ -32,7 +29,20 @@ def parse_quantile_input(q: Union[float, str]):
 
     >>> parse_quantile_input('p99')
     (0.99, '0.99')
+
+    Parameters
+    ----------
+    q
+        Quantile, can be a float a str representing a float e.g. '0.1' or a
+        quantile string of the form 'p0.1'.
+
+    Returns
+    -------
+    Tuple[float, str]
+        A tuple containing both a float and a string representation of the
+        input quantile level.
     """
+
     assert isinstance(q, (float, str))
 
     if isinstance(q, float):
@@ -63,6 +73,10 @@ def parse_quantile_input(q: Union[float, str]):
 
 
 class Forecast:
+    """
+    A abstract class representing predictions.
+    """
+
     start_date: pd.Timestamp
     freq: str
     item_id: Optional[str]
@@ -73,13 +87,23 @@ class Forecast:
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         """
-        Return an array of the quantile values at each time point in the prediction range
+        Computes a quantile from the predicted distribution.
+
+        Parameters
+        ----------
+        q
+            Quantile to compute.
+
+        Returns
+        -------
+        numpy.ndarray
+            Value of the quantile across the prediction range.
         """
         raise NotImplementedError()
 
     def plot(self, **kwargs):
         """
-        Plot the forecast
+        Plot the forecast.
         """
         raise NotImplementedError()
 
@@ -93,20 +117,41 @@ class Forecast:
 
     def dim(self) -> int:
         """
-        Returns the dimensionality of the forecast object
+        Returns the dimensionality of the forecast object.
         """
         raise NotImplementedError()
 
     def copy_dim(self, dim: int):
         """
         Returns a new Forecast object with only the selected sub-dimension.
-        :param dim: if dim is set, the returned forecast object will only have samples of the set dimension.
-        :return:
+
+        Parameters
+        ----------
+        dim
+            The returned forecast object will only have samples of this
+            dimension.
         """
         raise NotImplementedError()
 
 
 class SampleForecast(Forecast):
+    """
+    A `Forecast` object, where the predicted distribution is represented
+    internally as samples.
+
+    Parameters
+    ----------
+    samples
+        Array of size (num_samples, prediction_length)
+    start_date
+        start of the forecast
+    freq
+        forecast frequency
+    info
+        additional information that the forecaster may provide e.g. estimated
+        parameters, number of iterations ran etc.
+    """
+
     def __init__(
         self,
         samples,
@@ -115,19 +160,6 @@ class SampleForecast(Forecast):
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ):
-        """
-        Container for forecasts.
-        :param samples: Array of size (num_samples, prediction_length)
-        :param start_date: start of the forecast
-        :param freq: forecast frequency
-        :param info: additional information that the forecaster may provide e.g. estimated parameters,
-          number of iterations ran etc.
-
-        NOTE: By setting quantile_levels to e.g. [0.5, 0.9] and providing two "samples"
-              that correspond to these quantiles of the marginal distribution, we can
-              incorporate forecasters that output quantiles directly (instead of sample paths.)
-        """
-
         assert isinstance(
             samples, (np.ndarray, mx.ndarray.ndarray.NDArray)
         ), "samples should be either a numpy or an mxnet array"
@@ -161,14 +193,23 @@ class SampleForecast(Forecast):
 
     @property
     def num_samples(self):
+        """
+        The number of samples representing the forecast.
+        """
         return self.samples.shape[0]
 
     @property
     def prediction_length(self):
+        """
+        Time length of the forecast.
+        """
         return self.samples.shape[-1]
 
     @property
     def mean(self):
+        """
+        Forecast mean.
+        """
         if self._mean is not None:
             return self._mean
         else:
@@ -176,6 +217,9 @@ class SampleForecast(Forecast):
 
     @property
     def mean_ts(self):
+        """
+        Forecast mean, as a pandas.Series object.
+        """
         return pd.Series(self.index, self.mean)
 
     def quantile(self, q):
@@ -223,7 +267,7 @@ class SampleForecast(Forecast):
         **kwargs,
     ):
         """
-        Plots the median of the  forecast as well as confidence bounds.
+        Plots the median of the forecast as well as confidence bounds.
         (requires matplotlib and pandas).
 
         Parameters
@@ -324,6 +368,22 @@ class SampleForecast(Forecast):
 class QuantileForecast(Forecast):
     """
     A Forecast that contains arrays (i.e. time series) for quantiles and mean
+
+    Parameters
+    ----------
+    forecast_arrays
+        An array of forecasts
+    start_date
+        start of the forecast
+    freq
+        forecast frequency
+    forecast_keys
+        A list of quantiles of the form '0.1', '0.9', etc.,
+        and potentially 'mean'. Each entry corresponds to one array in
+        forecast_arrays.
+    info
+        additional information that the forecaster may provide e.g. estimated
+        parameters, number of iterations ran etc.
     """
 
     def __init__(
@@ -335,14 +395,6 @@ class QuantileForecast(Forecast):
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ):
-        """
-        :param forecast_arrays: An array of forecasts
-        :param start_date:
-        :param freq:
-        :param forecast_keys: A list of quantiles of the form '0.1', '0.9' etc and potentially 'mean'
-          Each entry corresponds to one array in forecast_arrays
-        :param info:
-        """
         self.forecast_array = forecast_arrays
         self.start_date = pd.Timestamp(start_date, freq=freq)
         self.freq = freq
@@ -375,7 +427,9 @@ class QuantileForecast(Forecast):
 
     @property
     def mean(self):
-        # We return nan here such that evaluation runs through
+        """
+        Forecast mean.
+        """
         return self._forecast_dict.get('mean', self._nan_out)
 
     def dim(self) -> int:

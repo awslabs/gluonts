@@ -33,6 +33,13 @@ from gluonts.transform import Transformation
 class Predictor:
     """
     Abstract class representing predictor objects.
+
+    Parameters
+    ----------
+    prediction_length
+        Prediction horizon.
+    freq
+        Frequency of the predicted data.
     """
 
     def __init__(self, prediction_length: int, freq: str) -> None:
@@ -56,6 +63,7 @@ class Predictor:
 
         Returns
         -------
+        Iterator[Forecast]
             Iterator over the forecasts, in the same order as the dataset
             iterable was provided.
         """
@@ -97,6 +105,13 @@ class RepresentablePredictor(Predictor):
     on Gluon. Subclasses should have @validated() constructors.
     (De)serialization and value equality are all implemented on top of the
     @validated() logic.
+
+    Parameters
+    ----------
+    prediction_length
+        Prediction horizon.
+    freq
+        Frequency of the predicted data.
     """
 
     @validated()
@@ -496,27 +511,34 @@ def _worker_loop(
 
 
 class ParallelizedPredictor(Predictor):
+    """
+    Runs multiple instances (workers) of a predictor in parallel.
+
+    Exceptions are propagated from the workers.
+
+    Note: That there is currently an issue with tqdm that will cause things
+    to hang if the ParallelizedPredictor is used with tqdm and an exception
+    occurs during prediction.
+
+    https://github.com/tqdm/tqdm/issues/548
+
+    Parameters
+    ----------
+    base_predictor
+        A representable predictor that will be used
+    num_workers
+        Number of workers (processes) to use. If set to
+        None, one worker per CPU will be used.
+    chunk_size
+        Number of items to pass per call
+    """
+
     def __init__(
         self,
         base_predictor: Predictor,
         num_workers: Optional[int] = None,
         chunk_size=1,
     ) -> None:
-        """
-        Runs multiple instances of a predictor to parallelize predictions.
-        :params base_predictor: A representable predictor that will be used
-        :params num_workers: number of workers (processes) to use. If set to
-        none will use one worker per cpu
-        :params chunk_size: number of items to pass per call
-
-        Exceptions are propagated from the workers.
-
-        Note: That there is currently an issue with tqdm that will cause things
-        to hang if the ParallelizedPredictor is used with tqdm and an exception
-        occurs during prediction.
-
-        https://github.com/tqdm/tqdm/issues/548
-        """
         super().__init__(base_predictor.prediction_length, base_predictor.freq)
 
         self._base_predictor = base_predictor
@@ -632,6 +654,11 @@ class Localizer(Predictor):
     """
     A Predictor that uses an estimator to train a local model per time series and
     immediatly calls this to predict.
+
+    Parameters
+    ----------
+    estimator
+        The estimator object to train on each dataset entry at prediction time.
     """
 
     def __init__(self, estimator: 'gluonts.model.estimator.Estimator'):

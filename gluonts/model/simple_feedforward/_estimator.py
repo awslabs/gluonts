@@ -55,24 +55,24 @@ class SimpleFeedForwardEstimator(GluonEstimator):
 
     Parameters
     ----------
-    freq:
+    freq
         Time time granularity of the data.
-    prediction_length:
+    prediction_length
         Number of time units to predict.
-    trainer:
+    trainer
         The Trainer instance to be used for model training.
-    num_hidden_dimensions:
+    num_hidden_dimensions
         Number of hidden nodes in each layer.
-    context_length:
+    context_length
         Number of time units that condition the predictions.
-    distr_output:
+    distr_output
         Distribution to fit.
-    batch_normalization:
-        Normalize eatch batch.
-    mean_scaling:
+    batch_normalization
+        Whether to use batch normalization.
+    mean_scaling
         Scale the network input by the data mean and the network output by
         its inverse.
-    num_eval_samples:
+    num_eval_samples
         Number of samples drawn for evaluations.
     """
 

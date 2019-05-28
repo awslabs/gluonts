@@ -13,6 +13,21 @@ from gluonts.model.predictor import RepresentablePredictor
 
 
 class IdentityPredictor(RepresentablePredictor):
+    """
+    A `Predictor` that uses the last `prediction_length` observations
+    to predict the future.
+
+    Parameters
+    ----------
+    prediction_length
+        Prediction horizon.
+    freq
+        Frequency of the predicted data.
+    num_samples
+        Number of samples to include in the forecasts. Not that the samples
+        produced by this predictor will all be identical.
+    """
+
     @validated()
     def __init__(
         self, prediction_length: int, freq: str, num_samples: int
@@ -40,12 +55,24 @@ class IdentityPredictor(RepresentablePredictor):
 
 
 class ConstantPredictor(RepresentablePredictor):
+    """
+    A `Predictor` that always produces the same forecast.
+
+    Parameters
+    ----------
+    samples
+        Samples to use to construct SampleForecast objects for every
+        prediction.
+    freq
+        Frequency of the predicted data.
+    """
+
     @validated()
     def __init__(self, samples: np.ndarray, freq: str) -> None:
         super().__init__(samples.shape[1], freq)
         self.samples = samples
 
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
+    def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
         for x in dataset:
             yield SampleForecast(
                 samples=self.samples,
@@ -56,6 +83,22 @@ class ConstantPredictor(RepresentablePredictor):
 
 
 class MeanEstimator(Estimator):
+    """
+    An `Estimator` that computes the mean targets in the training data,
+    in the trailing `prediction_length` observations, and produces
+    a `ConstantPredictor` that always predicts such mean value.
+
+    Parameters
+    ----------
+    prediction_length
+        Prediction horizon.
+    freq
+        Frequency of the predicted data.
+    num_samples
+        Number of samples to include in the forecasts. Not that the samples
+        produced by this predictor will all be identical.
+    """
+
     @validated()
     def __init__(
         self, prediction_length: int, freq: str, num_samples: int
