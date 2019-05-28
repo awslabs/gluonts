@@ -3,7 +3,6 @@
 *.class
 *~
 *#
-/docs/api/*
 /docs/_build
 /runpy
 /build
@@ -138,3 +137,26 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# pycharm
+.idea
+
+# test data
+tests/data/
+tests/externaldata/
+
+# docs
+docs/html
+
+# release
+docs/model_zoo/*.zip
+docs/examples/*.zip
+docs/examples/*/*.ipynb
+
+conda
+
+# temp files
+*.swp
+
+# vscode
+.vscode

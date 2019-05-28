@@ -1,0 +1,33 @@
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - pip=18.1
+  - pylint=1.9.2
+  - flake8
+  - sphinx=1.7.7
+  - pytest<4
+  - flaky<4
+  - pytest-cov=2.6.0
+  - mock<3
+  - pytest-xdist<2
+  - recommonmark
+  - pandoc=1.19.2
+  - notedown
+  - sphinx-gallery
+  - nbsphinx>=0.3.4,<0.4
+  - nbconvert=5.4.0
+  - tornado=5.1.1
+  - ipython
+  - ipykernel
+  - pytest-runner<2.12
+  - mypy>=0.630
+  - black>=18
+  - setuptools>=40.1
+  - pydantic
+  - requests
+  - pip:
+    - mxnet-cu92mkl>=1.4.0
+    - https://github.com/mli/mx-theme/archive/0.3.1.tar.gz
+    - seaborn
+    - sphinx-autorun

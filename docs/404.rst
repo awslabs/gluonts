@@ -1,0 +1,25 @@
+:orphan:
+
+Page Not Found
+--------------
+
+You stumbled upon a page that's making us scratch our brains right now. Before any of us panics,
+we'd like you to know that you are being redirected to a better known and cozy place, in just a few seconds.
+
+.. image:: _static/404.jpg
+   :alt: Page Not Found
+   :width: 60%
+   :align: center
+   :target: ./index.html
+
+.. raw:: html
+
+   <script type="text/javascript">
+   window.onload = function() {
+      var seconds = 5;
+      var url = "http://gluon-ts.mxnet.io";
+      setTimeout(function() {
+         window.location.href = url;
+      }, seconds*1000);
+   };
+   </script>
