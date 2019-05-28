@@ -100,8 +100,15 @@ def maximum_likelihood_estimate_sgd(
         cumulative_loss = 0
         # inner loop
         for i, (data, sample_label) in enumerate(train_data):
-            sample_label = sample_label.as_in_context(model_ctx)
+            # data: (batch, 1), the "1" defines the dimension of the projection layer and should be kept
             data = data.as_in_context(model_ctx)
+            # sample_label: (batch,), for univariate and (batch, d) for multivariate
+            if sample_label.shape[-1] == 1:
+                sample_label = sample_label.as_in_context(model_ctx).squeeze(
+                    axis=-1
+                )
+            else:
+                sample_label = sample_label.as_in_context(model_ctx)
 
             with mx.autograd.record():
                 distr_args = arg_proj(data)
@@ -585,9 +592,9 @@ def test_box_cox_tranform(
     ), f"sigma did not match: sigma = {sigma}, sigma_hat = {sigma_hat}"
 
 
-@pytest.mark.parametrize("num_bins", [8])
+@pytest.mark.parametrize("num_bins", [6])
 @pytest.mark.parametrize(
-    "bin_probabilites", [np.array([0.1, 0.2, 0.1, 0.05, 0.2, 0.1, 0.05, 0.2])]
+    "bin_probabilites", [np.array([0.3, 0.1, 0.05, 0.2, 0.1, 0.25])]
 )
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_binned_likelihood(
@@ -598,18 +605,13 @@ def test_binned_likelihood(
     '''
 
     bin_prob = mx.nd.array(bin_probabilites)
-    bin_value = mx.nd.array(np.logspace(-1, 1, num_bins))
-    means = (bin_value[1:] + bin_value[:-1]) / 2.0
-    bin_edge = mx.nd.concatenate(
-        [mx.nd.array([-1.0E10]), mx.nd.array(means), mx.nd.array([1E10])]
-    )
+    bin_center = mx.nd.array(np.logspace(-1, 1, num_bins))
 
     # generate samples
     bin_probs = mx.nd.zeros((NUM_SAMPLES, num_bins)) + bin_prob
-    bin_values = mx.nd.zeros((NUM_SAMPLES, num_bins)) + bin_value
-    bin_edges = mx.nd.zeros((NUM_SAMPLES, num_bins + 1)) + bin_edge
+    bin_centers = mx.nd.zeros((NUM_SAMPLES, num_bins)) + bin_center
 
-    distr = Binned(bin_probs, bin_edges, bin_values)
+    distr = Binned(bin_probs, bin_centers)
     samples = distr.sample()
 
     # add some jitter to the uniform initialization and normalize
@@ -618,13 +620,13 @@ def test_binned_likelihood(
 
     init_biases = [bin_prob_init]
 
-    bin_prob_hat, _, _ = maximum_likelihood_estimate_sgd(
-        BinnedOutput(list(bin_value.asnumpy())),
+    bin_prob_hat, _ = maximum_likelihood_estimate_sgd(
+        BinnedOutput(list(bin_center.asnumpy())),
         samples,
         init_biases=init_biases,
         hybridize=hybridize,
-        learning_rate=PositiveFloat(0.001),
-        num_epochs=PositiveInt(10),
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(25),
     )
 
     assert all(

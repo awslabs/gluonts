@@ -1,5 +1,5 @@
 # Standard library imports
-from typing import Tuple
+from typing import Tuple, List
 
 # Third-party imports
 import mxnet as mx
@@ -16,37 +16,43 @@ from .distribution_output import DistributionOutput
 
 class Binned(Distribution):
     r"""
-    A binned distribution that represents a set of bins via
-    bin edges e_i and values v_i
-
-    bins:    [e_0, e1), [e_1, e_2), , ..., [e_{n-1}, e_n)
-    values:      v0,        v1,       ...,      v_{n-1}
-    prob:        p0,        p1,       ...,      p_{n-1}
+    A binned distribution defined by a set of bins via
+    bin centers and bin probabilities.
 
     Parameters
     ----------
-    bin_edges
-        1d array of bin edges.
-    bin_values
-        1d array of values representing the bins.
-        This should have one more entry than bin_edges.
     bin_probs
-        2d array of probability per bin.
+        Tensor containing the bin probabilities, of shape `(*batch_shape, num_bins)`.
+    bin_centers
+        Tensor containing the bin centers, of shape `(*batch_shape, num_bins)`.
+    F
     """
 
     is_reparameterizable = False
 
-    def __init__(
-        self, bin_probs: Tensor, bin_edges: Tensor, bin_values: Tensor, F=None
-    ) -> None:
-        self.bin_edges = bin_edges
-        self.bin_values = bin_values
+    def __init__(self, bin_probs: Tensor, bin_centers: Tensor, F=None) -> None:
+        self.bin_centers = bin_centers
         self.bin_probs = bin_probs
         self.F = F if F else getF(bin_probs)
 
+        low = (
+            self.F.zeros_like(bin_centers.slice_axis(axis=-1, begin=0, end=1))
+            - 1.0E10
+        )
+        high = (
+            self.F.zeros_like(bin_centers.slice_axis(axis=-1, begin=0, end=1))
+            + 1.0E10
+        )
+
+        means = (
+            bin_centers.slice_axis(axis=-1, begin=1, end=None)
+            + bin_centers.slice_axis(axis=-1, begin=0, end=-1)
+        ) / 2.0
+        self.bin_edges = self.F.concat(low, means, high, dim=-1)
+
     @property
     def batch_shape(self) -> Tuple:
-        return self.bin_values.shape[:-1]
+        return self.bin_centers.shape[:-1]
 
     @property
     def event_shape(self) -> Tuple:
@@ -58,22 +64,21 @@ class Binned(Distribution):
 
     @property
     def mean(self):
-        return (self.bin_probs * self.bin_values).sum(axis=-1)
+        return (self.bin_probs * self.bin_centers).sum(axis=-1)
 
     @property
     def stddev(self):
-        Ex2 = (self.bin_probs * self.bin_values.square()).sum(axis=-1)
+        Ex2 = (self.bin_probs * self.bin_centers.square()).sum(axis=-1)
         return (Ex2 - self.mean.square()).sqrt()
 
     def log_prob(self, x):
-        # reshape first to capture both (d,) and (d,1) cases and then add extra dimension
-        x = x.reshape(shape=(0, -1)).expand_dims(axis=-1)
+        x = x.expand_dims(axis=-1)
         # TODO: when mxnet has searchsorted replace this
         left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
         right_edges = self.bin_edges.slice_axis(axis=-1, begin=1, end=None)
         mask = self.F.broadcast_lesser_equal(
-            left_edges.expand_dims(axis=-2), x
-        ) * self.F.broadcast_lesser(x, right_edges.expand_dims(axis=-2))
+            left_edges, x
+        ) * self.F.broadcast_lesser(x, right_edges)
         return (self.bin_probs.log() * mask).sum(axis=-1)
 
     def sample(self, num_samples=None):
@@ -81,12 +86,12 @@ class Binned(Distribution):
             F = self.F
             indices = F.sample_multinomial(bin_probs)
             if num_samples is None:
-                return self.bin_values.pick(indices, -1).reshape_like(
+                return self.bin_centers.pick(indices, -1).reshape_like(
                     F.zeros_like(indices.astype('float32'))
                 )
             else:
                 return F.repeat(
-                    F.expand_dims(self.bin_values, axis=0),
+                    F.expand_dims(self.bin_centers, axis=0),
                     repeats=num_samples,
                     axis=0,
                 ).pick(indices, -1)
@@ -95,14 +100,13 @@ class Binned(Distribution):
 
 
 class BinnedArgs(gluon.HybridBlock):
-    def __init__(
-        self, bin_edges: mx.nd.NDArray, bin_values: mx.nd.NDArray, **kwargs
-    ) -> None:
+    def __init__(self, bin_centers: mx.nd.NDArray, **kwargs) -> None:
         super().__init__(**kwargs)
         with self.name_scope():
-            self.bin_edges = self.params.get_constant('binedges', bin_edges)
-            self.bin_values = self.params.get_constant('binvalues', bin_values)
-            self.num_bins = bin_values.shape[0]
+            self.bin_centers = self.params.get_constant(
+                'bincenters', bin_centers
+            )
+            self.num_bins = bin_centers.shape[0]
 
             # needs to be named self.proj for consistency with the ArgProj class and the inference tests
             self.proj = gluon.nn.HybridSequential()
@@ -117,14 +121,13 @@ class BinnedArgs(gluon.HybridBlock):
             self.proj.add(gluon.nn.HybridLambda('softmax'))
 
     def hybrid_forward(
-        self, F, x: Tensor, bin_values: Tensor, bin_edges: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+        self, F, x: Tensor, bin_centers: Tensor, **kwargs
+    ) -> Tuple[Tensor, Tensor]:
         ps = self.proj(x)
         return (
-            ps.reshape((-2, -1, self.num_bins), reverse=1),
+            ps.reshape(shape=(-2, -1, self.num_bins), reverse=1),
             # For some reason hybridize does not work when returning constants directly
-            bin_edges + 0.0,
-            bin_values + 0.0,
+            bin_centers + 0.0,
         )
 
 
@@ -132,43 +135,26 @@ class BinnedOutput(DistributionOutput):
     distr_cls: type = Binned
 
     @validated()
-    def __init__(self, bin_values: list, bin_edges: list = None) -> None:
+    def __init__(self, bin_centers: List) -> None:
         # cannot pass directly nd.array because it is not serializable
-        bv = mx.nd.array(bin_values)
-        assert len(bv.shape) == 1
-        self.bin_values = bv
-
-        if bin_edges is not None:
-            be = mx.nd.array(bin_edges)
-            assert len(be.shape) == 1
-            assert be.shape[0] == self.bin_values.shape[0] + 1
-            self.bin_edges = be
-        else:
-            means = (bv[1:] + bv[:-1]) / 2.0
-            self.bin_edges = mx.nd.concatenate(
-                [
-                    mx.nd.array([-1.0E10]),
-                    mx.nd.array(means),
-                    mx.nd.array([1E10]),
-                ]
-            )
-
-        self.num_bins = self.bin_values.shape[0]
-        for i in range(self.num_bins):
-            assert (
-                self.bin_edges[i] < self.bin_values[i] < self.bin_edges[i + 1]
-            )
+        bc = mx.nd.array(bin_centers)
+        assert len(bc.shape) == 1
+        self.bin_centers = bc
 
     def get_args_proj(self, *args, **kwargs) -> gluon.nn.HybridBlock:
-        return BinnedArgs(bin_edges=self.bin_edges, bin_values=self.bin_values)
+        return BinnedArgs(self.bin_centers, **kwargs)
 
     def distribution(self, args, scale=None) -> Binned:
-        probs, edges, values = args
+        probs, centers = args
+        F = getF(probs)
+
         if scale is not None:
-            F = getF(probs)
-            edges = F.broadcast_mul(edges, scale)
-            values = F.broadcast_mul(values, scale)
-        return Binned(probs, edges, values)
+            centers = F.broadcast_mul(centers, scale).expand_dims(axis=-2)
+        else:
+            centers = F.broadcast_mul(
+                centers, F.ones_like(probs.slice_axis(axis=-2, begin=0, end=1))
+            )
+        return Binned(probs, centers)
 
     @property
     def event_shape(self) -> Tuple:

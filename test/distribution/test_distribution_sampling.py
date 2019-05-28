@@ -52,10 +52,7 @@ test_cases = [
             'bin_probs': mx.nd.array([[0.2, 0.2, 0.2, 0.2, 0.2]]).repeat(
                 axis=0, repeats=2
             ),
-            'bin_edges': mx.nd.array([[1, 1, 1, 1, 1]]).repeat(
-                axis=0, repeats=2
-            ),  # not needed for sampling - use dummy value
-            'bin_values': mx.nd.array([np.logspace(-1, 1, 5)]).repeat(
+            'bin_centers': mx.nd.array([np.logspace(-1, 1, 5)]).repeat(
                 axis=0, repeats=2
             ),
         },
