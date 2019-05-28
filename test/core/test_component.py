@@ -144,7 +144,6 @@ def test_dynamic_loading():
                clip_gradient=10.0,
                weight_decay=1e-08,
                patience=5,
-               train_log_interval=50,
                batch_size=32,
                num_batches_per_epoch=10,
                hybridize=False,
