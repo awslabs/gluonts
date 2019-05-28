@@ -96,7 +96,7 @@ agg_metrics_key = "agg_metrics"
 
 
 def serialize_message(logger, message: str, variable):
-    logger.info(f'gluonts[{message}]: {dump_code(variable)}')
+    logger.info(f'gluonts[{message}]: {variable}')
 
 
 def backtest_metrics(
