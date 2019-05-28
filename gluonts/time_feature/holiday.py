@@ -1,4 +1,5 @@
-# Third-party imports
+from typing import List, Callable
+
 import numpy as np
 import pandas as pd
 from pandas.tseries.holiday import (
@@ -158,15 +159,20 @@ class SpecialDateFeatureSet:
 
     """
 
-    def __init__(self, feature_names, kernel_function=indicator):
+    def __init__(
+        self,
+        feature_names: List[str],
+        kernel_function: Callable[[int], int] = indicator,
+    ):
         """
-        Constructor function of SpecialDateFeatureSet.
-
-        :param feature_names: list of strings with holiday names for which
-               features should be created.
-        :param kernel_function: kernel function to pass the feature value based
-               on distance in days. Can be indicator function (default),
-               exponential_kernel, squared_exponential_kernel or user defined.
+        Parameters
+        ----------
+        feature_names
+            list of strings with holiday names for which features should be created.
+        kernel_function
+            kernel function to pass the feature value based
+            on distance in days. Can be indicator function (default),
+            exponential_kernel, squared_exponential_kernel or user defined.
         """
         self.feature_names = feature_names
         self.num_features = len(feature_names)
@@ -175,8 +181,11 @@ class SpecialDateFeatureSet:
     def __call__(self, dates):
         """
         Transform a pandas series with timestamps to holiday features.
-        :param dates: Pandas series with Datetimeindex timestamps.
-        :return: 2D feature array with holiday features.
+
+        Parameters
+        ----------
+        dates
+            Pandas series with Datetimeindex timestamps.
         """
         return np.vstack(
             [
