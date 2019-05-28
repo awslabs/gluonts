@@ -16,7 +16,7 @@ from gluonts.dataset.stat import ScaleHistogram
 from gluonts.time_feature import TimeFeature
 
 
-def serialize_data_entry(self):
+def serialize_data_entry(data_entry: DataEntry) -> Dict:
     """
     Encode the numpy values in the a DataEntry dictionary into lists so the
     dictionary can be json serialized.
@@ -32,7 +32,9 @@ def serialize_data_entry(self):
         return str(field)
 
     return {
-        k: serialize_field(v) for k, v in self.data.items() if v is not None
+        k: serialize_field(v)
+        for k, v in data_entry.data.items()
+        if v is not None
     }
 
 
@@ -61,7 +63,8 @@ class FieldName:
 
 def compute_date(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
     """
-    Computes an offsetted timestamp
+    Computes an offsetted timestamp.
+    Basic wrapping around pandas `ts + offset` with caching and exception handling.
     """
     return _compute_date_helper(ts, ts.freq, offset)
 
@@ -95,28 +98,42 @@ def target_transformation_length(
 
 
 class InstanceSampler:
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        """
-        Parameters
-        ----------
-        ts
-          target that should be sampled with shape (dim, seq_len)
-        a
-          first index of the target that can be sampled
-        b
-          last index of the target that can be sampled
+    """
+    An InstanceSampler is called with the time series and the valid
+    index bounds a, b and should return a set of indices a <= i <= b
+    at which training instances will be generated.
 
-        Returns
-        -------
-        np.ndarray
-            The instance sampler is called with the time series and the valid
-            index bounds a, b and should return a set of indices a <= i0 <= b
-            at which training instances will be generated.
-        """
-        pass
+    The object should be called with:
+
+    Parameters
+    ----------
+    ts
+        target that should be sampled with shape (dim, seq_len)
+    a
+        first index of the target that can be sampled
+    b
+        last index of the target that can be sampled
+
+    Returns
+    -------
+    np.ndarray
+        Selected points to sample
+    """
+
+    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+        raise NotImplementedError()
 
 
 class UniformSplitSampler(InstanceSampler):
+    """
+    Samples each point with the same fixed probability.
+
+    Parameters
+    ----------
+    p
+        Probability of selecting a time point
+    """
+
     @validated()
     def __init__(self, p: float = 1.0 / 20.0) -> None:
         self.p = p
@@ -131,6 +148,11 @@ class UniformSplitSampler(InstanceSampler):
 
 
 class TestSplitSampler(InstanceSampler):
+    """
+    Sampler used for prediction. Always selects the last time point for
+    splitting i.e. the forecast point for the time series.
+    """
+
     @validated()
     def __init__(self) -> None:
         pass
@@ -173,6 +195,20 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
 
 class BucketInstanceSampler(InstanceSampler):
+    """
+    This sample can be used when working with a set of time series that have a
+    skewed distributions. For instance, if the dataset contains many time series
+    with small values and few with large values.
+
+    The probability of sampling from bucket i is the inverse of its number of elements.
+
+    Parameters
+    ----------
+    scale_histogram
+        The histogram of scale for the time series. Here scale is the mean abs
+        value of the time series.
+    """
+
     @validated()
     def __init__(self, scale_histogram: ScaleHistogram) -> None:
         # probability of sampling a bucket i is the inverse of its number of
@@ -190,6 +226,12 @@ class BucketInstanceSampler(InstanceSampler):
 
 
 class Transformation(metaclass=abc.ABCMeta):
+    """
+    Base class for all Transformations.
+
+    A Transformation processes works on a stream (iterator) of dictionaries.
+    """
+
     @abc.abstractmethod
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
@@ -201,6 +243,10 @@ class Transformation(metaclass=abc.ABCMeta):
 
 
 class Chain(Transformation):
+    """
+    Chain multiple transformations together.
+    """
+
     @validated()
     def __init__(self, trans: List[Transformation]) -> None:
         self.trans = trans
@@ -226,7 +272,7 @@ class Identity(Transformation):
 
 class MapTransformation(Transformation):
     """
-    Element wise transformation
+    Base class for Transformations that returns exactly one result per input in the stream.
     """
 
     def __call__(
@@ -272,6 +318,11 @@ class AdhocTransform(SimpleTransformation):
 
 
 class FlatMapTransformation(Transformation):
+    """
+    Transformations that yield zero or more results per input, but do not combine
+    elements from the input stream.
+    """
+
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
     ) -> Iterator:
@@ -304,7 +355,14 @@ class FilterTransformation(FlatMapTransformation):
 
 class SetField(SimpleTransformation):
     """
-    Sets a field with the given value
+    Sets a field in the dictionary with the given value.
+
+    Parameters
+    ----------
+    output_field
+        Name of the field that will be set
+    value
+        Value to be set
     """
 
     @validated()
@@ -319,7 +377,14 @@ class SetField(SimpleTransformation):
 
 class SetFieldIfNotPresent(SimpleTransformation):
     """
-    Sets a field with the given value, in case it does not exist already
+    Sets a field in the dictionary with the given value, in case it does not exist already
+
+    Parameters
+    ----------
+    output_field
+        Name of the field that will be set
+    value
+        Value to be set
     """
 
     @validated()
@@ -334,6 +399,18 @@ class SetFieldIfNotPresent(SimpleTransformation):
 
 
 class AsNumpyArray(SimpleTransformation):
+    """
+    Converts the value of a field into a numpy array.
+
+    Parameters
+    ----------
+    expected_ndim
+        Expected number of dimensions. Throws an exception if the number of
+        dimensions does not match.
+    dtype
+        numpy dtype to use.
+    """
+
     @validated()
     def __init__(
         self, field: str, expected_ndim: int, dtype: DType = np.float32
@@ -367,18 +444,20 @@ class AsNumpyArray(SimpleTransformation):
 
 
 class ExpandDimArray(SimpleTransformation):
+    """
+    Expand dims in the axis specified, if the axis is not present does nothing.
+    (This essentially calls np.expand_dims)
+
+    Parameters
+    ----------
+    field
+        Field in dictionary to use
+    axis
+        Axis to expand (see np.expand_dims for details)
+    """
+
     @validated()
     def __init__(self, field: str, axis: Optional[int] = None) -> None:
-        """
-        Expand dims in the axis specified, if the axis is not present does
-        nothing
-
-        Parameters
-        ----------
-        field
-        axis
-
-        """
         self.field = field
         self.axis = axis
 
@@ -389,6 +468,19 @@ class ExpandDimArray(SimpleTransformation):
 
 
 class VstackFeatures(SimpleTransformation):
+    """
+    Stack fields together using `np.vstack`.
+
+    Parameters
+    ----------
+    output_field
+        Field name to use for the output
+    input_fields
+        Fields to stack together
+    drop_inputs
+        If set to true the input fields will be dropped.
+    """
+
     @validated()
     def __init__(
         self,
@@ -416,6 +508,19 @@ class VstackFeatures(SimpleTransformation):
 
 
 class ConcatFeatures(SimpleTransformation):
+    """
+    Concatenate values together using `np.concatenate`.
+
+    Parameters
+    ----------
+    output_field
+        Field name to use for the output
+    input_fields
+        Fields to stack together
+    drop_inputs
+        If set to true the input fields will be dropped.
+    """
+
     @validated()
     def __init__(
         self,
@@ -444,7 +549,14 @@ class ConcatFeatures(SimpleTransformation):
 
 class SwapAxes(SimpleTransformation):
     """
-    Can be used to fix shape order mismatches between iterator and consumer.
+    Apply `np.swapaxes` to fields.
+
+    Parameters
+    ----------
+    fields
+        Field to apply to
+    axes
+        Axes to use
     """
 
     @validated()
@@ -470,7 +582,18 @@ class SwapAxes(SimpleTransformation):
 
 
 class ListFeatures(SimpleTransformation):
-    """Creates a new field which contains a list of features."""
+    """
+    Creates a new field which contains a list of features.
+
+    Parameters
+    ----------
+    output_field
+        Field name for output
+    input_fields
+        Fields to combine into list
+    drop_inputs
+        If true the input fields will be removed from the result.
+    """
 
     @validated()
     def __init__(
@@ -498,10 +621,24 @@ class ListFeatures(SimpleTransformation):
 
 class AddObservedValuesIndicator(SimpleTransformation):
     """
-    Replaces missing values with a dummy value and add an "observed"-indicator
+    Replaces missing values in a numpy array (NaNs) with a dummy value and adds an "observed"-indicator
     that is
       1 - when values are observed
       0 - when values are missing
+
+
+    Parameters
+    ----------
+    target_field
+        Field for which missing values will be replaced
+    output_field
+        Field name to use for the indicator
+    dummy_value
+        Value to use for replacing missing values.
+    convert_nans
+        If set to true (default) missing values will be replaced. Otherwise
+        they will not be replaced. In any case the indicator is included in the
+        result.
     """
 
     @validated()
@@ -532,6 +669,15 @@ class AddObservedValuesIndicator(SimpleTransformation):
 
 
 class RenameFields(SimpleTransformation):
+    """
+    Rename fields using a mapping
+
+    Parameters
+    ----------
+    mapping
+        Name mapping `input_name -> output_name`
+    """
+
     @validated()
     def __init__(self, mapping: Dict[str, str]) -> None:
         self.mapping = mapping
@@ -554,6 +700,23 @@ class AddConstFeature(MapTransformation):
     Expands a `const` value along the time axis as a dynamic feature, where
     the T-dimension is defined as the sum of the `pred_length` parameter and
     the length of a time series specified by the `target_field`.
+
+    If `is_train=True` the feature matrix has the same length as the `target` field.
+    If `is_train=False` the feature matrix has length len(target) + pred_length
+
+    Parameters
+    ----------
+    output_field
+        Field name for output.
+    target_field
+        Field containing the target array. The length of this array will be used.
+    pred_length
+        Prediction length (this is necessary since
+        features have to be available in the future)
+    const
+        Constant value to use.
+    dtype
+        Numpy dtype to use for resulting array.
     """
 
     @validated()
@@ -581,36 +744,25 @@ class AddConstFeature(MapTransformation):
         return data
 
 
-class AddFourierFeatures(SimpleTransformation):
-    """Generates Fourier features."""
-
-    @validated()
-    def __init__(self, time_dim: int, num_features: int, period: int) -> None:
-        feature = np.zeros((2 * num_features, time_dim))
-        for n in range(num_features):
-            feature[2 * n + 0, :] = np.sin(
-                2.0 * np.pi * np.arange(time_dim) * (n + 1) / period
-            )
-            feature[2 * n + 1, :] = np.cos(
-                2.0 * np.pi * np.arange(time_dim) * (n + 1) / period
-            )
-        self.feature = feature
-        self.feature_name = 'fourier'
-
-    def transform(self, data: DataEntry) -> DataEntry:
-        data[self.feature_name] = self.feature.copy()
-        return data
-
-
 class AddTimeFeatures(MapTransformation):
     """
-    Uses fields: target, start
+    Adds a set of time features.
 
-    Adds a matrix of date features to the data_entry
+    If `is_train=True` the feature matrix has the same length as the `target` field.
+    If `is_train=False` the feature matrix has length len(target) + pred_length
 
-    If is_train=True the feature matrix has the same length as the `target`
-    field.
-    If is_train=False the feature matrix has length len(target) + pred_length
+    Parameters
+    ----------
+    start_field
+        Field with the start time stamp of the time series
+    target_field
+        Field with the array containing the time series values
+    output_field
+        Field name for result.
+    time_features
+        list of time features to use.
+    pred_length
+        Prediction length
     """
 
     @validated()
@@ -669,7 +821,24 @@ class AddTimeFeatures(MapTransformation):
 
 class AddAgeFeature(MapTransformation):
     """
-    Adds an 'age' feature to the data_entry
+    Adds an 'age' feature to the data_entry.
+
+    The age feature starts with a small value at the start of the time series
+    and grows over time.
+
+    If `is_train=True` the age feature has the same length as the `target` field.
+    If `is_train=False` the age feature has length len(target) + pred_length
+
+    Parameters
+    ----------
+    target_field
+        Field with target values (array) of time series
+    output_field
+        Field name to use for the output.
+    pred_length
+        Prediction length
+    log_scale
+        If set to true the age feature grows logarithmically otherwise linearly over time.
     """
 
     @validated()
@@ -724,6 +893,15 @@ class InstanceSplitter(FlatMapTransformation):
 
     Parameters
     ----------
+
+    target_field
+        field containing the target
+    is_pad_field
+        output field indicating whether padding happened
+    start_field
+        field containing the start date of the time series
+    forecast_start_field
+        output field that will contain the time point where the forecast starts
     train_sampler
         instance sampler that provides sampling indices given a time-series
     past_length
@@ -736,14 +914,6 @@ class InstanceSplitter(FlatMapTransformation):
     time_series_fields
         fields that contains time-series, they are split in the same interval
         as the target
-    target_in
-        field containing the target
-    is_pad_out
-        output field indicating whether padding happened
-    start_in
-        field containing the start date of the time series
-    forecast_start_out
-        TODO this seems unused
     pick_incomplete
         whether training examples can be sampled with only a part of
         past_length time-units
@@ -864,7 +1034,6 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     prediction mode. Assumption is that all time like arrays start at the same
     time point.
 
-
     In training mode, the returned instances contain past_`target_field`
     as well as past_`time_series_fields`.
 
@@ -882,6 +1051,35 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     This is done only if `allow_target_padding` is `True`,
     and the length of `target` is smaller than `instance_length`.
 
+    Parameters
+    ----------
+    target_field
+        fields that contains time-series
+    is_pad_field
+        output field indicating whether padding happened
+    start_field
+        field containing the start date of the time series
+    forecast_start_field
+        field containing the forecast start date
+    instance_sampler
+        instance sampler that provides sampling indices given a time-series
+    instance_length
+        length of the target seen before making prediction
+    output_NTC
+        whether to have time series output in (time, dimension) or in
+        (dimension, time) layout
+    time_series_fields
+        fields that contains time-series, they are split in the same interval
+        as the target
+    allow_target_padding
+        flag to allow padding
+    pad_value
+        value to be used for padding
+    use_prediction_features
+        flag to indicate if prediction range features should be returned
+    prediction_length
+        length of the prediction range, must be set if
+        use_prediction_features is True
     """
 
     @validated()
@@ -900,38 +1098,6 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         use_prediction_features: bool = False,
         prediction_length: Optional[int] = None,
     ) -> None:
-        """
-
-        Parameters
-        ----------
-        target_field
-            fields that contains time-series
-        is_pad_field
-            output field indicating whether padding happened
-        start_field
-            field containing the start date of the time series
-        forecast_start_field
-            field containing the forecast start date
-        instance_sampler
-            instance sampler that provides sampling indices given a time-series
-        instance_length
-            length of the target seen before making prediction
-        output_NTC
-            whether to have time series output in (time, dimension) or in
-            (dimension, time) layout
-        time_series_fields
-            fields that contains time-series, they are split in the same interval
-            as the target
-        allow_target_padding
-            flag to allow padding
-        pad_value
-            value to be used for padding
-        use_prediction_features
-            flag to indicate if prediction range features should be returned
-        prediction_length
-            length of the prediction range, must be set if
-            use_prediction_features is True
-        """
         self.instance_sampler = instance_sampler
         self.instance_length = instance_length
         self.output_NTC = output_NTC
@@ -1035,6 +1201,11 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 class SelectFields(MapTransformation):
     """
     Only keep the listed fields
+
+    Parameters
+    ----------
+    fields
+        List of fields to keep.
     """
 
     @validated()
@@ -1051,6 +1222,14 @@ class TransformedDataset(Dataset):
     element in the base_dataset.
     This only supports SimpleTransformations, which do the same thing at
     prediction and training time.
+
+
+    Parameters
+    ----------
+    base_dataset
+        Dataset to transform
+    transformations
+        List of transformations to apply
     """
 
     def __init__(
