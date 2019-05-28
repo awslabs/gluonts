@@ -8,7 +8,7 @@ from gluonts.core.component import validated
 
 class TimeFeature:
     """
-    A feature that only depends on time.
+    Base class for features that only depend on time.
     """
 
     @validated()
@@ -23,6 +23,10 @@ class TimeFeature:
 
 
 class MinuteOfHour(TimeFeature):
+    """
+    Minute of hour encoded as value between [-0.5, 0.5]
+    """
+
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
             return index.minute / 59.0 - 0.5
@@ -31,6 +35,10 @@ class MinuteOfHour(TimeFeature):
 
 
 class HourOfDay(TimeFeature):
+    """
+    Hour of day encoded as value between [-0.5, 0.5]
+    """
+
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
             return index.hour / 23.0 - 0.5
@@ -39,6 +47,10 @@ class HourOfDay(TimeFeature):
 
 
 class DayOfWeek(TimeFeature):
+    """
+    Hour of day encoded as value between [-0.5, 0.5]
+    """
+
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
             return index.dayofweek / 6.0 - 0.5
@@ -47,6 +59,10 @@ class DayOfWeek(TimeFeature):
 
 
 class DayOfMonth(TimeFeature):
+    """
+    Day of month encoded as value between [-0.5, 0.5]
+    """
+
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
             return index.day / 30.0 - 0.5
@@ -55,6 +71,10 @@ class DayOfMonth(TimeFeature):
 
 
 class DayOfYear(TimeFeature):
+    """
+    Day of year encoded as value between [-0.5, 0.5]
+    """
+
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
             return index.dayofyear / 364.0 - 0.5
@@ -63,6 +83,10 @@ class DayOfYear(TimeFeature):
 
 
 class MonthOfYear(TimeFeature):
+    """
+    Month of year encoded as value between [-0.5, 0.5]
+    """
+
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
             return index.month / 11.0 - 0.5
@@ -71,6 +95,10 @@ class MonthOfYear(TimeFeature):
 
 
 class WeekOfYear(TimeFeature):
+    """
+    Week of year encoded as value between [-0.5, 0.5]
+    """
+
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
             return index.weekofyear / 51.0 - 0.5
