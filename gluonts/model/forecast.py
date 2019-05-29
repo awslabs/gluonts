@@ -259,7 +259,7 @@ class SampleForecast(Forecast):
 
     def plot(
         self,
-        confidence_intervals=(50.0, 90.0),
+        prediction_intervals=(50.0, 90.0),
         show_mean=False,
         color='b',
         label=None,
@@ -272,7 +272,7 @@ class SampleForecast(Forecast):
 
         Parameters
         ----------
-        confidence_intervals : float or list of floats in [0, 100]
+        prediction_intervals : float or list of floats in [0, 100]
             Confidence interval size(s). If a list, it will stack the error
             plots for each confidence interval. Only relevant for error styles
             with "ci" in the name.
@@ -294,12 +294,12 @@ class SampleForecast(Forecast):
 
         label_prefix = '' if label is None else label + '-'
 
-        for c in confidence_intervals:
+        for c in prediction_intervals:
             assert 0.0 <= c <= 100.0
 
         ps = [50.0] + [
             50.0 + f * c / 2.0
-            for c in confidence_intervals
+            for c in prediction_intervals
             for f in [-1.0, +1.0]
         ]
         percentiles_sorted = sorted(set(ps))
