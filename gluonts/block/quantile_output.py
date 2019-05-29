@@ -193,7 +193,7 @@ class QuantileOutput:
         """
         Returns
         -------
-        quantile_loss : nn.HybridBlock
+        nn.HybridBlock
             constructs quantile loss object.
         """
         return QuantileLoss(
