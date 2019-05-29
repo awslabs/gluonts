@@ -39,7 +39,7 @@ def get_seasonality(freq: str) -> int:
 class Evaluator:
     def __init__(
         self,
-        quantiles: Iterable[Union[float, str]],
+        quantiles: Iterable[Union[float, str]] = [f"0.{i}" for i in range(10)],
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
     ):

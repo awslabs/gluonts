@@ -125,6 +125,8 @@ class MetaData(pydantic.BaseModel):
     feat_dynamic_real: List[BasicFeatureInfo] = []
     feat_dynamic_cat: List[CategoricalFeatureInfo] = []
 
+    prediction_length: Optional[int] = None
+
 
 class SourceContext(NamedTuple):
     source: str
