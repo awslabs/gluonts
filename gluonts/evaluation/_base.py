@@ -47,12 +47,12 @@ class Evaluator:
 
         Parameters
         ----------
-        quantiles :
+        quantiles
             list of strings of the form 'p10' or floats in [0, 1] with the quantile levels
-        seasonality :
+        seasonality
             seasonality to use for seasonal_error, if nothing is passed uses the default seasonality
             for the given series frequency as returned by `get_seasonality`
-        alpha :
+        alpha
             parameter of the MSIS metric from M4 competition that defines the confidence interval
             for alpha=0.05 the 95% considered is considered in the metric,
             see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf for more detail on MSIS
@@ -73,11 +73,11 @@ class Evaluator:
         """
         Parameters
         ----------
-        ts_iterator :
+        ts_iterator
             iterator containing true target on the predicted range
-        fcst_iterator :
+        fcst_iterator
             iterator of forecasts on the predicted range
-        num_series :
+        num_series
             number of series of the iterator (optional only used for displaying progress)
 
         Returns
@@ -385,15 +385,15 @@ class MultivariateEvaluator(Evaluator):
 
         Parameters
         ----------
-        quantiles :
+        quantiles
             list of strings of the form 'p10' or floats in [0, 1] with the quantile levels
-        seasonality :
+        seasonality
             seasonality to use for seasonal_error, if nothing is passed uses the default seasonality
             for the given series frequency as returned by `get_seasonality`
-        alpha :
+        alpha
             parameter of the MSIS metric that defines the CI,
             e.g., for alpha=0.05 the 95% CI is considered in the metric.
-        eval_dims :
+        eval_dims
             dimensions of the target that will be evaluated
         """
         super().__init__(
@@ -447,10 +447,18 @@ class MultivariateEvaluator(Evaluator):
         all_metrics_per_ts: pd.DataFrame,
     ):
         """
-        Calculates aggregate vector metrics over all dimensions.
-        :param all_agg_metrics: dictionary with aggregate metrics of individual dimensions.
-        :param all_metrics_per_ts: DataFrame containing metrics for all time series of all evaluated dimensions.
-        :return: dictionary with aggregate metrics (of individual (evaluated) dimensions and the entire vector).
+
+        Parameters
+        ----------
+        all_agg_metrics
+            dictionary with aggregate metrics of individual dimensions
+        all_metrics_per_ts
+            DataFrame containing metrics for all time series of all evaluated dimensions
+
+        Returns
+        -------
+        Dict[int, Dict[str, float]]
+            dictionary with aggregate metrics (of individual (evaluated) dimensions and the entire vector)
         """
         vector_aggregate_metrics, _ = self.get_aggregate_metrics(
             all_metrics_per_ts
