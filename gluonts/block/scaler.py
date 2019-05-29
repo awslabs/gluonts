@@ -179,7 +179,7 @@ class NOPScaler(Scaler):
 
         Returns
         -------
-        scale : Tensor
+        Tensor
             shape (N, C), identically equal to 1.
         """
         return F.ones_like(data).mean(axis=1)
