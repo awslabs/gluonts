@@ -82,6 +82,7 @@ class Evaluator:
 
         Returns
         -------
+        dict
             Dictionary of aggregated metrics and dataframe containing per-time-series metrics
         """
         ts_iterator = iter(ts_iterator)
