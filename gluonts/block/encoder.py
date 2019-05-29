@@ -206,7 +206,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
             static code,
             shape (batch_size, num_static_features)
 
-        dynamic_code : Tensor
+        Tensor
             dynamic code,
             shape (batch_size, sequence_length, num_dynamic_features)
         """
