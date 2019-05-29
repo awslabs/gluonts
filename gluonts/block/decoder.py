@@ -20,8 +20,9 @@ class Seq2SeqDecoder(nn.HybridBlock):
         super().__init__(**kwargs)
 
     # noinspection PyMethodOverriding
-    def hybrid_forward(self, F, dynamic_input: Tensor, static_input: Tensor) \
-            -> None:
+    def hybrid_forward(
+        self, F, dynamic_input: Tensor, static_input: Tensor
+    ) -> None:
         """
         Abstract function definition of the hybrid_forward.
 
@@ -62,11 +63,11 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
 
     @validated()
     def __init__(
-            self,
-            dec_len: int,
-            final_dim: int,
-            hidden_dimension_sequence: List[int] = list([]),
-            **kwargs,
+        self,
+        dec_len: int,
+        final_dim: int,
+        hidden_dimension_sequence: List[int] = list([]),
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
@@ -93,8 +94,9 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
             )
             self.model.add(layer)
 
-    def hybrid_forward(self, F, dynamic_input: Tensor,
-                       static_input: Tensor = None) -> Tensor:
+    def hybrid_forward(
+        self, F, dynamic_input: Tensor, static_input: Tensor = None
+    ) -> Tensor:
         """
         ForkingMLPDecoder forward call.
 
@@ -137,12 +139,13 @@ class OneShotDecoder(Seq2SeqDecoder):
     static_outputs_per_time_step
         number of outputs per time step
     """
+
     @validated()
     def __init__(
-            self,
-            decoder_length: int,
-            layer_sizes: List[int],
-            static_outputs_per_time_step: int,
+        self,
+        decoder_length: int,
+        layer_sizes: List[int],
+        static_outputs_per_time_step: int,
     ) -> None:
         super().__init__()
         self.decoder_length = decoder_length
@@ -154,10 +157,10 @@ class OneShotDecoder(Seq2SeqDecoder):
             )
 
     def hybrid_forward(
-            self,
-            F,
-            static_input: Tensor,  # (batch_size, static_input_dim)
-            dynamic_input: Tensor,  # (batch_size,
+        self,
+        F,
+        static_input: Tensor,  # (batch_size, static_input_dim)
+        dynamic_input: Tensor,  # (batch_size,
     ) -> Tensor:
         """
         OneShotDecoder forward call

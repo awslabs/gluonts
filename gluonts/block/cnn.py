@@ -110,9 +110,12 @@ class DilatedCausalGated(gluon.HybridBlock):
     """
 
     def __init__(
-        self, inner_channels: int, out_channels: int,
-            kernel_size: Union[int, Tuple[int], List[int]],
-            dilation: Union[int, Tuple[int], List[int]], **kwargs
+        self,
+        inner_channels: int,
+        out_channels: int,
+        kernel_size: Union[int, Tuple[int], List[int]],
+        dilation: Union[int, Tuple[int], List[int]],
+        **kwargs,
     ) -> None:
         super(DilatedCausalGated, self).__init__(**kwargs)
         with self.name_scope():

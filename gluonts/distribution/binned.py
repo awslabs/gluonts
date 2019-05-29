@@ -57,11 +57,11 @@ class Binned(Distribution):
 
         low = (
             F.zeros_like(bin_centers.slice_axis(axis=-1, begin=0, end=1))
-            - 1.0E10
+            - 1.0e10
         )
         high = (
             F.zeros_like(bin_centers.slice_axis(axis=-1, begin=0, end=1))
-            + 1.0E10
+            + 1.0e10
         )
 
         means = (

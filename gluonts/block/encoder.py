@@ -324,6 +324,7 @@ class MLPEncoder(Seq2SeqEncoder):
         number of hidden units per layer.
     kwargs
     """
+
     @validated()
     def __init__(self, layer_sizes: List[int], **kwargs) -> None:
         super().__init__(**kwargs)
@@ -393,6 +394,7 @@ class RNNCovariateEncoder(Seq2SeqEncoder):
     bidirectional
         toggle use of bi-directional RNN as encoder.
     """
+
     @validated()
     def __init__(
         self,

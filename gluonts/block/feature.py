@@ -22,6 +22,7 @@ class FeatureEmbedder(nn.HybridBlock):
     embedding_dims
         number of dimensions to embed each categorical feature.
     """
+
     @validated()
     def __init__(
         self, cardinalities: List[int], embedding_dims: List[int], **kwargs

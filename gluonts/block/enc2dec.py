@@ -21,9 +21,11 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self, F, encoder_output_static: Tensor,
-            encoder_output_dynamic: Tensor,
-            future_features:  Tensor
+        self,
+        F,
+        encoder_output_static: Tensor,
+        encoder_output_dynamic: Tensor,
+        future_features: Tensor,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Parameters
@@ -61,8 +63,11 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
     """
 
     def hybrid_forward(
-        self, F, encoder_output_static: Tensor, encoder_output_dynamic: Tensor,
-            future_features: Tensor
+        self,
+        F,
+        encoder_output_static: Tensor,
+        encoder_output_dynamic: Tensor,
+        future_features: Tensor,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Parameters
