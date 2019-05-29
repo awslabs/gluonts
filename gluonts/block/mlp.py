@@ -24,6 +24,7 @@ class MLP(nn.HybridBlock):
     activation
         activation function of the MLP, default is relu.
     """
+
     @validated()
     def __init__(
         self, layer_sizes: List[int], flatten: bool, activation='relu'

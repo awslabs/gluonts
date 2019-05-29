@@ -15,7 +15,7 @@ from gluonts.distribution.distribution_output import (
     DistributionOutput,
 )
 from gluonts.distribution.transformed_distribution import (
-    TransformedDistribution
+    TransformedDistribution,
 )
 from gluonts.model.common import Tensor
 

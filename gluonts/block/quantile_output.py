@@ -49,8 +49,9 @@ class QuantileLoss(Loss):
         )
 
     # noinspection PyMethodOverriding
-    def hybrid_forward(self, F, y_true: Tensor, y_pred: Tensor,
-                       sample_weight=None):
+    def hybrid_forward(
+        self, F, y_true: Tensor, y_pred: Tensor, sample_weight=None
+    ):
         """
         Compute the weighted sum of quantile losses.
 
@@ -94,8 +95,9 @@ class QuantileLoss(Loss):
             return sum_qt_loss
 
     @staticmethod
-    def compute_quantile_loss(F, y_true: Tensor, y_pred_p: Tensor, p: float) \
-            -> Tensor:
+    def compute_quantile_loss(
+        F, y_true: Tensor, y_pred_p: Tensor, p: float
+    ) -> Tensor:
         """
         Compute the quantile loss of the given quantile
 
@@ -180,6 +182,7 @@ class QuantileOutput:
         quantile_weights
             weights of the quantiles.
     """
+
     @validated()
     def __init__(
         self,

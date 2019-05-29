@@ -18,6 +18,7 @@ class Scaler(nn.HybridBlock):
     keepdims
         toggle to keep the dimension of the input tensor.
     """
+
     def __init__(self, keepdims: bool = False):
 
         super().__init__()
@@ -93,6 +94,7 @@ class MeanScaler(Scaler):
     minimum_scale
         default scale that is used if the time series has only zeros.
     """
+
     @validated()
     def __init__(self, minimum_scale: float = 1e-10, *args, **kwargs):
         super().__init__(*args, **kwargs)
