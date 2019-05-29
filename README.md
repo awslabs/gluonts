@@ -102,8 +102,8 @@ plt.grid(which='both')
 
 ![Forecast](docs/figures/Tweets_AMZN_forecast.png)
 
-Note that the forecast is displayed in terms of probability distribution:
-the shaded areas represents the 50% and 90% prediction intervals respectively,
+Note that the forecast is displayed in terms of a probability distribution:
+the shaded areas represent the 50% and 90% prediction intervals, respectively,
 centered around the median (dark green line).
 
 ## Further examples
