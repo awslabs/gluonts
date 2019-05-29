@@ -163,7 +163,7 @@ class StyleCheckCommand(distutils.cmd.Command):
         black_opts = []
         black_args = [
             str(ROOT / folder)
-            for folder in ["gluonts", "test"]
+            for folder in ["gluonts", "test", "examples"]
             if (ROOT / folder).is_dir()
         ]
 
