@@ -6,13 +6,13 @@ import logging
 import subprocess
 import os  # noqa
 import sys
-from textwrap import dedent
 from pathlib import Path
+from textwrap import dedent
 
 # Third-party imports
 import setuptools
 import setuptools.command.build_py
-from setuptools import setup, find_namespace_packages
+from setuptools import find_namespace_packages, setup
 
 ROOT = Path(__file__).parent
 
@@ -263,76 +263,6 @@ if HAS_SPHINX:
     setup_kwargs["doc_command"] = "build_sphinx"
     for command in ['build_sphinx', 'doc', 'docs']:
         setup_kwargs["cmdclass"][command] = BuildApiDoc
-
-# -----------------------------------------------------------------------------
-# start of AWS-internal section (DO NOT MODIFY THIS SECTION)!
-
-# update the public setup arguments
-if 'BRAZIL_PACKAGE_NAME' in os.environ:
-    setup_kwargs = {
-        **setup_kwargs,
-        **dict(
-            # Brazil does not play well with requirements lists - reset them
-            setup_requires=[],
-            install_requires=[],
-            tests_require=[],
-            options=dict(
-                # make sure the right shebang is set for the scripts -
-                # use the environment default Python 3.6
-                build_scripts=dict(
-                    executable='/apollo/sbin/envroot "$ENVROOT/bin/python3.6"'
-                )
-            ),
-            # set to the name of the interpreter whose scripts should go
-            # in $ENVROOT/bin
-            # see: https://w.amazon.com/index.php/BrazilPython3
-            root_script_source_version="python3.6",
-        ),
-    }
-
-# override build_sphinx command to a Brazil-compatible version
-if 'BRAZIL_PACKAGE_NAME' in os.environ and HAS_SPHINX:
-    index_content = dedent(
-        """
-        <html>
-        <head>
-          <meta http-equiv="REFRESH" content="0; url=html/index.html">
-        </head>
-        <body>
-          Redirecting to Sphinx documentation:
-          <a href="html/index.html">
-            Click here if not redirected automatically
-          </a>
-        </body>
-        </html>
-        """
-    ).lstrip()
-
-    class BrazilBuildApiDoc(BuildApiDoc):
-        def initialize_options(self):
-            super().initialize_options()
-            brazil_src_dir = os.getcwd()
-            while brazil_src_dir != '/' and brazil_src_dir != '':
-                if os.path.exists(os.path.join(brazil_src_dir, 'Config')):
-                    break
-                brazil_src_dir = os.path.dirname(brazil_src_dir)
-            if brazil_src_dir == '/' or brazil_src_dir == '':
-                raise RuntimeError('Unable to find Brazil source directory.')
-            self.build_dir = os.path.join(
-                brazil_src_dir, 'build', 'brazil-documentation'
-            )
-
-        def run(self):
-            super(BrazilBuildApiDoc, self).run()
-            # Write redirect page to 'index.html' file in 'html' directory.
-            with (Path(self.build_dir) / "index.html").open("w") as f:
-                f.write(index_content)
-
-    for command in ['build_sphinx', 'doc', 'docs']:
-        setup_kwargs["cmdclass"][command] = BrazilBuildApiDoc
-
-# end of AWS-internal section (DO NOT MODIFY THIS SECTION)!
-# -----------------------------------------------------------------------------
 
 # do the work
 write_version_py()
