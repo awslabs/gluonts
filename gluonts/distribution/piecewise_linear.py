@@ -7,7 +7,7 @@ from gluonts.distribution.bijection import AffineTransformation, Bijection
 from gluonts.distribution.distribution import Distribution, getF
 from gluonts.distribution.distribution_output import DistributionOutput
 from gluonts.distribution.transformed_distribution import (
-    TransformedDistribution,
+    TransformedDistribution
 )
 from gluonts.model.common import Tensor
 from gluonts.support import util
@@ -186,7 +186,7 @@ class PiecewiseLinear(Distribution):
         F = self.F
         gamma, b, knot_positions = self.gamma, self.b, self.knot_positions
 
-        quantiles_at_knots = self.quantile(knot_positions, axis=-1)
+        quantiles_at_knots = self.quantile(knot_positions, axis=-2)
 
         # Mask to nullify the terms corresponding to knots larger than l_0, which is the largest knot
         # (quantile level) such that the quantile at l_0, s(l_0) < x.
@@ -237,10 +237,13 @@ class PiecewiseLinear(Distribution):
         F = self.F
 
         if axis is not None:
-            gamma = self.gamma.expand_dims(axis=axis)
+            # axis=-2 during training when learning quantiles at knot_positions to compute a_tilde
+            # axis=0 during inference when num_samples is not None
+            gamma = self.gamma.expand_dims(axis=axis if axis == 0 else -1)
             knot_positions = self.knot_positions.expand_dims(axis=axis)
             b = self.b.expand_dims(axis=axis)
         else:
+            # axis=None during inference when num_samples is None
             gamma, knot_positions, b = self.gamma, self.knot_positions, self.b
 
         x_minus_knots = F.broadcast_minus(
