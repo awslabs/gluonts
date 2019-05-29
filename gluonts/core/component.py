@@ -32,7 +32,7 @@ from gluonts.core.serde import dump_code
 from gluonts.monkey_patch import monkey_patch_property_metaclass  # noqa: F401
 
 # Relative imports
-from ._base import fqname_for
+from . import fqname_for
 
 DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
 
@@ -43,13 +43,36 @@ A = TypeVar('A')
 
 
 def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
+    """
+    Reflectively create an instance of a class with a :func:`validated`
+    initializer.
+
+    Parameters
+    ----------
+    cls
+        The type ``A`` of the component to be instantiated.
+    hyperparameters
+        A dictionary of key-value pairs to be used as parameters to the
+        component initializer.
+
+    Returns
+    -------
+    A
+        An instance of the given class.
+
+    Raises
+    ------
+    GluonTSHyperparametersError
+        Wraps a :class:`ValidationError` thrown when validating the
+        initializer parameters.
+    """
     Model = getattr(cls.__init__, 'Model', None)
 
     if not Model:
         raise AttributeError(
             f'Cannot find attribute Model attached to the '
             f'{fqname_for(cls)}. Most probably you have forgotten to mark '
-            f'the class constructor as @validated().'
+            f'the class initializer as @validated().'
         )
 
     try:
@@ -60,6 +83,42 @@ def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
 
 @singledispatch
 def equals(this: Any, that: Any) -> bool:
+    """
+    Structural equality check between two objects of arbitrary type.
+
+    Two objects ``this`` and ``that`` are defined to be structurally equal
+    if and only if the following criteria are satisfied:
+
+    1. Their types match.
+    2. If their initializer are :func:`validated`, their initializer arguments
+       are pairlise structurally equal.
+    3. If their initializer are not :func:`validated`, they are referentially
+       equal (i.e. ``this == that``).
+
+    In addition, the function dispatches to specialized implementations based
+    on the type of the first argument, so the above conditions might be
+    sticter for certain types.
+
+    Parameters
+    ----------
+    this, that
+        Objects to compare.
+
+    Returns
+    -------
+    bool
+        A boolean value indicating whether ``this`` and ``that`` are
+        structurally equal.
+
+    See Also
+    --------
+    equals_representable_block
+        Specialization for Gluon :class:`~mxnet.gluon.HybridBlock` input
+        arguments.
+    equals_parameter_dict
+        Specialization for Gluon :class:`~mxnet.gluon.ParameterDict` input
+        arguments.
+    """
     if type(this) != type(that):
         return False
     elif hasattr(this, '__init_args__') and hasattr(that, '__init_args__'):
@@ -87,6 +146,38 @@ def equals(this: Any, that: Any) -> bool:
 def equals_representable_block(
     this: mx.gluon.HybridBlock, that: mx.gluon.HybridBlock
 ) -> bool:
+    """
+    Structural equality check between two :class:`~mxnet.gluon.HybridBlock`
+    objects with :func:`validated` initializers.
+
+    Two blocks ``this`` and ``that`` are considered *structurally equal* if all
+    the conditions of :func:`equals` are met, and in addition their parameter
+    dictionaries obtained with
+    :func:`~mxnet.gluon.block.Block.collect_params` are also structurally
+    equal.
+
+    Specializes :func:`equals` for invocations where the first parameter is an
+    instance of the :class:`~mxnet.gluon.HybridBlock` class.
+
+    Parameters
+    ----------
+    this, that
+        Objects to compare.
+
+    Returns
+    -------
+    bool
+        A boolean value indicating whether ``this`` and ``that`` are
+        structurally equal.
+
+    See Also
+    --------
+    equals
+        Dispatching function.
+    equals_parameter_dict
+        Specialization of :func:`equals` for Gluon
+        :class:`~mxnet.gluon.ParameterDict` input arguments.
+    """
     if not equals(this, that):
         return False
 
@@ -100,6 +191,38 @@ def equals_representable_block(
 def equals_parameter_dict(
     this: mx.gluon.ParameterDict, that: mx.gluon.ParameterDict
 ) -> bool:
+    """
+    Structural equality check between two :class:`~mxnet.gluon.ParameterDict`
+    objects.
+
+    Two parameter dictionaries ``this`` and ``that`` are considered
+    *structurally equal* if the following conditions are satisfied:
+
+    1. They contain the same keys (modulo the key prefix which is stripped).
+    2. The data in the corresponding value pairs is equal, as defined by the
+       :func:`~mxnet.test_utils.almost_equal` function (in this case we call
+       the function with ``equal_nan=True``, that is, two aligned ``NaN``
+       values are always considered equal).
+
+    Specializes :func:`equals` for invocations where the first parameter is an
+    instance of the :class:`~mxnet.gluon.ParameterDict` class.
+
+    Parameters
+    ----------
+    this, that
+        Objects to compare.
+
+    Returns
+    -------
+    bool
+        A boolean value indicating whether ``this`` and ``that`` are
+        structurally equal.
+
+    See Also
+    --------
+    equals
+        Dispatching function.
+    """
     if type(this) != type(that):
         return False
 
@@ -127,28 +250,88 @@ def equals_parameter_dict(
     return True
 
 
-class ConfigBase(BaseModel):
-    """Base config for components with @validated constructors."""
+class BaseValidatedInitializerModel(BaseModel):
+    """
+    Base Pydantic model for components with :func:`validated` initializers.
+
+    See Also
+    --------
+    validated
+        Decorates an initializer methods with argument validation logic.
+    """
 
     class Config(BaseConfig):
+        """
+        `Config <https://pydantic-docs.helpmanual.io/#model-config>`_ for the
+        Pydantic model inherited by all :func:`validated` initializers.
+
+        Allows the use of arbitrary type annotations in initializer parameters.
+        """
+
         arbitrary_types_allowed = True
 
 
 def validated(base_model=None):
     """
-    Decorates a constructor with typed arguments with validation logic which
-    delegates to a Pydantic model. If `base_model` is not provided, an implicit
-    model is synthesized. If `base_model` is provided, its fields and types
-    should be consistent with the constructor arguments and the model should
-    extend `ConfigBase`.
+    Decorates an ``__init__`` method with typed parameters with validation
+    and auto-conversion logic.
+
+    >>> class ComplexNumber:
+    ...     @validated()
+    ...     def __init__(self, x: float = 0.0, y: float = 0.0) -> None:
+    ...         self.x = x
+    ...         self.y = y
+
+    Classes with decorated initializers can be instantiated using arguments of
+    another type (e.g. an ``y`` argument of type ``str`` ). The decorator
+    handles the type conversion logic.
+
+    >>> c = ComplexNumber(y='42')
+    >>> (c.x, c.y)
+    (0.0, 42.0)
+
+    If the bound argument cannot be converted, the decorator throws an error.
+
+    >>> c = ComplexNumber(y=None)
+    Traceback (most recent call last):
+        ...
+    pydantic.error_wrappers.ValidationError: 1 validation error
+    y
+      value is not a valid float (type=type_error.float)
+
+    Internally, the decorator delegates all validation and conversion logic to
+    `a Pydantic model <https://pydantic-docs.helpmanual.io/>`_, which can be
+    accessed through the ``Model`` attribute of the decorated initiazlier.
+
+    >>> ComplexNumber.__init__.Model
+    <class 'abc.ComplexNumberModel'>
+
+    The Pydantic model is synthesized automatically from on the parameter
+    names and types of the decorated initializer. In the ``ComplexNumber``
+    example, the synthesized Pydantic model corresponds to the following
+    definition.
+
+    >>> class ComplexNumberModel(BaseValidatedInitializerModel):
+    ...     x: float = 0.0
+    ...     y: float = 0.0
+
+
+    Clients can optionally customize the base class of the synthesized
+    Pydantic model using the ``base_model`` decorator parameter. The default
+    behavior uses :class:`BaseValidatedInitializerModel` and its
+    `model config <https://pydantic-docs.helpmanual.io/#config>`_.
+
+    See Also
+    --------
+    BaseValidatedInitializerModel
+        Default base class for all synthesized Pydantic models.
     """
 
-    def validator(ctor):
-        ctor_clsnme = dict(inspect.getmembers(ctor))['__qualname__'].split(
-            '.'
-        )[0]
-        ctor_params = inspect.signature(ctor).parameters
-        ctor_fields = {
+    def validator(init):
+        init_qualname = dict(inspect.getmembers(init))['__qualname__']
+        init_clsnme = init_qualname.split('.')[0]
+        init_params = inspect.signature(init).parameters
+        init_fields = {
             param.name: (
                 param.annotation
                 if param.annotation != inspect.Parameter.empty
@@ -157,41 +340,49 @@ def validated(base_model=None):
                 if param.default != inspect.Parameter.empty
                 else ...,
             )
-            for param in ctor_params.values()
+            for param in init_params.values()
             if param.name != 'self'
             and param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
         }
 
         if base_model is None:
-            CtorModel = create_model(
-                f'{ctor_clsnme}Model',
-                __config__=ConfigBase.Config,
-                **ctor_fields,
+            PydanticModel = create_model(
+                model_name=f'{init_clsnme}Model',
+                __config__=BaseValidatedInitializerModel.Config,
+                **init_fields,
             )
         else:
-            CtorModel = create_model(
-                f'{ctor_clsnme}Model', __base__=base_model, **ctor_fields
+            PydanticModel = create_model(
+                model_name=f'{init_clsnme}Model',
+                __base__=base_model,
+                **init_fields,
             )
 
-        @functools.wraps(ctor)
-        def ctor_wrapper(*args, **kwargs):
+        def validated_repr(self) -> str:
+            return dump_code(self)
+
+        def validated_getnewargs_ex(self):
+            return (), self.__init_args__
+
+        @functools.wraps(init)
+        def init_wrapper(*args, **kwargs):
             self, *args = args
 
             nmargs = {
                 name: arg
                 for (name, param), arg in zip(
-                    list(ctor_params.items()), [self] + args
+                    list(init_params.items()), [self] + args
                 )
                 if name != 'self'
             }
-            model = CtorModel(**{**nmargs, **kwargs})
+            model = PydanticModel(**{**nmargs, **kwargs})
 
             # merge nmargs, kwargs, and the model fields into a single dict
             all_args = {**nmargs, **kwargs, **model.__values__}
 
             # save the merged dictionary for Representable use, but only of the
             # __init_args__ is not already set in order to avoid overriding a
-            # value set by a subclass constructor in super().__init__ calls
+            # value set by a subclass initializer in super().__init__ calls
             if not getattr(self, '__init_args__', {}):
                 self.__init_args__ = OrderedDict(
                     {
@@ -203,40 +394,36 @@ def validated(base_model=None):
                 self.__class__.__getnewargs_ex__ = validated_getnewargs_ex
                 self.__class__.__repr__ = validated_repr
 
-            return ctor(self, **all_args)
+            return init(self, **all_args)
 
-        # attach the model as the attribute of the constructor wrapper
-        setattr(ctor_wrapper, 'Model', CtorModel)
+        # attach the Pydantic model as the attribute of the initializer wrapper
+        setattr(init_wrapper, 'Model', PydanticModel)
 
-        return ctor_wrapper
+        return init_wrapper
 
     return validator
 
 
-def validated_repr(self) -> str:
-    return dump_code(self)
-
-
-def validated_getnewargs_ex(self):
-    return (), self.__init_args__
-
-
 class MXContext:
+    """
+    Defines `custom data type validation
+    <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for
+    the :class:`~mxnet.context.Context` data type.
+    """
+
     @classmethod
     def validate(cls, v: Union[str, mx.Context]) -> mx.Context:
         if isinstance(v, mx.Context):
             return v
 
-        m = re.search(
-            r'^(?P<device_type>cpu|gpu)(\((?P<device_id>\d+)\))?$', v
-        )
+        m = re.search(r'^(?P<dev_type>cpu|gpu)(\((?P<dev_id>\d+)\))?$', v)
 
         if m:
-            return mx.Context(m['device_type'], int(m['device_id'] or 0))
+            return mx.Context(m['dev_type'], int(m['dev_id'] or 0))
         else:
             raise ValueError(
-                f'bad MXNet context {v}, expected an '
-                f'mx.context.Context its string representation'
+                f'bad MXNet context {v}, expected either an '
+                f'mx.context.Context or its string representation'
             )
 
     @classmethod
@@ -248,7 +435,10 @@ mx.Context.validate = MXContext.validate
 mx.Context.get_validators = MXContext.get_validators
 
 
-def has_gpu_support():
+def has_gpu_support() -> bool:
+    """
+    Checks if the currently installed MXNet version has GPU support.
+    """
     try:
         mx.nd.array([1, 2, 3], ctx=mx.gpu(0))
         return True
@@ -256,11 +446,26 @@ def has_gpu_support():
         return False
 
 
-def check_gpu_support():
+def check_gpu_support() -> None:
+    """
+    Emits a log line that indicates whether the currently installed MXNet
+    version has GPU support.
+    """
     logger.info(f'MXNet GPU support is {"ON" if has_gpu_support() else "OFF"}')
 
 
 class DType:
+    """
+    Defines `custom data type validation
+    <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for ``type``
+    instances.
+
+    Parameters annotated with :class:`DType` can be bound to string arguments
+    representing the fully-qualified type name. The validation logic
+    defined here attempts to automatically load the type as part of the
+    conversion process.
+    """
+
     @classmethod
     def get_validators(cls):
         yield cls.validate

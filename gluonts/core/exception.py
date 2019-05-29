@@ -13,20 +13,35 @@
 
 # Standard library imports
 import functools
+from typing import Callable
 
 # Third-party imports
 from pydantic.error_wrappers import ValidationError, display_errors
 
 
 class GluonTSException(Exception):
+    """
+    Base class for all GluonTS exceptions.
+    """
+
     pass
 
 
 class GluonTSFatalError(GluonTSException):
+    """
+    An exception indicating an arbitrary cause that prohibits further
+    execution of the program.
+    """
+
     pass
 
 
-class GluonTSHyperparameterParseError(Exception):
+class GluonTSHyperparameterParseError(GluonTSException):
+    """
+    An exception indicating a parse error when trying to re-interpret a
+    string value ``value`` for a parameter ``key`` as a value of type ``type``.
+    """
+
     __cause__: ValueError
 
     def __init__(self, key, value, type):
@@ -36,13 +51,19 @@ class GluonTSHyperparameterParseError(Exception):
 
     def __str__(self, *args, **kwargs):
         return (
-            f'Error when trying to re-interpret '
-            f'string value "{self.value}" for parameter {self.key} as a {self.type}:\n'
+            f'Error when trying to re-interpret string value "{self.value}" '
+            f'for parameter {self.key} as a {self.type}:\n'
             f'{repr(self.__cause__)}'
         )
 
 
 class GluonTSHyperparametersError(GluonTSException):
+    """
+    An exception wrapping a Pydantic ``ValidationError``, usually thrown when
+    the validation of a :func:`~gluonts.core.component.validated` initializer
+    fails.
+    """
+
     __cause__: ValidationError
 
     def __str__(self, *args, **kwargs):
@@ -54,59 +75,127 @@ class GluonTSHyperparametersError(GluonTSException):
 
 
 class GluonTSDataError(GluonTSException):
+    """
+    An exception indicating an error with the input data.
+    """
+
     pass
 
 
 class GluonTSInvalidRequestException(GluonTSException):
+    """
+    An exception indicating an invalid inference request.
+    """
+
     pass
 
 
 class GluonTSUserError(GluonTSException):
+    """
+    An exception indicating a user error.
+    """
+
     pass
 
 
 class GluonTSDateBoundsError(GluonTSException):
+    """
+    An exception indicating that .
+    """
+
     pass
 
 
-def assert_gluonts(exception_class, condition, message, *args, **kwargs):
+def assert_gluonts(
+    exception_class: type, condition: bool, message: str, *args, **kwargs
+) -> None:
+    """
+    If the given ``condition`` is ``False``, raises an exception of type
+    ``exception_class`` with a message formatted from the ``message`` pattern
+    using the ``args`` and ``kwargs`` strings.
+
+    Parameters
+    ----------
+    exception_class
+        The exception class of the raised exception.
+    condition
+        The condition that must be violated in order to raise the exception.
+    message
+        A message to pass as the only argument to the exception initializer.
+    args
+        An optional list of positional arguments to use when formatting the
+        exception message.
+    kwargs
+        An optional list of key-value arguments to use when formatting the
+        exception message.
+    """
     if not condition:
         raise exception_class(message.format(*args, **kwargs))
 
 
-def assert_data_error(condition, message, *args, **kwargs):
-    if not condition:
-        raise GluonTSDataError(message.format(*args, **kwargs))
+def assert_data_error(condition: bool, message: str, *args, **kwargs) -> None:
+    """
+    Delegates to :func:`assert_gluonts` with a fixed ``exception_class`` value
+    of ``GluonTSDataError``.
+
+    Parameters
+    ----------
+    condition
+        The condition that must be violated in order to raise the exception.
+    message
+        A message to pass as the only argument to the exception initializer.
+    args
+        An optional list of positional arguments to use when formatting the
+        exception message.
+    kwargs
+        An optional list of key-value arguments to use when formatting the
+        exception message.
+    """
+    assert_gluonts(GluonTSDataError, condition, message, *args, **kwargs)
 
 
-def reraise_error(Origin, message=None, Target=GluonTSUserError):
-    '''
-    Decorator that converts `Origin` to `Target` exception, where `Origin` is not
-    an instance of `CustomerError`.
+def reraise_error(
+    origin_class: type,
+    message: str = None,
+    target_class: type = GluonTSUserError,
+) -> Callable:
+    """
+    Decorator that converts `Origin` to `Target` exception, where `Origin` is
+    not an instance of `CustomerError`.
 
-    If `message` is not provided, the message of the causing exception is simply past to
-    the CustomerError. If `message` is specified, the CustomerError will be constructed
-    with that message and the causing exception is added as the cause.
+    If `message` is not provided, the message of the causing exception is
+    simply past to the ``GluonTSUserError``. If `message` is specified, the
+    ``GluonTSUserError`` will be constructed with that message and the causing
+    exception is added as the cause.
 
-    :param origin:
-    :param target:
-    :return:
-    '''
+    Parameters
+    ----------
+    origin_class
+        The type of the original exception.
+    message
+        A message to pass to the re-raised exception.
+    target_class
+        The type of hte re-raised exception.
+
+    Returns
+    -------
+
+    """
 
     def decorator(fn):
         @functools.wraps(fn)
         def inner(*args, **kwargs):
             try:
                 return fn(*args, **kwargs)
-            except Origin as error:
+            except origin_class as error:
                 import traceback
 
                 traceback.print_exc()
                 error_message = message or getattr(error, 'message', None)
                 if error_message is None:
-                    raise Target(message=error)
+                    raise target_class(message=error)
                 else:
-                    raise Target(message=error_message, caused_by=error)
+                    raise target_class(message=error_message, caused_by=error)
 
         return inner
 
