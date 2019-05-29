@@ -83,7 +83,7 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
         Tensor
             shape (batch_size, num_features) or (N, C)
 
-        decoder_input_dynamic : Tensor
+        Tensor
             shape (batch_size, prediction_length, num_features) or (N, T, C)
 
         future_features : Tensor
