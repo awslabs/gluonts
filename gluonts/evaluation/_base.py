@@ -129,6 +129,7 @@ class Evaluator:
 
         Returns
         -------
+        Union[pandas.Series, pandas.DataFrame]
             time series cut in the Forecast object dates
         """
         assert forecast.index.intersection(time_series.index).equals(
