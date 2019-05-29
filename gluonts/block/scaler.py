@@ -64,7 +64,7 @@ class Scaler(nn.HybridBlock):
 
         Returns
         -------
-        ``scaled_data``: Tensor
+        Tensor
             shape (N, T, C),
             ``scale`` of shape (N, C) if ``keepdims == False``, and shape
             (N, 1, C) if ``keepdims == True``.
