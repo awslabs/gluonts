@@ -118,7 +118,7 @@ class MeanScaler(Scaler):
 
         Returns
         -------
-        scale : Tensor
+        Tensor
             shape (N, C), computed according to the
             average absolute value over time of the observed values.
         """
