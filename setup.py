@@ -336,4 +336,10 @@ if 'BRAZIL_PACKAGE_NAME' in os.environ and HAS_SPHINX:
 
 # do the work
 write_version_py()
-setup(**setup_kwargs)
+setup(
+    **setup_kwargs,
+    extras_require={
+        'R': find_requirements("requirements-extras-r.txt"),
+        'Prophet': find_requirements("requirements-extras-prophet.txt"),
+    },
+)
