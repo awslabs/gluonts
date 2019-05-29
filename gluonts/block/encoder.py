@@ -439,7 +439,7 @@ class RNNCovariateEncoder(Seq2SeqEncoder):
 
         Returns
         -------
-        static_code : Tensor
+        Tensor
             static code,
             shape (batch_size, num_static_features)
 
