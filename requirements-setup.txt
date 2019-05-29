@@ -1,7 +1,8 @@
-pytest-runner==2.11.*
-mypy>=0.630
 black>=18.*
-sphinx==1.6.*
-sphinx_rtd_theme==0.4.*
-sphinx-autobuild==0.7.*
+click==6.*
+mypy==0.630
+pytest-runner==2.11.*
 setuptools>=40.1.0
+sphinx==1.6.*
+sphinx-autobuild==0.7.*
+sphinx_rtd_theme==0.4.*
