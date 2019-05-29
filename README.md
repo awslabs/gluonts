@@ -38,17 +38,20 @@ df = pd.read_csv(url, header=0, index_col=0)
 The first 200 data points look like follows:
 
 ```python
-df[:200].plot()
+import matplotlib.pyplot as plt
+df[:100].plot(linewidth=2)
+plt.grid(which='both')
+plt.show()
 ```
 
 ![Data](/figures/Tweets_AMZN_data.png)
 
 We can now prepare a training dataset for our model to train on.
 Datasets in GluonTS are essentially iterable collections of
-dictionaries: each dictionary represents an *item*, that is a time series
+dictionaries: each dictionary represents a time series
 with possibly associated features. For this example, we only have one
-item, specified by the `"start"` field which is the timestamp of the
-first datapoint, and the `"target"` field containing time series.
+entry, specified by the `"start"` field which is the timestamp of the
+first datapoint, and the `"target"` field containing time series data.
 For training, we will use data up to midnight on April 5th, 2015.
 
 ```python
@@ -68,16 +71,16 @@ and we will train a model to predict the next hour, so `prediction_length=12`.
 We also specify some minimal training options.
 
 ```python
-from gluonts.model.ar2n2 import AR2N2Estimator
+from gluonts.model.deepar import DeepAREstimator
 from gluonts.trainer import Trainer
 
-estimator = AR2N2Estimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
+estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
 predictor = estimator.train(training_data=training_data)
 ```
 
 During training, useful information about the progress will be displayed.
 To get a full overview of the available options, please refer to the
-documentation of `AR2N2Estimator` (or other estimators) and `Trainer`.
+documentation of `DeepAREstimator` (or other estimators) and `Trainer`.
 
 We're now ready to make predictions: we will forecast the hour following
 the midnight on April 15th, 2015, and compare it to what was actually
@@ -89,11 +92,12 @@ test_data = ListDataset(
     freq = "5min"
 )
 
-df.set_index(pd.to_datetime(df.index)).resample("5min").sum()\
-    ["2015-04-14 21:00:00":"2015-04-15 00:55:00"].plot()
+from gluonts.dataset.util import to_pandas
 
-for forecast in predictor.predict(test_data):
-    forecast.plot(confidence_intervals=[50., 90.])
+for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
+    to_pandas(test_entry)[-60:].plot(linewidth=2)
+    forecast.plot(color='g', confidence_intervals=[50., 90.])
+plt.grid(which='both')
 ```
 
 ![Forecast](/figures/Tweets_AMZN_forecast.png)
@@ -107,5 +111,7 @@ centered around the median (dark blue line).
 The following modules are good entry-points to understand how to use
 other features of GluonTS:
 
-* `gluonts.model.seasonal_naive`: how to implement simple models using just NumPy and Pandas.
-* `gluonts.model.simple_feedforward.estimator`: how to define a Gluon model.
+* [`examples.evaluate_model`](examples/evaluate_model.py): how to train a model and compute evaluation metrics.
+* [`examples.benchmark_m4`](examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets. 
+* [`gluonts.model.seasonal_naive`](gluonts/model/seasonal_naive): how to implement simple models using just NumPy and Pandas.
+* [`gluonts.model.simple_feedforward`](gluonts/model/simple_feedforward): how to define a trainable, Gluon-based model.
