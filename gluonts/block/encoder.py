@@ -92,7 +92,7 @@ class Seq2SeqEncoder(nn.HybridBlock):
 
         Returns
         -------
-        inputs : Tensor
+        Tensor
             combined features,
             shape (batch_size, sequence_length,
                    num_static_features + num_dynamic_features + 1)
