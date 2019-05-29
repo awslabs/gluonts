@@ -13,8 +13,15 @@ from gluonts.model.common import Tensor
 class FeatureEmbedder(nn.HybridBlock):
     """
     Embed a sequence of categorical features.
-    """
 
+    Parameters
+    ----------
+    cardinalities
+        cardinality for each categorical feature.
+
+    embedding_dims
+        number of dimensions to embed each categorical feature.
+    """
     @validated()
     def __init__(
         self, cardinalities: List[int], embedding_dims: List[int], **kwargs
@@ -57,13 +64,14 @@ class FeatureEmbedder(nn.HybridBlock):
 
         features
             Categorical features with shape: (N,T,C) or (N,C), where C is the
-            number of categorical features
+            number of categorical features.
 
         Returns
         -------
+        concatenated_tensor: Tensor
             Concatenated tensor of embeddings whth shape: (N,T,C) or (N,C),
             where C is the sum of the embedding dimensions for each categorical
-            feature, i.e. C = sum(self.config.embedding_dims)
+            feature, i.e. C = sum(self.config.embedding_dims).
         """
 
         if self.__num_features > 1:

@@ -7,11 +7,12 @@ from mxnet.gluon import nn
 # First-party imports
 from gluonts.block.mlp import MLP
 from gluonts.core.component import validated
+from gluonts.model.common import Tensor
 
 
 class Seq2SeqDecoder(nn.HybridBlock):
     """
-    Abstract class for the Decoder
+    Abstract class for the Decoder block in sequence-to-sequence models.
     """
 
     @validated()
@@ -19,27 +20,53 @@ class Seq2SeqDecoder(nn.HybridBlock):
         super().__init__(**kwargs)
 
     # noinspection PyMethodOverriding
-    def hybrid_forward(self, F, static_input, dynamic_input) -> None:
+    def hybrid_forward(self, F, dynamic_input: Tensor, static_input: Tensor) \
+            -> None:
         """
+        Abstract function definition of the hybrid_forward.
+
         Parameters
         ----------
+        dynamic_input
+            dynamic_features, shape (batch_size, sequence_length, num_features)
+            or (N, T, C)
 
-        static_input : Symbol or NDArray
+        static_input
             static features, shape (batch_size, num_features) or (N, C)
-        dynamic_input : Symbol or NDArray
-            dynamic_features, shape (batch_size, sequence_length, num_features) or (N, T, C)
+
         """
         pass
 
 
 class ForkingMLPDecoder(Seq2SeqDecoder):
+    """
+    Multilayer perceptron decoder for sequence-to-sequence models.
+
+    See following paper for details:
+        Wen, R., Torkkola, K., and Narayanaswamy, B. (2017).
+        A multi-horizon quantile recurrent forecaster.
+        arXiv preprint arXiv:1711.11053.
+
+    Parameters
+    ----------
+    dec_len
+        length of the decoder (usually the number of forecasted time steps).
+
+    final_dim
+        dimensionality of the output per time step (number of predicted
+        quantiles).
+
+    hidden_dimension_sequence
+        number of hidden units for each MLP layer.
+    """
+
     @validated()
     def __init__(
-        self,
-        dec_len: int,
-        final_dim: int,
-        hidden_dimension_sequence: List[int] = list([]),
-        **kwargs,
+            self,
+            dec_len: int,
+            final_dim: int,
+            hidden_dimension_sequence: List[int] = list([]),
+            **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
@@ -66,7 +93,30 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
             )
             self.model.add(layer)
 
-    def hybrid_forward(self, F, dynamic_input, static_input=None):
+    def hybrid_forward(self, F, dynamic_input: Tensor,
+                       static_input: Tensor = None) -> Tensor:
+        """
+        ForkingMLPDecoder forward call.
+
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        dynamic_input
+            dynamic_features, shape (batch_size, sequence_length, num_features)
+            or (N, T, C).
+
+        static_input
+            not used in this decoder.
+
+        Returns
+        -------
+        Tensor
+            mlp output, shape (0, 0, dec_len, final_dims).
+
+        """
         mlp_output = self.model(dynamic_input)
         mlp_output = mlp_output.reshape(
             shape=(0, 0, self.dec_len, self.final_dims)
@@ -75,12 +125,24 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
 
 
 class OneShotDecoder(Seq2SeqDecoder):
+    """
+    OneShotDecoder.
+
+    Parameters
+    ----------
+    decoder_length
+        length of the decoder (number of time steps)
+    layer_sizes
+        dimensions of the hidden layers
+    static_outputs_per_time_step
+        number of outputs per time step
+    """
     @validated()
     def __init__(
-        self,
-        decoder_length: int,
-        layer_sizes: List[int],
-        static_outputs_per_time_step: int,
+            self,
+            decoder_length: int,
+            layer_sizes: List[int],
+            static_outputs_per_time_step: int,
     ) -> None:
         super().__init__()
         self.decoder_length = decoder_length
@@ -92,11 +154,31 @@ class OneShotDecoder(Seq2SeqDecoder):
             )
 
     def hybrid_forward(
-        self,
-        F,
-        static_input,  # (batch_size, static_input_dim)
-        dynamic_input,  # (batch_size, decoder_length, dynamic_input_dim)
-    ):
+            self,
+            F,
+            static_input: Tensor,  # (batch_size, static_input_dim)
+            dynamic_input: Tensor,  # (batch_size,
+    ) -> Tensor:
+        """
+        OneShotDecoder forward call
+
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        static_input
+            static features, shape (batch_size, num_features) or (N, C)
+
+        dynamic_input
+            dynamic_features, shape (batch_size, sequence_length, num_features)
+            or (N, T, C)
+        Returns
+        -------
+        Tensor
+            mlp output, shape (batch_size, dec_len, size of last layer)
+        """
         static_input_tile = self.expander(static_input).reshape(
             (0, self.decoder_length, self.static_outputs_per_time_step)
         )
