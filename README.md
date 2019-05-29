@@ -44,7 +44,7 @@ plt.grid(which='both')
 plt.show()
 ```
 
-![Data](/figures/Tweets_AMZN_data.png)
+![Data](docs/figures/Tweets_AMZN_data.png)
 
 We can now prepare a training dataset for our model to train on.
 Datasets in GluonTS are essentially iterable collections of
@@ -100,11 +100,11 @@ for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
 plt.grid(which='both')
 ```
 
-![Forecast](/figures/Tweets_AMZN_forecast.png)
+![Forecast](docs/figures/Tweets_AMZN_forecast.png)
 
 Note that the forecast is displayed in terms of confidence intervals:
 the shaded areas represents the 50% and 90% confidence intervals respectively,
-centered around the median (dark blue line).
+centered around the median (dark green line).
 
 ## Further examples
 
