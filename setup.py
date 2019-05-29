@@ -230,6 +230,10 @@ setup_kwargs: dict = dict(
     setup_requires=find_requirements("requirements-setup.txt"),
     install_requires=find_requirements("requirements.txt"),
     tests_require=find_requirements("requirements-test.txt"),
+    extras_require={
+        'R': find_requirements("requirements-extras-r.txt"),
+        'Prophet': find_requirements("requirements-extras-prophet.txt"),
+    },
     entry_points=dict(
         console_scripts=[
             "gluonts-validate-dataset=gluonts.dataset.validate:run"
@@ -336,10 +340,4 @@ if 'BRAZIL_PACKAGE_NAME' in os.environ and HAS_SPHINX:
 
 # do the work
 write_version_py()
-setup(
-    **setup_kwargs,
-    extras_require={
-        'R': find_requirements("requirements-extras-r.txt"),
-        'Prophet': find_requirements("requirements-extras-prophet.txt"),
-    },
-)
+setup(**setup_kwargs)

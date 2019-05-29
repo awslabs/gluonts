@@ -29,10 +29,10 @@ class RForecastPredictor(RepresentablePredictor):
     <http://pkg.robjhyndman.com/forecast/>`_.
 
     The `RForecastPredictor` is a thin wrapper for calling the R forecast
-    package.  In order to use it you need to install R and run
+    package.  In order to use it you need to install R and run::
 
-    >>> pip install rpy2
-    >>> R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
+        pip install rpy2
+        R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
 
     Parameters
     ----------

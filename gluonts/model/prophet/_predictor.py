@@ -24,9 +24,9 @@ class ProphetPredictor(RepresentablePredictor):
     Wrapper around `Prophet <https://github.com/facebook/prophet>`_.
 
     The `ProphetPredictor` is a thin wrapper for calling the Prophet package.
-    In order to use it you need to install fbprophet
+    In order to use it you need to install fbprophet::
 
-    >>> pip install fbprophet
+        pip install fbprophet
 
     Parameters
     ----------
