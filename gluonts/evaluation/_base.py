@@ -44,11 +44,18 @@ class Evaluator:
         alpha: float = 0.05,
     ):
         """
-        :param quantiles: list of strings of the form 'p10' or floats in [0, 1] with the quantile levels
-        :param seasonality seasonality to use for seasonal_error, if nothing is passed uses the default seasonality
+
+        Parameters
+        ----------
+        quantiles
+            list of strings of the form 'p10' or floats in [0, 1] with the quantile levels
+        seasonality
+            seasonality to use for seasonal_error, if nothing is passed uses the default seasonality
             for the given series frequency as returned by `get_seasonality`
-        :param alpha: parameter of the MSIS metric that defines the CI,
-                      e.g., for alpha=0.05 the 95% CI is considered in the metric.
+        alpha
+            parameter of the MSIS metric from M4 competition that defines the confidence interval
+            for alpha=0.05 the 95% considered is considered in the metric,
+            see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf for more detail on MSIS
         """
 
         self.quantile_values, self.quantile_names = zip(
@@ -61,8 +68,23 @@ class Evaluator:
         self,
         ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
         fcst_iterator: Iterable[Forecast],
-        num_series=None,
-    ):
+        num_series: Optional[int] = None,
+    ) -> Tuple[Dict[str, float], pd.DataFrame]:
+        """
+        Parameters
+        ----------
+        ts_iterator
+            iterator containing true target on the predicted range
+        fcst_iterator
+            iterator of forecasts on the predicted range
+        num_series
+            number of series of the iterator (optional only used for displaying progress)
+
+        Returns
+        -------
+        dict
+            Dictionary of aggregated metrics and dataframe containing per-time-series metrics
+        """
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
 
@@ -96,11 +118,20 @@ class Evaluator:
         return self.get_aggregate_metrics(metrics_per_ts)
 
     @staticmethod
-    def extract_pred_target(time_series, forecast):
+    def extract_pred_target(
+        time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+    ) -> Union[pd.Series, pd.DataFrame]:
         """
-        :param time_series: pandas.DataFrame or Series
-        :param forecast: Forecast object
-        :return: pandas.DataFrame or Series cut in the Forecast object dates
+
+        Parameters
+        ----------
+        time_series
+        forecast
+
+        Returns
+        -------
+        Union[pandas.Series, pandas.DataFrame]
+            time series cut in the Forecast object dates
         """
         assert forecast.index.intersection(time_series.index).equals(
             forecast.index
@@ -112,7 +143,9 @@ class Evaluator:
         # cut the time series using the dates of the forecast object
         return np.squeeze(time_series.loc[forecast.index].transpose())
 
-    def seasonal_error(self, time_series, forecast):
+    def seasonal_error(
+        self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+    ) -> float:
         """
         seasonal_error = mean(|Y[t] - Y[t-m]|)
         where m is the seasonal frequency
@@ -141,12 +174,9 @@ class Evaluator:
 
         return float(np.mean(abs(y_t - y_tm)))
 
-    def get_metrics_per_ts(self, time_series, forecast):
-        """
-        :param time_series: pandas.DataFrame or Series
-        :param forecast: Forecast object
-        :return: dictionary of the form {'metric': value} of the time series
-        """
+    def get_metrics_per_ts(
+        self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+    ) -> Dict[str, float]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
@@ -191,7 +221,9 @@ class Evaluator:
 
         return metrics
 
-    def get_aggregate_metrics(self, metric_per_ts):
+    def get_aggregate_metrics(
+        self, metric_per_ts: pd.DataFrame
+    ) -> Tuple[Dict[str, float], pd.DataFrame]:
         agg_funs = {
             "MSE": 'mean',
             "abs_error": 'sum',
@@ -350,12 +382,19 @@ class MultivariateEvaluator(Evaluator):
         eval_dims: List[int] = None,
     ):
         """
-        :param quantiles: list of strings of the form 'p10' or floats in [0, 1] with the quantile levels
-        :param seasonality seasonality to use for seasonal_error, if nothing is passed uses the default seasonality
+
+        Parameters
+        ----------
+        quantiles
+            list of strings of the form 'p10' or floats in [0, 1] with the quantile levels
+        seasonality
+            seasonality to use for seasonal_error, if nothing is passed uses the default seasonality
             for the given series frequency as returned by `get_seasonality`
-        :param alpha: parameter of the MSIS metric that defines the CI,
-                      e.g., for alpha=0.05 the 95% CI is considered in the metric.
-        :param eval_dims: dimensions of the target that will be evaluated
+        alpha
+            parameter of the MSIS metric that defines the CI,
+            e.g., for alpha=0.05 the 95% CI is considered in the metric.
+        eval_dims
+            dimensions of the target that will be evaluated
         """
         super().__init__(
             quantiles=quantiles, seasonality=seasonality, alpha=alpha
@@ -408,10 +447,18 @@ class MultivariateEvaluator(Evaluator):
         all_metrics_per_ts: pd.DataFrame,
     ):
         """
-        Calculates aggregate vector metrics over all dimensions.
-        :param all_agg_metrics: dictionary with aggregate metrics of individual dimensions.
-        :param all_metrics_per_ts: DataFrame containing metrics for all time series of all evaluated dimensions.
-        :return: dictionary with aggregate metrics (of individual (evaluated) dimensions and the entire vector).
+
+        Parameters
+        ----------
+        all_agg_metrics
+            dictionary with aggregate metrics of individual dimensions
+        all_metrics_per_ts
+            DataFrame containing metrics for all time series of all evaluated dimensions
+
+        Returns
+        -------
+        Dict[int, Dict[str, float]]
+            dictionary with aggregate metrics (of individual (evaluated) dimensions and the entire vector)
         """
         vector_aggregate_metrics, _ = self.get_aggregate_metrics(
             all_metrics_per_ts

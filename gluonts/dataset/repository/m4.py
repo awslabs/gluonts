@@ -14,7 +14,7 @@ def to_dict(cat: int, target_values: np.ndarray):
     return {
         "start": mock_start_dataset,
         "target": list(target_values),
-        "cat": [cat],
+        "feat_static_cat": [cat],
     }
 
 
@@ -33,7 +33,7 @@ def metadata(cardinality: int, freq: str, prediction_length: int):
         "time_granularity": freq,
         "prediction_length": prediction_length,
         "feat_static_cat": [
-            {"name": "time_series_index", "cardinality": str(cardinality)}
+            {"name": "feat_static_cat", "cardinality": str(cardinality)}
         ],
     }
 
