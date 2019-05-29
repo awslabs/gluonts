@@ -103,7 +103,7 @@ class DeepAREstimator(GluonEstimator):
         cardinality: List[int] = [
             1
         ],  # TODO: we should infer this automatically somehow
-        embedding_dimension: int = 5,
+        embedding_dimension: int = 20,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,

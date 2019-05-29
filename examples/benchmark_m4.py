@@ -7,7 +7,7 @@ from functools import partial
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
-from gluonts.model.ar2n2 import AR2N2Estimator
+from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.seq2seq import MQCNNEstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.trainer import Trainer
@@ -33,7 +33,7 @@ estimators = [
         ),
     ),
     partial(
-        AR2N2Estimator,
+        DeepAREstimator,
         trainer=Trainer(
             epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
         ),
