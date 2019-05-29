@@ -21,6 +21,23 @@ class QuantileLoss(Loss):
         batch_axis=0,
         **kwargs,
     ) -> None:
+        """
+        Represents the quantile loss used to fit decoders that learn quantiles.
+
+        Parameters
+        ----------
+        quantiles
+            list of quantiles to compute loss over.
+
+        quantile_weights
+            weights of the quantiles.
+
+        weight:
+            weighting of the loss.
+
+        batch_axis:
+            indicates axis that represents the batch.
+        """
         super().__init__(weight, batch_axis, **kwargs)
 
         self.quantiles = quantiles
@@ -32,14 +49,29 @@ class QuantileLoss(Loss):
         )
 
     # noinspection PyMethodOverriding
-    def hybrid_forward(self, F, y_true, y_pred, sample_weight=None):
-        '''
-        Compute the weighted sum of quantile losses
+    def hybrid_forward(self, F, y_true: Tensor, y_pred: Tensor,
+                       sample_weight=None):
+        """
+        Compute the weighted sum of quantile losses.
 
-        :param y_true: shape N1 x N2 x ... x Nk x dimension of time series (normally 1)
-        :param y_pred: shape N1 x N2 x ... x Nk x num_quantiles
-        :return: weighted sum of the quantile losses, shape N1 x N1 x ... Nk
-        '''
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+        y_true
+            true target, shape (N1 x N2 x ... x Nk x dimension of time series
+            (normally 1))
+        y_pred
+            predicted target, shape (N1 x N2 x ... x Nk x num_quantiles)
+        sample_weight
+            sample weights
+
+        Returns
+        -------
+        Tensor
+            weighted sum of the quantile losses, shape N1 x N1 x ... Nk
+        """
         y_pred_all = F.split(
             y_pred, axis=-1, num_outputs=self.num_quantiles, squeeze_axis=1
         )
@@ -62,14 +94,31 @@ class QuantileLoss(Loss):
             return sum_qt_loss
 
     @staticmethod
-    def compute_quantile_loss(F, y_true, y_pred_p, p):
+    def compute_quantile_loss(F, y_true: Tensor, y_pred_p: Tensor, p: float) \
+            -> Tensor:
         """
-        Compute the quantile loss
+        Compute the quantile loss of the given quantile
 
-        :param y_true:
-        :param y_pred_p:
-        :param p:
-        :return:
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        y_true
+            true target, shape (N1 x N2 x ... x Nk x dimension of time series
+            (normally 1)).
+
+        y_pred_p
+            predicted target quantile, shape (N1 x N2 x ... x Nk x 1).
+
+        p
+            quantile error to compute the loss.
+
+        Returns
+        -------
+        qt_loss : Tensor
+            quantile loss, shape: (N1 x N2 x ... x Nk x 1)
         """
 
         under_bias = p * F.maximum(y_true - y_pred_p, 0)
@@ -81,6 +130,16 @@ class QuantileLoss(Loss):
 
 
 class ProjectParams(nn.HybridBlock):
+    """
+    Defines a dense layer to compute the projection weights into the quantile
+    space.
+
+    Parameters
+    ----------
+    num_quantiles
+        number of quantiles to compute the projection.
+    """
+
     @validated()
     def __init__(self, num_quantiles, **kwargs):
         super().__init__(**kwargs)
@@ -90,10 +149,37 @@ class ProjectParams(nn.HybridBlock):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        """
+
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+        x
+            input tensor
+
+        Returns
+        -------
+        projection output : Tensor
+            output of the projection layer
+        """
         return self.projection(x)
 
 
 class QuantileOutput:
+    """
+    Output layer using a quantile loss and projection layer to connect the
+    quantile output to the network.
+
+    Parameters
+    ----------
+        quantiles
+            list of quantiles to compute loss over.
+
+        quantile_weights
+            weights of the quantiles.
+    """
     @validated()
     def __init__(
         self,
@@ -104,9 +190,22 @@ class QuantileOutput:
         self.quantile_weights = quantile_weights
 
     def get_loss(self) -> nn.HybridBlock:
+        """
+        Returns
+        -------
+        quantile_loss : nn.HybridBlock
+            constructs quantile loss object.
+        """
         return QuantileLoss(
             quantiles=self.quantiles, quantile_weights=self.quantile_weights
         )
 
     def get_quantile_proj(self, **kwargs) -> nn.HybridBlock:
+        """
+        Returns
+        -------
+        projection_parameters: nn.HybridBlock
+            constructs projection parameter object.
+
+        """
         return ProjectParams(len(self.quantiles), **kwargs)

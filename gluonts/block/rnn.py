@@ -3,9 +3,29 @@ from mxnet.gluon import HybridBlock, rnn
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.model.common import Tensor
 
 
 class RNN(HybridBlock):
+    """
+    Defines an RNN block.
+
+    Parameters
+    ----------
+    mode
+        type of the RNN. Can be either: rnn_relu (RNN with relu activation),
+        rnn_tanh, (RNN with tanh activation), lstm or gru.
+
+    hidden_size
+        number of units per hidden layer.
+
+    num_layers
+        number of hidden layers.
+
+    bidirectional
+        toggle use of bi-directional RNN as encoder.
+    """
+
     @validated()
     def __init__(
         self,
@@ -53,5 +73,21 @@ class RNN(HybridBlock):
                     % mode
                 )
 
-    def hybrid_forward(self, F, inputs):  # NTC in, NTC out
+    def hybrid_forward(self, F, inputs: Tensor) -> Tensor:  # NTC in, NTC out
+        """
+
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        inputs
+            input tensor with shape (batch_size, num_timesteps, num_dimensions)
+
+        Returns
+        -------
+        rnn output : Tensor
+            rnn output with shape (batch_size, num_timesteps, num_dimensions)
+        """
         return self.rnn(inputs)

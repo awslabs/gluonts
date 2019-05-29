@@ -1,8 +1,12 @@
+# Standard library imports
+from typing import Tuple
+
 # Third-party imports
 from mxnet.gluon import nn
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.model.common import Tensor
 
 
 class Seq2SeqEnc2Dec(nn.HybridBlock):
@@ -17,31 +21,33 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self, F, encoder_output_static, encoder_output_dynamic, future_features
-    ):
+        self, F, encoder_output_static: Tensor,
+            encoder_output_dynamic: Tensor,
+            future_features:  Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Parameters
         ----------
 
-        encoder_output_static : Symbol or NDArray
+        encoder_output_static
             shape (batch_size, num_features) or (N, C)
 
-        encoder_output_dynamic : Symbol or NDArray
+        encoder_output_dynamic
             shape (batch_size, context_length, num_features) or (N, T, C)
 
-        future_features : Symbol or NDArray
+        future_features
             shape (batch_size, prediction_length, num_features) or (N, T, C)
 
 
         Returns
         -------
-        decoder_input_static : Symbol or NDArray
+        decoder_input_static : Tensor
             shape (batch_size, num_features) or (N, C)
 
-        decoder_inuput_dynamic : Symbol or NDArray
+        decoder_input_dynamic : Tensor
             shape (batch_size, prediction_length, num_features) or (N, T, C)
 
-        future_features : Symbol or NDArray
+        future_features : Tensor
             shape (batch_size, sequence_length, num_features) or (N, T, C)
 
         """
@@ -50,10 +56,38 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
 
 class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
     """
-    passing through, Noop
+    Simplest class for passing encoder tensors do decoder. Passes through
+    tensors.
     """
 
     def hybrid_forward(
-        self, F, encoder_output_static, encoder_output_dynamic, future_features
-    ):
+        self, F, encoder_output_static: Tensor, encoder_output_dynamic: Tensor,
+            future_features: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """
+        Parameters
+        ----------
+
+        encoder_output_static
+            shape (batch_size, num_features) or (N, C)
+
+        encoder_output_dynamic
+            shape (batch_size, context_length, num_features) or (N, T, C)
+
+        future_features
+            shape (batch_size, prediction_length, num_features) or (N, T, C)
+
+
+        Returns
+        -------
+        decoder_input_static : Tensor
+            shape (batch_size, num_features) or (N, C)
+
+        decoder_input_dynamic : Tensor
+            shape (batch_size, prediction_length, num_features) or (N, T, C)
+
+        future_features : Tensor
+            shape (batch_size, sequence_length, num_features) or (N, T, C)
+
+        """
         return encoder_output_static, encoder_output_dynamic, future_features
