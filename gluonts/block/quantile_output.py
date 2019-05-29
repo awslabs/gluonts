@@ -161,7 +161,7 @@ class ProjectParams(nn.HybridBlock):
 
         Returns
         -------
-        projection output : Tensor
+        Tensor
             output of the projection layer
         """
         return self.projection(x)
