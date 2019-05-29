@@ -47,7 +47,7 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
         Tensor
             shape (batch_size, prediction_length, num_features) or (N, T, C)
 
-        future_features : Tensor
+        Tensor
             shape (batch_size, sequence_length, num_features) or (N, T, C)
 
         """
