@@ -117,7 +117,7 @@ class QuantileLoss(Loss):
 
         Returns
         -------
-        qt_loss : Tensor
+        Tensor
             quantile loss, shape: (N1 x N2 x ... x Nk x 1)
         """
 
