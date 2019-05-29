@@ -96,7 +96,7 @@ from gluonts.dataset.util import to_pandas
 
 for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
     to_pandas(test_entry)[-60:].plot(linewidth=2)
-    forecast.plot(color='g', confidence_intervals=[50., 90.])
+    forecast.plot(color='g')
 plt.grid(which='both')
 ```
 
