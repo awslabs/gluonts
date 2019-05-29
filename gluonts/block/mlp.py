@@ -50,7 +50,7 @@ class MLP(nn.HybridBlock):
 
         Returns
         -------
-        MLP output : Tensor
+        Tensor
             Output of the MLP given the input tensor.
         """
         return self.layers(x)
