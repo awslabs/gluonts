@@ -54,7 +54,7 @@ class Seq2SeqEncoder(nn.HybridBlock):
 
         Returns
         -------
-        static_code : Tensor
+        Tensor
             static code,
             shape (batch_size, num_static_features)
 
