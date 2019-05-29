@@ -80,7 +80,7 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
 
         Returns
         -------
-        decoder_input_static : Tensor
+        Tensor
             shape (batch_size, num_features) or (N, C)
 
         decoder_input_dynamic : Tensor
