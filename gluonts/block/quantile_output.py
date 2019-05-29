@@ -204,7 +204,7 @@ class QuantileOutput:
         """
         Returns
         -------
-        projection_parameters: nn.HybridBlock
+        nn.HybridBlock
             constructs projection parameter object.
 
         """
