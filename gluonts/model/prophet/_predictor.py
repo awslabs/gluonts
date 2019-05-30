@@ -43,10 +43,12 @@ class ProphetPredictor(RepresentablePredictor):
         An optional function that will be called with the configured model.
         This can be used to configure more complex setups, e.g.
 
-        >>> def configure_model(model):
-        >>>     model.add_seasonality(
-        >>>         name='weekly', period=7, fourier_order=3, prior_scale=0.1
-        >>>     )
+    Examples
+    --------
+    >>> def configure_model(model):
+    ...     model.add_seasonality(
+    ...         name='weekly', period=7, fourier_order=3, prior_scale=0.1
+    ...     )
     """
 
     @validated()

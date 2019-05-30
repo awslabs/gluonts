@@ -1,8 +1,10 @@
 # Standard library imports
 import distutils.cmd
 import distutils.log
+import io
 import itertools
 import logging
+import re
 import subprocess
 import os  # noqa
 import sys
@@ -16,7 +18,24 @@ from setuptools import find_namespace_packages, setup
 
 ROOT = Path(__file__).parent
 
-VERSION = "0.1.0"
+
+def read(*names, **kwargs):
+    with io.open(
+        os.path.join(os.path.dirname(__file__), *names),
+        encoding=kwargs.get("encoding", "utf8")
+    ) as fp:
+        return fp.read()
+
+
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+VERSION = find_version('src', 'gluonts', '__init__.py')
 
 GPU_SUPPORT = 0 == int(
     subprocess.call(
@@ -220,6 +239,7 @@ setup_kwargs: dict = dict(
     name="gluonts",
     version=VERSION,
     description=("A toolkit for time series modeling with neural networks."),
+    url='https://github.com/awslabs/gluon-ts',
     author="Amazon",
     author_email="gluon-ts-dev@amazon.com",
     maintainer_email="gluon-ts-dev@amazon.com",
