@@ -236,14 +236,33 @@ class PiecewiseLinear(Distribution):
 
         F = self.F
 
+        # shapes of self
+        # self.gamma: (*batch_shape)
+        # self.knot_positions, self.b: (*batch_shape, num_pieces)
+
+        # axis=None - passed at inference when num_samples is None
+        # The shape of x is (*batch_shape).
+        # The shapes of the parameters should be:
+        # gamma: (*batch_shape), knot_positions, b: (*batch_shape, num_pieces)
+        # They match the self. counterparts so no reshaping is needed
+
+        # axis=0 - passed at inference when num_samples is not None
+        # The shape of x is (num_samples, *batch_shape).
+        # The shapes of the parameters should be:
+        # gamma: (num_samples, *batch_shape), knot_positions, b: (num_samples, *batch_shape, num_pieces),
+        # They do not match the self. counterparts and we need to expand the axis=0 to all of them.
+
+        # axis=-2 - passed at training when we evaluate quantiles at knot_positions in order to compute a_tilde
+        # The shape of x is shape(x) = shape(knot_positions) = (*batch_shape, num_pieces).
+        # The shape of the parameters shopuld be:
+        # gamma: (*batch_shape, 1), knot_positions: (*batch_shape, 1, num_pieces), b: (*batch_shape, 1, num_pieces)
+        # They do not match the self. counterparts and we need to expand axis=-1 for gamma and axis=-2 for the rest.
+
         if axis is not None:
-            # axis=-2 during training when learning quantiles at knot_positions to compute a_tilde
-            # axis=0 during inference when num_samples is not None
             gamma = self.gamma.expand_dims(axis=axis if axis == 0 else -1)
             knot_positions = self.knot_positions.expand_dims(axis=axis)
             b = self.b.expand_dims(axis=axis)
         else:
-            # axis=None during inference when num_samples is None
             gamma, knot_positions, b = self.gamma, self.knot_positions, self.b
 
         x_minus_knots = F.broadcast_minus(
