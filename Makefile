@@ -18,9 +18,6 @@
 ROOTDIR = $(CURDIR)
 MD2IPYNB = $(ROOTDIR)/docs/md2ipynb.py
 
-flake8:
-	flake8 --exclude conda,*tests*,test_*.py --count --select=E901,E999,F822,F823 --show-source --statistics $(lintdir)
-
 pylint:
 	pylint --rcfile=$(ROOTDIR)/.pylintrc $(lintdir)
 
@@ -28,7 +25,6 @@ restruc:
 	python setup.py check --restructuredtext --strict
 
 lint:
-	make lintdir=$(lintdir) flake8 || true
 	make lintdir=$(lintdir) pylint || true
 	make restruc || true
 
