@@ -1,16 +1,14 @@
-from typing import Tuple
+from typing import Tuple, List
 import pytest
 
 import mxnet as mx
+import numpy as np
 
 from gluonts.distribution import PiecewiseLinear
 
 
-TOL = 1e-6
-
-
 @pytest.mark.parametrize(
-    "distr, target, expected_a_tilde, expected_crps",
+    "distr, target, expected_cdf, expected_crps",
     [
         (
             PiecewiseLinear(
@@ -20,48 +18,41 @@ TOL = 1e-6
                     shape=(1, 3)
                 ),
             ),
-            2.2,
-            0.5,
-            0.2233,
+            [2.2],
+            [0.5],
+            [0.223000],
         ),
         (
             PiecewiseLinear(
-                gamma=mx.nd.ones(shape=(1,)),
-                slopes=mx.nd.array([1, 1]).reshape(shape=(1, 2)),
-                knot_spacings=mx.nd.array([0.4, 0.6]).reshape(shape=(1, 2)),
+                gamma=mx.nd.ones(shape=(2,)),
+                slopes=mx.nd.array([[1, 1], [1, 2]]).reshape(shape=(2, 2)),
+                knot_spacings=mx.nd.array([[0.4, 0.6], [0.4, 0.6]]).reshape(
+                    shape=(2, 2)
+                ),
             ),
-            1.5,
-            0.5,
-            0.0833,
-        ),
-        (
-            PiecewiseLinear(
-                gamma=mx.nd.ones(shape=(1,)),
-                slopes=mx.nd.array([1, 2]).reshape(shape=(1, 2)),
-                knot_spacings=mx.nd.array([0.4, 0.6]).reshape(shape=(1, 2)),
-            ),
-            1.6,
-            0.5,
-            0.1453,
+            [1.5, 1.6],
+            [0.5, 0.5],
+            [0.083333, 0.145333],
         ),
     ],
 )
 def test_values(
     distr: PiecewiseLinear,
-    target: float,
-    expcted_a_tilde: float,
-    expected_crps: float,
+    target: List[float],
+    expected_cdf: List[float],
+    expected_crps: List[float],
 ):
+    target = mx.nd.array(target).reshape(shape=(len(target),))
+    expected_cdf = np.array(expected_cdf).reshape((len(expected_cdf),))
+    expected_crps = np.array(expected_crps).reshape((len(expected_crps),))
 
-    target = target * mx.nd.ones(shape=(1,))
-
-    assert abs(distr._cdf(target).asnumpy()[0] - expcted_a_tilde) < TOL
-    assert abs(distr.crps(target).asnumpy()[0] - expected_crps) < TOL
+    assert all(np.isclose(distr._cdf(target).asnumpy(), expected_cdf))
+    assert all(np.isclose(distr.crps(target).asnumpy(), expected_crps))
 
 
 @pytest.mark.parametrize(
     "batch_shape, num_pieces, num_samples",
-    [((3, 4, 5), 10, 100), ((1,), 1, 1), ((10,), 10, 10), ((10, 5), 1, 1)],
+    [((3, 4, 5), 10, 100), ((1,), 2, 1), ((10,), 10, 10), ((10, 5), 2, 1)],
 )
 def test_shapes(batch_shape: Tuple, num_pieces: int, num_samples: int):
     gamma = mx.nd.ones(shape=(*batch_shape,))

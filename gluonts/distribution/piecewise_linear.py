@@ -288,7 +288,11 @@ class PiecewiseLinearOutput(DistributionOutput):
     distr_cls: type = PiecewiseLinear
 
     @validated()
-    def __init__(self, num_pieces):
+    def __init__(self, num_pieces: int) -> None:
+        assert (
+            isinstance(num_pieces, int) and num_pieces > 1
+        ), "num_pieces should be an integer larger than 1"
+
         self.num_pieces = num_pieces
         self.args_dim = cast(
             Dict[str, int],
