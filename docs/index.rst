@@ -26,7 +26,7 @@ Here is a simple time series example with GluonTS for predicting twitter volume 
    window.onload = function() {
      var demo = document.createElement("IFRAME");
      demo.src = "https://repl.it/@szha/gluon-ts?lite=true";
-     demo.height = "400px";
+     demo.height = "600px";
      demo.width = "100%";
      demo.scrolling = "no";
      demo.frameborder = "no";
