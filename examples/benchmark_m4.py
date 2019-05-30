@@ -10,6 +10,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.seq2seq import MQCNNEstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.distribution.piecewise_linear import PiecewiseLinearOutput
 from gluonts.trainer import Trainer
 import pandas as pd
 
@@ -34,6 +35,13 @@ estimators = [
     ),
     partial(
         DeepAREstimator,
+        trainer=Trainer(
+            epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
+        ),
+    ),
+    partial(
+        DeepAREstimator,
+        distr_output=PiecewiseLinearOutput(8),
         trainer=Trainer(
             epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
         ),
