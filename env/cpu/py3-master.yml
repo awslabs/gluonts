@@ -1,0 +1,21 @@
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - pip=18.1
+  - pylint=1.9.2
+  - flake8
+  - sphinx=1.7.7
+  - pytest<4
+  - flaky<4
+  - pytest-cov=2.6.0
+  - mock<3
+  - pytest-xdist<2
+  - pytest-runner<2.12
+  - mypy>=0.630
+  - black>=18
+  - setuptools>=40.1
+  - pydantic
+  - requests
+  - pip:
+    - mxnet-mkl>=1.5.0b20190407

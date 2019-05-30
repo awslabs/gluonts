@@ -12,13 +12,36 @@ from gluonts.model.common import Tensor
 class Scaler(nn.HybridBlock):
     """
     Base class for blocks used to scale data.
+
+    Parameters
+    ----------
+    keepdims
+        toggle to keep the dimension of the input tensor.
     """
 
     def __init__(self, keepdims: bool = False):
+
         super().__init__()
         self.keepdims = keepdims
 
     def compute_scale(self, F, data: Tensor, observed_indicator: Tensor):
+        """
+        Computes the scale of the given input data.
+
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        data
+            tensor of shape (N, T, C) containing the data to be scaled
+
+        observed_indicator
+            observed_indicator: binary tensor with the same shape as
+            ``data``, that has 1 in correspondence of observed data points,
+            and 0 in correspondence of missing data points.
+        """
         raise NotImplementedError()
 
     # noinspection PyMethodOverriding
@@ -26,13 +49,28 @@ class Scaler(nn.HybridBlock):
         self, F, data: Tensor, observed_indicator: Tensor
     ) -> Tuple[Tensor, Tensor]:
         """
-        :param data: tensor of shape (N, T, C) containing the data to be scaled
-        :param observed_indicator: binary tensor with the same shape as
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        data
+            tensor of shape (N, T, C) containing the data to be scaled
+
+        observed_indicator
+            observed_indicator: binary tensor with the same shape as
             ``data``, that has 1 in correspondence of observed data points,
             and 0 in correspondence of missing data points.
-        :return: ``scaled_data`` of shape (N, T, C),
-            ``scale`` of shape (N, C) if ``keepdims == False``, and shape
+
+        Returns
+        -------
+        Tensor
+            Tensor containing the "scaled" data, shape: (N, T, C).
+        Tensor
+            Tensor containing the scale, of shape (N, C) if ``keepdims == False``, and shape
             (N, 1, C) if ``keepdims == True``.
+
         """
         scale = self.compute_scale(F, data, observed_indicator)
 
@@ -50,6 +88,11 @@ class MeanScaler(Scaler):
     the observed values in the data tensor, as indicated by the second
     argument. Items with no observed data are assigned a scale based on the
     global average.
+
+    Parameters
+    ----------
+    minimum_scale
+        default scale that is used if the time series has only zeros.
     """
 
     @validated()
@@ -61,11 +104,24 @@ class MeanScaler(Scaler):
         self, F, data: Tensor, observed_indicator: Tensor  # shapes (N, T, C)
     ) -> Tensor:
         """
-        :param data: tensor of shape (N, T, C) containing the data to be scaled
-        :param observed_indicator: binary tensor with the same shape as
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        data
+            tensor of shape (N, T, C) containing the data to be scaled
+
+        observed_indicator
+            observed_indicator: binary tensor with the same shape as
             ``data``, that has 1 in correspondence of observed data points,
             and 0 in correspondence of missing data points.
-        :return: ``scale`` of shape (N, C), computed according to the
+
+        Returns
+        -------
+        Tensor
+            shape (N, C), computed according to the
             average absolute value over time of the observed values.
         """
 
@@ -109,10 +165,23 @@ class NOPScaler(Scaler):
         self, F, data: Tensor, observed_indicator: Tensor
     ) -> Tensor:
         """
-        :param data: tensor of shape (N, T, C) containing the data to be scaled
-        :param observed_indicator: binary tensor with the same shape as
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        data
+            tensor of shape (N, T, C) containing the data to be scaled
+
+        observed_indicator
+            observed_indicator: binary tensor with the same shape as
             ``data``, that has 1 in correspondence of observed data points,
             and 0 in correspondence of missing data points.
-        :return: ``scale`` of shape (N, C), identically equal to 1.
+
+        Returns
+        -------
+        Tensor
+            shape (N, C), identically equal to 1.
         """
         return F.ones_like(data).mean(axis=1)

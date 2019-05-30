@@ -1,22 +1,41 @@
 # Standard library imports
 import distutils.cmd
 import distutils.log
+import io
 import itertools
 import logging
+import re
 import subprocess
 import os  # noqa
 import sys
-from textwrap import dedent
 from pathlib import Path
+from textwrap import dedent
 
 # Third-party imports
 import setuptools
 import setuptools.command.build_py
-from setuptools import setup, find_namespace_packages
+from setuptools import find_namespace_packages, setup
 
 ROOT = Path(__file__).parent
 
-VERSION = "0.1.0"
+
+def read(*names, **kwargs):
+    with io.open(
+        os.path.join(os.path.dirname(__file__), *names),
+        encoding=kwargs.get("encoding", "utf8")
+    ) as fp:
+        return fp.read()
+
+
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+VERSION = find_version('src', 'gluonts', '__init__.py')
 
 GPU_SUPPORT = 0 == int(
     subprocess.call(
@@ -163,7 +182,7 @@ class StyleCheckCommand(distutils.cmd.Command):
         black_opts = []
         black_args = [
             str(ROOT / folder)
-            for folder in ["gluonts", "test"]
+            for folder in ["gluonts", "test", "examples"]
             if (ROOT / folder).is_dir()
         ]
 
@@ -220,6 +239,7 @@ setup_kwargs: dict = dict(
     name="gluonts",
     version=VERSION,
     description=("A toolkit for time series modeling with neural networks."),
+    url='https://github.com/awslabs/gluon-ts',
     author="Amazon",
     author_email="gluon-ts-dev@amazon.com",
     maintainer_email="gluon-ts-dev@amazon.com",
@@ -230,6 +250,10 @@ setup_kwargs: dict = dict(
     setup_requires=find_requirements("requirements-setup.txt"),
     install_requires=find_requirements("requirements.txt"),
     tests_require=find_requirements("requirements-test.txt"),
+    extras_require={
+        'R': find_requirements("requirements-extras-r.txt"),
+        'Prophet': find_requirements("requirements-extras-prophet.txt"),
+    },
     entry_points=dict(
         console_scripts=[
             "gluonts-validate-dataset=gluonts.dataset.validate:run"
@@ -263,76 +287,6 @@ if HAS_SPHINX:
     setup_kwargs["doc_command"] = "build_sphinx"
     for command in ['build_sphinx', 'doc', 'docs']:
         setup_kwargs["cmdclass"][command] = BuildApiDoc
-
-# -----------------------------------------------------------------------------
-# start of AWS-internal section (DO NOT MODIFY THIS SECTION)!
-
-# update the public setup arguments
-if 'BRAZIL_PACKAGE_NAME' in os.environ:
-    setup_kwargs = {
-        **setup_kwargs,
-        **dict(
-            # Brazil does not play well with requirements lists - reset them
-            setup_requires=[],
-            install_requires=[],
-            tests_require=[],
-            options=dict(
-                # make sure the right shebang is set for the scripts -
-                # use the environment default Python 3.6
-                build_scripts=dict(
-                    executable='/apollo/sbin/envroot "$ENVROOT/bin/python3.6"'
-                )
-            ),
-            # set to the name of the interpreter whose scripts should go
-            # in $ENVROOT/bin
-            # see: https://w.amazon.com/index.php/BrazilPython3
-            root_script_source_version="python3.6",
-        ),
-    }
-
-# override build_sphinx command to a Brazil-compatible version
-if 'BRAZIL_PACKAGE_NAME' in os.environ and HAS_SPHINX:
-    index_content = dedent(
-        """
-        <html>
-        <head>
-          <meta http-equiv="REFRESH" content="0; url=html/index.html">
-        </head>
-        <body>
-          Redirecting to Sphinx documentation:
-          <a href="html/index.html">
-            Click here if not redirected automatically
-          </a>
-        </body>
-        </html>
-        """
-    ).lstrip()
-
-    class BrazilBuildApiDoc(BuildApiDoc):
-        def initialize_options(self):
-            super().initialize_options()
-            brazil_src_dir = os.getcwd()
-            while brazil_src_dir != '/' and brazil_src_dir != '':
-                if os.path.exists(os.path.join(brazil_src_dir, 'Config')):
-                    break
-                brazil_src_dir = os.path.dirname(brazil_src_dir)
-            if brazil_src_dir == '/' or brazil_src_dir == '':
-                raise RuntimeError('Unable to find Brazil source directory.')
-            self.build_dir = os.path.join(
-                brazil_src_dir, 'build', 'brazil-documentation'
-            )
-
-        def run(self):
-            super(BrazilBuildApiDoc, self).run()
-            # Write redirect page to 'index.html' file in 'html' directory.
-            with (Path(self.build_dir) / "index.html").open("w") as f:
-                f.write(index_content)
-
-    for command in ['build_sphinx', 'doc', 'docs']:
-        setup_kwargs["cmdclass"][command] = BrazilBuildApiDoc
-
-# end of AWS-internal section (DO NOT MODIFY THIS SECTION)!
-# -----------------------------------------------------------------------------
 
 # do the work
 write_version_py()

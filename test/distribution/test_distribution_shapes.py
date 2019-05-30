@@ -21,7 +21,7 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
 
 
 @pytest.mark.parametrize(
-    "dist, expected_batch_shape, expected_event_shape",
+    "distr, expected_batch_shape, expected_event_shape",
     [
         (
             Gaussian(
@@ -173,25 +173,25 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
     ],
 )
 def test_distribution_shapes(
-    dist: Distribution,
+    distr: Distribution,
     expected_batch_shape: Tuple,
     expected_event_shape: Tuple,
 ):
-    assert dist.batch_shape == expected_batch_shape
-    assert dist.event_shape == expected_event_shape
+    assert distr.batch_shape == expected_batch_shape
+    assert distr.event_shape == expected_event_shape
 
-    x = dist.sample()
+    x = distr.sample()
 
-    assert x.shape == dist.batch_shape + dist.event_shape
+    assert x.shape == distr.batch_shape + distr.event_shape
 
-    loss = dist.loss(x)
+    loss = distr.loss(x)
 
-    assert loss.shape == dist.batch_shape
+    assert loss.shape == distr.batch_shape
 
-    x1 = dist.sample(num_samples=1)
+    x1 = distr.sample(num_samples=1)
 
-    assert x1.shape == (1,) + dist.batch_shape + dist.event_shape
+    assert x1.shape == (1,) + distr.batch_shape + distr.event_shape
 
-    x3 = dist.sample(num_samples=3)
+    x3 = distr.sample(num_samples=3)
 
-    assert x3.shape == (3,) + dist.batch_shape + dist.event_shape
+    assert x3.shape == (3,) + distr.batch_shape + distr.event_shape

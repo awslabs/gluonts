@@ -39,10 +39,14 @@ class DeepAREstimator(GluonEstimator):
     Construct a DeepAR estimator.
 
     This implements an RNN-based model, close to the one described in
-    `this paper <https://arxiv.org/abs/1704.04110>`_.
+    [Salinas2017]_.
 
     *Note:* the code of this model is unrelated to the implementation behind
     `SageMaker's DeepAR Forecasting Algorithm <https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html>`_.
+
+    .. [Salinas2017] David Salinas, Valentin Flunkert, Jan Gasthaus
+        "DeepAR: Probabilistic Forecasting with Autoregressive Recurrent
+        Networks." arXiv preprint arXiv:1704.04110 (2017).
 
     Parameters
     ----------
@@ -103,7 +107,7 @@ class DeepAREstimator(GluonEstimator):
         cardinality: List[int] = [
             1
         ],  # TODO: we should infer this automatically somehow
-        embedding_dimension: int = 5,
+        embedding_dimension: int = 20,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,

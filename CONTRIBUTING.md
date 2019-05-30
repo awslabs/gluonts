@@ -40,6 +40,23 @@ GitHub provides additional document on [forking a repository](https://help.githu
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
 
 
+## Development setup and coding style
+
+For development you need the requirements listed in all `requirements...txt` files.
+
+We use flake8, mypy, and [black](https://github.com/python/black) for style and
+type checking. Any code changes that you contribute should pass these checks.
+
+The easiest way to get set up for development is to run the following script:
+
+```bash
+./dev_setup.sh
+```
+
+This will install all the requirements and also install a git hook that runs
+all code checks when you commit.
+
+
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/gluon-ts/labels/help%20wanted) issues is a great place to start.
 

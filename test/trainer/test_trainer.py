@@ -19,17 +19,6 @@ def test_epochs() -> None:
     )
 
 
-def test_train_log_interval() -> None:
-    assert_valid_param(
-        param_name='train_log_interval', param_values=[1, 2, 5, 42, 1000]
-    )
-    assert_invalid_param(
-        param_name='train_log_interval',
-        param_values=[-2, -1e-10, 0],
-        exp_msg='The value of `train_log_interval` should be > 0 (type=value_error)',
-    )
-
-
 def test_patience() -> None:
     assert_valid_param(param_name='patience', param_values=[0, 1, 10, 100])
     assert_invalid_param(
