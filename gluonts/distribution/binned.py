@@ -155,6 +155,7 @@ class BinnedArgs(gluon.HybridBlock):
 class BinnedOutput(DistributionOutput):
     distr_cls: type = Binned
 
+    @validated()
     def __init__(self, bin_centers: List) -> None:
         # cannot pass directly nd.array because it is not serializable
         bc = mx.nd.array(bin_centers)

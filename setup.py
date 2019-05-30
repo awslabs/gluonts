@@ -101,7 +101,7 @@ def find_requirements(filename):
         return [
             line.rstrip().replace(mxnet_old, mxnet_new, 1)
             for line in f
-            if not line.startswith("#")
+            if not (line.startswith("#") or line.startswith("http"))
         ]
 
 
@@ -277,7 +277,7 @@ if HAS_SPHINX:
                     ["-P"],  # include private modules
                     ["--implicit-namespaces"],  # respect PEP420
                     ["-o", str(ROOT / "docs" / "api" / "gluonts")],  # out path
-                    [str(ROOT)],  # in path
+                    [str(ROOT / "gluonts")],  # in path
                     ["setup*", "test", "docs", "*pycache*"],  # excluded paths
                 )
             )

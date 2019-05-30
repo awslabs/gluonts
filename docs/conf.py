@@ -36,7 +36,7 @@ release = ts.__version__
 
 # General information about the project.
 project = 'GluonTS'
-copyright = '2018, Amazon'
+copyright = '2019, Amazon'
 author = 'Amazon'
 github_doc_root = 'http://gluon-ts.mxnet.io/{}/'.format(str(version))
 

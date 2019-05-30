@@ -19,10 +19,12 @@
 
 import pytest
 
+
 def test_sanity():
     # sanity test that makes sure every marker combination has at least 1 test.
     # due to https://github.com/pytest-dev/pytest/issues/812
     import gluonts as ts
+
 
 @pytest.mark.gpu
 def test_sanity_gpu():
@@ -30,11 +32,13 @@ def test_sanity_gpu():
     # due to https://github.com/pytest-dev/pytest/issues/812
     import gluonts as ts
 
+
 @pytest.mark.serial
 def test_sanity_serial():
     # sanity test that makes sure every marker combination has at least 1 test.
     # due to https://github.com/pytest-dev/pytest/issues/812
     import gluonts as ts
+
 
 @pytest.mark.gpu
 @pytest.mark.serial
