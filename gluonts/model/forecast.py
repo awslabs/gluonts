@@ -263,6 +263,7 @@ class SampleForecast(Forecast):
         show_mean=False,
         color='b',
         label=None,
+        output_file=None,
         *args,
         **kwargs,
     ):
@@ -282,6 +283,8 @@ class SampleForecast(Forecast):
             The color used for plotting the forecast.
         label : string
             A label (prefix) that is used for the forecast
+        output_file : str or None, default None
+            Output path for the plot file. If None, plot is not saved to file.
         args :
             Other arguments are passed to main plot() call
         kwargs :
@@ -352,6 +355,8 @@ class SampleForecast(Forecast):
                 *args,
                 **kwargs,
             )
+        if output_file:
+            plt.savefig(output_file)
 
     def __repr__(self):
         return ', '.join(
