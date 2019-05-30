@@ -115,5 +115,5 @@ If you are not familiar with Gluon, check out the
 
    model_zoo/index
    examples/index
-   api/index
+   api/gluonts/gluonts
    community/index
