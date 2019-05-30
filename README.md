@@ -9,7 +9,7 @@ your own models and quickly experiment with different solutions.
 
 ## Installation
 
-GluonTS requires that you have Python 3.6 installed, and the easiest
+GluonTS requires Python 3.6, and the easiest
 way to install it is via `pip`:
 
 ```bash
@@ -26,8 +26,7 @@ If you wish to contribute to the project, please refer to our
 This simple example illustrates how to train a model from GluonTS on some data,
 and then use it to make predictions. As a first step, we need to collect
 some data: in this example we will use the volume of tweets mentioning the
-AMZN ticker symbol. For convenience, we resample the data to get a regular
-frequency of 5 minutes.
+AMZN ticker symbol.
 
 ```python
 import pandas as pd
@@ -35,7 +34,7 @@ url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twit
 df = pd.read_csv(url, header=0, index_col=0)
 ```
 
-The first 200 data points look like follows:
+The first 100 data points look like follows:
 
 ```python
 import matplotlib.pyplot as plt
@@ -83,8 +82,7 @@ To get a full overview of the available options, please refer to the
 documentation of `DeepAREstimator` (or other estimators) and `Trainer`.
 
 We're now ready to make predictions: we will forecast the hour following
-the midnight on April 15th, 2015, and compare it to what was actually
-observed in that time range:
+the midnight on April 15th, 2015.
 
 ```python
 test_data = ListDataset(
@@ -96,7 +94,7 @@ from gluonts.dataset.util import to_pandas
 
 for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
     to_pandas(test_entry)[-60:].plot(linewidth=2)
-    forecast.plot(color='g')
+    forecast.plot(color='g', prediction_intervals=[50.0, 90.0])
 plt.grid(which='both')
 ```
 
@@ -108,10 +106,14 @@ centered around the median (dark green line).
 
 ## Further examples
 
-The following modules are good entry-points to understand how to use
-other features of GluonTS:
+The following are good entry-points to understand how to use
+many features of GluonTS:
 
-* [`examples.evaluate_model`](examples/evaluate_model.py): how to train a model and compute evaluation metrics.
-* [`examples.benchmark_m4`](examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets. 
+* [GluonTS Tutorial](examples/GluonTS%20Tutorial.ipynb): a tutorial notebook.
+* [evaluate_model.py](examples/evaluate_model.py): how to train a model and compute evaluation metrics.
+* [benchmark_m4.py](examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
+
+The following modules illustrate how custom models can be implemented:
+ 
 * [`gluonts.model.seasonal_naive`](gluonts/model/seasonal_naive): how to implement simple models using just NumPy and Pandas.
 * [`gluonts.model.simple_feedforward`](gluonts/model/simple_feedforward): how to define a trainable, Gluon-based model.
