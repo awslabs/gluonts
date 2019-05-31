@@ -17,6 +17,10 @@ def assert_shape_and_finite(x, shape):
     assert not np.isinf(x.asnumpy()).any()
 
 
+# The following files contain different sets of LDS parameters
+# (coefficients and noise terms) and observations, and the log-density
+# of the observations that were computed using pykalman
+# (https://pykalman.github.io/).
 @pytest.mark.skip
 @pytest.mark.parametrize(
     "data_filename",
