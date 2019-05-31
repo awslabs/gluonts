@@ -82,27 +82,29 @@ def evaluate(dataset_name, estimator):
     return eval_dict
 
 
-results = []
-for dataset_name in datasets:
-    for estimator in estimators:
-        # catch exceptions that are happening during training to avoid failing the whole evaluation
-        try:
-            results.append(evaluate(dataset_name, estimator))
-        except Exception as e:
-            print(str(e))
+if __name__ == "__main__":
 
-df = pd.DataFrame(results)
+    results = []
+    for dataset_name in datasets:
+        for estimator in estimators:
+            # catch exceptions that are happening during training to avoid failing the whole evaluation
+            try:
+                results.append(evaluate(dataset_name, estimator))
+            except Exception as e:
+                print(str(e))
 
-sub_df = df[
-    [
-        "dataset",
-        "estimator",
-        "RMSE",
-        "mean_wQuantileLoss",
-        "MASE",
-        "sMAPE",
-        "MSIS",
+    df = pd.DataFrame(results)
+
+    sub_df = df[
+        [
+            "dataset",
+            "estimator",
+            "RMSE",
+            "mean_wQuantileLoss",
+            "MASE",
+            "sMAPE",
+            "MSIS",
+        ]
     ]
-]
 
-print(sub_df.to_string())
+    print(sub_df.to_string())

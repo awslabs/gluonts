@@ -9,22 +9,17 @@ There are lots of opportunities for you to become our `contributors <https://git
 - Propose ideas, or review proposed design ideas on `GitHub issues <https://github.com/awslabs/gluon-ts/issues>`__.
 - Improve the `documentation <http://gluon-ts.mxnet.io/master/index.html>`__.
 - Contribute bug reports `GitHub issues <https://github.com/awslabs/gluon-ts/issues>`__.
-- Write new `scripts <https://github.com/awslabs/gluon-ts/tree/master/scripts>`__ to reproduce
   state-of-the-art results.
 - Write new `tutorials <https://github.com/awslabs/gluon-ts/tree/master/docs/examples>`__.
-- Write new `public datasets <https://github.com/awslabs/gluon-ts/tree/master/src/gluonts/dataset>`__
-  (license permitting).
 - Most importantly, if you have an idea of how to contribute, then do it!
 
 For a list of open starter tasks, check `good first issues <https://github.com/awslabs/gluon-ts/labels/good%20first%20issue>`__.
 
 - `Make changes <#make-changes>`__
 
-- `Contribute to model zoo <#contribute-to-model-zoo>`__
-
 - `Contribute tutorials <#contribute-tutorials>`__
 
-- `Contribute new API <#contribute-new-api>`__
+- `Contribute new Models <#contribute-new-model>`__
 
 - `Git Workflow Howtos <#git-workflow-howtos>`__
 
@@ -46,17 +41,6 @@ submitting, contributor should perform the following checks:
 - `Lint (code style) check <https://github.com/awslabs/gluon-ts/blob/master/ci/jenkins/build_steps.groovy>`__.
 - `Py3 <https://github.com/awslabs/gluon-ts/blob/master/ci/jenkins/Jenkinsfile_py3_cpu_unittest>`__ tests.
 
-Contribute to model zoo
------------------------
-
-The :doc:`model zoo <../model_zoo/index>` in GluonTS provide
-training scripts for reproducing state-of-the-art (SOTA) results and for
-applying them in specific application.
-The scripts are intended for practitioners who are familiar with the libraries to tweak and hack.
-When contributing scripts, we request that you provide training logs. You can upload the logs `here <https://github.com/dmlc/web-data/tree/master/gluonts/logs>`__ through pull requests,
-and then link them in the accompanying documentation for the scripts.
-
-See `existing examples <https://github.com/awslabs/gluon-ts/tree/master/scripts>`__.
 
 Contribute tutorials
 --------------------
@@ -92,26 +76,6 @@ Notebook Guidelines:
 - Make sure the notebook can be zoomed in and still render well. This helps accommodate different viewing devices.
 - For low level APIs such as BeamSearch and Scorer, explain the API with examples so ppl know how to play with it / hack it.
 
-Contribute new API
-------------------
-
-There are several different types of APIs, such as *model definition APIs, public dataset APIs, and
-building block APIs*.
-
-*Model definition APIs* facilitate the sharing of pre-trained models. If you'd like to contribute
-models with pre-trained weights, you can `open an issue <https://github.com/awslabs/gluon-ts/issues/new>`__
-and ping committers first, we will help with things such as hosting the model weights while you propose the patch.
-
-*Public dataset APIs* facilitate the sharing of public datasets. Like model definition APIs, if you'd like to contribute
-new public datasets, you can `open an issue <https://github.com/awslabs/gluon-ts/issues/new>`__ and ping committers and review
-the dataset needs. If you're unsure, feel free to open an issue anyway.
-
-Finally, our *data and model building block APIs* come from repeated patterns in examples. It has the highest quality bar
-and should always starts from a good design. If you have an idea on proposing a new API, we
-encourage you to `draft a design proposal first <https://github.com/awslabs/gluon-ts/labels/enhancement>`__, so that the community can help iterate.
-Once the design is finalized, everyone who are interested in making it happen can help by submitting
-patches. For designs that require larger scopes, we can help set up GitHub project to make it easier
-for others to join.
 
 Contribute Docs
 ---------------
