@@ -1,5 +1,5 @@
-GluonTS - Probabilistic Time Series Modeling in Python
-========================================================
+GluonTS - Probabilistic Time Series Modeling
+============================================
 
 Gluon Time Series (GluonTS) is the Gluon toolkit for probabilistic time series modeling, focusing on deep learning-based models.
 
