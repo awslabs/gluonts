@@ -9,12 +9,12 @@ Forecasting
 .. container:: cards
 
    .. card::
-      :title: Time Series Forecasting with GluonTS
-      :link: introduction/Introduction.m
+      :title: Forecasting Tutorial
+      :link: forecasting/tutorial.html
 
 
 .. toctree::
    :hidden:
    :maxdepth: 1
 
-   introduction/Introduction.ipynb
+   forecasting/tutorial.ipynb

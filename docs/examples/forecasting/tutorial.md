@@ -5,6 +5,7 @@ The GluonTS toolkit contains components and tools for building time series model
 The toolkit is not intended as a forecasting solution for businesses or end users but it rather targets scientists and engineers who want to tweak algorithms or build and experiment with their own models.  
 
 GluonTS contains:
+
 * Components for building new models (likelihoods, feature processing pipelines, calendar features etc.)
 * Data loading and processing
 * A number of pre-built models
@@ -143,6 +144,7 @@ predictor = estimator.train(dataset.train)
 Now we have a predictor in our hands. We can use it to predict the last window of the `dataset.test` and evaluate how our model performs.
 
 GluonTS comes with the `make_evaluation_predictions` function that automates all this procedure. Roughly, this module performs the following steps:
+
 - Removes the final window of length `prediction_length` of the `dataset.test` that we want to predict
 - The estimator uses the remaining dataset to predict (in the form of sample paths) the "future" window that was just removed 
 - The module outputs a generator over the forecasted sample paths and a generator over the `dataset.test` 
@@ -260,10 +262,12 @@ plt.show()
 ## Create your own forecast model
 
 For creating your own forecast model you need to:
+
 - Define the training and prediction network
 - Define a new estimator that specifies any data processing and uses the networks
 
 The training and prediction networks can be arbitrarily complex but they should follow some basic rules:
+
 - Both should have a `hybrid_forward` method that defines what should happen when the network is called    
 - The trainng network's `hybrid_forward` should return a **loss** based on the prediction and the true values
 - The prediction network's `hybrid_forward` should return the predictions 
@@ -300,6 +304,7 @@ class MyPredNetwork(MyTrainNetwork):
 ```
 
 Now, we need to construct the estimator which should also follow some rules:
+
 - It should include a `create_transformation` method that defines all the possible feature transformations and how the data is split during training
 - It should include a `create_training_network` method that returns the training network configured with any necessary hyperparameters
 - It should include a `create_predictor` method that creates the prediction network, and returns a `Predictor` object 
