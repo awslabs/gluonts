@@ -1,19 +1,19 @@
+# Time Series Forecasting Tutorial
 
-# Time series forecasting with GluonTS
-
-The GluonTS toolkit contains components and tools for building time series models using MXNet. The models that are currently included are forecasting models but the components also support other time series use cases, such as classification or anomly detection. 
+The GluonTS toolkit contains components and tools for building time series models using MXNet. The models that are currently included are forecasting models but the components also support other time series use cases, such as classification or anomaly detection. 
 
 The toolkit is not intended as a forecasting solution for businesses or end users but it rather targets scientists and engineers who want to tweak algorithms or build and experiment with their own models.  
 
 GluonTS contains:
-- Components for building new models (likelihoods, feature processing pipelines, calendar features etc.)
-- Data loading and processing
-- A number of pre-built models
-- Plotting and evaluation facilities
-- Artificial and real datasets (only external datasets with blessed license)
+* Components for building new models (likelihoods, feature processing pipelines, calendar features etc.)
+* Data loading and processing
+* A number of pre-built models
+* Plotting and evaluation facilities
+* Artificial and real datasets (only external datasets with blessed license)
 
 
 ```python
+# Third-party imports
 %matplotlib inline
 import mxnet as mx
 from mxnet import gluon
@@ -21,12 +21,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import json
-import os
-from itertools import islice
-from pathlib import Path
 ```
 
-## Loading datasets
+## Datasets
+
+### GluonTS datasets
 
 GluonTS comes with a number of publicly available datasets. 
 
@@ -41,27 +40,26 @@ from gluonts.dataset.util import to_pandas
 print(f"Available datasets: {list(dataset_recipes.keys())}")
 ```
 
-An available dataset can be easily downloaded by its name. If the dataset already exists locally it is not downloaded again by setting `regenerate=False`.
+An available dataset can be easily downloaded by its name. In this notebook we will use the "m4_hourly" dataset that contains a few hundred time series. If the dataset already exists locally it is not downloaded again by setting `regenerate=False`.
 
 
 ```python
 dataset = get_dataset("m4_hourly", regenerate=False)
 ```
 
-### What is in a dataset?
-
 In general, the datasets provided by GluonTS are objects that consists of three main components:
+
 - `dataset.train` is an iterable collection of data entries used for training.
 - `dataset.test` is an iterable collection of data entries used for inference. The test dataset is an extended version of the train dataset that contains a window in the end of each time series that was not seen during training. This window has length equal to the recommended prediction length.
 - `dataset.metadata` containts metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc. 
-
-Of course a custom dataset does not need to have this specific format but it should be iterable and it should have a "target" and a "start" field.
 
 
 ```python
 entry = next(iter(dataset.train))
 train_series = to_pandas(entry)
 train_series.plot()
+plt.grid(which="both")
+plt.legend(["train series"], loc="upper left")
 plt.show()
 ```
 
@@ -71,6 +69,8 @@ entry = next(iter(dataset.test))
 test_series = to_pandas(entry)
 test_series.plot()
 plt.axvline(train_series.index[-1], color='r') # end of train dataset
+plt.grid(which="both")
+plt.legend(["test series", "end of train series"], loc="upper left")
 plt.show()
 ```
 
@@ -81,23 +81,45 @@ print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
 print(f"Frequency of the time series: {dataset.metadata.time_granularity}")
 ```
 
+### Custom datasets
+
+At this point, it is important to emphasize that GluonTS does not require this specific format for a custom dataset that a user may have. The only requirements for a custom dataset are to be iterable and have a "target" and a "start" field. To make this more clear, assume the common case where a dataset is in the form of a `numpy.array` and the index of the time series in a `pandas.Timestamp` (possibly different for each time series): 
+
+
+```python
+N = 10  # number of time series
+T = 100  # number of timesteps
+prediction_length = 24
+custom_dataset = np.random.normal(size=(N, T))
+start = pd.Timestamp("01-01-2019", freq='1H')  # can be different for each time series
+```
+
+Now, you can split your dataset and bring it in a GluonTS appropriate format with just two lines of code:
+
+
+```python
+# train dataset: cut the last window of length "prediction_length", add "target" and "start" fields
+train_ds = [{'target': x, 'start': start} for x in custom_dataset[:, :-prediction_length]]
+# test dataset: use the whole dataset, add "target" and "start" fields
+test_ds = [{'target': x, 'start': start} for x in custom_dataset]
+```
+
 ## Training an existing model (`Estimator`)
 
 As we already mentioned, GluonTS comes with a number of pre-built models that can be used directly with minor hyperparameter configurations. For starters we will use one of these predefined models to go through the whole pipeline of training a model, predicting, and evaluating the results. 
 
-GluonTS gives focus (but is not restricted) to probabilistic forecasting, i.e., forecasting the future distribution of the values and not the future values themselves (point estimates) of a time series. Having estimated the future distribution of each time step in the forecasting horizon, we can draw a sample from the distribution at each time step and thus create a "sample path", that can be seen as a possible realization of the future. In practice we draw multiple samples and create multiple sample paths which can be used for visualization, evalution of the model, to derive statistics, etc.
+GluonTS gives focus (but is not restricted) to probabilistic forecasting, i.e., forecasting the future distribution of the values and not the future values themselves (point estimates) of a time series. Having estimated the future distribution of each time step in the forecasting horizon, we can draw a sample from the distribution at each time step and thus create a "sample path" that can be seen as a possible realization of the future. In practice we draw multiple samples and create multiple sample paths which can be used for visualization, evaluation of the model, to derive statistics, etc.
 
 In this example we will use a simple pre-built feedforward neural network estimator that takes as input a window of length `context_length` and predicts the distribution of the values of the subsequent future window of length `prediction_length`. 
 
-In general, each estimator (pre-built or custom) is configured by a number of hyperparameters that can be either common (but not binding) among all estimators (e.g. the `prediction_length`) or specific for the particular estimator (e.g. number of layers for a neural network or the stride in a CNN).
+In general, each estimator (pre-built or custom) is configured by a number of hyperparameters that can be either common (but not binding) among all estimators (e.g., the `prediction_length`) or specific for the particular estimator (e.g., number of layers for a neural network or the stride in a CNN).
 
-Finally, each estimator is configured by a `Trainer`, which defines how the model will be trained. i.e., the number of epochs, the learning rate, etc.  
+Finally, each estimator is configured by a `Trainer`, which defines how the model will be trained i.e., the number of epochs, the learning rate, etc.  
 
 
 ```python
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.trainer import Trainer
-from gluonts.evaluation.backtest import make_evaluation_predictions
 ```
 
 
@@ -111,7 +133,7 @@ estimator = SimpleFeedForwardEstimator(
 )
 ```
 
-After specifing our estimator with all the necessary hyperparameters we can train it using our training dataset `dataset.train` just by invoking the `.train` method of the estimator. The training returns a predictor that can be used to predict.
+After specifing our estimator with all the necessary hyperparameters we can train it using our training dataset `dataset.train` just by invoking the `train` method of the estimator. The training returns a predictor that can be used to predict.
 
 
 ```python
@@ -135,7 +157,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=dataset.test,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths
+    num_eval_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -162,11 +184,10 @@ print(type(tss[0]))
 
 
 ```python
-k = 3
-tss[0].head(k)  # show the k first values
+tss[0].head()  
 ```
 
-The `forecasts` list is a bit more complex. Each item in the `forecasts` list is an object that contains all the sample paths, the start date of the forecast, the frequency of the time series, etc. We can access all these information by simply invoking the corresponding attribute of the forecast object.
+The `forecasts` list is a bit more complex. Each item in the `forecasts` list is an object that contains all the sample paths in the form of `numpy.ndarray` with dimension `(num_samples, prediction_length)`, the start date of the forecast, the frequency of the time series, etc. We can access all these information by simply invoking the corresponding attribute of the forecast object.
 
 
 ```python
@@ -176,11 +197,12 @@ print(type(forecasts[0]))
 
 ```python
 print(f"Number of sample paths: {forecasts[0].num_samples}")
+print(f"Dimension of samples: {forecasts[0].samples.shape}")
 print(f"Start date of the forecast window: {forecasts[0].start_date}")
 print(f"Frequency of the time series: {forecasts[0].freq}")
 ```
 
-Apart from retrieving basic information we can do some more complex calculation such as to compute the mean or a given quantile of the values of the forecasted window.
+Apart from retrieving basic information we can do some more complex calculations such as to compute the mean or a given quantile of the values of the forecasted window.
 
 
 ```python
@@ -188,20 +210,24 @@ print(f"Mean of the future window:\n {forecasts[0].mean}")
 print(f"0.5-quantile (median) of the future window:\n {forecasts[0].quantile(0.5)}")
 ```
 
-Finally, each forecast object has a `.plot` method that can be parametrized to show the mean, prediction intervals, etc.
+Finally, each forecast object has a `
+plot` method that can be parametrized to show the mean, prediction intervals, etc. The prediction intervals are plotted in different shades so they are distinct. 
 
 
 ```python
 plot_length = 150 
-tss[0][-plot_length:].plot()  # plot the time series
-forecasts[0].plot(prediction_intervals=(50.0, 80.0, 95.0), # confidence intervals (plotted in different shades)
-              show_mean=True,
-              color='g')
-plt.grid()
+prediction_intervals = (50.0, 90.0)
+legend = ["observations", "median prediction"] + [f"{k}% prediction interval" for k in prediction_intervals][::-1]
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+tss[0][-plot_length:].plot(ax=ax)  # plot the time series
+forecasts[0].plot(prediction_intervals=prediction_intervals, color='g')
+plt.grid(which="both")
+plt.legend(legend, loc="upper left")
 plt.show()
 ```
 
-We can also evaluate the quality of our forecasts. The `Evaluator` returns aggregate error metrics as well as metric per time series which can be used e.g. for scatter plots.
+We can also evaluate the quality of our forecasts. GluonTS comes with an `Evaluator` that returns aggregate error metrics as well as metrics per time series which can be used e.g., for scatter plots.
 
 
 ```python
@@ -221,27 +247,30 @@ print(json.dumps(agg_metrics, indent=4))
 
 
 ```python
-item_metrics.head(10)
+item_metrics.head()
 ```
 
 
 ```python
-item_metrics.plot(x='abs_target_mean', y='MASE', kind='scatter')
-plt.plot()
+item_metrics.plot(x='MSIS', y='MASE', kind='scatter')
+plt.grid(which="both")
+plt.show()
 ```
 
 ## Create your own forecast model
 
 For creating your own forecast model you need to:
-- define the training and prediction network
-- define a new estimator that specifies any data processing and uses the networks
+- Define the training and prediction network
+- Define a new estimator that specifies any data processing and uses the networks
 
 The training and prediction networks can be arbitrarily complex but they should follow some basic rules:
-- Both should have a `hybrid_forward` method that defines what should happeni when the network is called    
+- Both should have a `hybrid_forward` method that defines what should happen when the network is called    
 - The trainng network's `hybrid_forward` should return a **loss** based on the prediction and the true values
 - The prediction network's `hybrid_forward` should return the predictions 
 
-For example, we can create a simple training network that defines a neural network with output dimension equal to `prediction_length` and uses the L1 loss in the `hybrid_forward` method, and a prediction network that is (and should be) identical to the training network (by inheriting the class).
+For example, we can create a simple training network that defines a neural network which takes as an input the past values of the time series and outputs a future predicted window of length `prediction_length`. It uses the L1 loss in the `hybrid_forward` method to evaluate the error among the predictions and the true values of the time series. The corresponding prediction network should be identical to the training network in terms of architecture (we achieve this by inheriting the training network class), and its `hybrid_forward` method outputs directly the predictions.
+
+Note that this simple model does only point forecasts by construction, i.e., we train it to outputs directly the future values of the time series and not any probabilistic view of the future (to achieve this we should train a network to learn a probability distribution and then sample from it to create sample paths).
 
 
 ```python
@@ -275,7 +304,7 @@ Now, we need to construct the estimator which should also follow some rules:
 - It should include a `create_training_network` method that returns the training network configured with any necessary hyperparameters
 - It should include a `create_predictor` method that creates the prediction network, and returns a `Predictor` object 
 
-A `Predictor` defines the `predictor.predict` method of a given predictor. This method takes the test dataset, it passes it through the prediction network to take the predictions, and yields the predictions. You can think of the `Predictor` object as a wrapper of the prediction network that defines its `predict` method. 
+A `Predictor` defines the `predict` method of a given predictor. Roughly, this method takes the test dataset, it passes it through the prediction network and yields the predictions. You can think of the `Predictor` object as a wrapper of the prediction network that defines its `predict` method. 
 
 Earlier, we used the `make_evaluation_predictions` to evaluate our predictor. Internally, the `make_evaluation_predictions` function invokes the `predict` method of the predictor to get the forecasts.
 
@@ -378,15 +407,18 @@ tss = list(ts_it)
 
 ```python
 plot_length = 150 
-tss[0][-plot_length:].plot()  # plot the time series
-forecasts[0].plot(prediction_intervals=(50.0, 80.0, 95.0), # confidence intervals (plotted in different shades)
-              show_mean=True,
-              color='g')
-plt.grid()
+prediction_intervals = (50.0, 90.0)
+legend = ["observations", "median prediction"] + [f"{k}% prediction interval" for k in prediction_intervals][::-1]
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+tss[0][-plot_length:].plot(ax=ax)  # plot the time series
+forecasts[0].plot(prediction_intervals=prediction_intervals, color='g')
+plt.grid(which="both")
+plt.legend(legend, loc="upper left")
 plt.show()
 ```
 
-We observe from the plot above that we cannot actually see any confidence interval in the predictions. This is expected since the networks that we defined do not do probabilistic forecasting but they just give point estimates. That is, the prediction netwrok does not return samples from a learned distribution. Rather, for a fixed input the network gives always the same output. So, by requiring 100 sample paths in such a network, we get 100 times the same output.
+We observe from the plot above that we cannot actually see any prediction intervals in the predictions. This is expected since the model that we defined does not do probabilistic forecasting but it just gives point estimates. By requiring 100 sample paths (defined in `make_evaluation_predictions`) in such a network, we get 100 times the same output.
 
 
 ```python
@@ -406,6 +438,12 @@ item_metrics.head(10)
 
 
 ```python
-item_metrics.plot(x='abs_target_mean', y='MASE', kind='scatter')
-plt.plot()
+item_metrics.plot(x='MSIS', y='MASE', kind='scatter')
+plt.grid(which="both")
+plt.show()
+```
+
+
+```python
+
 ```
