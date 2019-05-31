@@ -46,14 +46,6 @@ core_logic: {
                               'test', 'src/gluonts',
                               '(not gpu) and serial',
                               0, false, false),
-    build_steps.test_unittest('gluon-ts-cpu-py3', 'cpu/py3',
-                              'docs/model_zoo/tests', 'src/gluonts',
-                              'not (gpu or serial or integration)',
-                              4, false, false),
-    build_steps.test_unittest('gluon-ts-cpu-py3', 'cpu/py3',
-                              'docs/model_zoo/tests', 'src/gluonts',
-                              'not (gpu or integration) and serial',
-                              0, false, false)
   ])
 }
 ,
