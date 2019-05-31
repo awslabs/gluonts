@@ -1,7 +1,7 @@
 GluonTS - Probabilistic Time Series Modeling in Python
 ========================================================
 
-Gluon Time Series (GluonTS) is the Gluon toolkit for probabilistic time series modeling, focusing on deep learning-based models. With GluonTS you can:
+Gluon Time Series (GluonTS) is the Gluon toolkit for probabilistic time series modeling, focusing on deep learning-based models.
 
 GluonTS provides utilities for loading and iterating over time series datasets,
 state of the art models ready to be trained, and building blocks to define
@@ -46,7 +46,6 @@ Here is a simple time series example with GluonTS for predicting Twitter volume 
    </script>
 
 
-The best way to get started with GluonTS is by diving in using our :doc:`tutorials <examples/index>`.
 
 
 Installation
@@ -63,6 +62,11 @@ You can install GluonTS using `pip <https://pip.pypa.io/en/stable/installing/>`_
 
    For more detailed guide on installing GluonTS,
    click the :doc:`install <install>` link in the top navigation bar.
+
+
+Tutorials
+---------
+The best way to get started with GluonTS is by diving in using our :doc:`tutorials <examples/index>`, which you can download as Jupyter notebooks.
 
 
 .. toctree::

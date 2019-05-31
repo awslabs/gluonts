@@ -1,4 +1,4 @@
-# Time Series Forecasting Tutorial
+# Time Series Forecasting
 
 The GluonTS toolkit contains components and tools for building time series models using MXNet. The models that are currently included are forecasting models but the components also support other time series use cases, such as classification or anomaly detection. 
 
