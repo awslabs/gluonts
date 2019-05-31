@@ -110,6 +110,11 @@ def test_multivariate_sampling(distr, params) -> None:
         atol=1e-1,
         rtol=1e-1,
     )
+    # TODO: should we move this to a different test?
+    # TODO: we probably need unit tests for .mean, .variance anyway
+    assert np.allclose(
+        np.linalg.cholesky(distr.variance.asnumpy()), params['L'].asnumpy()
+    )
 
 
 test_cases_pwl_sqf = [
