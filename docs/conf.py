@@ -36,7 +36,7 @@ release = ts.__version__
 
 # General information about the project.
 project = 'GluonTS'
-copyright = '2018, Amazon'
+copyright = '2019, Amazon'
 author = 'Amazon'
 github_doc_root = 'http://gluon-ts.mxnet.io/{}/'.format(str(version))
 
@@ -130,8 +130,7 @@ html_favicon = '_static/gluon.ico'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', '**.ipynb_checkpoints', 'examples/*/*/**.rst', 'model_zoo/*/*/**.rst',
-                    'model_zoo/word_embeddings/tools/extern/*/**.md']
+exclude_patterns = ['_build', '**.ipynb_checkpoints', 'examples/*/*/**.rst']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

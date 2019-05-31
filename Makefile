@@ -43,15 +43,6 @@ docs: release
 		echo "processing" $$BASENAME ; \
 		sed -i "s/$$IPYNB_BASENAME/$$BASENAME/g" $$TARGET_HTML; \
 	done;
-	for f in $(shell find docs/model_zoo -type f -name '*.rst' -print) ; do \
-		FILE=`echo $$f | sed 's/docs\///g'` ; \
-		DIR=`dirname $$FILE` ; \
-		BASENAME=`basename $$FILE` ; \
-		HTML_BASENAME=`echo $$BASENAME | sed 's/rst/html/'` ; \
-		TARGET_HTML="docs/_build/html/$$DIR/$$HTML_BASENAME" ; \
-		echo "processing" $$BASENAME ; \
-		sed -i "s/docs\/model_zoo/scripts/g" $$TARGET_HTML; \
-	done;
 	sed -i.bak 's/33\,150\,243/23\,141\,201/g' docs/_build/html/_static/material-design-lite-1.3.0/material.blue-deep_orange.min.css;
 
 clean:
@@ -67,13 +58,9 @@ compile_notebooks:
 		cd - ; \
 	done;
 
-dist_scripts:
-	cd docs/model_zoo && \
-	find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip -r {}.zip {}
-
 dist_notebooks: compile_notebooks
 	cd docs/examples && \
 	find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip -r {}.zip {} -x "*.md" -x "__pycache__" -x "*.pyc" -x "*.txt" -x "*.log" -x "*.params" -x "*.npz" -x "*.json"
 
-release: dist_scripts dist_notebooks
+release: dist_notebooks
 	python setup.py sdist

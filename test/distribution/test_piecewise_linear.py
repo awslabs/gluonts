@@ -8,7 +8,7 @@ from gluonts.distribution import PiecewiseLinear
 
 
 @pytest.mark.parametrize(
-    "distr, target, expected_cdf, expected_crps",
+    "distr, target, expected_target_cdf, expected_target_crps",
     [
         (
             PiecewiseLinear(
@@ -39,15 +39,19 @@ from gluonts.distribution import PiecewiseLinear
 def test_values(
     distr: PiecewiseLinear,
     target: List[float],
-    expected_cdf: List[float],
-    expected_crps: List[float],
+    expected_target_cdf: List[float],
+    expected_target_crps: List[float],
 ):
     target = mx.nd.array(target).reshape(shape=(len(target),))
-    expected_cdf = np.array(expected_cdf).reshape((len(expected_cdf),))
-    expected_crps = np.array(expected_crps).reshape((len(expected_crps),))
+    expected_target_cdf = np.array(expected_target_cdf).reshape(
+        (len(expected_target_cdf),)
+    )
+    expected_target_crps = np.array(expected_target_crps).reshape(
+        (len(expected_target_crps),)
+    )
 
-    assert all(np.isclose(distr._cdf(target).asnumpy(), expected_cdf))
-    assert all(np.isclose(distr.crps(target).asnumpy(), expected_crps))
+    assert all(np.isclose(distr._cdf(target).asnumpy(), expected_target_cdf))
+    assert all(np.isclose(distr.crps(target).asnumpy(), expected_target_crps))
 
 
 @pytest.mark.parametrize(
@@ -58,7 +62,7 @@ def test_shapes(batch_shape: Tuple, num_pieces: int, num_samples: int):
     gamma = mx.nd.ones(shape=(*batch_shape,))
     slopes = mx.nd.ones(shape=(*batch_shape, num_pieces))  # all positive
     knot_spacings = (
-        mx.nd.ones(shape=(*batch_shape, num_pieces)) / 10
+        mx.nd.ones(shape=(*batch_shape, num_pieces)) / num_pieces
     )  # positive and sum to 1
     target = mx.nd.ones(shape=batch_shape)  # shape of gamma
 

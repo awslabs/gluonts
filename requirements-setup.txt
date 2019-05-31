@@ -1,8 +1,14 @@
 black>=18.*
 click==6.*
 mypy==0.630
+nbsphinx>=0.3.4,<0.4
 pytest-runner==2.11.*
+ipython
+recommonmark
 setuptools>=40.1.0
 sphinx==1.6.*
 sphinx-autobuild==0.7.*
 sphinx_rtd_theme==0.4.*
+sphinx-gallery
+sphinx-autorun
+https://github.com/mli/mx-theme/archive/0.3.1.tar.gz
