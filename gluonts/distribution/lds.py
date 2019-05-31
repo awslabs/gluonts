@@ -11,6 +11,7 @@ from gluonts.support.util import make_nd_diag, _broadcast_param
 class LDS(Distribution):
     r"""
     Implements Linear Dynamical System (LDS) as a distribution.
+
     The LDS is given by
 
     .. math::
@@ -33,6 +34,30 @@ class LDS(Distribution):
         A_t \in R^{d \times h}, b_t \in R^{d}, C_t \in R^{h \times h}, g_t \in R^{h}
 
     where :math:`h` is dimension of the latent state.
+
+    Parameters
+    ----------
+    emission_coeff
+        Tensor of shape (batch_size, seq_length, obs_dim, latent_dim)
+    transition_coeff
+        Tensor of shape (batch_size, seq_length, latent_dim, latent_dim)
+    innovation_coeff
+        Tensor of shape (batch_size, seq_length, latent_dim)
+    noise_std
+        Tensor of shape (batch_size, seq_length, obs_dim)
+    residuals
+        Tensor of shape (batch_size, seq_length, obs_dim)
+    prior_mean
+        Tensor of shape (batch_size, latent_dim)
+    prior_cov
+        Tensor of shape (batch_size, latent_dim, latent_dim)
+    latent_dim
+        Dimension of the latent state
+    output_dim
+        Dimension of the output
+    seq_length
+        Sequence length
+    F
     """
 
     def __init__(
@@ -49,34 +74,6 @@ class LDS(Distribution):
         seq_length: int,
         F=None,
     ) -> None:
-        """
-        Construct a linear dynamical system distribution, given all the
-        coefficients, noise standard deviation and residuals.
-
-        Parameters
-        ----------
-        emission_coeff
-            Tensor of shape (batch_size, seq_length, obs_dim, latent_dim)
-        transition_coeff
-            Tensor of shape (batch_size, seq_length, latent_dim, latent_dim)
-        innovation_coeff
-            Tensor of shape (batch_size, seq_length, latent_dim)
-        noise_std
-            Tensor of shape (batch_size, seq_length, obs_dim)
-        residuals
-            Tensor of shape (batch_size, seq_length, obs_dim)
-        prior_mean
-            Tensor of shape (batch_size, latent_dim)
-        prior_cov
-            Tensor of shape (batch_size, latent_dim, latent_dim)
-        latent_dim
-            Dimension of the latent state
-        output_dim
-            Dimension of the output
-        seq_length
-            Sequence length
-        F
-        """
         self.latent_dim = latent_dim
         self.output_dim = output_dim
         self.seq_length = seq_length
@@ -131,6 +128,7 @@ class LDS(Distribution):
     ):
         """
         Compute the log probability of observations.
+
         This method also returns the final state of the system.
 
         Parameters
@@ -486,9 +484,11 @@ def kalman_filter_step(
     output_dim: int,
 ):
     """
-    Apply one step of the Kalman filter, computing the filtered state (mean
-    and covariance) given the linear system coefficients the prior state
-    (mean and variance), and observations.
+    One step of the Kalman filter.
+
+    This function computes the filtered state (mean and covariance) given the
+    linear system coefficients the prior state (mean and variance),
+    as well as observations.
 
     Parameters
     ----------
