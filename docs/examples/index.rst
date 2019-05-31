@@ -1,23 +1,20 @@
 Tutorials
 =========
 
-Interested in getting started in time series? Here are some tutorials to help get started.
+The best way to learn about GluonTS is to dive right in by following our tutorials. You can download each tutorial as a Jupyter notebook by clicking the *download* link at the top of each tutorial page.
 
-
-Foo
----
+Forecasting
+-----------
 
 .. container:: cards
 
    .. card::
-      :title: Foo
-      :link: foo/foo.html
-
-      Basic structure for a tutorial.
+      :title: Time Series Forecasting with GluonTS
+      :link: introduction/Introduction.m
 
 
 .. toctree::
    :hidden:
    :maxdepth: 1
 
-   foo/foo.ipynb
+   introduction/Introduction.ipynb
