@@ -45,8 +45,6 @@ Here is a simple time series example with GluonTS for predicting Twitter volume 
    </script>
 
 
-.. include:: model_zoo.rst
-
 The best way to get started with GluonTS is by diving in using our :doc:`tutorials <examples/index>`.
 
 
