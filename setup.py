@@ -22,18 +22,20 @@ ROOT = Path(__file__).parent
 def read(*names, **kwargs):
     with io.open(
         os.path.join(os.path.dirname(__file__), *names),
-        encoding=kwargs.get("encoding", "utf8")
+        encoding=kwargs.get("encoding", "utf8"),
     ) as fp:
         return fp.read()
 
 
 def find_version(*file_paths):
     version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M
+    )
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
+
 
 VERSION = find_version('src', 'gluonts', '__init__.py')
 
@@ -287,6 +289,14 @@ if HAS_SPHINX:
     setup_kwargs["doc_command"] = "build_sphinx"
     for command in ['build_sphinx', 'doc', 'docs']:
         setup_kwargs["cmdclass"][command] = BuildApiDoc
+
+# -----------------------------------------------------------------------------
+# start of AWS-internal section (DO NOT MODIFY THIS SECTION)!
+#
+# all AWS-internal configuration goes here
+#
+# end of AWS-internal section (DO NOT MODIFY THIS SECTION)!
+# -----------------------------------------------------------------------------
 
 # do the work
 write_version_py()

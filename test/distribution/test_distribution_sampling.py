@@ -102,13 +102,18 @@ def test_multivariate_sampling(distr, params) -> None:
     np_samples = samples.asnumpy()
 
     assert np.allclose(
-        np_samples.mean(axis=0), distr.mean.asnumpy(), atol=1.0, rtol=0.01
+        np_samples.mean(axis=0), params['mu'].asnumpy(), atol=1e-2, rtol=1e-2
     )
     assert np.allclose(
-        np.cov(np_samples.transpose()),
-        distr.variance.asnumpy(),
-        atol=0.1,
-        rtol=0.1,
+        np.linalg.cholesky(np.cov(np_samples.transpose())),
+        params['L'].asnumpy(),
+        atol=1e-1,
+        rtol=1e-1,
+    )
+    # TODO: should we move this to a different test?
+    # TODO: we probably need unit tests for .mean, .variance anyway
+    assert np.allclose(
+        np.linalg.cholesky(distr.variance.asnumpy()), params['L'].asnumpy()
     )
 
 
