@@ -1,5 +1,5 @@
-gluonts package
-===============
+API Docs
+========
 
 Subpackages
 -----------

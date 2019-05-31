@@ -113,7 +113,6 @@ If you are not familiar with Gluon, check out the
    :hidden:
    :maxdepth: 2
 
-   model_zoo/index
    examples/index
    api/gluonts/gluonts
    community/index
