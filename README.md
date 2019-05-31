@@ -109,7 +109,7 @@ centered around the median (dark green line).
 The following are good entry-points to understand how to use
 many features of GluonTS:
 
-* [GluonTS Tutorial](examples/GluonTS%20Tutorial.ipynb): a tutorial notebook.
+* [GluonTS Forecasting Tutorial](docs/examples/forecasting/tutorial.md): a tutorial on forecasting.
 * [evaluate_model.py](examples/evaluate_model.py): how to train a model and compute evaluation metrics.
 * [benchmark_m4.py](examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
 
