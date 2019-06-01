@@ -7,6 +7,7 @@ We would like to express our thanks to our awesome `GluonTS contributors <https:
 - `Konstantinos Benidis <https://github.com/benidis>`__
 - `Michael Bohlke-Schneider <https://github.com/mbohlkeschneider>`__
 - `Laurent Callot <https://github.com/lcallot>`__
+- `Vincent Deuschle <https://github.com/vdeuschle>`__
 - `Valentin Flunkert <https://github.com/vafl>`__
 - `Jan Gasthaus <https://github.com/jgasthaus>`__
 - `Tim Januschowski <https://github.com/timoschowski>`__
