@@ -240,7 +240,7 @@ class BuildPyCommand(setuptools.command.build_py.build_py):
 setup_kwargs: dict = dict(
     name="gluonts",
     version=VERSION,
-    description=("A toolkit for time series modeling with neural networks."),
+    description=("GluonTS is a Python toolkit for probabilistic time series modeling, built around MXNet."),
     url='https://github.com/awslabs/gluon-ts',
     author="Amazon",
     author_email="gluon-ts-dev@amazon.com",
