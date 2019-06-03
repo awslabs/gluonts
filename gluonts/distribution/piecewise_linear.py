@@ -20,7 +20,7 @@ from gluonts.distribution.bijection import AffineTransformation, Bijection
 from gluonts.distribution.distribution import Distribution, getF
 from gluonts.distribution.distribution_output import DistributionOutput
 from gluonts.distribution.transformed_distribution import (
-    TransformedDistribution
+    TransformedDistribution,
 )
 from gluonts.model.common import Tensor
 from gluonts.support import util

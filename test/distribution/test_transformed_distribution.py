@@ -4,7 +4,7 @@ import mxnet.ndarray as nd
 # First-party imports
 from gluonts.distribution import Uniform
 from gluonts.distribution.transformed_distribution import (
-    TransformedDistribution
+    TransformedDistribution,
 )
 from gluonts.distribution import bijection
 
