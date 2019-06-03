@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+
 def fqname_for(cls: type) -> str:
     """Returns the fully qualified name of `cls`."""
     return f'{cls.__module__}.{cls.__qualname__}'
