@@ -106,6 +106,8 @@ def maximum_likelihood_estimate_sgd(
                 distr_args = arg_proj(data)
                 distr = distr_output.distribution(distr_args)
                 loss = distr.loss(sample_label)
+                if not hybridize:
+                    assert loss.shape == distr.batch_shape
             loss.backward()
             trainer.step(BATCH_SIZE)
             num_batches += 1
