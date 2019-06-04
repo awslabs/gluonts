@@ -174,9 +174,9 @@ class RForecastPredictor(RepresentablePredictor):
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )
-            forecast_start = pd.Timestamp(data['start'], freq=self.freq) + len(
-                data['target']
-            )
+            forecast_start = pd.Timestamp(data['start'], freq=self.freq) + \
+                data['target'].shape[0]
+
             samples = np.array(forecast_dict['samples'])
             expected_shape = (params['num_samples'], self.prediction_length)
             assert (
