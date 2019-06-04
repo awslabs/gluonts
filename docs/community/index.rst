@@ -26,13 +26,6 @@ Community
       Active roadmaps, and current and past projects.
 
 
-   .. card::
-      :title: Discuss Forum
-      :link: https://discuss.mxnet.io/c/gluon
-
-      General discussions, usage experiences, and questions.
-
-
 Interested in contributing to GluonTS? Check our contribution guide:
 
 .. toctree::
