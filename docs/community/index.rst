@@ -27,13 +27,6 @@ Community
 
 
    .. card::
-      :title: GluonTS Slack Channel
-      :link: https://apache-mxnet.slack.com/messages/CJQ3HRNPL
-
-      #gluon-ts Slack channel. Click the `sign-up link <https://join.slack.com/t/apache-mxnet/shared_invite/enQtNDQyMjAxMjQzMTI3LTkzMzY3ZmRlNzNjNGQxODg0N2Y5NmExMjEwOTZlYmIwYTU2ZTY4ZjNlMmEzOWY5MGQ5N2QxYjhlZTFhZTVmYTc>`_ to register.
-
-
-   .. card::
       :title: Discuss Forum
       :link: https://discuss.mxnet.io/c/gluon
 
