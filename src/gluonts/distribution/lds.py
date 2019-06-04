@@ -123,11 +123,11 @@ class LDS(Distribution):
 
     @property
     def batch_shape(self) -> Tuple:
-        return self.emission_coeff.shape[1]
+        return self.emission_coeff[0].shape[:1] + (self.seq_length,)
 
     @property
     def event_shape(self) -> Tuple:
-        return self.seq_length, self.output_dim
+        return (self.output_dim,)
 
     @property
     def event_dim(self) -> int:
@@ -157,7 +157,7 @@ class LDS(Distribution):
         Returns
         -------
         Tensor
-            Log probabilities, shape (batch_size, )
+            Log probabilities, shape (batch_size, seq_length)
         Tensor
             Final mean, shape (batch_size, latent_dim)
         Tensor
@@ -188,7 +188,7 @@ class LDS(Distribution):
         Returns
         -------
         Tensor
-            Log probabilities, shape (batch_size, )
+            Log probabilities, shape (batch_size, seq_length)
         Tensor
             Mean of p(l_T | l_{T-1}), where T is seq_length, with shape
             (batch_size, latent_dim)
@@ -301,7 +301,7 @@ class LDS(Distribution):
         samples_eps_obs = (
             Gaussian(noise_std.zeros_like(), noise_std)
             .sample(num_samples)
-            .split(axis=2, num_outputs=self.seq_length, squeeze_axis=True)
+            .split(axis=-3, num_outputs=self.seq_length, squeeze_axis=True)
         )
 
         # Sample standard normal for all time steps
@@ -309,7 +309,7 @@ class LDS(Distribution):
         samples_std_normal = (
             Gaussian(noise_std.zeros_like(), noise_std.ones_like())
             .sample(num_samples)
-            .split(axis=2, num_outputs=self.seq_length, squeeze_axis=True)
+            .split(axis=-3, num_outputs=self.seq_length, squeeze_axis=True)
         )
 
         # Sample the prior state.
@@ -328,6 +328,8 @@ class LDS(Distribution):
             # innovation_coeff_t: (num_samples, batch_size, 1, latent_dim)
             emission_coeff_t, transition_coeff_t, innovation_coeff_t = [
                 _broadcast_param(coeff, axes=[0], sizes=[num_samples])
+                if num_samples is not None
+                else coeff
                 for coeff in [
                     self.emission_coeff[t],
                     self.transition_coeff[t],
@@ -337,10 +339,14 @@ class LDS(Distribution):
 
             # Expand residuals as well
             # residual_t: (num_samples, batch_size, obs_dim, 1)
-            residual_t = _broadcast_param(
-                self.residuals[t].expand_dims(axis=-1),
-                axes=[0],
-                sizes=[num_samples],
+            residual_t = (
+                _broadcast_param(
+                    self.residuals[t].expand_dims(axis=-1),
+                    axes=[0],
+                    sizes=[num_samples],
+                )
+                if num_samples is not None
+                else self.residuals[t].expand_dims(axis=-1)
             )
 
             # (num_samples, batch_size, 1, obs_dim)
@@ -348,7 +354,12 @@ class LDS(Distribution):
                 F.linalg_gemm2(emission_coeff_t, samples_lat_state)
                 + residual_t
                 + samples_eps_obs[t]
-            ).swapaxes(dim1=2, dim2=3)
+            )
+            samples_t = (
+                samples_t.swapaxes(dim1=2, dim2=3)
+                if num_samples is not None
+                else samples_t.swapaxes(dim1=1, dim2=2)
+            )
             samples_seq.append(samples_t)
 
             # sample next state: (num_samples, batch_size, latent_dim, 1)
@@ -359,11 +370,16 @@ class LDS(Distribution):
             )
 
         # (num_samples, batch_size, seq_length, obs_dim)
-        samples = F.concat(*samples_seq, dim=2)
+        samples = F.concat(*samples_seq, dim=-2)
         return (
             samples
             if scale is None
-            else F.broadcast_mul(samples, scale.expand_dims(axis=1))
+            else F.broadcast_mul(
+                samples,
+                scale.expand_dims(axis=1).expand_dims(axis=0)
+                if num_samples is not None
+                else scale.expand_dims(axis=1),
+            )
         )
 
     def sample_marginals(
