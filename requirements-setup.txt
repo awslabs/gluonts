@@ -1,4 +1,4 @@
-black>=18.*
+black==18.6b4
 click==6.*
 mypy==0.630
 nbsphinx>=0.3.4,<0.4

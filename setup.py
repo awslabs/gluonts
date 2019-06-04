@@ -17,6 +17,7 @@ import setuptools.command.build_py
 from setuptools import find_namespace_packages, setup
 
 ROOT = Path(__file__).parent
+SRC = ROOT / 'src'
 
 
 def read(*names, **kwargs):
@@ -92,7 +93,7 @@ def write_version_py():
         """
     ).lstrip()
 
-    with (ROOT / "gluonts" / "version.py").open("w") as f:
+    with (SRC / "gluonts" / "version.py").open("w") as f:
         f.write(content)
 
 
@@ -128,7 +129,7 @@ class TypeCheckCommand(distutils.cmd.Command):
 
         mypy_opts = ["--follow-imports=silent", "--ignore-missing-imports"]
         mypy_args = [
-            str(p.parent.resolve()) for p in ROOT.glob("**/.typesafe")
+            str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")
         ]
 
         print(
@@ -184,7 +185,7 @@ class StyleCheckCommand(distutils.cmd.Command):
         black_opts = []
         black_args = [
             str(ROOT / folder)
-            for folder in ["gluonts", "test", "examples"]
+            for folder in ["src", "test", "examples"]
             if (ROOT / folder).is_dir()
         ]
 
@@ -240,7 +241,10 @@ class BuildPyCommand(setuptools.command.build_py.build_py):
 setup_kwargs: dict = dict(
     name="gluonts",
     version=VERSION,
-    description=("GluonTS is a Python toolkit for probabilistic time series modeling, built around MXNet."),
+    description=(
+        "GluonTS is a Python toolkit for probabilistic time series modeling, "
+        "built around MXNet."
+    ),
     long_description=read('README.md'),
     long_description_content_type='text/markdown',
     url='https://github.com/awslabs/gluon-ts',
@@ -249,7 +253,8 @@ setup_kwargs: dict = dict(
     maintainer_email="gluon-ts-dev@amazon.com",
     license="Apache License 2.0",
     python_requires=">= 3.6",
-    packages=find_namespace_packages(include=["gluonts*"], where=str(ROOT)),
+    package_dir={'':'src'},
+    packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
     setup_requires=find_requirements("requirements-setup.txt"),
     install_requires=find_requirements("requirements.txt"),
@@ -263,7 +268,6 @@ setup_kwargs: dict = dict(
             "gluonts-validate-dataset=gluonts.dataset.validate:run"
         ]
     ),
-    test_flake8=True,
     cmdclass=dict(
         type_check=TypeCheckCommand,
         style_check=StyleCheckCommand,
@@ -281,7 +285,7 @@ if HAS_SPHINX:
                     ["-P"],  # include private modules
                     ["--implicit-namespaces"],  # respect PEP420
                     ["-o", str(ROOT / "docs" / "api" / "gluonts")],  # out path
-                    [str(ROOT / "gluonts")],  # in path
+                    [str(SRC / "gluonts")],  # in path
                     ["setup*", "test", "docs", "*pycache*"],  # excluded paths
                 )
             )
