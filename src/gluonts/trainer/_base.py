@@ -102,9 +102,9 @@ class Trainer:
     def __init__(
         self,
         ctx: Optional[mx.Context] = None,
-        epochs: int = 1,
+        epochs: int = 100,
         batch_size: int = 32,
-        num_batches_per_epoch: int = 100,
+        num_batches_per_epoch: int = 50,
         learning_rate: float = 1e-3,
         learning_rate_decay_factor: float = 0.5,
         patience: int = 10,
