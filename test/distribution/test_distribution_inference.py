@@ -313,20 +313,21 @@ def test_deterministic_l2(mu: float, hybridize: bool) -> None:
     mu = mu
     mus = mx.nd.zeros(NUM_SAMPLES) + mu
 
-    deterministic_distr = Gaussian(mu=mus, sigma=mx.nd.ones_like(mus))
+    deterministic_distr = Gaussian(mu=mus, sigma=0.1 * mx.nd.ones_like(mus))
     samples = deterministic_distr.sample()
 
     class GaussianFixedVarianceOutput(GaussianOutput):
         @classmethod
         def domain_map(cls, F, mu, sigma):
-            sigma = F.ones_like(sigma)
-            return mu, sigma
+            sigma = 0.1 * F.ones_like(sigma)
+            return mu.squeeze(axis=-1), sigma.squeeze(axis=-1)
 
     mu_hat, _ = maximum_likelihood_estimate_sgd(
         GaussianFixedVarianceOutput(),
         samples,
+        init_biases=[3 * mu, 0.1],
         hybridize=hybridize,
-        num_epochs=PositiveInt(20),
+        num_epochs=PositiveInt(1),
     )
 
     assert (
@@ -352,11 +353,15 @@ def test_deterministic_l1(mu: float, hybridize: bool) -> None:
             b = 0.1 * F.ones_like(b)
             return mu.squeeze(axis=-1), b.squeeze(axis=-1)
 
-    deterministic_distr = Laplace(mu=mus, b=0.1*mx.nd.ones_like(mus))
+    deterministic_distr = Laplace(mu=mus, b=0.1 * mx.nd.ones_like(mus))
     samples = deterministic_distr.sample()
 
     mu_hat, _ = maximum_likelihood_estimate_sgd(
-        LaplaceFixedVarianceOutput(), samples, init_biases=[3*mu, 0.1], learning_rate=1e-3, hybridize=hybridize
+        LaplaceFixedVarianceOutput(),
+        samples,
+        init_biases=[3 * mu, 0.1],
+        learning_rate=1e-3,
+        hybridize=hybridize,
     )
 
     assert (
