@@ -86,6 +86,7 @@ def maximum_likelihood_estimate_sgd(
         {'learning_rate': learning_rate, 'clip_gradient': 10.0},
     )
 
+    # The input data to our model is one-dimensional
     dummy_data = mx.nd.array(np.ones((len(samples), 1)))
 
     train_data = mx.gluon.data.DataLoader(
@@ -94,23 +95,13 @@ def maximum_likelihood_estimate_sgd(
         shuffle=True,
     )
 
-    dummy_out = mx.nd.array(np.ones((1, 1)))
-
     for e in range(num_epochs):
         cumulative_loss = 0
         num_batches = 0
         # inner loop
         for i, (data, sample_label) in enumerate(train_data):
-            # data: (batch, 1), the "1" defines the dimension of the projection layer and should be kept
             data = data.as_in_context(model_ctx)
-            # sample_label: (batch,), for univariate and (batch, d) for multivariate
-            if sample_label.shape[-1] == 1:
-                sample_label = sample_label.as_in_context(model_ctx).squeeze(
-                    axis=-1
-                )
-            else:
-                sample_label = sample_label.as_in_context(model_ctx)
-
+            sample_label = sample_label.as_in_context(model_ctx)
             with mx.autograd.record():
                 distr_args = arg_proj(data)
                 distr = distr_output.distribution(distr_args)
@@ -124,21 +115,19 @@ def maximum_likelihood_estimate_sgd(
     return [param[0].asnumpy() for param in arg_proj(dummy_out)]
 
 
-@pytest.mark.parametrize("mu_sigma_nu", [(2.3, 0.7, 6.0)])
+@pytest.mark.parametrize("mu, sigma, nu", [(2.3, 0.7, 6.0)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_studentT_likelihood(
-    mu_sigma_nu: Tuple[float, float, float], hybridize: bool
+    mu: float, sigma: float, nu: float, hybridize: bool
 ) -> None:
     '''
     Test to check that maximizing the likelihood recovers the parameters
     '''
-    # test instance
-    mu, sigma, nu = mu_sigma_nu
 
     # generate samples
-    mus = mx.nd.zeros((NUM_SAMPLES, 1)) + mu
-    sigmas = mx.nd.zeros((NUM_SAMPLES, 1)) + sigma
-    nus = mx.nd.zeros((NUM_SAMPLES, 1)) + nu
+    mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
+    sigmas = mx.nd.zeros((NUM_SAMPLES,)) + sigma
+    nus = mx.nd.zeros((NUM_SAMPLES,)) + nu
 
     distr = StudentT(mus, sigmas, nus)
     samples = distr.sample()
@@ -171,18 +160,16 @@ def test_studentT_likelihood(
     ), "nu0 did not match: nu0 = %s, nu_hat = %s" % (nu, nu_hat)
 
 
-@pytest.mark.parametrize("mu_sigma", [(1.0, 0.1)])
+@pytest.mark.parametrize("mu, sigma", [(1.0, 0.1)])
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_gaussian_likelihood(mu_sigma: Tuple[float, float], hybridize: bool):
+def test_gaussian_likelihood(mu: float, sigma: float, hybridize: bool):
     '''
     Test to check that maximizing the likelihood recovers the parameters
     '''
-    # test instance
-    mu, sigma = mu_sigma
 
     # generate samples
-    mus = mx.nd.zeros((NUM_SAMPLES, 1)) + mu
-    sigmas = mx.nd.zeros((NUM_SAMPLES, 1)) + sigma
+    mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
+    sigmas = mx.nd.zeros((NUM_SAMPLES,)) + sigma
 
     distr = Gaussian(mus, sigmas)
     samples = distr.sample()
@@ -379,8 +366,8 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
     mu, alpha = mu_alpha
 
     # generate samples
-    mus = mx.nd.zeros((NUM_SAMPLES, 1)) + mu
-    alphas = mx.nd.zeros((NUM_SAMPLES, 1)) + alpha
+    mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
+    alphas = mx.nd.zeros((NUM_SAMPLES,)) + alpha
 
     neg_bin_distr = NegativeBinomial(mu=mus, alpha=alphas)
     samples = neg_bin_distr.sample()
@@ -417,8 +404,8 @@ def test_laplace(mu_b: Tuple[float, float], hybridize: bool) -> None:
     mu, b = mu_b
 
     # generate samples
-    mus = mx.nd.zeros((NUM_SAMPLES, 1)) + mu
-    bs = mx.nd.zeros((NUM_SAMPLES, 1)) + b
+    mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
+    bs = mx.nd.zeros((NUM_SAMPLES,)) + b
 
     laplace_distr = Laplace(mu=mus, b=bs)
     samples = laplace_distr.sample()
@@ -530,22 +517,15 @@ def test_piecewise_linear(
         )
 
 
-@pytest.mark.skip("this test fails when run locally")
-@pytest.mark.timeout(20)
-@pytest.mark.parametrize("lambdas", [(0.1, 0.01)])
-@pytest.mark.parametrize("mu_sigma", [(-1.5, 0.5)])
+@pytest.mark.parametrize("lam_1, lam_2", [(0.1, 0.01)])
+@pytest.mark.parametrize("mu, sigma", [(-1.5, 0.5)])
 @pytest.mark.parametrize("hybridize", [True])
 def test_box_cox_tranform(
-    lambdas: Tuple[float, float],
-    mu_sigma: Tuple[float, float],
-    hybridize: bool,
+    lam_1: float, lam_2: float, mu: float, sigma: float, hybridize: bool
 ):
     '''
     Test to check that maximizing the likelihood recovers the parameters
     '''
-    # test instance
-    lam_1, lam_2 = lambdas
-    mu, sigma = mu_sigma
 
     # generate samples
     lamdas_1 = mx.nd.zeros((NUM_SAMPLES,)) + lam_1
