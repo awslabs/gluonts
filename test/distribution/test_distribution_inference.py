@@ -114,6 +114,7 @@ def maximum_likelihood_estimate_sgd(
 
             cumulative_loss += mx.nd.mean(loss).asscalar()
         print("Epoch %s, loss: %s" % (e, cumulative_loss / num_batches))
+
     return [
         param[0].asnumpy() for param in arg_proj(mx.nd.array(np.ones((1, 1))))
     ]
@@ -588,9 +589,7 @@ def test_box_cox_tranform(
 @pytest.mark.parametrize(
     "bin_probabilites", [np.array([0.3, 0.1, 0.05, 0.2, 0.1, 0.25])]
 )
-@pytest.mark.parametrize(
-    "hybridize", [False]
-)  # TODO: hybridize does not work in the test
+@pytest.mark.parametrize("hybridize", [True, False])
 def test_binned_likelihood(
     num_bins: float, bin_probabilites: np.ndarray, hybridize: bool
 ):
@@ -614,7 +613,7 @@ def test_binned_likelihood(
 
     init_biases = [bin_prob_init]
 
-    bin_prob_hat, _ = maximum_likelihood_estimate_sgd(
+    bin_prob_hat, = maximum_likelihood_estimate_sgd(
         BinnedOutput(list(bin_center.asnumpy())),
         samples,
         init_biases=init_biases,

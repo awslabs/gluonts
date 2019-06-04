@@ -134,15 +134,12 @@ class Binned(Distribution):
 
 
 class BinnedArgs(gluon.HybridBlock):
-    def __init__(self, bin_centers: mx.nd.NDArray, **kwargs) -> None:
+    def __init__(self, num_bins: int, **kwargs) -> None:
         super().__init__(**kwargs)
+        self.num_bins = num_bins
         with self.name_scope():
-            self.bin_centers = self.params.get_constant(
-                'bincenters', bin_centers
-            )
-            self.num_bins = bin_centers.shape[0]
-
-            # needs to be named self.proj for consistency with the ArgProj class and the inference tests
+            # needs to be named self.proj for consistency with the
+            # ArgProj class and the inference tests
             self.proj = gluon.nn.HybridSequential()
             self.proj.add(
                 gluon.nn.Dense(
@@ -154,15 +151,9 @@ class BinnedArgs(gluon.HybridBlock):
             )
             self.proj.add(gluon.nn.HybridLambda('softmax'))
 
-    def hybrid_forward(
-        self, F, x: Tensor, bin_centers: Tensor, **kwargs
-    ) -> Tuple[Tensor, Tensor]:
+    def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         ps = self.proj(x)
-        return (
-            ps.reshape(shape=(-2, -1, self.num_bins), reverse=1),
-            # For some reason hybridize does not work when returning constants directly
-            bin_centers + 0.0,
-        )
+        return (ps.reshape(shape=(-2, -1, self.num_bins), reverse=1),)
 
 
 class BinnedOutput(DistributionOutput):
@@ -170,25 +161,25 @@ class BinnedOutput(DistributionOutput):
 
     @validated()
     def __init__(self, bin_centers: List) -> None:
-        # cannot pass directly nd.array because it is not serializable
-        bc = mx.nd.array(bin_centers)
-        assert len(bc.shape) == 1
-        self.bin_centers = bc
+        self.bin_centers = mx.nd.array(bin_centers)
+        self.num_bins = self.bin_centers.shape[0]
+        assert len(self.bin_centers.shape) == 1
 
     def get_args_proj(self, *args, **kwargs) -> gluon.nn.HybridBlock:
-        return BinnedArgs(self.bin_centers)
+        return BinnedArgs(self.num_bins)
 
     def distribution(self, args, scale=None) -> Binned:
-        probs, centers = args
+        probs = args[0]
         F = getF(probs)
 
+        bin_centers = F.broadcast_mul(self.bin_centers, F.ones_like(probs))
+
         if scale is not None:
-            centers = F.broadcast_mul(centers, scale).expand_dims(axis=-2)
-        else:
-            centers = F.broadcast_mul(
-                centers, F.ones_like(probs.slice_axis(axis=-2, begin=0, end=1))
+            bin_centers = F.broadcast_mul(
+                bin_centers, scale.expand_dims(axis=-1)
             )
-        return Binned(probs, centers)
+
+        return Binned(probs, bin_centers)
 
     @property
     def event_shape(self) -> Tuple:
