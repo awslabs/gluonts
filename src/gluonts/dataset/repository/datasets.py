@@ -3,7 +3,8 @@ import os
 from functools import partial
 from pathlib import Path
 
-from gluonts.dataset.common import load_datasets, TrainDatasets
+from gluonts.dataset.common import TrainDatasets, load_datasets
+from gluonts.dataset.repository.lstnet import generate_lstnet_dataset
 from gluonts.dataset.repository.m4 import generate_m4_dataset
 
 m4_freq = "Hourly"
@@ -50,7 +51,20 @@ dataset_recipes = {
         pandas_freq="12M",
         prediction_length=6,
     ),
+    "exchange_rate": partial(
+        generate_lstnet_dataset, dataset_name="exchange_rate"
+    ),
+    "electricity": partial(
+        generate_lstnet_dataset, dataset_name="electricity"
+    ),
+    "traffic": partial(generate_lstnet_dataset, dataset_name="traffic"),
+    "solar-energy": partial(
+        generate_lstnet_dataset, dataset_name="solar-energy"
+    ),
 }
+
+
+dataset_names = list(dataset_recipes.keys())
 
 
 def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
@@ -90,6 +104,9 @@ def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
 
 
 if __name__ == '__main__':
-    for dataset in dataset_recipes.keys():
+
+    for dataset in dataset_names:
         print(f"generate {dataset}")
-        get_dataset(dataset, regenerate=True)
+        ds = get_dataset(dataset, regenerate=True)
+        print(ds.metadata)
+        print(sum(1 for _ in list(iter(ds.train))))
