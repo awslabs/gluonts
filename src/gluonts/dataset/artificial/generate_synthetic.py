@@ -103,10 +103,10 @@ def generate_sf2s_and_csv(
     file_path += f'{folder_name}'
     if not os.path.exists(os.path.dirname(file_path)):
         os.makedirs(os.path.dirname(file_path))
-    freq = artificial_dataset.metadata().time_granularity
-    train_set = artificial_dataset.train()
+    freq = artificial_dataset.metadata.time_granularity
+    train_set = artificial_dataset.train
     generate_sf2(file_path + 'train.json', train_set, is_missing, num_missing)
-    test_set = artificial_dataset.test()
+    test_set = artificial_dataset.test
     generate_sf2(file_path + 'test.json', test_set, is_missing, num_missing)
     with open(file_path + 'input_to_forecast.csv', 'w') as csv_file:
         # Test set has training set with the additional values to predict

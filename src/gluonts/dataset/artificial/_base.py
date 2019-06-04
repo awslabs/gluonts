@@ -58,21 +58,24 @@ class ArtificialDataset:
     def __init__(self, time_granularity) -> None:
         self.time_granularity = time_granularity
 
+    @property
     def metadata(self) -> MetaData:
         pass
 
+    @property
     def train(self) -> List[DataEntry]:
         pass
 
+    @property
     def test(self) -> List[DataEntry]:
         pass
 
     # todo return the same type as dataset repo for better usability
     def generate(self) -> TrainDatasets:
         return TrainDatasets(
-            metadata=self.metadata(),
-            train=ListDataset(self.train(), self.time_granularity),
-            test=ListDataset(self.test(), self.time_granularity),
+            metadata=self.metadata,
+            train=ListDataset(self.train, self.time_granularity),
+            test=ListDataset(self.test, self.time_granularity),
         )
 
 
@@ -118,6 +121,7 @@ class ConstantDataset(ArtificialDataset):
         self.is_promotions = is_promotions
         self.holidays = holidays
 
+    @property
     def metadata(self) -> MetaData:
         metadata = MetaData(
             time_granularity=self.time_granularity,
@@ -128,6 +132,7 @@ class ConstantDataset(ArtificialDataset):
                 }
             ],
             feat_static_real=[{"name": "feat_static_real_000"}],
+            prediction_length=self.prediction_length,
         )
         if self.is_promotions or self.holidays:
             metadata = MetaData(
@@ -140,6 +145,7 @@ class ConstantDataset(ArtificialDataset):
                 ],
                 feat_static_real=[{"name": "feat_static_real_000"}],
                 feat_dynamic_real=[BasicFeatureInfo(name='feat_dynamic_real')],
+                prediction_length=self.prediction_length,
             )
         return metadata
 
@@ -192,7 +198,7 @@ class ConstantDataset(ArtificialDataset):
         max_train_length = num_steps - self.prediction_length
         data = RecipeDataset(
             recipe=recipe,
-            metadata=self.metadata(),
+            metadata=self.metadata,
             max_train_length=max_train_length,
             prediction_length=self.prediction_length,
             num_timeseries=1,  # Add 1 time series at a time in the loop for different constant valus per time series
@@ -322,11 +328,13 @@ class ConstantDataset(ArtificialDataset):
             res.append(ts_data)
         return res
 
+    @property
     def train(self) -> List[DataEntry]:
         return self.generate_ts(
             num_ts_steps=self.num_training_steps, is_train=True
         )
 
+    @property
     def test(self) -> List[DataEntry]:
         return self.generate_ts(num_ts_steps=self.num_steps)
 
@@ -389,8 +397,12 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         self.percentage_unique_timestamps = percentage_unique_timestamps
         self.is_out_of_bounds_date = is_out_of_bounds_date
 
+    @property
     def metadata(self) -> MetaData:
-        return MetaData(time_granularity=self.time_granularity)
+        return MetaData(
+            time_granularity=self.time_granularity,
+            prediction_length=self.prediction_length,
+        )
 
     def _get_period(self) -> int:
         if self.freq_str == 'M':
@@ -470,6 +482,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         else:
             raise RuntimeError(f'Bad freq_str value "{index}"')
 
+    @property
     def train(self) -> List[DataEntry]:
         return [
             dict(
@@ -480,6 +493,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             for ts in self.make_timeseries()
         ]
 
+    @property
     def test(self) -> List[DataEntry]:
         return self.make_timeseries()
 
@@ -595,13 +609,14 @@ class RecipeDataset(ArtificialDataset):
             data_start, freq=self._metadata.time_granularity
         )
 
+    @property
     def metadata(self) -> MetaData:
         return self._metadata
 
     def dataset_info(self, train_ds: Dataset, test_ds: Dataset) -> DatasetInfo:
         return DatasetInfo(
             name=f'RecipeDataset({repr(self.recipe)})',
-            metadata=self.metadata(),
+            metadata=self.metadata,
             prediction_length=self.prediction_length,
             train_statistics=calculate_dataset_statistics(train_ds),
             test_statistics=calculate_dataset_statistics(test_ds),
@@ -652,7 +667,7 @@ class RecipeDataset(ArtificialDataset):
         return y
 
     def generate(self) -> TrainDatasets:
-        metadata = self.metadata()
+        metadata = self.metadata
         data_it = generate(
             length=self.max_train_length + self.prediction_length,
             recipe=self.recipe,
