@@ -7,6 +7,8 @@ GluonTS provides utilities for loading and iterating over time series datasets,
 state of the art models ready to be trained, and building blocks to define
 your own models and quickly experiment with different solutions.
 
+* [Documentation](https://gluon-ts.mxnet.io/)
+
 ## Installation
 
 GluonTS requires Python 3.6, and the easiest
@@ -15,11 +17,6 @@ way to install it is via `pip`:
 ```bash
 pip install gluonts
 ```
-
-## Contributing
-
-If you wish to contribute to the project, please refer to our
-[contribution guidelines](/CONTRIBUTING.md).
 
 ## Quick start guide
 
@@ -114,6 +111,11 @@ many features of GluonTS:
 * [benchmark_m4.py](examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
 
 The following modules illustrate how custom models can be implemented:
- 
+
 * [`gluonts.model.seasonal_naive`](gluonts/model/seasonal_naive): how to implement simple models using just NumPy and Pandas.
 * [`gluonts.model.simple_feedforward`](gluonts/model/simple_feedforward): how to define a trainable, Gluon-based model.
+
+## Contributing
+
+If you wish to contribute to the project, please refer to our
+[contribution guidelines](/CONTRIBUTING.md).
