@@ -114,7 +114,9 @@ def maximum_likelihood_estimate_sgd(
 
             cumulative_loss += mx.nd.mean(loss).asscalar()
         print("Epoch %s, loss: %s" % (e, cumulative_loss / num_batches))
-    return [param[0].asnumpy() for param in arg_proj(dummy_out)]
+    return [
+        param[0].asnumpy() for param in arg_proj(mx.nd.array(np.ones((1, 1))))
+    ]
 
 
 @pytest.mark.parametrize("mu, sigma, nu", [(2.3, 0.7, 6.0)])
