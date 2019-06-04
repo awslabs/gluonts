@@ -112,8 +112,8 @@ many features of GluonTS:
 
 The following modules illustrate how custom models can be implemented:
 
-* [`gluonts.model.seasonal_naive`](gluonts/model/seasonal_naive): how to implement simple models using just NumPy and Pandas.
-* [`gluonts.model.simple_feedforward`](gluonts/model/simple_feedforward): how to define a trainable, Gluon-based model.
+* [`gluonts.model.seasonal_naive`](src/gluonts/model/seasonal_naive): how to implement simple models using just NumPy and Pandas.
+* [`gluonts.model.simple_feedforward`](src/gluonts/model/simple_feedforward): how to define a trainable, Gluon-based model.
 
 ## Contributing
 
