@@ -60,7 +60,7 @@ compile_notebooks:
 
 dist_notebooks: compile_notebooks
 	cd docs/examples && \
-	find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip -r {}.zip {} -x "*.md" -x "__pycache__" -x "*.pyc" -x "*.txt" -x "*.log" -x "*.params" -x "*.npz" -x "*.json"
+	find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip --no-dir-entries -r {}.zip {} -x "*.md" -x "__pycache__" -x "*.pyc" -x "*.txt" -x "*.log" -x "*.params" -x "*.npz" -x "*.json"
 
 release: dist_notebooks
 	python setup.py sdist
