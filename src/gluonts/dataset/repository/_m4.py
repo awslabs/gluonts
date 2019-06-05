@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 
-from gluonts.dataset.repository.util import metadata, save_to_file, to_dict
+from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 
 
 def generate_m4_dataset(

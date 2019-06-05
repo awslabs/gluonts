@@ -4,8 +4,8 @@ from functools import partial
 from pathlib import Path
 
 from gluonts.dataset.common import TrainDatasets, load_datasets
-from gluonts.dataset.repository.lstnet import generate_lstnet_dataset
-from gluonts.dataset.repository.m4 import generate_m4_dataset
+from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
+from gluonts.dataset.repository._m4 import generate_m4_dataset
 
 m4_freq = "Hourly"
 pandas_freq = "H"
@@ -67,7 +67,9 @@ dataset_recipes = {
 dataset_names = list(dataset_recipes.keys())
 
 
-def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
+def get_dataset(
+    dataset_name: str, regenerate: bool = False, path: str = "./"
+) -> TrainDatasets:
     """
     Parameters
     ----------
@@ -76,7 +78,8 @@ def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
     regenerate
         whether to regenerate the dataset even if a local file is present. If this flag is False and the
         file is present, the dataset will not be downloaded again.
-
+    path
+        where the dataset should be saved
     Returns
     -------
         dataset obtained by either downloading or reloading from local file.
@@ -84,7 +87,7 @@ def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
     assert (
         dataset_name in dataset_recipes.keys()
     ), f"{dataset_name} is not present, please choose one from {dataset_recipes.keys()}."
-    dataset_path = Path(dataset_name)
+    dataset_path = Path(path) / dataset_name
 
     dataset_recipe = dataset_recipes[dataset_name]
 

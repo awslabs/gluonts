@@ -26,7 +26,7 @@ from typing import List, NamedTuple, Optional
 
 import pandas as pd
 
-from gluonts.dataset.repository.util import metadata, save_to_file, to_dict
+from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 
 
 def load_from_pandas(
@@ -67,7 +67,7 @@ class LstnetDataset(NamedTuple):
 
 root = "https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/"
 
-dataset_infos = {
+datasets_info = {
     "exchange_rate": LstnetDataset(
         name="exchange_rate",
         url=root + "exchange_rate/exchange_rate.txt.gz",
@@ -121,7 +121,7 @@ dataset_infos = {
 
 
 def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
-    ds_info = dataset_infos[dataset_name]
+    ds_info = datasets_info[dataset_name]
 
     os.makedirs(dataset_path, exist_ok=True)
 
