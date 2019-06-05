@@ -40,7 +40,7 @@ plt.grid(which='both')
 plt.show()
 ```
 
-![Data](docs/figures/Tweets_AMZN_data.png)
+![Data](https://github.com/awslabs/gluon-ts/raw/master/docs/figures/Tweets_AMZN_data.png)
 
 We can now prepare a training dataset for our model to train on.
 Datasets in GluonTS are essentially iterable collections of
@@ -95,7 +95,7 @@ for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
 plt.grid(which='both')
 ```
 
-![Forecast](docs/figures/Tweets_AMZN_forecast.png)
+![Forecast](https://github.com/awslabs/gluon-ts/raw/master/docs/figures/Tweets_AMZN_forecast.png)
 
 Note that the forecast is displayed in terms of a probability distribution:
 the shaded areas represent the 50% and 90% prediction intervals, respectively,
@@ -106,16 +106,16 @@ centered around the median (dark green line).
 The following are good entry-points to understand how to use
 many features of GluonTS:
 
-* [GluonTS Forecasting Tutorial](docs/examples/forecasting/tutorial.md): a tutorial on forecasting.
-* [evaluate_model.py](examples/evaluate_model.py): how to train a model and compute evaluation metrics.
-* [benchmark_m4.py](examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
+* [GluonTS Forecasting Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/forecasting/tutorial.md): a tutorial on forecasting.
+* [evaluate_model.py](https://github.com/awslabs/gluon-ts/tree/master/examples/evaluate_model.py): how to train a model and compute evaluation metrics.
+* [benchmark_m4.py](https://github.com/awslabs/gluon-ts/tree/master/examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
 
 The following modules illustrate how custom models can be implemented:
 
-* [`gluonts.model.seasonal_naive`](src/gluonts/model/seasonal_naive): how to implement simple models using just NumPy and Pandas.
-* [`gluonts.model.simple_feedforward`](src/gluonts/model/simple_feedforward): how to define a trainable, Gluon-based model.
+* [`gluonts.model.seasonal_naive`](https://github.com/awslabs/gluon-ts/tree/master/src/gluonts/model/seasonal_naive): how to implement simple models using just NumPy and Pandas.
+* [`gluonts.model.simple_feedforward`](https://github.com/awslabs/gluon-ts/tree/master/src/gluonts/model/simple_feedforward): how to define a trainable, Gluon-based model.
 
 ## Contributing
 
 If you wish to contribute to the project, please refer to our
-[contribution guidelines](/CONTRIBUTING.md).
+[contribution guidelines](https://github.com/awslabs/gluon-ts/tree/master/CONTRIBUTING.md).

@@ -111,6 +111,14 @@ class DistributionOutput(Output):
         r"""
         Construct the associated distribution, given the collection of
         constructor arguments and, optionally, a scale tensor.
+
+        Parameters
+        ----------
+        distr_args
+            Constructor arguments for the underlying Distribution type.
+        scale
+            Optional tensor, of the same shape as the
+            batch_shape+event_shape of the resulting distribution.
         """
         if scale is None:
             return self.distr_cls(*distr_args)
