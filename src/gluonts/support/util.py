@@ -125,7 +125,7 @@ def copy_parameters(
         present in the target.
     """
     with tempfile.TemporaryDirectory(
-        prefix='gluonts-estimator-temp-', dir='/tmp'
+        prefix='gluonts-estimator-temp-'
     ) as model_dir:
         model_dir_path = str(Path(model_dir) / 'tmp_model')
         net_source.save_parameters(model_dir_path)
@@ -172,7 +172,7 @@ def hybrid_block_to_symbol_block(
         The resulting Gluon block backed by an MXNet symbol graph.
     """
     with tempfile.TemporaryDirectory(
-        prefix='gluonts-estimator-temp-', dir='/tmp'
+        prefix='gluonts-estimator-temp-'
     ) as model_dir:
         num_inputs = len(data_batch)
         model_dir_path = Path(model_dir)
