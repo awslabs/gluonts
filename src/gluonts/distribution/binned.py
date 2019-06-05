@@ -169,7 +169,7 @@ class BinnedOutput(DistributionOutput):
     distr_cls: type = Binned
 
     @validated()
-    def __init__(self, bin_centers: List) -> None:
+    def __init__(self, bin_centers: List[float]) -> None:
         # cannot pass directly nd.array because it is not serializable
         bc = mx.nd.array(bin_centers)
         assert len(bc.shape) == 1
