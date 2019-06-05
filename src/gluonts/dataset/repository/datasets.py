@@ -3,8 +3,9 @@ import os
 from functools import partial
 from pathlib import Path
 
-from gluonts.dataset.common import load_datasets, TrainDatasets
-from gluonts.dataset.repository.m4 import generate_m4_dataset
+from gluonts.dataset.common import TrainDatasets, load_datasets
+from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
+from gluonts.dataset.repository._m4 import generate_m4_dataset
 
 m4_freq = "Hourly"
 pandas_freq = "H"
@@ -50,10 +51,25 @@ dataset_recipes = {
         pandas_freq="12M",
         prediction_length=6,
     ),
+    "exchange_rate": partial(
+        generate_lstnet_dataset, dataset_name="exchange_rate"
+    ),
+    "electricity": partial(
+        generate_lstnet_dataset, dataset_name="electricity"
+    ),
+    "traffic": partial(generate_lstnet_dataset, dataset_name="traffic"),
+    "solar-energy": partial(
+        generate_lstnet_dataset, dataset_name="solar-energy"
+    ),
 }
 
 
-def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
+dataset_names = list(dataset_recipes.keys())
+
+
+def get_dataset(
+    dataset_name: str, regenerate: bool = False, path: str = "./"
+) -> TrainDatasets:
     """
     Parameters
     ----------
@@ -62,7 +78,8 @@ def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
     regenerate
         whether to regenerate the dataset even if a local file is present. If this flag is False and the
         file is present, the dataset will not be downloaded again.
-
+    path
+        where the dataset should be saved
     Returns
     -------
         dataset obtained by either downloading or reloading from local file.
@@ -70,7 +87,7 @@ def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
     assert (
         dataset_name in dataset_recipes.keys()
     ), f"{dataset_name} is not present, please choose one from {dataset_recipes.keys()}."
-    dataset_path = Path(dataset_name)
+    dataset_path = Path(path) / dataset_name
 
     dataset_recipe = dataset_recipes[dataset_name]
 
@@ -90,6 +107,9 @@ def get_dataset(dataset_name: str, regenerate: bool = False) -> TrainDatasets:
 
 
 if __name__ == '__main__':
-    for dataset in dataset_recipes.keys():
+
+    for dataset in dataset_names:
         print(f"generate {dataset}")
-        get_dataset(dataset, regenerate=True)
+        ds = get_dataset(dataset, regenerate=True)
+        print(ds.metadata)
+        print(sum(1 for _ in list(iter(ds.train))))
