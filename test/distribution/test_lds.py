@@ -21,7 +21,6 @@ def assert_shape_and_finite(x, shape):
 # (coefficients and noise terms) and observations, and the log-density
 # of the observations that were computed using pykalman
 # (https://pykalman.github.io/).
-@pytest.mark.skip
 @pytest.mark.parametrize(
     "data_filename",
     [
@@ -63,9 +62,12 @@ def test_lds_likelihood(data_filename):
     output_dim = lds.emission_coeff[0].shape[1]
     latent_dim = lds.emission_coeff[0].shape[2]
 
+    assert lds.batch_shape == (batch_size, time_length)
+    assert lds.event_shape == (output_dim,)
+
     likelihood, final_mean, final_cov = lds.log_prob(targets)
 
-    assert_shape_and_finite(likelihood, shape=(batch_size, time_length))
+    assert_shape_and_finite(likelihood, shape=lds.batch_shape)
     assert_shape_and_finite(final_mean, shape=(batch_size, latent_dim))
     assert_shape_and_finite(
         final_cov, shape=(batch_size, latent_dim, latent_dim)
@@ -82,16 +84,26 @@ def test_lds_likelihood(data_filename):
         f"obtained likelihood = {likelihood_per_item}",
     )
 
+    samples = lds.sample_marginals(num_samples=100)
+
+    assert_shape_and_finite(
+        samples, shape=(100,) + lds.batch_shape + lds.event_shape
+    )
+
+    sample = lds.sample_marginals()
+
+    assert_shape_and_finite(sample, shape=lds.batch_shape + lds.event_shape)
+
     samples = lds.sample(num_samples=100)
 
     assert_shape_and_finite(
-        samples, shape=(100, batch_size, time_length, output_dim)
+        samples, shape=(100,) + lds.batch_shape + lds.event_shape
     )
 
     sample = lds.sample()
 
-    assert_shape_and_finite(sample, lds.batch_shape + lds.event_shape)
+    assert_shape_and_finite(sample, shape=lds.batch_shape + lds.event_shape)
 
-    ll = lds.log_prob(sample)
+    ll, _, _ = lds.log_prob(sample)
 
-    assert_shape_and_finite(ll, lds.batch_shape)
+    assert_shape_and_finite(ll, shape=lds.batch_shape)

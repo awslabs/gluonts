@@ -160,7 +160,7 @@ class BinnedOutput(DistributionOutput):
     distr_cls: type = Binned
 
     @validated()
-    def __init__(self, bin_centers: List) -> None:
+    def __init__(self, bin_centers: List[float]) -> None:
         self.bin_centers = mx.nd.array(bin_centers)
         self.num_bins = self.bin_centers.shape[0]
         assert len(self.bin_centers.shape) == 1
