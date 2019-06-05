@@ -99,7 +99,10 @@ def _compute_date_helper(ts, freq, offset):
         # this line looks innocent, but can create a date which is out of
         # bounds values over year 9999 raise a ValueError
         # values over 2262-04-11 raise a pandas OutOfBoundsDatetime
-        return ts + offset * ts.freq
+        result = ts + offset * ts.freq
+        # For freq M and W pandas seems to lose the freq of the timestamp,
+        # so we explicitly set it.
+        return pd.Timestamp(result, freq=ts.freq)
     except (ValueError, pd._libs.OutOfBoundsDatetime) as ex:
         raise GluonTSDateBoundsError(ex)
 
