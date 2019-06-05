@@ -176,7 +176,7 @@ class Trainer:
         self.halt = False
 
         with tempfile.TemporaryDirectory(
-            prefix='gluonts-trainer-temp-', dir='/tmp'
+            prefix='gluonts-trainer-temp-'
         ) as gluonts_temp:
 
             def base_path() -> str:
