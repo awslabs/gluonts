@@ -1,41 +1,11 @@
 from pathlib import Path
-from typing import Dict, List
-
-import pandas as pd
-import numpy as np
 import os
 import json
 
+import pandas as pd
+import numpy as np
 
-def to_dict(cat: int, target_values: np.ndarray):
-    # the original dataset did not include time stamps, so we use a mock start date for each time series
-    # we use the earliest point available in pandas
-    mock_start_dataset = "1750-01-01 00:00:00"
-    return {
-        "start": mock_start_dataset,
-        "target": list(target_values),
-        "feat_static_cat": [cat],
-    }
-
-
-def save_to_file(path: Path, data: List[Dict]):
-    print(f"saving time-series into {path}")
-    path_dir = os.path.dirname(path)
-    os.makedirs(path_dir, exist_ok=True)
-    with open(path, 'wb') as fp:
-        for d in data:
-            fp.write(json.dumps(d).encode("utf-8"))
-            fp.write("\n".encode('utf-8'))
-
-
-def metadata(cardinality: int, freq: str, prediction_length: int):
-    return {
-        "time_granularity": freq,
-        "prediction_length": prediction_length,
-        "feat_static_cat": [
-            {"name": "feat_static_cat", "cardinality": str(cardinality)}
-        ],
-    }
+from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 
 
 def generate_m4_dataset(
@@ -82,10 +52,14 @@ def generate_m4_dataset(
         train_target_values = [ts[-300:] for ts in train_target_values]
         test_target_values = [ts[-300:] for ts in test_target_values]
 
+    # the original dataset did not include time stamps, so we use a mock start date for each time series
+    # we use the earliest point available in pandas
+    mock_start_dataset = "1750-01-01 00:00:00"
+
     save_to_file(
         train_file,
         [
-            to_dict(cat, target)
+            to_dict(target_values=target, start=mock_start_dataset, cat=[cat])
             for cat, target in enumerate(train_target_values)
         ],
     )
@@ -93,7 +67,7 @@ def generate_m4_dataset(
     save_to_file(
         test_file,
         [
-            to_dict(cat, target)
+            to_dict(target_values=target, start=mock_start_dataset, cat=[cat])
             for cat, target in enumerate(test_target_values)
         ],
     )

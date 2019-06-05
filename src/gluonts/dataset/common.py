@@ -69,7 +69,7 @@ class TimeSeriesItem(pydantic.BaseModel):
 
     start: Timestamp
     target: np.ndarray
-    item: str
+    item: Optional[str] = None
 
     feat_static_cat: List[int] = []
     feat_static_real: List[float] = []
@@ -131,7 +131,7 @@ class CategoricalFeatureInfo(pydantic.BaseModel):
 
 class MetaData(pydantic.BaseModel):
     time_granularity: str
-    target = BasicFeatureInfo
+    target: Optional[BasicFeatureInfo] = None
 
     feat_static_cat: List[CategoricalFeatureInfo] = []
     feat_static_real: List[BasicFeatureInfo] = []
