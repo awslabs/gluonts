@@ -98,6 +98,7 @@ def maximum_likelihood_estimate_sgd(
 
     for e in range(num_epochs):
         cumulative_loss = 0
+        num_batches = 0
         # inner loop
         for i, (data, sample_label) in enumerate(train_data):
             # data: (batch, 1), the "1" defines the dimension of the projection layer and should be kept
@@ -116,9 +117,10 @@ def maximum_likelihood_estimate_sgd(
                 loss = distr.loss(sample_label)
             loss.backward()
             trainer.step(BATCH_SIZE)
+            num_batches += 1
 
             cumulative_loss += mx.nd.mean(loss).asscalar()
-        print("Epoch %s, loss: %s" % (e, cumulative_loss / len(samples)))
+        print("Epoch %s, loss: %s" % (e, cumulative_loss / num_batches))
     return [param[0].asnumpy() for param in arg_proj(dummy_out)]
 
 
@@ -311,20 +313,21 @@ def test_deterministic_l2(mu: float, hybridize: bool) -> None:
     mu = mu
     mus = mx.nd.zeros(NUM_SAMPLES) + mu
 
-    deterministic_distr = Gaussian(mu=mus, sigma=mx.nd.ones_like(mus))
+    deterministic_distr = Gaussian(mu=mus, sigma=0.1 * mx.nd.ones_like(mus))
     samples = deterministic_distr.sample()
 
     class GaussianFixedVarianceOutput(GaussianOutput):
         @classmethod
         def domain_map(cls, F, mu, sigma):
-            sigma = F.ones_like(sigma)
-            return mu, sigma
+            sigma = 0.1 * F.ones_like(sigma)
+            return mu.squeeze(axis=-1), sigma.squeeze(axis=-1)
 
     mu_hat, _ = maximum_likelihood_estimate_sgd(
         GaussianFixedVarianceOutput(),
         samples,
+        init_biases=[3 * mu, 0.1],
         hybridize=hybridize,
-        num_epochs=PositiveInt(20),
+        num_epochs=PositiveInt(1),
     )
 
     assert (
@@ -347,14 +350,18 @@ def test_deterministic_l1(mu: float, hybridize: bool) -> None:
     class LaplaceFixedVarianceOutput(LaplaceOutput):
         @classmethod
         def domain_map(cls, F, mu, b):
-            b = F.ones_like(b)
-            return mu, b
+            b = 0.1 * F.ones_like(b)
+            return mu.squeeze(axis=-1), b.squeeze(axis=-1)
 
-    deterministic_distr = Laplace(mu=mus, b=mx.nd.ones_like(mus))
+    deterministic_distr = Laplace(mu=mus, b=0.1 * mx.nd.ones_like(mus))
     samples = deterministic_distr.sample()
 
     mu_hat, _ = maximum_likelihood_estimate_sgd(
-        LaplaceFixedVarianceOutput(), samples, hybridize=hybridize
+        LaplaceFixedVarianceOutput(),
+        samples,
+        init_biases=[3 * mu, 0.1],
+        learning_rate=1e-3,
+        hybridize=hybridize,
     )
 
     assert (
