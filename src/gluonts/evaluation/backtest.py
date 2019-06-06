@@ -120,8 +120,6 @@ def backtest_metrics(
         quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
     ),
     num_eval_samples: int = 100,
-    train_statistics: DatasetStatistics = None,
-    test_statistics: DatasetStatistics = None,
     logging_file: str = None,
     use_symbol_block_predictor: bool = False,
 ):
@@ -138,12 +136,6 @@ def backtest_metrics(
         Evaluator to use.
     num_eval_samples
         Number of samples to use when generating sample-based forecasts.
-    train_statistics
-        If not defined, then dataset statistics will be computed in order to
-        be logged.
-    test_statistics
-        If not defined, then dataset statistics will be computed in order to
-        be logged.
     logging_file
         If specified, information of the backtest is redirected to this file.
     use_symbol_block_predictor
@@ -169,13 +161,12 @@ def backtest_metrics(
     else:
         logger = logging.getLogger(__name__)
 
-    if train_dataset and not train_statistics:
+    if train_dataset is not None:
         train_statistics = calculate_dataset_statistics(train_dataset)
         serialize_message(logger, train_dataset_stats_key, train_statistics)
-    if test_statistics is None:
-        test_statistics = calculate_dataset_statistics(test_dataset)
-
+    test_statistics = calculate_dataset_statistics(test_dataset)
     serialize_message(logger, test_dataset_stats_key, test_statistics)
+
     if isinstance(forecaster, Estimator):
         serialize_message(logger, estimator_key, forecaster)
         predictor = forecaster.train(train_dataset)

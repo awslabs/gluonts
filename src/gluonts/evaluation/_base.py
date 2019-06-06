@@ -39,7 +39,12 @@ def get_seasonality(freq: str) -> int:
     assert match, "Cannot match freq regex"
     multiple, base_freq = match.groups()
     multiple = int(multiple) if multiple else 1
-    seasonality = {'H': 24, 'D': 1, 'W': 1, 'M': 12, 'B': 5}[base_freq]
+
+    seasonalities = {'H': 24, 'D': 1, 'W': 1, 'M': 12, 'B': 5}
+    if base_freq in seasonalities:
+        seasonality = seasonalities[base_freq]
+    else:
+        seasonality = 1
     if seasonality % multiple != 0:
         logging.warning(
             f'multiple {multiple} does not divide base seasonality {seasonality}.'
