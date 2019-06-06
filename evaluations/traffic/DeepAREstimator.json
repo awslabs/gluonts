@@ -1,0 +1,7 @@
+{
+    "ND": 0.14985484177102115,
+    "RMSE": 0.024636806287339986,
+    "dataset": "traffic",
+    "estimator": "DeepAREstimator",
+    "mean_wQuantileLoss": 0.12618905557796475
+}

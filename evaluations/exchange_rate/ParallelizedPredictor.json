@@ -1,0 +1,7 @@
+{
+    "ND": 0.009231881035915738,
+    "RMSE": 0.011074040165513383,
+    "dataset": "exchange_rate",
+    "estimator": "ParallelizedPredictor",
+    "mean_wQuantileLoss": 0.007532068348514538
+}

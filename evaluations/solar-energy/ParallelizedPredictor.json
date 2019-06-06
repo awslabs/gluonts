@@ -1,0 +1,7 @@
+{
+    "ND": 1.359158584269247,
+    "RMSE": 65.9770900866634,
+    "dataset": "solar-energy",
+    "estimator": "ParallelizedPredictor",
+    "mean_wQuantileLoss": 1.7735957749195015
+}

@@ -1,0 +1,7 @@
+{
+    "ND": 0.10176010030222694,
+    "RMSE": 1405.0094931671827,
+    "dataset": "m4_quarterly",
+    "estimator": "DeepAREstimator",
+    "mean_wQuantileLoss": 0.08720908055831483
+}
