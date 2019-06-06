@@ -442,8 +442,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             start_y = my_random.randint(2000, 2018)
             start_m = my_random.randint(1, 12)
             start_d = my_random.randint(1, 28)
-            start_h = my_random.randint(0, 24)
-            start_min = my_random.randint(0, 60)
+            start_h = my_random.randint(0, 23)
+            start_min = my_random.randint(0, 59)
         else:
             start_y, start_m, start_d = 2013, 11, 28
             start_h, start_min = 18, 36
