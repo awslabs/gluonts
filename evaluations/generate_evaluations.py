@@ -70,7 +70,7 @@ if __name__ == "__main__":
             dataset = get_dataset(
                 dataset_name=dataset_name,
                 regenerate=False,
-                dataset_path="../datasets/",
+                path="../datasets/",
             )
 
             estimator = Estimator(
