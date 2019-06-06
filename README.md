@@ -1,7 +1,7 @@
 # GluonTS - Probabilistic Time Series Modeling in Python
 
 GluonTS is a Python toolkit for probabilistic time series modeling,
-built around [MXNet](https://mxnet.incubator.apache.org/).
+built around [Apache MXNet (incubating)](https://mxnet.incubator.apache.org/).
 
 GluonTS provides utilities for loading and iterating over time series datasets,
 state of the art models ready to be trained, and building blocks to define
