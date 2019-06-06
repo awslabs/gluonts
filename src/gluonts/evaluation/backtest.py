@@ -161,8 +161,9 @@ def backtest_metrics(
     else:
         logger = logging.getLogger(__name__)
 
-    train_statistics = calculate_dataset_statistics(train_dataset)
-    serialize_message(logger, train_dataset_stats_key, train_statistics)
+    if train_dataset is not None:
+        train_statistics = calculate_dataset_statistics(train_dataset)
+        serialize_message(logger, train_dataset_stats_key, train_statistics)
     test_statistics = calculate_dataset_statistics(test_dataset)
     serialize_message(logger, test_dataset_stats_key, test_statistics)
 
