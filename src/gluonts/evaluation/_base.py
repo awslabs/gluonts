@@ -172,9 +172,8 @@ class Evaluator:
         # Remove the prediction range
         # If the prediction range is not in the end of the time series,
         # everything after the prediction range is truncated
-        date_before_forecast = (
-            pd.Timestamp(forecast.start_date, freq=forecast.freq) - 1
-        )
+        forecast_date = pd.Timestamp(forecast.start_date, freq=forecast.freq)
+        date_before_forecast = forecast_date - 1 * forecast_date.freq
         ts = time_series[:date_before_forecast]
 
         # Check if the length of the time series is larger than the seasonal frequency
