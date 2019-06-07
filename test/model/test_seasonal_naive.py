@@ -57,7 +57,8 @@ def test_seasonal_naive(freq):
             -SEASON_LENGTH : -SEASON_LENGTH + PREDICTION_LENGTH
         ]
 
-        assert forecast.start_date == pd.Timestamp(
-            START_TIME, freq=freq
-        ) + len(data["target"])
+        data_start = pd.Timestamp(START_TIME, freq=freq)
+        exp_forecast_start = data_start + len(data["target"]) * data_start.freq
+
+        assert forecast.start_date == exp_forecast_start
         assert np.allclose(forecast.samples[0], ref)

@@ -106,7 +106,7 @@ def test_AddTimeFeatures(start, target, is_train):
     mat = res['myout']
     expected_length = len(target) + (0 if is_train else pred_length)
     assert mat.shape == (2, expected_length)
-    tmp_idx = pd.DatetimeIndex(
+    tmp_idx = pd.date_range(
         start=start, freq=start.freq, periods=expected_length
     )
     assert np.alltrue(mat[0] == time_feature.DayOfWeek()(tmp_idx))

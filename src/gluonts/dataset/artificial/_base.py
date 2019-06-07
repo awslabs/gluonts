@@ -651,7 +651,7 @@ class RecipeDataset(ArtificialDataset):
 
         y = dict(
             item=x['item'],
-            start=x['start'] + length,
+            start=x['start'] + length * x['start'].freq,
             target=x['target'][length:],
         )
 
