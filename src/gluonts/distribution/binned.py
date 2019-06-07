@@ -65,7 +65,7 @@ class Binned(Distribution):
         Returns
         -------
         Tensor
-            Tensor of shape (*gamma.shape, num_bins+1)
+            Tensor of shape (*batch.shape, num_bins+1)
         """
 
         low = (
