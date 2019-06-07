@@ -22,7 +22,7 @@ import pandas as pd
 # First-party imports
 import gluonts  # noqa
 from gluonts import transform
-from gluonts.core.serde import dump_code, load_code
+from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.dataset.stat import (
@@ -65,7 +65,7 @@ def make_evaluation_predictions(
     def add_ts_dataframe(data_iterator: Iterator[DataEntry]) -> DataEntry:
         for data_entry in data_iterator:
             data = data_entry.copy()
-            index = pd.DatetimeIndex(
+            index = pd.date_range(
                 start=data['start'],
                 freq=freq,
                 periods=data['target'].shape[-1],

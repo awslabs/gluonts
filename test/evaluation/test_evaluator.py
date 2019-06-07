@@ -575,9 +575,7 @@ def test_metrics_multivariate(
 def test_evaluation_with_QuantileForecast():
     start = '2012-01-01'
     target = [2.4, 1.0, 3.0, 4.4, 5.5, 4.9] * 10
-    index = pd.DatetimeIndex(
-        start=pd.Timestamp(start), freq='1D', periods=len(target)
-    )
+    index = pd.date_range(start=start, freq='1D', periods=len(target))
     ts = pd.Series(index=index, data=target)
 
     ev = Evaluator(quantiles=('0.1', '0.2', '0.5'))

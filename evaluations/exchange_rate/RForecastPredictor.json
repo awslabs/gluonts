@@ -1,0 +1,7 @@
+{
+    "ND": 0.009266167690686075,
+    "RMSE": 0.011027631975400791,
+    "dataset": "exchange_rate",
+    "estimator": "RForecastPredictor",
+    "mean_wQuantileLoss": 0.007619254167772251
+}

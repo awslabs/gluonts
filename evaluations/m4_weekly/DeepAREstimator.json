@@ -1,0 +1,7 @@
+{
+    "ND": 0.06018578390977593,
+    "RMSE": 613.1016670653729,
+    "dataset": "m4_weekly",
+    "estimator": "DeepAREstimator",
+    "mean_wQuantileLoss": 0.04846065214693599
+}

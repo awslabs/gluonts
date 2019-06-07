@@ -82,5 +82,5 @@ class SeasonalNaivePredictor(RepresentablePredictor):
                 shape=(1, self.prediction_length), fill_value=target.mean()
             )
 
-        forecast_time = start_time + len_ts
+        forecast_time = start_time + len_ts * start_time.freq
         return SampleForecast(samples, forecast_time, start_time.freqstr)

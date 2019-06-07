@@ -23,14 +23,13 @@ from typing import Dict
 
 from gluonts.dataset.repository.datasets import get_dataset, dataset_names
 from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 
-import gluonts.model as model
-
-metrics_persisted = {"mean_wQuantileLoss", "ND", "RMSE"}
+metrics_persisted = ["mean_wQuantileLoss", "ND", "RMSE"]
 datasets = dataset_names
 
 Estimators = [
-    model.seasonal_naive.SeasonalNaivePredictor,
+    SeasonalNaivePredictor,
     # model.simple_feedforward.SimpleFeedForwardEstimator,
     # model.deepar.DeepAREstimator,
     # model.NPTSPredictor,
@@ -70,7 +69,7 @@ if __name__ == "__main__":
             dataset = get_dataset(
                 dataset_name=dataset_name,
                 regenerate=False,
-                dataset_path="../datasets/",
+                path="../datasets/",
             )
 
             estimator = Estimator(

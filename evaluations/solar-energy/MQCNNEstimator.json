@@ -1,0 +1,7 @@
+{
+    "ND": 0.7067217128957565,
+    "RMSE": NaN,
+    "dataset": "solar-energy",
+    "estimator": "MQCNNEstimator",
+    "mean_wQuantileLoss": 0.6268139441116889
+}
