@@ -1,0 +1,7 @@
+{
+    "ND": 0.48999836001880215,
+    "RMSE": 31.510218827972455,
+    "dataset": "solar-energy",
+    "estimator": "DeepAREstimator",
+    "mean_wQuantileLoss": 0.3979073478389366
+}

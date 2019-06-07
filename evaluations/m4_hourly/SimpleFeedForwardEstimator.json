@@ -1,0 +1,7 @@
+{
+    "ND": 0.05519513609268648,
+    "RMSE": 2360.8282007992607,
+    "dataset": "m4_hourly",
+    "estimator": "SimpleFeedForwardEstimator",
+    "mean_wQuantileLoss": 0.04400731631634267
+}

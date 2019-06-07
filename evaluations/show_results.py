@@ -34,7 +34,7 @@ results_df = collect_results()
 
 # copy-paste the results in `evaluations/README.md`
 for metric in metrics_persisted:
-    print(f"##{metric}")
+    print(f"## {metric}\n")
 
     pivot_df = results_df.pivot_table(
         index="estimator", columns="dataset", values=metric
