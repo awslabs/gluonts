@@ -20,7 +20,7 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import Callable, Dict, Iterator, List, Optional
+from typing import Callable, Dict, Iterator, List, Optional, TYPE_CHECKING
 
 # Third-party imports
 import mxnet as mx
@@ -41,6 +41,9 @@ from gluonts.support.util import (
     import_symb_block,
 )
 from gluonts.transform import Transformation
+
+if TYPE_CHECKING:  # avoid circular import
+    from gluonts.model.estimator import Estimator
 
 
 class Predictor:
@@ -674,7 +677,7 @@ class Localizer(Predictor):
         The estimator object to train on each dataset entry at prediction time.
     """
 
-    def __init__(self, estimator: 'gluonts.model.estimator.Estimator'):
+    def __init__(self, estimator: 'Estimator'):
         super().__init__(estimator.prediction_length, estimator.freq)
         self.estimator = estimator
 
