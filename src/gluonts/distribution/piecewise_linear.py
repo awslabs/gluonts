@@ -296,6 +296,10 @@ class PiecewiseLinear(Distribution):
     def event_shape(self) -> Tuple:
         return ()
 
+    @property
+    def event_dim(self) -> int:
+        return 0
+
 
 class PiecewiseLinearOutput(DistributionOutput):
     distr_cls: type = PiecewiseLinear
