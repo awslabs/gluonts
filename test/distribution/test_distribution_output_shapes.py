@@ -102,7 +102,7 @@ def test_distribution_output_shapes(
 
     args = args_proj(data)
 
-assert distr_out.event_shape == expected_event_shape
+    assert distr_out.event_shape == expected_event_shape
 
     for s in scale:
 
