@@ -89,7 +89,7 @@ class Uniform(Distribution):
 
 
 class UniformOutput(DistributionOutput):
-    dim_args: Dict[str, int] = {"low": 1, "width": 1}
+    args_dim: Dict[str, int] = {"low": 1, "width": 1}
     distr_cls: type = Uniform
 
     @classmethod
