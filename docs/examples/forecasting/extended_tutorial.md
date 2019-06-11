@@ -16,6 +16,7 @@
     5.1 Point forecasts with a simple feedforward network  
     5.2 Probabilistic forecasting  
     5.3 Add features and scaling   
+    5.4 From feedforward to RNN
     
 ---
 
