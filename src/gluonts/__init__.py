@@ -15,5 +15,5 @@
 
 from pkgutil import extend_path
 
-__version__ = '0.1.1'
+__version__ = '0.2.0dev'
 __path__ = extend_path(__path__, __name__)  # type: ignore
