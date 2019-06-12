@@ -64,7 +64,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
         if freq is None:
             freq = item.start.freq
 
-        index = pd.DatetimeIndex(
+        index = pd.date_range(
             start=item.start, freq=freq, periods=len(item.target)
         )
 

@@ -523,7 +523,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             if self.is_noise:
                 noise = D * state.normal(size=length)
             t = np.arange(length)
-            idx = pd.DatetimeIndex(
+            idx = pd.date_range(
                 start=start, freq=self.freq_str, periods=length
             )
             special_tp_indicator = self._special_time_point_indicator(idx)
