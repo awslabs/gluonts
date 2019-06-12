@@ -110,7 +110,7 @@ fig, ax = plt.subplots(2, 1, sharex=True, sharey=True, figsize=(10, 7))
 
 train_series.plot(ax=ax[0])
 ax[0].grid(which="both")
-ax[0].legend(["train_series"], loc="upper left")
+ax[0].legend(["train series"], loc="upper left")
 
 test_series.plot(ax=ax[1])
 ax[1].axvline(train_series.index[-1], color='r') # end of train dataset
@@ -209,7 +209,7 @@ fig, ax = plt.subplots(2, 1, sharex=True, sharey=True, figsize=(10, 7))
 
 train_series.plot(ax=ax[0])
 ax[0].grid(which="both")
-ax[0].legend(["train_series"], loc="upper left")
+ax[0].legend(["train series"], loc="upper left")
 
 test_series.plot(ax=ax[1])
 ax[1].axvline(train_series.index[-1], color='r') # end of train dataset
@@ -369,7 +369,7 @@ fig, ax = plt.subplots(2, 1, sharex=True, sharey=True, figsize=(10, 7))
 
 train_series.plot(ax=ax[0])
 ax[0].grid(which="both")
-ax[0].legend(["train_series"], loc="upper left")
+ax[0].legend(["train series"], loc="upper left")
 
 test_series.plot(ax=ax[1])
 ax[1].axvline(train_series.index[-1], color='r') # end of train dataset
