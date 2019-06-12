@@ -81,5 +81,5 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     start = instance['start']
     if not freq:
         freq = start.freqstr
-    index = pd.DatetimeIndex(start=start, periods=len(target), freq=freq)
+    index = pd.date_range(start=start, periods=len(target), freq=freq)
     return pd.Series(target, index=index)

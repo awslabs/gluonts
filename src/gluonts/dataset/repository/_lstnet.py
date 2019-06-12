@@ -139,7 +139,7 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
     train_file = dataset_path / "train" / "data.json"
     test_file = dataset_path / "test" / "data.json"
 
-    time_index = pd.DatetimeIndex(
+    time_index = pd.date_range(
         start=ds_info.start_date,
         freq=ds_info.freq,
         periods=ds_info.num_time_steps,
