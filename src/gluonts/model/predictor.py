@@ -31,7 +31,7 @@ from gluonts.core.component import DType, equals, validated
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.model.forecast import Forecast
+from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.support.util import (
     export_repr_block,
     export_symb_block,
@@ -42,8 +42,9 @@ from gluonts.support.util import (
 )
 from gluonts.transform import Transformation
 
+
 if TYPE_CHECKING:  # avoid circular import
-    from gluonts.model.estimator import Estimator
+    from gluonts.model.estimator import Estimator  # noqa
 
 
 class Predictor:
@@ -261,7 +262,9 @@ class GluonPredictor(Predictor):
         """
         raise NotImplementedError
 
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
+    def predict(
+        self, dataset: Dataset, num_eval_samples: Optional[int] = None
+    ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
             dataset,
             self.input_transform,
@@ -274,6 +277,24 @@ class GluonPredictor(Predictor):
             outputs = self.prediction_net(*inputs).asnumpy()
             if self.output_transform is not None:
                 outputs = self.output_transform(batch, outputs)
+            if num_eval_samples and not self._forecast_cls == SampleForecast:
+                logging.info(
+                    'Forecast is not sample based. Ignoring parameter `num_eval_samples` from predict method.'
+                )
+            if num_eval_samples and self._forecast_cls == SampleForecast:
+                num_collected_samples = outputs[0].shape[0]
+                collected_samples = [outputs]
+                while num_collected_samples < num_eval_samples:
+                    outputs = self.prediction_net(*inputs).asnumpy()
+                    if self.output_transform is not None:
+                        outputs = self.output_transform(batch, outputs)
+                    collected_samples.append(outputs)
+                    num_collected_samples += outputs[0].shape[0]
+                outputs = [
+                    np.concatenate(s)[:num_eval_samples]
+                    for s in zip(*collected_samples)
+                ]
+                assert len(outputs[0]) == num_eval_samples
             assert len(batch['forecast_start']) == len(outputs)
             for i, output in enumerate(outputs):
                 yield self._forecast_cls(
