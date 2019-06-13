@@ -1,16 +1,15 @@
 dist: xenial
 language: python
 python:
-  - "3.7"
-# make install and script just succeed
+- '3.7'
 install: true
 script: true
 deploy:
   provider: pypi
   user: gluonts
   password:
-    secure: 'hTKe4azG75ZeFRLgpUGdPSyBVkCAA6zj/W3AAsS+h333v/Z4fky2DXqE3SuNXbRAdoVmASSqhKMAmhz5K7k2CIvEhKP2g9pKdvW+gfbWZpPRx32K50mHyQw4ptIXtZczHLWwcgKEdnIlbIo7B6vS2Ypwq/9nHBljdGweFtarp+16jHhnINvKjB2HZ2xgABkCrF/9iE/ZrjJpdSCLaZtTpVtf146Hl6p+xqx1aDKClW3tHb3d9RZMkYYyHp3y2NL+oThfgSlhu3fVDwyaxhCJ2uiuPAe249OpCH8v7m2qjwHaG4DHA4tK16+UjJJFsWxLv6bMgmcBX5+eua0IRVJBwC/iycOzv3krZVuaykKpnY1uFTl4g0RVmypkPUVUF7x+5b+e8DS0fg02TBqrI3Mz69JBJ1vc2KvD7bDKjeXBI5tsvsvy0D4EO5Bye/3nyXC00S9f7Iw3ZRFbULFbx/jG56bCPew00OrDVvZ/SpAr6n97S9ZMKCJoBQkTCsSbyTNjLT97f2qmUzqPd9rUZ8k41U8tfnbjZ/aD1g8Pw/7Z3aqekT0AUiR2EyGfHeYq6tk5+Jqu4lbd5YXuGww/bW69t2OTabYPE/zYl5LpMWSsjuED6bnKKKu10RlogAOWX9xUYAegldkaJDzXH52RSZ4eLyb40GFWWuabT9bS2vX800Q='
+    secure: Wbor4gG9MEDSLuuTPa9+ECgNo5Bq6YteFZ5ZFJAH7LcGzS77R1TiT1YiIbLcOVASdZKggR0+WF0rbK+vv1leKmcYWSv9EzuWqOJtb2q6Q6mMyYM23JXj0QtkZBd2LR7oaaVG5V2l/+C+FfduZsZiMF4/KYZb37H94L999yvf7QN9btwtKYFCDFs7DFkyvIG6/xiJ9SN1J5bdKPHVQdoOF5m177ConfNmTAx8qSR7w+RVBqdBkPp3UENmlqXTQySDJb/1QG4ES5upAhtMoDRIXfpaHVXep9fjmDW2moOGXiO2J49Qh1FzSibM7SVV6j6TSApic+HFHj5uf7ltHnH/grL1sxuieGvd46nWUezb3L9/w/bpPWfAw9KXVUjSOAq/LhHkGp0vpwqGxAMtMhMqb12o9nIjsnM2M/W0iicWP6/qGjF0l4vzm3dbtW1I7NFayWSKNanR31RY6W/i04wDogHgu3CSxKKCZ1G7+bO72kdYKMpH5paHI1BJ7O5XnnhFuHU2455My2oIPSTK6uHQyXLR1UsTgHxphHxquXVE6fbjf1mzVYpvpLooOvgRNoVmTZhJVb6xnOnOb5NTqqk4L1iOM1cSk+ovtJiePpg1RuIROi5LOR1QNHNwjqXWkaEqPnPBrp8xlPOmwYcLwJAi82rsDqF0oIabN5tKmEACXJQ=
   on:
     tags: true
-  distributions: "sdist bdist_wheel"
+  distributions: sdist bdist_wheel
   skip_existing: true
