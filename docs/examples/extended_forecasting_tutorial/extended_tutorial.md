@@ -582,8 +582,8 @@ estimator = SimpleFeedForwardEstimator(
                     epochs=5, 
                     learning_rate=1e-3, 
                     hybridize=False, 
-                    num_batches_per_epoch=100,
-                   ),
+                    num_batches_per_epoch=100
+                   )
 )
 ```
 
@@ -889,7 +889,8 @@ estimator = MyEstimator(
                     epochs=5, 
                     learning_rate=1e-3, 
                     hybridize=False, 
-                    num_batches_per_epoch=100,),
+                    num_batches_per_epoch=100
+                   )
 )
 ```
 
@@ -1102,7 +1103,8 @@ estimator = MyProbEstimator(
                     epochs=5, 
                     learning_rate=1e-3, 
                     hybridize=False, 
-                    num_batches_per_epoch=100,),
+                    num_batches_per_epoch=100
+                   )
 )
 ```
 
@@ -1359,7 +1361,8 @@ estimator = MyProbEstimator(
                     epochs=5, 
                     learning_rate=1e-3, 
                     hybridize=False, 
-                    num_batches_per_epoch=100,),
+                    num_batches_per_epoch=100
+                   )
 )
 ```
 
@@ -1716,7 +1719,8 @@ estimator = MyProbRNNEstimator(
                         epochs=5,
                         learning_rate=1e-3,
                         hybridize=False,
-                        num_batches_per_epoch=100),
+                        num_batches_per_epoch=100
+                       )
     )
 ```
 
