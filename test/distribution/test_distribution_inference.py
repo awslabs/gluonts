@@ -46,7 +46,7 @@ from gluonts.distribution.transformed_distribution import (
 
 NUM_SAMPLES = 2000
 BATCH_SIZE = 32
-TOL = 0.2
+TOL = 0.3
 START_TOL_MULTIPLE = 1
 
 np.random.seed(1)

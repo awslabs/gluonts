@@ -52,11 +52,11 @@ class Baz(Foo):
 class Bar:
     @validated()
     def __init__(
-        self, x_list: List[Foo], x_dict: Dict[int, Foo], fields: List[Foo]
+        self, x_list: List[Foo], x_dict: Dict[int, Foo], input_fields: List[Foo]
     ) -> None:
         self.x_list = x_list
         self.x_dict = x_dict
-        self.fields = fields
+        self.input_fields = input_fields
 
 
 # define test.test_components.X as alias of X within the scope of this
@@ -104,7 +104,7 @@ def test_component_ctor():
         for i in range(6)
     }
 
-    bar01 = Bar(x_list, fields=fields, x_dict=x_dict)
+    bar01 = Bar(x_list, input_fields=fields, x_dict=x_dict)
     bar02 = load_code(dump_code(bar01))
     bar03 = load_json(dump_json(bar02))
 
@@ -116,15 +116,15 @@ def test_component_ctor():
 
     compare_tpes(bar02.x_list, bar02.x_list, bar03.x_list, tpe=list)
     compare_tpes(bar02.x_dict, bar02.x_dict, bar03.x_dict, tpe=dict)
-    compare_tpes(bar02.fields, bar02.fields, bar03.fields, tpe=list)
+    compare_tpes(bar02.input_fields, bar02.input_fields, bar03.input_fields, tpe=list)
 
     compare_vals(len(bar02.x_list), len(bar02.x_list), len(bar03.x_list))
     compare_vals(len(bar02.x_dict), len(bar02.x_dict), len(bar03.x_dict))
-    compare_vals(len(bar02.fields), len(bar02.fields), len(bar03.fields))
+    compare_vals(len(bar02.input_fields), len(bar02.input_fields), len(bar03.input_fields))
 
     compare_vals(bar02.x_list, bar02.x_list, bar03.x_list)
     compare_vals(bar02.x_dict, bar02.x_dict, bar03.x_dict)
-    compare_vals(bar02.fields, bar02.fields, bar03.fields)
+    compare_vals(bar02.input_fields, bar02.input_fields, bar03.input_fields)
 
     baz01 = Baz(a="0", b="9", c=Complex(x="1", y="2"), d="42")
     baz02 = load_json(dump_json(baz01))

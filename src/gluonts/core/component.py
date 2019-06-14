@@ -304,7 +304,7 @@ def validated(base_model=None):
     accessed through the ``Model`` attribute of the decorated initiazlier.
 
     >>> ComplexNumber.__init__.Model
-    <class 'abc.ComplexNumberModel'>
+    <class 'ComplexNumberModel'>
 
     The Pydantic model is synthesized automatically from on the parameter
     names and types of the decorated initializer. In the ``ComplexNumber``
@@ -427,12 +427,12 @@ class MXContext:
             )
 
     @classmethod
-    def get_validators(cls) -> mx.Context:
+    def __get_validators__(cls) -> mx.Context:
         yield cls.validate
 
 
 mx.Context.validate = MXContext.validate
-mx.Context.get_validators = MXContext.get_validators
+mx.Context.__get_validators__ = MXContext.__get_validators__
 
 
 def has_gpu_support() -> bool:
@@ -467,7 +467,7 @@ class DType:
     """
 
     @classmethod
-    def get_validators(cls):
+    def __get_validators__(cls):
         yield cls.validate
 
     @classmethod

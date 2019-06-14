@@ -52,7 +52,7 @@ class Timestamp(pd.Timestamp):
     # we need to sublcass, since pydantic otherwise converts the value into
     # datetime.datetime instead of using pd.Timestamp
     @classmethod
-    def get_validators(cls):
+    def __get_validators__(cls):
         def conv(val):
             if isinstance(val, pd.Timestamp):
                 return val
