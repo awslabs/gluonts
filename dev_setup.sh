@@ -54,8 +54,6 @@ fi
 
 # update location of Git hooks from default (.git/hooks) to the versioned folder .devtools/githooks
 git config core.hooksPath ".devtools/githooks"
-# use the flake8 Git pre-commit hook in strict mode (i.e., fail the commit on error)
-git config --bool flake8.strict true
 
 # install project requirements
 python -m pip install -r requirements-setup.txt
