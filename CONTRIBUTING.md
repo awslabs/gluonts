@@ -44,7 +44,7 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 For development you need the requirements listed in all `requirements...txt` files.
 
-We use flake8, mypy, and [black](https://github.com/python/black) for style and
+We use [black](https://github.com/python/black) and mypy for style and
 type checking. Any code changes that you contribute should pass these checks.
 
 The easiest way to get set up for development is to run the following script:
