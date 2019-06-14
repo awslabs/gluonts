@@ -517,7 +517,7 @@ class OutputType:
         return hash(str(self))
 
     @classmethod
-    def get_validators(cls):
+    def __get_validators__(cls):
         yield cls.validate
 
     @classmethod
