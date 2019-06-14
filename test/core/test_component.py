@@ -52,7 +52,10 @@ class Baz(Foo):
 class Bar:
     @validated()
     def __init__(
-        self, x_list: List[Foo], x_dict: Dict[int, Foo], input_fields: List[Foo]
+        self,
+        x_list: List[Foo],
+        x_dict: Dict[int, Foo],
+        input_fields: List[Foo],
     ) -> None:
         self.x_list = x_list
         self.x_dict = x_dict
@@ -116,11 +119,17 @@ def test_component_ctor():
 
     compare_tpes(bar02.x_list, bar02.x_list, bar03.x_list, tpe=list)
     compare_tpes(bar02.x_dict, bar02.x_dict, bar03.x_dict, tpe=dict)
-    compare_tpes(bar02.input_fields, bar02.input_fields, bar03.input_fields, tpe=list)
+    compare_tpes(
+        bar02.input_fields, bar02.input_fields, bar03.input_fields, tpe=list
+    )
 
     compare_vals(len(bar02.x_list), len(bar02.x_list), len(bar03.x_list))
     compare_vals(len(bar02.x_dict), len(bar02.x_dict), len(bar03.x_dict))
-    compare_vals(len(bar02.input_fields), len(bar02.input_fields), len(bar03.input_fields))
+    compare_vals(
+        len(bar02.input_fields),
+        len(bar02.input_fields),
+        len(bar03.input_fields),
+    )
 
     compare_vals(bar02.x_list, bar02.x_list, bar03.x_list)
     compare_vals(bar02.x_dict, bar02.x_dict, bar03.x_dict)
