@@ -137,7 +137,7 @@ print(f"Frequency of the time series: {dataset.metadata.time_granularity}")
 
 ## 1.2 Create artificial datasets
 
-We can easily create a complex artificial time series dataset using the `ComplexSeasonalTimeSearies` module.
+We can easily create a complex artificial time series dataset using the `ComplexSeasonalTimeSeries` module.
 
 
 ```python
