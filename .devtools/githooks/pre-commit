@@ -7,9 +7,6 @@ import textwrap
 from pathlib import Path
 from subprocess import CalledProcessError, check_output
 
-# Third-party imports
-import flake8.main.git
-
 
 def type_check() -> int:
     mypy_opts = ['--follow-imports=silent', '--ignore-missing-imports']
@@ -91,12 +88,5 @@ def style_check() -> int:
         return e.returncode
 
 
-def flake8_check() -> int:
-    return flake8.main.git.hook(
-        strict=flake8.main.git.config_for('strict'),
-        lazy=flake8.main.git.config_for('lazy'),
-    )
-
-
 if __name__ == '__main__':
-    sys.exit(type_check() | style_check() | flake8_check())
+    sys.exit(type_check() | style_check())
