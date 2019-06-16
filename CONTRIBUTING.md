@@ -50,6 +50,28 @@ type checking. Any code changes that you contribute should pass these checks.
 The easiest way to get set up for development is to run the following script:
 
 ```bash
+# first clone the repo
+git clone https://github.com/awslabs/gluon-ts.git
+
+# first check if condo is up to date
+Conda update conda
+
+# create virtual env (can change python version if you use newer/older
+# see if any breaking changes
+conda create -n gluon-ts python=3.6 anaconda
+
+# after aeons of dependencies installing
+conda activate gluon-ts
+
+#confirm python version
+Python -V
+
+#enter the cloned repo
+./dev_setup.sh
+
+#NOTE: you may get some setup lines that are red in stdout
+#In my case it looks like those were ok, on re-running ./dev_setup.sh had no red #stdout lines
+
 ./dev_setup.sh
 ```
 
