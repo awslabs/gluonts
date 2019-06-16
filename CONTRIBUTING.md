@@ -50,10 +50,12 @@ type checking. Any code changes that you contribute should pass these checks.
 The easiest way to get set up for development is to run the following script:
 
 ```bash
-# first clone the repo
-git clone https://github.com/awslabs/gluon-ts.git
+# first fork the repo on github
 
-# first check if condo is up to date
+#then clone your fork
+git clone https://github.com/<your-github-username>/gluon-ts.git
+
+# check if condo is up to date
 Conda update conda
 
 # create virtual env (can change python version if you use newer/older
@@ -72,15 +74,58 @@ Python -V
 #NOTE: you may get some setup lines that are red in stdout
 #In my case it looks like those were ok, on re-running ./dev_setup.sh had no red #stdout lines
 
-./dev_setup.sh
+# now setup the main repo as upstream remote
+git remote add upstream https://github.com/awslabs/gluon-ts.git
 ```
 
 This will install all the requirements and also install a git hook that runs
-all code checks when you commit.
+all code checks when you commit. This also separates your workflow so that
+pull-requests go through your forked repo and then into upstream if approved.
 
 
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/gluon-ts/labels/help%20wanted) issues is a great place to start.
+
+
+## Reviewing code
+Contributing code is important and so is reviewing other's code.
+There are 2 good ways (unless you know more) to review code:
+
+```
+git fetch upstream pull/PULL_REQUEST_ID/head:NEW_BRANCH_NAME
+```
+
+where `PULL_REQUEST_ID` is the digits only for the pull request and
+`NEW_BRANCH_NAME` is the name you call this branch in your local repo.
+
+An alternate method is to bring all open pull requests into your local repo,
+a useful method if you have a long flight ahead of you and you may not have
+internet access or plan to vacation on a remote island and need to review 5
+gluon-ts pull requests before your able to return home. To do this you can
+manually edit the refspec in the `.git/config` file to add a fetch line for
+all pull requests or the easier way is
+
+```
+git config --local --add remote.upstream.fetch '+refs/pull/*/head:refs/remotes/upstream/pr/*'
+```
+
+Now if you setup the `origin` and `upstream` repos asd indicated above,
+executing the command
+
+```
+git fetch upstream pr
+```
+
+Will bring all pull requests, both open and closed, into you local repo.
+To check any out into new branches use the command
+
+```
+git checkout pr/1
+```
+
+which creates a branch locally with the code from the first pull request.
+Use this local version of the code to confirm the unit tests pass and to
+otherwise perform due diligence of the code in the pull request.
 
 
 ## Code of Conduct
