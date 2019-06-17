@@ -363,6 +363,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         is_scale: bool = True,
         percentage_unique_timestamps: float = 0.07,
         is_out_of_bounds_date: bool = False,
+        clip_values: bool = False,
     ) -> None:
         """
         :param num_series: number of time series generated in the train and
@@ -380,6 +381,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         :param is_scale: whether to add scale
         :param percentage_unique_timestamps: percentage of random start dates bounded between 0 and 1
         :param is_out_of_bounds_date: determines whether to use very old start dates and start dates far in the future
+        :param clip_values: if True the values will be clipped to [min_val, max_val], otherwise linearly scales them
         """
         assert length_low > prediction_length
         super(ComplexSeasonalTimeSeries, self).__init__(freq_str)
@@ -396,6 +398,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         self.is_scale = is_scale
         self.percentage_unique_timestamps = percentage_unique_timestamps
         self.is_out_of_bounds_date = is_out_of_bounds_date
+        self.clip_values = clip_values
 
     @property
     def metadata(self) -> MetaData:
@@ -513,15 +516,10 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             length = state.randint(low=self.length_low, high=self.length_high)
             start = self._get_start(i, my_random)
             envelope = sigmoid((np.arange(length) - 20.0) / 10.0)
-            if self.is_scale:
-                scale = 0.1 * val_range * state.random_sample()
             level = 0.3 * val_range * (state.random_sample() - 0.5)
             phi = 2 * np.pi * state.random_sample()
-            T = self._get_period()
-            w = 2 * np.pi / T
-            D = 0.02 * val_range * state.random_sample()
-            if self.is_noise:
-                noise = D * state.normal(size=length)
+            period = self._get_period()
+            w = 2 * np.pi / period
             t = np.arange(length)
             idx = pd.date_range(
                 start=start, freq=self.freq_str, periods=length
@@ -529,18 +527,29 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             special_tp_indicator = self._special_time_point_indicator(idx)
             sunday_effect = state.random_sample() * special_tp_indicator
             v = np.sin(w * t + phi) + sunday_effect
+
             if self.is_scale:
+                scale = 0.1 * val_range * state.random_sample()
                 v *= scale
             v += level
             if self.is_noise:
+                noise_range = 0.02 * val_range * state.random_sample()
+                noise = noise_range * state.normal(size=length)
                 v += noise
             v = envelope * v
-            z = np.zeros_like(v)
-            v = np.max(np.vstack([v, z + self.min_val]), axis=0)
-            v = np.min(np.vstack([v, z + self.max_val]), axis=0)
+            if self.clip_values:
+                np.clip(v, a_min=self.min_val, a_max=self.max_val, out=v)
+            else:
+                v_min = v.min()
+                v_max = v.max()
+                p_min = max(self.min_val, v_min)
+                p_max = min(self.max_val, v_max)
+                desired_min = np.clip(p_min + (p_max - v_max), a_min=self.min_val, a_max=self.max_val)
+                desired_max = np.clip(p_max + (p_min - v_min), a_min=self.min_val, a_max=self.max_val)
+                v = desired_min + (desired_max - desired_min) * (v - v_min) / (v_max - v_min)
 
             if self.is_integer:
-                v = v.astype(np.int)
+                v = np.round(v).astype(int)
             v = list(v.tolist())
             if self.proportion_missing_values > 0:
                 assert (
