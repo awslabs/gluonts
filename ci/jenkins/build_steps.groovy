@@ -105,7 +105,10 @@ def create_website(workspace_name, conda_env_name) {
 }
 
 def website_linkcheck(workspace_name, conda_env_name) {
-  enforce_linkcheck = env.BRANCH_NAME.startsWith('PR-')?'false':'true'
+  // TODO: re-enable to enforce no-WARNING doc builds on master
+  // enforce_linkcheck = env.BRANCH_NAME.startsWith('PR-')?'false':'true'
+  enforce_linkcheck = 'false'
+
   return ["${conda_env_name}: website link check'": {
     node(NODE_LINUX_CPU) {
       ws("workspace/${workspace_name}") {
