@@ -102,6 +102,15 @@ class TransformedDistribution(Distribution):
 
         return self.base_distribution.log_prob(x) + lp
 
+    def cdf(self, y: Tensor) -> Tensor:
+        x = y
+        sign = 1.0
+        for t in self.transforms[::-1]:
+            x = t.f_inv(x)
+            sign = sign * t.sign
+        f = self.base_distribution.cdf(x)
+        return sign * (f - 0.5) + 0.5
+
 
 def sum_trailing_axes(F, x: Tensor, k: int) -> Tensor:
     for _ in range(k):

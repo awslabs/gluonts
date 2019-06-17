@@ -17,6 +17,7 @@ from typing import Dict, Optional, Tuple
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.support.util import erf
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
@@ -72,6 +73,13 @@ class Gaussian(Distribution):
     @property
     def stddev(self) -> Tensor:
         return self.sigma
+
+    def cdf(self, x):
+        F = self.F
+        u = self.F.broadcast_div(
+            self.F.broadcast_minus(x, self.mu), self.sigma * math.sqrt(2.0)
+        )
+        return (erf(F, u) + 1.0) / 2.0
 
     def sample(self, num_samples: Optional[int] = None) -> Tensor:
         return _sample_multiple(

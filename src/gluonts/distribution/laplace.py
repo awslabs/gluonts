@@ -68,12 +68,19 @@ class Laplace(Distribution):
     def stddev(self) -> Tensor:
         return 2.0 ** 0.5 * self.b
 
+    def cdf(self, x: Tensor) -> Tensor:
+        y = (x - self.mu) / self.b
+        return 0.5 + 0.5 * y.sign() * (1.0 - self.F.exp(-y.abs()))
+
     def sample_rep(self, num_samples=None) -> Tensor:
+        F = self.F
+
         def s(mu: Tensor, b: Tensor) -> Tensor:
             ones = mu.ones_like()
-            x = self.F.random.uniform(-0.5 * ones, 0.5 * ones)
-            laplace_samples = mu - b * self.F.sign(x) * self.F.log(
-                1.0 - 2.0 * self.F.abs(x)
+            x = F.random.uniform(-0.5 * ones, 0.5 * ones)
+            laplace_samples = mu - b * F.sign(x) * F.log(
+                (1.0 - 2.0 * F.abs(x)).clip(1.0e-30, 1.0e30)
+                # 1.0 - 2.0 * F.abs(x)
             )
             return laplace_samples
 

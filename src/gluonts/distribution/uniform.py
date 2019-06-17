@@ -81,11 +81,14 @@ class Uniform(Distribution):
             raw_samples = self.F.sample_uniform(
                 low=low.zeros_like(), high=high.ones_like()
             )
-            return low + raw_samples + high
+            return low + raw_samples * (high - low)
 
         return _sample_multiple(
             s, low=self.low, high=self.high, num_samples=num_samples
         )
+
+    def cdf(self, x: Tensor) -> Tensor:
+        return self.F.broadcast_div(x - self.low, self.high - self.low)
 
 
 class UniformOutput(DistributionOutput):

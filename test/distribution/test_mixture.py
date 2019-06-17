@@ -17,6 +17,7 @@ from gluonts.distribution import (
     MultivariateGaussianOutput,
     MixtureDistributionOutput,
 )
+from gluonts.testutil import empirical_cdf
 
 
 def plot_samples(s: Tensor, bins: int = 100) -> None:
@@ -39,7 +40,11 @@ def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
     return np.mean(np.abs(x - y))
 
 
-NUM_SAMPLES = 1000
+NUM_SAMPLES = 1_000
+NUM_SAMPLES_LARGE = 100_000
+
+
+SHAPE = (2, 1, 3)
 
 
 @pytest.mark.parametrize(
@@ -47,26 +52,26 @@ NUM_SAMPLES = 1000
     [
         (
             Gaussian(
-                mu=mx.nd.zeros(shape=(3, 4, 5)),
-                sigma=1e-3 + 0.2 * mx.nd.ones(shape=(3, 4, 5)),
+                mu=mx.nd.zeros(shape=SHAPE),
+                sigma=1e-3 + 0.2 * mx.nd.ones(shape=SHAPE),
             ),
             Gaussian(
-                mu=mx.nd.ones(shape=(3, 4, 5)),
-                sigma=1e-3 + 0.1 * mx.nd.ones(shape=(3, 4, 5)),
+                mu=mx.nd.ones(shape=SHAPE),
+                sigma=1e-3 + 0.1 * mx.nd.ones(shape=SHAPE),
             ),
-            0.2 * mx.nd.ones(shape=(3, 4, 5)),
+            0.2 * mx.nd.ones(shape=SHAPE),
         ),
         (
             StudentT(
-                mu=mx.nd.ones(shape=(3, 4, 5)),
-                sigma=1e-1 + mx.nd.zeros(shape=(3, 4, 5)),
-                nu=mx.nd.ones(shape=(3, 4, 5)),
+                mu=mx.nd.ones(shape=SHAPE),
+                sigma=1e-1 + mx.nd.zeros(shape=SHAPE),
+                nu=mx.nd.zeros(shape=SHAPE) + 2.2,
             ),
             Gaussian(
-                mu=-mx.nd.ones(shape=(3, 4, 5)),
-                sigma=1e-1 + mx.nd.zeros(shape=(3, 4, 5)),
+                mu=-mx.nd.ones(shape=SHAPE),
+                sigma=1e-1 + mx.nd.zeros(shape=SHAPE),
             ),
-            mx.nd.random_uniform(shape=(3, 1, 5)),
+            mx.nd.random_uniform(shape=SHAPE),
         ),
         # TODO: add a multivariate case here
     ],
@@ -77,10 +82,10 @@ def test_mixture(
 
     # sample from component distributions, and select samples
 
-    samples1 = distr1.sample(num_samples=NUM_SAMPLES)
-    samples2 = distr2.sample(num_samples=NUM_SAMPLES)
+    samples1 = distr1.sample(num_samples=NUM_SAMPLES_LARGE)
+    samples2 = distr2.sample(num_samples=NUM_SAMPLES_LARGE)
 
-    rand = mx.nd.random.uniform(shape=(NUM_SAMPLES, *p.shape))
+    rand = mx.nd.random.uniform(shape=(NUM_SAMPLES_LARGE, *p.shape))
     choice = (rand < p.expand_dims(axis=0)).broadcast_like(samples1)
     samples_ref = mx.nd.where(choice, samples1, samples2)
 
@@ -92,7 +97,7 @@ def test_mixture(
         mixture_probs=mixture_probs, components=[distr1, distr2]
     )
 
-    samples_mix = mixture.sample(num_samples=NUM_SAMPLES)
+    samples_mix = mixture.sample(num_samples=NUM_SAMPLES_LARGE)
 
     # check that shapes are right
 
@@ -103,14 +108,25 @@ def test_mixture(
         == samples_ref.shape
     )
 
-    # check that histograms are close
+    # check mean and stddev
+    calc_mean = mixture.mean.asnumpy()
+    sample_mean = samples_mix.asnumpy().mean(axis=0)
 
+    assert np.allclose(calc_mean, sample_mean, atol=1E-1)
+
+    # check that histograms are close
     assert (
         diff(
             histogram(samples_mix.asnumpy()), histogram(samples_ref.asnumpy())
         )
         < 0.05
     )
+
+    # can only calculated cdf for gaussians currently
+    if isinstance(distr1, Gaussian) and isinstance(distr2, Gaussian):
+        emp_cdf, edges = empirical_cdf(samples_mix.asnumpy())
+        calc_cdf = mixture.cdf(mx.nd.array(edges)).asnumpy()
+        assert np.allclose(calc_cdf[1:, :], emp_cdf, atol=1E-2)
 
 
 @pytest.mark.parametrize(

@@ -37,7 +37,7 @@ class StudentT(Distribution):
     ----------
     mu
         Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
-    std
+    sigma
         Tensor containing the standard deviations, of shape
         `(*batch_shape, *event_shape)`.
     nu
