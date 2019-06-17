@@ -120,3 +120,21 @@ The following modules illustrate how custom models can be implemented:
 
 If you wish to contribute to the project, please refer to our
 [contribution guidelines](https://github.com/awslabs/gluon-ts/tree/master/CONTRIBUTING.md).
+
+## Citing
+
+If you use GluonTS in a scientific publication, we encourage you to add
+the following reference to the associated
+[paper](https://arxiv.org/abs/1906.05264):
+
+```
+@article{gluonts,
+  title={{GluonTS: Probabilistic Time Series Modeling in Python}},
+  author={Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
+          Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
+          and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
+          Türkmen, A. C. and Wang, Y.},
+  journal={arXiv preprint arXiv:1906.05264},
+  year={2019}
+}
+```
