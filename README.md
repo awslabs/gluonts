@@ -8,6 +8,7 @@ state of the art models ready to be trained, and building blocks to define
 your own models and quickly experiment with different solutions.
 
 * [Documentation](https://gluon-ts.mxnet.io/)
+* [Paper](GluonTS: Probabilistic Time Series Models in Python)
 
 ## Installation
 
