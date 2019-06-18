@@ -14,7 +14,7 @@ _min_val = np.random.uniform(-10000, 10000, _n_min_val)
 
 @pytest.mark.parametrize(
     'num_series',
-    np.random.randint(10, 50, 3)
+    np.random.randint(10, 50, 2)
 )
 @pytest.mark.parametrize(
     'prediction_length',
