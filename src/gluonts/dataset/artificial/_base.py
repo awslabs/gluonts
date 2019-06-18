@@ -540,13 +540,17 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             if self.clip_values:
                 np.clip(v, a_min=self.min_val, a_max=self.max_val, out=v)
             else:
-                v_min = v.min()
-                v_max = v.max()
-                p_min = max(self.min_val, v_min)
-                p_max = min(self.max_val, v_max)
-                desired_min = np.clip(p_min + (p_max - v_max), a_min=self.min_val, a_max=self.max_val)
-                desired_max = np.clip(p_max + (p_min - v_min), a_min=self.min_val, a_max=self.max_val)
-                v = desired_min + (desired_max - desired_min) * (v - v_min) / (v_max - v_min)
+                """
+                Rather than mapping [v_min, v_max] to [self.min_val, self.max_val] which would lead to
+                all the time series having the same min and max, we want to keep the same interval length
+                (v_max - v_min). We thus shift the interval [v_min, v_max] in [self.min_val, self.max_val]
+                and clip it if needed.
+                """
+                v_min, v_max = v.min(), v.max()
+                p_min, p_max = max(self.min_val, v_min), min(self.max_val, v_max)
+                shifted_min = np.clip(p_min + (p_max - v_max), a_min=self.min_val, a_max=self.max_val)
+                shifted_max = np.clip(p_max + (p_min - v_min), a_min=self.min_val, a_max=self.max_val)
+                v = shifted_min + (shifted_max - shifted_min) * (v - v_min) / (v_max - v_min)
 
             if self.is_integer:
                 np.clip(v, a_min=np.ceil(self.min_val), a_max=np.floor(self.max_val), out=v)
