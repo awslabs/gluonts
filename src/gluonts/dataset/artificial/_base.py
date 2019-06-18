@@ -549,6 +549,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                 v = desired_min + (desired_max - desired_min) * (v - v_min) / (v_max - v_min)
 
             if self.is_integer:
+                np.clip(v, a_min=np.ceil(self.min_val), a_max=np.floor(self.max_val), out=v)
                 v = np.round(v).astype(int)
             v = list(v.tolist())
             if self.proportion_missing_values > 0:
