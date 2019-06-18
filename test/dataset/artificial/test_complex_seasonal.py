@@ -6,19 +6,18 @@ from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 
 
 _eps = 1e-6
-_n_length_low = 1
-_n_min_val = 3
-_length_low = np.random.randint(100, 200, _n_length_low)
-_min_val = np.random.uniform(-10000, 10000, _n_min_val)
+
+_length_low = np.array([100])
+_min_val = np.array([-10000, 0, 5000])
 
 
 @pytest.mark.parametrize(
     'num_series',
-    np.random.randint(20, 50, 1)
+    [30]
 )
 @pytest.mark.parametrize(
     'prediction_length',
-    np.random.randint(100, 200, 1)
+    [100]
 )
 @pytest.mark.parametrize(
     'freq_str',
@@ -26,11 +25,11 @@ _min_val = np.random.uniform(-10000, 10000, _n_min_val)
 )
 @pytest.mark.parametrize(
     'length_low, length_high',
-    zip(_length_low, _length_low + np.random.randint(100, 200, _n_length_low))
+    zip(_length_low, _length_low + np.array([50]))
 )
 @pytest.mark.parametrize(
     'min_val, max_val',
-    zip(_min_val, _min_val + np.random.uniform(0, 10000, _n_min_val))
+    zip(_min_val, _min_val + np.array([5000, 2500, 1000]))
 )
 @pytest.mark.parametrize(
     'is_integer',
