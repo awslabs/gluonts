@@ -2,7 +2,7 @@
 from gluonts.dataset.artificial import constant_dataset
 
 
-def test_icml_example():
+def test_listing_1():
     """
     Test GluonTS paper examples from arxiv paper:
     https://arxiv.org/abs/1906.05264
@@ -37,7 +37,7 @@ def test_icml_example():
     )
 
 
-def test_arxiv_example():
+def test_appendix_c():
     """
     Test GluonTS paper examples from arxiv paper:
     https://arxiv.org/abs/1906.05264
