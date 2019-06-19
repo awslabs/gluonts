@@ -68,6 +68,13 @@ class Bijection:
     def event_dim(self) -> int:
         raise NotImplementedError()
 
+    @property
+    def sign(self) -> Tensor:
+        """
+        Return the sign of the Jacobian's determinant.
+        """
+        raise NotImplementedError()
+
 
 class InverseBijection(Bijection):
     """
@@ -101,6 +108,10 @@ class InverseBijection(Bijection):
     def event_dim(self) -> int:
         return self._bijection.event_dim
 
+    @property
+    def sign(self) -> Tensor:
+        return self._bijection.sign
+
 
 class _Exp(Bijection):
     def f(self, x: Tensor) -> Tensor:
@@ -116,6 +127,10 @@ class _Exp(Bijection):
     def event_dim(self) -> int:
         return 0
 
+    @property
+    def sign(self) -> Tensor:
+        return 1.0
+
 
 class _Log(Bijection):
     def f(self, x: Tensor) -> Tensor:
@@ -130,6 +145,10 @@ class _Log(Bijection):
     @property
     def event_dim(self) -> int:
         return 0
+
+    @property
+    def sign(self) -> Tensor:
+        return 1.0
 
 
 class _Softrelu(Bijection):
@@ -156,6 +175,10 @@ class _Softrelu(Bijection):
     @property
     def event_dim(self) -> int:
         return 0
+
+    @property
+    def sign(self) -> Tensor:
+        return 1.0
 
 
 class AffineTransformation(Bijection):
@@ -201,6 +224,10 @@ class AffineTransformation(Bijection):
             return self.scale.broadcast_like(x).abs().log()
         else:
             raise RuntimeError("scale is of type None in log_abs_det_jac")
+
+    @property
+    def sign(self):
+        return self.scale.sign()
 
     @property
     def event_dim(self) -> int:

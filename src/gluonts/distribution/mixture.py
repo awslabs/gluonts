@@ -94,21 +94,26 @@ class MixtureDistribution(Distribution):
 
     @property
     def mean(self) -> Tensor:
-        return self.F.sum(
-            [
-                pi * d.mean()
-                for pi, d, in zip(self.mixture_probs, self.components)
-            ],
-            axis=-1,
+        F = self.F
+        mean_values = F.stack(*[c.mean for c in self.components], axis=-1)
+        return F.sum(
+            F.broadcast_mul(mean_values, self.mixture_probs, axis=-1), axis=-1
         )
+
+    def cdf(self, x: Tensor) -> Tensor:
+        F = self.F
+        cdf_values = F.stack(*[c.cdf(x) for c in self.components], axis=-1)
+        erg = F.sum(
+            F.broadcast_mul(cdf_values, self.mixture_probs, axis=-1), axis=-1
+        )
+        return erg
 
     @property
     def stddev(self) -> Tensor:
-        return self.F.sum(
-            [
-                pi * d.stddev()
-                for pi, d, in zip(self.mixture_probs, self.components)
-            ],
+        F = self.F
+        stddev_values = F.stack(*[c.stddev for c in self.components], axis=-1)
+        return F.sum(
+            F.broadcast_mul(stddev_values, self.mixture_probs, axis=-1),
             axis=-1,
         )
 

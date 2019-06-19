@@ -217,6 +217,12 @@ class Distribution:
         """
         return self.stddev.square()
 
+    def cdf(self, x: Tensor) -> Tensor:
+        r"""
+        Returns the value of the cumulative distribution function evaluated at x
+        """
+        raise NotImplementedError()
+
 
 def _expand_param(p: Tensor, num_samples: Optional[int] = None) -> Tensor:
     """

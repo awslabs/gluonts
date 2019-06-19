@@ -106,14 +106,22 @@ class Binned(Distribution):
         return (Ex2 - self.mean.square()).sqrt()
 
     def log_prob(self, x):
+        F = self.F
         x = x.expand_dims(axis=-1)
         # TODO: when mxnet has searchsorted replace this
         left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
         right_edges = self.bin_edges.slice_axis(axis=-1, begin=1, end=None)
-        mask = self.F.broadcast_lesser_equal(
-            left_edges, x
-        ) * self.F.broadcast_lesser(x, right_edges)
-        return (self.bin_probs.log() * mask).sum(axis=-1)
+        mask = F.broadcast_lesser_equal(left_edges, x) * F.broadcast_lesser(
+            x, right_edges
+        )
+        return F.broadcast_mul(self.bin_probs.log(), mask).sum(axis=-1)
+
+    def cdf(self, x: Tensor) -> Tensor:
+        F = self.F
+        x = x.expand_dims(axis=-1)
+        # left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
+        mask = F.broadcast_lesser_equal(self.bin_centers, x)
+        return F.broadcast_mul(self.bin_probs, mask).sum(axis=-1)
 
     def sample(self, num_samples=None):
         def s(bin_probs):

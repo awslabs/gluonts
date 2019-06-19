@@ -49,3 +49,19 @@ def test_cumsum(vec) -> None:
         f"reverse cumsum (exclusive) did not match: "
         f"expected: {np_reverse_cumsum_excl}, obtained: {reverse_cumsum_excl}"
     )
+
+
+def test_erf() -> None:
+    try:
+        from scipy.special import erf as scipy_erf
+    except:
+        pytest.skip("scipy not installed skipping test for erf")
+
+    x = np.array(
+        [-1000, -100, -10]
+        + np.linspace(-5, 5, 1001).tolist()
+        + [10, 100, 1000]
+    )
+    y_mxnet = util.erf(mx.nd, mx.nd.array(x)).asnumpy()
+    y_scipy = scipy_erf(x)
+    assert np.allclose(y_mxnet, y_scipy)

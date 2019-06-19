@@ -547,13 +547,31 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                 and clip it if needed.
                 """
                 v_min, v_max = v.min(), v.max()
-                p_min, p_max = max(self.min_val, v_min), min(self.max_val, v_max)
-                shifted_min = np.clip(p_min + (p_max - v_max), a_min=self.min_val, a_max=self.max_val)
-                shifted_max = np.clip(p_max + (p_min - v_min), a_min=self.min_val, a_max=self.max_val)
-                v = shifted_min + (shifted_max - shifted_min) * (v - v_min) / (v_max - v_min)
+                p_min, p_max = (
+                    max(self.min_val, v_min),
+                    min(self.max_val, v_max),
+                )
+                shifted_min = np.clip(
+                    p_min + (p_max - v_max),
+                    a_min=self.min_val,
+                    a_max=self.max_val,
+                )
+                shifted_max = np.clip(
+                    p_max + (p_min - v_min),
+                    a_min=self.min_val,
+                    a_max=self.max_val,
+                )
+                v = shifted_min + (shifted_max - shifted_min) * (v - v_min) / (
+                    v_max - v_min
+                )
 
             if self.is_integer:
-                np.clip(v, a_min=np.ceil(self.min_val), a_max=np.floor(self.max_val), out=v)
+                np.clip(
+                    v,
+                    a_min=np.ceil(self.min_val),
+                    a_max=np.floor(self.max_val),
+                    out=v,
+                )
                 v = np.round(v).astype(int)
             v = list(v.tolist())
             if self.proportion_missing_values > 0:
