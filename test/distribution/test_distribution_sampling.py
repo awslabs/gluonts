@@ -67,6 +67,7 @@ test_cases = [
 DISTRIBUTIONS_WITH_CDF = [Gaussian, Uniform, Laplace, Binned]
 
 
+@pytest.mark.seed(1960264129)  # fix a static seed for a flaky test
 @pytest.mark.parametrize("distr_class, params", test_cases)
 def test_sampling(distr_class, params) -> None:
     distr = distr_class(**params)
