@@ -157,7 +157,7 @@ class PiecewiseLinear(Distribution):
         F = self.F
         gamma, b, knot_positions = self.gamma, self.b, self.knot_positions
 
-        a_tilde = self._cdf(x)
+        a_tilde = self.cdf(x)
 
         max_a_tilde_knots = F.broadcast_maximum(
             a_tilde.expand_dims(axis=-1), knot_positions
@@ -180,7 +180,7 @@ class PiecewiseLinear(Distribution):
 
         return crps
 
-    def _cdf(self, x: Tensor) -> Tensor:
+    def cdf(self, x: Tensor) -> Tensor:
         r"""
         Computes the quantile level :math:`\alpha` such that
         :math:`q(\alpha) = x`.

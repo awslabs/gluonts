@@ -5,6 +5,7 @@ import mxnet as mx
 import numpy as np
 
 from gluonts.distribution import PiecewiseLinear
+from gluonts.testutil import empirical_cdf
 
 
 @pytest.mark.parametrize(
@@ -50,8 +51,17 @@ def test_values(
         (len(expected_target_crps),)
     )
 
-    assert all(np.isclose(distr._cdf(target).asnumpy(), expected_target_cdf))
+    assert all(np.isclose(distr.cdf(target).asnumpy(), expected_target_cdf))
     assert all(np.isclose(distr.crps(target).asnumpy(), expected_target_crps))
+
+    # compare with empirical cdf from samples
+    num_samples = 100_000
+    samples = distr.sample(num_samples).asnumpy()
+    assert np.isfinite(samples).all()
+
+    emp_cdf, edges = empirical_cdf(samples)
+    calc_cdf = distr.cdf(mx.nd.array(edges)).asnumpy()
+    assert np.allclose(calc_cdf[1:, :], emp_cdf, atol=1e-2)
 
 
 @pytest.mark.parametrize(
