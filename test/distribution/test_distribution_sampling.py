@@ -90,7 +90,7 @@ def test_sampling(distr_class, params) -> None:
     if distr_class in DISTRIBUTIONS_WITH_CDF:
         emp_cdf, edges = empirical_cdf(np_samples)
         calc_cdf = distr.cdf(mx.nd.array(edges)).asnumpy()
-        assert np.allclose(calc_cdf[1:, :], emp_cdf, atol=1E-2)
+        assert np.allclose(calc_cdf[1:, :], emp_cdf, atol=1e-2)
 
 
 test_cases_multivariate = [

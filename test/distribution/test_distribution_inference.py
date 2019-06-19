@@ -37,10 +37,10 @@ from gluonts.distribution import (
     BinnedOutput,
 )
 from gluonts.distribution.transformed_distribution_output import (
-    TransformedDistributionOutput
+    TransformedDistributionOutput,
 )
 from gluonts.distribution.transformed_distribution import (
-    TransformedDistribution
+    TransformedDistribution,
 )
 
 
