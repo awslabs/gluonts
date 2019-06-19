@@ -15,7 +15,7 @@ FORECASTS = {
     'QuantileForecast': QuantileForecast(
         forecast_arrays=QUANTILES.reshape(-1, 1),
         start_date=START_DATE,
-        forecast_keys=QUANTILES.tolist(),
+        forecast_keys=list(map(str, QUANTILES)),
         freq=FREQ,
     ),
     'SampleForecast': SampleForecast(

@@ -8,7 +8,7 @@ from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.forecast import QuantileForecast, parse_quantile_input
+from gluonts.model.forecast import QuantileForecast, Quantile
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
 from gluonts.trainer import Trainer
@@ -128,7 +128,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     ) -> Predictor:
         # todo: this is specific to quantile output
         quantile_strs = [
-            parse_quantile_input(q)[1] for q in self.quantile_output.quantiles
+            Quantile.from_float(quantile).name
+            for quantile in self.quantile_output.quantiles
         ]
 
         prediction_network = ForkingSeq2SeqPredictionNetwork(
