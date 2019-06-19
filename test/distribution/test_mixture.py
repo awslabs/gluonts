@@ -112,7 +112,7 @@ def test_mixture(
     calc_mean = mixture.mean.asnumpy()
     sample_mean = samples_mix.asnumpy().mean(axis=0)
 
-    assert np.allclose(calc_mean, sample_mean, atol=1E-1)
+    assert np.allclose(calc_mean, sample_mean, atol=1e-1)
 
     # check that histograms are close
     assert (
@@ -126,7 +126,7 @@ def test_mixture(
     if isinstance(distr1, Gaussian) and isinstance(distr2, Gaussian):
         emp_cdf, edges = empirical_cdf(samples_mix.asnumpy())
         calc_cdf = mixture.cdf(mx.nd.array(edges)).asnumpy()
-        assert np.allclose(calc_cdf[1:, :], emp_cdf, atol=1E-2)
+        assert np.allclose(calc_cdf[1:, :], emp_cdf, atol=1e-2)
 
 
 @pytest.mark.parametrize(
