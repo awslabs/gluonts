@@ -186,9 +186,16 @@ class DeepAREstimator(GluonEstimator):
                     pred_length=self.prediction_length,
                     log_scale=True,
                 ),
+                SetFieldIfNotPresent(
+                    field=FieldName.FEAT_DYNAMIC_REAL, value=None
+                ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE],
+                    input_fields=[
+                        FieldName.FEAT_TIME,
+                        FieldName.FEAT_AGE,
+                        FieldName.FEAT_DYNAMIC_REAL,
+                    ],
                 ),
                 SetFieldIfNotPresent(
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]

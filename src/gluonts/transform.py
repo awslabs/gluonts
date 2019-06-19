@@ -76,8 +76,10 @@ class FieldName:
 
 def compute_date(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
     """
-    Computes an offsetted timestamp.
-    Basic wrapping around pandas `ts + offset` with caching and exception handling.
+    Computes an shifted timestamp.
+
+    Basic wrapping around pandas ``ts + offset`` with caching and exception
+    handling.
     """
     return _compute_date_helper(ts, ts.freq, offset)
 
@@ -485,7 +487,9 @@ class ExpandDimArray(SimpleTransformation):
 
 class VstackFeatures(SimpleTransformation):
     """
-    Stack fields together using `np.vstack`.
+    Stack fields together using ``np.vstack``.
+
+    Fields with value ``None`` are ignored.
 
     Parameters
     ----------
@@ -515,7 +519,11 @@ class VstackFeatures(SimpleTransformation):
         )
 
     def transform(self, data: DataEntry) -> DataEntry:
-        r = [data[fname] for fname in self.input_fields]
+        r = [
+            data[fname]
+            for fname in self.input_fields
+            if data[fname] is not None
+        ]
         output = np.vstack(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
@@ -525,7 +533,9 @@ class VstackFeatures(SimpleTransformation):
 
 class ConcatFeatures(SimpleTransformation):
     """
-    Concatenate values together using `np.concatenate`.
+    Concatenate fields together using ``np.concatenate``.
+
+    Fields with value ``None`` are ignored.
 
     Parameters
     ----------
@@ -555,7 +565,11 @@ class ConcatFeatures(SimpleTransformation):
         )
 
     def transform(self, data: DataEntry) -> DataEntry:
-        r = [data[fname] for fname in self.input_fields]
+        r = [
+            data[fname]
+            for fname in self.input_fields
+            if data[fname] is not None
+        ]
         output = np.concatenate(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
