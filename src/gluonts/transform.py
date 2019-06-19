@@ -372,6 +372,18 @@ class FilterTransformation(FlatMapTransformation):
             yield data
 
 
+class RemoveFields(SimpleTransformation):
+    @validated()
+    def __init__(self, field_names: List[str]) -> None:
+        self.field_names = field_names
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        for k in self.field_names:
+            if k in data.keys():
+                del data[k]
+        return data
+
+
 class SetField(SimpleTransformation):
     """
     Sets a field in the dictionary with the given value.

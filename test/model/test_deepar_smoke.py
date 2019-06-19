@@ -11,21 +11,14 @@ from gluonts.model.deepar import DeepAREstimator
 from gluonts.transform import FieldName
 from gluonts.trainer import Trainer
 
-NUM_TS = 5
-START = "2018-01-01"
-FREQ = "D"
-MIN_LENGTH = 20
-MAX_LENGTH = 50
-PRED_LENGTH = 7
-
 
 def _make_dummy_datasets_with_features(
-    num_ts: int,
-    start: str,
-    freq: str,
-    min_length: int,
-    max_length: int,
-    prediction_length: int = 0,
+    num_ts: int = 5,
+    start: str = "2018-01-01",
+    freq: str = "D",
+    min_length: int = 5,
+    max_length: int = 10,
+    prediction_length: int = 3,
     cardinality: List[int] = [],
     num_feat_dynamic_real: int = 0,
 ) -> Tuple[ListDataset, ListDataset]:
@@ -62,112 +55,80 @@ def _make_dummy_datasets_with_features(
     )
 
 
+common_estimator_hps = dict(
+    freq="D",
+    prediction_length=3,
+    trainer=Trainer(epochs=3, num_batches_per_epoch=2, batch_size=4),
+)
+
+
 @pytest.mark.parametrize(
     "estimator, datasets",
     [
         # No features
         (
-            DeepAREstimator(
-                freq="D",
-                prediction_length=PRED_LENGTH,
-                trainer=Trainer(epochs=3, num_batches_per_epoch=2),
-            ),
-            _make_dummy_datasets_with_features(
-                num_ts=NUM_TS,
-                start=START,
-                freq=FREQ,
-                prediction_length=PRED_LENGTH,
-                min_length=MIN_LENGTH,
-                max_length=MAX_LENGTH,
-            ),
+            DeepAREstimator(**common_estimator_hps),
+            _make_dummy_datasets_with_features(),
         ),
         # Single static categorical feature
         (
             DeepAREstimator(
-                freq="D",
-                prediction_length=PRED_LENGTH,
-                trainer=Trainer(epochs=3, num_batches_per_epoch=2),
-                cardinality=[3],
+                **common_estimator_hps,
+                use_feat_static_cat=True,
+                cardinality=[5],
             ),
-            _make_dummy_datasets_with_features(
-                num_ts=NUM_TS,
-                start=START,
-                freq=FREQ,
-                prediction_length=PRED_LENGTH,
-                min_length=MIN_LENGTH,
-                max_length=MAX_LENGTH,
-                cardinality=[3],
-            ),
+            _make_dummy_datasets_with_features(cardinality=[5]),
         ),
         # Multiple static categorical features
         (
             DeepAREstimator(
-                freq="D",
-                prediction_length=PRED_LENGTH,
-                trainer=Trainer(epochs=3, num_batches_per_epoch=2),
+                **common_estimator_hps,
+                use_feat_static_cat=True,
                 cardinality=[3, 10, 42],
             ),
-            _make_dummy_datasets_with_features(
-                num_ts=NUM_TS,
-                start=START,
-                freq=FREQ,
-                prediction_length=PRED_LENGTH,
-                min_length=MIN_LENGTH,
-                max_length=MAX_LENGTH,
-                cardinality=[3, 10, 42],
-            ),
+            _make_dummy_datasets_with_features(cardinality=[3, 10, 42]),
+        ),
+        # Multiple static categorical features (ignored)
+        (
+            DeepAREstimator(**common_estimator_hps),
+            _make_dummy_datasets_with_features(cardinality=[3, 10, 42]),
         ),
         # Single dynamic real feature
         (
             DeepAREstimator(
-                freq="D",
-                prediction_length=PRED_LENGTH,
-                trainer=Trainer(epochs=3, num_batches_per_epoch=2),
+                **common_estimator_hps, use_feat_dynamic_real=True
             ),
-            _make_dummy_datasets_with_features(
-                num_ts=NUM_TS,
-                start=START,
-                freq=FREQ,
-                prediction_length=PRED_LENGTH,
-                min_length=MIN_LENGTH,
-                max_length=MAX_LENGTH,
-                num_feat_dynamic_real=1,
-            ),
+            _make_dummy_datasets_with_features(num_feat_dynamic_real=1),
         ),
         # Multiple dynamic real feature
         (
             DeepAREstimator(
-                freq="D",
-                prediction_length=PRED_LENGTH,
-                trainer=Trainer(epochs=3, num_batches_per_epoch=2),
+                **common_estimator_hps, use_feat_dynamic_real=True
             ),
-            _make_dummy_datasets_with_features(
-                num_ts=NUM_TS,
-                start=START,
-                freq=FREQ,
-                prediction_length=PRED_LENGTH,
-                min_length=MIN_LENGTH,
-                max_length=MAX_LENGTH,
-                num_feat_dynamic_real=5,
-            ),
+            _make_dummy_datasets_with_features(num_feat_dynamic_real=3),
+        ),
+        # Multiple dynamic real feature (ignored)
+        (
+            DeepAREstimator(**common_estimator_hps),
+            _make_dummy_datasets_with_features(num_feat_dynamic_real=3),
         ),
         # Both static categorical and dynamic real features
         (
             DeepAREstimator(
-                freq="D",
-                prediction_length=PRED_LENGTH,
-                trainer=Trainer(epochs=3, num_batches_per_epoch=2),
+                **common_estimator_hps,
+                use_feat_dynamic_real=True,
+                use_feat_static_cat=True,
                 cardinality=[3, 10, 42],
             ),
             _make_dummy_datasets_with_features(
-                num_ts=NUM_TS,
-                start=START,
-                freq=FREQ,
-                prediction_length=PRED_LENGTH,
-                min_length=MIN_LENGTH,
-                max_length=MAX_LENGTH,
-                cardinality=[3, 10, 42],
-                num_feat_dynamic_real=5,
+                cardinality=[3, 10, 42], num_feat_dynamic_real=3
+            ),
+        ),
+        # Both static categorical and dynamic real features (ignored)
+        (
+            DeepAREstimator(**common_estimator_hps),
+            _make_dummy_datasets_with_features(
+                cardinality=[3, 10, 42], num_feat_dynamic_real=3
             ),
         ),
     ],
