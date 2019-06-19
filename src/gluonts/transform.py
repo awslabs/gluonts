@@ -74,18 +74,20 @@ class FieldName:
     FORECAST_START = 'forecast_start'
 
 
-def compute_date(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
+def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
     """
-    Computes an shifted timestamp.
+    Computes a shifted timestamp.
 
     Basic wrapping around pandas ``ts + offset`` with caching and exception
     handling.
     """
-    return _compute_date_helper(ts, ts.freq, offset)
+    return _shift_timestamp_helper(ts, ts.freq, offset)
 
 
 @lru_cache(maxsize=10000)
-def _compute_date_helper(ts, freq, offset):
+def _shift_timestamp_helper(
+    ts: pd.Timestamp, freq: str, offset: int
+) -> pd.Timestamp:
     """
     We are using this helper function which explicitly uses the frequency as a
     parameter, because the frequency is not included in the hash of a time
@@ -94,8 +96,7 @@ def _compute_date_helper(ts, freq, offset):
     I.e.
       pd.Timestamp(x, freq='1D')  and pd.Timestamp(x, freq='1min')
 
-    hash to the same value
-
+    hash to the same value.
     """
     try:
         # this line looks innocent, but can create a date which is out of
@@ -815,7 +816,7 @@ class AddTimeFeatures(MapTransformation):
         self._date_index: pd.DatetimeIndex = None
 
     def _update_cache(self, start: pd.Timestamp, length: int) -> None:
-        end = compute_date(start, length)
+        end = shift_timestamp(start, length)
         if self._min_time_point is not None:
             if self._min_time_point <= start and end <= self._max_time_point:
                 return
@@ -823,9 +824,11 @@ class AddTimeFeatures(MapTransformation):
             self._min_time_point = start
             self._max_time_point = end
         self._min_time_point = min(
-            compute_date(start, -50), self._min_time_point
+            shift_timestamp(start, -50), self._min_time_point
         )
-        self._max_time_point = max(compute_date(end, 50), self._max_time_point)
+        self._max_time_point = max(
+            shift_timestamp(end, 50), self._max_time_point
+        )
         self.full_date_range = pd.date_range(
             self._min_time_point, self._max_time_point, freq=start.freq
         )
@@ -1053,7 +1056,9 @@ class InstanceSplitter(FlatMapTransformation):
                     ].transpose()
 
             d[self._past(self.is_pad_field)] = pad_indicator
-            d[self.forecast_start_field] = compute_date(d[self.start_field], i)
+            d[self.forecast_start_field] = shift_timestamp(
+                d[self.start_field], i
+            )
             yield d
 
 
@@ -1181,7 +1186,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
             pad_length = max(self.instance_length - i, 0)
 
             # update start field
-            d[self.start_field] = compute_date(
+            d[self.start_field] = shift_timestamp(
                 data[self.start_field], i - self.instance_length
             )
 
@@ -1221,7 +1226,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 
                 del d[ts_field]
 
-            d[self.forecast_start_field] = compute_date(
+            d[self.forecast_start_field] = shift_timestamp(
                 d[self.start_field], self.instance_length
             )
 

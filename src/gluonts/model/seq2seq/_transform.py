@@ -6,7 +6,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.transform import DataEntry, FlatMapTransformation, compute_date
+from gluonts.transform import DataEntry, FlatMapTransformation, shift_timestamp
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
@@ -105,5 +105,5 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1
             d[self._past(self.is_pad_out)] = pad_indicator
-            d[self.forecast_start_out] = compute_date(d[self.start_in], i)
+            d[self.forecast_start_out] = shift_timestamp(d[self.start_in], i)
             yield d
