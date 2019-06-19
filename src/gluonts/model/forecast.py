@@ -14,7 +14,7 @@
 # Standard library imports
 import re
 import typing
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, NamedTuple, Optional, Union
 
 # Third-party imports
 import mxnet as mx
@@ -26,63 +26,74 @@ import pydantic
 from gluonts.core.exception import GluonTSUserError, assert_gluonts
 
 
-def parse_quantile_input(q: Union[float, str]):
-    """
-    Produces equivalent float and string representation of a given
-    quantile level.
+class Quantile(NamedTuple):
+    value: float
+    name: str
 
-    >>> parse_quantile_input(0.1)
-    (0.1, '0.1')
+    @classmethod
+    def checked(cls, value: float, name: str) -> "Quantile":
+        if not 0 <= value <= 1:
+            raise GluonTSUserError(
+                f'quantile value should be in [0, 1] but found {value}'
+            )
 
-    >>> parse_quantile_input('0.2')
-    (0.2, '0.2')
+        return Quantile(value, name)
 
-    >>> parse_quantile_input('0.20')
-    (0.2, '0.20')
+    @classmethod
+    def from_float(cls, quantile: float) -> "Quantile":
+        assert isinstance(quantile, float)
+        return cls.checked(value=quantile, name=str(quantile))
 
-    >>> parse_quantile_input('p99')
-    (0.99, '0.99')
+    @classmethod
+    def from_str(cls, quantile: str) -> "Quantile":
+        assert isinstance(quantile, str)
+        try:
+            return cls.checked(value=float(quantile), name=quantile)
+        except ValueError:
+            m = re.match(r'^p(\d{2})$', quantile)
 
-    Parameters
-    ----------
-    q
-        Quantile, can be a float a str representing a float e.g. '0.1' or a
-        quantile string of the form 'p0.1'.
+            if m is None:
+                raise GluonTSUserError(
+                    'Quantile string should be of the form '
+                    f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
+                )
+            else:
+                quantile: float = int(m.group(1)) / 100
+                return cls(value=quantile, name=str(quantile))
 
-    Returns
-    -------
-    Tuple[float, str]
-        A tuple containing both a float and a string representation of the
-        input quantile level.
-    """
+    @classmethod
+    def parse(cls, quantile: Union[float, str]) -> "Quantile":
+        """Produces equivalent float and string representation of a given
+        quantile level.
 
-    assert isinstance(q, (float, str))
+        >>> Quantile.parse(0.1)
+        Quantile(value=0.1, name='0.1')
 
-    if isinstance(q, float):
-        q_str = str(q)
-        q_value = q
-    elif re.match(r'^\d\.\d+$', q):
-        q_value = float(q)
-        q_str = q
-    else:
-        m = re.match(r'^p(\d\d)$', q)
-        assert_gluonts(
-            GluonTSUserError,
-            m,
-            'Quantile string should be of the form "p10", "p50", ... or "0.1", "0.5", ... but found {}',
-            q,
-        )
-        q_str = f'0.{m.group(1)}'.rstrip('0')
-        q_value = float(q_str)
+        >>> Quantile.parse('0.2')
+        Quantile(value=0.2, name='0.2')
 
-    assert_gluonts(
-        GluonTSUserError,
-        0 <= q_value <= 1,
-        'quantile value should be in [0, 1] but found {}',
-        q_value,
-    )
+        >>> Quantile.parse('0.20')
+        Quantile(value=0.2, name='0.20')
 
-    return (q_value, q_str)
+        >>> Quantile.parse('p99')
+        Quantile(value=0.99, name='0.99')
+
+        Parameters
+        ----------
+        quantile
+            Quantile, can be a float a str representing a float e.g. '0.1' or a
+            quantile string of the form 'p0.1'.
+
+        Returns
+        -------
+        Quantile
+            A tuple containing both a float and a string representation of the
+            input quantile level.
+        """
+        if isinstance(quantile, float):
+            return cls.from_float(quantile)
+        else:
+            return cls.from_str(quantile)
 
 
 class Forecast:
@@ -236,7 +247,7 @@ class SampleForecast(Forecast):
         return pd.Series(self.index, self.mean)
 
     def quantile(self, q):
-        q, _ = parse_quantile_input(q)
+        q = Quantile.parse(q).value
         sample_idx = int(np.round((self.num_samples - 1) * q))
         return self._sorted_samples[sample_idx, :]
 
@@ -419,8 +430,8 @@ class QuantileForecast(Forecast):
 
         # normalize keys
         self.forecast_keys = [
-            parse_quantile_input(k)[1] if k != 'mean' else k
-            for k in forecast_keys
+            Quantile.from_str(key).name if key != 'mean' else key
+            for key in forecast_keys
         ]
         self.item_id = item_id
         self.info = info
@@ -439,7 +450,7 @@ class QuantileForecast(Forecast):
         self._nan_out = np.array([np.nan] * self.prediction_length)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
-        _, q_str = parse_quantile_input(q)
+        q_str = Quantile.parse(q).name
         # We return nan here such that evaluation runs through
         return self._forecast_dict.get(q_str, self._nan_out)
 

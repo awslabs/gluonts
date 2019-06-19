@@ -19,7 +19,7 @@ from gluonts.block.quantile_output import QuantileOutput
 from gluonts.block.scaler import NOPScaler, Scaler
 from gluonts.core.component import validated
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.forecast import QuantileForecast, parse_quantile_input
+from gluonts.model.forecast import QuantileForecast, Quantile
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature.lag import time_features_from_frequency_str
@@ -49,7 +49,7 @@ class Seq2SeqEstimator(GluonEstimator):
         scaler: Scaler = NOPScaler(),
         context_length: Optional[int] = None,
         num_eval_samples: int = 100,
-        quantiles: List[float] = list([0.1, 0.5, 0.9]),
+        quantiles: List[float] = [0.1, 0.5, 0.9],
         trainer: Trainer = Trainer(),
     ) -> None:
         assert (
@@ -140,7 +140,9 @@ class Seq2SeqEstimator(GluonEstimator):
         trained_network: Seq2SeqTrainingNetwork,
     ) -> Predictor:
         # todo: this is specific to quantile output
-        quantile_strs = [parse_quantile_input(q)[1] for q in self.quantiles]
+        quantile_strs = [
+            Quantile.from_float(quantile).name for quantile in self.quantiles
+        ]
 
         prediction_network = Seq2SeqPredictionNetwork(
             embedder=trained_network.embedder,

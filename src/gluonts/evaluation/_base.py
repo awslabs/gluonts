@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 # First-party imports
-from gluonts.model.forecast import Forecast, parse_quantile_input
+from gluonts.model.forecast import Forecast, Quantile
 from gluonts.gluonts_tqdm import tqdm
 
 
@@ -77,7 +77,7 @@ class Evaluator:
         """
 
         self.quantile_values, self.quantile_names = zip(
-            *[parse_quantile_input(q) for q in quantiles]
+            *map(Quantile.parse, quantiles)
         )
         self.seasonality = seasonality
         self.alpha = alpha
