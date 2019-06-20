@@ -1,6 +1,7 @@
 black==19.3b0
 click==6.*
 mypy==0.630
+notedown
 nbsphinx>=0.3.4,<0.4
 nbconvert
 pytest-runner==2.11.*
@@ -8,6 +9,7 @@ ipython
 ipykernel
 recommonmark
 setuptools>=40.1.0
+setuptools_scm>=3.2.0
 sphinx==1.7.*
 sphinx-autobuild==0.7.*
 sphinx_rtd_theme==0.4.*
