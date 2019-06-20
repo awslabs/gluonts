@@ -30,9 +30,9 @@ sys.path.insert(0, os.path.join(curr_path, '..'))
 # -- General configuration ------------------------------------------------
 
 # Version information.
-import gluonts as ts
-version = ts.__version__
-release = ts.__version__
+from pkg_resources import get_distribution
+release = get_distribution('gluonts').version
+version = '.'.join(release.split('.')[:2]) # strip major.minor version only
 
 # General information about the project.
 project = 'GluonTS'
