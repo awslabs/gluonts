@@ -204,7 +204,12 @@ setup_kwargs: dict = dict(
     package_dir={'': 'src'},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
-    setup_requires=find_requirements("requirements-setup.txt"),
+    setup_requires=list(
+        itertools.chain(
+            find_requirements("requirements-setup.txt"),
+            find_requirements("requirements-docs.txt"),
+        )
+    ),
     install_requires=find_requirements("requirements.txt"),
     tests_require=find_requirements("requirements-test.txt"),
     extras_require={
