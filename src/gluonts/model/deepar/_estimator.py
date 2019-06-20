@@ -25,7 +25,8 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     FieldName,
     InstanceSplitter,
-    SetFieldIfNotPresent,
+    RemoveFields,
+    SetField,
     Transformation,
     VstackFeatures,
 )
@@ -104,9 +105,9 @@ class DeepAREstimator(GluonEstimator):
         cell_type: str = 'lstm',
         num_eval_samples: int = 100,
         dropout_rate: float = 0.1,
-        cardinality: List[int] = [
-            1
-        ],  # TODO: we should infer this automatically somehow
+        use_feat_dynamic_real: bool = False,
+        use_feat_static_cat: bool = False,
+        cardinality: Optional[List[int]] = None,
         embedding_dimension: int = 20,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
@@ -127,9 +128,12 @@ class DeepAREstimator(GluonEstimator):
             num_eval_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert all(
-            [c > 0 for c in cardinality]
-        ), "Elements of `cardinality` should be > 0"
+        assert (
+            cardinality is not None or not use_feat_static_cat
+        ), "You must set `cardinality` if `use_feat_static_cat=True`"
+        assert cardinality is None or [
+            c > 0 for c in cardinality
+        ], "Elements of `cardinality` should be > 0"
         assert (
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
@@ -145,7 +149,9 @@ class DeepAREstimator(GluonEstimator):
         self.cell_type = cell_type
         self.num_sample_paths = num_eval_samples
         self.dropout_rate = dropout_rate
-        self.cardinality = cardinality
+        self.use_feat_dynamic_real = use_feat_dynamic_real
+        self.use_feat_static_cat = use_feat_static_cat
+        self.cardinality = cardinality if use_feat_static_cat else [1]
         self.embedding_dimension = embedding_dimension
         self.scaling = scaling
         self.lags_seq = (
@@ -162,8 +168,22 @@ class DeepAREstimator(GluonEstimator):
         self.history_length = self.context_length + max(self.lags_seq)
 
     def create_transformation(self) -> Transformation:
+        remove_field_names = [
+            FieldName.FEAT_DYNAMIC_CAT,
+            FieldName.FEAT_STATIC_REAL,
+        ]
+        if not self.use_feat_dynamic_real:
+            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
+
         return Chain(
-            [
+            [RemoveFields(field_names=remove_field_names)]
+            + (
+                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
+                if not self.use_feat_static_cat
+                else []
+            )
+            + [
+                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
                 AsNumpyArray(
                     field=FieldName.TARGET,
                     # in the following line, we add 1 for the time dimension
@@ -188,12 +208,13 @@ class DeepAREstimator(GluonEstimator):
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE],
+                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
+                    + (
+                        [FieldName.FEAT_DYNAMIC_REAL]
+                        if self.use_feat_dynamic_real
+                        else []
+                    ),
                 ),
-                SetFieldIfNotPresent(
-                    field=FieldName.FEAT_STATIC_CAT, value=[0.0]
-                ),
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
                 InstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,
