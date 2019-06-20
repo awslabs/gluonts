@@ -20,26 +20,6 @@ ROOT = Path(__file__).parent
 SRC = ROOT / 'src'
 
 
-def read(*names, **kwargs):
-    with io.open(
-        os.path.join(os.path.dirname(__file__), *names),
-        encoding=kwargs.get("encoding", "utf8"),
-    ) as fp:
-        return fp.read()
-
-
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(
-        r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M
-    )
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
-
-
-VERSION = find_version('src', 'gluonts', '__init__.py')
-
 GPU_SUPPORT = 0 == int(
     subprocess.call(
         "nvidia-smi",
@@ -62,39 +42,9 @@ except ImportError:
     HAS_SPHINX = False
 
 
-def get_git_hash():
-    try:
-        sp = subprocess.Popen(
-            ["git", "rev-parse", "HEAD"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        hash = sp.communicate()[0].decode("utf-8").strip()
-        sp = subprocess.Popen(
-            ["git", "diff-index", "--quiet", "HEAD"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        sp.communicate()
-        if sp.returncode != 0:
-            return "modified (latest: {})".format(hash)
-        else:
-            return hash
-    except:  # noqa
-        return "unkown"
-
-
-def write_version_py():
-    content = dedent(
-        f"""
-        # This file is auto generated. Don't modify it and don't add it to git.
-        PKG_VERSION = '{VERSION}'
-        GIT_REVISION = '{get_git_hash()}'
-        """
-    ).lstrip()
-
-    with (SRC / "gluonts" / "version.py").open("w") as f:
-        f.write(content)
+def read(*names, encoding='utf8'):
+    with (ROOT / Path(*names)).open(encoding=encoding) as fp:
+        return fp.read()
 
 
 def find_requirements(filename):
@@ -128,9 +78,7 @@ class TypeCheckCommand(distutils.cmd.Command):
         import mypy.api
 
         mypy_opts = ["--follow-imports=silent", "--ignore-missing-imports"]
-        mypy_args = [
-            str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")
-        ]
+        mypy_args = [str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")]
 
         print(
             "the following folders contain a `.typesafe` marker file "
@@ -240,7 +188,7 @@ class BuildPyCommand(setuptools.command.build_py.build_py):
 
 setup_kwargs: dict = dict(
     name="gluonts",
-    version=VERSION,
+    use_scm_version=True,
     description=(
         "GluonTS is a Python toolkit for probabilistic time series modeling, "
         "built around MXNet."
@@ -253,7 +201,7 @@ setup_kwargs: dict = dict(
     maintainer_email="gluon-ts-dev@amazon.com",
     license="Apache License 2.0",
     python_requires=">= 3.6",
-    package_dir={'':'src'},
+    package_dir={'': 'src'},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
     setup_requires=find_requirements("requirements-setup.txt"),
@@ -292,7 +240,6 @@ if HAS_SPHINX:
             apidoc.main(args)
             super(BuildApiDoc, self).run()
 
-    setup_kwargs["doc_command"] = "build_sphinx"
     for command in ['build_sphinx', 'doc', 'docs']:
         setup_kwargs["cmdclass"][command] = BuildApiDoc
 
@@ -305,5 +252,4 @@ if HAS_SPHINX:
 # -----------------------------------------------------------------------------
 
 # do the work
-write_version_py()
 setup(**setup_kwargs)
