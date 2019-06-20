@@ -168,20 +168,15 @@ class DeepAREstimator(GluonEstimator):
         self.history_length = self.context_length + max(self.lags_seq)
 
     def create_transformation(self) -> Transformation:
+        remove_field_names = [
+            FieldName.FEAT_DYNAMIC_CAT,
+            FieldName.FEAT_STATIC_REAL,
+        ]
+        if not self.use_feat_dynamic_real:
+            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
+
         return Chain(
-            [
-                RemoveFields(
-                    field_names=[
-                        FieldName.FEAT_DYNAMIC_CAT,
-                        FieldName.FEAT_STATIC_REAL,
-                    ]
-                    + (
-                        []
-                        if self.use_feat_dynamic_real
-                        else [FieldName.FEAT_DYNAMIC_REAL]
-                    )
-                )
-            ]
+            [RemoveFields(field_names=remove_field_names)]
             + (
                 [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
                 if not self.use_feat_static_cat
