@@ -159,6 +159,3 @@ conda
 
 # vscode
 .vscode
-
-# version.py
-src/gluonts/version.py
