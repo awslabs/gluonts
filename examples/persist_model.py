@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     predictor = estimator.train(dataset.train)
 
-    # save the trained model in a path ~/username/.mxnet/gluon-ts/feedforward/
+    # save the trained model in a path ~/.mxnet/gluon-ts/feedforward/
     # or $MXNET_HOME/feedforward if MXNET_HOME is defined
     model_path = get_download_path() / "feedforward"
     os.makedirs(model_path, exist_ok=True)

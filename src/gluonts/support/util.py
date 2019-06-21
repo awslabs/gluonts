@@ -479,10 +479,10 @@ def get_download_path() -> Path:
     Returns
     -------
     Path
-        default path to download datasets, models of gluon-ts, for instance /home/username/.mxnet/gluon-ts/
-
+        default path to download datasets or models of gluon-ts.
+        The path is either $MXNET_HOME if the environment variable is defined or
+        /home/username/.mxnet/gluon-ts/
     """
-    # gets the path in MXNET_HOME if defined and else a default path
     return Path(
         os.environ.get('MXNET_HOME', str(Path.home() / '.mxnet' / 'gluon-ts'))
     )
