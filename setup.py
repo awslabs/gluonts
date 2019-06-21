@@ -128,6 +128,7 @@ class StyleCheckCommand(distutils.cmd.Command):
 
         # import here (after the setup_requires list is loaded),
         # otherwise a module-not-found error is thrown
+        import click
         import black
 
         black_opts = []
@@ -153,6 +154,8 @@ class StyleCheckCommand(distutils.cmd.Command):
             exit_code = black.main.invoke(ctx)
         except SystemExit as e:
             exit_code = e.code
+        except click.exceptions.Exit as e:
+            exit_code = e.exit_code
 
         if exit_code:
             error_msg = dedent(
