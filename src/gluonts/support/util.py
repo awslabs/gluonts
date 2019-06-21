@@ -13,6 +13,7 @@
 
 # Standard library imports
 import inspect
+import os
 import signal
 import tempfile
 import time
@@ -470,3 +471,18 @@ def erf(F, x: Tensor):
 
     res = ones - t * (inner - 1.26551223 - x.square()).exp()
     return F.where(F.broadcast_greater_equal(x, zeros), res, -1.0 * res)
+
+
+def get_download_path() -> Path:
+    """
+
+    Returns
+    -------
+    Path
+        default path to download datasets, models of gluon-ts, for instance /home/username/.mxnet/gluonts/
+
+    """
+    # gets the path in MXNET_HOME if defined and else a default path
+    return Path(
+        os.environ.get('MXNET_HOME', str(Path.home() / '.mxnet' / 'gluonts'))
+    )

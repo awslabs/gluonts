@@ -93,7 +93,7 @@ class Predictor:
                 fp.write(fqname_for(self.__class__))
         except Exception as e:
             raise IOError(
-                f'Cannot serialize {fqname_for(self.__class__)}'
+                f'Cannot serialize {fqname_for(self.__class__)} in {path}'
             ) from e
 
     @classmethod
@@ -103,7 +103,9 @@ class Predictor:
             with (path / 'type.txt').open('r') as fp:
                 tpe = locate(fp.readline())
         except Exception as e:
-            raise IOError(f'Cannot deserialize {fqname_for(cls)}') from e
+            raise IOError(
+                f'Cannot deserialize {fqname_for(cls)} in {path}'
+            ) from e
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):

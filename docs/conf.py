@@ -31,8 +31,9 @@ sys.path.insert(0, os.path.join(curr_path, '..'))
 
 # Version information.
 from pkg_resources import get_distribution
+
 release = get_distribution('gluonts').version
-version = '.'.join(release.split('.')[:2]) # strip major.minor version only
+version = '.'.join(release.split('.')[:2])  # strip major.minor version only
 
 # General information about the project.
 project = 'GluonTS'
@@ -42,9 +43,7 @@ github_doc_root = 'http://gluon-ts.mxnet.io/{}/'.format(str(version))
 
 # add markdown parser
 CommonMarkParser.github_doc_root = github_doc_root
-source_parsers = {
-    '.md': CommonMarkParser
-}
+source_parsers = {'.md': CommonMarkParser}
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones
@@ -80,7 +79,7 @@ html_context = {
     'github_version': 'master',
     'conf_py_path': '/docs/',
     'last_updated': False,
-    'commit': True
+    'commit': True,
 }
 
 nbsphinx_prolog = """
@@ -149,22 +148,25 @@ html_theme_path = ['mxtheme']
 html_theme_options = {
     'primary_color': 'blue',
     'accent_color': 'deep_orange',
-    'header_links' : [
+    'header_links': [
         ('Install', 'install', False, ''),
         ('API', 'api/index', False, ''),
         ('Community', 'community/index', False, ''),
         ('Contribute', 'community/contribute', False, ''),
-        ('GitHub', 'https://github.com/awslabs/gluon-ts/', True, 'fab fa-github'),
+        (
+            'GitHub',
+            'https://github.com/awslabs/gluon-ts/',
+            True,
+            'fab fa-github',
+        ),
     ],
-
     # custom layout
-    'fixed_drawer' : True,
-    'fixed_header' : True,
-    'header_waterfall' : True,
+    'fixed_drawer': True,
+    'fixed_header': True,
+    'header_waterfall': True,
     'header_scroll': True,
-
     # Render footer (Default: True)
-    'show_footer': False
+    'show_footer': False,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -189,7 +191,10 @@ htmlhelp_basename = 'GluonTSdoc'
 # ]
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
+    'python': (
+        'https://docs.python.org/{.major}'.format(sys.version_info),
+        None,
+    ),
     'mxnet': ('https://mxnet.apache.org/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
@@ -221,14 +226,20 @@ texinfo_documents = [
     )
 ]
 
+
 def setup(app):
     import mxtheme
+
     app.add_directive('card', mxtheme.CardDirective)
 
-    app.add_config_value('recommonmark_config', {
-        'url_resolver': lambda url: github_doc_root + url,
-        'auto_doc_ref': True
-            }, True)
+    app.add_config_value(
+        'recommonmark_config',
+        {
+            'url_resolver': lambda url: github_doc_root + url,
+            'auto_doc_ref': True,
+        },
+        True,
+    )
     app.add_transform(AutoStructify)
     app.add_javascript('google_analytics.js')
 
@@ -236,15 +247,16 @@ def setup(app):
 sphinx_gallery_conf = {
     'backreferences_dir': 'gen_modules/backreferences',
     'doc_module': ('gluonts', 'mxnet', 'numpy'),
-'reference_url': {
-    'gluonts': None,
-    'numpy': 'http://docs.scipy.org/doc/numpy-1.9.1'},
+    'reference_url': {
+        'gluonts': None,
+        'numpy': 'http://docs.scipy.org/doc/numpy-1.9.1',
+    },
     'examples_dirs': [],
     'gallery_dirs': [],
     'subsection_order': ExplicitOrder([]),
     'find_mayavi_figures': False,
     'filename_pattern': '.py',
-    'expected_failing_examples': []
+    'expected_failing_examples': [],
 }
 
 # Napoleon settings
@@ -252,6 +264,7 @@ napoleon_use_ivar = True
 
 # linkcheck settings
 import multiprocessing
+
 linkcheck_ignore = [r'http[s]://apache-mxnet.s3*']
 linkcheck_retries = 3
 linkcheck_workers = int(multiprocessing.cpu_count() / 2)
