@@ -23,7 +23,7 @@ with open(input_fn, 'r') as f:
 if not any([i in input_fn for i in ignore_execution]):
     tic = time.time()
     notedown.run(notebook, timeout)
-    print('=== Finished evaluation in %f sec'%(time.time()-tic))
+    print('=== Finished evaluation in %f sec' % (time.time() - tic))
 
 # write
 # need to add language info to for syntax highlight

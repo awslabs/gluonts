@@ -7,6 +7,7 @@ from pathlib import Path
 from gluonts.dataset.common import TrainDatasets, load_datasets
 from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
+from gluonts.support.util import get_download_path
 
 m4_freq = "Hourly"
 pandas_freq = "H"
@@ -69,9 +70,13 @@ dataset_recipes = OrderedDict(
 
 dataset_names = list(dataset_recipes.keys())
 
+default_dataset_path = get_download_path() / "datasets"
+
 
 def get_dataset(
-    dataset_name: str, regenerate: bool = False, path: str = "./"
+    dataset_name: str,
+    regenerate: bool = False,
+    path: Path = default_dataset_path,
 ) -> TrainDatasets:
     """
     Parameters
@@ -91,7 +96,7 @@ def get_dataset(
         dataset_name in dataset_recipes.keys()
     ), f"{dataset_name} is not present, please choose one from {dataset_recipes.keys()}."
 
-    dataset_path = Path(path) / dataset_name
+    dataset_path = path / dataset_name
 
     dataset_recipe = dataset_recipes[dataset_name]
 
