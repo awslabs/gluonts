@@ -363,7 +363,7 @@ class FlatMapTransformation(Transformation):
                     f'This means the transformation looped over '
                     f'GLUONTS_MAX_IDLE_TRANSFORMS={GLUONTS_MAX_IDLE_TRANSFORMS} '
                     f'inputs without returning any output.\n'
-                    f'The transformation this occurred in is:\n{self}'
+                    f'This occurred in the following transformation:\n{self}'
                 )
 
     @abc.abstractmethod
