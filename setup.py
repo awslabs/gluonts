@@ -221,7 +221,7 @@ setup_kwargs: dict = dict(
     },
     entry_points=dict(
         console_scripts=[
-            "gluonts-validate-dataset=gluonts.dataset.validate:run"
+            "gluonts-validate-dataset=gluonts.dataset.validate:run",
         ]
     ),
     cmdclass=dict(
