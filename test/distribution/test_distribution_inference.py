@@ -1,6 +1,6 @@
 '''
-Test that maximizing likelihood allows to correctly recover distribution
-parameters for all distributions exposed to the user.
+Test that maximizing likelihood allows to correctly recover distribution parameters for all
+distributions exposed to the user.
 '''
 # Standard library imports
 from typing import Iterable, List, Tuple
@@ -217,11 +217,10 @@ def test_multivariate_gaussian() -> None:
 
     samples = distr.sample(num_samples)
 
-    # todo we would need to rework biases to use it in the multivariate case
     mu_hat, L_hat = maximum_likelihood_estimate_sgd(
         MultivariateGaussianOutput(dim=dim),
         samples,
-        init_biases=None,
+        init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
         hybridize=False,
         learning_rate=PositiveFloat(0.01),
         num_epochs=PositiveInt(10),
@@ -266,13 +265,12 @@ def test_lowrank_multivariate_gaussian() -> None:
 
     samples = distr.sample(num_samples).squeeze().asnumpy()
 
-    # todo we would need to rework biases to use it in the multivariate case
     mu_hat, D_hat, W_hat = maximum_likelihood_estimate_sgd(
         LowrankMultivariateGaussianOutput(dim=dim, rank=rank),
         samples,
         learning_rate=PositiveFloat(0.01),
         num_epochs=PositiveInt(10),
-        init_biases=None,
+        init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
         hybridize=False,
     )
 
@@ -300,8 +298,7 @@ def test_lowrank_multivariate_gaussian() -> None:
 def test_deterministic_l2(mu: float, hybridize: bool) -> None:
     '''
     Test to check that maximizing the likelihood recovers the parameters.
-    This tests uses the Gaussian distribution with
-    fixed variance and sample mean.
+    This tests uses the Gaussian distribution with fixed variance and sample mean.
     This essentially reduces to determistic L2.
     '''
     # generate samples
@@ -335,8 +332,7 @@ def test_deterministic_l2(mu: float, hybridize: bool) -> None:
 def test_deterministic_l1(mu: float, hybridize: bool) -> None:
     '''
     Test to check that maximizing the likelihood recovers the parameters.
-    This tests uses the Laplace distribution with fixed
-    variance and sample mean.
+    This tests uses the Laplace distribution with fixed variance and sample mean.
     This essentially reduces to determistic L1.
     '''
     # generate samples
@@ -466,8 +462,7 @@ def test_piecewise_linear(
     gamma_init = gamma - START_TOL_MULTIPLE * TOL * gamma
     slopes_init = slopes - START_TOL_MULTIPLE * TOL * slopes
     knot_spacings_init = knot_spacings
-    # We perturb knot spacings such that even after the perturbation
-    # they sum to 1.
+    # We perturb knot spacings such that even after the perturbation they sum to 1.
     mid = len(slopes) // 2
     knot_spacings_init[:mid] = (
         knot_spacings[:mid] - START_TOL_MULTIPLE * TOL * knot_spacings[:mid]
@@ -488,13 +483,11 @@ def test_piecewise_linear(
         num_epochs=PositiveInt(20),
     )
 
-    # Since the problem is highly non-convex we may not be able to recover
-    # the exact parameters.  Here we check if the estimated parameters yield
-    # similar function evaluations at different quantile levels.
+    # Since the problem is highly non-convex we may not be able to recover the exact parameters
+    # Here we check if the estimated parameters yield similar function evaluations at different quantile levels.
     quantile_levels = np.arange(0.1, 1.0, 0.1)
 
-    # create a LinearSplines instance with the estimated parameters
-    # to have access to .quantile
+    # create a LinearSplines instance with the estimated parameters to have access to .quantile
     pwl_sqf_hat = PiecewiseLinear(
         mx.nd.array(gamma_hat),
         mx.nd.array(slopes_hat).expand_dims(axis=0),
@@ -554,8 +547,8 @@ def test_box_cox_tranform(
     # Sampling from `trans_distr` gives non-Gaussian samples
     trans_distr = TransformedDistribution(gausian_distr, transform)
 
-    # Given the non-Gaussian samples find the true parameters of the
-    # Box-Cox transformation as well as the underlying Gaussian distribution.
+    # Given the non-Gaussian samples find the true parameters
+    # of the Box-Cox transformation as well as the underlying Gaussian distribution.
     samples = trans_distr.sample()
 
     init_biases = [
@@ -631,5 +624,4 @@ def test_binned_likelihood(
 
     assert all(
         mx.nd.abs(mx.nd.array(bin_prob_hat) - bin_prob) < TOL * bin_prob
-    ), f"bin_prob did not match: bin_prob = {bin_prob}, " \
-        f"bin_prob_hat = {bin_prob_hat}"
+    ), f"bin_prob did not match: bin_prob = {bin_prob}, bin_prob_hat = {bin_prob_hat}"
