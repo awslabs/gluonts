@@ -12,7 +12,9 @@
 # permissions and limitations under the License.
 
 # Third-party imports
-from typing import Tuple
+import pickle
+from pathlib import Path
+from typing import Tuple, NamedTuple, List
 
 # Standard library imports
 import numpy as np
@@ -82,6 +84,12 @@ class DummyEstimator(Estimator):
     @classmethod
     def from_hyperparameters(cls, **hyperparameters):
         return from_hyperparameters(cls, **hyperparameters)
+
+
+class TrainOutput(NamedTuple):
+    transformation: Transformation
+    trained_net: HybridBlock
+    predictor: Predictor
 
 
 class GluonEstimator(Estimator):
@@ -155,9 +163,7 @@ class GluonEstimator(Estimator):
         """
         raise NotImplementedError
 
-    def train_model(
-        self, training_data: Dataset
-    ) -> Tuple[Transformation, HybridBlock]:
+    def train_model(self, training_data: Dataset) -> TrainOutput:
         transformation = self.create_transformation()
 
         transformation.estimate(iter(training_data))
@@ -182,13 +188,15 @@ class GluonEstimator(Estimator):
             train_iter=training_data_loader,
         )
 
-        return transformation, trained_net
+        with self.trainer.ctx:
+            # ensure that the prediction network is created within the same MXNet
+            # context as the one that was used during training
+            return TrainOutput(
+                transformation=transformation,
+                trained_net=trained_net,
+                predictor=self.create_predictor(transformation, trained_net),
+            )
 
     def train(self, training_data: Dataset) -> Predictor:
 
-        training_transformation, trained_net = self.train_model(training_data)
-
-        # ensure that the prediction network is created within the same MXNet
-        # context as the one that was used during training
-        with self.trainer.ctx:
-            return self.create_predictor(training_transformation, trained_net)
+        return self.train_model(training_data).predictor

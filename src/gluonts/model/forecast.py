@@ -23,6 +23,7 @@ import pandas as pd
 import pydantic
 
 # First-party imports
+from gluonts.core.component import validated
 from gluonts.core.exception import GluonTSUserError, assert_gluonts
 
 
@@ -511,6 +512,7 @@ class QuantileForecast(Forecast):
 class OutputType:
     values = {'mean', 'samples', 'quantiles'}
 
+    @validated()
     def __init__(self, v):
         assert (
             v in OutputType.values
