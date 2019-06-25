@@ -12,6 +12,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.gp_forecaster import GaussianProcessEstimator
+from gluonts.model.npts import NPTSEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaiveEstimator
 from gluonts.model.seq2seq import (
@@ -55,6 +56,18 @@ def mqcnn_estimator(hybridize: bool = True, batches_per_epoch=1):
 
 def mqrnn_estimator(hybridize: bool = True, batches_per_epoch=1):
     return seq2seq_base(MQRNNEstimator, hybridize, batches_per_epoch)
+
+
+def npts_estimator():
+    return (
+        NPTSEstimator,
+        dict(
+            kernel_type='uniform',
+            use_default_features=True,
+            prediction_length=prediction_length,
+            num_eval_samples=num_eval_samples,
+        ),
+    )
 
 
 def simple_seq2seq_estimator(hybridize: bool = True, batches_per_epoch=1):
@@ -127,6 +140,7 @@ def seasonal_estimator():
     [
         simple_feedforward_estimator(batches_per_epoch=200) + (0.3,),
         gp_estimator(batches_per_epoch=200) + (0.2,),
+        npts_estimator() + (0.0,),
         # deepar_estimator(batches_per_epoch=50) + (1.5,), # large value as this test is breaking frequently
         seasonal_estimator() + (0.0,),
         # mqcnn_estimator(batches_per_epoch=200) + (0.2,),
@@ -147,6 +161,7 @@ def test_accuracy(Estimator, hyperparameters, accuracy):
     [
         simple_feedforward_estimator(),
         deepar_estimator(),
+        npts_estimator(),
         seasonal_estimator(),
         mqcnn_estimator(),
         mqrnn_estimator(),
@@ -180,6 +195,7 @@ def test_hybridize(Estimator, hyperparameters):
     [
         simple_feedforward_estimator(),
         deepar_estimator(),
+        npts_estimator(),
         seasonal_estimator(),
         mqcnn_estimator(),
         mqrnn_estimator(),
