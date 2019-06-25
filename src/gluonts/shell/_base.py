@@ -1,12 +1,22 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 import json
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import NamedTuple, Iterator
-
-# First-party imports
-from gluonts.dataset.repository import DatasetRepository
 
 
 class PathsEnvironment(NamedTuple):
@@ -25,28 +35,3 @@ class PathsEnvironment(NamedTuple):
         self.model.mkdir(parents=True, exist_ok=True)
         self.output.mkdir(parents=True, exist_ok=True)
         self.output_data.mkdir(parents=True, exist_ok=True)
-
-
-@contextmanager
-def temporary_environment(
-    hyperparameters: dict, dataset_name: str, repository: DatasetRepository
-) -> Iterator[PathsEnvironment]:
-    info, _, _ = repository.get_from_name(dataset_name)
-    hyperparameters = {
-        **hyperparameters,
-        'freq': info.metadata.time_granularity,
-    }
-
-    with tempfile.TemporaryDirectory(prefix='gluonts-temp') as base:
-        paths = PathsEnvironment(
-            config=Path(base) / 'config',
-            data=Path(f'{repository.dataset_local_path}/{dataset_name}'),
-            model=Path(base) / 'model',
-            output=Path(base) / 'output',
-        )
-        paths.makedirs()
-
-        with open(str(paths.config / 'hyperparameters.json'), mode='w') as fp:
-            json.dump(hyperparameters, fp, indent=2, sort_keys=True)
-
-        yield paths
