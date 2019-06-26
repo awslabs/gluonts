@@ -56,6 +56,6 @@ fi
 git config core.hooksPath ".devtools/githooks"
 
 # install project requirements
-python -m pip install -r requirements-setup.txt
-python -m pip install -r requirements-test.txt
-python -m pip install -r requirements.txt
+python -m pip install -r requirements/requirements-setup.txt
+python -m pip install -r requirements/requirements-test.txt
+python -m pip install -r requirements/requirements.txt
