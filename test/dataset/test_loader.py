@@ -20,7 +20,7 @@ from gluonts.dataset.common import (
     save_datasets,
     serialize_data_entry,
 )
-from gluonts.dataset.common import ProcessSF2Dict
+from gluonts.dataset.common import ProcessDataEntry
 from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 from gluonts.dataset.jsonl import JsonLinesFile
 from gluonts.dataset.util import find_files
@@ -168,7 +168,7 @@ def test_timeseries_item_serialization() -> None:
         time_granularity="1H",
         feat_static_cat=[{"name": "feat_static_cat_000", "cardinality": 1}],
     )
-    process = ProcessSF2Dict(freq=metadata.time_granularity)
+    process = ProcessDataEntry(freq=metadata.time_granularity)
 
     data_entry = process(ts_item.gluontsify(metadata))
     serialized_data = serialize_data_entry(data_entry)

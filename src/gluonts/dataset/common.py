@@ -202,7 +202,7 @@ class FileDataset(Dataset):
         self, path: Path, freq: str, one_dim_target: bool = True
     ) -> None:
         self.path = path
-        self.process = ProcessSF2Dict(freq, one_dim_target=one_dim_target)
+        self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
         assert len(self.files()), f"no valid file found in {path}"
 
     def __iter__(self) -> Iterator[DataEntry]:
@@ -255,7 +255,7 @@ class ListDataset(Dataset):
         freq: str,
         one_dim_target: bool = True,
     ) -> None:
-        process = ProcessSF2Dict(freq, one_dim_target)
+        process = ProcessDataEntry(freq, one_dim_target)
         self.list_data = [process(data) for data in data_iter]
 
     def __iter__(self) -> Iterator[DataEntry]:
@@ -322,16 +322,6 @@ class ProcessStartField:
         )
 
 
-class ProcessItem:
-    def __init__(self) -> None:
-        pass
-
-    def __call__(self, data: DataEntry) -> DataEntry:
-        if "item_id" in "item":
-            data["item"] = data["item_id"]
-        return data
-
-
 class ProcessTimeSeriesField:
     """
     Converts a time series field identified by `name` from a list of numbers
@@ -396,7 +386,7 @@ class ProcessTimeSeriesField:
             )
 
 
-class ProcessSF2Dict:
+class ProcessDataEntry:
     def __init__(self, freq: str, one_dim_target: bool = True) -> None:
         # TODO: create a FormatDescriptor object that can be derived from a
         # TODO: Metadata and pass it instead of freq.
@@ -405,7 +395,6 @@ class ProcessSF2Dict:
         self.trans = cast(
             List[Callable[[DataEntry], DataEntry]],
             [
-                ProcessItem(),
                 ProcessStartField("start", freq=freq),
                 # The next line abuses is_static=True in case of 1D targets.
                 ProcessTimeSeriesField(
