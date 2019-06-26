@@ -12,6 +12,6 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from ._base import PathsEnvironment, temporary_environment
+from ._base import PathsEnvironment
 
-__all__ = ['PathsEnvironment', 'temporary_environment']
+__all__ = ['PathsEnvironment']
