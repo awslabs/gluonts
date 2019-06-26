@@ -50,7 +50,7 @@ class GaussianProcess:
         sample_noise: bool = True,
         F=None,
     ) -> None:
-        """
+        r"""
         Parameters
         ----------
         sigma
@@ -118,7 +118,7 @@ class GaussianProcess:
         num_data_points: Optional[int] = None,
         noise: bool = True,
     ) -> Tensor:
-        """
+        r"""
         Parameters
         --------------------
         kernel_matrix
@@ -205,7 +205,7 @@ class GaussianProcess:
         ).log_prob(y_train)
 
     def sample(self, mean: Tensor, covariance: Tensor) -> Tensor:
-        """
+        r"""
         Parameters
         ----------
         covariance
