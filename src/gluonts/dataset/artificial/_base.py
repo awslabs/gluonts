@@ -363,6 +363,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         is_scale: bool = True,
         percentage_unique_timestamps: float = 0.07,
         is_out_of_bounds_date: bool = False,
+        seasonality: Optional[int] = None,
         clip_values: bool = False,
     ) -> None:
         """
@@ -381,6 +382,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         :param is_scale: whether to add scale
         :param percentage_unique_timestamps: percentage of random start dates bounded between 0 and 1
         :param is_out_of_bounds_date: determines whether to use very old start dates and start dates far in the future
+        :param seasonality: Seasonality of the generated data. If not given uses default seasonality for frequency
         :param clip_values: if True the values will be clipped to [min_val, max_val], otherwise linearly scales them
         """
         assert length_low > prediction_length
@@ -398,6 +400,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         self.is_scale = is_scale
         self.percentage_unique_timestamps = percentage_unique_timestamps
         self.is_out_of_bounds_date = is_out_of_bounds_date
+        self.seasonality = seasonality
         self.clip_values = clip_values
 
     @property
@@ -408,6 +411,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         )
 
     def _get_period(self) -> int:
+        if self.seasonality is not None:
+            return self.seasonality
         if self.freq_str == 'M':
             return 24
         elif self.freq_str == 'W':
@@ -588,7 +593,13 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                     # Using convention that there are no missing values before the start date.
                     if j != 0:
                         v[j] = None if state.rand() < 0.5 else "NaN"
-            res.append(dict(start=start, target=v, item=i))
+            res.append(
+                dict(
+                    start=pd.Timestamp(start, freq=self.freq_str),
+                    target=np.array(v),
+                    item=i,
+                )
+            )
         return res
 
 
