@@ -36,7 +36,7 @@ from ._network import (
 
 
 class GaussianProcessEstimator(GluonEstimator):
-    """
+    r"""
     GaussianProcessEstimator shows how to build a local time series model using
     Gaussian Processes (GP).
 

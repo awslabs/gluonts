@@ -207,7 +207,7 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
     def __init__(
         self, num_samples: int, sample_noise: bool, *args, **kwargs
     ) -> None:
-        """
+        r"""
         Parameters
         ----------
         num_samples
