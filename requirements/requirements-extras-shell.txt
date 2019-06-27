@@ -1,2 +1,2 @@
-flask~=1.*
-gunicorn~=19.9.*
+flask~=1.0
+gunicorn~=19.9
