@@ -12,7 +12,8 @@
     2.2 Transform a dataset 
 > 3. ### <span style="color:orange">Training an existing model</span>
     3.1 Configuring an estimator  
-    3.1 Getting a predictor  
+    3.2 Getting a predictor  
+    3.3 Saving/Loading an existing model  
 > 4. ### <span style="color:orange">Evaluation</span>
     4.1 Getting the forecasts  
     4.2 Compute metrics  
@@ -72,7 +73,7 @@ from gluonts.dataset.util import to_pandas
 print(f"Available datasets: {list(dataset_recipes.keys())}")
 ```
 
-To download one of the built-in datasets, simply call get_dataset with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again: simply set `regenerate=False`.
+To download one of the built-in datasets, simply call `get_dataset` with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again: simply set `regenerate=False`.
 
 
 ```python
@@ -83,7 +84,7 @@ dataset = get_dataset("m4_hourly", regenerate=False)
 
 In general, the datasets provided by GluonTS are objects that consists of three main members:
 
-- `dataset.train` is an iterable collection of data entries used for training. Each entry corresponds to one time series
+- `dataset.train` is an iterable collection of data entries used for training. Each entry corresponds to one time series.
 - `dataset.test` is an iterable collection of data entries used for inference. The test dataset is an extended version of the train dataset that contains a window in the end of each time series that was not seen during training. This window has length equal to the recommended prediction length.
 - `dataset.metadata` containts metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc.
 
@@ -598,6 +599,24 @@ We should emphasize here that a single model, as the one defined above, is train
 predictor = estimator.train(train_ds)
 ```
 
+## 3.3 Saving/Loading an existing model
+
+A fitted model, i.e., a `Predictor`, can be saved and loaded back easily:
+
+
+```python
+# save the trained model in tmp/
+from pathlib import Path
+predictor.serialize(Path("/tmp/"))
+```
+
+
+```python
+# loads it back
+from gluonts.model.predictor import Predictor
+predictor_deserialized = Predictor.deserialize(Path("/tmp/"))
+```
+
 # 4. Evaluation
 
 ## 4.1 Getting the forecasts
@@ -806,7 +825,7 @@ class MyPredNetwork(MyTrainNetwork):
         return prediction.expand_dims(axis=1)
 ```
 
-The estimator class is configured bys a few hyperparameters and implements the required methods.
+The estimator class is configured by a few hyperparameters and implements the required methods.
 
 
 ```python
