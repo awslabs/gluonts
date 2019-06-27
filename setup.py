@@ -218,10 +218,11 @@ setup_kwargs: dict = dict(
     extras_require={
         'R': find_requirements("requirements-extras-r.txt"),
         'Prophet': find_requirements("requirements-extras-prophet.txt"),
+        'shell': find_requirements("requirements-extras-shell.txt"),
     },
     entry_points=dict(
         console_scripts=[
-            "gluonts-validate-dataset=gluonts.dataset.validate:run"
+            "gluonts-validate-dataset=gluonts.dataset.validate:run",
         ]
     ),
     cmdclass=dict(
