@@ -35,6 +35,8 @@ def run(env, forecaster):
     else:
         predictor = run_train(env, forecaster, env.datasets["train"])
 
+    predictor.serialize(env.path.model)
+
     if "test" in env.datasets:
         test_dataset = prepare_test_dataset(
             env.datasets["test"],
@@ -47,10 +49,7 @@ def run_train(env, forecaster, dataset) -> Predictor:
     assert isinstance(forecaster, Estimator)
     log.metric('train_dataset_stats', dataset.calc_stats())
 
-    predictor = forecaster.train(dataset)
-    predictor.serialize(env.path.model)
-
-    return predictor
+    return forecaster.train(dataset)
 
 
 def run_test(forecaster, test_dataset):

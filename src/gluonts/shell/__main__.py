@@ -24,11 +24,15 @@ def cli():
     "--data-path",
     type=click.Path(exists=True),
     envvar="SAGEMAKER_DATA_PATH",
-    required=True,
 )
-def serve(data_path):
-    from gluonts.shell.serve import DefaultShell
-    DefaultShell(data_path).run()
+@click.option("--forecaster", envvar="GLUONTS_FORECASTER")
+def serve(data_path, forecaster):
+    from gluonts.shell.serve import run, run_dynamic
+
+    if forecaster is not None:
+        run_dynamic(forecaster)
+    else:
+        run(data_path)
 
 
 FORECASTER_BY_NAME = {
