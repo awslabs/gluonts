@@ -20,9 +20,15 @@ def cli():
 
 
 @cli.command()
-def serve():
+@click.option(
+    "--data-path",
+    type=click.Path(exists=True),
+    envvar="SAGEMAKER_DATA_PATH",
+    required=True,
+)
+def serve(data_path):
     from gluonts.shell.serve import DefaultShell
-    DefaultShell().run()
+    DefaultShell(data_path).run()
 
 
 FORECASTER_BY_NAME = {

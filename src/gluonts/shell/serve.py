@@ -32,7 +32,7 @@ from gluonts.model.forecast import (
     SampleForecast,
 )
 from gluonts.model.predictor import Predictor
-from gluonts.shell import PathsEnvironment
+from gluonts.shell.env import SageMakerEnv
 
 MB = 1024 * 1024
 MODEL_SERVER_WORKERS = int(os.environ.get('MODEL_SERVER_WORKERS', -1))
@@ -84,10 +84,11 @@ class DefaultShell(BaseApplication):
 
     def __init__(
         self,
-        paths: PathsEnvironment = PathsEnvironment(),
+        path: str,
         port: Optional[int] = None,
         workers: Optional[int] = None,
     ) -> None:
+        env = SageMakerEnv(path)
         app = flask.Flask('GluonTS scoring service')
 
         port = port if port else self.DEFAULT_PORT
@@ -100,7 +101,7 @@ class DefaultShell(BaseApplication):
 
         check_gpu_support()
 
-        predictor = Predictor.deserialize(paths.model)
+        predictor = Predictor.deserialize(env.path.model)
 
         @app.route('/ping')
         def ping():
@@ -149,7 +150,7 @@ class DefaultShell(BaseApplication):
                     map(
                         process,
                         predictor.predict(
-                            dataset, no_samples=config.num_eval_samples
+                            dataset, num_samples=config.num_eval_samples
                         ),
                     )
                 )
