@@ -178,11 +178,3 @@ class DefaultShell(BaseApplication):
 
     def stop(self, *args, **kwargs):
         self.application.logger.info('Shutting down GluonTS scoring service')
-
-
-def main() -> None:
-    DefaultShell().run()
-
-
-if __name__ == '__main__':
-    main()
