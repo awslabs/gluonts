@@ -48,7 +48,7 @@ def run_train(env, forecaster, dataset) -> Predictor:
     log.metric('train_dataset_stats', dataset.calc_stats())
 
     predictor = forecaster.train(dataset)
-    predictor.serialize(env.paths.model)
+    predictor.serialize(env.path.model)
 
     return predictor
 
@@ -124,6 +124,10 @@ def train(path, forecaster_path) -> None:
     # forecaster_path = env.hyperparameters.get("forecaster_class")
 
     Forecaster = get_forecaster(forecaster_path)
-    forecaster = from_hyperparameters(Forecaster, **env.hyperparameters)
+
+    if hasattr(Forecaster, "from_hyperparameters"):
+        forecaster = Forecaster.from_hyperparameters(**env.hyperparameters)
+    else:
+        forecaster = from_hyperparameters(Forecaster, **env.hyperparameters)
 
     run(env, forecaster)
