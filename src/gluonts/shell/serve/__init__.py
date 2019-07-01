@@ -31,7 +31,8 @@ from gluonts.shell.serve.util import number_of_workers
 MB = 1024 * 1024
 
 
-class Env(BaseSettings):
+class Settings(BaseSettings):
+    # see: https://pydantic-docs.helpmanual.io/#settings
     class Config:
         env_prefix = ''
 
@@ -42,13 +43,13 @@ class Env(BaseSettings):
     sagemaker_max_concurrent_transforms: int = 2 ** 32 - 1
 
 
-env = Env()
-workers = number_of_workers(env)
+settings = Settings()
+workers = number_of_workers(settings)
 
 execution_params = {
     "MaxConcurrentTransforms": workers,
     "BatchStrategy": "SINGLE_RECORD",
-    "MaxPayloadInMB": env.sagemaker_max_payload_in_mb,
+    "MaxPayloadInMB": settings.sagemaker_max_payload_in_mb,
 }
 
 
@@ -108,7 +109,3 @@ def run(path):
             "timeout": 100,
         },
     ).run()
-
-    # NOTE: Stop Flask application when SIGTERM is received as a result
-    # of "docker stop" command.
-    #
