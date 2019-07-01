@@ -40,7 +40,7 @@ if __name__ == '__main__':
         ),
     )
 
-    # instead of calling `train` method, we call `train_output` that returns more things including the training model
+    # instead of calling `train` method, we call `train_model` that returns more things including the training model
     train_output = estimator.train_model(dataset.train)
 
     # we construct a data_entry that contains 500 random windows
