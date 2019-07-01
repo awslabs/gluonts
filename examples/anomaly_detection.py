@@ -30,13 +30,13 @@ from gluonts.dataset.repository.datasets import get_dataset
 
 if __name__ == '__main__':
 
-    dataset = get_dataset(dataset_name="solar-energy")
+    dataset = get_dataset(dataset_name="electricity")
 
     estimator = DeepAREstimator(
         prediction_length=dataset.metadata.prediction_length,
         freq=dataset.metadata.time_granularity,
         trainer=Trainer(
-            learning_rate=1e-3, epochs=20, num_batches_per_epoch=100
+            learning_rate=1e-3, epochs=50, num_batches_per_epoch=100
         ),
     )
 
@@ -58,7 +58,7 @@ if __name__ == '__main__':
         pass
 
     # we now call the train model to get the predicted distribution on each window
-    # this allows us to investigate which are the biggest anomalies
+    # this allows us to investigate where are the biggest anomalies
     context_length = train_output.trained_net.context_length
     prediction_length = train_output.trained_net.prediction_length
 
@@ -83,30 +83,26 @@ if __name__ == '__main__':
     # NLL indices from largest to smallest
     sorted_indices = np.argsort(nll.reshape(-1))[::-1]
 
-    time_indices = []
-    for start_date in data_entry['forecast_start']:
-        start = (
-            pd.Timestamp(start_date, freq=dataset.metadata.time_granularity)
-            - context_length
-        )
-        time_indices.append(
-            pd.date_range(start, periods=context_length + prediction_length)
-        )
-
     # shows the series and times when the 20 largest NLL were observed
     for k in sorted_indices[:20]:
         i = k // nll.shape[1]
         t = k % nll.shape[1]
+
+        time_index = pd.date_range(
+            pd.Timestamp(data_entry['forecast_start'][i]) - context_length,
+            periods=context_length + prediction_length,
+        )
+
         plt.figure(figsize=(10, 4))
         plt.fill_between(
-            time_indices[i],
+            time_index,
             percentiles[0, i],
             percentiles[-1, i],
             alpha=0.5,
             label="80% CI predicted",
         )
-        plt.plot(time_indices[i], target[i], label='target')
-        plt.axvline(time_indices[i][t], alpha=0.5, color='r')
+        plt.plot(time_index, target[i], label='target')
+        plt.axvline(time_index[t], alpha=0.5, color='r')
         plt.title(f"NLL: {nll[i, t]}")
         plt.legend()
         plt.show()
