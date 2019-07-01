@@ -13,6 +13,11 @@
 
 import click
 
+FORECASTER_BY_NAME = {
+    'deepar': 'gluonts.model.deepar.DeepAREstimator',
+    'r': 'gluonts.model.r_forecast.RForecastPredictor',
+}
+
 
 @click.group()
 def cli():
@@ -21,24 +26,19 @@ def cli():
 
 @cli.command()
 @click.option(
-    "--data-path",
-    type=click.Path(exists=True),
-    envvar="SAGEMAKER_DATA_PATH",
+    "--data-path", type=click.Path(exists=True), envvar="SAGEMAKER_DATA_PATH"
 )
 @click.option("--forecaster", envvar="GLUONTS_FORECASTER")
 def serve(data_path, forecaster):
     from gluonts.shell.serve import run, run_dynamic
 
+    if forecaster in FORECASTER_BY_NAME:
+        forecaster = FORECASTER_BY_NAME[forecaster]
+
     if forecaster is not None:
         run_dynamic(forecaster)
     else:
         run(data_path)
-
-
-FORECASTER_BY_NAME = {
-    'deepar': 'gluonts.model.deepar.DeepAREstimator',
-    'r': 'gluonts.model.r_forecast.RForecastPredictor',
-}
 
 
 @cli.command()

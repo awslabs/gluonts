@@ -17,10 +17,8 @@ from flask import Flask, jsonify, request
 
 from gluonts.core.component import from_hyperparameters
 from gluonts.dataset.common import ListDataset
-from gluonts.model.forecast import (
-    Config as ForecastConfig,
-    SampleForecast,
-)
+from gluonts.model.forecast import Config as ForecastConfig, SampleForecast
+
 
 def get_config():
     configuration = request.json['configuration']

@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-# import signal
 from typing import Optional
 
 # Third-party imports
@@ -78,6 +77,7 @@ def run_dynamic(forecaster):
     Forecaster = locate(forecaster)
 
     app = make_app(Forecaster, execution_params)
+
     Application(
         app=app,
         config={
@@ -111,4 +111,4 @@ def run(path):
 
     # NOTE: Stop Flask application when SIGTERM is received as a result
     # of "docker stop" command.
-    # signal.signal(signal.SIGTERM, self.stop)
+    #
