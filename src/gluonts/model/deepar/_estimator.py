@@ -55,8 +55,6 @@ class DeepAREstimator(GluonEstimator):
         Frequency of the data to train on and predict
     prediction_length
         Length of the prediction horizon
-    target_dim
-        Dimension of the target (default: 1, univariate time series)
     trainer
         Trainer object to be used (default: Trainer())
     context_length
