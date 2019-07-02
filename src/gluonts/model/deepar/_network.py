@@ -276,7 +276,11 @@ class DeepARTrainingNetwork(DeepARNetwork):
         future_observed_values: Tensor,
     ) -> Distribution:
         """
-        Returns the distribution of the model on the range of past_target and future_target.
+
+        Returns the distribution predicted by the model on the range of past_target and future_target.
+
+        The distribution is obtained by unrolling the network with the true target, this is also the distribution
+        that is being minimized during training.
         This can be used in anomaly detection, see for instance examples/anomaly_detection.py.
 
         Parameters

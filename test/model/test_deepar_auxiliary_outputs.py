@@ -49,8 +49,6 @@ def test_distribution():
             *[data_entry[k] for k in input_names]
         )
 
-        assert distr.mean.shape == (batch_size, seq_len)
-
         assert distr.sample(num_samples).shape == (
             num_samples,
             batch_size,

@@ -77,13 +77,6 @@ class TransformedDistribution(Distribution):
         assert isinstance(self._event_shape, tuple)
         return self._event_shape
 
-    @property
-    def mean(self) -> Tensor:
-        s = self.base_distribution.mean
-        for t in self.transforms:
-            s = t.f(s)
-        return s
-
     def sample(self, num_samples: Optional[int] = None) -> Tensor:
         with autograd.pause():
             s = self.base_distribution.sample(num_samples=num_samples)
