@@ -13,8 +13,8 @@
 
 # Standard library imports
 import re
-import typing
-from typing import Dict, List, NamedTuple, Optional, Union
+from enum import Enum
+from typing import Dict, List, NamedTuple, Optional, Set, Union
 
 # Third-party imports
 import mxnet as mx
@@ -509,43 +509,33 @@ class QuantileForecast(Forecast):
         )
 
 
-class OutputType:
-    values = {'mean', 'samples', 'quantiles'}
-
-    @validated()
-    def __init__(self, v):
-        assert (
-            v in OutputType.values
-        ), f'unknown output type {v}, expected one of: {", ".join(OutputType.values)}'
-
-        self.v = v
-
-    def __repr__(self) -> str:
-        return self.v
-
-    def __eq__(self, that):
-        return str(that) == str(self)
-
-    def __hash__(self):
-        return hash(str(self))
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if not isinstance(v, str):
-            raise ValueError(
-                f'strict string: expected string value, got {type(v)}'
-            )
-        try:
-            return OutputType(v)
-        except AssertionError as e:
-            raise ValueError(str(e))
+class OutputType(str, Enum):
+    mean = 'mean'
+    samples = 'samples'
+    quantiles = 'quantiles'
 
 
 class Config(pydantic.BaseModel):
     num_eval_samples: int
-    output_types: typing.Set[OutputType]
-    quantiles: typing.List[str]  # FIXME: validate list elements
+    output_types: Set[OutputType]
+    quantiles: List[str]  # FIXME: validate list elements
+
+    def process(self, forecast: Forecast) -> dict:
+        result = {}
+
+        if OutputType.mean in self.output_types:
+            result['mean'] = forecast.mean.tolist()
+
+        if OutputType.samples in self.output_types:
+            result['samples'] = (
+                forecast.samples.tolist()
+                if hasattr(forecast, 'samples')
+                else []
+            )
+
+        if OutputType.quantiles in self.output_types:
+            result['quantiles'] = [
+                forecast.quantile(q).tolist() for q in self.quantiles
+            ]
+
+        return result
