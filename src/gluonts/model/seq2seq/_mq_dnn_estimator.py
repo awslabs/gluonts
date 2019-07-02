@@ -75,7 +75,7 @@ class MQCNNEstimator(MQDNNEstimator):
         self,
         prediction_length: int,
         freq: str,
-        context_length: Optional[int],
+        context_length: Optional[int] = None,
         # FIXME: prefix those so clients know that these are decoder params
         mlp_final_dim: int = 20,
         mlp_hidden_dimension_seq: List[int] = list(),
@@ -112,9 +112,9 @@ class MQRNNEstimator(MQDNNEstimator):
     @validated()
     def __init__(
         self,
-        context_length: int,
         prediction_length: int,
         freq: str,
+        context_length: Optional[int] = None,
         # FIXME: prefix those so clients know that these are decoder params
         mlp_final_dim: int = 20,
         mlp_hidden_dimension_seq: List[int] = list(),
