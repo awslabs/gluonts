@@ -25,6 +25,7 @@ from gluonts.core.component import check_gpu_support
 from gluonts.model.predictor import Predictor
 from gluonts.shell.env import SageMakerEnv
 
+from gluonts.shell.serve.app import make_app
 from gluonts.shell.serve.util import number_of_workers
 
 
@@ -71,41 +72,26 @@ class Application(BaseApplication):
         self.application.logger.info('Shutting down GluonTS scoring service')
 
 
-def run_dynamic(forecaster):
+def online_forecaster(forecaster):
     from pydoc import locate
-    from gluonts.shell.serve.dynapp import make_app
+    from gluonts.core.component import from_hyperparameters
 
-    Forecaster = locate(forecaster)
+    forecaster_class = locate(forecaster)
 
-    app = make_app(Forecaster, execution_params)
-
-    Application(
-        app=app,
-        config={
-            "bind": "0.0.0.0:8080",
-            "workers": workers,
-            # "post_worker_init": ScoringService.post_worker_init,
-            "timeout": 100,
-        },
-    ).run()
+    return lambda request: from_hyperparameters(
+        forecaster_class, **request['configuration']
+    )
 
 
-def run(path):
-    from gluonts.shell.serve.app import make_app
-
-    check_gpu_support()
-
+def offline_forecaster(path):
     env = SageMakerEnv(path)
     predictor = Predictor.deserialize(env.path.model)
 
-    app = make_app(predictor, execution_params)
+    return lambda request: predictor
 
-    Application(
-        app=app,
-        config={
-            "bind": "0.0.0.0:8080",
-            "workers": workers,
-            # "post_worker_init": ScoringService.post_worker_init,
-            "timeout": 100,
-        },
-    ).run()
+
+def get_app(predictor_factory):
+    return Application(
+        app=make_app(predictor_factory, execution_params),
+        config={"bind": "0.0.0.0:8080", "workers": workers, "timeout": 100},
+    )

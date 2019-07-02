@@ -13,28 +13,28 @@
 
 import traceback
 
+import pydantic
 from flask import Flask, jsonify, request
 
 from gluonts.dataset.common import ListDataset
-from gluonts.model.forecast import Config as ForecastConfig, SampleForecast
+from gluonts.model.forecast import Config as ForecastConfig
 
 
-def get_config():
-    configuration = request.json['configuration']
-
-    configuration.setdefault(
-        "num_eval_samples", configuration.get("num_samples")
-    )
-
-    return ForecastConfig.parse_obj(configuration)
+class RequestPayload(pydantic.BaseModel):
+    instances: list
+    configuration: ForecastConfig
 
 
-def make_app(predictor, execution_params):
+def make_app(predictor_factory, execution_params):
     app = Flask('GluonTS scoring service')
 
     @app.route('/ping')
     def ping():
         return ''
+
+    @app.errorhandler(Exception)
+    def handle_error(error):
+        return traceback.format_exc(), 500
 
     @app.route("/execution-parameters")
     def execution_parameters():
@@ -42,18 +42,18 @@ def make_app(predictor, execution_params):
 
     @app.route('/invocations', methods=['POST'])
     def invocations():
-        try:
-            config = get_config()
-            dataset = ListDataset(request.json['instances'], predictor.freq)
+        predictor = predictor_factory(request.json)
+        req = RequestPayload.parse_obj(request.json)
 
-            # create the forecasts
-            forecasts = predictor.predict(
-                dataset, num_eval_samples=config.num_eval_samples
-            )
+        dataset = ListDataset(req.instances, predictor.freq)
 
-            return jsonify(predictions=list(map(config.process, forecasts)))
+        # create the forecasts
+        forecasts = predictor.predict(
+            dataset, num_eval_samples=req.configuration.num_eval_samples
+        )
 
-        except Exception as error:
-            return jsonify(error=traceback.format_exc()), 500
+        return jsonify(
+            predictions=list(map(req.configuration.process, forecasts))
+        )
 
     return app

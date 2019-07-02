@@ -30,15 +30,22 @@ def cli():
 )
 @click.option("--forecaster", envvar="GLUONTS_FORECASTER")
 def serve(data_path, forecaster):
-    from gluonts.shell.serve import run, run_dynamic
+    from gluonts.shell.serve import (
+        get_app,
+        online_forecaster,
+        offline_forecaster,
+    )
 
     if forecaster in FORECASTER_BY_NAME:
         forecaster = FORECASTER_BY_NAME[forecaster]
 
     if forecaster is not None:
-        run_dynamic(forecaster)
+        predictor_factory = online_forecaster(forecaster)
     else:
-        run(data_path)
+        predictor_factory = offline_forecaster(data_path)
+
+    app = get_app(predictor_factory)
+    app.run()
 
 
 @cli.command()
