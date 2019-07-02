@@ -8,7 +8,8 @@ import mxnet as mx
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
-from gluonts.distribution import DistributionOutput
+from gluonts.distribution import DistributionOutput, Distribution
+from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
 from gluonts.support.util import weighted_average
 
@@ -264,6 +265,55 @@ class DeepARNetwork(mx.gluon.HybridBlock):
 
 
 class DeepARTrainingNetwork(DeepARNetwork):
+    def distribution(
+        self,
+        feat_static_cat: Tensor,
+        past_time_feat: Tensor,
+        past_target: Tensor,
+        past_observed_values: Tensor,
+        future_time_feat: Tensor,
+        future_target: Tensor,
+        future_observed_values: Tensor,
+    ) -> Distribution:
+        """
+
+        Returns the distribution predicted by the model on the range of past_target and future_target.
+
+        The distribution is obtained by unrolling the network with the true target, this is also the distribution
+        that is being minimized during training.
+        This can be used in anomaly detection, see for instance examples/anomaly_detection.py.
+
+        Parameters
+        ----------
+        feat_static_cat
+        past_time_feat
+        past_target
+        past_observed_values
+        future_time_feat
+        future_target
+        future_observed_values
+
+        Returns
+        -------
+        sample_paths : Distribution
+            a distribution object whose mean has shape: (batch_size, context_length + prediction_length).
+        """
+        # unroll the decoder in "training mode", i.e. by providing future data as well
+        F = getF(feat_static_cat)
+
+        rnn_outputs, _, scale, _ = self.unroll_encoder(
+            F=F,
+            feat_static_cat=feat_static_cat,
+            past_time_feat=past_time_feat,
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            future_time_feat=future_time_feat,
+            future_target=future_target,
+        )
+
+        distr_args = self.proj_distr_args(rnn_outputs)
+
+        return self.distr_output.distribution(distr_args, scale=scale)
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
@@ -296,15 +346,14 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         """
 
-        # unroll the decoder in "training mode", i.e. by providing future data as well
-        rnn_outputs, _, scale, _ = self.unroll_encoder(
-            F=F,
+        distr = self.distribution(
             feat_static_cat=feat_static_cat,
             past_time_feat=past_time_feat,
             past_target=past_target,
             past_observed_values=past_observed_values,
             future_time_feat=future_time_feat,
             future_target=future_target,
+            future_observed_values=future_observed_values,
         )
 
         # put together target sequence
@@ -318,11 +367,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_target,
             dim=1,
         )
-
-        distr_args = self.proj_distr_args(rnn_outputs)
-
-        # compute distribution
-        distr = self.distr_output.distribution(distr_args, scale=scale)
 
         # (batch_size, seq_len)
         loss = distr.loss(target)
@@ -350,7 +394,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
             F=F, x=loss, weights=loss_weights, axis=1
         )
 
-        return (weighted_loss, loss) + distr_args
+        return weighted_loss, loss
 
 
 class DeepARPredictionNetwork(DeepARNetwork):

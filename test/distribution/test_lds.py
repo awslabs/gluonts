@@ -2,6 +2,7 @@
 import pytest
 import json
 import gzip
+import os
 
 # Third-party imports
 import numpy as np
@@ -17,6 +18,8 @@ def assert_shape_and_finite(x, shape):
     assert not np.isinf(x.asnumpy()).any()
 
 
+current_path = os.path.dirname(os.path.abspath(__file__))
+
 # The following files contain different sets of LDS parameters
 # (coefficients and noise terms) and observations, and the log-density
 # of the observations that were computed using pykalman
@@ -24,11 +27,13 @@ def assert_shape_and_finite(x, shape):
 @pytest.mark.parametrize(
     "data_filename",
     [
-        "./test/distribution/test_lds_data/data_level_issm.json.gz",
-        "./test/distribution/test_lds_data/data_level_trend_issm.json.gz",
-        (
-            "./test/distribution/test_lds_data/"
-            + "data_level_trend_weekly_seasonal_issm.json.gz"
+        os.path.join(current_path, "test_lds_data/data_level_issm.json.gz"),
+        os.path.join(
+            current_path, "test_lds_data/data_level_trend_issm.json.gz"
+        ),
+        os.path.join(
+            current_path,
+            "test_lds_data/data_level_trend_weekly_seasonal_issm.json.gz",
         ),
     ],
 )
