@@ -20,8 +20,6 @@ from gunicorn.app.base import BaseApplication
 from pydantic import BaseSettings
 
 # First-party imports
-from gluonts.core.component import check_gpu_support
-
 from gluonts.model.predictor import Predictor
 from gluonts.shell.env import SageMakerEnv
 
