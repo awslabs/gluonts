@@ -30,21 +30,6 @@ def get_config():
 
 
 def make_app(predictor, execution_params):
-    def make_response(config, forecast):
-        if 'samples' in config.output_types:
-            samples = []
-            if isinstance(forecast, SampleForecast):
-                samples = forecast.samples.tolist()
-            yield 'samples', samples
-
-        if 'mean' in config.output_types:
-            yield 'mean', forecast.mean.tolist()
-
-        if 'quantiles' in config.output_types:
-            yield 'quantiles', {
-                q: forecast.quantile(q).tolist() for q in config.quantiles
-            }
-
     app = Flask('GluonTS scoring service')
 
     @app.route('/ping')
@@ -66,11 +51,7 @@ def make_app(predictor, execution_params):
                 dataset, num_eval_samples=config.num_eval_samples
             )
 
-            # generate json output
-            predictions = [
-                dict(make_response(config, forecast)) for forecast in forecasts
-            ]
-            return jsonify(predictions=predictions)
+            return jsonify(predictions=list(map(config.process, forecasts)))
 
         except Exception as error:
             return jsonify(error=traceback.format_exc()), 500
