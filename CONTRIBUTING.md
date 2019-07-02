@@ -55,78 +55,29 @@ The easiest way to get set up for development is to run the following script:
 #then clone your fork
 git clone https://github.com/<your-github-username>/gluon-ts.git
 
-# check if condo is up to date
-Conda update conda
-
-# create virtual env (can change python version if you use newer/older
-# see if any breaking changes
-conda create -n gluon-ts python=3.6 anaconda
-
-# after aeons of dependencies installing
-conda activate gluon-ts
-
-#confirm python version
-Python -V
-
-#enter the cloned repo
+#enter the cloned repo and run
 ./dev_setup.sh
-
-#NOTE: you may get some setup lines that are red in stdout
-#In my case it looks like those were ok, on re-running ./dev_setup.sh had no red #stdout lines
-
-# now setup the main repo as upstream remote
-git remote add upstream https://github.com/awslabs/gluon-ts.git
 ```
+Note that windows and other versions of linux (not mac versions) will require
+something slightly different to initiate the `dev_setup.sh` script.
 
 This will install all the requirements and also install a git hook that runs
 all code checks when you commit. This also separates your workflow so that
 pull-requests go through your forked repo and then into upstream if approved.
 
+You may wish to familiarize yourself with forked repositories on github, for
+more see:
+https://help.github.com/en/articles/working-with-forks
+
+To avoid conflicts with existing python installations you may want to setup
+a virtual environment. For more on virtual environments in python see:
+https://docs.python.org/3/tutorial/venv.html
+for python virtual environments and
+https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+for conda virtual environments.
 
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/gluon-ts/labels/help%20wanted) issues is a great place to start.
-
-
-## Reviewing code
-Contributing code is important and so is reviewing other's code.
-There are 2 good ways (unless you know more) to review code:
-
-```
-git fetch upstream pull/PULL_REQUEST_ID/head:NEW_BRANCH_NAME
-```
-
-where `PULL_REQUEST_ID` is the digits only for the pull request and
-`NEW_BRANCH_NAME` is the name you call this branch in your local repo.
-
-An alternate method is to bring all open pull requests into your local repo,
-a useful method if you have a long flight ahead of you and you may not have
-internet access or plan to vacation on a remote island and need to review 5
-gluon-ts pull requests before your able to return home. To do this you can
-manually edit the refspec in the `.git/config` file to add a fetch line for
-all pull requests or the easier way is
-
-```
-git config --local --add remote.upstream.fetch '+refs/pull/*/head:refs/remotes/upstream/pr/*'
-```
-
-Now if you setup the `origin` and `upstream` repos asd indicated above,
-executing the command
-
-```
-git fetch upstream pr
-```
-
-Will bring all pull requests, both open and closed, into you local repo.
-To check any out into new branches use the command
-
-```
-git checkout pr/1
-```
-
-which creates a branch locally with the code from the first pull request.
-Use this local version of the code to confirm the unit tests pass and to
-otherwise perform due diligence of the code in the pull request.
-
 
 ## Code of Conduct
 This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
