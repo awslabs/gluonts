@@ -158,6 +158,19 @@ class Forecast:
         """
         raise NotImplementedError()
 
+    def as_json_dict(self, config: 'Config') -> dict:
+        result = {}
+
+        if OutputType.mean in config.output_types:
+            result['mean'] = self.mean.tolist()
+
+        if OutputType.quantiles in config.output_types:
+            result['quantiles'] = [
+                self.quantile(q).tolist() for q in config.quantiles
+            ]
+
+        return result
+
 
 class SampleForecast(Forecast):
     """
@@ -281,6 +294,14 @@ class SampleForecast(Forecast):
                 return self.samples.shape[
                     1
                 ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
+
+    def as_json_dict(self, config: 'Config') -> dict:
+        result = super().as_json_dict(config)
+
+        if OutputType.samples in config.output_types:
+            result['samples'] = self.samples.tolist()
+
+        return result
 
     def plot(
         self,
@@ -519,23 +540,3 @@ class Config(pydantic.BaseModel):
     num_eval_samples: int
     output_types: Set[OutputType]
     quantiles: List[str]  # FIXME: validate list elements
-
-    def process(self, forecast: Forecast) -> dict:
-        result = {}
-
-        if OutputType.mean in self.output_types:
-            result['mean'] = forecast.mean.tolist()
-
-        if OutputType.samples in self.output_types:
-            result['samples'] = (
-                forecast.samples.tolist()
-                if hasattr(forecast, 'samples')
-                else []
-            )
-
-        if OutputType.quantiles in self.output_types:
-            result['quantiles'] = [
-                forecast.quantile(q).tolist() for q in self.quantiles
-            ]
-
-        return result
