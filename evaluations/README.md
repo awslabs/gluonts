@@ -2,8 +2,6 @@
 
 This folder aims at collecting evaluations of forecasting models. The goal is to make reproducibility and comparison easier by versioning the code producing dataset as well as the model and evaluation code.
 
-## mean_wQuantileLoss
-
 estimator | electricity | exchange_rate | m4_daily | m4_hourly | m4_monthly | m4_quarterly | m4_weekly | m4_yearly | solar-energy | traffic
 ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----
 DeepAREstimator | 0.050 | 0.023 | 0.025 | 0.033 | 0.115 | 0.087 | 0.048 | 0.128 | 0.398 | 0.126
@@ -11,7 +9,7 @@ MQCNNEstimator | 0.083 | 0.016 | 0.027 | 0.065 | 0.124 | 0.089 | 0.059 | 0.122 |
 MQRNNEstimator | 0.197 | 0.004 | 0.222 | 0.298 | 0.209 | 0.326 | 0.104 | 0.328 | 0.164 | 0.087
 NPTSPredictor | 0.062 | 0.021 | 0.145 | 0.048 | 0.233 | 0.255 | 0.296 | 0.355 | 0.826 | 0.180
 RForecastPredictor_arima |  | 0.008 | 0.024 | 0.040 |  | 0.080 | 0.050 | 0.124 | 1.153 |
-RForecastPredictor_ets | 0.121 | 0.008 | 0.023 | 0.043 | 0.099 | 0.079 | 0.051 | 0.126 | 1.778 |
+RForecastPredictor_ets | 0.121 | 0.008 | 0.023 | 0.043 | 0.099 | 0.079 | 0.051 | 0.126 | 1.778 | 0.373
 SeasonalNaivePredictor | 0.070 | 0.011 | 0.028 | 0.048 | 0.146 | 0.119 | 0.063 | 0.161 | 1.000 | 0.251
 SimpleFeedForwardEstimator | 0.062 | 0.009 | 0.023 | 0.044 | 0.116 | 0.088 | 0.051 | 0.132 | 0.435 | 0.212
 
@@ -24,7 +22,7 @@ MQCNNEstimator | 0.102 | 0.019 | 0.032 | 0.086 | 0.132 | 0.103 | 0.065 | 0.146 |
 MQRNNEstimator | 0.639 | 0.015 | 0.662 | 0.906 | 0.660 | 0.981 | 0.345 | 0.987 | 0.702 | 0.334
 NPTSPredictor | 0.080 | 0.025 | 0.191 | 0.063 | 0.293 | 0.334 | 0.387 | 0.442 | 1.031 | 0.225
 RForecastPredictor_arima |  | 0.009 | 0.029 | 0.053 |  | 0.097 | 0.060 | 0.148 | 1.150 |
-RForecastPredictor_ets | 0.150 | 0.010 | 0.027 | 0.054 | 0.120 | 0.095 | 0.061 | 0.149 | 1.364 |
+RForecastPredictor_ets | 0.150 | 0.010 | 0.027 | 0.054 | 0.120 | 0.095 | 0.061 | 0.149 | 1.364 | 0.385
 SeasonalNaivePredictor | 0.070 | 0.011 | 0.028 | 0.048 | 0.146 | 0.119 | 0.063 | 0.161 | 1.000 | 0.251
 SimpleFeedForwardEstimator | 0.075 | 0.012 | 0.028 | 0.055 | 0.126 | 0.104 | 0.060 | 0.158 | 0.520 | 0.251
 
@@ -37,7 +35,7 @@ MQCNNEstimator |  |  |  |  |  |  |  |  |  |
 MQRNNEstimator |  |  |  |  |  |  |  |  |  |
 NPTSPredictor | 1679.833 | 0.033 | 2207.532 | 2871.974 | 2613.715 | 3251.401 | 3621.983 | 4211.343 | 53.450 | 0.031
 RForecastPredictor_arima |  | 0.011 | 641.476 | 2285.035 |  | 1436.552 | 644.820 | 2065.602 | 58.934 |
-RForecastPredictor_ets | 3195.747 | 0.012 | 602.283 | 2158.406 | 1413.275 | 1374.529 | 659.644 | 2066.347 | 65.986 |
+RForecastPredictor_ets | 3195.747 | 0.012 | 602.283 | 2158.406 | 1413.275 | 1374.529 | 659.644 | 2066.347 | 65.986 | 0.039
 SeasonalNaivePredictor | 1139.925 | 0.013 | 705.425 | 1901.146 | 1628.794 | 1577.303 | 673.443 | 2016.458 | 62.518 | 0.037
 SimpleFeedForwardEstimator | 1285.875 | 0.014 | 677.479 | 2323.024 | 1420.506 | 1453.103 | 672.740 | 1982.234 | 37.251 | 0.034
 
