@@ -52,10 +52,10 @@ The easiest way to get set up for development is to run the following script:
 ```bash
 # first fork the repo on github
 
-#then clone your fork
+# then clone your fork
 git clone https://github.com/<your-github-username>/gluon-ts.git
 
-#enter the cloned repo and run
+# enter the cloned repo and run
 ./dev_setup.sh
 ```
 Note that windows and other versions of linux (not mac versions) will require
