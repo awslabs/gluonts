@@ -1,0 +1,7 @@
+{
+    "ND": 1.1495647430419922,
+    "RMSE": 58.93401336669922,
+    "dataset": "solar-energy",
+    "estimator": "RForecastPredictor_arima",
+    "mean_wQuantileLoss": 1.1532583236694336
+}

@@ -2,40 +2,44 @@
 
 This folder aims at collecting evaluations of forecasting models. The goal is to make reproducibility and comparison easier by versioning the code producing dataset as well as the model and evaluation code.
 
-
 ## mean_wQuantileLoss
 
 estimator | electricity | exchange_rate | m4_daily | m4_hourly | m4_monthly | m4_quarterly | m4_weekly | m4_yearly | solar-energy | traffic
 ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----
-DeepAREstimator | 0.085 | 0.009 | 0.025 | 0.033 | 0.115 | 0.087 | 0.048 | 0.128 | 0.398 | 0.126
-MQCNNEstimator | 0.102 | 0.016 | 0.028 | 0.065 | 0.123 | 0.089 | 0.060 | 0.124 | 0.627 | 0.274
-NPTSPredictor | 0.144 | 0.021 | 0.145 | 0.048 | 0.233 | 0.255 | 0.297 | 0.355 | 0.825 | 0.179
-RForecastPredictor |  | 0.008 |  |  |  |  |  |  |  | 
-SeasonalNaivePredictor | 0.139 | 0.011 | 0.028 | 0.048 | 0.146 | 0.119 | 0.063 | 0.161 | 1.000 | 0.251
-SimpleFeedForwardEstimator | 0.095 | 0.009 | 0.023 | 0.044 | 0.119 | 0.085 | 0.053 | 0.127 | 0.436 | 0.213
+DeepAREstimator | 0.050 | 0.023 | 0.025 | 0.033 | 0.115 | 0.087 | 0.048 | 0.128 | 0.398 | 0.126
+MQCNNEstimator | 0.083 | 0.016 | 0.027 | 0.065 | 0.124 | 0.089 | 0.059 | 0.122 | 0.551 | 0.272
+MQRNNEstimator | 0.197 | 0.004 | 0.222 | 0.298 | 0.209 | 0.326 | 0.104 | 0.328 | 0.164 | 0.087
+NPTSPredictor | 0.062 | 0.021 | 0.145 | 0.048 | 0.233 | 0.255 | 0.296 | 0.355 | 0.826 | 0.180
+RForecastPredictor_arima |  | 0.008 | 0.024 | 0.040 |  | 0.080 | 0.050 | 0.124 | 1.153 |
+RForecastPredictor_ets | 0.121 | 0.008 | 0.023 | 0.043 | 0.099 | 0.079 | 0.051 | 0.126 | 1.778 |
+SeasonalNaivePredictor | 0.070 | 0.011 | 0.028 | 0.048 | 0.146 | 0.119 | 0.063 | 0.161 | 1.000 | 0.251
+SimpleFeedForwardEstimator | 0.062 | 0.009 | 0.023 | 0.044 | 0.116 | 0.088 | 0.051 | 0.132 | 0.435 | 0.212
 
 ## ND
 
 estimator | electricity | exchange_rate | m4_daily | m4_hourly | m4_monthly | m4_quarterly | m4_weekly | m4_yearly | solar-energy | traffic
 ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----
-DeepAREstimator | 0.100 | 0.011 | 0.030 | 0.042 | 0.125 | 0.102 | 0.060 | 0.152 | 0.490 | 0.150
-MQCNNEstimator | 0.118 | 0.018 | 0.034 | 0.085 | 0.131 | 0.104 | 0.068 | 0.150 | 0.707 | 0.311
-NPTSPredictor | 0.185 | 0.025 | 0.190 | 0.063 | 0.293 | 0.334 | 0.389 | 0.442 | 1.026 | 0.225
-RForecastPredictor |  | 0.009 |  |  |  |  |  |  |  | 
-SeasonalNaivePredictor | 0.139 | 0.011 | 0.028 | 0.048 | 0.146 | 0.119 | 0.063 | 0.161 | 1.000 | 0.251
-SimpleFeedForwardEstimator | 0.114 | 0.012 | 0.027 | 0.055 | 0.130 | 0.100 | 0.062 | 0.156 | 0.525 | 0.254
+DeepAREstimator | 0.061 | 0.029 | 0.030 | 0.042 | 0.125 | 0.102 | 0.060 | 0.152 | 0.490 | 0.150
+MQCNNEstimator | 0.102 | 0.019 | 0.032 | 0.086 | 0.132 | 0.103 | 0.065 | 0.146 | 0.666 | 0.310
+MQRNNEstimator | 0.639 | 0.015 | 0.662 | 0.906 | 0.660 | 0.981 | 0.345 | 0.987 | 0.702 | 0.334
+NPTSPredictor | 0.080 | 0.025 | 0.191 | 0.063 | 0.293 | 0.334 | 0.387 | 0.442 | 1.031 | 0.225
+RForecastPredictor_arima |  | 0.009 | 0.029 | 0.053 |  | 0.097 | 0.060 | 0.148 | 1.150 |
+RForecastPredictor_ets | 0.150 | 0.010 | 0.027 | 0.054 | 0.120 | 0.095 | 0.061 | 0.149 | 1.364 |
+SeasonalNaivePredictor | 0.070 | 0.011 | 0.028 | 0.048 | 0.146 | 0.119 | 0.063 | 0.161 | 1.000 | 0.251
+SimpleFeedForwardEstimator | 0.075 | 0.012 | 0.028 | 0.055 | 0.126 | 0.104 | 0.060 | 0.158 | 0.520 | 0.251
 
 ## RMSE
 
 estimator | electricity | exchange_rate | m4_daily | m4_hourly | m4_monthly | m4_quarterly | m4_weekly | m4_yearly | solar-energy | traffic
 ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----
-DeepAREstimator | 14238.631 | 0.014 | 635.905 | 1344.878 | 1405.169 | 1405.009 | 613.102 | 1865.383 | 31.510 | 0.025
-MQCNNEstimator |  |  |  |  |  |  |  |  |  | 
-NPTSPredictor | 22466.171 | 0.033 | 2205.998 | 2837.655 | 2614.135 | 3250.483 | 3638.738 | 4213.817 | 53.566 | 0.031
-RForecastPredictor |  | 0.011 |  |  |  |  |  |  |  | 
-SeasonalNaivePredictor | 17590.598 | 0.013 | 705.425 | 1901.146 | 1628.794 | 1577.303 | 673.443 | 2016.458 | 62.518 | 0.037
-SimpleFeedForwardEstimator | 15396.873 | 0.014 | 646.524 | 2360.828 | 1446.087 | 1442.306 | 683.172 | 1972.476 | 35.511 | 0.034
-
+DeepAREstimator | 1177.808 | 0.033 | 635.905 | 1344.878 | 1405.169 | 1405.009 | 613.102 | 1865.383 | 31.510 | 0.025
+MQCNNEstimator |  |  |  |  |  |  |  |  |  |
+MQRNNEstimator |  |  |  |  |  |  |  |  |  |
+NPTSPredictor | 1679.833 | 0.033 | 2207.532 | 2871.974 | 2613.715 | 3251.401 | 3621.983 | 4211.343 | 53.450 | 0.031
+RForecastPredictor_arima |  | 0.011 | 641.476 | 2285.035 |  | 1436.552 | 644.820 | 2065.602 | 58.934 |
+RForecastPredictor_ets | 3195.747 | 0.012 | 602.283 | 2158.406 | 1413.275 | 1374.529 | 659.644 | 2066.347 | 65.986 |
+SeasonalNaivePredictor | 1139.925 | 0.013 | 705.425 | 1901.146 | 1628.794 | 1577.303 | 673.443 | 2016.458 | 62.518 | 0.037
+SimpleFeedForwardEstimator | 1285.875 | 0.014 | 677.479 | 2323.024 | 1420.506 | 1453.103 | 672.740 | 1982.234 | 37.251 | 0.034
 
 # FAQ
 

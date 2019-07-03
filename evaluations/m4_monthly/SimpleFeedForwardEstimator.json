@@ -1,7 +1,7 @@
 {
-    "ND": 0.12964022586406096,
-    "RMSE": 1446.0868105627892,
+    "ND": 0.12568825483322144,
+    "RMSE": 1420.5064697265625,
     "dataset": "m4_monthly",
     "estimator": "SimpleFeedForwardEstimator",
-    "mean_wQuantileLoss": 0.11891926484730504
+    "mean_wQuantileLoss": 0.11591043323278427
 }

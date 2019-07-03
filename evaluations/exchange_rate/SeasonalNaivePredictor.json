@@ -1,7 +1,7 @@
 {
-    "ND": 0.01074974784284811,
-    "RMSE": 0.012913454796821398,
+    "ND": 0.010749747976660728,
+    "RMSE": 0.012913455255329609,
     "dataset": "exchange_rate",
     "estimator": "SeasonalNaivePredictor",
-    "mean_wQuantileLoss": 0.01074974784284811
+    "mean_wQuantileLoss": 0.010749747976660728
 }

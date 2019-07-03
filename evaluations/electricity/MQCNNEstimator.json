@@ -1,7 +1,7 @@
 {
-    "ND": 0.11787286031885176,
+    "ND": 0.10187326371669769,
     "RMSE": NaN,
     "dataset": "electricity",
     "estimator": "MQCNNEstimator",
-    "mean_wQuantileLoss": 0.10177732596031223
+    "mean_wQuantileLoss": 0.08325693756341934
 }

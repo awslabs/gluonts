@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import os
 
-from evaluations.generate_evaluations import metrics_persisted
+from generate_evaluations import metrics_persisted
 
 dir_path = Path(os.path.dirname(os.path.realpath(__file__)))
 

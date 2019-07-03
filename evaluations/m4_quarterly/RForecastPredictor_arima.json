@@ -1,0 +1,7 @@
+{
+    "ND": 0.09689730405807495,
+    "RMSE": 1436.552490234375,
+    "dataset": "m4_quarterly",
+    "estimator": "RForecastPredictor_arima",
+    "mean_wQuantileLoss": 0.08010971546173096
+}
