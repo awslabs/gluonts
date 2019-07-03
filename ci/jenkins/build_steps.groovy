@@ -22,7 +22,7 @@
 
 utils = load('ci/jenkins/utils.groovy')
 
-def sanity_lint(workspace_name, conda_env_name, path) {
+def sanity_checks(workspace_name, conda_env_name, path) {
   return ['Lint': {
     node {
       ws("workspace/${workspace_name}") {
@@ -30,7 +30,8 @@ def sanity_lint(workspace_name, conda_env_name, path) {
         sh """
         set -ex
         source ci/prepare_clean_env.sh ${conda_env_name}
-        make lintdir=${path} lint
+        python setup.py style_check
+        python setup.py type_check
         set +ex
         """
       }

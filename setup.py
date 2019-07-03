@@ -12,8 +12,6 @@ from pathlib import Path
 from textwrap import dedent
 
 # Third-party imports
-import setuptools
-import setuptools.command.build_py
 from setuptools import find_namespace_packages, setup
 
 ROOT = Path(__file__).parent
@@ -180,15 +178,6 @@ class StyleCheckCommand(distutils.cmd.Command):
             sys.exit(exit_code)
 
 
-class BuildPyCommand(setuptools.command.build_py.build_py):
-    """Custom `build_py` command that preprends a `typecheck` call."""
-
-    def run(self):
-        self.run_command("type_check")
-        self.run_command("style_check")
-        setuptools.command.build_py.build_py.run(self)
-
-
 setup_kwargs: dict = dict(
     name="gluonts",
     use_scm_version=True,
@@ -222,14 +211,13 @@ setup_kwargs: dict = dict(
     },
     entry_points=dict(
         console_scripts=[
-            "gluonts-validate-dataset=gluonts.dataset.validate:run",
+            "gluonts-validate-dataset=gluonts.dataset.validate:run"
         ]
     ),
-    cmdclass=dict(
-        type_check=TypeCheckCommand,
-        style_check=StyleCheckCommand,
-        build_py=BuildPyCommand,
-    ),
+    cmdclass={
+        'type_check': TypeCheckCommand,
+        'style_check': StyleCheckCommand,
+    },
 )
 
 if HAS_SPHINX:
