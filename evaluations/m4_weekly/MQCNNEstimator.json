@@ -1,7 +1,7 @@
 {
-    "ND": 0.06762493103526296,
+    "ND": 0.06535154581069946,
     "RMSE": NaN,
     "dataset": "m4_weekly",
     "estimator": "MQCNNEstimator",
-    "mean_wQuantileLoss": 0.060469309698572477
+    "mean_wQuantileLoss": 0.05901339650154114
 }

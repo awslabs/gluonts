@@ -1,7 +1,7 @@
 {
-    "ND": 1.0255885542611378,
-    "RMSE": 53.56555554898833,
+    "ND": 1.03065824508667,
+    "RMSE": 53.44953918457031,
     "dataset": "solar-energy",
     "estimator": "NPTSPredictor",
-    "mean_wQuantileLoss": 0.8252669443815566
+    "mean_wQuantileLoss": 0.8257663249969482
 }

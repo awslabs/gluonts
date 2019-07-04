@@ -1,0 +1,7 @@
+{
+    "ND": 0.05984164774417877,
+    "RMSE": 644.8201293945312,
+    "dataset": "m4_weekly",
+    "estimator": "RForecastPredictor_arima",
+    "mean_wQuantileLoss": 0.04976828396320343
+}

@@ -1,7 +1,7 @@
 {
-    "ND": 0.22484112236982967,
-    "RMSE": 0.031058697166007582,
+    "ND": 0.22486764192581177,
+    "RMSE": 0.031139561906456947,
     "dataset": "traffic",
     "estimator": "NPTSPredictor",
-    "mean_wQuantileLoss": 0.17920226489950283
+    "mean_wQuantileLoss": 0.17956461012363434
 }

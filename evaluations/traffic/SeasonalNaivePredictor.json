@@ -1,7 +1,7 @@
 {
-    "ND": 0.25102889311539106,
-    "RMSE": 0.036740415924533955,
+    "ND": 0.2510288953781128,
+    "RMSE": 0.036740414798259735,
     "dataset": "traffic",
     "estimator": "SeasonalNaivePredictor",
-    "mean_wQuantileLoss": 0.2510288930979608
+    "mean_wQuantileLoss": 0.2510288953781128
 }
