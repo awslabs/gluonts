@@ -12,7 +12,7 @@ Forecasting
       :title: Quick Start Tutorial
       :link: basic_forecasting_tutorial/tutorial.html
 
-    .. card::
+   .. card::
       :title: Extended Forecasting Tutorial
       :link: extended_forecasting_tutorial/extended_tutorial.html
 
