@@ -169,6 +169,9 @@ class Forecast:
                 self.quantile(q).tolist() for q in config.quantiles
             ]
 
+        if OutputType.samples in config.output_types:
+            result['samples'] = []
+
         return result
 
 
