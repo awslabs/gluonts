@@ -10,7 +10,7 @@ from gluonts.model.gp_forecaster import GaussianProcessEstimator
 from gluonts.model.wavenet import WaveNetEstimator
 
 dataset_info, train_ds, test_ds = default_synthetic()
-freq = dataset_info.metadata.time_granularity
+freq = dataset_info.metadata.freq
 prediction_length = dataset_info.prediction_length
 cardinality = int(dataset_info.metadata.feat_static_cat[0].cardinality)
 batch_size = 32

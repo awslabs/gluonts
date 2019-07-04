@@ -35,7 +35,7 @@ def test_forecast_parser():
     dataset_info, train_ds, test_ds = constant_dataset()
 
     estimator = make_estimator(
-        dataset_info.metadata.time_granularity, dataset_info.prediction_length
+        dataset_info.metadata.freq, dataset_info.prediction_length
     )
     assert repr(estimator) == repr(load_code(repr(estimator)))
 
@@ -62,7 +62,7 @@ def test_benchmark(caplog):
     dataset_info, train_ds, test_ds = constant_dataset()
 
     estimator = make_estimator(
-        dataset_info.metadata.time_granularity, dataset_info.prediction_length
+        dataset_info.metadata.freq, dataset_info.prediction_length
     )
     evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
     backtest_metrics(train_ds, test_ds, estimator, evaluator)

@@ -22,7 +22,7 @@ def test_listing_1():
     meta = dataset_info.metadata
 
     estimator = DeepAREstimator(
-        freq=meta.time_granularity,
+        freq=meta.freq,
         prediction_length=1,
         trainer=Trainer(epochs=1, batch_size=32),
     )
@@ -154,7 +154,7 @@ def test_appendix_c():
 
     meta = dataset_info.metadata
     estimator = MyEstimator(
-        freq=meta.time_granularity,
+        freq=meta.freq,
         prediction_length=1,
         trainer=Trainer(epochs=1, batch_size=32),
     )

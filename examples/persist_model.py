@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.time_granularity,
+        freq=dataset.metadata.freq,
         trainer=Trainer(epochs=5, num_batches_per_epoch=10),
     )
 

@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
             estimator = Estimator(
                 prediction_length=dataset.metadata.prediction_length,
-                freq=dataset.metadata.time_granularity,
+                freq=dataset.metadata.freq,
             )
 
             estimator_name = type(estimator).__name__

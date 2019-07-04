@@ -115,7 +115,7 @@ def test_recipe_dataset(recipe) -> None:
     data = RecipeDataset(
         recipe=recipe,
         metadata=MetaData(
-            time_granularity='D',
+            freq='D',
             feat_static_real=[BasicFeatureInfo(name='feat_static_real_000')],
             feat_static_cat=[
                 CategoricalFeatureInfo(name='foo', cardinality=10)

@@ -79,7 +79,7 @@ plt.show()
 ```python
 print(f"Length of forecasting window in test dataset: {len(test_series) - len(train_series)}")
 print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
-print(f"Frequency of the time series: {dataset.metadata.time_granularity}")
+print(f"Frequency of the time series: {dataset.metadata.freq}")
 ```
 
 ### Custom datasets
@@ -129,7 +129,7 @@ estimator = SimpleFeedForwardEstimator(
     num_hidden_dimensions=[10],
     prediction_length=dataset.metadata.prediction_length,
     context_length=100,
-    freq=dataset.metadata.time_granularity,
+    freq=dataset.metadata.freq,
     trainer=Trainer(ctx="cpu", epochs=5, learning_rate=1E-3, hybridize=True, num_batches_per_epoch=200,),
 )
 ```
@@ -384,7 +384,7 @@ Now, we can repeat the same pipeline as in the case we had a pre-built model: tr
 estimator = MyEstimator(
     prediction_length=dataset.metadata.prediction_length,
     context_length=200,
-    freq=dataset.metadata.time_granularity,
+    freq=dataset.metadata.freq,
     trainer=Trainer(ctx="cpu", epochs=5, learning_rate=1E-3, hybridize=True, num_batches_per_epoch=200,),
 )
 ```

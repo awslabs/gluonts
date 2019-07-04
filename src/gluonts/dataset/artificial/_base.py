@@ -55,8 +55,8 @@ class ArtificialDataset:
     Parent class of a dataset that can be generated from code.
     """
 
-    def __init__(self, time_granularity) -> None:
-        self.time_granularity = time_granularity
+    def __init__(self, freq) -> None:
+        self.freq = freq
 
     @property
     def metadata(self) -> MetaData:
@@ -74,8 +74,8 @@ class ArtificialDataset:
     def generate(self) -> TrainDatasets:
         return TrainDatasets(
             metadata=self.metadata,
-            train=ListDataset(self.train, self.time_granularity),
-            test=ListDataset(self.test, self.time_granularity),
+            train=ListDataset(self.train, self.freq),
+            test=ListDataset(self.test, self.freq),
         )
 
 
@@ -84,7 +84,7 @@ class ConstantDataset(ArtificialDataset):
         self,
         num_timeseries: int = 10,
         num_steps: int = 30,
-        time_granularity: str = "1H",
+        freq: str = "1H",
         start: str = "2000-01-01 00:00:00",
         is_nan: bool = False,  # Generates constant dataset of 0s with explicit NaN missing values
         is_random_constant: bool = False,  # Inserts random constant value for each time series
@@ -103,7 +103,7 @@ class ConstantDataset(ArtificialDataset):
         ] = None,  # Determines whether to add holidays to the target time series
         # and to store in metadata
     ) -> None:
-        super(ConstantDataset, self).__init__(time_granularity)
+        super(ConstantDataset, self).__init__(freq)
         self.num_timeseries = num_timeseries
         self.num_steps = num_steps
         self.num_training_steps = self.num_steps // 10 * 8
@@ -124,7 +124,7 @@ class ConstantDataset(ArtificialDataset):
     @property
     def metadata(self) -> MetaData:
         metadata = MetaData(
-            time_granularity=self.time_granularity,
+            freq=self.freq,
             feat_static_cat=[
                 {
                     "name": "feat_static_cat_000",
@@ -136,7 +136,7 @@ class ConstantDataset(ArtificialDataset):
         )
         if self.is_promotions or self.holidays:
             metadata = MetaData(
-                time_granularity=self.time_granularity,
+                freq=self.freq,
                 feat_static_cat=[
                     {
                         "name": "feat_static_cat_000",
@@ -242,7 +242,7 @@ class ConstantDataset(ArtificialDataset):
             6: 'SUN',
         }
         timestamp = pd.Timestamp(self.start)
-        freq_week_start = self.time_granularity
+        freq_week_start = self.freq
         if freq_week_start == 'W':
             freq_week_start = f'W-{week_dict[timestamp.weekday()]}'
         return pd.Timestamp(self.start, freq=freq_week_start)
@@ -406,8 +406,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
     @property
     def metadata(self) -> MetaData:
         return MetaData(
-            time_granularity=self.time_granularity,
-            prediction_length=self.prediction_length,
+            freq=self.freq, prediction_length=self.prediction_length
         )
 
     def _get_period(self) -> int:
@@ -640,7 +639,7 @@ class RecipeDataset(ArtificialDataset):
                (shortened) training length
         :param data_start: Start date for the data set
         """
-        super().__init__(time_granularity=metadata.time_granularity)
+        super().__init__(freq=metadata.freq)
 
         self.recipe = recipe
         self._metadata = metadata
@@ -648,9 +647,7 @@ class RecipeDataset(ArtificialDataset):
         self.prediction_length = prediction_length
         self.trim_length_fun = trim_length_fun
         self.num_timeseries = num_timeseries
-        self.data_start = pd.Timestamp(
-            data_start, freq=self._metadata.time_granularity
-        )
+        self.data_start = pd.Timestamp(data_start, freq=self._metadata.freq)
 
     @property
     def metadata(self) -> MetaData:
@@ -730,8 +727,8 @@ class RecipeDataset(ArtificialDataset):
         ]
         return TrainDatasets(
             metadata=metadata,
-            train=ListDataset(train_data, metadata.time_granularity),
-            test=ListDataset(test_data, metadata.time_granularity),
+            train=ListDataset(train_data, metadata.freq),
+            test=ListDataset(test_data, metadata.freq),
         )
 
 
@@ -750,7 +747,7 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
     data = RecipeDataset(
         recipe=recipe,
         metadata=MetaData(
-            time_granularity='D',
+            freq='D',
             feat_static_real=[BasicFeatureInfo(name='feat_static_real')],
             feat_static_cat=[
                 CategoricalFeatureInfo(name='feat_static_cat', cardinality=10)
@@ -775,7 +772,7 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
 
 def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     metadata = MetaData(
-        time_granularity='1H',
+        freq='1H',
         feat_static_cat=[
             CategoricalFeatureInfo(
                 name='feat_static_cat_000', cardinality='10'
@@ -797,7 +794,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
             }
             for i in range(10)
         ],
-        freq=metadata.time_granularity,
+        freq=metadata.freq,
     )
 
     test_ds = ListDataset(
@@ -811,7 +808,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
             }
             for i in range(10)
         ],
-        freq=metadata.time_granularity,
+        freq=metadata.freq,
     )
 
     info = DatasetInfo(
