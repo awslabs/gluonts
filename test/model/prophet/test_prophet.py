@@ -14,7 +14,9 @@ if not PROPHET_IS_INSTALLED:
 
 
 def test_related_time_series_success():
-    params = dict(freq="1D", prediction_length=3, prophet_params={})
+    params = dict(
+        freq="1D", prediction_length=3, prophet=dict(n_changepoints=20)
+    )
 
     dataset = ListDataset(
         data_iter=[
@@ -37,7 +39,7 @@ def test_related_time_series_success():
 
 
 def test_related_time_series_fail():
-    params = dict(freq="1D", prediction_length=3, prophet_params={})
+    params = dict(freq="1D", prediction_length=3, prophet={})
 
     dataset = ListDataset(
         data_iter=[
@@ -66,7 +68,7 @@ def test_related_time_series_fail():
 
 
 def test_min_obs():
-    params = dict(freq="1D", prediction_length=10, prophet_params={})
+    params = dict(freq="1D", prediction_length=10, prophet={})
 
     dataset = ListDataset(
         data_iter=[{'start': '2017-01-01', 'target': np.array([1.0])}],
@@ -84,7 +86,7 @@ def test_min_obs():
 
 
 def test_min_obs_with_nans():
-    params = dict(freq="1D", prediction_length=10, prophet_params={})
+    params = dict(freq="1D", prediction_length=10, prophet={})
 
     dataset = ListDataset(
         data_iter=[
@@ -104,7 +106,7 @@ def test_min_obs_with_nans():
 
 
 def test_all_nans():
-    params = dict(freq="1D", prediction_length=10, prophet_params={})
+    params = dict(freq="1D", prediction_length=10, prophet={})
 
     dataset = ListDataset(
         data_iter=[
@@ -124,7 +126,12 @@ def test_all_nans():
 
 
 def test_mean_forecast():
-    params = dict(freq="1D", prediction_length=10, prophet_params={})
+    params = dict(
+        freq="1D",
+        prediction_length=10,
+        min_nonnan_obs=3,
+        prophet=dict(n_changepoints=20),
+    )
 
     dataset = ListDataset(
         data_iter=[
@@ -135,7 +142,7 @@ def test_mean_forecast():
 
     predictor = ProphetPredictor(**params)
 
-    act_forecast = next(predictor.predict(dataset, min_nonnan_obs=3))
+    act_forecast = next(predictor.predict(dataset))
     exp_forecast = 2.5 * np.ones(params["prediction_length"])
 
     assert np.array_equal(act_forecast.yhat, exp_forecast)

@@ -51,7 +51,7 @@ class ProphetDataEntry(NamedTuple):
     feat_dynamic_real: List[np.ndarray]
 
     @property
-    def train_input(self) -> pd.DataFrame:
+    def prophet_training_data(self) -> pd.DataFrame:
         return pd.DataFrame(
             data={
                 **{
@@ -164,39 +164,24 @@ class ProphetPredictor(RepresentablePredictor):
 
         assert 'uncertainty_samples' not in prophet, (
             "Parameter 'uncertainty_samples' should not be set directly. "
-            "Please use 'num_samples' instead."
+            "Please use 'num_eval_samples' instead."
         )
+
+        prophet.update(uncertainty_samples=num_eval_samples)
 
         self.num_eval_samples = num_eval_samples
         self.min_nonnan_obs = min_nonnan_obs
         self.prophet_params = prophet
         self.init_model = init_model
 
-    def predict(
-        self,
-        dataset: Dataset,
-        num_eval_samples: Optional[int] = None,
-        min_nonnan_obs: Optional[int] = None,
-        **kwargs,
-    ) -> Iterator[ProphetForecast]:
-        if num_eval_samples is None:
-            num_eval_samples = self.num_eval_samples
-        if min_nonnan_obs is None:
-            min_nonnan_obs = self.min_nonnan_obs
-
-        prophet_params = dict(
-            self.prophet_params, uncertainty_samples=num_eval_samples
-        )
-
-        print('params is ' + repr(prophet_params))
-
-        samples_shape = (num_eval_samples, self.prediction_length)
+    def predict(self, dataset: Dataset, **kwargs) -> Iterator[ProphetForecast]:
+        samples_shape = (self.num_eval_samples, self.prediction_length)
 
         for entry in dataset:
             data = self._make_prophet_data_entry(entry)
 
-            if data.num_non_nan_values >= min_nonnan_obs:
-                forecast_samples = self._run_prophet(data, prophet_params)
+            if data.num_non_nan_values >= self.min_nonnan_obs:
+                forecast_samples = self._run_prophet(data)
             elif data.num_non_nan_values > 0:
                 forecast_samples = np.full(samples_shape, data.nanmean_target)
             else:
@@ -208,19 +193,19 @@ class ProphetPredictor(RepresentablePredictor):
                 freq=self.freq,
             )
 
-    def _run_prophet(self, data: ProphetDataEntry, params: Dict) -> np.array:
+    def _run_prophet(self, data: ProphetDataEntry) -> np.array:
         """
         Construct and run a :class:`Prophet` model on the given
         :class:`ProphetDataEntry` and return the resulting array of samples.
         """
 
-        prophet = self.init_model(Prophet(**params))
+        prophet = self.init_model(Prophet(**self.prophet_params))
 
         # Register dynamic features as regressors to the model
         for i in range(len(data.feat_dynamic_real)):
             prophet.add_regressor(feat_name(i))
 
-        prophet.fit(data.train_input)
+        prophet.fit(data.prophet_training_data)
 
         future_df = prophet.make_future_dataframe(
             periods=self.prediction_length,
