@@ -17,8 +17,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 # Third-party imports
-# import ujson as json
-import json
+import ujson as json
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
