@@ -75,7 +75,7 @@ def cli() -> None:
 def serve_command(data_path: str, forecaster: str) -> None:
     from gluonts.shell import serve
 
-    env = SageMakerEnv(data_path)
+    env = SageMakerEnv(Path(data_path))
 
     try:
         serve.run_inference_server(env, forecaster_type_by_name(forecaster))
@@ -101,7 +101,7 @@ def serve_command(data_path: str, forecaster: str) -> None:
 def train_command(data_path: str, forecaster: str) -> None:
     from gluonts.shell import train
 
-    env = SageMakerEnv(data_path)
+    env = SageMakerEnv(Path(data_path))
 
     if forecaster == '%from_hyperparameters%':
         try:
