@@ -53,7 +53,10 @@ def make_app(predictor_factory, execution_params):
         )
 
         return jsonify(
-            predictions=list(map(req.configuration.process, forecasts))
+            predictions=[
+                forecast.as_json_dict(req.configuration)
+                for forecast in forecasts
+            ]
         )
 
     return app
