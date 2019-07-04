@@ -14,10 +14,10 @@
 
 import json
 from pathlib import Path
-from typing import Union
+from typing import Union, Callable
 
 
-def map_dct_values(fn, dct):
+def map_dct_values(fn: Callable, dct: dict) -> dict:
     """Maps `fn` over a dicts values."""
     return {key: fn(value) for key, value in dct.items()}
 
@@ -45,7 +45,7 @@ def parse_sagemaker_parameter(value: str) -> Union[list, dict, str]:
         return value
 
 
-def parse_sagemaker_parameters(raw_config):
+def parse_sagemaker_parameters(raw_config: dict) -> dict:
     """Parse a raw sagemaker config where all values are strings.
 
     Example:
@@ -62,4 +62,9 @@ def parse_sagemaker_parameters(raw_config):
 def load_sagemaker_hyperparameters(path: Path) -> dict:
     with path.open() as json_file:
         raw_config = json.load(json_file)
+
+        for old_freq_name in ['time_freq', 'time_granularity']:
+            if old_freq_name in raw_config:
+                raw_config['freq'] = raw_config[old_freq_name]
+
         return parse_sagemaker_parameters(raw_config)

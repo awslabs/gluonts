@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional
+from typing import Optional, Type, Union
 
 # Third-party imports
 import flask
@@ -20,12 +20,14 @@ from gunicorn.app.base import BaseApplication
 from pydantic import BaseSettings
 
 # First-party imports
+from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.shell.env import SageMakerEnv
+from gluonts.shell.sagemaker import SageMakerEnv
 
-from gluonts.shell.serve.app import make_app
-from gluonts.shell.serve.util import number_of_workers
+import logging
+import multiprocessing
 
+from .app import make_app
 
 MB = 1024 * 1024
 
@@ -38,22 +40,47 @@ class Settings(BaseSettings):
     model_server_workers: Optional[int] = None
     max_content_length: int = 6 * MB
     sagemaker_batch: bool = False
+    sagemaker_batch_strategy: str = 'SINGLE_RECORD'
     sagemaker_max_payload_in_mb: int = 6
     sagemaker_max_concurrent_transforms: int = 2 ** 32 - 1
 
+    @property
+    def number_of_workers(self) -> int:
+        cpu_count = multiprocessing.cpu_count()
+
+        if self.model_server_workers:
+            logging.info(
+                f'Using {self.model_server_workers} workers '
+                '(set by MODEL_SERVER_WORKERS environment variable).'
+            )
+            return self.model_server_workers
+
+        elif (
+            self.sagemaker_batch
+            and self.sagemaker_max_concurrent_transforms < cpu_count
+        ):
+            logging.info(
+                f'Using {self.sagemaker_max_concurrent_transforms} workers '
+                '(set by MaxConcurrentTransforms parameter in batch mode).'
+            )
+            return self.sagemaker_max_concurrent_transforms
+
+        else:
+            logging.info(f'Using {cpu_count} workers')
+            return cpu_count
+
 
 settings = Settings()
-workers = number_of_workers(settings)
 
 execution_params = {
-    "MaxConcurrentTransforms": workers,
-    "BatchStrategy": "SINGLE_RECORD",
+    "MaxConcurrentTransforms": settings.number_of_workers,
+    "BatchStrategy": settings.sagemaker_batch_strategy,
     "MaxPayloadInMB": settings.sagemaker_max_payload_in_mb,
 }
 
 
 class Application(BaseApplication):
-    def __init__(self, app, config):
+    def __init__(self, app, config) -> None:
         self.application = app
         self.config = config
         BaseApplication.__init__(self)
@@ -70,26 +97,29 @@ class Application(BaseApplication):
         self.application.logger.info('Shutting down GluonTS scoring service')
 
 
-def online_forecaster(forecaster):
-    from pydoc import locate
-    from gluonts.core.component import from_hyperparameters
+def run_inference_server(
+    env: SageMakerEnv,
+    forecaster_type: Optional[Type[Union[Estimator, Predictor]]],
+) -> None:
+    if forecaster_type is not None:
+        ctor = forecaster_type.from_hyperparameters
 
-    forecaster_class = locate(forecaster)
+        def predictor_factory(request) -> Predictor:
+            return ctor(**request['configuration'])
 
-    return lambda request: from_hyperparameters(
-        forecaster_class, **request['configuration']
-    )
+    else:
+        predictor = Predictor.deserialize(env.path.model)
 
+        def predictor_factory(request) -> Predictor:
+            return predictor
 
-def offline_forecaster(path):
-    env = SageMakerEnv(path)
-    predictor = Predictor.deserialize(env.path.model)
-
-    return lambda request: predictor
-
-
-def get_app(predictor_factory):
-    return Application(
+    app = Application(
         app=make_app(predictor_factory, execution_params),
-        config={"bind": "0.0.0.0:8080", "workers": workers, "timeout": 100},
+        config={
+            "bind": "0.0.0.0:8080",
+            "workers": settings.number_of_workers,
+            "timeout": 100,
+        },
     )
+
+    app.run()

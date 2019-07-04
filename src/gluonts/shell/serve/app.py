@@ -11,39 +11,43 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# Standard library imports
 import traceback
+from typing import Tuple
 
+# Third-party imports
 import pydantic
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 
+# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.model.forecast import Config as ForecastConfig
 
 
-class RequestPayload(pydantic.BaseModel):
+class InferenceRequest(pydantic.BaseModel):
     instances: list
     configuration: ForecastConfig
 
 
 def make_app(predictor_factory, execution_params):
-    app = Flask('GluonTS scoring service')
+    flask = Flask('GluonTS scoring service')
 
-    @app.route('/ping')
-    def ping():
+    @flask.route('/ping')
+    def ping() -> str:
         return ''
 
-    @app.errorhandler(Exception)
-    def handle_error(error):
+    @flask.errorhandler(Exception)
+    def handle_error(error) -> Tuple[str, int]:
         return traceback.format_exc(), 500
 
-    @app.route("/execution-parameters")
-    def execution_parameters():
+    @flask.route("/execution-parameters")
+    def execution_parameters() -> Response:
         return jsonify(execution_params)
 
-    @app.route('/invocations', methods=['POST'])
-    def invocations():
+    @flask.route('/invocations', methods=['POST'])
+    def invocations() -> Response:
         predictor = predictor_factory(request.json)
-        req = RequestPayload.parse_obj(request.json)
+        req = InferenceRequest.parse_obj(request.json)
 
         dataset = ListDataset(req.instances, predictor.freq)
 
@@ -59,4 +63,4 @@ def make_app(predictor_factory, execution_params):
             ]
         )
 
-    return app
+    return flask

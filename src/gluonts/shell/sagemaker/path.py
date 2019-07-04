@@ -27,22 +27,22 @@ def get_input_data_config(config: dict) -> Dict[str, DataConfig]:
     return {key: DataConfig.parse_obj(value) for key, value in config.items()}
 
 
-def load_input_data_config(path):
-    with open(path) as json_file:
-        config = json.loads(json_file)
+def load_input_data_config(path: Path) -> Dict[str, DataConfig]:
+    with path.open() as json_file:
+        config = json.load(json_file)
         return get_input_data_config(config)
 
 
 class MLPath:
-    def __init__(self, base="/opt/ml"):
-        self.base = Path(base).expanduser().resolve()
-        self.config = self.base / "input/config"
-        self.data = self.base / "input/data"
-        self.model = self.base / "model"
-        self.output = self.base / "output"
+    def __init__(self, base="/opt/ml") -> None:
+        self.base: Path = Path(base).expanduser().resolve()
+        self.config: Path = self.base / "input/config"
+        self.data: Path = self.base / "input/data"
+        self.model: Path = self.base / "model"
+        self.output: Path = self.base / "output"
 
-        self.hyperparameters = self.config / "hyperparameters.json"
-        self.inputdataconfig = self.config / "inputdataconfig.json"
+        self.hyperparameters: Path = self.config / "hyperparameters.json"
+        self.inputdataconfig: Path = self.config / "inputdataconfig.json"
 
     def makedirs(self) -> None:
         self.config.mkdir(parents=True, exist_ok=True)

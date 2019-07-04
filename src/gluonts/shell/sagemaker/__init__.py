@@ -14,7 +14,7 @@
 import json
 from typing import Dict
 
-from gluonts.dataset.common import FileDataset
+from gluonts.dataset.common import FileDataset, MetaData
 from .params import load_sagemaker_hyperparameters
 from .path import MLPath
 
@@ -24,7 +24,7 @@ DATASETS = 'train', 'test'
 
 
 class SageMakerEnv:
-    def __init__(self, path="/opt/ml"):
+    def __init__(self, path="/opt/ml") -> None:
         ml_path = MLPath(path)
         ml_path.makedirs()
 
@@ -48,5 +48,5 @@ class SageMakerEnv:
     def _check_sf2(self) -> None:
         if "metadata" in self.channels:
             with (self.channels["metadata"] / "metadata.json").open() as file:
-                metadata = json.load(file)
-                self.hyperparameters.update(freq=metadata["freq"])
+                metadata = MetaData(**json.load(file))
+                self.hyperparameters.update(freq=metadata.freq)

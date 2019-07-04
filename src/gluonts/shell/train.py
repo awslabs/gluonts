@@ -12,28 +12,31 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-
-import os
-from pydoc import locate
+from typing import Type, Union
 
 # First-party imports
 from gluonts.core import log
-from gluonts.core.component import check_gpu_support, from_hyperparameters
-from gluonts.core.exception import GluonTSFatalError
+from gluonts.core.component import check_gpu_support
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.shell.env import SageMakerEnv
-from gluonts.transform import FilterTransformation, TransformedDataset
+from gluonts.transform import Dataset, FilterTransformation, TransformedDataset
+
+# Relative imports
+from .sagemaker import SageMakerEnv
 
 
-def run(env, forecaster):
+def run_train_and_test(
+    env: SageMakerEnv, forecaster_type: Type[Union[Estimator, Predictor]]
+) -> None:
     check_gpu_support()
+
+    forecaster = forecaster_type.from_hyperparameters(**env.hyperparameters)
 
     if isinstance(forecaster, Predictor):
         predictor = forecaster
     else:
-        predictor = run_train(env, forecaster, env.datasets["train"])
+        predictor = run_train(forecaster, env.datasets["train"])
 
     predictor.serialize(env.path.model)
 
@@ -45,14 +48,16 @@ def run(env, forecaster):
         run_test(predictor, test_dataset)
 
 
-def run_train(env, forecaster, dataset) -> Predictor:
+def run_train(forecaster, train_dataset) -> Predictor:
     assert isinstance(forecaster, Estimator)
-    log.metric('train_dataset_stats', dataset.calc_stats())
+    log.metric('train_dataset_stats', train_dataset.calc_stats())
 
-    return forecaster.train(dataset)
+    return forecaster.train(train_dataset)
 
 
-def run_test(forecaster, test_dataset):
+def run_test(
+    forecaster: Union[Estimator, Predictor], test_dataset: Dataset
+) -> None:
     agg_metrics, _item_metrics = backtest.backtest_metrics(
         train_dataset=None,
         test_dataset=test_dataset,
@@ -68,7 +73,7 @@ def run_test(forecaster, test_dataset):
     log.metric("agg_metrics", agg_metrics)
 
 
-def prepare_test_dataset(dataset, prediction_length):
+def prepare_test_dataset(dataset: Dataset, prediction_length: int) -> Dataset:
     test_dataset = TransformedDataset(
         dataset,
         transformations=[
@@ -85,48 +90,6 @@ def prepare_test_dataset(dataset, prediction_length):
             'Not all time-series in the test-channel have '
             'enough data to be used for evaluation. Proceeding with '
             f'{len_filtered}/{len_orig} '
-            f'(~{int(len_filtered/len_orig*100)}%) items.'
+            f'(~{int(len_filtered / len_orig * 100)}%) items.'
         )
     return test_dataset
-
-
-def get_forecaster(forecaster_class=None):
-    if 'GLUONTS_ESTIMATOR_CLASS' in os.environ:
-        log.logger.info(
-            'Picking up GluonTS estimator classname from a '
-            '"GLUONTS_ESTIMATOR_CLASS" environment variable.'
-        )
-        forecaster_class = os.environ['GLUONTS_ESTIMATOR_CLASS']
-
-    elif forecaster_class is not None:
-        log.logger.info(
-            'Picking up GluonTS estimator classname from an "forecaster_class" '
-            'hyperparameter value.'
-        )
-    else:
-        raise GluonTSFatalError(
-            'Cannot determine the GluonTS estimator classname (missing variable '
-            '"GLUONTS_ESTIMATOR_CLASS").'
-        )
-
-    Forecaster = locate(forecaster_class)
-    if Forecaster is None:
-        raise GluonTSFatalError(
-            f'Cannot locate estimator with classname "{forecaster_class}".'
-        )
-    return Forecaster
-
-
-def train(path, forecaster_path) -> None:
-    env = SageMakerEnv(path)
-
-    # forecaster_path = env.hyperparameters.get("forecaster_class")
-
-    Forecaster = get_forecaster(forecaster_path)
-
-    if hasattr(Forecaster, "from_hyperparameters"):
-        forecaster = Forecaster.from_hyperparameters(**env.hyperparameters)
-    else:
-        forecaster = from_hyperparameters(Forecaster, **env.hyperparameters)
-
-    run(env, forecaster)
