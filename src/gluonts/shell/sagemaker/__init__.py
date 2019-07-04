@@ -12,41 +12,96 @@
 # permissions and limitations under the License.
 
 import json
-from typing import Dict
+from pathlib import Path
+from typing import Dict, Optional
+
+from pydantic import BaseModel
 
 from gluonts.dataset.common import FileDataset, MetaData
-from .params import load_sagemaker_hyperparameters
+from .params import parse_sagemaker_parameters
 from .path import MLPath
 
 
+class DataConfig(BaseModel):
+    ContentType: str
+
+
 # for now we only support train and test
-DATASETS = 'train', 'test'
+DATASET_NAMES = 'train', 'test'
 
 
 class SageMakerEnv:
-    def __init__(self, path="/opt/ml") -> None:
-        ml_path = MLPath(path)
-        ml_path.makedirs()
+    def __init__(self, path: Path = Path("/opt/ml")) -> None:
+        self.path = _load_path(path)
+        self.inputdataconfig = _load_inputdataconfig(self.path)
+        self.channels = _load_channels(self.path, self.inputdataconfig)
+        self.hyperparameters = _load_hyperparameters(self.path, self.channels)
+        self.datasets = _load_datasets(self.hyperparameters, self.channels)
 
-        self.path = ml_path
 
-        self.hyperparameters = load_sagemaker_hyperparameters(
-            ml_path.hyperparameters
-        )
-        self.channels = ml_path.get_channels()
-        self.datasets = self._get_datasets()
-        self._check_sf2()
+def _load_path(path: Path) -> MLPath:
+    ml_path = MLPath(path)
+    ml_path.makedirs()
+    return ml_path
 
-    def _get_datasets(self) -> Dict[str, FileDataset]:
-        freq = self.hyperparameters["freq"]
-        return {
-            name: FileDataset(self.channels[name], freq)
-            for name in DATASETS
-            if name in self.channels
-        }
 
-    def _check_sf2(self) -> None:
-        if "metadata" in self.channels:
-            with (self.channels["metadata"] / "metadata.json").open() as file:
+def _load_inputdataconfig(path: MLPath) -> Optional[Dict[str, DataConfig]]:
+    if path.inputdataconfig.exists():
+        with path.inputdataconfig.open() as json_file:
+            return {
+                key: DataConfig.parse_obj(value)
+                for key, value in json.load(json_file).items()
+            }
+    else:
+        return None
+
+
+def _load_channels(
+    path: MLPath, inputdataconfig: Optional[Dict[str, DataConfig]]
+) -> Dict[str, Path]:
+    """Lists the available channels in `/opt/ml/input/data`.
+
+    Return:
+    Dict of channel-names mapping to the corresponding path.
+
+    For DeepAR these are `train` and optionally `test`. For Forecast,
+    we also have a `metadata` channel, which just contains some information
+    about the dataset in `train` and `test`.
+
+    When running in SageMaker, channels and are listed in
+    `/opt/ml/config/inputdataconfig.json`. Thus, if this file is present,
+    we take its content to determine which channels are available. To
+    support a local development setup, we just list the contents of the
+    data folder to get the available channels.
+    """
+    if inputdataconfig is not None:
+        return {name: path.data / name for name in inputdataconfig.keys()}
+    else:
+        return {channel.name: channel for channel in path.data.iterdir()}
+
+
+def _load_hyperparameters(path: MLPath, channels) -> dict:
+    with path.hyperparameters.open() as json_file:
+        hyperparameters = parse_sagemaker_parameters(json.load(json_file))
+
+        for old_freq_name in ['time_freq', 'time_granularity']:
+            if old_freq_name in hyperparameters:
+                hyperparameters['freq'] = hyperparameters[old_freq_name]
+
+        if "metadata" in channels:
+            with (channels["metadata"] / "metadata.json").open() as file:
                 metadata = MetaData(**json.load(file))
-                self.hyperparameters.update(freq=metadata.freq)
+                hyperparameters.update(freq=metadata.freq)
+
+        return hyperparameters
+
+
+def _load_datasets(
+    hyperparameters: dict, channels: Dict[str, Path]
+) -> Dict[str, FileDataset]:
+    freq = hyperparameters["freq"]
+    return {
+        name: FileDataset(channels[name], freq)
+        for name in DATASET_NAMES
+        if name in channels
+    }

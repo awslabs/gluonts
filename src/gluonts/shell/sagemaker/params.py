@@ -57,14 +57,3 @@ def parse_sagemaker_parameters(raw_config: dict) -> dict:
     {'foo': [1, 2, 3], 'bar': 'hello'}
     """
     return map_dct_values(parse_sagemaker_parameter, raw_config)
-
-
-def load_sagemaker_hyperparameters(path: Path) -> dict:
-    with path.open() as json_file:
-        raw_config = json.load(json_file)
-
-        for old_freq_name in ['time_freq', 'time_granularity']:
-            if old_freq_name in raw_config:
-                raw_config['freq'] = raw_config[old_freq_name]
-
-        return parse_sagemaker_parameters(raw_config)
