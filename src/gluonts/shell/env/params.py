@@ -51,10 +51,10 @@ def parse_sagemaker_parameters(raw_config):
     Example:
 
     >>> parse_sagemaker_parameters({
-        "foo": "[1, 2, 3]",
-        "bar": "hello"
-    })
-    {"foo": [1, 2, 3], "bar": "hello"}
+    ...     "foo": "[1, 2, 3]",
+    ...     "bar": "hello"
+    ... })
+    {'foo': [1, 2, 3], 'bar': 'hello'}
     """
     return map_dct_values(parse_sagemaker_parameter, raw_config)
 
