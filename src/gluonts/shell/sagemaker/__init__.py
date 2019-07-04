@@ -14,8 +14,8 @@
 import json
 
 from gluonts.dataset.common import FileDataset
-from gluonts.shell.env.params import load_sagemaker_hyperparameters
-from gluonts.shell.env.path import MLPath
+from gluonts.shell.sagemaker.params import load_sagemaker_hyperparameters
+from gluonts.shell.sagemaker.path import MLPath
 
 
 # for now we only support train and test

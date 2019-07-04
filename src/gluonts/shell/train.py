@@ -23,7 +23,7 @@ from gluonts.core.exception import GluonTSFatalError
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.shell.env import SageMakerEnv
+from gluonts.shell.sagemaker import SageMakerEnv
 from gluonts.transform import FilterTransformation, TransformedDataset
 
 

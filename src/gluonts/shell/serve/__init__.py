@@ -21,7 +21,7 @@ from pydantic import BaseSettings
 
 # First-party imports
 from gluonts.model.predictor import Predictor
-from gluonts.shell.env import SageMakerEnv
+from gluonts.shell.sagemaker import SageMakerEnv
 
 from gluonts.shell.serve.app import make_app
 from gluonts.shell.serve.util import number_of_workers
