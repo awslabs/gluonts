@@ -4,9 +4,9 @@ import distutils.log
 import io
 import itertools
 import logging
+import os  # noqa
 import re
 import subprocess
-import os  # noqa
 import sys
 from pathlib import Path
 from textwrap import dedent
@@ -212,7 +212,12 @@ setup_kwargs: dict = dict(
     entry_points=dict(
         console_scripts=[
             "gluonts-validate-dataset=gluonts.dataset.validate:run"
-        ]
+        ],
+        gluonts_forecasters=[
+            'deepar=gluonts.model.deepar:DeepAREstimator',
+            'r=gluonts.model.r_forecast:RForecastPredictor [R]',
+            'prophet=gluonts.model.prophet:ProphetPredictor [Prophet]',
+        ],
     ),
     cmdclass={
         'type_check': TypeCheckCommand,

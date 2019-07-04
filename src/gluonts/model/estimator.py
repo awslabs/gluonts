@@ -11,12 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import pickle
-from pathlib import Path
-from typing import Tuple, NamedTuple, List
-
 # Standard library imports
+from typing import NamedTuple
+
+# Third-party imports
 import numpy as np
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
@@ -60,6 +58,10 @@ class Estimator:
         """
         raise NotImplementedError
 
+    @classmethod
+    def from_hyperparameters(cls, **hyperparameters):
+        return from_hyperparameters(cls, **hyperparameters)
+
 
 class DummyEstimator(Estimator):
     """
@@ -80,10 +82,6 @@ class DummyEstimator(Estimator):
 
     def train(self, training_data: Dataset) -> Predictor:
         return self.predictor
-
-    @classmethod
-    def from_hyperparameters(cls, **hyperparameters):
-        return from_hyperparameters(cls, **hyperparameters)
 
 
 class TrainOutput(NamedTuple):

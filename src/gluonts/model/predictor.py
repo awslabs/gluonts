@@ -20,14 +20,19 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import Callable, Dict, Iterator, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional
 
 # Third-party imports
 import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import DType, equals, validated
+from gluonts.core.component import (
+    DType,
+    equals,
+    from_hyperparameters,
+    validated,
+)
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -41,7 +46,6 @@ from gluonts.support.util import (
     import_symb_block,
 )
 from gluonts.transform import Transformation
-
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
@@ -116,6 +120,10 @@ class Predictor:
 
         # call deserialize() for the concrete Predictor type
         return tpe.deserialize(path)
+
+    @classmethod
+    def from_hyperparameters(cls, **hyperparameters):
+        return from_hyperparameters(cls, **hyperparameters)
 
 
 class RepresentablePredictor(Predictor):

@@ -11,58 +11,112 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import click
+# Standard library imports
+from pathlib import Path
+from typing import Optional, Type, Union, cast
+from textwrap import dedent
 
-FORECASTER_BY_NAME = {
-    'deepar': 'gluonts.model.deepar.DeepAREstimator',
-    'r': 'gluonts.model.r_forecast.RForecastPredictor',
-}
+# Third-party imports
+import click
+import pkg_resources
+
+# First-party imports
+from gluonts.core.exception import GluonTSForecasterNotFoundError
+from gluonts.model.estimator import Estimator
+from gluonts.model.predictor import Predictor
+
+# Relative imports
+from .sagemaker import SageMakerEnv
+
+
+def forecaster_type_by_name(name: str) -> Type[Union[Estimator, Predictor]]:
+    """
+    Loads a forecaster from the `gluonts_forecasters` entry_points namespace
+    by name.
+
+    Third-party libraries can register their forecasters as follows by defining
+    a corresponding section in the `entry_points` section of their `setup.py`::
+
+        entry_points={
+            'blogtool.parsers': [
+                'model_a = my_models.model_a:MyEstimator',
+                'model_b = my_models.model_b:MyPredictor',
+            ]
+        }
+    """
+    forecaster = None
+
+    for entry_point in pkg_resources.iter_entry_points('gluonts_forecasters'):
+        if entry_point.name == name:
+            forecaster = entry_point.load()
+            break
+
+    if forecaster is None:
+        msg = f'Cannot locate estimator with classname "{name}".'
+        raise GluonTSForecasterNotFoundError(msg)
+
+    return cast(Type[Union[Estimator, Predictor]], forecaster)
 
 
 @click.group()
-def cli():
+def cli() -> None:
     pass
 
 
-@cli.command()
-@click.option(
-    "--data-path", type=click.Path(exists=True), envvar="SAGEMAKER_DATA_PATH"
-)
-@click.option("--forecaster", envvar="GLUONTS_FORECASTER")
-def serve(data_path, forecaster):
-    from gluonts.shell.serve import (
-        get_app,
-        online_forecaster,
-        offline_forecaster,
-    )
-
-    if forecaster in FORECASTER_BY_NAME:
-        forecaster = FORECASTER_BY_NAME[forecaster]
-
-    if forecaster is not None:
-        predictor_factory = online_forecaster(forecaster)
-    else:
-        predictor_factory = offline_forecaster(data_path)
-
-    app = get_app(predictor_factory)
-    app.run()
-
-
-@cli.command()
+@cli.command(name='serve')
 @click.option(
     "--data-path",
     type=click.Path(exists=True),
-    envvar="SAGEMAKER_DATA_PATH",
     required=True,
+    envvar="SAGEMAKER_DATA_PATH",
+    default=Path('/opt/ml'),
 )
-@click.argument("forecaster", required=True, envvar="GLUONTS_FORECASTER")
-def train(data_path, forecaster):
-    if forecaster in FORECASTER_BY_NAME:
-        forecaster = FORECASTER_BY_NAME[forecaster]
+@click.option("--forecaster", metavar="NAME", envvar="GLUONTS_FORECASTER")
+def serve_command(data_path: str, forecaster: str) -> None:
+    from gluonts.shell import serve
 
-    from gluonts.shell.train import train
+    env = SageMakerEnv(data_path)
 
-    train(data_path, forecaster)
+    try:
+        serve.run_inference_server(env, forecaster_type_by_name(forecaster))
+    except GluonTSForecasterNotFoundError:
+        serve.run_inference_server(env, None)
+
+
+@cli.command(name='train')
+@click.option(
+    "--data-path",
+    type=click.Path(exists=True),
+    required=True,
+    envvar="SAGEMAKER_DATA_PATH",
+    default=Path('/opt/ml'),
+)
+@click.option(
+    "--forecaster",
+    type=str,
+    required=True,
+    envvar="GLUONTS_FORECASTER",
+    default='%from_hyperparameters%',
+)
+def train_command(data_path: str, forecaster: str) -> None:
+    from gluonts.shell import train
+
+    env = SageMakerEnv(data_path)
+
+    if forecaster == '%from_hyperparameters%':
+        try:
+            forecaster = env.hyperparameters['forecaster_name']
+        except KeyError:
+            msg = (
+                "Forecaster shell parameter is '%from_hyperparameters%', but "
+                "the `forecaster_name` key is not defined in the "
+                "hyperparameters.json dictionary."
+            )
+            raise GluonTSForecasterNotFoundError(msg)
+
+    forecaster_type = forecaster_type_by_name(forecaster)
+
+    train.run_train_and_test(env, forecaster_type)
 
 
 if __name__ == "__main__":

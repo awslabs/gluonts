@@ -36,6 +36,15 @@ class GluonTSFatalError(GluonTSException):
     pass
 
 
+class GluonTSForecasterNotFoundError(GluonTSException):
+    """
+    An exception indicating that a forecaster identified by the given
+    name cannot be found in the current environment.
+    """
+
+    pass
+
+
 class GluonTSHyperparameterParseError(GluonTSException):
     """
     An exception indicating a parse error when trying to re-interpret a
