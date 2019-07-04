@@ -10,7 +10,7 @@ from gluonts.trainer import Trainer
 
 
 ds_info, train_ds, test_ds = constant_dataset()
-freq = ds_info.metadata.time_granularity
+freq = ds_info.metadata.freq
 prediction_length = ds_info.prediction_length
 
 

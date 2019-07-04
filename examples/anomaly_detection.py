@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     estimator = DeepAREstimator(
         prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.time_granularity,
+        freq=dataset.metadata.freq,
         trainer=Trainer(
             learning_rate=1e-3, epochs=50, num_batches_per_epoch=100
         ),

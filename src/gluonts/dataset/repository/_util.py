@@ -52,7 +52,7 @@ def save_to_file(path: Path, data: List[Dict]):
 
 def metadata(cardinality: int, freq: str, prediction_length: int):
     return {
-        "time_granularity": freq,
+        "freq": freq,
         "prediction_length": prediction_length,
         "feat_static_cat": [
             {"name": "feat_static_cat", "cardinality": str(cardinality)}

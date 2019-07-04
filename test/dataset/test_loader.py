@@ -114,7 +114,7 @@ def test_io_speed() -> None:
         for name, get_loader, _ in fixtures:
             with Timer() as timer:
                 loader = get_loader(
-                    Path(path) / 'train', dataset.metadata.time_granularity
+                    Path(path) / 'train', dataset.metadata.freq
                 )
                 for act_size, _ in enumerate(loader, start=1):
                     pass
@@ -165,10 +165,10 @@ def test_timeseries_item_serialization() -> None:
         feat_static_cat=[1],
     )
     metadata = MetaData(
-        time_granularity="1H",
+        freq="1H",
         feat_static_cat=[{"name": "feat_static_cat_000", "cardinality": 1}],
     )
-    process = ProcessDataEntry(freq=metadata.time_granularity)
+    process = ProcessDataEntry(freq=metadata.freq)
 
     data_entry = process(ts_item.gluontsify(metadata))
     serialized_data = serialize_data_entry(data_entry)

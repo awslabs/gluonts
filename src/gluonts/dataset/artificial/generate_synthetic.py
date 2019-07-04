@@ -103,7 +103,7 @@ def generate_sf2s_and_csv(
     file_path += f'{folder_name}'
     if not os.path.exists(os.path.dirname(file_path)):
         os.makedirs(os.path.dirname(file_path))
-    freq = artificial_dataset.metadata.time_granularity
+    freq = artificial_dataset.metadata.freq
     train_set = artificial_dataset.train
     generate_sf2(file_path + 'train.json', train_set, is_missing, num_missing)
     test_set = artificial_dataset.test
@@ -206,7 +206,7 @@ if __name__ == '__main__':
         'constant_promotions/',
         ConstantDataset(
             is_promotions=True,
-            time_granularity='M',
+            freq='M',
             start='2015-11-30',
             num_timeseries=100,
             num_steps=50,
@@ -217,7 +217,7 @@ if __name__ == '__main__':
         'constant_holidays/',
         ConstantDataset(
             start='2017-07-01',
-            time_granularity='D',
+            freq='D',
             holidays=list(holidays.UnitedStates(years=[2017, 2018]).keys()),
             num_steps=365,
         ),

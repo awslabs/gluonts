@@ -23,7 +23,7 @@ from gluonts.model.seq2seq import (
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 
 dataset_info, train_ds, test_ds = constant_dataset()
-freq = dataset_info.metadata.time_granularity
+freq = dataset_info.metadata.freq
 prediction_length = dataset_info.prediction_length
 cardinality = int(dataset_info.metadata.feat_static_cat[0].cardinality)
 # FIXME: Should time features should not be needed for GP

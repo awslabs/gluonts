@@ -130,7 +130,7 @@ class CategoricalFeatureInfo(pydantic.BaseModel):
 
 
 class MetaData(pydantic.BaseModel):
-    time_granularity: str
+    freq: str
     target: Optional[BasicFeatureInfo] = None
 
     feat_static_cat: List[CategoricalFeatureInfo] = []
@@ -193,9 +193,10 @@ class FileDataset(Dataset):
         or ending with '_SUCCESS'. A valid line in a file can be for
         instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
     freq
-        Time-series frequency. Must be a valid Pandas frequency.
+        Frequency of the observation in the time series.
+        Must be a valid Pandas frequency.
     one_dim_target
-        Whether to accept only univariate target time-series.
+        Whether to accept only univariate target time series.
     """
 
     def __init__(
@@ -244,9 +245,10 @@ class ListDataset(Dataset):
         Each item should be a dictionary mapping strings to values.
         For instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
     freq
-        Time-series frequency. Must be a valid Pandas frequency.
+        Frequency of the observation in the time series.
+        Must be a valid Pandas frequency.
     one_dim_target
-        Whether to accept only univariate target time-series.
+        Whether to accept only univariate target time series.
     """
 
     def __init__(
@@ -457,8 +459,8 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds = FileDataset(train, meta.time_granularity)
-    test_ds = FileDataset(test, meta.time_granularity) if test else None
+    train_ds = FileDataset(train, meta.freq)
+    test_ds = FileDataset(test, meta.freq) if test else None
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 
