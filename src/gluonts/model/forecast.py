@@ -537,6 +537,9 @@ class OutputType(str, Enum):
 
 
 class Config(pydantic.BaseModel):
-    num_eval_samples: int
+    class Config:
+        allow_population_by_alias = True
+
+    num_eval_samples: int = pydantic.Schema(..., alias='num_samples')
     output_types: Set[OutputType]
     quantiles: List[str]  # FIXME: validate list elements
