@@ -12,10 +12,11 @@
 # permissions and limitations under the License.
 
 import json
+from typing import Dict
 
 from gluonts.dataset.common import FileDataset
-from gluonts.shell.env.params import load_sagemaker_hyperparameters
-from gluonts.shell.env.path import MLPath
+from .params import load_sagemaker_hyperparameters
+from .path import MLPath
 
 
 # for now we only support train and test
@@ -36,18 +37,16 @@ class SageMakerEnv:
         self.datasets = self._get_datasets()
         self._check_sf2()
 
-    def _get_datasets(self):
-        freq = self.hyperparameters["time_freq"]
+    def _get_datasets(self) -> Dict[str, FileDataset]:
+        freq = self.hyperparameters["freq"]
         return {
             name: FileDataset(self.channels[name], freq)
             for name in DATASETS
             if name in self.channels
         }
 
-    def _check_sf2(self):
+    def _check_sf2(self) -> None:
         if "metadata" in self.channels:
-            with open(self.channels["metadata"] / "metadata.json") as file_obj:
-                metadata = json.load(file_obj)
-                self.hyperparameters.update(
-                    time_freq=metadata["time_granularity"]
-                )
+            with (self.channels["metadata"] / "metadata.json").open() as file:
+                metadata = json.load(file)
+                self.hyperparameters.update(freq=metadata["freq"])

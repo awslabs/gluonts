@@ -130,7 +130,7 @@ class CategoricalFeatureInfo(pydantic.BaseModel):
 
 
 class MetaData(pydantic.BaseModel):
-    freq: str
+    freq: str = pydantic.Schema(..., alias='time_granularity')  # type: ignore
     target: Optional[BasicFeatureInfo] = None
 
     feat_static_cat: List[CategoricalFeatureInfo] = []
@@ -139,6 +139,9 @@ class MetaData(pydantic.BaseModel):
     feat_dynamic_cat: List[CategoricalFeatureInfo] = []
 
     prediction_length: Optional[int] = None
+
+    class Config(pydantic.BaseConfig):
+        allow_population_by_alias = True
 
 
 class SourceContext(NamedTuple):
