@@ -1,6 +1,6 @@
 # Time Series Forecasting
 
-The GluonTS toolkit contains components and tools for building time series models using MXNet. The models that are currently included are forecasting models but the components also support other time series use cases, such as classification or anomaly detection. 
+The GluonTS toolkit contains components and tools for building time series models using MXNet. The models that are currently included are forecasting models but the components also support other time series use cases, such as classification or anomaly detection.
 
 The toolkit is not intended as a forecasting solution for businesses or end users but it rather targets scientists and engineers who want to tweak algorithms or build and experiment with their own models.  
 
@@ -28,7 +28,7 @@ import json
 
 ### GluonTS datasets
 
-GluonTS comes with a number of publicly available datasets. 
+GluonTS comes with a number of publicly available datasets.
 
 
 ```python
@@ -45,14 +45,14 @@ An available dataset can be easily downloaded by its name. In this notebook we w
 
 
 ```python
-dataset = get_dataset("m4_hourly", regenerate=False)
+dataset = get_dataset("m4_hourly", regenerate=True)
 ```
 
 In general, the datasets provided by GluonTS are objects that consists of three main components:
 
 - `dataset.train` is an iterable collection of data entries used for training.
 - `dataset.test` is an iterable collection of data entries used for inference. The test dataset is an extended version of the train dataset that contains a window in the end of each time series that was not seen during training. This window has length equal to the recommended prediction length.
-- `dataset.metadata` containts metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc. 
+- `dataset.metadata` containts metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc.
 
 
 ```python
@@ -84,7 +84,7 @@ print(f"Frequency of the time series: {dataset.metadata.freq}")
 
 ### Custom datasets
 
-At this point, it is important to emphasize that GluonTS does not require this specific format for a custom dataset that a user may have. The only requirements for a custom dataset are to be iterable and have a "target" and a "start" field. To make this more clear, assume the common case where a dataset is in the form of a `numpy.array` and the index of the time series in a `pandas.Timestamp` (possibly different for each time series): 
+At this point, it is important to emphasize that GluonTS does not require this specific format for a custom dataset that a user may have. The only requirements for a custom dataset are to be iterable and have a "target" and a "start" field. To make this more clear, assume the common case where a dataset is in the form of a `numpy.array` and the index of the time series in a `pandas.Timestamp` (possibly different for each time series):
 
 
 ```python
@@ -107,11 +107,11 @@ test_ds = [{'target': x, 'start': start} for x in custom_dataset]
 
 ## Training an existing model (`Estimator`)
 
-As we already mentioned, GluonTS comes with a number of pre-built models that can be used directly with minor hyperparameter configurations. For starters we will use one of these predefined models to go through the whole pipeline of training a model, predicting, and evaluating the results. 
+As we already mentioned, GluonTS comes with a number of pre-built models that can be used directly with minor hyperparameter configurations. For starters we will use one of these predefined models to go through the whole pipeline of training a model, predicting, and evaluating the results.
 
 GluonTS gives focus (but is not restricted) to probabilistic forecasting, i.e., forecasting the future distribution of the values and not the future values themselves (point estimates) of a time series. Having estimated the future distribution of each time step in the forecasting horizon, we can draw a sample from the distribution at each time step and thus create a "sample path" that can be seen as a possible realization of the future. In practice we draw multiple samples and create multiple sample paths which can be used for visualization, evaluation of the model, to derive statistics, etc.
 
-In this example we will use a simple pre-built feedforward neural network estimator that takes as input a window of length `context_length` and predicts the distribution of the values of the subsequent future window of length `prediction_length`. 
+In this example we will use a simple pre-built feedforward neural network estimator that takes as input a window of length `context_length` and predicts the distribution of the values of the subsequent future window of length `prediction_length`.
 
 In general, each estimator (pre-built or custom) is configured by a number of hyperparameters that can be either common (but not binding) among all estimators (e.g., the `prediction_length`) or specific for the particular estimator (e.g., number of layers for a neural network or the stride in a CNN).
 
@@ -146,8 +146,8 @@ Now we have a predictor in our hands. We can use it to predict the last window o
 GluonTS comes with the `make_evaluation_predictions` function that automates all this procedure. Roughly, this module performs the following steps:
 
 - Removes the final window of length `prediction_length` of the `dataset.test` that we want to predict
-- The estimator uses the remaining dataset to predict (in the form of sample paths) the "future" window that was just removed 
-- The module outputs a generator over the forecasted sample paths and a generator over the `dataset.test` 
+- The estimator uses the remaining dataset to predict (in the form of sample paths) the "future" window that was just removed
+- The module outputs a generator over the forecasted sample paths and a generator over the `dataset.test`
 
 
 ```python
@@ -213,11 +213,11 @@ print(f"0.5-quantile (median) of the future window:\n {forecasts[0].quantile(0.5
 ```
 
 Finally, each forecast object has a `
-plot` method that can be parametrized to show the mean, prediction intervals, etc. The prediction intervals are plotted in different shades so they are distinct. 
+plot` method that can be parametrized to show the mean, prediction intervals, etc. The prediction intervals are plotted in different shades so they are distinct.
 
 
 ```python
-plot_length = 150 
+plot_length = 150
 prediction_intervals = (50.0, 90.0)
 legend = ["observations", "median prediction"] + [f"{k}% prediction interval" for k in prediction_intervals][::-1]
 
@@ -270,7 +270,7 @@ The training and prediction networks can be arbitrarily complex but they should 
 
 - Both should have a `hybrid_forward` method that defines what should happen when the network is called    
 - The trainng network's `hybrid_forward` should return a **loss** based on the prediction and the true values
-- The prediction network's `hybrid_forward` should return the predictions 
+- The prediction network's `hybrid_forward` should return the predictions
 
 For example, we can create a simple training network that defines a neural network which takes as an input the past values of the time series and outputs a future predicted window of length `prediction_length`. It uses the L1 loss in the `hybrid_forward` method to evaluate the error among the predictions and the true values of the time series. The corresponding prediction network should be identical to the training network in terms of architecture (we achieve this by inheriting the training network class), and its `hybrid_forward` method outputs directly the predictions.
 
@@ -282,7 +282,7 @@ class MyTrainNetwork(gluon.HybridBlock):
     def __init__(self, prediction_length, **kwargs):
         super().__init__(**kwargs)
         self.prediction_length = prediction_length
-    
+
         with self.name_scope():
             # Set up a 3 layer neural network that directly predicts the target values
             self.nn = mx.gluon.nn.HybridSequential()
@@ -307,9 +307,9 @@ Now, we need to construct the estimator which should also follow some rules:
 
 - It should include a `create_transformation` method that defines all the possible feature transformations and how the data is split during training
 - It should include a `create_training_network` method that returns the training network configured with any necessary hyperparameters
-- It should include a `create_predictor` method that creates the prediction network, and returns a `Predictor` object 
+- It should include a `create_predictor` method that creates the prediction network, and returns a `Predictor` object
 
-A `Predictor` defines the `predict` method of a given predictor. Roughly, this method takes the test dataset, it passes it through the prediction network and yields the predictions. You can think of the `Predictor` object as a wrapper of the prediction network that defines its `predict` method. 
+A `Predictor` defines the `predict` method of a given predictor. Roughly, this method takes the test dataset, it passes it through the prediction network and yields the predictions. You can think of the `Predictor` object as a wrapper of the prediction network that defines its `predict` method.
 
 Earlier, we used the `make_evaluation_predictions` to evaluate our predictor. Internally, the `make_evaluation_predictions` function invokes the `predict` method of the predictor to get the forecasts.
 
@@ -338,10 +338,10 @@ class MyEstimator(GluonEstimator):
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.freq = freq
-        
-    
+
+
     def create_transformation(self):
-        # Feature transformation that the model uses for input. 
+        # Feature transformation that the model uses for input.
         # Here we use a transformation that randomly select training samples from all time series.
         return InstanceSplitter(
                     target_field=FieldName.TARGET,
@@ -352,7 +352,7 @@ class MyEstimator(GluonEstimator):
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                 )
-    
+
     def create_training_network(self) -> MyTrainNetwork:
         return MyTrainNetwork(
             prediction_length=self.prediction_length
@@ -397,8 +397,8 @@ predictor = estimator.train(dataset.train)
 
 ```python
 forecast_it, ts_it = make_evaluation_predictions(
-    dataset=dataset.test, 
-    predictor=predictor, 
+    dataset=dataset.test,
+    predictor=predictor,
     num_eval_samples=100
 )
 ```
@@ -411,7 +411,7 @@ tss = list(ts_it)
 
 
 ```python
-plot_length = 150 
+plot_length = 150
 prediction_intervals = (50.0, 90.0)
 legend = ["observations", "median prediction"] + [f"{k}% prediction interval" for k in prediction_intervals][::-1]
 
