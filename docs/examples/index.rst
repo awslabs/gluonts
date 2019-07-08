@@ -9,12 +9,17 @@ Forecasting
 .. container:: cards
 
    .. card::
-      :title: Forecasting Tutorial
-      :link: forecasting/tutorial.html
+      :title: Quick Start Tutorial
+      :link: basic_forecasting_tutorial/tutorial.html
+
+   .. card::
+      :title: Extended Forecasting Tutorial
+      :link: extended_forecasting_tutorial/extended_tutorial.html
 
 
 .. toctree::
    :hidden:
    :maxdepth: 1
 
-   forecasting/tutorial.ipynb
+   basic_forecasting_tutorial/tutorial.ipynb
+   extended_forecasting_tutorial/extended_tutorial.ipynb
