@@ -23,8 +23,7 @@ import pandas as pd
 import pydantic
 
 # First-party imports
-from gluonts.core.component import validated
-from gluonts.core.exception import GluonTSUserError, assert_gluonts
+from gluonts.core.exception import GluonTSUserError
 
 
 class Quantile(NamedTuple):

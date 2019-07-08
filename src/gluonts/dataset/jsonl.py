@@ -63,7 +63,7 @@ class JsonLinesFile:
                 span = Span(path=self.path, line=line_number)
                 try:
                     yield Line(json.loads(raw), span=span)
-                except ValueError as _:
+                except ValueError:
                     raise GluonTSDataError(
                         f"Could not read json line {line_number}, {raw}"
                     )
