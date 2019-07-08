@@ -13,7 +13,7 @@
 
 # Standard library imports
 from pathlib import Path
-from typing import Type, Union, cast
+from typing import Optional, Type, Union, cast
 
 # Third-party imports
 import click
@@ -66,19 +66,18 @@ def cli() -> None:
 @click.option(
     "--data-path",
     type=click.Path(exists=True),
-    required=True,
     envvar="SAGEMAKER_DATA_PATH",
-    default=Path('/opt/ml'),
+    default='/opt/ml',
 )
 @click.option("--forecaster", metavar="NAME", envvar="GLUONTS_FORECASTER")
-def serve_command(data_path: str, forecaster: str) -> None:
+def serve_command(data_path: str, forecaster: Optional[str]) -> None:
     from gluonts.shell import serve
 
     env = SageMakerEnv(Path(data_path))
 
-    try:
+    if forecaster is not None:
         serve.run_inference_server(env, forecaster_type_by_name(forecaster))
-    except GluonTSForecasterNotFoundError:
+    else:
         serve.run_inference_server(env, None)
 
 
@@ -86,36 +85,28 @@ def serve_command(data_path: str, forecaster: str) -> None:
 @click.option(
     "--data-path",
     type=click.Path(exists=True),
-    required=True,
     envvar="SAGEMAKER_DATA_PATH",
-    default=Path('/opt/ml'),
+    default='/opt/ml',
 )
-@click.option(
-    "--forecaster",
-    type=str,
-    required=True,
-    envvar="GLUONTS_FORECASTER",
-    default='%from_hyperparameters%',
-)
-def train_command(data_path: str, forecaster: str) -> None:
+@click.option("--forecaster", type=str, envvar="GLUONTS_FORECASTER")
+def train_command(data_path: str, forecaster: Optional[str]) -> None:
     from gluonts.shell import train
 
     env = SageMakerEnv(Path(data_path))
 
-    if forecaster == '%from_hyperparameters%':
+    if forecaster is None:
         try:
             forecaster = env.hyperparameters['forecaster_name']
         except KeyError:
             msg = (
-                "Forecaster shell parameter is '%from_hyperparameters%', but "
+                "Forecaster shell parameter is `None`, but "
                 "the `forecaster_name` key is not defined in the "
                 "hyperparameters.json dictionary."
             )
             raise GluonTSForecasterNotFoundError(msg)
 
-    forecaster_type = forecaster_type_by_name(forecaster)
-
-    train.run_train_and_test(env, forecaster_type)
+    assert forecaster is not None
+    train.run_train_and_test(env, forecaster_type_by_name(forecaster))
 
 
 if __name__ == "__main__":
