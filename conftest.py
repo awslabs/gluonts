@@ -88,10 +88,14 @@ def pytest_configure():
         seed = np.random.randint(0, np.iinfo(np.int32).max)
     else:
         seed = int(module_seed_str)
-        logging.warning('*** module-level seed is set: '
-                        'all tests running deterministically ***')
-    print('Setting module np/mx/python random seeds, '
-          'use MXNET_MODULE_SEED={} to reproduce.'.format(seed))
+        logging.warning(
+            '*** module-level seed is set: '
+            'all tests running deterministically ***'
+        )
+    print(
+        'Setting module np/mx/python random seeds, '
+        'use MXNET_MODULE_SEED={} to reproduce.'.format(seed)
+    )
 
     np.random.seed(seed)
     mx.random.seed(seed)
@@ -100,8 +104,10 @@ def pytest_configure():
     # The MXNET_TEST_SEED environment variable will override MXNET_MODULE_SEED for tests with
     #  the 'with_seed()' decoration.  Inform the user of this once here at the module level.
     if os.getenv('MXNET_TEST_SEED') is not None:
-        logging.warning('*** test-level seed set: all "@with_seed()" '
-                        'tests run deterministically ***')
+        logging.warning(
+            '*** test-level seed set: all "@with_seed()" '
+            'tests run deterministically ***'
+        )
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -166,8 +172,10 @@ def function_scope_seed(request):
     mx.random.seed(seed)
     random.seed(seed)
 
-    seed_message = ('np/mx/python random seeds are set to '
-                    '{}, use MXNET_TEST_SEED={} to reproduce.')
+    seed_message = (
+        'np/mx/python random seeds are set to '
+        '{}, use MXNET_TEST_SEED={} to reproduce.'
+    )
     seed_message = seed_message.format(seed, seed)
 
     # Always log seed on DEBUG log level. This makes sure we can find out the
@@ -189,6 +197,7 @@ def function_scope_seed(request):
 def hybridize(request):
     return request.param
 
+
 @pytest.fixture(autouse=True)
 def doctest(doctest_namespace):
     doctest_namespace['np'] = np
@@ -196,4 +205,5 @@ def doctest(doctest_namespace):
     doctest_namespace['mx'] = mx
     doctest_namespace['gluon'] = mx.gluon
     import doctest
+
     doctest.ELLIPSIS_MARKER = '-etc-'
