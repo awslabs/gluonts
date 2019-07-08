@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import pydoc
 from pathlib import Path
 from typing import Optional, Type, Union, cast
 
@@ -27,17 +28,22 @@ from gluonts.model.predictor import Predictor
 # Relative imports
 from .sagemaker import SageMakerEnv
 
+Forecaster = Type[Union[Estimator, Predictor]]
 
-def forecaster_type_by_name(name: str) -> Type[Union[Estimator, Predictor]]:
+
+def forecaster_type_by_name(name: str) -> Forecaster:
     """
     Loads a forecaster from the `gluonts_forecasters` entry_points namespace
     by name.
+
+    If a forecater wasn't register under that name, it tries to locate the
+    class.
 
     Third-party libraries can register their forecasters as follows by defining
     a corresponding section in the `entry_points` section of their `setup.py`::
 
         entry_points={
-            'blogtool.parsers': [
+            'gluonts_forecasters': [
                 'model_a = my_models.model_a:MyEstimator',
                 'model_b = my_models.model_b:MyPredictor',
             ]
@@ -49,12 +55,15 @@ def forecaster_type_by_name(name: str) -> Type[Union[Estimator, Predictor]]:
         if entry_point.name == name:
             forecaster = entry_point.load()
             break
+    else:
+        forecaster = pydoc.locate(name)
 
     if forecaster is None:
-        msg = f'Cannot locate estimator with classname "{name}".'
-        raise GluonTSForecasterNotFoundError(msg)
+        raise GluonTSForecasterNotFoundError(
+            f'Cannot locate estimator with classname "{name}".'
+        )
 
-    return cast(Type[Union[Estimator, Predictor]], forecaster)
+    return cast(Forecaster, forecaster)
 
 
 @click.group()
