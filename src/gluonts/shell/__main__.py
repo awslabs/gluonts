@@ -13,8 +13,7 @@
 
 # Standard library imports
 from pathlib import Path
-from typing import Optional, Type, Union, cast
-from textwrap import dedent
+from typing import Type, Union, cast
 
 # Third-party imports
 import click

@@ -4,7 +4,7 @@ import math
 from pathlib import Path
 
 # First-party imports
-import gluonts  # noqa
+import gluonts
 from gluonts.core.component import equals
 from gluonts.core.serde import load_code, dump_code
 from gluonts.dataset.artificial import constant_dataset
@@ -40,7 +40,7 @@ def test_forecast_parser():
     assert repr(estimator) == repr(load_code(repr(estimator)))
 
     stats = calculate_dataset_statistics(train_ds)
-    assert stats == eval(repr(stats))  # TODO: use load
+    assert stats == eval(repr(stats), globals(), {'gluonts': gluonts})  # TODO: use load
 
     evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
     agg_metrics, _ = backtest_metrics(train_ds, test_ds, estimator, evaluator)

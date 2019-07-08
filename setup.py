@@ -4,7 +4,6 @@ import distutils.log
 import io
 import itertools
 import logging
-import os  # noqa
 import re
 import subprocess
 import sys

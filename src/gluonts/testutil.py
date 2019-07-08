@@ -15,7 +15,7 @@
 import shutil
 import tempfile
 from contextlib import contextmanager
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 

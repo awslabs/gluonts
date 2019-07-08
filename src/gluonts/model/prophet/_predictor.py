@@ -13,10 +13,10 @@ from gluonts.model.predictor import RepresentablePredictor
 
 try:
     from fbprophet import Prophet
-except ImportError as e:
-    pass
+except ImportError:
+    Prophet = None
 
-PROPHET_IS_INSTALLED = 'Prophet' in locals()
+PROPHET_IS_INSTALLED = Prophet is not None
 
 USAGE_MESSAGE = """
 Cannot import `fbprophet`.
