@@ -77,7 +77,7 @@ To download one of the built-in datasets, simply call `get_dataset` with one of 
 
 
 ```python
-dataset = get_dataset("m4_hourly", regenerate=False)
+dataset = get_dataset("m4_hourly", regenerate=True)
 ```
 
 ### 1.1.1 What is in a dataset?
@@ -133,7 +133,7 @@ plt.show()
 ```python
 print(f"Length of forecasting window in test dataset: {len(test_series) - len(train_series)}")
 print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
-print(f"Frequency of the time series: {dataset.metadata.time_granularity}")
+print(f"Frequency of the time series: {dataset.metadata.freq}")
 ```
 
 ## 1.2 Create artificial datasets
@@ -170,7 +170,7 @@ We can access some important metadata of the artificial dataset as follows:
 
 ```python
 print(f"prediction length: {artificial_dataset.metadata.prediction_length}")
-print(f"frequency: {artificial_dataset.metadata.time_granularity}")
+print(f"frequency: {artificial_dataset.metadata.freq}")
 ```
 
 The artificial dataset that we created is a list of dictionaries. Each dictionary corresponds to a time series and it should contain the required fields.
@@ -188,13 +188,13 @@ In order to use the artificially created datasets (list of dictionaries) we need
 
 ```python
 train_ds = ListDataset(artificial_dataset.train, 
-                        freq=artificial_dataset.metadata.time_granularity)
+                        freq=artificial_dataset.metadata.freq)
 ```
 
 
 ```python
 test_ds = ListDataset(artificial_dataset.test, 
-                       freq=artificial_dataset.metadata.time_granularity)
+                       freq=artificial_dataset.metadata.freq)
 ```
 
 
