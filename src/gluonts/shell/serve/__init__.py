@@ -22,7 +22,7 @@ from pydantic import BaseSettings
 # First-party imports
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.shell.sagemaker import SageMakerEnv
+from gluonts.shell.sagemaker import ServeEnv
 
 import logging
 import multiprocessing
@@ -98,8 +98,7 @@ class Application(BaseApplication):
 
 
 def run_inference_server(
-    env: SageMakerEnv,
-    forecaster_type: Optional[Type[Union[Estimator, Predictor]]],
+    env: ServeEnv, forecaster_type: Optional[Type[Union[Estimator, Predictor]]]
 ) -> None:
     if forecaster_type is not None:
         ctor = forecaster_type.from_hyperparameters

@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 from gluonts.dataset.common import FileDataset, MetaData
 from .params import parse_sagemaker_parameters
-from .path import MLPath
+from .path import ServePaths, TrainPaths
 
 
 class DataConfig(BaseModel):
@@ -30,22 +30,21 @@ class DataConfig(BaseModel):
 DATASET_NAMES = 'train', 'test'
 
 
-class SageMakerEnv:
+class TrainEnv:
     def __init__(self, path: Path = Path("/opt/ml")) -> None:
-        self.path = _load_path(path)
+        self.path = TrainPaths(path)
         self.inputdataconfig = _load_inputdataconfig(self.path)
         self.channels = _load_channels(self.path, self.inputdataconfig)
         self.hyperparameters = _load_hyperparameters(self.path, self.channels)
         self.datasets = _load_datasets(self.hyperparameters, self.channels)
 
 
-def _load_path(path: Path) -> MLPath:
-    ml_path = MLPath(path)
-    ml_path.makedirs()
-    return ml_path
+class ServeEnv:
+    def __init__(self, path: Path = Path("/opt/ml")) -> None:
+        self.path = ServePaths(path)
 
 
-def _load_inputdataconfig(path: MLPath) -> Optional[Dict[str, DataConfig]]:
+def _load_inputdataconfig(path: TrainPaths) -> Optional[Dict[str, DataConfig]]:
     if path.inputdataconfig.exists():
         with path.inputdataconfig.open() as json_file:
             return {
@@ -57,7 +56,7 @@ def _load_inputdataconfig(path: MLPath) -> Optional[Dict[str, DataConfig]]:
 
 
 def _load_channels(
-    path: MLPath, inputdataconfig: Optional[Dict[str, DataConfig]]
+    path: TrainPaths, inputdataconfig: Optional[Dict[str, DataConfig]]
 ) -> Dict[str, Path]:
     """Lists the available channels in `/opt/ml/input/data`.
 
@@ -80,7 +79,7 @@ def _load_channels(
         return {channel.name: channel for channel in path.data.iterdir()}
 
 
-def _load_hyperparameters(path: MLPath, channels) -> dict:
+def _load_hyperparameters(path: TrainPaths, channels) -> dict:
     with path.hyperparameters.open() as json_file:
         hyperparameters = parse_sagemaker_parameters(json.load(json_file))
 

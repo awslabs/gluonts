@@ -16,20 +16,28 @@
 from pathlib import Path
 
 
-class MLPath:
+class TrainPaths:
     def __init__(self, base="/opt/ml") -> None:
         self.base: Path = Path(base).expanduser().resolve()
-        self.config: Path = self.base / "input/config"
-        self.data: Path = self.base / "input/data"
+        self.config: Path = self.base / "input" / "config"
+        self.data: Path = self.base / "input" / "data"
         self.model: Path = self.base / "model"
         self.output: Path = self.base / "output"
 
         self.hyperparameters: Path = self.config / "hyperparameters.json"
         self.inputdataconfig: Path = self.config / "inputdataconfig.json"
 
-    def makedirs(self) -> None:
         self.config.mkdir(parents=True, exist_ok=True)
         self.data.mkdir(parents=True, exist_ok=True)
         self.model.mkdir(parents=True, exist_ok=True)
         self.output.mkdir(parents=True, exist_ok=True)
-        # (self.output / 'data').mkdir(parents=True, exist_ok=True)
+
+
+class ServePaths:
+    def __init__(self, base="/opt/ml") -> None:
+        self.base: Path = Path(base).expanduser().resolve()
+        self.model: Path = self.base / "model"
+        self.output: Path = self.base / "output"
+
+        self.model.mkdir(parents=True, exist_ok=True)
+        self.output.mkdir(parents=True, exist_ok=True)

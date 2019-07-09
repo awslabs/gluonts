@@ -23,11 +23,11 @@ from gluonts.model.predictor import Predictor
 from gluonts.transform import Dataset, FilterTransformation, TransformedDataset
 
 # Relative imports
-from .sagemaker import SageMakerEnv
+from .sagemaker import TrainEnv
 
 
 def run_train_and_test(
-    env: SageMakerEnv, forecaster_type: Type[Union[Estimator, Predictor]]
+    env: TrainEnv, forecaster_type: Type[Union[Estimator, Predictor]]
 ) -> None:
     check_gpu_support()
 
