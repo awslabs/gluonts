@@ -159,3 +159,7 @@ conda
 
 # vscode
 .vscode
+
+#file in my repo says don't add to VCS
+src/gluonts/version.py
+
