@@ -21,7 +21,7 @@ from gluonts.core.serde import dump_code
 DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
-logger = logging.getLogger('SWIST')
+logger = logging.getLogger('gluonts')
 
 
 def metric(metric: str, value: Any) -> None:
