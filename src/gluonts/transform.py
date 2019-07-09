@@ -565,23 +565,23 @@ class ConcatFeatures(SimpleTransformation):
 
 class SwapAxes(SimpleTransformation):
     """
-    Apply `np.swapaxes` to fields.
+    Apply `np.swapaxes` to input_fields.
 
     Parameters
     ----------
-    fields
+    input_fields
         Field to apply to
     axes
         Axes to use
     """
 
     @validated()
-    def __init__(self, fields: List[str], axes: Tuple[int, int]) -> None:
-        self.fields = fields
+    def __init__(self, input_fields: List[str], axes: Tuple[int, int]) -> None:
+        self.input_fields = input_fields
         self.axis1, self.axis2 = axes
 
     def transform(self, data: DataEntry) -> DataEntry:
-        for field in self.fields:
+        for field in self.input_fields:
             data[field] = self.swap(data[field])
         return data
 
@@ -1216,20 +1216,20 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 
 class SelectFields(MapTransformation):
     """
-    Only keep the listed fields
+    Only keep the listed input_fields
 
     Parameters
     ----------
-    fields
+    input_fields
         List of fields to keep.
     """
 
     @validated()
-    def __init__(self, fields: List[str]) -> None:
-        self.fields = fields
+    def __init__(self, input_fields: List[str]) -> None:
+        self.input_fields = input_fields
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        return {f: data[f] for f in self.fields}
+        return {f: data[f] for f in self.input_fields}
 
 
 class TransformedDataset(Dataset):
