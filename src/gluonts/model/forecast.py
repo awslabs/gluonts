@@ -30,6 +30,18 @@ class Quantile(NamedTuple):
     value: float
     name: str
 
+    @property
+    def loss_name(self):
+        return f"QuantileLoss[{self.name}]"
+
+    @property
+    def weighted_loss_name(self):
+        return f"wQuantileLoss[{self.name}]"
+
+    @property
+    def coverage_name(self):
+        return f"Coverage[{self.name}]"
+
     @classmethod
     def checked(cls, value: float, name: str) -> "Quantile":
         if not 0 <= value <= 1:
@@ -62,7 +74,7 @@ class Quantile(NamedTuple):
                 return cls(value=quantile, name=str(quantile))
 
     @classmethod
-    def parse(cls, quantile: Union[float, str]) -> "Quantile":
+    def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
         """Produces equivalent float and string representation of a given
         quantile level.
 
@@ -90,7 +102,9 @@ class Quantile(NamedTuple):
             A tuple containing both a float and a string representation of the
             input quantile level.
         """
-        if isinstance(quantile, float):
+        if isinstance(quantile, Quantile):
+            return quantile
+        elif isinstance(quantile, float):
             return cls.from_float(quantile)
         else:
             return cls.from_str(quantile)

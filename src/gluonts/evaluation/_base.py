@@ -55,9 +55,11 @@ def get_seasonality(freq: str) -> int:
 
 
 class Evaluator:
+    default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+
     def __init__(
         self,
-        quantiles: Iterable[Union[float, str]] = [f"0.{i}" for i in range(10)],
+        quantiles: Iterable[Union[float, str]] = default_quantiles,
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
     ):
@@ -76,9 +78,7 @@ class Evaluator:
             see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf for more detail on MSIS
         """
 
-        self.quantile_values, self.quantile_names = zip(
-            *map(Quantile.parse, quantiles)
-        )
+        self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
 
@@ -205,11 +205,11 @@ class Evaluator:
         seasonal_error = self.seasonal_error(time_series, forecast)
         # For MSIS: alpha/2 quantile may not exist. Find the closest.
         lower_q = min(
-            self.quantile_values, key=lambda x: abs(x - self.alpha / 2)
+            self.quantiles, key=lambda q: abs(q.value - self.alpha / 2)
         )
         upper_q = min(
-            list(reversed(self.quantile_values)),
-            key=lambda x: abs(x - (1 - self.alpha / 2)),
+            reversed(self.quantiles),
+            key=lambda q: abs(q.value - (1 - self.alpha / 2)),
         )
 
         metrics = {
@@ -230,14 +230,15 @@ class Evaluator:
             ),
         }
 
-        for q, q_name in zip(self.quantile_values, self.quantile_names):
-            m = 'QuantileLoss[{}]'.format(q_name)
-            metrics[m] = self.quantile_loss(
-                pred_target, forecast.quantile(q), q
-            )
+        for quantile in self.quantiles:
+            forecast_quantile = forecast.quantile(quantile.value)
 
-            m = 'Coverage[{}]'.format(q_name)
-            metrics[m] = self.coverage(pred_target, forecast.quantile(q))
+            metrics[quantile.loss_name] = self.quantile_loss(
+                pred_target, forecast_quantile, quantile.value
+            )
+            metrics[quantile.coverage_name] = self.coverage(
+                pred_target, forecast_quantile
+            )
 
         return metrics
 
@@ -254,12 +255,12 @@ class Evaluator:
             'sMAPE': 'mean',
             'MSIS': 'mean',
         }
-        for q, q_name in zip(self.quantile_values, self.quantile_names):
-            agg_funs['QuantileLoss[{}]'.format(q_name)] = 'sum'
-            agg_funs['Coverage[{}]'.format(q_name)] = 'mean'
+        for quantile in self.quantiles:
+            agg_funs[quantile.loss_name] = "sum"
+            agg_funs[quantile.coverage_name] = "mean"
 
-        assert set(metric_per_ts.columns).issuperset(
-            agg_funs.keys()
+        assert (
+            set(metric_per_ts.columns) >= agg_funs.keys()
         ), 'The some of the requested item metrics are missing.'
 
         totals = {
@@ -279,25 +280,24 @@ class Evaluator:
             totals["abs_error"] * (1 - flag), totals["abs_target_sum"] + flag
         )
 
-        all_qLoss_names = []
-        for q, q_name in zip(self.quantile_values, self.quantile_names):
-            qLoss_name = "wQuantileLoss[{}]".format(q_name)
-            all_qLoss_names.append(qLoss_name)
-            totals[qLoss_name] = np.divide(
-                totals['QuantileLoss[{}]'.format(q_name)],
-                totals["abs_target_sum"],
+        all_qLoss_names = [
+            quantile.weighted_loss_name for quantile in self.quantiles
+        ]
+        for quantile in self.quantiles:
+            totals[quantile.weighted_loss_name] = np.divide(
+                totals[quantile.loss_name], totals["abs_target_sum"]
             )
 
         totals['mean_wQuantileLoss'] = np.array(
             [totals[ql] for ql in all_qLoss_names]
         ).mean()
 
-        totals['MAE_Coverage'] = np.array(
+        totals['MAE_Coverage'] = np.mean(
             [
-                np.abs(totals['Coverage[{}]'.format(q)] - np.array([q]))
-                for q in self.quantile_values
+                np.abs(totals[q.coverage_name] - np.array([q.value]))
+                for q in self.quantiles
             ]
-        ).mean()
+        )
         return totals, metric_per_ts
 
     @staticmethod
