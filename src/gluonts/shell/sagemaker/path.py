@@ -26,6 +26,7 @@ class TrainPaths:
 
         self.hyperparameters: Path = self.config / "hyperparameters.json"
         self.inputdataconfig: Path = self.config / "inputdataconfig.json"
+        self.resourceconfig: Path = self.config / "resourceconfig.json"
 
         self.config.mkdir(parents=True, exist_ok=True)
         self.data.mkdir(parents=True, exist_ok=True)

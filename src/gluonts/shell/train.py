@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import logging
 from typing import Type, Union
 
 # First-party imports
@@ -24,6 +25,14 @@ from gluonts.transform import Dataset, FilterTransformation, TransformedDataset
 
 # Relative imports
 from .sagemaker import TrainEnv
+
+
+logger = logging.getLogger("gluonts.train")
+
+
+def log_metrics(env, metrics):
+    for name, score in metrics.items():
+        print(f"#test_score ({env.current_host}, {name}): {score}")
 
 
 def run_train_and_test(
@@ -45,7 +54,7 @@ def run_train_and_test(
             env.datasets["test"],
             prediction_length=forecaster.prediction_length,
         )
-        run_test(predictor, test_dataset)
+        run_test(env, predictor, test_dataset)
 
 
 def run_train(forecaster, train_dataset) -> Predictor:
@@ -56,21 +65,18 @@ def run_train(forecaster, train_dataset) -> Predictor:
 
 
 def run_test(
-    forecaster: Union[Estimator, Predictor], test_dataset: Dataset
+    env: TrainEnv, predictor: Predictor, test_dataset: Dataset
 ) -> None:
-    agg_metrics, _item_metrics = backtest.backtest_metrics(
-        train_dataset=None,
-        test_dataset=test_dataset,
-        forecaster=forecaster,
-        evaluator=Evaluator(
-            quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-        ),
-        num_eval_samples=100,
+    forecast_it, ts_it = backtest.make_evaluation_predictions(
+        test_dataset, predictor=predictor, num_eval_samples=100
+    )
+    agg_metrics, _item_metrics = Evaluator()(
+        ts_it, forecast_it, num_series=len(test_dataset)
     )
 
     # we only log aggregate metrics for now as item metrics may be
     # very large
-    log.metric("agg_metrics", agg_metrics)
+    log_metrics(env, agg_metrics)
 
 
 def prepare_test_dataset(dataset: Dataset, prediction_length: int) -> Dataset:

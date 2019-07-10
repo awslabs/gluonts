@@ -22,6 +22,10 @@ from .params import parse_sagemaker_parameters
 from .path import ServePaths, TrainPaths
 
 
+def map_value(fn, dct):
+    return {key: fn(value) for key, value in dct.items()}
+
+
 class DataConfig(BaseModel):
     ContentType: str
 
@@ -33,9 +37,12 @@ DATASET_NAMES = 'train', 'test'
 class TrainEnv:
     def __init__(self, path: Path = Path("/opt/ml")) -> None:
         self.path = TrainPaths(path)
-        self.inputdataconfig = _load_inputdataconfig(self.path)
+        self.inputdataconfig = _load_inputdataconfig(self.path.inputdataconfig)
         self.channels = _load_channels(self.path, self.inputdataconfig)
-        self.hyperparameters = _load_hyperparameters(self.path, self.channels)
+        self.hyperparameters = _load_hyperparameters(
+            self.path.hyperparameters, self.channels
+        )
+        self.current_host = _get_current_host(self.path.resourceconfig)
         self.datasets = _load_datasets(self.hyperparameters, self.channels)
 
 
@@ -44,15 +51,13 @@ class ServeEnv:
         self.path = ServePaths(path)
 
 
-def _load_inputdataconfig(path: TrainPaths) -> Optional[Dict[str, DataConfig]]:
-    if path.inputdataconfig.exists():
-        with path.inputdataconfig.open() as json_file:
-            return {
-                key: DataConfig.parse_obj(value)
-                for key, value in json.load(json_file).items()
-            }
-    else:
-        return None
+def _load_inputdataconfig(
+    inputdataconfig: Path
+) -> Optional[Dict[str, DataConfig]]:
+    if inputdataconfig.exists():
+        with inputdataconfig.open() as json_file:
+            return map_value(DataConfig.parse_obj, json.load(json_file))
+    return None
 
 
 def _load_channels(
@@ -79,8 +84,8 @@ def _load_channels(
         return {channel.name: channel for channel in path.data.iterdir()}
 
 
-def _load_hyperparameters(path: TrainPaths, channels) -> dict:
-    with path.hyperparameters.open() as json_file:
+def _load_hyperparameters(path: Path, channels) -> dict:
+    with path.open() as json_file:
         hyperparameters = parse_sagemaker_parameters(json.load(json_file))
 
         for old_freq_name in ['time_freq', 'time_granularity']:
@@ -93,6 +98,15 @@ def _load_hyperparameters(path: TrainPaths, channels) -> dict:
                 hyperparameters.update(freq=metadata.freq)
 
         return hyperparameters
+
+
+def _get_current_host(resourceconfig: Path) -> str:
+    if not resourceconfig.exists():
+        return "local"
+    else:
+        with resourceconfig.open() as json_file:
+            config = json.load(json_file)
+            return config["current_host"]
 
 
 def _load_datasets(
