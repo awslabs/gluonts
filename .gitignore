@@ -160,6 +160,6 @@ conda
 # vscode
 .vscode
 
-#file in my repo says don't add to VCS
+# not to be tracked
 src/gluonts/version.py
 

@@ -40,6 +40,24 @@ test_cases = [
         NegativeBinomial,
         {'mu': mx.nd.array([1000.0, 1.0]), 'alpha': mx.nd.array([1.0, 2.0])},
     ),
+    (
+        Uniform,
+        {
+            'low': mx.nd.array([1000.0, -1000.1]),
+            'high': mx.nd.array([2000.0, -1000.0]),
+        },
+    ),
+    (
+        Binned,
+        {
+            'bin_probs': mx.nd.array(
+                [[0, 0.3, 0.1, 0.05, 0.2, 0.1, 0.25]]
+            ).repeat(axis=0, repeats=2),
+            'bin_centers': mx.nd.array(
+                [[-5, -3, -1.2, -0.5, 0, 0.1, 0.2]]
+            ).repeat(axis=0, repeats=2),
+        },
+    ),
 ]
 
 test_output = {
@@ -63,10 +81,27 @@ test_output = {
         'stddev': mx.nd.array([1000.4999, 1.7320508]),
         'variance': mx.nd.array([1.001e+06, 3.000e+00]),
     },
+    'Uniform': {
+        'mean': mx.nd.array([1500.0, -1000.05]),
+        'stddev': mx.nd.array([2.8867514e+02, 2.8860467e-02]),
+        'variance': mx.nd.array([8.3333336e+04, 8.3292654e-04]),
+    },
+    'Binned': {
+        'mean': mx.nd.array([-0.985, -0.985]),
+        'stddev': mx.nd.array([1.377416, 1.377416]),
+        'variance': mx.nd.array([1.8972749, 1.8972749]),
+    },
 }
 
-# TODO: work out all means, stddevs, variances as similar to test_cases structure
-DISTRIBUTIONS_WITH_MEAN = [Gaussian, Laplace, StudentT, NegativeBinomial]
+# TODO: implement stddev methods for MultivariateGaussian and LowrankMultivariateGaussian
+DISTRIBUTIONS = [
+    Gaussian,
+    Laplace,
+    StudentT,
+    NegativeBinomial,
+    Uniform,
+    Binned,
+]
 
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
