@@ -73,42 +73,6 @@ class ProphetDataEntry(NamedTuple):
     def forecast_start(self) -> pd.Timestamp:
         return self.start + self.train_length * self.start.freq
 
-    @property
-    def num_non_nan_values(self):
-        return np.count_nonzero(~np.isnan(self.target))
-
-    @property
-    def nanmean_target(self) -> np.float32:
-        return np.float32(np.nanmean(self.target))
-
-
-class ProphetForecast(SampleForecast):
-    """
-    An extension of `SampleForecast` tha provides aliases of
-    p50, p10, and p90 forecasts aligned with the Prophet nomenclature.
-    """
-
-    @property
-    def yhat(self) -> np.ndarray:
-        return self.quantile('0.50')
-
-    @property
-    def yhat_lower(self) -> np.ndarray:
-        return self.quantile('0.10')
-
-    @property
-    def yhat_upper(self) -> np.ndarray:
-        return self.quantile('0.90')
-
-    def as_json_dict(self, config: Config) -> dict:
-        result = super().as_json_dict(config)
-
-        result['yhat'] = self.yhat.tolist()
-        result['yhat_lower'] = self.yhat_lower.tolist()
-        result['yhat_upper'] = self.yhat_upper.tolist()
-
-        return result
-
 
 class ProphetPredictor(RepresentablePredictor):
     """
@@ -150,8 +114,7 @@ class ProphetPredictor(RepresentablePredictor):
         freq: str,
         prediction_length: int,
         num_eval_samples: int = 100,
-        min_nonnan_obs: int = 2,
-        prophet: Optional[Dict] = None,  # FIXME: prophet_params
+        prophet_params: Optional[Dict] = None,
         init_model: Callable = lambda m: m,
     ) -> None:
         super().__init__(prediction_length, freq)
@@ -159,35 +122,27 @@ class ProphetPredictor(RepresentablePredictor):
         if not PROPHET_IS_INSTALLED:
             raise ImportError(USAGE_MESSAGE)
 
-        if prophet is None:
-            prophet = {}
+        if prophet_params is None:
+            prophet_params = {}
 
-        assert 'uncertainty_samples' not in prophet, (
+        assert 'uncertainty_samples' not in prophet_params, (
             "Parameter 'uncertainty_samples' should not be set directly. "
             "Please use 'num_eval_samples' instead."
         )
 
-        prophet.update(uncertainty_samples=num_eval_samples)
+        prophet_params.update(uncertainty_samples=num_eval_samples)
 
         self.num_eval_samples = num_eval_samples
-        self.min_nonnan_obs = min_nonnan_obs
-        self.prophet_params = prophet
+        self.prophet_params = prophet_params
         self.init_model = init_model
 
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[ProphetForecast]:
-        samples_shape = (self.num_eval_samples, self.prediction_length)
-
+    def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
         for entry in dataset:
             data = self._make_prophet_data_entry(entry)
 
-            if data.num_non_nan_values >= self.min_nonnan_obs:
-                forecast_samples = self._run_prophet(data)
-            elif data.num_non_nan_values > 0:
-                forecast_samples = np.full(samples_shape, data.nanmean_target)
-            else:
-                forecast_samples = np.full(samples_shape, 0.0)
+            forecast_samples = self._run_prophet(data)
 
-            yield ProphetForecast(
+            yield SampleForecast(
                 samples=forecast_samples,
                 start_date=data.forecast_start,
                 freq=self.freq,
