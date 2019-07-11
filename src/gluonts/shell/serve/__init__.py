@@ -98,7 +98,8 @@ class Application(BaseApplication):
 
 
 def run_inference_server(
-    env: ServeEnv, forecaster_type: Optional[Type[Union[Estimator, Predictor]]]
+    env: Optional[ServeEnv],
+    forecaster_type: Optional[Type[Union[Estimator, Predictor]]],
 ) -> None:
     if forecaster_type is not None:
         ctor = forecaster_type.from_hyperparameters
@@ -107,6 +108,7 @@ def run_inference_server(
             return ctor(**request['configuration'])
 
     else:
+        assert env is not None
         predictor = Predictor.deserialize(env.path.model)
 
         def predictor_factory(request) -> Predictor:
