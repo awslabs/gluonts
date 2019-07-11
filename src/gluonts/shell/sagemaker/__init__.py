@@ -27,7 +27,7 @@ def map_value(fn, dct):
 
 
 class DataConfig(BaseModel):
-    ContentType: str
+    ContentType: Optional[str] = None
 
 
 # for now we only support train and test
@@ -57,6 +57,7 @@ def _load_inputdataconfig(
     if inputdataconfig.exists():
         with inputdataconfig.open() as json_file:
             return map_value(DataConfig.parse_obj, json.load(json_file))
+
     return None
 
 
