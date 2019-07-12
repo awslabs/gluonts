@@ -74,7 +74,7 @@ def cli() -> None:
 @cli.command(name='serve')
 @click.option(
     "--data-path",
-    type=click.Path(exists=True),
+    type=click.Path(),
     envvar="SAGEMAKER_DATA_PATH",
     default='/opt/ml',
     help='The root path of all folders mounted by the SageMaker runtime.',
@@ -107,11 +107,10 @@ def serve_command(
 ) -> None:
     from gluonts.shell import serve
 
-    env = ServeEnv(Path(data_path))
-
     if not force_static and forecaster is not None:
-        serve.run_inference_server(env, forecaster_type_by_name(forecaster))
+        serve.run_inference_server(None, forecaster_type_by_name(forecaster))
     else:
+        env = ServeEnv(Path(data_path))
         serve.run_inference_server(env, None)
 
 
