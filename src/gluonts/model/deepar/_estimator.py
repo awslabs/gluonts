@@ -79,7 +79,7 @@ class DeepAREstimator(GluonEstimator):
         Whether to use the ``feat_static_cat`` field from the data
         (default: False)
     cardinality
-        Number of values of the each categorical feature.
+        Number of values of each categorical feature.
         This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
         Dimension of the embeddings for categorical features (the same
