@@ -72,8 +72,15 @@ class DeepAREstimator(GluonEstimator):
         (default: 100)
     dropout_rate
         Dropout regularization parameter (default: 0.1)
+    use_feat_dynamic_real
+        Whether to use the ``feat_dynamic_real`` field from the data
+        (default: False)
+    use_feat_static_cat
+        Whether to use the ``feat_static_cat`` field from the data
+        (default: False)
     cardinality
-        Number of values of the each categorical feature (default: [1])
+        Number of values of the each categorical feature.
+        This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
         Dimension of the embeddings for categorical features (the same
         dimension is used for all embeddings, default: 5)
