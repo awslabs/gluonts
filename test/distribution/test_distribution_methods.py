@@ -79,12 +79,12 @@ test_output = {
     'NegativeBinomial': {
         'mean': mx.nd.array([1000.0, 1.0]),
         'stddev': mx.nd.array([1000.4999, 1.7320508]),
-        'variance': mx.nd.array([1.001e+06, 3.000e+00]),
+        'variance': mx.nd.array([1.001e06, 3.000e00]),
     },
     'Uniform': {
         'mean': mx.nd.array([1500.0, -1000.05]),
-        'stddev': mx.nd.array([2.8867514e+02, 2.8860467e-02]),
-        'variance': mx.nd.array([8.3333336e+04, 8.3292654e-04]),
+        'stddev': mx.nd.array([2.8867514e02, 2.8860467e-02]),
+        'variance': mx.nd.array([8.3333336e04, 8.3292654e-04]),
     },
     'Binned': {
         'mean': mx.nd.array([-0.985, -0.985]),
