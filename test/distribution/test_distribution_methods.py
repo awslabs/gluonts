@@ -112,7 +112,7 @@ def test_means(distr_class, params) -> None:
     assert means.shape == test_output[distr_name]['mean'].shape
     # asnumpy()  needed to b/c means is all pointers to values
     assert np.allclose(
-        means.asnumpy(), test_output[distr_name]['mean'].asnumpy(), atol=1e-2
+        means.asnumpy(), test_output[distr_name]['mean'].asnumpy(), atol=1e-11
     )
 
 
@@ -125,7 +125,7 @@ def test_stdevs(distr_class, params) -> None:
     assert np.allclose(
         stddevs.asnumpy(),
         test_output[distr_name]['stddev'].asnumpy(),
-        atol=1e-2,
+        atol=1e-11,
     )
 
 
@@ -138,5 +138,5 @@ def test_variances(distr_class, params) -> None:
     assert np.allclose(
         variances.asnumpy(),
         test_output[distr_name]['variance'].asnumpy(),
-        atol=1e-2,
+        atol=1e-11,
     )
