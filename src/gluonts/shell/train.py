@@ -16,8 +16,10 @@ import logging
 from typing import Type, Union
 
 # First-party imports
-from gluonts.core import log
+import gluonts
+from gluonts.core import fqname_for, log
 from gluonts.core.component import check_gpu_support
+from gluonts.core.serde import dump_code
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
@@ -26,13 +28,7 @@ from gluonts.transform import Dataset, FilterTransformation, TransformedDataset
 # Relative imports
 from .sagemaker import TrainEnv
 
-
 logger = logging.getLogger("gluonts.train")
-
-
-def log_metrics(env, metrics):
-    for name, score in metrics.items():
-        print(f"#test_score ({env.current_host}, {name}): {score}")
 
 
 def run_train_and_test(
@@ -40,7 +36,18 @@ def run_train_and_test(
 ) -> None:
     check_gpu_support()
 
+    forecaster_fq_name = fqname_for(forecaster_type)
+    forecaster_version = forecaster_type.__version__
+
+    logger.info(f"Using gluonts v{gluonts.__version__}")
+    logger.info(f"Using forecaster {forecaster_fq_name} v{forecaster_version}")
+
     forecaster = forecaster_type.from_hyperparameters(**env.hyperparameters)
+
+    logger.info(
+        f"The forecaster can be reconstructed with the following expression: "
+        f"{dump_code(forecaster)}"
+    )
 
     if isinstance(forecaster, Predictor):
         predictor = forecaster
@@ -50,16 +57,11 @@ def run_train_and_test(
     predictor.serialize(env.path.model)
 
     if "test" in env.datasets:
-        test_dataset = prepare_test_dataset(
-            env.datasets["test"],
-            prediction_length=forecaster.prediction_length,
-        )
-        run_test(env, predictor, test_dataset)
+        run_test(env, predictor, env.datasets["test"])
 
 
-def run_train(forecaster, train_dataset) -> Predictor:
-    assert isinstance(forecaster, Estimator)
-    log.metric('train_dataset_stats', train_dataset.calc_stats())
+def run_train(forecaster: Estimator, train_dataset: Dataset) -> Predictor:
+    log.metric("train_dataset_stats", train_dataset.calc_stats())
 
     return forecaster.train(train_dataset)
 
@@ -67,35 +69,37 @@ def run_train(forecaster, train_dataset) -> Predictor:
 def run_test(
     env: TrainEnv, predictor: Predictor, test_dataset: Dataset
 ) -> None:
-    forecast_it, ts_it = backtest.make_evaluation_predictions(
-        test_dataset, predictor=predictor, num_eval_samples=100
-    )
-    agg_metrics, _item_metrics = Evaluator()(
-        ts_it, forecast_it, num_series=len(test_dataset)
-    )
+    len_original = len(test_dataset)
 
-    # we only log aggregate metrics for now as item metrics may be
-    # very large
-    log_metrics(env, agg_metrics)
-
-
-def prepare_test_dataset(dataset: Dataset, prediction_length: int) -> Dataset:
     test_dataset = TransformedDataset(
-        dataset,
+        base_dataset=test_dataset,
         transformations=[
             FilterTransformation(
-                lambda el: el['target'].shape[-1] > prediction_length
+                lambda x: x["target"].shape[-1] > predictor.prediction_length
             )
         ],
     )
 
-    len_orig = len(dataset)
     len_filtered = len(test_dataset)
-    if len_orig > len_filtered:
-        log.logger.warning(
-            'Not all time-series in the test-channel have '
-            'enough data to be used for evaluation. Proceeding with '
-            f'{len_filtered}/{len_orig} '
-            f'(~{int(len_filtered / len_orig * 100)}%) items.'
+
+    if len_original > len_filtered:
+        logger.warning(
+            f"Not all time-series in the test-channel have "
+            f"enough data to be used for evaluation. Proceeding with "
+            f"{len_filtered}/{len_original} "
+            f"(~{int(len_filtered / len_original * 100)}%) items."
         )
-    return test_dataset
+
+    forecast_it, ts_it = backtest.make_evaluation_predictions(
+        dataset=test_dataset, predictor=predictor, num_eval_samples=100
+    )
+
+    agg_metrics, _item_metrics = Evaluator()(
+        ts_iterator=ts_it,
+        fcst_iterator=forecast_it,
+        num_series=len(test_dataset),
+    )
+
+    # we only log aggregate metrics for now as item metrics may be very large
+    for name, score in agg_metrics.items():
+        print(f"#test_score ({env.current_host}, {name}): {score}")

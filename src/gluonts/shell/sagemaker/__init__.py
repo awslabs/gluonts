@@ -31,7 +31,7 @@ class DataConfig(BaseModel):
 
 
 # for now we only support train and test
-DATASET_NAMES = 'train', 'test'
+DATASET_NAMES = "train", "test"
 
 
 class TrainEnv:
@@ -89,9 +89,9 @@ def _load_hyperparameters(path: Path, channels) -> dict:
     with path.open() as json_file:
         hyperparameters = parse_sagemaker_parameters(json.load(json_file))
 
-        for old_freq_name in ['time_freq', 'time_granularity']:
+        for old_freq_name in ["time_freq", "time_granularity"]:
             if old_freq_name in hyperparameters:
-                hyperparameters['freq'] = hyperparameters[old_freq_name]
+                hyperparameters["freq"] = hyperparameters[old_freq_name]
 
         if "metadata" in channels:
             with (channels["metadata"] / "metadata.json").open() as file:

@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import logging
 import pydoc
 from pathlib import Path
 from typing import Optional, Type, Union, cast
@@ -51,7 +52,7 @@ def forecaster_type_by_name(name: str) -> Forecaster:
     """
     forecaster = None
 
-    for entry_point in pkg_resources.iter_entry_points('gluonts_forecasters'):
+    for entry_point in pkg_resources.iter_entry_points("gluonts_forecasters"):
         if entry_point.name == name:
             forecaster = entry_point.load()
             break
@@ -71,26 +72,26 @@ def cli() -> None:
     pass
 
 
-@cli.command(name='serve')
+@cli.command(name="serve")
 @click.option(
     "--data-path",
     type=click.Path(),
     envvar="SAGEMAKER_DATA_PATH",
-    default='/opt/ml',
-    help='The root path of all folders mounted by the SageMaker runtime.',
+    default="/opt/ml",
+    help="The root path of all folders mounted by the SageMaker runtime.",
 )
 @click.option(
     "--forecaster",
-    metavar='NAME',
+    metavar="NAME",
     envvar="GLUONTS_FORECASTER",
     help=(
-        'An alias or a fully qualified name of a Predictor to use. '
-        'If this value is defined, the inference server runs in the '
-        'so-called dynamic mode, where the predictor is initialized for '
-        'each request using parameters provided in the "configuration" field '
-        'of the JSON request. Otherwise, the server runs in static mode, '
-        'where the predictor is initialized upfront from a serialized model '
-        'located in the {data-path}/model folder.'
+        "An alias or a fully qualified name of a Predictor to use. "
+        "If this value is defined, the inference server runs in the "
+        "so-called dynamic mode, where the predictor is initialized for "
+        "each request using parameters provided in the 'configuration' field "
+        "of the JSON request. Otherwise, the server runs in static mode, "
+        "where the predictor is initialized upfront from a serialized model "
+        "located in the {data-path}/model folder."
     ),
 )
 @click.option(
@@ -98,7 +99,7 @@ def cli() -> None:
     envvar="GLUONTS_FORCE_STATIC",
     default=False,
     help=(
-        'Forces execution in static mode, even in situations where the '
+        "Forces execution in static mode, even in situations where the "
         '"forecaster" option is present.'
     ),
 )
@@ -107,6 +108,8 @@ def serve_command(
 ) -> None:
     from gluonts.shell import serve
 
+    logging.info("Run 'serve' command")
+
     if not force_static and forecaster is not None:
         serve.run_inference_server(None, forecaster_type_by_name(forecaster))
     else:
@@ -114,34 +117,36 @@ def serve_command(
         serve.run_inference_server(env, None)
 
 
-@cli.command(name='train')
+@cli.command(name="train")
 @click.option(
     "--data-path",
     type=click.Path(exists=True),
     envvar="SAGEMAKER_DATA_PATH",
-    default='/opt/ml',
-    help='The root path of all folders mounted by the SageMaker runtime.',
+    default="/opt/ml",
+    help="The root path of all folders mounted by the SageMaker runtime.",
 )
 @click.option(
     "--forecaster",
     type=str,
     envvar="GLUONTS_FORECASTER",
     help=(
-        'An alias or a fully qualified name of a Predictor or Estimator to '
-        'use. If this value is not defined, the command will try to read it'
-        'from the hyperparameters dictionary under the "forecaster_name" key. '
-        'If the value denotes a Predictor, training will be skipped and the '
-        'command will only do an evaluation on the provided test dataset.'
+        "An alias or a fully qualified name of a Predictor or Estimator to "
+        "use. If this value is not defined, the command will try to read it"
+        "from the hyperparameters dictionary under the 'forecaster_name' key. "
+        "If the value denotes a Predictor, training will be skipped and the "
+        "command will only do an evaluation on the provided test dataset."
     ),
 )
 def train_command(data_path: str, forecaster: Optional[str]) -> None:
     from gluonts.shell import train
 
+    logging.info("Run 'train' command")
+
     env = TrainEnv(Path(data_path))
 
     if forecaster is None:
         try:
-            forecaster = env.hyperparameters['forecaster_name']
+            forecaster = env.hyperparameters["forecaster_name"]
         except KeyError:
             msg = (
                 "Forecaster shell parameter is `None`, but "
