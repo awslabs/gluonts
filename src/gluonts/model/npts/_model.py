@@ -154,7 +154,12 @@ class NPTS:
         # Forecast takes as input the prediction range samples, the start date
         # of the prediction range, and the frequency of the time series.
         samples_pred_range = samples[:, train_length:]  # prediction range only
-        forecast_start = targets.index[-1] + 1
+
+        # For freq M and W pandas seems to lose the freq of the timestamp,
+        # so we explicitly set it.
+        forecast_start = pd.Timestamp(
+            targets.index[-1] + 1 * targets.index.freq, freq=targets.index.freq
+        )
 
         return SampleForecast(
             samples=samples_pred_range,

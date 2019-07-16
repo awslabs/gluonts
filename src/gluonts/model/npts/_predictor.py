@@ -191,7 +191,7 @@ class NPTSPredictor(RepresentablePredictor):
         for data in dataset:
             start = pd.Timestamp(data['start'])
             target = np.asarray(data['target'], np.float32)
-            index = pd.DatetimeIndex(
+            index = pd.date_range(
                 start=start, freq=self.freq, periods=len(target)
             )
 
