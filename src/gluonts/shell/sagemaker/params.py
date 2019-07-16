@@ -35,8 +35,8 @@ def parse_sagemaker_parameter(value: str) -> Union[list, dict, str]:
     # TODO: is this the right way to do things?
     #       what about fields which start which match the pattern for
     #       some reason?
-    is_list = value.startswith('[') and value.endswith(']')
-    is_dict = value.startswith('{') and value.endswith('}')
+    is_list = value.startswith("[") and value.endswith("]")
+    is_dict = value.startswith("{") and value.endswith("}")
 
     if is_list or is_dict:
         return json.loads(value)

@@ -27,6 +27,7 @@ import mxnet as mx
 import numpy as np
 
 # First-party imports
+import gluonts
 from gluonts.core.component import (
     DType,
     equals,
@@ -62,6 +63,8 @@ class Predictor:
     freq
         Frequency of the predicted data.
     """
+
+    __version__: str = gluonts.__version__
 
     def __init__(self, prediction_length: int, freq: str) -> None:
         assert (

@@ -20,6 +20,7 @@ from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
 
 # First-party imports
+import gluonts
 from gluonts.core import fqname_for
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
@@ -38,6 +39,8 @@ class Estimator:
     The underlying model is trained by calling the `train` method with
     a training `Dataset`, producing a `Predictor` object.
     """
+
+    __version__: str = gluonts.__version__
 
     prediction_length: int
     freq: str
