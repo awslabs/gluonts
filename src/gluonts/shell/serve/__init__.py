@@ -13,6 +13,7 @@
 
 # Standard library imports
 from typing import Optional, Type, Union
+from ipaddress import IPv4Address
 
 # Third-party imports
 import flask
@@ -39,10 +40,20 @@ class Settings(BaseSettings):
 
     model_server_workers: Optional[int] = None
     max_content_length: int = 6 * MB
+
+    sagemaker_server_address: IPv4Address = IPv4Address('0.0.0.0')
+    sagemaker_server_port: int = 8080
+    sagemaker_server_timeout: int = 100
+
     sagemaker_batch: bool = False
     sagemaker_batch_strategy: str = 'SINGLE_RECORD'
+
     sagemaker_max_payload_in_mb: int = 6
     sagemaker_max_concurrent_transforms: int = 2 ** 32 - 1
+
+    @property
+    def sagemaker_server_bind(self) -> str:
+        return f"{self.sagemaker_server_address}:{self.sagemaker_server_port}"
 
     @property
     def number_of_workers(self) -> int:
@@ -117,9 +128,9 @@ def run_inference_server(
     app = Application(
         app=make_app(predictor_factory, execution_params),
         config={
-            "bind": "0.0.0.0:8080",
+            "bind": settings.sagemaker_server_bind,
             "workers": settings.number_of_workers,
-            "timeout": 100,
+            "timeout": settings.sagemaker_server_timeout,
         },
     )
 
