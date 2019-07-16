@@ -55,6 +55,27 @@ def get_seasonality(freq: str) -> int:
 
 
 class Evaluator:
+    """
+    Evaluator class, to compute accuracy metrics by comparing observations
+    to forecasts.
+
+    Parameters
+    ----------
+    quantiles
+        list of strings of the form 'p10' or floats in [0, 1] with
+        the quantile levels
+    seasonality
+        seasonality to use for seasonal_error, if nothing is passed
+        uses the default seasonality
+        for the given series frequency as returned by `get_seasonality`
+    alpha
+        parameter of the MSIS metric from M4 competition that
+        defines the confidence interval
+        for alpha=0.05 the 95% considered is considered in the metric,
+        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4
+        -Competitors-Guide.pdf for more detail on MSIS
+    """
+
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
 
     def __init__(
@@ -63,21 +84,6 @@ class Evaluator:
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
     ):
-        """
-
-        Parameters
-        ----------
-        quantiles
-            list of strings of the form 'p10' or floats in [0, 1] with the quantile levels
-        seasonality
-            seasonality to use for seasonal_error, if nothing is passed uses the default seasonality
-            for the given series frequency as returned by `get_seasonality`
-        alpha
-            parameter of the MSIS metric from M4 competition that defines the confidence interval
-            for alpha=0.05 the 95% considered is considered in the metric,
-            see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf for more detail on MSIS
-        """
-
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
@@ -89,6 +95,8 @@ class Evaluator:
         num_series: Optional[int] = None,
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
         """
+        Compute accuracy metrics by comparing actual data to the forecasts.
+
         Parameters
         ----------
         ts_iterator
@@ -96,12 +104,15 @@ class Evaluator:
         fcst_iterator
             iterator of forecasts on the predicted range
         num_series
-            number of series of the iterator (optional only used for displaying progress)
+            number of series of the iterator
+            (optional, only used for displaying progress)
 
         Returns
         -------
         dict
-            Dictionary of aggregated metrics and dataframe containing per-time-series metrics
+            Dictionary of aggregated metrics
+        pd.DataFrame
+            DataFrame containing per-time-series metrics
         """
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
@@ -112,7 +123,7 @@ class Evaluator:
             zip(ts_iterator, fcst_iterator),
             total=num_series,
             desc='Running evaluation',
-        ) as it:
+        ) as it, np.errstate(invalid='ignore'):
             for ts, forecast in it:
                 rows.append(self.get_metrics_per_ts(ts, forecast))
 
@@ -192,7 +203,9 @@ class Evaluator:
         y_t = np.ma.masked_invalid(ts.values[:-forecast_freq])
         y_tm = np.ma.masked_invalid(ts.values[forecast_freq:])
 
-        return float(np.mean(abs(y_t - y_tm)))
+        seasonal_mae = np.mean(abs(y_t - y_tm))
+
+        return seasonal_mae if seasonal_mae is not np.ma.masked else np.nan
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
