@@ -58,7 +58,7 @@ class FeatureEmbedder(nn.HybridBlock):
         self.__num_features = len(cardinalities)
 
         def create_embedding(i: int, c: int, d: int) -> nn.Embedding:
-            embedding = nn.Embedding(c, d, prefix=f'cat_{i}_embedding_')
+            embedding = nn.Embedding(c, d, prefix=f"cat_{i}_embedding_")
             self.register_child(embedding)
             return embedding
 

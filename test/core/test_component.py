@@ -28,7 +28,7 @@ class Foo:
     @validated()
     def __init__(self, a: int, c: Complex, **kwargs) -> None:
         self.a = a
-        self.b = kwargs['b']
+        self.b = kwargs["b"]
         self.c = c
 
         assert type(self.a) == int
@@ -144,7 +144,7 @@ def test_component_ctor():
 
 def test_dynamic_loading():
     code = dedent(
-        '''
+        """
         dict(
            trainer=gluonts.trainer.Trainer(
                ctx="cpu(0)",
@@ -165,7 +165,7 @@ def test_dynamic_loading():
            batch_normalization=False,
            mean_scaling=True
         )
-        '''
+        """
     )
 
     load_code(code)

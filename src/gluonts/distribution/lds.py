@@ -470,26 +470,26 @@ class LDSArgsProj(mx.gluon.HybridBlock):
         self.dense_noise_std = mx.gluon.nn.Dense(
             units=1,
             flatten=False,
-            activation='softrelu'
-            if noise_std_ub is float('inf')
-            else 'sigmoid',
+            activation="softrelu"
+            if noise_std_ub is float("inf")
+            else "sigmoid",
         )
         self.dense_innovation = mx.gluon.nn.Dense(
             units=1,
             flatten=False,
-            activation='softrelu'
-            if innovation_ub is float('inf')
-            else 'sigmoid',
+            activation="softrelu"
+            if innovation_ub is float("inf")
+            else "sigmoid",
         )
         self.dense_residual = mx.gluon.nn.Dense(
             units=output_dim, flatten=False
         )
 
         self.innovation_factor = (
-            1.0 if innovation_ub is float('inf') else innovation_ub
+            1.0 if innovation_ub is float("inf") else innovation_ub
         )
         self.noise_factor = (
-            1.0 if noise_std_ub is float('inf') else noise_std_ub
+            1.0 if noise_std_ub is float("inf") else noise_std_ub
         )
 
     # noinspection PyMethodOverriding,PyPep8Naming

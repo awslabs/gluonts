@@ -66,26 +66,26 @@ def make_evaluation_predictions(
         for data_entry in data_iterator:
             data = data_entry.copy()
             index = pd.date_range(
-                start=data['start'],
+                start=data["start"],
                 freq=freq,
-                periods=data['target'].shape[-1],
+                periods=data["target"].shape[-1],
             )
-            data['ts'] = pd.DataFrame(
-                index=index, data=data['target'].transpose()
+            data["ts"] = pd.DataFrame(
+                index=index, data=data["target"].transpose()
             )
             yield data
 
     def ts_iter(dataset: Dataset) -> pd.DataFrame:
         for data_entry in add_ts_dataframe(iter(dataset)):
-            yield data_entry['ts']
+            yield data_entry["ts"]
 
     def truncate_target(data):
         data = data.copy()
-        target = data['target']
+        target = data["target"]
         assert (
             target.shape[-1] >= prediction_length
         )  # handles multivariate case (target_dim, history_length)
-        data['target'] = target[..., :-prediction_length]
+        data["target"] = target[..., :-prediction_length]
         return data
 
     # TODO filter out time series with target shorter than prediction length
@@ -109,7 +109,7 @@ agg_metrics_key = "agg_metrics"
 
 
 def serialize_message(logger, message: str, variable):
-    logger.info(f'gluonts[{message}]: {variable}')
+    logger.info(f"gluonts[{message}]: {variable}")
 
 
 def backtest_metrics(
@@ -151,8 +151,8 @@ def backtest_metrics(
 
     if logging_file is not None:
         log_formatter = logging.Formatter(
-            '[%(asctime)s %(levelname)s %(thread)d] %(message)s',
-            datefmt='%m/%d/%Y %H:%M:%S',
+            "[%(asctime)s %(levelname)s %(thread)d] %(message)s",
+            datefmt="%m/%d/%Y %H:%M:%S",
         )
         logger = logging.getLogger(__name__)
         handler = logging.FileHandler(logging_file)
@@ -222,14 +222,14 @@ class BacktestInformation(NamedTuple):
 
     @staticmethod
     def make_from_log(log_file):
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             return BacktestInformation.make_from_log_contents(
                 "\n".join(f.readlines())
             )
 
     @staticmethod
     def make_from_log_contents(log_contents):
-        regexp = re.compile(r'gluonts\[(.*)\]: (.*)')
+        regexp = re.compile(r"gluonts\[(.*)\]: (.*)")
         # in case some metric is nan
         messages = dict(regexp.findall(log_contents))
 
@@ -247,7 +247,7 @@ class BacktestInformation(NamedTuple):
                 agg_metrics={
                     k: load_code(v)
                     for k, v in messages.items()
-                    if k.startswith('metric-')
+                    if k.startswith("metric-")
                 },
             )
         except Exception as e:

@@ -96,29 +96,29 @@ class Predictor:
     def serialize(self, path: Path) -> None:
         try:
             # serialize Predictor type
-            with (path / 'type.txt').open('w') as fp:
+            with (path / "type.txt").open("w") as fp:
                 fp.write(fqname_for(self.__class__))
         except Exception as e:
             raise IOError(
-                f'Cannot serialize {fqname_for(self.__class__)} in {path}'
+                f"Cannot serialize {fqname_for(self.__class__)} in {path}"
             ) from e
 
     @classmethod
     def deserialize(cls, path: Path):
         try:
             # deserialize Predictor type
-            with (path / 'type.txt').open('r') as fp:
+            with (path / "type.txt").open("r") as fp:
                 tpe = locate(fp.readline())
         except Exception as e:
             raise IOError(
-                f'Cannot deserialize {fqname_for(cls)} in {path}'
+                f"Cannot deserialize {fqname_for(cls)} in {path}"
             ) from e
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):
             raise IOError(
-                f'Class {fqname_for(tpe)} is not '
-                f'a subclass of {fqname_for(Predictor)}'
+                f"Class {fqname_for(tpe)} is not "
+                f"a subclass of {fqname_for(Predictor)}"
             )
 
         # call deserialize() for the concrete Predictor type
@@ -162,20 +162,20 @@ class RepresentablePredictor(Predictor):
         # call Predictor.serialize() in order to serialize the class name
         super().serialize(path)
         try:
-            with (path / 'predictor.json').open('w') as fp:
+            with (path / "predictor.json").open("w") as fp:
                 print(dump_json(self), file=fp)
         except Exception as e:
             raise IOError(
-                f'Cannot serialize {fqname_for(self.__class__)}'
+                f"Cannot serialize {fqname_for(self.__class__)}"
             ) from e
 
     @classmethod
     def deserialize(cls, path: Path):
         try:
-            with (path / 'predictor.json').open('r') as fp:
+            with (path / "predictor.json").open("r") as fp:
                 return load_json(fp.read())
         except Exception as e:
-            raise IOError(f'Cannot deserialize {fqname_for(cls)}') from e
+            raise IOError(f"Cannot deserialize {fqname_for(cls)}") from e
 
 
 class GluonPredictor(Predictor):
@@ -222,7 +222,7 @@ class GluonPredictor(Predictor):
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
         float_type: DType = np.float32,
-        forecast_cls_name: str = 'SampleForecast',
+        forecast_cls_name: str = "SampleForecast",
         forecast_kwargs: Optional[Dict] = None,
     ) -> None:
         super().__init__(prediction_length, freq)
@@ -256,7 +256,7 @@ class GluonPredictor(Predictor):
 
     def as_symbol_block_predictor(
         self, batch: DataBatch
-    ) -> 'SymbolBlockPredictor':
+    ) -> "SymbolBlockPredictor":
         """
         Returns a variant of the current :class:`GluonPredictor` backed
         by a Gluon `SymbolBlock`. If the current predictor is already a
@@ -292,7 +292,7 @@ class GluonPredictor(Predictor):
                 outputs = self.output_transform(batch, outputs)
             if num_eval_samples and not self._forecast_cls == SampleForecast:
                 logging.info(
-                    'Forecast is not sample based. Ignoring parameter `num_eval_samples` from predict method.'
+                    "Forecast is not sample based. Ignoring parameter `num_eval_samples` from predict method."
                 )
             if num_eval_samples and self._forecast_cls == SampleForecast:
                 num_collected_samples = outputs[0].shape[0]
@@ -308,16 +308,16 @@ class GluonPredictor(Predictor):
                     for s in zip(*collected_samples)
                 ]
                 assert len(outputs[0]) == num_eval_samples
-            assert len(batch['forecast_start']) == len(outputs)
+            assert len(batch["forecast_start"]) == len(outputs)
             for i, output in enumerate(outputs):
                 yield self._forecast_cls(
                     output,
-                    start_date=batch['forecast_start'][i],
+                    start_date=batch["forecast_start"][i],
                     freq=self.freq,
-                    item_id=batch['item_id'][i]
-                    if 'item_id' in batch
+                    item_id=batch["item_id"][i]
+                    if "item_id" in batch
                     else None,
-                    info=batch['info'][i] if 'info' in batch else None,
+                    info=batch["info"][i] if "info" in batch else None,
                     **self.forecast_kwargs,
                 )
 
@@ -344,13 +344,13 @@ class GluonPredictor(Predictor):
             self.serialize_prediction_net(path)
 
             # serialize transformation chain
-            with (path / 'input_transform.json').open('w') as fp:
+            with (path / "input_transform.json").open("w") as fp:
                 print(dump_json(self.input_transform), file=fp)
 
             # FIXME: also needs to serialize the output_transform
 
             # serialize all remaining constructor parameters
-            with (path / 'parameters.json').open('w') as fp:
+            with (path / "parameters.json").open("w") as fp:
                 parameters = dict(
                     batch_size=self.batch_size,
                     prediction_length=self.prediction_length,
@@ -364,7 +364,7 @@ class GluonPredictor(Predictor):
                 print(dump_json(parameters), file=fp)
         except Exception as e:
             raise IOError(
-                f'Cannot serialize {fqname_for(self.__class__)}'
+                f"Cannot serialize {fqname_for(self.__class__)}"
             ) from e
 
     def serialize_prediction_net(self, path: Path) -> None:
@@ -385,35 +385,35 @@ class SymbolBlockPredictor(GluonPredictor):
 
     def as_symbol_block_predictor(
         self, batch: DataBatch
-    ) -> 'SymbolBlockPredictor':
+    ) -> "SymbolBlockPredictor":
         return self
 
     def serialize(self, path: Path) -> None:
         logging.warning(
-            'Serializing RepresentableBlockPredictor instances does not save '
-            'the prediction network structure in a backwards-compatible '
-            'manner. Be careful not to use this method in production.'
+            "Serializing RepresentableBlockPredictor instances does not save "
+            "the prediction network structure in a backwards-compatible "
+            "manner. Be careful not to use this method in production."
         )
         super().serialize(path)
 
     def serialize_prediction_net(self, path: Path) -> None:
-        export_symb_block(self.prediction_net, path, 'prediction_net')
+        export_symb_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
     def deserialize(cls, path: Path):
         try:
             # deserialize constructor parameters
-            with (path / 'parameters.json').open('r') as fp:
+            with (path / "parameters.json").open("r") as fp:
                 parameters = load_json(fp.read())
 
             # deserialize transformation chain
-            with (path / 'input_transform.json').open('r') as fp:
+            with (path / "input_transform.json").open("r") as fp:
                 transform = load_json(fp.read())
 
             # deserialize prediction network
-            num_inputs = len(parameters['input_names'])
+            num_inputs = len(parameters["input_names"])
             prediction_net = import_symb_block(
-                num_inputs, path, 'prediction_net'
+                num_inputs, path, "prediction_net"
             )
 
             return SymbolBlockPredictor(
@@ -422,7 +422,7 @@ class SymbolBlockPredictor(GluonPredictor):
                 **parameters,
             )
         except Exception as e:
-            raise IOError(f'Cannot deserialize {fqname_for(cls)}') from e
+            raise IOError(f"Cannot deserialize {fqname_for(cls)}") from e
 
 
 class RepresentableBlockPredictor(GluonPredictor):
@@ -456,7 +456,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
         float_type: DType = np.float32,
-        forecast_cls_name: str = 'SampleForecast',
+        forecast_cls_name: str = "SampleForecast",
         forecast_kwargs: Optional[Dict] = None,
     ) -> None:
         super().__init__(
@@ -496,25 +496,25 @@ class RepresentableBlockPredictor(GluonPredictor):
         )
 
     def serialize_prediction_net(self, path: Path) -> None:
-        export_repr_block(self.prediction_net, path, 'prediction_net')
+        export_repr_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
     def deserialize(cls, path: Path):
         try:
             # deserialize constructor parameters
-            with (path / 'parameters.json').open('r') as fp:
+            with (path / "parameters.json").open("r") as fp:
                 parameters = load_json(fp.read())
 
             # deserialize transformation chain
-            with (path / 'input_transform.json').open('r') as fp:
+            with (path / "input_transform.json").open("r") as fp:
                 transform = load_json(fp.read())
 
             # deserialize prediction network
-            prediction_net = import_repr_block(path, 'prediction_net')
+            prediction_net = import_repr_block(path, "prediction_net")
 
             # input_names is derived from the prediction_net
-            if 'input_names' in parameters:
-                del parameters['input_names']
+            if "input_names" in parameters:
+                del parameters["input_names"]
 
             return RepresentableBlockPredictor(
                 input_transform=transform,
@@ -522,7 +522,7 @@ class RepresentableBlockPredictor(GluonPredictor):
                 **parameters,
             )
         except Exception as e:
-            raise IOError(f'Cannot deserialize {fqname_for(cls)}') from e
+            raise IOError(f"Cannot deserialize {fqname_for(cls)}") from e
 
 
 class WorkerError:
@@ -711,17 +711,17 @@ class Localizer(Predictor):
         The estimator object to train on each dataset entry at prediction time.
     """
 
-    def __init__(self, estimator: 'Estimator'):
+    def __init__(self, estimator: "Estimator"):
         super().__init__(estimator.prediction_length, estimator.freq)
         self.estimator = estimator
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         logger = logging.getLogger(__name__)
         for i, ts in enumerate(dataset, start=1):
-            logger.info(f'training for time series {i} / {len(dataset)}')
+            logger.info(f"training for time series {i} / {len(dataset)}")
             local_ds = ListDataset([ts], freq=self.freq)
             trained_pred = self.estimator.train(local_ds)
-            logger.info(f'predicting for time series {i} / {len(dataset)}')
+            logger.info(f"predicting for time series {i} / {len(dataset)}")
             predictions = trained_pred.predict(local_ds, **kwargs)
             for pred in predictions:
                 yield pred

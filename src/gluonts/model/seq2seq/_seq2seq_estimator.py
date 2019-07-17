@@ -213,7 +213,7 @@ class RNN2QRForecaster(Seq2SeqEstimator):
         encoder_rnn_num_hidden: int,
         decoder_mlp_layer: List[int],
         decoder_mlp_static_dim: int,
-        encoder_rnn_model: str = 'lstm',
+        encoder_rnn_model: str = "lstm",
         encoder_rnn_bidirectional: bool = True,
         scaler: Scaler = NOPScaler,
         context_length: Optional[int] = None,

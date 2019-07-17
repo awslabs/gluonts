@@ -28,35 +28,35 @@ def write_csv_row(
     csv_writer = csv.writer(csv_file)
     # convert to right date where MON == 0, ..., SUN == 6
     week_dict = {
-        0: 'MON',
-        1: 'TUE',
-        2: 'WED',
-        3: 'THU',
-        4: 'FRI',
-        5: 'SAT',
-        6: 'SUN',
+        0: "MON",
+        1: "TUE",
+        2: "WED",
+        3: "THU",
+        4: "FRI",
+        5: "SAT",
+        6: "SUN",
     }
     for i in range(len(time_series)):
         data = time_series[i]
-        timestamp = pd.Timestamp(data['start'])
+        timestamp = pd.Timestamp(data["start"])
         freq_week_start = freq
-        if freq_week_start == 'W':
-            freq_week_start = f'W-{week_dict[timestamp.weekday()]}'
-        timestamp = pd.Timestamp(data['start'], freq=freq_week_start)
-        item_id = int(data['item'])
-        for j, target in enumerate(data['target']):
+        if freq_week_start == "W":
+            freq_week_start = f"W-{week_dict[timestamp.weekday()]}"
+        timestamp = pd.Timestamp(data["start"], freq=freq_week_start)
+        item_id = int(data["item"])
+        for j, target in enumerate(data["target"]):
             # Using convention that there are no missing values before the start date
             if is_missing and j != 0 and j % num_missing == 0:
                 timestamp += 1
                 continue  # Skip every 4th entry
             else:
                 timestamp_row = timestamp
-                if freq in ['W', 'D', 'M']:
+                if freq in ["W", "D", "M"]:
                     timestamp_row = timestamp.date()
                 row = [item_id, timestamp_row, target]
                 # Check if related time series is present
-                if 'feat_dynamic_real' in data.keys():
-                    for feat_dynamic_real in data['feat_dynamic_real']:
+                if "feat_dynamic_real" in data.keys():
+                    for feat_dynamic_real in data["feat_dynamic_real"]:
                         row.append(feat_dynamic_real[j])
                 csv_writer.writerow(row)
                 timestamp += 1
@@ -68,29 +68,29 @@ def generate_sf2(
     #  This function generates the test and train json files which will be converted to csv format
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename))
-    with open(filename, 'w') as json_file:
+    with open(filename, "w") as json_file:
         for ts in time_series:
             if is_missing:
                 target = []  # type: List
                 # For Forecast don't output feat_static_cat and feat_static_real
-                for j, val in enumerate(ts['target']):
+                for j, val in enumerate(ts["target"]):
                     # only add ones that are not missing
                     if j != 0 and j % num_missing == 0:
                         target.append(None)
                     else:
                         target.append(val)
-                ts['target'] = target
-            ts.pop('feat_static_cat', None)
-            ts.pop('feat_static_real', None)
+                ts["target"] = target
+            ts.pop("feat_static_cat", None)
+            ts.pop("feat_static_real", None)
             # Chop features in training set
-            if 'feat_dynamic_real' in ts.keys() and 'train' in filename:
+            if "feat_dynamic_real" in ts.keys() and "train" in filename:
                 # TODO: Fix for missing values
-                for i, feat_dynamic_real in enumerate(ts['feat_dynamic_real']):
-                    ts['feat_dynamic_real'][i] = feat_dynamic_real[
-                        : len(ts['target'])
+                for i, feat_dynamic_real in enumerate(ts["feat_dynamic_real"]):
+                    ts["feat_dynamic_real"][i] = feat_dynamic_real[
+                        : len(ts["target"])
                     ]
             json.dump(ts, json_file)
-            json_file.write('\n')
+            json_file.write("\n")
 
 
 def generate_sf2s_and_csv(
@@ -100,101 +100,101 @@ def generate_sf2s_and_csv(
     is_missing: bool = False,
     num_missing: int = 4,
 ) -> None:
-    file_path += f'{folder_name}'
+    file_path += f"{folder_name}"
     if not os.path.exists(os.path.dirname(file_path)):
         os.makedirs(os.path.dirname(file_path))
     freq = artificial_dataset.metadata.freq
     train_set = artificial_dataset.train
-    generate_sf2(file_path + 'train.json', train_set, is_missing, num_missing)
+    generate_sf2(file_path + "train.json", train_set, is_missing, num_missing)
     test_set = artificial_dataset.test
-    generate_sf2(file_path + 'test.json', test_set, is_missing, num_missing)
-    with open(file_path + 'input_to_forecast.csv', 'w') as csv_file:
+    generate_sf2(file_path + "test.json", test_set, is_missing, num_missing)
+    with open(file_path + "input_to_forecast.csv", "w") as csv_file:
         # Test set has training set with the additional values to predict
         write_csv_row(test_set, freq, csv_file, is_missing, num_missing)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     num_timeseries = 1
-    file_path = '../../../datasets/synthetic/'
-    generate_sf2s_and_csv(file_path, 'constant/', ConstantDataset())
+    file_path = "../../../datasets/synthetic/"
+    generate_sf2s_and_csv(file_path, "constant/", ConstantDataset())
     generate_sf2s_and_csv(
-        file_path, 'constant_missing/', ConstantDataset(), is_missing=True
+        file_path, "constant_missing/", ConstantDataset(), is_missing=True
     )
     generate_sf2s_and_csv(
-        file_path, 'constant_random/', ConstantDataset(is_random_constant=True)
+        file_path, "constant_random/", ConstantDataset(is_random_constant=True)
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_one_ts/',
+        "constant_one_ts/",
         ConstantDataset(
             num_timeseries=num_timeseries, is_random_constant=True
         ),
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_diff_scales/',
+        "constant_diff_scales/",
         ConstantDataset(is_different_scales=True),
     )
     generate_sf2s_and_csv(
-        file_path, 'constant_noise/', ConstantDataset(is_noise=True)
+        file_path, "constant_noise/", ConstantDataset(is_noise=True)
     )
     generate_sf2s_and_csv(
-        file_path, 'constant_linear_trend/', ConstantDataset(is_trend=True)
+        file_path, "constant_linear_trend/", ConstantDataset(is_trend=True)
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_linear_trend_noise/',
+        "constant_linear_trend_noise/",
         ConstantDataset(is_noise=True, is_trend=True),
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_noise_long/',
+        "constant_noise_long/",
         ConstantDataset(is_noise=True, is_long=True),
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_noise_short/',
+        "constant_noise_short/",
         ConstantDataset(is_noise=True, is_short=True),
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_diff_scales_noise/',
+        "constant_diff_scales_noise/",
         ConstantDataset(is_noise=True, is_different_scales=True),
     )
     generate_sf2s_and_csv(
-        file_path, 'constant_zeros_and_nans/', ConstantDataset(is_nan=True)
+        file_path, "constant_zeros_and_nans/", ConstantDataset(is_nan=True)
     )
     generate_sf2s_and_csv(  # Requires is_random_constant to be set to True
         file_path,
-        'constant_piecewise/',
+        "constant_piecewise/",
         ConstantDataset(is_piecewise=True, is_random_constant=True),
     )
     generate_sf2s_and_csv(
-        file_path, 'complex_seasonal_noise_scale/', ComplexSeasonalTimeSeries()
+        file_path, "complex_seasonal_noise_scale/", ComplexSeasonalTimeSeries()
     )
     generate_sf2s_and_csv(
         file_path,
-        'complex_seasonal_noise/',
+        "complex_seasonal_noise/",
         ComplexSeasonalTimeSeries(is_scale=False),
     )
     generate_sf2s_and_csv(
         file_path,
-        'complex_seasonal/',
+        "complex_seasonal/",
         ComplexSeasonalTimeSeries(is_scale=False, is_noise=False),
     )
     generate_sf2s_and_csv(
         file_path,
-        'complex_seasonal_missing/',
+        "complex_seasonal_missing/",
         ComplexSeasonalTimeSeries(proportion_missing_values=0.8),
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_missing_middle/',
+        "constant_missing_middle/",
         ConstantDataset(num_steps=500, num_missing_middle=100),
     )
     generate_sf2s_and_csv(
         file_path,
-        'complex_seasonal_random_start_dates_weekly/',
+        "complex_seasonal_random_start_dates_weekly/",
         ComplexSeasonalTimeSeries(
             freq_str="W",
             percentage_unique_timestamps=1,
@@ -203,21 +203,21 @@ if __name__ == '__main__':
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_promotions/',
+        "constant_promotions/",
         ConstantDataset(
             is_promotions=True,
-            freq='M',
-            start='2015-11-30',
+            freq="M",
+            start="2015-11-30",
             num_timeseries=100,
             num_steps=50,
         ),
     )
     generate_sf2s_and_csv(
         file_path,
-        'constant_holidays/',
+        "constant_holidays/",
         ConstantDataset(
-            start='2017-07-01',
-            freq='D',
+            start="2017-07-01",
+            freq="D",
             holidays=list(holidays.UnitedStates(years=[2017, 2018]).keys()),
             num_steps=365,
         ),

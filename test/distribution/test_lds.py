@@ -43,7 +43,7 @@ def test_lds_likelihood(data_filename):
     innovation state space models (ISSM).
     Note that ISSM is a special case of LDS.
     """
-    with gzip.GzipFile(data_filename, 'r') as fp:
+    with gzip.GzipFile(data_filename, "r") as fp:
         data = json.load(fp=fp)
 
     lds = LDS(

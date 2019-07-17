@@ -74,4 +74,4 @@ class JsonLinesFile:
 
         with open(self.path) as file_obj:
             read_chunk = functools.partial(file_obj.read, BUF_SIZE)
-            return sum(chunk.count('\n') for chunk in iter(read_chunk, ''))
+            return sum(chunk.count("\n") for chunk in iter(read_chunk, ""))

@@ -16,16 +16,16 @@ class LookupValues(gluon.HybridBlock):
     def __init__(self, values: mx.nd.NDArray, **kwargs):
         super().__init__(**kwargs)
         with self.name_scope():
-            self.bin_values = self.params.get_constant('bin_values', values)
+            self.bin_values = self.params.get_constant("bin_values", values)
 
     def hybrid_forward(self, F, indices, bin_values):
         return F.take(bin_values, indices)
 
 
 def conv1d(channels, kernel_size, in_channels, use_bias=True, **kwargs):
-    '''
+    """
     Conv1D with better default initialization.
-    '''
+    """
     n = in_channels
     kernel_size = (
         kernel_size if isinstance(kernel_size, list) else [kernel_size]
@@ -37,7 +37,7 @@ def conv1d(channels, kernel_size, in_channels, use_bias=True, **kwargs):
     if use_bias:
         binit = mx.initializer.Uniform(stdv)
     else:
-        binit = 'zeros'
+        binit = "zeros"
     return nn.Conv1D(
         channels=channels,
         kernel_size=kernel_size,
@@ -71,14 +71,14 @@ class CausalDilatedResidue(nn.HybridBlock):
                 channels=n_residue,
                 kernel_size=kernel_size,
                 dilation=dilation,
-                activation='sigmoid',
+                activation="sigmoid",
             )
             self.conv_tanh = conv1d(
                 in_channels=n_residue,
                 channels=n_residue,
                 kernel_size=kernel_size,
                 dilation=dilation,
-                activation='tanh',
+                activation="tanh",
             )
             self.skip = conv1d(
                 in_channels=n_residue, channels=n_skip, kernel_size=1
@@ -165,7 +165,7 @@ class WaveNet(nn.HybridBlock):
                 kernel_size=1,
                 use_bias=True,
                 weight_initializer=mx.init.Uniform(std),
-                bias_initializer='zero',
+                bias_initializer="zero",
             )
 
             self.conv1 = conv1d(
@@ -177,7 +177,7 @@ class WaveNet(nn.HybridBlock):
             )
             self.output_act = (
                 nn.ELU()
-                if act_type == 'elu'
+                if act_type == "elu"
                 else nn.Activation(act_type=act_type)
             )
             self.cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
@@ -214,7 +214,7 @@ class WaveNet(nn.HybridBlock):
         static_feat = F.concat(embedded_cat, F.log(scale + 1.0), dim=1)
 
         full_target = F.concat(past_target, future_target, dim=-1).astype(
-            'int32'
+            "int32"
         )
 
         full_observed = F.expand_dims(
@@ -269,10 +269,10 @@ class WaveNet(nn.HybridBlock):
 
 
 class WaveNetSampler(WaveNet):
-    '''
+    """
     Runs Wavenet generation in an auto-regressive manner using caching for speedup
     (see https://arxiv.org/abs/1611.09482 )
-    '''
+    """
 
     def __init__(self, num_samples: int, temperature: float = 1.0, **kwargs):
         """
@@ -302,7 +302,7 @@ class WaveNetSampler(WaveNet):
         embedded_cat = self.feature_embedder(feat_static_cat)
         static_feat = F.concat(embedded_cat, F.log(scale + 1.0), dim=1)
 
-        past_target = past_target.astype('int32')
+        past_target = past_target.astype("int32")
 
         def blow_up(u):
             """
@@ -407,7 +407,7 @@ class WaveNetSampler(WaveNet):
                 y = F.sample_multinomial(probs.swapaxes(1, 2))
             else:
                 y = F.argmax(unnormalized_outputs, axis=1)
-            y = y.astype('int32')
+            y = y.astype("int32")
             res = F.concat(res, y, num_args=2, dim=-1)
         samples = F.slice_axis(res, begin=-self.pred_length, end=None, axis=-1)
         samples = samples.reshape(

@@ -15,19 +15,19 @@ QUANTILES = [str(q / 10.0) for q in range(1, 10)]
 
 
 def data_iterator(ts):
-    '''
+    """
     :param ts: list of pd.Series or pd.DataFrame
     :return:
-    '''
+    """
     for i in range(len(ts)):
         yield ts[i]
 
 
 def fcst_iterator(fcst, start_dates, freq):
-    '''
+    """
     :param fcst: list of numpy arrays with the sample paths
     :return:
-    '''
+    """
     for i in range(len(fcst)):
         yield SampleForecast(
             samples=fcst[i], start_date=start_dates[i], freq=freq
@@ -53,12 +53,12 @@ def iterable(it):
 
 
 def naive_forecaster(ts, prediction_length, num_samples=100):
-    '''
+    """
     :param ts: pandas.Series
     :param prediction_length:
     :param num_samples: number of sample paths
     :return: np.array with dimension (num_samples, prediction_length)
-    '''
+    """
 
     # naive prediction: last observed value
     naive_pred = ts.values[-prediction_length - 1]
@@ -68,13 +68,13 @@ def naive_forecaster(ts, prediction_length, num_samples=100):
 def naive_multivariate_forecaster(
     ts, prediction_length, num_samples=100, target_dim=2
 ):
-    '''
+    """
     :param ts: pandas.DataFrame
     :param prediction_length:
     :param num_samples: number of sample paths
     :param target_dim: dimensionality of multivariate target
     :return: np.array with dimension (num_samples, target_dim, prediction_length)
-    '''
+    """
     naive_pred = np.expand_dims(
         ts.values.transpose()[:, -prediction_length - 1], axis=1
     )
@@ -266,16 +266,16 @@ TIMESERIES_M4 = [
 
 RES_M4 = [
     {
-        'MASE': 0.816_837_618,
-        'sMAPE': 0.326_973_268_4,
-        'seasonal_error': np.array(
+        "MASE": 0.816_837_618,
+        "sMAPE": 0.326_973_268_4,
+        "seasonal_error": np.array(
             [1.908_101, 1.258_838, 0.63018, 1.238_201, 1.287_771]
         ),
     },
     {
-        'MASE': 0.723_948_2,
-        'sMAPE': 0.065_310_85,
-        'seasonal_error': np.array(
+        "MASE": 0.723_948_2,
+        "sMAPE": 0.065_310_85,
+        "seasonal_error": np.array(
             [1.867_847, 1.315_505, 0.602_587_4, 1.351_535, 1.339_179]
         ),
     },
@@ -290,21 +290,21 @@ def test_MASE_sMAPE_M4(timeseries, res):
         timeseries, evaluator, ts_datastructure
     )
 
-    assert abs((agg_df['MASE'] - res['MASE']) / res['MASE']) < 0.001, (
+    assert abs((agg_df["MASE"] - res["MASE"]) / res["MASE"]) < 0.001, (
         "Scores for the metric MASE do not match: "
-        "\nexpected: {} \nobtained: {}".format(res['MASE'], agg_df['MASE'])
+        "\nexpected: {} \nobtained: {}".format(res["MASE"], agg_df["MASE"])
     )
-    assert abs((agg_df['sMAPE'] - res['sMAPE']) / res['sMAPE']) < 0.001, (
+    assert abs((agg_df["sMAPE"] - res["sMAPE"]) / res["sMAPE"]) < 0.001, (
         "Scores for the metric sMAPE do not match: \nexpected: {} "
-        "\nobtained: {}".format(res['sMAPE'], agg_df['sMAPE'])
+        "\nobtained: {}".format(res["sMAPE"], agg_df["sMAPE"])
     )
     assert (
-        sum(abs(item_df['seasonal_error'].values - res['seasonal_error']))
+        sum(abs(item_df["seasonal_error"].values - res["seasonal_error"]))
         < 0.001
     ), (
         "Scores for the metric seasonal_error do not match: \nexpected: {} "
         "\nobtained: {}".format(
-            res['seasonal_error'], item_df['seasonal_error'].values
+            res["seasonal_error"], item_df["seasonal_error"].values
         )
     )
 
@@ -319,74 +319,74 @@ TIMESERIES = [
 
 RES = [
     {
-        'MSE': 0.0,
-        'abs_error': 0.0,
-        'abs_target_sum': 15.0,
-        'abs_target_mean': 1.0,
-        'seasonal_error': 0.0,
-        'MASE': 0.0,
-        'sMAPE': 0.0,
-        'MSIS': 0.0,
-        'RMSE': 0.0,
-        'NRMSE': 0.0,
-        'ND': 0.0,
-        'MAE_Coverage': 0.5,
+        "MSE": 0.0,
+        "abs_error": 0.0,
+        "abs_target_sum": 15.0,
+        "abs_target_mean": 1.0,
+        "seasonal_error": 0.0,
+        "MASE": 0.0,
+        "sMAPE": 0.0,
+        "MSIS": 0.0,
+        "RMSE": 0.0,
+        "NRMSE": 0.0,
+        "ND": 0.0,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 0.0,
-        'abs_error': 0.0,
-        'abs_target_sum': 14.0,
-        'abs_target_mean': 1.0,
-        'seasonal_error': 0.0,
-        'MASE': 0.0,
-        'sMAPE': 0.0,
-        'MSIS': 0.0,
-        'RMSE': 0.0,
-        'NRMSE': 0.0,
-        'ND': 0.0,
-        'MAE_Coverage': 0.5,
+        "MSE": 0.0,
+        "abs_error": 0.0,
+        "abs_target_sum": 14.0,
+        "abs_target_mean": 1.0,
+        "seasonal_error": 0.0,
+        "MASE": 0.0,
+        "sMAPE": 0.0,
+        "MSIS": 0.0,
+        "RMSE": 0.0,
+        "NRMSE": 0.0,
+        "ND": 0.0,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 4.666_666_666_666,
-        'abs_error': 30.0,
-        'abs_target_sum': 420.0,
-        'abs_target_mean': 28.0,
-        'seasonal_error': 1.0,
-        'MASE': 2.0,
-        'sMAPE': 0.113_254_049_3,
-        'MSIS': 80.0,
-        'RMSE': 2.160_246_899_469_286_9,
-        'NRMSE': 0.077_151_674_981_045_956,
-        'ND': 0.071_428_571_428_571_42,
-        'MAE_Coverage': 0.5,
+        "MSE": 4.666_666_666_666,
+        "abs_error": 30.0,
+        "abs_target_sum": 420.0,
+        "abs_target_mean": 28.0,
+        "seasonal_error": 1.0,
+        "MASE": 2.0,
+        "sMAPE": 0.113_254_049_3,
+        "MSIS": 80.0,
+        "RMSE": 2.160_246_899_469_286_9,
+        "NRMSE": 0.077_151_674_981_045_956,
+        "ND": 0.071_428_571_428_571_42,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 5.033_333_333_333_3,
-        'abs_error': 29.0,
-        'abs_target_sum': 413.0,
-        'abs_target_mean': 28.1,
-        'seasonal_error': 1.0,
-        'MASE': 2.1,
-        'sMAPE': 0.125_854_781_903_299_57,
-        'MSIS': 84.0,
-        'RMSE': 2.243_509_156_061_845_6,
-        'NRMSE': 0.079_840_183_489_745_39,
-        'ND': 0.070_217_917_675_544_79,
-        'MAE_Coverage': 0.5,
+        "MSE": 5.033_333_333_333_3,
+        "abs_error": 29.0,
+        "abs_target_sum": 413.0,
+        "abs_target_mean": 28.1,
+        "seasonal_error": 1.0,
+        "MASE": 2.1,
+        "sMAPE": 0.125_854_781_903_299_57,
+        "MSIS": 84.0,
+        "RMSE": 2.243_509_156_061_845_6,
+        "NRMSE": 0.079_840_183_489_745_39,
+        "ND": 0.070_217_917_675_544_79,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 0.0,
-        'abs_error': 0.0,
-        'abs_target_sum': 3.0,
-        'abs_target_mean': 1.0,
-        'seasonal_error': 0.0,
-        'MASE': 0.0,
-        'sMAPE': 0.0,
-        'MSIS': 0.0,
-        'RMSE': 0.0,
-        'NRMSE': 0.0,
-        'ND': 0.0,
-        'MAE_Coverage': 0.5,
+        "MSE": 0.0,
+        "abs_error": 0.0,
+        "abs_target_sum": 3.0,
+        "abs_target_mean": 1.0,
+        "seasonal_error": 0.0,
+        "MASE": 0.0,
+        "sMAPE": 0.0,
+        "MSIS": 0.0,
+        "RMSE": 0.0,
+        "NRMSE": 0.0,
+        "ND": 0.0,
+        "MAE_Coverage": 0.5,
     },
 ]
 
@@ -448,88 +448,88 @@ TIMESERIES_MULTIVARIATE = [
 
 RES_MULTIVARIATE = [
     {
-        'MSE': 0.0,
-        'abs_error': 0.0,
-        'abs_target_sum': 15.0,
-        'abs_target_mean': 1.0,
-        'seasonal_error': 0.0,
-        'MASE': 0.0,
-        'sMAPE': 0.0,
-        'MSIS': 0.0,
-        'RMSE': 0.0,
-        'NRMSE': 0.0,
-        'ND': 0.0,
-        'MAE_Coverage': 0.5,
+        "MSE": 0.0,
+        "abs_error": 0.0,
+        "abs_target_sum": 15.0,
+        "abs_target_mean": 1.0,
+        "seasonal_error": 0.0,
+        "MASE": 0.0,
+        "sMAPE": 0.0,
+        "MSIS": 0.0,
+        "RMSE": 0.0,
+        "NRMSE": 0.0,
+        "ND": 0.0,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 0.0,
-        'abs_error': 0.0,
-        'abs_target_sum': 15.0,
-        'abs_target_mean': 1.0,
-        'seasonal_error': 0.0,
-        'MASE': 0.0,
-        'sMAPE': 0.0,
-        'MSIS': 0.0,
-        'RMSE': 0.0,
-        'NRMSE': 0.0,
-        'ND': 0.0,
-        'MAE_Coverage': 0.5,
+        "MSE": 0.0,
+        "abs_error": 0.0,
+        "abs_target_sum": 15.0,
+        "abs_target_mean": 1.0,
+        "seasonal_error": 0.0,
+        "MASE": 0.0,
+        "sMAPE": 0.0,
+        "MSIS": 0.0,
+        "RMSE": 0.0,
+        "NRMSE": 0.0,
+        "ND": 0.0,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 0.0,
-        'abs_error': 0.0,
-        'abs_target_sum': 30.0,
-        'abs_target_mean': 1.0,
-        'seasonal_error': 0.0,
-        'MASE': 0.0,
-        'sMAPE': 0.0,
-        'MSIS': 0.0,
-        'RMSE': 0.0,
-        'NRMSE': 0.0,
-        'ND': 0.0,
-        'MAE_Coverage': 0.5,
+        "MSE": 0.0,
+        "abs_error": 0.0,
+        "abs_target_sum": 30.0,
+        "abs_target_mean": 1.0,
+        "seasonal_error": 0.0,
+        "MASE": 0.0,
+        "sMAPE": 0.0,
+        "MSIS": 0.0,
+        "RMSE": 0.0,
+        "NRMSE": 0.0,
+        "ND": 0.0,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 4.666_666_666_666,
-        'abs_error': 30.0,
-        'abs_target_sum': 420.0,
-        'abs_target_mean': 28.0,
-        'seasonal_error': 1.0,
-        'MASE': 2.0,
-        'sMAPE': 0.113_254_049_3,
-        'MSIS': 80.0,
-        'RMSE': 2.160_246_899_469_286_9,
-        'NRMSE': 0.077_151_674_981_045_956,
-        'ND': 0.071_428_571_428_571_42,
-        'MAE_Coverage': 0.5,
+        "MSE": 4.666_666_666_666,
+        "abs_error": 30.0,
+        "abs_target_sum": 420.0,
+        "abs_target_mean": 28.0,
+        "seasonal_error": 1.0,
+        "MASE": 2.0,
+        "sMAPE": 0.113_254_049_3,
+        "MSIS": 80.0,
+        "RMSE": 2.160_246_899_469_286_9,
+        "NRMSE": 0.077_151_674_981_045_956,
+        "ND": 0.071_428_571_428_571_42,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 4.666_666_666_666,
-        'abs_error': 30.0,
-        'abs_target_sum': 1170.0,
-        'abs_target_mean': 78.0,
-        'seasonal_error': 1.0,
-        'MASE': 2.0,
-        'sMAPE': 0.026_842_301_756_499_45,
-        'MSIS': 80.0,
-        'RMSE': 2.160_246_899_469_286_9,
-        'NRMSE': 0.027_695_473_070_119_065,
-        'ND': 0.025_641_025_641_025_64,
-        'MAE_Coverage': 0.5,
+        "MSE": 4.666_666_666_666,
+        "abs_error": 30.0,
+        "abs_target_sum": 1170.0,
+        "abs_target_mean": 78.0,
+        "seasonal_error": 1.0,
+        "MASE": 2.0,
+        "sMAPE": 0.026_842_301_756_499_45,
+        "MSIS": 80.0,
+        "RMSE": 2.160_246_899_469_286_9,
+        "NRMSE": 0.027_695_473_070_119_065,
+        "ND": 0.025_641_025_641_025_64,
+        "MAE_Coverage": 0.5,
     },
     {
-        'MSE': 4.666_666_666_666,
-        'abs_error': 60.0,
-        'abs_target_sum': 1590.0,
-        'abs_target_mean': 53.0,
-        'seasonal_error': 1.0,
-        'MASE': 2.0,
-        'sMAPE': 0.070_048_175_528_249_73,
-        'MSIS': 80.0,
-        'RMSE': 2.160_246_899_469_286_9,
-        'NRMSE': 0.040_759_375_461_684_65,
-        'ND': 0.037_735_849_056_603_77,
-        'MAE_Coverage': 0.5,
+        "MSE": 4.666_666_666_666,
+        "abs_error": 60.0,
+        "abs_target_sum": 1590.0,
+        "abs_target_mean": 53.0,
+        "seasonal_error": 1.0,
+        "MASE": 2.0,
+        "sMAPE": 0.070_048_175_528_249_73,
+        "MSIS": 80.0,
+        "RMSE": 2.160_246_899_469_286_9,
+        "NRMSE": 0.040_759_375_461_684_65,
+        "ND": 0.037_735_849_056_603_77,
+        "MAE_Coverage": 0.5,
     },
 ]
 
@@ -573,43 +573,43 @@ def test_metrics_multivariate(
 
 
 def test_evaluation_with_QuantileForecast():
-    start = '2012-01-01'
+    start = "2012-01-01"
     target = [2.4, 1.0, 3.0, 4.4, 5.5, 4.9] * 10
-    index = pd.date_range(start=start, freq='1D', periods=len(target))
+    index = pd.date_range(start=start, freq="1D", periods=len(target))
     ts = pd.Series(index=index, data=target)
 
-    ev = Evaluator(quantiles=('0.1', '0.2', '0.5'))
+    ev = Evaluator(quantiles=("0.1", "0.2", "0.5"))
 
     fcst = [
         QuantileForecast(
-            start_date=pd.Timestamp('2012-01-01'),
-            freq='D',
+            start_date=pd.Timestamp("2012-01-01"),
+            freq="D",
             forecast_arrays=np.array([[2.4, 9.0, 3.0, 2.4, 5.5, 4.9] * 10]),
-            forecast_keys=['0.5'],
+            forecast_keys=["0.5"],
         )
     ]
 
     agg_metric, _ = ev(iter([ts]), iter(fcst))
 
-    assert np.isfinite(agg_metric['wQuantileLoss[0.5]'])
+    assert np.isfinite(agg_metric["wQuantileLoss[0.5]"])
 
 
 @pytest.mark.parametrize(
     "freq, expected_seasonality",
     [
-        ('1H', 24),
-        ('H', 24),
-        ('2H', 12),
-        ('3H', 8),
-        ('4H', 6),
-        ('15H', 1),
-        ('5B', 1),
-        ('1B', 5),
-        ('2W', 1),
-        ('3M', 4),
-        ('1D', 1),
-        ('7D', 1),
-        ('8D', 1),
+        ("1H", 24),
+        ("H", 24),
+        ("2H", 12),
+        ("3H", 8),
+        ("4H", 6),
+        ("15H", 1),
+        ("5B", 1),
+        ("1B", 5),
+        ("2W", 1),
+        ("3M", 4),
+        ("1D", 1),
+        ("7D", 1),
+        ("8D", 1),
     ],
 )
 def test_get_seasonality(freq, expected_seasonality):

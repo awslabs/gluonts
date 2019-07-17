@@ -22,7 +22,7 @@ def make_dummy_dynamic_feat(target, num_features) -> np.ndarray:
 
 
 # default values for TimeSeries field
-start = pd.Timestamp('1985-01-02', freq="1D")
+start = pd.Timestamp("1985-01-02", freq="1D")
 target = np.random.randint(0, 10, 20)
 cat = [0, 1]
 
@@ -36,20 +36,20 @@ def make_time_series(
         else None
     )
     data = {
-        'start': start,
-        'target': target,
-        'cat': cat,
-        'dynamic_feat': dynamic_feat,
+        "start": start,
+        "target": target,
+        "cat": cat,
+        "dynamic_feat": dynamic_feat,
     }
     return data
 
 
 def ts(start, target, cat=None, dynamic_feat=None) -> DataEntry:
-    d = {'start': start, 'target': target}
+    d = {"start": start, "target": target}
     if cat is not None:
-        d['cat'] = cat
+        d["cat"] = cat
     if dynamic_feat is not None:
-        d['dynamic_feat'] = dynamic_feat
+        d["dynamic_feat"] = dynamic_feat
     return d
 
 
@@ -133,17 +133,17 @@ class DatasetStatisticsExceptions(unittest.TestCase):
             with self.assertRaisesRegex(GluonTSDataError, expected_regex):
                 calculate_dataset_statistics(dataset)
 
-        check_error_message('Time series dataset is empty!', [])
+        check_error_message("Time series dataset is empty!", [])
 
         check_error_message(
-            'Only empty time series found in the dataset!',
+            "Only empty time series found in the dataset!",
             [make_time_series(target=np.random.randint(0, 10, 0))],
         )
 
         # different number of dynamic_feat
         check_error_message(
-            'Found instances with different number of features in '
-            'dynamic_feat, found one with 2 and another with 1.',
+            "Found instances with different number of features in "
+            "dynamic_feat, found one with 2 and another with 1.",
             [
                 make_time_series(num_dynamic_feat=2),
                 make_time_series(num_dynamic_feat=1),
@@ -152,8 +152,8 @@ class DatasetStatisticsExceptions(unittest.TestCase):
 
         # different number of dynamic_feat
         check_error_message(
-            'Found instances with different number of features in '
-            'dynamic_feat, found one with 0 and another with 1.',
+            "Found instances with different number of features in "
+            "dynamic_feat, found one with 0 and another with 1.",
             [
                 make_time_series(num_dynamic_feat=0),
                 make_time_series(num_dynamic_feat=1),
@@ -162,7 +162,7 @@ class DatasetStatisticsExceptions(unittest.TestCase):
 
         # different number of dynamic_feat
         check_error_message(
-            'dynamic_feat was found for some instances but not others.',
+            "dynamic_feat was found for some instances but not others.",
             [
                 make_time_series(num_dynamic_feat=1),
                 make_time_series(num_dynamic_feat=0),
@@ -180,8 +180,8 @@ class DatasetStatisticsExceptions(unittest.TestCase):
         # infinite dynamic_feat
         inf_dynamic_feat = np.full((2, len(target)), np.inf)
         check_error_message(
-            'Features values have to be finite and cannot exceed single '
-            'precision floating point range.',
+            "Features values have to be finite and cannot exceed single "
+            "precision floating point range.",
             [
                 ts(
                     start=start,
@@ -194,15 +194,15 @@ class DatasetStatisticsExceptions(unittest.TestCase):
 
         # cat different length
         check_error_message(
-            'Not all cat vectors have the same length 2 != 1.',
+            "Not all cat vectors have the same length 2 != 1.",
             [ts(start, target, [0, 1]), ts(start, target, [1])],
         )
 
         # cat different length
         check_error_message(
-            'Each feature in dynamic_feat has to have the same length as the '
-            'target. Found an instance with dynamic_feat of length 1 and a '
-            'target of length 20.',
+            "Each feature in dynamic_feat has to have the same length as the "
+            "target. Found an instance with dynamic_feat of length 1 and a "
+            "target of length 20.",
             [
                 ts(start, target, [0, 1], dynamic_feat=np.ones((1, 1))),
                 ts(start, target, [1], dynamic_feat=np.ones((1, 1))),

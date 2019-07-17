@@ -34,12 +34,12 @@ from gluonts.monkey_patch import monkey_patch_property_metaclass  # noqa: F401
 # Relative imports
 from . import fqname_for
 
-DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
-A = TypeVar('A')
+A = TypeVar("A")
 
 
 def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
@@ -66,13 +66,13 @@ def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
         Wraps a :class:`ValidationError` thrown when validating the
         initializer parameters.
     """
-    Model = getattr(cls.__init__, 'Model', None)
+    Model = getattr(cls.__init__, "Model", None)
 
     if not Model:
         raise AttributeError(
-            f'Cannot find attribute Model attached to the '
-            f'{fqname_for(cls)}. Most probably you have forgotten to mark '
-            f'the class initializer as @validated().'
+            f"Cannot find attribute Model attached to the "
+            f"{fqname_for(cls)}. Most probably you have forgotten to mark "
+            f"the class initializer as @validated()."
         )
 
     try:
@@ -121,9 +121,9 @@ def equals(this: Any, that: Any) -> bool:
     """
     if type(this) != type(that):
         return False
-    elif hasattr(this, '__init_args__') and hasattr(that, '__init_args__'):
-        params1 = getattr(this, '__init_args__')
-        params2 = getattr(that, '__init_args__')
+    elif hasattr(this, "__init_args__") and hasattr(that, "__init_args__"):
+        params1 = getattr(this, "__init_args__")
+        params2 = getattr(that, "__init_args__")
 
         pnames1 = params1.keys()
         pnames2 = params2.keys()
@@ -328,8 +328,8 @@ def validated(base_model=None):
     """
 
     def validator(init):
-        init_qualname = dict(inspect.getmembers(init))['__qualname__']
-        init_clsnme = init_qualname.split('.')[0]
+        init_qualname = dict(inspect.getmembers(init))["__qualname__"]
+        init_clsnme = init_qualname.split(".")[0]
         init_params = inspect.signature(init).parameters
         init_fields = {
             param.name: (
@@ -341,19 +341,19 @@ def validated(base_model=None):
                 else ...,
             )
             for param in init_params.values()
-            if param.name != 'self'
+            if param.name != "self"
             and param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
         }
 
         if base_model is None:
             PydanticModel = create_model(
-                model_name=f'{init_clsnme}Model',
+                model_name=f"{init_clsnme}Model",
                 __config__=BaseValidatedInitializerModel.Config,
                 **init_fields,
             )
         else:
             PydanticModel = create_model(
-                model_name=f'{init_clsnme}Model',
+                model_name=f"{init_clsnme}Model",
                 __base__=base_model,
                 **init_fields,
             )
@@ -373,7 +373,7 @@ def validated(base_model=None):
                 for (name, param), arg in zip(
                     list(init_params.items()), [self] + args
                 )
-                if name != 'self'
+                if name != "self"
             }
             model = PydanticModel(**{**nmargs, **kwargs})
 
@@ -383,7 +383,7 @@ def validated(base_model=None):
             # save the merged dictionary for Representable use, but only of the
             # __init_args__ is not already set in order to avoid overriding a
             # value set by a subclass initializer in super().__init__ calls
-            if not getattr(self, '__init_args__', {}):
+            if not getattr(self, "__init_args__", {}):
                 self.__init_args__ = OrderedDict(
                     {
                         name: arg
@@ -397,7 +397,7 @@ def validated(base_model=None):
             return init(self, **all_args)
 
         # attach the Pydantic model as the attribute of the initializer wrapper
-        setattr(init_wrapper, 'Model', PydanticModel)
+        setattr(init_wrapper, "Model", PydanticModel)
 
         return init_wrapper
 
@@ -416,14 +416,14 @@ class MXContext:
         if isinstance(v, mx.Context):
             return v
 
-        m = re.search(r'^(?P<dev_type>cpu|gpu)(\((?P<dev_id>\d+)\))?$', v)
+        m = re.search(r"^(?P<dev_type>cpu|gpu)(\((?P<dev_id>\d+)\))?$", v)
 
         if m:
-            return mx.Context(m['dev_type'], int(m['dev_id'] or 0))
+            return mx.Context(m["dev_type"], int(m["dev_id"] or 0))
         else:
             raise ValueError(
-                f'bad MXNet context {v}, expected either an '
-                f'mx.context.Context or its string representation'
+                f"bad MXNet context {v}, expected either an "
+                f"mx.context.Context or its string representation"
             )
 
     @classmethod
@@ -478,5 +478,5 @@ class DType:
             return v
         else:
             raise ValueError(
-                f'bad value {v} of type {type(v)}, expected a type or a string'
+                f"bad value {v} of type {type(v)}, expected a type or a string"
             )

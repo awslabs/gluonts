@@ -11,22 +11,22 @@ _length_low = np.array([100])
 _min_val = np.array([-10000, 0, 5000])
 
 
-@pytest.mark.parametrize('num_series', [30])
-@pytest.mark.parametrize('prediction_length', [100])
-@pytest.mark.parametrize('freq_str', ['M', 'W', 'D', 'H', 'min'])
+@pytest.mark.parametrize("num_series", [30])
+@pytest.mark.parametrize("prediction_length", [100])
+@pytest.mark.parametrize("freq_str", ["M", "W", "D", "H", "min"])
 @pytest.mark.parametrize(
-    'length_low, length_high', zip(_length_low, _length_low + np.array([50]))
+    "length_low, length_high", zip(_length_low, _length_low + np.array([50]))
 )
 @pytest.mark.parametrize(
-    'min_val, max_val', zip(_min_val, _min_val + np.array([5000, 2500, 1000]))
+    "min_val, max_val", zip(_min_val, _min_val + np.array([5000, 2500, 1000]))
 )
-@pytest.mark.parametrize('is_integer', [True, False])
-@pytest.mark.parametrize('proportion_missing_values', [0])
-@pytest.mark.parametrize('is_noise', [True])
-@pytest.mark.parametrize('is_scale', [True])
-@pytest.mark.parametrize('percentage_unique_timestamps', [0.07])
-@pytest.mark.parametrize('is_out_of_bounds_date', [True])
-@pytest.mark.parametrize('clip_values', [True, False])
+@pytest.mark.parametrize("is_integer", [True, False])
+@pytest.mark.parametrize("proportion_missing_values", [0])
+@pytest.mark.parametrize("is_noise", [True])
+@pytest.mark.parametrize("is_scale", [True])
+@pytest.mark.parametrize("percentage_unique_timestamps", [0.07])
+@pytest.mark.parametrize("is_out_of_bounds_date", [True])
+@pytest.mark.parametrize("clip_values", [True, False])
 def test_complex_seasonal(
     num_series: int,
     prediction_length: int,
@@ -72,10 +72,10 @@ def test_complex_seasonal(
         assert len(train) == len(test) == num_series
 
         for ts_train, ts_test in zip(train, test):
-            assert ts_train['start'] == ts_test['start']
+            assert ts_train["start"] == ts_test["start"]
 
-            train_values = ts_train['target']
-            test_values = ts_test['target']
+            train_values = ts_train["target"]
+            test_values = ts_test["target"]
 
             assert len(test_values) - len(train_values) == prediction_length
             assert length_low <= len(test_values) <= length_high

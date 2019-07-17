@@ -41,7 +41,7 @@ def test_forecast_parser():
 
     stats = calculate_dataset_statistics(train_ds)
     assert stats == eval(
-        repr(stats), globals(), {'gluonts': gluonts}
+        repr(stats), globals(), {"gluonts": gluonts}
     )  # TODO: use load
 
     evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
@@ -59,7 +59,7 @@ def test_benchmark(caplog):
     # makes sure that information logged can be reconstructed from previous
     # logs
 
-    caplog.set_level(logging.DEBUG, logger='log.txt')
+    caplog.set_level(logging.DEBUG, logger="log.txt")
 
     dataset_info, train_ds, test_ds = constant_dataset()
 
@@ -70,7 +70,7 @@ def test_benchmark(caplog):
     backtest_metrics(train_ds, test_ds, estimator, evaluator)
     train_stats = calculate_dataset_statistics(train_ds)
     test_stats = calculate_dataset_statistics(test_ds)
-    log_file = str(Path(__file__).parent / 'log.txt')
+    log_file = str(Path(__file__).parent / "log.txt")
     log_info = BacktestInformation.make_from_log(log_file)
 
     assert train_stats == log_info.train_dataset_stats

@@ -97,7 +97,7 @@ class GaussianProcessEstimator(GluonEstimator):
         params_scaling: bool = True,
         float_type: DType = np.float64,
         max_iter_jitter: int = 10,
-        jitter_method: str = 'iter',
+        jitter_method: str = "iter",
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
     ) -> None:

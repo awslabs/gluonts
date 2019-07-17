@@ -53,7 +53,7 @@ class IdentityPredictor(RepresentablePredictor):
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         for x in dataset:
-            prediction = x['target'][-self.prediction_length :]
+            prediction = x["target"][-self.prediction_length :]
             samples = np.broadcast_to(
                 array=np.expand_dims(prediction, 0),
                 shape=(self.num_samples, self.prediction_length),
@@ -61,9 +61,9 @@ class IdentityPredictor(RepresentablePredictor):
 
             yield SampleForecast(
                 samples=samples,
-                start_date=x['start'],
+                start_date=x["start"],
                 freq=self.freq,
-                item_id=x['id'] if 'id' in x else None,
+                item_id=x["id"] if "id" in x else None,
             )
 
 
@@ -89,9 +89,9 @@ class ConstantPredictor(RepresentablePredictor):
         for x in dataset:
             yield SampleForecast(
                 samples=self.samples,
-                start_date=x['start'],
+                start_date=x["start"],
                 freq=self.freq,
-                item_id=x['id'] if 'id' in x else None,
+                item_id=x["id"] if "id" in x else None,
             )
 
 
@@ -136,7 +136,7 @@ class MeanEstimator(Estimator):
 
         contexts = np.broadcast_to(
             array=[
-                x['target'][-self.prediction_length :] for x in training_data
+                x["target"][-self.prediction_length :] for x in training_data
             ],
             shape=(len(training_data), self.prediction_length),
         )

@@ -58,21 +58,21 @@ class FieldName:
     transformer instances.
     """
 
-    START = 'start'
-    TARGET = 'target'
+    START = "start"
+    TARGET = "target"
 
-    FEAT_STATIC_CAT = 'feat_static_cat'
-    FEAT_STATIC_REAL = 'feat_static_real'
-    FEAT_DYNAMIC_CAT = 'feat_dynamic_cat'
-    FEAT_DYNAMIC_REAL = 'feat_dynamic_real'
+    FEAT_STATIC_CAT = "feat_static_cat"
+    FEAT_STATIC_REAL = "feat_static_real"
+    FEAT_DYNAMIC_CAT = "feat_dynamic_cat"
+    FEAT_DYNAMIC_REAL = "feat_dynamic_real"
 
-    FEAT_TIME = 'time_feat'
-    FEAT_CONST = 'feat_dynamic_const'
-    FEAT_AGE = 'feat_dynamic_age'
+    FEAT_TIME = "time_feat"
+    FEAT_CONST = "feat_dynamic_const"
+    FEAT_AGE = "feat_dynamic_age"
 
-    OBSERVED_VALUES = 'observed_values'
-    IS_PAD = 'is_pad'
-    FORECAST_START = 'forecast_start'
+    OBSERVED_VALUES = "observed_values"
+    IS_PAD = "is_pad"
+    FORECAST_START = "forecast_start"
 
 
 def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
@@ -359,11 +359,11 @@ class FlatMapTransformation(Transformation):
                 raise e
             if num_idle_transforms > GLUONTS_MAX_IDLE_TRANSFORMS:
                 raise Exception(
-                    f'Reached maximum number of idle transformation calls.\n'
-                    f'This means the transformation looped over '
-                    f'GLUONTS_MAX_IDLE_TRANSFORMS={GLUONTS_MAX_IDLE_TRANSFORMS} '
-                    f'inputs without returning any output.\n'
-                    f'This occurred in the following transformation:\n{self}'
+                    f"Reached maximum number of idle transformation calls.\n"
+                    f"This means the transformation looped over "
+                    f"GLUONTS_MAX_IDLE_TRANSFORMS={GLUONTS_MAX_IDLE_TRANSFORMS} "
+                    f"inputs without returning any output.\n"
+                    f"This occurred in the following transformation:\n{self}"
                 )
 
     @abc.abstractmethod
@@ -477,8 +477,8 @@ class AsNumpyArray(SimpleTransformation):
         assert_data_error(
             value.ndim >= self.expected_ndim,
             'Input for field "{self.field}" does not have the required'
-            'dimension (field: {self.field}, ndim observed: {value.ndim}, '
-            'expected ndim: {self.expected_ndim})',
+            "dimension (field: {self.field}, ndim observed: {value.ndim}, "
+            "expected ndim: {self.expected_ndim})",
             value=value,
             self=self,
         )
@@ -631,8 +631,8 @@ class SwapAxes(SimpleTransformation):
             return [self.swap(x) for x in v]
         else:
             raise ValueError(
-                f'Unexpected field type {type(v).__name__}, expected '
-                f'np.ndarray or list[np.ndarray]'
+                f"Unexpected field type {type(v).__name__}, expected "
+                f"np.ndarray or list[np.ndarray]"
             )
 
 
@@ -738,7 +738,7 @@ class RenameFields(SimpleTransformation):
         self.mapping = mapping
         values_count = Counter(mapping.values())
         for new_key, count in values_count.items():
-            assert count == 1, f'Mapped key {new_key} occurs multiple time'
+            assert count == 1, f"Mapped key {new_key} occurs multiple time"
 
     def transform(self, data: DataEntry):
         for key, new_key in self.mapping.items():
@@ -1010,10 +1010,10 @@ class InstanceSplitter(FlatMapTransformation):
         self.pick_incomplete = pick_incomplete
 
     def _past(self, col_name):
-        return f'past_{col_name}'
+        return f"past_{col_name}"
 
     def _future(self, col_name):
-        return f'future_{col_name}'
+        return f"future_{col_name}"
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
@@ -1176,10 +1176,10 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         self.prediction_length = prediction_length
 
     def _past(self, col_name):
-        return f'past_{col_name}'
+        return f"past_{col_name}"
 
     def _future(self, col_name):
-        return f'future_{col_name}'
+        return f"future_{col_name}"
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool

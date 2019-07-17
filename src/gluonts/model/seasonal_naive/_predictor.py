@@ -59,8 +59,8 @@ class SeasonalNaivePredictor(RepresentablePredictor):
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
         for data in dataset:
-            start = pd.Timestamp(data['start'], freq=self.freq)
-            target = np.asarray(data['target'], np.float32)
+            start = pd.Timestamp(data["start"], freq=self.freq)
+            target = np.asarray(data["target"], np.float32)
             yield self._predict_time_series(start_time=start, target=target)
 
     def _predict_time_series(

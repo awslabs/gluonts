@@ -60,7 +60,7 @@ class BatchBuffer:
     def stack(self, xs):
         if isinstance(xs[0], np.ndarray):
             data = np.asarray(xs)
-            if data.dtype.kind == 'f':
+            if data.dtype.kind == "f":
                 data = data.astype(self.float_type)
             return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
         elif isinstance(xs[0], mx.nd.NDArray):
@@ -169,7 +169,7 @@ class TrainDataLoader(DataLoader):
             try:
                 first = next(iter(collection))
             except StopIteration:
-                raise Exception('empty dataset')
+                raise Exception("empty dataset")
             else:
                 for x in itertools.chain([first], collection):
                     yield x

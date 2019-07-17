@@ -57,7 +57,7 @@ class Bijection:
         """
         raise NotImplementedError
 
-    def inverse_bijection(self) -> 'Bijection':
+    def inverse_bijection(self) -> "Bijection":
         r"""
         Returns a Bijection instance that represents the inverse of this
         transformation.
@@ -162,7 +162,7 @@ class _Softrelu(Bijection):
 
     def f(self, x: Tensor) -> Tensor:
         F = getF(x)
-        return F.Activation(x.clip(-100.0, np.inf), act_type='softrelu')
+        return F.Activation(x.clip(-100.0, np.inf), act_type="softrelu")
 
     def f_inv(self, y: Tensor) -> Tensor:
         F = getF(y)

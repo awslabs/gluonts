@@ -11,14 +11,14 @@ from gluonts.model.testutil import IdentityPredictor, MeanEstimator
 def test_parallelized_predictor():
     dataset = ListDataset(
         data_iter=[
-            {'start': '2012-01-01', 'target': (np.zeros(20) + i).tolist()}
+            {"start": "2012-01-01", "target": (np.zeros(20) + i).tolist()}
             for i in range(300)
         ],
-        freq='1H',
+        freq="1H",
     )
 
     base_predictor = IdentityPredictor(
-        freq='1H', prediction_length=10, num_samples=100
+        freq="1H", prediction_length=10, num_samples=100
     )
 
     predictor = ParallelizedPredictor(
@@ -39,16 +39,16 @@ def test_localizer():
     dataset = ListDataset(
         data_iter=[
             {
-                'start': '2012-01-01',
-                'target': (np.zeros(20) + i * 0.1 + 0.01),
-                'id': f'{i}',
+                "start": "2012-01-01",
+                "target": (np.zeros(20) + i * 0.1 + 0.01),
+                "id": f"{i}",
             }
             for i in range(3)
         ],
-        freq='1H',
+        freq="1H",
     )
 
-    estimator = MeanEstimator(prediction_length=10, freq='1H', num_samples=50)
+    estimator = MeanEstimator(prediction_length=10, freq="1H", num_samples=50)
 
     local_pred = Localizer(estimator=estimator)
     agg_metrics, _ = backtest_metrics(

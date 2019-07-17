@@ -324,7 +324,7 @@ class PiecewiseLinearOutput(DistributionOutput):
         I_sml_thresh = F.broadcast_lesser(slopes, thresh)
         slopes_proj = (
             I_sml_thresh
-            * F.Activation(data=(I_sml_thresh * slopes), act_type='softrelu')
+            * F.Activation(data=(I_sml_thresh * slopes), act_type="softrelu")
             + I_grt_thresh * slopes
         )
         # slopes = F.Activation(slopes, 'softrelu')

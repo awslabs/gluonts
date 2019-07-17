@@ -98,7 +98,7 @@ class RForecastPredictor(RepresentablePredictor):
 
         self.method_name = method_name
 
-        self._stats_pkg = rpackages.importr('stats')
+        self._stats_pkg = rpackages.importr("stats")
         self._r_method = robjects.r[method_name]
 
         self.prediction_length = prediction_length
@@ -108,10 +108,10 @@ class RForecastPredictor(RepresentablePredictor):
         self.trunc_length = trunc_length
 
         self.params = {
-            'prediction_length': self.prediction_length,
-            'output_types': ['samples'],
-            'num_samples': self.num_samples,
-            'frequency': self.period,
+            "prediction_length": self.prediction_length,
+            "output_types": ["samples"],
+            "num_samples": self.num_samples,
+            "frequency": self.period,
         }
         if params is not None:
             self.params.update(params)
@@ -170,22 +170,22 @@ class RForecastPredictor(RepresentablePredictor):
 
             params = self.params.copy()
             if num_samples is not None:
-                params['num_samples'] = num_samples
+                params["num_samples"] = num_samples
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )
             forecast_start = (
-                pd.Timestamp(data['start'], freq=self.freq)
-                + data['target'].shape[0]
+                pd.Timestamp(data["start"], freq=self.freq)
+                + data["target"].shape[0]
             )
 
-            samples = np.array(forecast_dict['samples'])
-            expected_shape = (params['num_samples'], self.prediction_length)
+            samples = np.array(forecast_dict["samples"])
+            expected_shape = (params["num_samples"], self.prediction_length)
             assert (
                 samples.shape == expected_shape
             ), f"Expected shape {expected_shape} but found {samples.shape}"
             info = (
-                {'console_output': '\n'.join(console_output)}
+                {"console_output": "\n".join(console_output)}
                 if save_info
                 else None
             )

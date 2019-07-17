@@ -27,7 +27,7 @@ def nans_like(x: Tensor) -> Tensor:
 
 
 def softplus(F, x: Tensor) -> Tensor:
-    return F.Activation(x, act_type='softrelu')
+    return F.Activation(x, act_type="softrelu")
 
 
 def getF(var: Tensor):

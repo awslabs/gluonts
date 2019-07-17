@@ -91,7 +91,7 @@ class ScaleHistogram:
 
     def __str__(self):
         string_repr = [
-            'count of scales in {min}-{max}:{count}'.format(
+            "count of scales in {min}-{max}:{count}".format(
                 min=self._base ** base_index - 1,
                 max=self._base ** (base_index + 1) - 1,
                 count=count,
@@ -100,7 +100,7 @@ class ScaleHistogram:
                 self.bin_counts.items(), key=lambda x: x[0]
             )
         ]
-        return '\n'.join(string_repr)
+        return "\n".join(string_repr)
 
 
 class DatasetStatistics(NamedTuple):
@@ -169,9 +169,9 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
 
     with tqdm(enumerate(ts_dataset, start=1), total=len(ts_dataset)) as it:
         for num_time_series, ts in it:
-            target = ts['target']
+            target = ts["target"]
             observed_target = target[~np.isnan(target)]
-            cat = ts['cat'] if 'cat' in ts else []  # FIXME
+            cat = ts["cat"] if "cat" in ts else []  # FIXME
             num_observations = len(observed_target)
             scale_histogram.add(observed_target)
 
@@ -187,7 +187,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                     np.all(np.isfinite(observed_target)),
                     'Target values have to be finite (e.g., not "inf", "-inf", '
                     '"nan", or null) and cannot exceed single precision floating '
-                    'point range.',
+                    "point range.",
                 )
                 sum_target += float(observed_target.sum())
                 sum_abs_target += float(np.abs(observed_target).sum())
@@ -205,21 +205,21 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
 
             assert_data_error(
                 num_cats == len(cat),
-                'Not all cat vectors have the same length {} != {}.',
+                "Not all cat vectors have the same length {} != {}.",
                 num_cats,
                 len(cat),
             )
             for i, c in enumerate(cat):
                 observed_cats[i].add(c)
 
-            dynamic_feat = ts['dynamic_feat'] if 'dynamic_feat' in ts else None
+            dynamic_feat = ts["dynamic_feat"] if "dynamic_feat" in ts else None
 
             if dynamic_feat is None:
                 # dynamic_feat not found, check it was the first ts we encounter or
                 # that dynamic_feat were seen before
                 assert_data_error(
                     num_dynamic_feat is None or num_dynamic_feat == 0,
-                    'dynamic_feat was found for some instances but not others.',
+                    "dynamic_feat was found for some instances but not others.",
                 )
                 num_dynamic_feat = 0
             else:
@@ -229,31 +229,31 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 else:
                     assert_data_error(
                         num_dynamic_feat == dynamic_feat.shape[0],
-                        'Found instances with different number of features in '
-                        'dynamic_feat, found one with {} and another with {}.',
+                        "Found instances with different number of features in "
+                        "dynamic_feat, found one with {} and another with {}.",
                         num_dynamic_feat,
                         dynamic_feat.shape[0],
                     )
 
                 assert_data_error(
                     np.all(np.isfinite(dynamic_feat)),
-                    'Features values have to be finite and cannot exceed single '
-                    'precision floating point range.',
+                    "Features values have to be finite and cannot exceed single "
+                    "precision floating point range.",
                 )
                 num_dynamic_feat_time_steps = dynamic_feat.shape[1]
                 assert_data_error(
                     num_dynamic_feat_time_steps == len(target),
-                    'Each feature in dynamic_feat has to have the same length as '
-                    'the target. Found an instance with dynamic_feat of length {} '
-                    'and a target of length {}.',
+                    "Each feature in dynamic_feat has to have the same length as "
+                    "the target. Found an instance with dynamic_feat of length {} "
+                    "and a target of length {}.",
                     num_dynamic_feat_time_steps,
                     len(target),
                 )
 
-    assert_data_error(num_time_series > 0, 'Time series dataset is empty!')
+    assert_data_error(num_time_series > 0, "Time series dataset is empty!")
     assert_data_error(
         num_time_observations > 0,
-        'Only empty time series found in the dataset!',
+        "Only empty time series found in the dataset!",
     )
 
     # note this require the above assumption to avoid a division by zero

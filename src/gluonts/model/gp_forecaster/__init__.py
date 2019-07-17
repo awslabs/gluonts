@@ -1,4 +1,4 @@
 # Relative imports
 from ._estimator import GaussianProcessEstimator
 
-__all__ = ['GaussianProcessEstimator']
+__all__ = ["GaussianProcessEstimator"]

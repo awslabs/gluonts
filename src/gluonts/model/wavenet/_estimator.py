@@ -38,7 +38,7 @@ from gluonts.transform import (
 
 
 class QuantizeScaled(SimpleTransformation):
-    '''
+    """
     Rescale and quantize the target variable.
 
     Requires
@@ -48,14 +48,14 @@ class QuantizeScaled(SimpleTransformation):
     Then the bin_edges are used to quantize the rescaled target.
 
     The calculated scale is included as a new field "scale"
-    '''
+    """
 
     def __init__(
         self,
         bin_edges: np.ndarray,
         past_target: str,
         future_target: str,
-        scale: str = 'scale',
+        scale: str = "scale",
     ):
         self.bin_edges = bin_edges
         self.future_target = future_target
@@ -77,20 +77,20 @@ class QuantizeScaled(SimpleTransformation):
 
 
 def _get_seasonality(freq: str, seasonality_dict: Optional[Dict]) -> int:
-    match = re.match(r'(\d*)(\w+)', freq)
+    match = re.match(r"(\d*)(\w+)", freq)
     assert match, "Cannot match freq regex"
     multiple, base_freq = match.groups()
     multiple = int(multiple) if multiple else 1
     sdict = (
         seasonality_dict
         if seasonality_dict
-        else {'H': 7 * 24, 'D': 7, 'W': 52, 'M': 12, 'B': 7 * 5}
+        else {"H": 7 * 24, "D": 7, "W": 52, "M": 12, "B": 7 * 5}
     )
     seasonality = sdict[base_freq]
     if seasonality % multiple != 0:
         logging.warning(
-            f'multiple {multiple} does not divide base seasonality {seasonality}.'
-            f'Falling back to seasonality 1'
+            f"multiple {multiple} does not divide base seasonality {seasonality}."
+            f"Falling back to seasonality 1"
         )
         return 1
     return seasonality // multiple
@@ -118,7 +118,7 @@ class WaveNetEstimator(GluonEstimator):
         dilation_depth: Optional[int] = None,
         n_stacks: int = 1,
         temperature: float = 1.0,
-        act_type: str = 'elu',
+        act_type: str = "elu",
     ) -> None:
         """
         Model with Wavenet architecture and quantized target.
@@ -161,7 +161,7 @@ class WaveNetEstimator(GluonEstimator):
         self.act_type = act_type
 
         seasonality = _get_seasonality(
-            self.freq, {'H': 7 * 24, 'D': 7, 'W': 52, 'M': 12, 'B': 7 * 5}
+            self.freq, {"H": 7 * 24, "D": 7, "W": 52, "M": 12, "B": 7 * 5}
         )
         goal_receptive_length = max(seasonality, 2 * self.prediction_length)
         if dilation_depth is None:
@@ -181,11 +181,11 @@ class WaveNetEstimator(GluonEstimator):
         )
         self.logger = logging.getLogger(__name__)
         self.logger.info(
-            f'Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}'
+            f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
         )
 
     def train(self, training_data: Dataset) -> Predictor:
-        has_negative_data = any(np.any(d['target'] < 0) for d in training_data)
+        has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
         low = -10.0 if has_negative_data else 0
         high = 10.0
         bin_centers = np.linspace(low, high, self.num_bins)
@@ -269,8 +269,8 @@ class WaveNetEstimator(GluonEstimator):
                 ),
                 QuantizeScaled(
                     bin_edges=bin_edges,
-                    future_target='future_target',
-                    past_target='past_target',
+                    future_target="future_target",
+                    past_target="past_target",
                 ),
             ]
         )

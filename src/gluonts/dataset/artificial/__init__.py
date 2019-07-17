@@ -7,8 +7,8 @@ from ._base import (
 )
 
 __all__ = [
-    'ComplexSeasonalTimeSeries',
-    'RecipeDataset',
-    'constant_dataset',
-    'default_synthetic',
+    "ComplexSeasonalTimeSeries",
+    "RecipeDataset",
+    "constant_dataset",
+    "default_synthetic",
 ]

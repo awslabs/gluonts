@@ -46,7 +46,7 @@ class Quantile(NamedTuple):
     def checked(cls, value: float, name: str) -> "Quantile":
         if not 0 <= value <= 1:
             raise GluonTSUserError(
-                f'quantile value should be in [0, 1] but found {value}'
+                f"quantile value should be in [0, 1] but found {value}"
             )
 
         return Quantile(value, name)
@@ -62,11 +62,11 @@ class Quantile(NamedTuple):
         try:
             return cls.checked(value=float(quantile), name=quantile)
         except ValueError:
-            m = re.match(r'^p(\d{2})$', quantile)
+            m = re.match(r"^p(\d{2})$", quantile)
 
             if m is None:
                 raise GluonTSUserError(
-                    'Quantile string should be of the form '
+                    "Quantile string should be of the form "
                     f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
                 )
             else:
@@ -171,19 +171,19 @@ class Forecast:
         """
         raise NotImplementedError()
 
-    def as_json_dict(self, config: 'Config') -> dict:
+    def as_json_dict(self, config: "Config") -> dict:
         result = {}
 
         if OutputType.mean in config.output_types:
-            result['mean'] = self.mean.tolist()
+            result["mean"] = self.mean.tolist()
 
         if OutputType.quantiles in config.output_types:
-            result['quantiles'] = [
+            result["quantiles"] = [
                 self.quantile(q).tolist() for q in config.quantiles
             ]
 
         if OutputType.samples in config.output_types:
-            result['samples'] = []
+            result["samples"] = []
 
         return result
 
@@ -287,7 +287,7 @@ class SampleForecast(Forecast):
         else:
             assert (
                 dim < self.samples.shape[1]
-            ), f'dim should be target_dim - 1, but got dim={dim}, target_dim={self.samples.shape[1]}'
+            ), f"dim should be target_dim - 1, but got dim={dim}, target_dim={self.samples.shape[1]}"
             samples = self.samples[:, dim]
 
         return SampleForecast(
@@ -311,11 +311,11 @@ class SampleForecast(Forecast):
                     1
                 ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
 
-    def as_json_dict(self, config: 'Config') -> dict:
+    def as_json_dict(self, config: "Config") -> dict:
         result = super().as_json_dict(config)
 
         if OutputType.samples in config.output_types:
-            result['samples'] = self.samples.tolist()
+            result["samples"] = self.samples.tolist()
 
         return result
 
@@ -323,7 +323,7 @@ class SampleForecast(Forecast):
         self,
         prediction_intervals=(50.0, 90.0),
         show_mean=False,
-        color='b',
+        color="b",
         label=None,
         output_file=None,
         *args,
@@ -357,7 +357,7 @@ class SampleForecast(Forecast):
         # imported locally
         import matplotlib.pyplot as plt
 
-        label_prefix = '' if label is None else label + '-'
+        label_prefix = "" if label is None else label + "-"
 
         for c in prediction_intervals:
             assert 0.0 <= c <= 100.0
@@ -376,20 +376,20 @@ class SampleForecast(Forecast):
             self._sorted_samples,
             q=percentiles_sorted,
             axis=0,
-            interpolation='lower',
+            interpolation="lower",
         )
         i_p50 = len(percentiles_sorted) // 2
 
         p50_data = ps_data[i_p50]
         p50_series = pd.Series(data=p50_data, index=self.index)
-        p50_series.plot(color=color, ls='-', label=f'{label_prefix}median')
+        p50_series.plot(color=color, ls="-", label=f"{label_prefix}median")
 
         if show_mean:
             mean_data = np.mean(self._sorted_samples, axis=0)
             pd.Series(data=mean_data, index=self.index).plot(
                 color=color,
-                ls=':',
-                label=f'{label_prefix}mean',
+                ls=":",
+                label=f"{label_prefix}mean",
                 *args,
                 **kwargs,
             )
@@ -413,7 +413,7 @@ class SampleForecast(Forecast):
                 color=color,
                 alpha=alpha,
                 linewidth=10,
-                label=f'{label_prefix}{100 - ptile * 2}%',
+                label=f"{label_prefix}{100 - ptile * 2}%",
                 *args,
                 **kwargs,
             )
@@ -421,13 +421,13 @@ class SampleForecast(Forecast):
             plt.savefig(output_file)
 
     def __repr__(self):
-        return ', '.join(
+        return ", ".join(
             [
-                f'SampleForecast({self.samples!r})',
-                f'{self.start_date!r}',
-                f'{self.freq!r}',
-                f'item_id={self.item_id!r}',
-                f'info={self.info!r})',
+                f"SampleForecast({self.samples!r})",
+                f"{self.start_date!r}",
+                f"{self.freq!r}",
+                f"item_id={self.item_id!r}",
+                f"info={self.info!r})",
             ]
         )
 
@@ -468,7 +468,7 @@ class QuantileForecast(Forecast):
 
         # normalize keys
         self.forecast_keys = [
-            Quantile.from_str(key).name if key != 'mean' else key
+            Quantile.from_str(key).name if key != "mean" else key
             for key in forecast_keys
         ]
         self.item_id = item_id
@@ -477,8 +477,8 @@ class QuantileForecast(Forecast):
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (
-            f'The forecast_array (shape={shape} should have the same '
-            f'length as the forecast_keys (len={len(self.forecast_keys)}).'
+            f"The forecast_array (shape={shape} should have the same "
+            f"length as the forecast_keys (len={len(self.forecast_keys)})."
         )
         self.prediction_length = shape[-1]
         self._forecast_dict = {
@@ -497,7 +497,7 @@ class QuantileForecast(Forecast):
         """
         Forecast mean.
         """
-        return self._forecast_dict.get('mean', self._nan_out)
+        return self._forecast_dict.get("mean", self._nan_out)
 
     def dim(self) -> int:
         if self._dim is not None:
@@ -516,7 +516,7 @@ class QuantileForecast(Forecast):
         self,
         quantiles=None,
         show_mean=False,
-        color='b',
+        color="b",
         label=None,
         *args,
         **kwargs,
@@ -525,7 +525,7 @@ class QuantileForecast(Forecast):
             mean_ts = pd.Series(self.index, self.mean)
             mean_ts.plot()
 
-        qs = [q for q in self.forecast_keys if q != 'mean']
+        qs = [q for q in self.forecast_keys if q != "mean"]
         if quantiles is not None:
             qs = [q for q in qs if q in quantiles]
         qs = sorted(qs)
@@ -534,28 +534,28 @@ class QuantileForecast(Forecast):
             self.quantile(q)
 
     def __repr__(self):
-        return ', '.join(
+        return ", ".join(
             [
-                f'QuantileForecast({self.forecast_array!r})',
-                f'start_date={self.start_date!r}',
-                f'freq={self.freq!r}',
-                f'forecast_keys={self.forecast_keys!r}',
-                f'item_id={self.item_id!r}',
-                f'info={self.info!r})',
+                f"QuantileForecast({self.forecast_array!r})",
+                f"start_date={self.start_date!r}",
+                f"freq={self.freq!r}",
+                f"forecast_keys={self.forecast_keys!r}",
+                f"item_id={self.item_id!r}",
+                f"info={self.info!r})",
             ]
         )
 
 
 class OutputType(str, Enum):
-    mean = 'mean'
-    samples = 'samples'
-    quantiles = 'quantiles'
+    mean = "mean"
+    samples = "samples"
+    quantiles = "quantiles"
 
 
 class Config(pydantic.BaseModel):
     class Config:
         allow_population_by_alias = True
 
-    num_eval_samples: int = pydantic.Schema(..., alias='num_samples')
+    num_eval_samples: int = pydantic.Schema(..., alias="num_samples")
     output_types: Set[OutputType]
     quantiles: List[str]  # FIXME: validate list elements

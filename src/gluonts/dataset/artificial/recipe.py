@@ -289,7 +289,7 @@ class Lag(Lifted):
 
 class ForEachCat(Lifted):
     @validated()
-    def __init__(self, fun, cat_field='cat', cat_idx=0) -> None:
+    def __init__(self, fun, cat_field="cat", cat_idx=0) -> None:
         self.fun = fun
         self.cat_field = cat_field
         self.cat_idx = cat_idx

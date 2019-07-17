@@ -19,8 +19,8 @@ from ._model import NPTS
 
 
 class KernelType(str, Enum):
-    exponential = 'exponential'
-    uniform = 'uniform'
+    exponential = "exponential"
+    uniform = "uniform"
 
 
 class NPTSPredictor(RepresentablePredictor):
@@ -181,7 +181,7 @@ class NPTSPredictor(RepresentablePredictor):
         else:
             raise RuntimeError(
                 'Unexpected "exp_kernel_weights" type - should be either'
-                'a float or a list of floats'
+                "a float or a list of floats"
             )
 
     def _is_exp_kernel(self) -> bool:
@@ -189,8 +189,8 @@ class NPTSPredictor(RepresentablePredictor):
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
         for data in dataset:
-            start = pd.Timestamp(data['start'])
-            target = np.asarray(data['target'], np.float32)
+            start = pd.Timestamp(data["start"])
+            target = np.asarray(data["target"], np.float32)
             index = pd.date_range(
                 start=start, freq=self.freq, periods=len(target)
             )
@@ -199,13 +199,13 @@ class NPTSPredictor(RepresentablePredictor):
             # depending on which ever is minimum
             train_length = min(len(target), self.context_length)
             ts = pd.Series(index=index, data=target)[-train_length:]
-            if 'feat_dynamic_real' in data.keys():
+            if "feat_dynamic_real" in data.keys():
                 custom_features = np.array(
                     [
                         dynamic_feature[
                             -train_length - self.prediction_length :
                         ]
-                        for dynamic_feature in data['feat_dynamic_real']
+                        for dynamic_feature in data["feat_dynamic_real"]
                     ]
                 )
             else:
@@ -238,11 +238,11 @@ class NPTSPredictor(RepresentablePredictor):
 
         if np.all(np.isnan(ts.values[-self.context_length :])):
             raise GluonTSDataError(
-                f'The last {self.context_length} positions of the target time '
-                f'series are all NaN. Please increase the `context_length` '
-                f'parameter of your NPTS model so the last '
-                f'{self.context_length} positions of each target contain at '
-                f'least one non-NaN value.'
+                f"The last {self.context_length} positions of the target time "
+                f"series are all NaN. Please increase the `context_length` "
+                f"parameter of your NPTS model so the last "
+                f"{self.context_length} positions of each target contain at "
+                f"least one non-NaN value."
             )
 
         # Get the features for both training and prediction ranges

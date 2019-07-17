@@ -173,8 +173,8 @@ class AbstractBaseSplitter(ABC):
         pass
 
     def _trim_history(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
-        if getattr(self, 'max_history') is not None:
-            return item[: -getattr(self, 'max_history')]
+        if getattr(self, "max_history") is not None:
+            return item[: -getattr(self, "max_history")]
         else:
             return item
 
@@ -187,7 +187,7 @@ class AbstractBaseSplitter(ABC):
 
             split._add_train_slice(train)
 
-            assert len(test) - len(train) >= getattr(self, 'prediction_length')
+            assert len(test) - len(train) >= getattr(self, "prediction_length")
             split._add_test_slice(test)
 
         return split
@@ -200,7 +200,7 @@ class AbstractBaseSplitter(ABC):
     ) -> TrainTestSplit:
         # distance defaults to prediction_length
         if distance is None:
-            distance = getattr(self, 'prediction_length')
+            distance = getattr(self, "prediction_length")
         assert distance is not None
 
         split = TrainTestSplit()
@@ -215,7 +215,7 @@ class AbstractBaseSplitter(ABC):
                     self._test_slice(item, offset=offset)
                 )
 
-                assert len(test) - len(train) >= getattr(self, 'max_history')
+                assert len(test) - len(train) >= getattr(self, "max_history")
                 split._add_test_slice(test)
 
         return split

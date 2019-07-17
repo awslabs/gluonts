@@ -28,7 +28,7 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.model.common import Tensor
 
 
-MXNET_HAS_ERF = hasattr(mx.nd, 'erf')
+MXNET_HAS_ERF = hasattr(mx.nd, "erf")
 
 
 class Timer:
@@ -99,7 +99,7 @@ class HybridContext:
         self.net = net
         self.required_mode = hybridize
 
-        self.original_mode = getattr(net, '_active', False)
+        self.original_mode = getattr(net, "_active", False)
         self.data_batch = data_batch
         self.kwargs = kwargs
 
@@ -129,9 +129,9 @@ def copy_parameters(
         present in the target.
     """
     with tempfile.TemporaryDirectory(
-        prefix='gluonts-estimator-temp-'
+        prefix="gluonts-estimator-temp-"
     ) as model_dir:
-        model_dir_path = str(Path(model_dir) / 'tmp_model')
+        model_dir_path = str(Path(model_dir) / "tmp_model")
         net_source.save_parameters(model_dir_path)
         net_dest.load_parameters(
             model_dir_path,
@@ -144,9 +144,9 @@ def copy_parameters(
 def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
     params = inspect.signature(hb.hybrid_forward).parameters
     param_names = list(params)
-    assert param_names[0] == 'F', (
-        f'Expected first argument of HybridBlock to be `F`, '
-        f'but found `{param_names[0]}`'
+    assert param_names[0] == "F", (
+        f"Expected first argument of HybridBlock to be `F`, "
+        f"but found `{param_names[0]}`"
     )
     return param_names[1:]  # skip: F
 
@@ -176,11 +176,11 @@ def hybrid_block_to_symbol_block(
         The resulting Gluon block backed by an MXNet symbol graph.
     """
     with tempfile.TemporaryDirectory(
-        prefix='gluonts-estimator-temp-'
+        prefix="gluonts-estimator-temp-"
     ) as model_dir:
         num_inputs = len(data_batch)
         model_dir_path = Path(model_dir)
-        model_name = 'gluonts-model'
+        model_name = "gluonts-model"
 
         with HybridContext(
             net=hb,
@@ -240,16 +240,16 @@ def import_symb_block(
         The deserialized block.
     """
     if num_inputs == 1:
-        input_names = ['data']
+        input_names = ["data"]
     else:
-        input_names = [f'data{i}' for i in range(num_inputs)]
+        input_names = [f"data{i}" for i in range(num_inputs)]
 
     # FIXME: mx.gluon.SymbolBlock cannot infer float_type and uses default np.float32
     # FIXME: https://github.com/apache/incubator-mxnet/issues/11849
     return mx.gluon.SymbolBlock.imports(
-        symbol_file=str(model_dir / f'{model_name}-symbol.json'),
+        symbol_file=str(model_dir / f"{model_name}-symbol.json"),
         input_names=input_names,
-        param_file=str(model_dir / f'{model_name}-{epoch:04}.params'),
+        param_file=str(model_dir / f"{model_name}-{epoch:04}.params"),
         ctx=mx.current_context(),
     )
 
@@ -272,9 +272,9 @@ def export_repr_block(
         The epoch number, which together with the `model_name` identifies the
         model parameters.
     """
-    with (model_dir / f'{model_name}-network.json').open('w') as fp:
+    with (model_dir / f"{model_name}-network.json").open("w") as fp:
         print(dump_json(rb), file=fp)
-    rb.save_parameters(str(model_dir / f'{model_name}-{epoch:04}.params'))
+    rb.save_parameters(str(model_dir / f"{model_name}-{epoch:04}.params"))
 
 
 def import_repr_block(
@@ -298,10 +298,10 @@ def import_repr_block(
     mx.gluon.HybridBlock:
         The deserialized block.
     """
-    with (model_dir / f'{model_name}-network.json').open('r') as fp:
+    with (model_dir / f"{model_name}-network.json").open("r") as fp:
         rb = cast(mx.gluon.HybridBlock, load_json(fp.read()))
     rb.load_parameters(
-        str(model_dir / f'{model_name}-{epoch:04}.params'),
+        str(model_dir / f"{model_name}-{epoch:04}.params"),
         ctx=mx.current_context(),
         allow_missing=False,
         ignore_extra=False,
@@ -484,5 +484,5 @@ def get_download_path() -> Path:
         /home/username/.mxnet/gluon-ts/
     """
     return Path(
-        os.environ.get('MXNET_HOME', str(Path.home() / '.mxnet' / 'gluon-ts'))
+        os.environ.get("MXNET_HOME", str(Path.home() / ".mxnet" / "gluon-ts"))
     )

@@ -9,16 +9,16 @@ from gluonts.model.forecast import QuantileForecast, SampleForecast
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
 START_DATE = pd.Timestamp(2017, 1, 1, 12)
-FREQ = '1D'
+FREQ = "1D"
 
 FORECASTS = {
-    'QuantileForecast': QuantileForecast(
+    "QuantileForecast": QuantileForecast(
         forecast_arrays=QUANTILES.reshape(-1, 1),
         start_date=START_DATE,
         forecast_keys=np.array(QUANTILES, str),
         freq=FREQ,
     ),
-    'SampleForecast': SampleForecast(
+    "SampleForecast": SampleForecast(
         samples=SAMPLES, start_date=START_DATE, freq=FREQ
     ),
 }
@@ -29,7 +29,7 @@ def test_Forecast(name):
     forecast = FORECASTS[name]
 
     def percentile(value):
-        return f'p{int(round(value * 100)):02d}'
+        return f"p{int(round(value * 100)):02d}"
 
     num_samples, pred_length = SAMPLES.shape
 

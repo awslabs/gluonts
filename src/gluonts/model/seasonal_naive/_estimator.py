@@ -18,7 +18,7 @@ class SeasonalNaiveEstimator(DummyEstimator):
     """
 
     @validated(
-        getattr(SeasonalNaivePredictor.__init__, 'Model')
+        getattr(SeasonalNaivePredictor.__init__, "Model")
     )  # Reuse the model Predictor model
     def __init__(self, **kwargs) -> None:
         super().__init__(predictor_cls=SeasonalNaivePredictor, **kwargs)

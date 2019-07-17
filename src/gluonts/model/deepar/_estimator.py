@@ -107,7 +107,7 @@ class DeepAREstimator(GluonEstimator):
         context_length: Optional[int] = None,
         num_layers: int = 2,
         num_cells: int = 40,
-        cell_type: str = 'lstm',
+        cell_type: str = "lstm",
         num_eval_samples: int = 100,
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
