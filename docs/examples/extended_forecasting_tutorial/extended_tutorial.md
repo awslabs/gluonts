@@ -1,5 +1,5 @@
 
-# GluonTS <span style="color:orange"> Tutorial</span> 
+# Extended Forecasting Tutorial 
 
 ---
 > ## Table of contents
