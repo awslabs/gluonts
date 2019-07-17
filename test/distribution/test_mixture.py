@@ -182,7 +182,7 @@ EXPECTED_HIST = histogram(np_samples)
 
 
 @pytest.mark.timeout(20)
-@pytest.mark.skip('Skip test that takes long time to run')
+@pytest.mark.skip("Skip test that takes long time to run")
 def test_mixture_inference() -> None:
     mdo = MixtureDistributionOutput([GaussianOutput(), GaussianOutput()])
 
@@ -198,7 +198,7 @@ def test_mixture_inference() -> None:
     # plot_samples(d.sample())
 
     trainer = mx.gluon.Trainer(
-        args_proj.collect_params(), 'sgd', {'learning_rate': 0.02}
+        args_proj.collect_params(), "sgd", {"learning_rate": 0.02}
     )
 
     mixture_samples = mx.nd.array(np_samples)
@@ -212,7 +212,7 @@ def test_mixture_inference() -> None:
             loss = d.loss(mixture_samples)
         loss.backward()
         loss_value = loss.mean().asnumpy()
-        t.set_postfix({'loss': loss_value})
+        t.set_postfix({"loss": loss_value})
         trainer.step(BATCH_SIZE)
 
     distr_args = args_proj(input)

@@ -26,4 +26,4 @@ def fqname_for(cls: type) -> str:
     str
         The fully qualified name of ``cls``.
     """
-    return f'{cls.__module__}.{cls.__qualname__}'
+    return f"{cls.__module__}.{cls.__qualname__}"

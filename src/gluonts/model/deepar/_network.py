@@ -60,7 +60,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.lags_seq = lags_seq
 
         self.distr_output = distr_output
-        RnnCell = {'lstm': mx.gluon.rnn.LSTMCell, 'gru': mx.gluon.rnn.GRUCell}[
+        RnnCell = {"lstm": mx.gluon.rnn.LSTMCell, "gru": mx.gluon.rnn.GRUCell}[
             self.cell_type
         ]
 

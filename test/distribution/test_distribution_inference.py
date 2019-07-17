@@ -1,7 +1,7 @@
-'''
+"""
 Test that maximizing likelihood allows to correctly recover distribution parameters for all
 distributions exposed to the user.
-'''
+"""
 # Standard library imports
 from typing import Iterable, List, Tuple
 
@@ -82,8 +82,8 @@ def maximum_likelihood_estimate_sgd(
 
     trainer = mx.gluon.Trainer(
         arg_proj.collect_params(),
-        'sgd',
-        {'learning_rate': learning_rate, 'clip_gradient': 10.0},
+        "sgd",
+        {"learning_rate": learning_rate, "clip_gradient": 10.0},
     )
 
     # The input data to our model is one-dimensional
@@ -125,9 +125,9 @@ def maximum_likelihood_estimate_sgd(
 def test_studentT_likelihood(
     mu: float, sigma: float, nu: float, hybridize: bool
 ) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
 
     # generate samples
     mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
@@ -168,9 +168,9 @@ def test_studentT_likelihood(
 @pytest.mark.parametrize("mu, sigma", [(1.0, 0.1)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_gaussian_likelihood(mu: float, sigma: float, hybridize: bool):
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
 
     # generate samples
     mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
@@ -296,11 +296,11 @@ def test_lowrank_multivariate_gaussian() -> None:
 @pytest.mark.parametrize("mu", [6.0])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_deterministic_l2(mu: float, hybridize: bool) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters.
     This tests uses the Gaussian distribution with fixed variance and sample mean.
     This essentially reduces to determistic L2.
-    '''
+    """
     # generate samples
     mu = mu
     mus = mx.nd.zeros(NUM_SAMPLES) + mu
@@ -330,11 +330,11 @@ def test_deterministic_l2(mu: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("mu", [1.0])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_deterministic_l1(mu: float, hybridize: bool) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters.
     This tests uses the Laplace distribution with fixed variance and sample mean.
     This essentially reduces to determistic L1.
-    '''
+    """
     # generate samples
     mu = mu
     mus = mx.nd.zeros(NUM_SAMPLES) + mu
@@ -364,9 +364,9 @@ def test_deterministic_l1(mu: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("mu_alpha", [(2.5, 0.7)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
     # test instance
     mu, alpha = mu_alpha
 
@@ -402,9 +402,9 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
 @pytest.mark.parametrize("mu_b", [(3.3, 0.7)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_laplace(mu_b: Tuple[float, float], hybridize: bool) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
     # test instance
     mu, b = mu_b
 
@@ -443,9 +443,9 @@ def test_piecewise_linear(
     knot_spacings: np.ndarray,
     hybridize: bool,
 ) -> None:
-    '''
+    """
     Test to check that minimizing the CRPS recovers the quantile function
-    '''
+    """
     num_samples = 500  # use a few samples for timeout failure
 
     gammas = mx.nd.zeros((num_samples,)) + gamma
@@ -529,9 +529,9 @@ def test_piecewise_linear(
 def test_box_cox_tranform(
     lam_1: float, lam_2: float, mu: float, sigma: float, hybridize: bool
 ):
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
 
     # generate samples
     lamdas_1 = mx.nd.zeros((NUM_SAMPLES,)) + lam_1
@@ -593,9 +593,9 @@ def test_box_cox_tranform(
 def test_binned_likelihood(
     num_bins: float, bin_probabilites: np.ndarray, hybridize: bool
 ):
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
 
     bin_prob = mx.nd.array(bin_probabilites)
     bin_center = mx.nd.array(np.logspace(-1, 1, num_bins))

@@ -130,7 +130,7 @@ class CanonicalRNNEstimator(CanonicalEstimator):
         trainer: Trainer = Trainer(),
         num_layers: int = 1,
         num_cells: int = 50,
-        cell_type: str = 'lstm',
+        cell_type: str = "lstm",
         num_eval_samples: int = 100,
         cardinality: List[int] = list([1]),
         embedding_dimension: int = 10,
@@ -175,7 +175,7 @@ class MLPForecasterEstimator(CanonicalEstimator):
                 nn.Dense(
                     layer_dim,
                     flatten=False,
-                    activation='relu',
+                    activation="relu",
                     prefix="mlp_%d_" % layer,
                 )
             )

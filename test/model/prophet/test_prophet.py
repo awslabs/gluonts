@@ -9,7 +9,7 @@ from gluonts.model.prophet import ProphetPredictor, PROPHET_IS_INSTALLED
 # conditionally skip these tests if `fbprophet` is not installed
 # see https://docs.pytest.org/en/latest/skipping.html for details
 if not PROPHET_IS_INSTALLED:
-    skip_message = 'Skipping test because `fbprophet` is not installed'
+    skip_message = "Skipping test because `fbprophet` is not installed"
     pytest.skip(msg=skip_message, allow_module_level=True)
 
 

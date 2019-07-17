@@ -94,7 +94,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
                 layer = nn.Dense(
                     dec_len * layer_dim,
                     flatten=False,
-                    activation='relu',
+                    activation="relu",
                     prefix=f"mlp_{layer_no:#02d}'_",
                 )
                 self.model.add(layer)
@@ -102,7 +102,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
             layer = nn.Dense(
                 dec_len * final_dim,
                 flatten=False,
-                activation='relu',
+                activation="relu",
                 prefix=f"mlp_{len(hidden_dimension_sequence):#02d}'_",
             )
             self.model.add(layer)

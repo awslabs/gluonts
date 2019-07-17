@@ -42,7 +42,7 @@ def get_granularity(freq_str: str) -> Tuple[int, str]:
     freq_str
         Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
     """
-    freq_regex = r'\s*((\d+)?)\s*([^\d]\w*)'
+    freq_regex = r"\s*((\d+)?)\s*([^\d]\w*)"
     m = re.match(freq_regex, freq_str)
     assert m is not None, "Cannot parse frequency string: %s" % freq_str
     groups = m.groups()
@@ -63,15 +63,15 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
     """
     multiple, granularity = get_granularity(freq_str)
-    if granularity == 'M':
+    if granularity == "M":
         feature_classes = [MonthOfYear]
-    elif granularity == 'W':
+    elif granularity == "W":
         feature_classes = [DayOfMonth, WeekOfYear]
-    elif granularity in ['D', 'B']:
+    elif granularity in ["D", "B"]:
         feature_classes = [DayOfWeek, DayOfMonth, DayOfYear]
-    elif granularity == 'H':
+    elif granularity == "H":
         feature_classes = [HourOfDay, DayOfWeek, DayOfMonth, DayOfYear]
-    elif granularity in ['min', 'T']:
+    elif granularity in ["min", "T"]:
         feature_classes = [
             MinuteOfHour,
             HourOfDay,
@@ -97,9 +97,9 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
 
 def _make_lags(middle: int, delta: int) -> np.ndarray:
-    '''
+    """
     Create a set of lags around a middle point including +/- delta
-    '''
+    """
     return np.arange(middle - delta, middle + delta + 1).tolist()
 
 
@@ -161,24 +161,24 @@ def get_lags_for_frequency(
             _make_lags(k * 12 // multiple, 1) for k in range(1, num_cycles + 1)
         ]
 
-    if granularity == 'M':
+    if granularity == "M":
         lags = _make_lags_for_month(multiple)
-    elif granularity == 'W':
+    elif granularity == "W":
         lags = _make_lags_for_week(multiple)
-    elif granularity == 'D':
+    elif granularity == "D":
         lags = _make_lags_for_day(multiple) + _make_lags_for_week(
             multiple / 7.0
         )
-    elif granularity == 'B':
+    elif granularity == "B":
         # todo find good lags for business day
         lags = []
-    elif granularity == 'H':
+    elif granularity == "H":
         lags = (
             _make_lags_for_hour(multiple)
             + _make_lags_for_day(multiple / 24.0)
             + _make_lags_for_week(multiple / (24.0 * 7))
         )
-    elif granularity == 'min':
+    elif granularity == "min":
         lags = (
             _make_lags_for_minute(multiple)
             + _make_lags_for_hour(multiple / 60.0)
@@ -186,7 +186,7 @@ def get_lags_for_frequency(
             + _make_lags_for_week(multiple / (60.0 * 24 * 7))
         )
     else:
-        raise Exception('invalid frequency')
+        raise Exception("invalid frequency")
 
     # flatten lags list and filter
     lags = [

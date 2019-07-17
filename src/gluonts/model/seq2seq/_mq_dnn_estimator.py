@@ -48,7 +48,7 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
             dec_len=prediction_length,
             final_dim=mlp_final_dim,
             hidden_dimension_sequence=mlp_hidden_dimension_seq,
-            prefix='decoder_',
+            prefix="decoder_",
         )
 
         quantile_output = QuantileOutput(quantiles)
@@ -122,7 +122,7 @@ class MQRNNEstimator(MQDNNEstimator):
         quantiles: List[float] = list([0.1, 0.5, 0.9]),
     ) -> None:
         encoder = RNNEncoder(
-            mode='gru',
+            mode="gru",
             hidden_size=50,
             num_layers=1,
             bidirectional=True,

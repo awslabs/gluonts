@@ -7,5 +7,5 @@ This parameter is intended to catch infinite loops or inefficiencies, when trans
 never or rarely return something.
 """
 GLUONTS_MAX_IDLE_TRANSFORMS = int(
-    os.environ.get('GLUONTS_MAX_IDLE_TRANSFORMS', '100')
+    os.environ.get("GLUONTS_MAX_IDLE_TRANSFORMS", "100")
 )

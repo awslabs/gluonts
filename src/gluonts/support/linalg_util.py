@@ -62,7 +62,7 @@ def jitter_cholesky_eig(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx: mx.Context = mx.Context('cpu'),
+    ctx: mx.Context = mx.Context("cpu"),
     float_type: DType = np.float64,
     diag_weight: float = 1e-6,
 ) -> Tensor:
@@ -122,7 +122,7 @@ def jitter_cholesky(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx: mx.Context = mx.Context('cpu'),
+    ctx: mx.Context = mx.Context("cpu"),
     float_type: DType = np.float64,
     max_iter_jitter: int = 10,
     neg_tol: float = -1e-8,
@@ -172,7 +172,7 @@ def jitter_cholesky(
     # TODO: Add support for symbolic case: Cannot use < operator with symbolic variables
     if F.sum(diag <= neg_tol) > 0:
         raise mx.base.MXNetError(
-            ' Matrix is not positive definite: negative diagonal elements'
+            " Matrix is not positive definite: negative diagonal elements"
         )
     while num_iter <= max_iter_jitter:
         try:
@@ -202,6 +202,6 @@ def jitter_cholesky(
         finally:
             num_iter += 1
     raise mx.base.MXNetError(
-        f' Matrix is not positive definite after the maximum number of iterations = {max_iter_jitter} '
-        f'with a maximum jitter = {F.max(jitter)}'
+        f" Matrix is not positive definite after the maximum number of iterations = {max_iter_jitter} "
+        f"with a maximum jitter = {F.max(jitter)}"
     )

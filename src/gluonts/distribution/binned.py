@@ -129,7 +129,7 @@ class Binned(Distribution):
             indices = F.sample_multinomial(bin_probs)
             if num_samples is None:
                 return self.bin_centers.pick(indices, -1).reshape_like(
-                    F.zeros_like(indices.astype('float32'))
+                    F.zeros_like(indices.astype("float32"))
                 )
             else:
                 return F.repeat(
@@ -152,12 +152,12 @@ class BinnedArgs(gluon.HybridBlock):
             self.proj.add(
                 gluon.nn.Dense(
                     self.num_bins,
-                    prefix='binproj',
+                    prefix="binproj",
                     flatten=False,
                     weight_initializer=mx.init.Xavier(),
                 )
             )
-            self.proj.add(gluon.nn.HybridLambda('softmax'))
+            self.proj.add(gluon.nn.HybridLambda("softmax"))
 
     def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         ps = self.proj(x)

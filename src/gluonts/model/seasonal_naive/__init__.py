@@ -2,4 +2,4 @@
 from ._estimator import SeasonalNaiveEstimator
 from ._predictor import SeasonalNaivePredictor
 
-__all__ = ['SeasonalNaiveEstimator', 'SeasonalNaivePredictor']
+__all__ = ["SeasonalNaiveEstimator", "SeasonalNaivePredictor"]

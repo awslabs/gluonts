@@ -75,8 +75,8 @@ datasets_info = {
         num_time_steps=7588,
         prediction_length=30,
         rolling_evaluations=5,
-        start_date='1990-01-01',
-        freq='1B',
+        start_date="1990-01-01",
+        freq="1B",
         agg_freq=None,
     ),
     "electricity": LstnetDataset(
@@ -89,8 +89,8 @@ datasets_info = {
         num_time_steps=26304,
         prediction_length=24,
         rolling_evaluations=7,
-        start_date='2012-01-01',
-        freq='1H',
+        start_date="2012-01-01",
+        freq="1H",
         agg_freq=None,
     ),
     "traffic": LstnetDataset(
@@ -102,8 +102,8 @@ datasets_info = {
         num_time_steps=17544,
         prediction_length=24,
         rolling_evaluations=7,
-        start_date='2015-01-01',
-        freq='H',
+        start_date="2015-01-01",
+        freq="H",
         agg_freq=None,
     ),
     "solar-energy": LstnetDataset(
@@ -113,9 +113,9 @@ datasets_info = {
         num_time_steps=52560,
         prediction_length=24,
         rolling_evaluations=7,
-        start_date='2006-01-01',
-        freq='10min',
-        agg_freq='1H',
+        start_date="2006-01-01",
+        freq="10min",
+        agg_freq="1H",
     ),
 }
 
@@ -125,7 +125,7 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
 
     os.makedirs(dataset_path, exist_ok=True)
 
-    with open(dataset_path / 'metadata.json', 'w') as f:
+    with open(dataset_path / "metadata.json", "w") as f:
         f.write(
             json.dumps(
                 metadata(

@@ -53,35 +53,35 @@ def distance_to_holiday(holiday):
 EasterSunday = Holiday(
     "Easter Sunday", month=1, day=1, offset=[Easter(), Day(0)]
 )
-NewYearsDay = Holiday('New Years Day', month=1, day=1)
+NewYearsDay = Holiday("New Years Day", month=1, day=1)
 SuperBowl = Holiday(
     "Superbowl", month=2, day=1, offset=DateOffset(weekday=SU(1))
 )
 MothersDay = Holiday(
     "Mothers Day", month=5, day=1, offset=DateOffset(weekday=SU(2))
 )
-IndependenceDay = Holiday('Independence Day', month=7, day=4)
-ChristmasEve = Holiday('Christmas', month=12, day=24)
-ChristmasDay = Holiday('Christmas', month=12, day=25)
-NewYearsEve = Holiday('New Years Eve', month=12, day=31)
+IndependenceDay = Holiday("Independence Day", month=7, day=4)
+ChristmasEve = Holiday("Christmas", month=12, day=24)
+ChristmasDay = Holiday("Christmas", month=12, day=25)
+NewYearsEve = Holiday("New Years Eve", month=12, day=31)
 
 
-NEW_YEARS_DAY = 'new_years_day'
-MARTIN_LUTHER_KING_DAY = 'martin_luther_king_day'
-SUPERBOWL = 'superbowl'
-PRESIDENTS_DAY = 'presidents_day'
-GOOD_FRIDAY = 'good_friday'
-EASTER_SUNDAY = 'easter_sunday'
-EASTER_MONDAY = 'easter_monday'
-MOTHERS_DAY = 'mothers_day'
-INDEPENDENCE_DAY = 'independence_day'
-LABOR_DAY = 'labor_day'
-MEMORIAL_DAY = 'memorial_day'
-COLUMBUS_DAY = 'columbus_day'
-THANKSGIVING = 'thanksgiving'
-CHRISTMAS_EVE = 'christmas_eve'
-CHRISTMAS_DAY = 'christmas_day'
-NEW_YEARS_EVE = 'new_years_eve'
+NEW_YEARS_DAY = "new_years_day"
+MARTIN_LUTHER_KING_DAY = "martin_luther_king_day"
+SUPERBOWL = "superbowl"
+PRESIDENTS_DAY = "presidents_day"
+GOOD_FRIDAY = "good_friday"
+EASTER_SUNDAY = "easter_sunday"
+EASTER_MONDAY = "easter_monday"
+MOTHERS_DAY = "mothers_day"
+INDEPENDENCE_DAY = "independence_day"
+LABOR_DAY = "labor_day"
+MEMORIAL_DAY = "memorial_day"
+COLUMBUS_DAY = "columbus_day"
+THANKSGIVING = "thanksgiving"
+CHRISTMAS_EVE = "christmas_eve"
+CHRISTMAS_DAY = "christmas_day"
+NEW_YEARS_EVE = "new_years_eve"
 
 
 SPECIAL_DATE_FEATURES = {

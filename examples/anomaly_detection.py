@@ -28,7 +28,7 @@ from gluonts.trainer import Trainer
 from gluonts.dataset.repository.datasets import get_dataset
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     dataset = get_dataset(dataset_name="electricity")
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     samples = distr.sample(num_samples).asnumpy()
     percentiles = np.percentile(samples, axis=0, q=[10.0, 90.0])
     target = mx.ndarray.concat(
-        data_entry['past_target'], data_entry['future_target'], dim=1
+        data_entry["past_target"], data_entry["future_target"], dim=1
     )
     target = target[:, -(context_length + prediction_length) :]
     nll = -distr.log_prob(target).asnumpy()
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         t = k % nll.shape[1]
 
         time_index = pd.date_range(
-            pd.Timestamp(data_entry['forecast_start'][i]) - context_length,
+            pd.Timestamp(data_entry["forecast_start"][i]) - context_length,
             periods=context_length + prediction_length,
         )
 
@@ -101,8 +101,8 @@ if __name__ == '__main__':
             alpha=0.5,
             label="80% CI predicted",
         )
-        plt.plot(time_index, target[i], label='target')
-        plt.axvline(time_index[t], alpha=0.5, color='r')
+        plt.plot(time_index, target[i], label="target")
+        plt.axvline(time_index[t], alpha=0.5, color="r")
         plt.title(f"NLL: {nll[i, t]}")
         plt.legend()
         plt.show()

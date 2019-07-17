@@ -147,10 +147,10 @@ class MixtureArgs(gluon.HybridBlock):
             self.proj_mixture_probs = gluon.nn.HybridSequential()
             self.proj_mixture_probs.add(
                 gluon.nn.Dense(
-                    self.num_components, prefix=f'{prefix}_pi_', flatten=False
+                    self.num_components, prefix=f"{prefix}_pi_", flatten=False
                 )
             )
-            self.proj_mixture_probs.add(gluon.nn.HybridLambda('softmax'))
+            self.proj_mixture_probs.add(gluon.nn.HybridLambda("softmax"))
 
             for k, do in enumerate(distr_outputs):
                 self.component_projections.append(

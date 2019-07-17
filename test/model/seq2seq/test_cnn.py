@@ -37,9 +37,9 @@ def compute_causalconv1d(
 
 
 def test_causal_conv_1d() -> None:
-    '''
+    """
     Here we test whether the causal conv1d matches the naive computation.
-    '''
+    """
     x = nd.random.normal(0, 1, shape=(1, 1, 10))
 
     conv1d = CausalConv1D(

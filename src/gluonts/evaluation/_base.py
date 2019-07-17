@@ -35,20 +35,20 @@ def get_seasonality(freq: str) -> int:
       2H -> 12
 
     """
-    match = re.match(r'(\d*)(\w+)', freq)
+    match = re.match(r"(\d*)(\w+)", freq)
     assert match, "Cannot match freq regex"
     multiple, base_freq = match.groups()
     multiple = int(multiple) if multiple else 1
 
-    seasonalities = {'H': 24, 'D': 1, 'W': 1, 'M': 12, 'B': 5}
+    seasonalities = {"H": 24, "D": 1, "W": 1, "M": 12, "B": 5}
     if base_freq in seasonalities:
         seasonality = seasonalities[base_freq]
     else:
         seasonality = 1
     if seasonality % multiple != 0:
         logging.warning(
-            f'multiple {multiple} does not divide base seasonality {seasonality}.'
-            f'Falling back to seasonality 1'
+            f"multiple {multiple} does not divide base seasonality {seasonality}."
+            f"Falling back to seasonality 1"
         )
         return 1
     return seasonality // multiple
@@ -122,8 +122,8 @@ class Evaluator:
         with tqdm(
             zip(ts_iterator, fcst_iterator),
             total=num_series,
-            desc='Running evaluation',
-        ) as it, np.errstate(invalid='ignore'):
+            desc="Running evaluation",
+        ) as it, np.errstate(invalid="ignore"):
             for ts, forecast in it:
                 rows.append(self.get_metrics_per_ts(ts, forecast))
 
@@ -138,7 +138,7 @@ class Evaluator:
         if num_series is not None:
             assert (
                 len(rows) == num_series
-            ), f'num_series={num_series} did not match number of elements={len(rows)}'
+            ), f"num_series={num_series} did not match number of elements={len(rows)}"
 
         # If all entries of a target array are NaNs, the resulting metric will have value "masked". Pandas does not
         # handle masked values correctly. Thus we set dtype=np.float64 to convert masked values back to NaNs which
@@ -233,8 +233,8 @@ class Evaluator:
             "abs_target_mean": self.abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
             "MASE": self.mase(pred_target, median_fcst, seasonal_error),
-            'sMAPE': self.smape(pred_target, median_fcst),
-            'MSIS': self.msis(
+            "sMAPE": self.smape(pred_target, median_fcst),
+            "MSIS": self.msis(
                 pred_target,
                 forecast.quantile(lower_q),
                 forecast.quantile(upper_q),
@@ -259,14 +259,14 @@ class Evaluator:
         self, metric_per_ts: pd.DataFrame
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
         agg_funs = {
-            "MSE": 'mean',
-            "abs_error": 'sum',
-            "abs_target_sum": 'sum',
-            "abs_target_mean": 'mean',
-            "seasonal_error": 'mean',
-            "MASE": 'mean',
-            'sMAPE': 'mean',
-            'MSIS': 'mean',
+            "MSE": "mean",
+            "abs_error": "sum",
+            "abs_target_sum": "sum",
+            "abs_target_mean": "mean",
+            "seasonal_error": "mean",
+            "MASE": "mean",
+            "sMAPE": "mean",
+            "MSIS": "mean",
         }
         for quantile in self.quantiles:
             agg_funs[quantile.loss_name] = "sum"
@@ -274,7 +274,7 @@ class Evaluator:
 
         assert (
             set(metric_per_ts.columns) >= agg_funs.keys()
-        ), 'The some of the requested item metrics are missing.'
+        ), "The some of the requested item metrics are missing."
 
         totals = {
             key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()
@@ -301,11 +301,11 @@ class Evaluator:
                 totals[quantile.loss_name], totals["abs_target_sum"]
             )
 
-        totals['mean_wQuantileLoss'] = np.array(
+        totals["mean_wQuantileLoss"] = np.array(
             [totals[ql] for ql in all_qLoss_names]
         ).mean()
 
-        totals['MAE_Coverage'] = np.mean(
+        totals["MAE_Coverage"] = np.mean(
             [
                 np.abs(totals[q.coverage_name] - np.array([q.value]))
                 for q in self.quantiles
@@ -458,8 +458,8 @@ class MultivariateEvaluator(Evaluator):
     def get_target_dimensionality(forecast: Forecast) -> int:
         target_dim = forecast.dim()
         assert target_dim > 1, (
-            f'the dimensionality of the forecast should be larger than 1, but got {target_dim}. '
-            f'Please use the Evaluator to evaluate 1D forecasts.'
+            f"the dimensionality of the forecast should be larger than 1, but got {target_dim}. "
+            f"Please use the Evaluator to evaluate 1D forecasts."
         )
         return target_dim
 
@@ -471,7 +471,7 @@ class MultivariateEvaluator(Evaluator):
         )
         assert (
             max(eval_dims) < target_dimensionality
-        ), f'eval dims should range from 0 to target_dimensionality - 1, but got max eval_dim {max(eval_dims)}'
+        ), f"eval dims should range from 0 to target_dimensionality - 1, but got max eval_dim {max(eval_dims)}"
         return eval_dims
 
     def calculate_aggregate_vector_metrics(

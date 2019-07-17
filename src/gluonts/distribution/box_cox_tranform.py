@@ -112,7 +112,7 @@ class BoxCoxTranform(Bijection):
         `tol_lambda_1`
     F
     """
-    arg_names = ['box_cox.lambda_1', 'box_cox.lambda_2']
+    arg_names = ["box_cox.lambda_1", "box_cox.lambda_2"]
 
     def __init__(
         self,
@@ -268,7 +268,7 @@ class InverseBoxCoxTransform(InverseBijection):
     Implements the inverse of Box-Cox transformation as a bijection.
     """
 
-    arg_names = ['box_cox.lambda_1', 'box_cox.lambda_2']
+    arg_names = ["box_cox.lambda_1", "box_cox.lambda_2"]
 
     def __init__(
         self,

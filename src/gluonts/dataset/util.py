@@ -21,7 +21,7 @@ from typing import Callable, Iterator, List, Tuple, TypeVar
 import pandas as pd
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def _split(
@@ -55,7 +55,7 @@ def find_files(
     chosen, ignored = _split(all_files, predicate)
 
     for ign in ignored:
-        logging.info(f'Ignoring input file `{ign.name}`.')
+        logging.info(f"Ignoring input file `{ign.name}`.")
 
     return sorted(chosen)
 
@@ -77,8 +77,8 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     pandas.Series
         Pandas time series object.
     """
-    target = instance['target']
-    start = instance['start']
+    target = instance["target"]
+    start = instance["start"]
     if not freq:
         freq = start.freqstr
     index = pd.date_range(start=start, periods=len(target), freq=freq)

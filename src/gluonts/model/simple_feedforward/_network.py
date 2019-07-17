@@ -66,7 +66,7 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             self.mlp = mx.gluon.nn.HybridSequential()
             dims = self.num_hidden_dimensions
             for layer_no, units in enumerate(dims[:-1]):
-                self.mlp.add(mx.gluon.nn.Dense(units=units, activation='relu'))
+                self.mlp.add(mx.gluon.nn.Dense(units=units, activation="relu"))
                 if self.batch_normalization:
                     self.mlp.add(mx.gluon.nn.BatchNorm())
             self.mlp.add(mx.gluon.nn.Dense(units=prediction_length * dims[-1]))

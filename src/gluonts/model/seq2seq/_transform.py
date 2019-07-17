@@ -19,10 +19,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         enc_len: int,
         dec_len: int,
         time_series_fields: List[str] = None,
-        target_in='target',
-        is_pad_out: str = 'is_pad',
-        start_in: str = 'start',
-        forecast_start_out: str = 'forecast_start',
+        target_in="target",
+        is_pad_out: str = "is_pad",
+        start_in: str = "start",
+        forecast_start_out: str = "forecast_start",
     ) -> None:
         assert enc_len > 0, "The value of `enc_len` should be > 0"
         assert dec_len > 0, "The value of `dec_len` should be > 0"
@@ -39,10 +39,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         self.forecast_start_out = forecast_start_out
 
     def _past(self, col_name):
-        return f'past_{col_name}'
+        return f"past_{col_name}"
 
     def _future(self, col_name):
-        return f'future_{col_name}'
+        return f"future_{col_name}"
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool

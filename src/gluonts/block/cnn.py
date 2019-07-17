@@ -63,7 +63,7 @@ class CausalConv1D(gluon.HybridBlock):
         channels: int,
         kernel_size: int,
         dilation: int = 1,
-        activation: Optional[str] = 'relu',
+        activation: Optional[str] = "relu",
         **kwargs,
     ):
         super(CausalConv1D, self).__init__(**kwargs)

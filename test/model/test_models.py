@@ -36,7 +36,7 @@ def seq2seq_base(seq2seq_model, hybridize: bool = True, batches_per_epoch=1):
     return (
         seq2seq_model,
         dict(
-            ctx='cpu',
+            ctx="cpu",
             epochs=epochs,
             learning_rate=1e-2,
             hybridize=hybridize,
@@ -62,7 +62,7 @@ def npts_estimator():
     return (
         NPTSEstimator,
         dict(
-            kernel_type='uniform',
+            kernel_type="uniform",
             use_default_features=True,
             prediction_length=prediction_length,
             num_eval_samples=num_eval_samples,
@@ -78,7 +78,7 @@ def simple_feedforward_estimator(hybridize: bool = True, batches_per_epoch=1):
     return (
         SimpleFeedForwardEstimator,
         dict(
-            ctx='cpu',
+            ctx="cpu",
             epochs=epochs,
             learning_rate=1e-2,
             hybridize=hybridize,
@@ -95,7 +95,7 @@ def gp_estimator(hybridize: bool = True, batches_per_epoch=1):
     return (
         GaussianProcessEstimator,
         dict(
-            ctx='cpu',
+            ctx="cpu",
             epochs=epochs,
             learning_rate=1e-2,
             hybridize=hybridize,
@@ -115,7 +115,7 @@ def deepar_estimator(hybridize: bool = True, batches_per_epoch=1):
     return (
         DeepAREstimator,
         dict(
-            ctx='cpu',
+            ctx="cpu",
             epochs=epochs,
             learning_rate=1e-2,
             hybridize=hybridize,
@@ -153,7 +153,7 @@ def test_accuracy(Estimator, hyperparameters, accuracy):
         train_dataset=train_ds, test_dataset=test_ds, forecaster=estimator
     )
 
-    assert agg_metrics['ND'] <= accuracy
+    assert agg_metrics["ND"] <= accuracy
 
 
 @pytest.mark.parametrize(

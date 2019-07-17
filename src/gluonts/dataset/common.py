@@ -130,7 +130,7 @@ class CategoricalFeatureInfo(pydantic.BaseModel):
 
 
 class MetaData(pydantic.BaseModel):
-    freq: str = pydantic.Schema(..., alias='time_granularity')  # type: ignore
+    freq: str = pydantic.Schema(..., alias="time_granularity")  # type: ignore
     target: Optional[BasicFeatureInfo] = None
 
     feat_static_cat: List[CategoricalFeatureInfo] = []
@@ -169,7 +169,7 @@ class Channel(pydantic.BaseModel):
     train: Path
     test: Optional[Path] = None
 
-    def get_datasets(self) -> 'TrainDatasets':
+    def get_datasets(self) -> "TrainDatasets":
         return load_datasets(self.metadata, self.train, self.test)
 
 
@@ -213,7 +213,7 @@ class FileDataset(Dataset):
         for path in self.files():
             for line in jsonl.JsonLinesFile(path):
                 data = self.process(line.content)
-                data['source'] = SourceContext(
+                data["source"] = SourceContext(
                     source=line.span, row=line.span.line
                 )
                 yield data
@@ -266,7 +266,7 @@ class ListDataset(Dataset):
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
         for row_number, data in enumerate(self.list_data, start=1):
-            data['source'] = SourceContext(source=source_name, row=row_number)
+            data["source"] = SourceContext(source=source_name, row=row_number)
             yield data
 
     def __len__(self):
@@ -319,7 +319,7 @@ class ProcessStartField:
             return pd.Timestamp(
                 offset.rollback(timestamp), freq=offset.freqstr
             )
-        if timestamp.freq == 'B':
+        if timestamp.freq == "B":
             # does not floor on business day as it is not allowed
             return timestamp
         return pd.Timestamp(

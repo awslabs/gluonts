@@ -40,7 +40,7 @@ class MLP(nn.HybridBlock):
 
     @validated()
     def __init__(
-        self, layer_sizes: List[int], flatten: bool, activation='relu'
+        self, layer_sizes: List[int], flatten: bool, activation="relu"
     ) -> None:
         super().__init__()
         self.layer_sizes = layer_sizes

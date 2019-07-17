@@ -38,7 +38,7 @@ class WeightedSampler:
         # This means `ix` is chosen with probability
         # `cumsum`[`ix`] - `cumsum`[`ix` - 1] = weights[ix]
         samples_ix = np.searchsorted(
-            cumsum_weights, uniform_samples, side='left'
+            cumsum_weights, uniform_samples, side="left"
         )
 
         return samples_ix

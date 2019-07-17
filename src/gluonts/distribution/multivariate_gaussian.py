@@ -159,7 +159,7 @@ class MultivariateGaussianOutput(DistributionOutput):
 
         L_diag = F.broadcast_mul(
             F.Activation(
-                F.broadcast_mul(L_matrix, F.eye(d)), act_type='softrelu'
+                F.broadcast_mul(L_matrix, F.eye(d)), act_type="softrelu"
             ),
             F.eye(d),
         )

@@ -14,21 +14,21 @@ from gluonts.model.npts._weighted_sampler import WeightedSampler
 
 
 def get_test_data(history_length: int, freq: str) -> pd.Series:
-    index = pd.date_range('1/1/2011', periods=history_length, freq=freq)
+    index = pd.date_range("1/1/2011", periods=history_length, freq=freq)
     return pd.Series(np.arange(len(index)), index=index)
 
 
 @pytest.mark.parametrize(
     "freq, history_length, num_seasons",
     [
-        ('min', 480, 60),
-        ('15min', 96, 4),
-        ('H', 336, 24),
-        ('4H', 336, 6),
-        ('D', 56, 7),
-        ('M', 96, 12),
-        ('3M', 32, 4),
-        ('12M', 8, 1),
+        ("min", 480, 60),
+        ("15min", 96, 4),
+        ("H", 336, 24),
+        ("4H", 336, 6),
+        ("D", 56, 7),
+        ("M", 96, 12),
+        ("3M", 32, 4),
+        ("12M", 8, 1),
     ],
 )
 @pytest.mark.parametrize("use_seasonal_model", [False, True])
@@ -93,7 +93,7 @@ def test_climatological_forecaster(
     )
 
     dataset = ListDataset(
-        [{'start': str(train_ts.index[0]), 'target': train_ts.values}],
+        [{"start": str(train_ts.index[0]), "target": train_ts.values}],
         freq=freq,
     )
 
@@ -112,8 +112,8 @@ def test_climatological_forecaster(
         if context_length is None or context_length >= history_length
         else train_ts.values[:context_length]
     )
-    targets_str = 'seasons' if use_seasonal_model else "targets"
-    seasonal_str = 'seasonal' if use_seasonal_model else ""
+    targets_str = "seasons" if use_seasonal_model else "targets"
+    seasonal_str = "seasonal" if use_seasonal_model else ""
     for t in range(pred_length):
         targets_prev_seasons = train_targets[
             range(t, len(train_targets), num_seasons)
@@ -166,14 +166,14 @@ def test_climatological_forecaster(
 @pytest.mark.parametrize(
     "freq, history_length, num_seasons",
     [
-        ('min', 360, 60),
-        ('15min', 96, 4),
-        ('H', 336, 24),
-        ('4H', 336, 6),
-        ('D', 56, 7),
-        ('M', 96, 12),
-        ('3M', 32, 4),
-        ('12M', 8, 1),
+        ("min", 360, 60),
+        ("15min", 96, 4),
+        ("H", 336, 24),
+        ("4H", 336, 6),
+        ("D", 56, 7),
+        ("M", 96, 12),
+        ("3M", 32, 4),
+        ("12M", 8, 1),
     ],
 )
 @pytest.mark.parametrize("use_seasonal_model", [False, True])
@@ -258,7 +258,7 @@ def test_npts_forecaster(
     )
 
     dataset = ListDataset(
-        [{'start': str(train_ts.index[0]), 'target': train_ts.values}],
+        [{"start": str(train_ts.index[0]), "target": train_ts.values}],
         freq=freq,
     )
 
@@ -277,8 +277,8 @@ def test_npts_forecaster(
         if context_length is None or context_length >= history_length
         else train_ts.values[:context_length]
     )
-    targets_str = 'seasons' if use_seasonal_model else "targets"
-    seasonal_str = 'seasonal' if use_seasonal_model else ""
+    targets_str = "seasons" if use_seasonal_model else "targets"
+    seasonal_str = "seasonal" if use_seasonal_model else ""
     for t in range(pred_length):
         prev_seasons_ix = range(t, len(train_targets), num_seasons)
 
@@ -386,7 +386,7 @@ def test_npts_custom_features(
     context_length_frac
         fraction of history length that should be used as context length
     """
-    freq = 'W'
+    freq = "W"
     history_length = 52 * 8  # approx. 8 years (seasons)
     train_ts = get_test_data(history_length=history_length, freq=freq)
     context_length = (
@@ -423,9 +423,9 @@ def test_npts_custom_features(
     dataset = ListDataset(
         [
             {
-                'start': str(train_ts.index[0]),
-                'target': train_ts.values,
-                'feat_dynamic_real': feat_dynamic_real,
+                "start": str(train_ts.index[0]),
+                "target": train_ts.values,
+                "feat_dynamic_real": feat_dynamic_real,
             }
         ],
         freq=freq,
@@ -446,8 +446,8 @@ def test_npts_custom_features(
         if context_length is None or context_length >= history_length
         else train_ts.values[:context_length]
     )
-    targets_str = 'seasons' if use_seasonal_model else "targets"
-    seasonal_str = 'seasonal' if use_seasonal_model else ""
+    targets_str = "seasons" if use_seasonal_model else "targets"
+    seasonal_str = "seasonal" if use_seasonal_model else ""
     for t in range(pred_length):
         prev_seasons_ix = range(t, len(train_targets), num_seasons)
 
@@ -539,18 +539,18 @@ def _test_nans_in_target(predictor: NPTSPredictor, dataset: Dataset) -> None:
 
     # assert that we can tolerate a high percentage of NaNs
     for forecast in predictor.predict(ds_090pct_nans):
-        assert np.all(np.isfinite(forecast.samples)), 'Forecast contains NaNs.'
+        assert np.all(np.isfinite(forecast.samples)), "Forecast contains NaNs."
 
     # assert that an exception is thrown if 100% of the values are NaN
     with pytest.raises(GluonTSDataError) as excinfo:
         for _ in predictor.predict(ds_100pct_nans):
             pass
     assert (
-        f'The last {predictor.context_length} positions of the target time '
-        f'series are all NaN. Please increase the `context_length` '
-        f'parameter of your NPTS model so the last '
-        f'{predictor.context_length} positions of each target contain at '
-        f'least one non-NaN value.'
+        f"The last {predictor.context_length} positions of the target time "
+        f"series are all NaN. Please increase the `context_length` "
+        f"parameter of your NPTS model so the last "
+        f"{predictor.context_length} positions of each target contain at "
+        f"least one non-NaN value."
     ) in str(excinfo.value)
 
 
@@ -572,23 +572,23 @@ def _inject_nans_in_target(data_entry: DataEntry, p: float) -> DataEntry:
     """
     nan_positions = np.sort(
         a=np.random.choice(
-            a=np.arange(data_entry['target'].size, dtype=np.int),
-            size=int(p * data_entry['target'].size),
+            a=np.arange(data_entry["target"].size, dtype=np.int),
+            size=int(p * data_entry["target"].size),
             replace=False,
         )
     )
 
-    nan_target = np.copy(data_entry['target'])
+    nan_target = np.copy(data_entry["target"])
     nan_target[nan_positions] = np.nan
 
     # if p < 1.0 at the last position should be kept unchanged
     # otherwise for large p we might end up with NaNs in the last
     # context_length positions
     if p < 1.0:
-        nan_target[-1] = data_entry['target'][-1]
+        nan_target[-1] = data_entry["target"][-1]
 
     return {
-        key: (nan_target if key == 'target' else val)
+        key: (nan_target if key == "target" else val)
         for key, val in data_entry.items()
     }
 

@@ -19,19 +19,19 @@ import pytest
 # FIXME: Add gpu support for the tests in braxil gets error Check failed: e == cudaSuccess || e ==
 # FIXME: cudaErrorCudartUnloading CUDA: CUDA driver version is insufficient for CUDA runtime version
 # FIXME: @pytest.mark.parametrize('ctx', [mx.Context('gpu'), mx.Context('cpu')])
-@pytest.mark.parametrize('jitter_method', ['iter', 'eig'])
-@pytest.mark.parametrize('float_type', [np.float32, np.float64])
-def test_jitter_unit(jitter_method, float_type, ctx=mx.Context('cpu')):
+@pytest.mark.parametrize("jitter_method", ["iter", "eig"])
+@pytest.mark.parametrize("float_type", [np.float32, np.float64])
+def test_jitter_unit(jitter_method, float_type, ctx=mx.Context("cpu")):
     matrix = nd.array(
         [[[1, 2], [3, 4]], [[10, 100], [-21.5, 41]]], ctx=ctx, dtype=float_type
     )
     F = mx.nd
     num_data_points = matrix.shape[1]
-    if jitter_method == 'eig':
+    if jitter_method == "eig":
         L = jitter_cholesky_eig(F, matrix, num_data_points, ctx, float_type)
-    elif jitter_method == 'iter':
+    elif jitter_method == "iter":
         L = jitter_cholesky(F, matrix, num_data_points, ctx, float_type)
-    assert np.sum(np.isnan(L.asnumpy())) == 0, 'NaNs in Cholesky factor!'
+    assert np.sum(np.isnan(L.asnumpy())) == 0, "NaNs in Cholesky factor!"
 
 
 # This test tests that the noiseless sample generated from the synthetic example does not have NaNs in it.
@@ -41,10 +41,10 @@ def test_jitter_unit(jitter_method, float_type, ctx=mx.Context('cpu')):
 # FIXME: Add gpu support for the tests in braxil gets error Check failed: e == cudaSuccess || e ==
 # FIXME: cudaErrorCudartUnloading CUDA: CUDA driver version is insufficient for CUDA runtime version
 # FIXME: @pytest.mark.parametrize('ctx', [mx.Context('gpu'), mx.Context('cpu')])
-@pytest.mark.parametrize('jitter_method', ['iter', 'eig'])
-@pytest.mark.parametrize('float_type', [np.float32, np.float64])
+@pytest.mark.parametrize("jitter_method", ["iter", "eig"])
+@pytest.mark.parametrize("float_type", [np.float32, np.float64])
 def test_jitter_synthetic(
-    jitter_method, float_type, ctx=mx.Context('cpu')
+    jitter_method, float_type, ctx=mx.Context("cpu")
 ) -> None:
     # Initialize problem parameters
     batch_size = 1
@@ -96,4 +96,4 @@ def test_jitter_synthetic(
 
     assert (
         np.sum(np.isnan(samples.asnumpy())) == 0
-    ), 'NaNs in predictive samples!'
+    ), "NaNs in predictive samples!"

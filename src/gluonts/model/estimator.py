@@ -109,20 +109,20 @@ class GluonEstimator(Estimator):
         self.float_type = float_type
 
     @classmethod
-    def from_hyperparameters(cls, **hyperparameters) -> 'GluonEstimator':
-        Model = getattr(cls.__init__, 'Model', None)
+    def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
+        Model = getattr(cls.__init__, "Model", None)
 
         if not Model:
             raise AttributeError(
-                f'Cannot find attribute Model attached to the '
-                f'{fqname_for(cls)}. Most probably you have forgotten to mark '
-                f'the class constructor as @validated().'
+                f"Cannot find attribute Model attached to the "
+                f"{fqname_for(cls)}. Most probably you have forgotten to mark "
+                f"the class constructor as @validated()."
             )
 
         try:
             trainer = from_hyperparameters(Trainer, **hyperparameters)
             return cls(
-                **Model(**{**hyperparameters, 'trainer': trainer}).__values__
+                **Model(**{**hyperparameters, "trainer": trainer}).__values__
             )
         except ValidationError as e:
             raise GluonTSHyperparametersError from e

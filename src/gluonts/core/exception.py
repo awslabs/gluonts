@@ -61,8 +61,8 @@ class GluonTSHyperparameterParseError(GluonTSException):
     def __str__(self, *args, **kwargs):
         return (
             f'Error when trying to re-interpret string value "{self.value}" '
-            f'for parameter {self.key} as a {self.type}:\n'
-            f'{repr(self.__cause__)}'
+            f"for parameter {self.key} as a {self.type}:\n"
+            f"{repr(self.__cause__)}"
         )
 
 
@@ -77,9 +77,9 @@ class GluonTSHyperparametersError(GluonTSException):
 
     def __str__(self, *args, **kwargs):
         return (
-            f'The following errors occurred when trying to '
-            f'validate the algorithm hyperparameters:\n'
-            f'{display_errors(self.__cause__.errors())}'
+            f"The following errors occurred when trying to "
+            f"validate the algorithm hyperparameters:\n"
+            f"{display_errors(self.__cause__.errors())}"
         )
 
 
@@ -200,7 +200,7 @@ def reraise_error(
                 import traceback
 
                 traceback.print_exc()
-                error_message = message or getattr(error, 'message', None)
+                error_message = message or getattr(error, "message", None)
                 if error_message is None:
                     raise target_class(message=error)
                 else:

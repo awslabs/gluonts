@@ -32,7 +32,7 @@ from pydantic import BaseModel
 from gluonts.core import fqname_for
 
 bad_type_msg = textwrap.dedent(
-    '''
+    """
     Cannot serialize type {}. See the documentation of the `encode` and
     `validate` functions at
 
@@ -43,7 +43,7 @@ bad_type_msg = textwrap.dedent(
         https://docs.python.org/3/library/pickle.html#object.__getnewargs_ex__
 
     for more information how to make this type serializable.
-    '''
+    """
 ).lstrip()
 
 
@@ -181,29 +181,29 @@ def dump_code(o: Any) -> str:
     def _dump_code(x: Any) -> str:
         # r = { 'class': ..., 'args': ... }
         # r = { 'class': ..., 'kwargs': ... }
-        if type(x) == dict and x.get('__kind__') == kind_inst:
-            args = x['args'] if 'args' in x else []
-            kwargs = x['kwargs'] if 'kwargs' in x else {}
-            return '{fqname}({bindings})'.format(
+        if type(x) == dict and x.get("__kind__") == kind_inst:
+            args = x["args"] if "args" in x else []
+            kwargs = x["kwargs"] if "kwargs" in x else {}
+            return "{fqname}({bindings})".format(
                 fqname=x["class"],
-                bindings=', '.join(
+                bindings=", ".join(
                     itertools.chain(
                         [_dump_code(v) for v in args],
-                        [f'{k}={_dump_code(v)}' for k, v in kwargs.items()],
+                        [f"{k}={_dump_code(v)}" for k, v in kwargs.items()],
                     )
                 ),
             )
-        if type(x) == dict and x.get('__kind__') == kind_type:
-            return x['class']
+        if type(x) == dict and x.get("__kind__") == kind_type:
+            return x["class"]
         if isinstance(x, dict):
-            elems = [f'{_dump_code(k)}: {_dump_code(v)}' for k, v in x.items()]
-            return '{' + ', '.join(elems) + '}'
+            elems = [f"{_dump_code(k)}: {_dump_code(v)}" for k, v in x.items()]
+            return "{" + ", ".join(elems) + "}"
         elif isinstance(x, list):
             elems = [dump_code(v) for v in x]
-            return '[' + ', '.join(elems) + ']'
+            return "[" + ", ".join(elems) + "]"
         elif isinstance(x, tuple):
             elems = [dump_code(v) for v in x]
-            return '(' + ', '.join(elems) + ',)'
+            return "(" + ", ".join(elems) + ",)"
         elif isinstance(x, str):
             return '"' + x + '"'  # TODO: escape comp characters
         elif isinstance(x, float):
@@ -212,7 +212,7 @@ def dump_code(o: Any) -> str:
             return str(x)
         else:
             x = fqname_for(x.__class__)
-            raise RuntimeError(f'Unexpected element type {x}')
+            raise RuntimeError(f"Unexpected element type {x}")
 
     return _dump_code(encode(o))
 
@@ -245,7 +245,7 @@ def load_code(c: str) -> Any:
         except NameError as e:
             m = re.match(r"name '(?P<module>.+)' is not defined", str(e))
             if m:
-                name = m['module']
+                name = m["module"]
                 return _load_code(
                     code,
                     {**(modules or {}), name: importlib.import_module(name)},
@@ -258,7 +258,7 @@ def load_code(c: str) -> Any:
                 str(e),
             )
             if m:
-                name = m['module'] + '.' + m['package']
+                name = m["module"] + "." + m["package"]
                 return _load_code(
                     code,
                     {**(modules or {}), name: importlib.import_module(name)},
@@ -274,8 +274,8 @@ def load_code(c: str) -> Any:
 # Structural encoding/decoding
 # ----------------------------
 
-kind_type = 'type'
-kind_inst = 'instance'
+kind_type = "type"
+kind_inst = "instance"
 
 
 @singledispatch
@@ -386,25 +386,25 @@ def encode(v: Any) -> Any:
         return v
     elif isinstance(v, list) or type(v) == tuple:
         return [encode(v) for v in v]
-    elif isinstance(v, tuple) and not hasattr(v, '_asdict'):
+    elif isinstance(v, tuple) and not hasattr(v, "_asdict"):
         return tuple([encode(v) for v in v])
     elif isinstance(v, dict):
         return {k: encode(v) for k, v in v.items()}
     elif isinstance(v, type):
-        return {'__kind__': kind_type, 'class': fqname_for(v)}
-    elif isinstance(v, tuple) and hasattr(v, '_asdict'):
+        return {"__kind__": kind_type, "class": fqname_for(v)}
+    elif isinstance(v, tuple) and hasattr(v, "_asdict"):
         return {
-            '__kind__': kind_inst,
-            'class': fqname_for(v.__class__),
-            'kwargs': encode(getattr(v, '_asdict')()),
+            "__kind__": kind_inst,
+            "class": fqname_for(v.__class__),
+            "kwargs": encode(getattr(v, "_asdict")()),
         }
-    elif hasattr(v, '__getnewargs_ex__'):
-        args, kwargs = getattr(v, '__getnewargs_ex__')()
+    elif hasattr(v, "__getnewargs_ex__"):
+        args, kwargs = getattr(v, "__getnewargs_ex__")()
         return {
-            '__kind__': kind_inst,
-            'class': fqname_for(v.__class__),
-            'args': encode(args),
-            'kwargs': encode(kwargs),
+            "__kind__": kind_inst,
+            "class": fqname_for(v.__class__),
+            "args": encode(args),
+            "kwargs": encode(kwargs),
         }
     else:
         raise RuntimeError(bad_type_msg.format(fqname_for(v.__class__)))
@@ -417,9 +417,9 @@ def encode_path(v: Path) -> Any:
     the :class:`~Path` class.
     """
     return {
-        '__kind__': kind_inst,
-        'class': fqname_for(v.__class__),
-        'args': encode([str(v)]),
+        "__kind__": kind_inst,
+        "class": fqname_for(v.__class__),
+        "args": encode([str(v)]),
     }
 
 
@@ -430,9 +430,9 @@ def encode_pydantic_model(v: BaseModel) -> Any:
     the :class:`~BaseModel` class.
     """
     return {
-        '__kind__': kind_inst,
-        'class': fqname_for(v.__class__),
-        'kwargs': encode(v.__values__),
+        "__kind__": kind_inst,
+        "class": fqname_for(v.__class__),
+        "kwargs": encode(v.__values__),
     }
 
 
@@ -443,9 +443,9 @@ def encode_mx_context(v: mx.Context) -> Any:
     the :class:`~mxnet.Context` class.
     """
     return {
-        '__kind__': kind_inst,
-        'class': fqname_for(v.__class__),
-        'args': encode([v.device_type, v.device_id]),
+        "__kind__": kind_inst,
+        "class": fqname_for(v.__class__),
+        "args": encode([v.device_type, v.device_id]),
     }
 
 
@@ -472,14 +472,14 @@ def decode(r: Any) -> Any:
     # structural recursion over the possible shapes of r
     # r = { 'class': ..., 'args': ... }
     # r = { 'class': ..., 'kwargs': ... }
-    if type(r) == dict and r.get('__kind__') == kind_inst:
+    if type(r) == dict and r.get("__kind__") == kind_inst:
         cls = locate(r["class"])
-        args = decode(r['args']) if 'args' in r else []
-        kwargs = decode(r['kwargs']) if 'kwargs' in r else {}
+        args = decode(r["args"]) if "args" in r else []
+        kwargs = decode(r["kwargs"]) if "kwargs" in r else {}
         return cls(*args, **kwargs)
     # r = { 'class': ..., 'args': ... }
     # r = { 'class': ..., 'kwargs': ... }
-    if type(r) == dict and r.get('__kind__') == kind_type:
+    if type(r) == dict and r.get("__kind__") == kind_type:
         return locate(r["class"])
     # r = { k1: v1, ..., kn: vn }
     elif type(r) == dict:

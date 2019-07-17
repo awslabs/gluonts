@@ -11,7 +11,7 @@ from gluonts.support.util import get_download_path
 
 m4_freq = "Hourly"
 pandas_freq = "H"
-dataset_path = Path(f'm4-{m4_freq}')
+dataset_path = Path(f"m4-{m4_freq}")
 prediction_length = 48
 
 
@@ -110,12 +110,12 @@ def get_dataset(
 
     return load_datasets(
         metadata=dataset_path,
-        train=dataset_path / 'train',
-        test=dataset_path / 'test',
+        train=dataset_path / "train",
+        test=dataset_path / "test",
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     for dataset in dataset_names:
         print(f"generate {dataset}")

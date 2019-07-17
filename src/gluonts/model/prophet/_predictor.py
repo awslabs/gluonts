@@ -35,7 +35,7 @@ methods:
 
 def feat_name(i: int) -> str:
     """The canonical name of a feature with index `i`."""
-    return f'feat_dynamic_real_{i:03d}'
+    return f"feat_dynamic_real_{i:03d}"
 
 
 class ProphetDataEntry(NamedTuple):
@@ -55,12 +55,12 @@ class ProphetDataEntry(NamedTuple):
         return pd.DataFrame(
             data={
                 **{
-                    'ds': pd.date_range(
+                    "ds": pd.date_range(
                         start=self.start,
                         periods=self.train_length,
                         freq=self.start.freq,
                     ),
-                    'y': self.target,
+                    "y": self.target,
                 },
                 **{
                     feat_name(i): feature[: self.train_length]
@@ -125,7 +125,7 @@ class ProphetPredictor(RepresentablePredictor):
         if prophet_params is None:
             prophet_params = {}
 
-        assert 'uncertainty_samples' not in prophet_params, (
+        assert "uncertainty_samples" not in prophet_params, (
             "Parameter 'uncertainty_samples' should not be set directly. "
             "Please use 'num_eval_samples' instead."
         )
@@ -174,7 +174,7 @@ class ProphetPredictor(RepresentablePredictor):
 
         prophet_result = prophet.predictive_samples(future_df)
 
-        return prophet_result['yhat'].T
+        return prophet_result["yhat"].T
 
     def _make_prophet_data_entry(self, entry: DataEntry) -> ProphetDataEntry:
         """
@@ -182,11 +182,11 @@ class ProphetPredictor(RepresentablePredictor):
         :class:`DataEntry`.
         """
 
-        train_length = len(entry['target'])
+        train_length = len(entry["target"])
         prediction_length = self.prediction_length
-        start = entry['start']
-        target = entry['target']
-        feat_dynamic_real = entry.get('feat_dynamic_real', [])
+        start = entry["start"]
+        target = entry["target"]
+        feat_dynamic_real = entry.get("feat_dynamic_real", [])
 
         # make sure each dynamic feature has the desired length
         for i, feature in enumerate(feat_dynamic_real):

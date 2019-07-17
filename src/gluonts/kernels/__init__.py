@@ -18,11 +18,11 @@ from .periodic_kernel import PeriodicKernel, PeriodicKernelOutput
 from .rbf_kernel import RBFKernel, RBFKernelOutput
 
 __all__ = [
-    'Kernel',
-    'PeriodicKernel',
-    'RBFKernel',
-    'PeriodicKernelOutput',
-    'RBFKernelOutput',
-    'KernelOutput',
-    'KernelOutputDict',
+    "Kernel",
+    "PeriodicKernel",
+    "RBFKernel",
+    "PeriodicKernelOutput",
+    "RBFKernelOutput",
+    "KernelOutput",
+    "KernelOutputDict",
 ]

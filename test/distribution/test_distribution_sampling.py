@@ -23,40 +23,40 @@ test_cases = [
     (
         Gaussian,
         {
-            'mu': mx.nd.array([1000.0, -1000.0]),
-            'sigma': mx.nd.array([0.1, 1.0]),
+            "mu": mx.nd.array([1000.0, -1000.0]),
+            "sigma": mx.nd.array([0.1, 1.0]),
         },
     ),
     (
         Laplace,
-        {'mu': mx.nd.array([1000.0, -1000.0]), 'b': mx.nd.array([0.1, 1.0])},
+        {"mu": mx.nd.array([1000.0, -1000.0]), "b": mx.nd.array([0.1, 1.0])},
     ),
     (
         StudentT,
         {
-            'mu': mx.nd.array([1000.0, -1000.0]),
-            'sigma': mx.nd.array([1.0, 2.0]),
-            'nu': mx.nd.array([4.2, 3.0]),
+            "mu": mx.nd.array([1000.0, -1000.0]),
+            "sigma": mx.nd.array([1.0, 2.0]),
+            "nu": mx.nd.array([4.2, 3.0]),
         },
     ),
     (
         NegativeBinomial,
-        {'mu': mx.nd.array([1000.0, 1.0]), 'alpha': mx.nd.array([1.0, 2.0])},
+        {"mu": mx.nd.array([1000.0, 1.0]), "alpha": mx.nd.array([1.0, 2.0])},
     ),
     (
         Uniform,
         {
-            'low': mx.nd.array([1000.0, -1000.1]),
-            'high': mx.nd.array([2000.0, -1000.0]),
+            "low": mx.nd.array([1000.0, -1000.1]),
+            "high": mx.nd.array([2000.0, -1000.0]),
         },
     ),
     (
         Binned,
         {
-            'bin_probs': mx.nd.array(
+            "bin_probs": mx.nd.array(
                 [[0, 0.3, 0.1, 0.05, 0.2, 0.1, 0.25]]
             ).repeat(axis=0, repeats=2),
-            'bin_centers': mx.nd.array(
+            "bin_centers": mx.nd.array(
                 [[-5, -3, -1.2, -0.5, 0, 0.1, 0.2]]
             ).repeat(axis=0, repeats=2),
         },
@@ -97,8 +97,8 @@ test_cases_multivariate = [
     (
         MultivariateGaussian,
         {
-            'mu': mx.nd.array([100.0, -1000.0]),
-            'L': mx.nd.array([[6.0, 0.0], [0.5, 20.0]]),
+            "mu": mx.nd.array([100.0, -1000.0]),
+            "L": mx.nd.array([[6.0, 0.0], [0.5, 20.0]]),
         },
     )
 ]
@@ -116,18 +116,18 @@ def test_multivariate_sampling(distr, params) -> None:
     np_samples = samples.asnumpy()
 
     assert np.allclose(
-        np_samples.mean(axis=0), params['mu'].asnumpy(), atol=1e-2, rtol=1e-2
+        np_samples.mean(axis=0), params["mu"].asnumpy(), atol=1e-2, rtol=1e-2
     )
     assert np.allclose(
         np.linalg.cholesky(np.cov(np_samples.transpose())),
-        params['L'].asnumpy(),
+        params["L"].asnumpy(),
         atol=1e-1,
         rtol=1e-1,
     )
     # TODO: should we move this to a different test?
     # TODO: we probably need unit tests for .mean, .variance anyway
     assert np.allclose(
-        np.linalg.cholesky(distr.variance.asnumpy()), params['L'].asnumpy()
+        np.linalg.cholesky(distr.variance.asnumpy()), params["L"].asnumpy()
     )
 
 
@@ -135,11 +135,11 @@ test_cases_pwl_sqf = [
     (
         PiecewiseLinear,
         {
-            'gamma': mx.nd.array([2]).repeat(axis=0, repeats=2),
-            'slopes': mx.nd.array([[3, 1, 3, 0.2, 5, 4]]).repeat(
+            "gamma": mx.nd.array([2]).repeat(axis=0, repeats=2),
+            "slopes": mx.nd.array([[3, 1, 3, 0.2, 5, 4]]).repeat(
                 axis=0, repeats=2
             ),
-            'knot_spacings': mx.nd.array(
+            "knot_spacings": mx.nd.array(
                 [[0.3, 0.2, 0.2, 0.15, 0.1, 0.05]]
             ).repeat(axis=0, repeats=2),
         },
