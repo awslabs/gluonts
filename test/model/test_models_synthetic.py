@@ -102,9 +102,9 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
             learning_rate=1e-2,
             batch_size=batch_size,
             hybridize=hybridize,
-            model_dim=16,
-            inner_ff_dim_scale=2,
-            num_heads=4,
+            model_dim=4,
+            inner_ff_dim_scale=1,
+            num_heads=2,
             prediction_length=prediction_length,
             context_length=context_length,
             freq=freq,
@@ -122,7 +122,7 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
         deepar_estimator(batches_per_epoch=1) + (10.0,),
         gp_estimator(batches_per_epoch=1) + (10.0,),
         wavenet_estimator(batches_per_epoch=10) + (10.0,),
-        transformer_estimator(batches_per_epoch=10) + (10.0,),
+        transformer_estimator(batches_per_epoch=1) + (10.0,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
@@ -131,4 +131,6 @@ def test_accuracy(Estimator, hyperparameters, accuracy):
         train_dataset=train_ds, test_dataset=test_ds, forecaster=estimator
     )
 
+    print(agg_metrics["ND"])
+    print(accuracy)
     assert agg_metrics["ND"] <= accuracy
