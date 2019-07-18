@@ -2,6 +2,8 @@
 
 This folder aims at collecting evaluations of forecasting models. The goal is to make reproducibility and comparison easier by versioning the code producing dataset as well as the model and evaluation code.
 
+## mean_wQuantileLoss
+
 estimator | electricity | exchange_rate | m4_daily | m4_hourly | m4_monthly | m4_quarterly | m4_weekly | m4_yearly | solar-energy | traffic
 ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----
 DeepAREstimator | 0.050 | 0.023 | 0.025 | 0.033 | 0.115 | 0.087 | 0.048 | 0.128 | 0.398 | 0.126
