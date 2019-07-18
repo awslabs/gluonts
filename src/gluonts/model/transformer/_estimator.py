@@ -118,9 +118,9 @@ class TransformerEstimator(GluonEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         model_dim: int = 32,
         inner_ff_dim_scale: int = 4,
-        pre_seq: str = 'dn',
-        post_seq: str = 'drn',
-        act_type: str = 'softrelu',
+        pre_seq: str = "dn",
+        post_seq: str = "drn",
+        act_type: str = "softrelu",
         num_heads: int = 8,
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
@@ -130,23 +130,23 @@ class TransformerEstimator(GluonEstimator):
     ) -> None:
 
         assert (
-                prediction_length > 0
+            prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
         assert (
-                context_length is None or context_length > 0
+            context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert (
-                num_eval_samples > 0
+            num_eval_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert (
-                cardinality is not None or not use_feat_static_cat
+            cardinality is not None or not use_feat_static_cat
         ), "You must set `cardinality` if `use_feat_static_cat=True`"
         assert cardinality is None or [
             c > 0 for c in cardinality
         ], "Elements of `cardinality` should be > 0"
         assert (
-                embedding_dimension > 0
+            embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
 
         super().__init__(trainer=trainer)
@@ -176,17 +176,22 @@ class TransformerEstimator(GluonEstimator):
         self.history_length = self.context_length + max(self.lags_seq)
         self.scaling = scaling
 
-        self.config = {'model_dim': model_dim,
-                       'pre_seq': pre_seq,
-                       'post_seq': post_seq,
-                       'dropout_rate': dropout_rate,
-                       'inner_ff_dim_scale': inner_ff_dim_scale,
-                       'act_type': act_type,
-                       'num_heads': num_heads
-                       }
+        self.config = {
+            "model_dim": model_dim,
+            "pre_seq": pre_seq,
+            "post_seq": post_seq,
+            "dropout_rate": dropout_rate,
+            "inner_ff_dim_scale": inner_ff_dim_scale,
+            "act_type": act_type,
+            "num_heads": num_heads,
+        }
 
-        self.encoder = TransformerEncoder(self.context_length, self.config, prefix='enc_')
-        self.decoder = TransformerDecoder(self.prediction_length, self.config, prefix='dec_')
+        self.encoder = TransformerEncoder(
+            self.context_length, self.config, prefix="enc_"
+        )
+        self.decoder = TransformerDecoder(
+            self.prediction_length, self.config, prefix="dec_"
+        )
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -270,7 +275,7 @@ class TransformerEstimator(GluonEstimator):
         return training_network
 
     def create_predictor(
-        self, transformation: Transformation, trained_network: HybridBlock,
+        self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
 
         prediction_network = TransformerPredictionNetwork(
@@ -297,4 +302,3 @@ class TransformerEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
-

@@ -9,9 +9,7 @@ from mxnet.gluon import HybridBlock
 from swist.model import Tensor
 
 
-def split_heads(
-    F, x: Tensor, dim_per_head: int, heads: int
-) -> Tensor:
+def split_heads(F, x: Tensor, dim_per_head: int, heads: int) -> Tensor:
     r"""
     Returns a tensor with head dimension folded into batch and last dimension divided by the number of heads.
 
@@ -78,9 +76,7 @@ def dot_attention(
     return F.batch_dot(lhs=probs, rhs=values)
 
 
-def combine_heads(
-    F, x: Tensor, dim_per_head: int, heads: int
-) -> Tensor:
+def combine_heads(F, x: Tensor, dim_per_head: int, heads: int) -> Tensor:
     r"""
 
     Parameters
@@ -112,10 +108,10 @@ class LayerNormalization(HybridBlock):
 
     def __init__(
         self,
-        scale_init: str = 'ones',
-        shift_init: str = 'zeros',
+        scale_init: str = "ones",
+        shift_init: str = "zeros",
         eps: float = 1e-06,
-        **kwargs
+        **kwargs,
     ) -> None:
 
         super().__init__(**kwargs)
@@ -165,9 +161,7 @@ class InputLayer(HybridBlock):
 
         self.model_size = model_size
         with self.name_scope():
-            self.net = mx.gluon.nn.Dense(
-                units=self.model_size, flatten=False
-            )
+            self.net = mx.gluon.nn.Dense(units=self.model_size, flatten=False)
 
     def hybrid_forward(self, F, data: Tensor, *args):
         return self.net(data)
@@ -195,7 +189,7 @@ class MultiHeadAttentionBase(HybridBlock):
         heads: int = 8,
         att_dim_out: int = 32,
         dropout: float = 0.0,
-        **kwargs
+        **kwargs,
     ) -> None:
 
         super().__init__(**kwargs)
@@ -291,7 +285,7 @@ class MultiHeadSelfAttention(MultiHeadAttentionBase):
         heads: int = 8,
         att_dim_out: int = 32,
         dropout: float = 0.0,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(att_dim_in, heads, att_dim_out, dropout, **kwargs)
 
@@ -338,15 +332,15 @@ class MultiHeadSelfAttention(MultiHeadAttentionBase):
 
         if cache is not None:
             # append new keys and values to cache, update the cache
-            keys = cache['k'] = (
+            keys = cache["k"] = (
                 keys
-                if 'k' not in cache.keys()
-                else F.concat(cache['k'], keys, dim=1)
+                if "k" not in cache.keys()
+                else F.concat(cache["k"], keys, dim=1)
             )
-            values = cache['v'] = (
+            values = cache["v"] = (
                 values
-                if 'v' not in cache.keys()
-                else F.concat(cache['v'], values, dim=1)
+                if "v" not in cache.keys()
+                else F.concat(cache["v"], values, dim=1)
             )
 
         return self._attend(F, queries, keys, values, mask), cache
@@ -374,7 +368,7 @@ class MultiHeadAttention(MultiHeadAttentionBase):
         heads: int = 8,
         att_dim_out: int = 32,
         dropout: float = 0.0,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(att_dim_in, heads, att_dim_out, dropout, **kwargs)
 
@@ -391,11 +385,7 @@ class MultiHeadAttention(MultiHeadAttentionBase):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
-        self,
-        F,
-        queries: Tensor,
-        memory: Tensor,
-        mask: Optional[Tensor] = None,
+        self, F, queries: Tensor, memory: Tensor, mask: Optional[Tensor] = None
     ) -> Tensor:
         r"""
         Computes multi-head attention for queries given a memory tensor.
@@ -446,7 +436,7 @@ class TransformerFeedForward(HybridBlock):
         self,
         inner_dim: int = 32,  # W1: (batch_size, d, inner_dim)
         out_dim: int = 32,  # W2: (batch_size, inner_dim, out_dim)
-        act_type: str = 'softrelu',
+        act_type: str = "softrelu",
         dropout: float = 0.0,
         **kwargs,
     ) -> None:
@@ -533,7 +523,7 @@ class TransformerProcessBlock(HybridBlock):
 
         if prev is None:
             assert (
-                'r' not in self.sequence
+                "r" not in self.sequence
             ), "Residual connection not allowed if no previous value given."
 
         for step in self.sequence:

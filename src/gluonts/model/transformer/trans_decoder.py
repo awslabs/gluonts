@@ -26,48 +26,48 @@ class TransformerDecoder(HybridBlock):
         self.cache = {}
 
         with self.name_scope():
-            self.enc_input_layer = InputLayer(model_size=config['model_dim'])
+            self.enc_input_layer = InputLayer(model_size=config["model_dim"])
 
             self.dec_pre_self_att = TransformerProcessBlock(
-                sequence=config['pre_seq'],
-                dropout=config['dropout_rate'],
-                prefix='pretransformerprocessblock_',
+                sequence=config["pre_seq"],
+                dropout=config["dropout_rate"],
+                prefix="pretransformerprocessblock_",
             )
             self.dec_self_att = MultiHeadSelfAttention(
-                att_dim_in=config['model_dim'],
-                heads=config['num_heads'],
-                att_dim_out=config['model_dim'],
-                dropout=config['dropout_rate'],
-                prefix='multiheadselfattention_',
+                att_dim_in=config["model_dim"],
+                heads=config["num_heads"],
+                att_dim_out=config["model_dim"],
+                dropout=config["dropout_rate"],
+                prefix="multiheadselfattention_",
             )
             self.dec_post_self_att = TransformerProcessBlock(
-                sequence=config['post_seq'],
-                dropout=config['dropout_rate'],
-                prefix='postselfatttransformerprocessblock_',
+                sequence=config["post_seq"],
+                dropout=config["dropout_rate"],
+                prefix="postselfatttransformerprocessblock_",
             )
             self.dec_enc_att = MultiHeadAttention(
-                att_dim_in=config['model_dim'],
-                heads=config['num_heads'],
-                att_dim_out=config['model_dim'],
-                dropout=config['dropout_rate'],
-                prefix='multiheadattention_',
+                att_dim_in=config["model_dim"],
+                heads=config["num_heads"],
+                att_dim_out=config["model_dim"],
+                dropout=config["dropout_rate"],
+                prefix="multiheadattention_",
             )
             self.dec_post_att = TransformerProcessBlock(
-                sequence=config['post_seq'],
-                dropout=config['dropout_rate'],
-                prefix='postatttransformerprocessblock_',
+                sequence=config["post_seq"],
+                dropout=config["dropout_rate"],
+                prefix="postatttransformerprocessblock_",
             )
             self.dec_ff = TransformerFeedForward(
-                inner_dim=config['model_dim'] * config['inner_ff_dim_scale'],
-                out_dim=config['model_dim'],
-                act_type=config['act_type'],
-                dropout=config['dropout_rate'],
-                prefix='transformerfeedforward_',
+                inner_dim=config["model_dim"] * config["inner_ff_dim_scale"],
+                out_dim=config["model_dim"],
+                act_type=config["act_type"],
+                dropout=config["dropout_rate"],
+                prefix="transformerfeedforward_",
             )
             self.dec_post_ff = TransformerProcessBlock(
-                sequence=config['post_seq'],
-                dropout=config['dropout_rate'],
-                prefix='postffransformerprocessblock_',
+                sequence=config["post_seq"],
+                dropout=config["dropout_rate"],
+                prefix="postffransformerprocessblock_",
             )
 
     def cache_reset(self):

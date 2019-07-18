@@ -4,10 +4,10 @@ class TransformerConfig:
         model_dim: int = 64,  # dimension of the embedded input
         # inner dimension of the feedforward network (dimension of the hidden layer) is multiple of the input dimension
         inner_ff_dim_scale: int = 4,
-        pre_seq: str = 'dn',
-        post_seq: str = 'drn',
+        pre_seq: str = "dn",
+        post_seq: str = "drn",
         dropout: float = 0.1,
-        act_type: str = 'relu',
+        act_type: str = "relu",
         num_heads: int = 8,
     ) -> None:
 

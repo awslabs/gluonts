@@ -75,11 +75,11 @@ class TransformerNetwork(mx.gluon.HybridBlock):
 
     @staticmethod
     def get_lagged_subsequences(
-            F,
-            sequence: Tensor,
-            sequence_length: int,
-            indices: List[int],
-            subsequences_length: int = 1,
+        F,
+        sequence: Tensor,
+        sequence_length: int,
+        indices: List[int],
+        subsequences_length: int = 1,
     ) -> Tensor:
         """
         Returns lagged subsequences of a given sequence.
@@ -131,9 +131,7 @@ class TransformerNetwork(mx.gluon.HybridBlock):
         future_time_feat: Optional[
             Tensor
         ],  # (batch_size, num_features, prediction_length)
-        future_target: Optional[
-            Tensor
-        ],  # (batch_size, prediction_length)
+        future_target: Optional[Tensor],  # (batch_size, prediction_length)
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Creates inputs for the transformer network.
@@ -409,9 +407,9 @@ class TransformerPredictionNetwork(TransformerNetwork):
         # (batch_size, num_samples, *target_shape, prediction_length)
         return samples.reshape(
             shape=(
-                    (-1, self.num_sample_paths)
-                    + self.target_shape
-                    + (self.prediction_length,)
+                (-1, self.num_sample_paths)
+                + self.target_shape
+                + (self.prediction_length,)
             )
         )
 

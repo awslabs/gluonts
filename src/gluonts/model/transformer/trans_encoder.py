@@ -24,36 +24,36 @@ class TransformerEncoder(HybridBlock):
         self.encoder_length = encoder_length
 
         with self.name_scope():
-            self.enc_input_layer = InputLayer(model_size=config['model_dim'])
+            self.enc_input_layer = InputLayer(model_size=config["model_dim"])
 
             self.enc_pre_self_att = TransformerProcessBlock(
-                sequence=config['pre_seq'],
-                dropout=config['dropout_rate'],
-                prefix='pretransformerprocessblock_',
+                sequence=config["pre_seq"],
+                dropout=config["dropout_rate"],
+                prefix="pretransformerprocessblock_",
             )
             self.enc_self_att = MultiHeadSelfAttention(
-                att_dim_in=config['model_dim'],
-                heads=config['num_heads'],
-                att_dim_out=config['model_dim'],
-                dropout=config['dropout_rate'],
-                prefix='multiheadselfattention_',
+                att_dim_in=config["model_dim"],
+                heads=config["num_heads"],
+                att_dim_out=config["model_dim"],
+                dropout=config["dropout_rate"],
+                prefix="multiheadselfattention_",
             )
             self.enc_post_self_att = TransformerProcessBlock(
-                sequence=config['post_seq'],
-                dropout=config['dropout_rate'],
-                prefix='postselfatttransformerprocessblock_',
+                sequence=config["post_seq"],
+                dropout=config["dropout_rate"],
+                prefix="postselfatttransformerprocessblock_",
             )
             self.enc_ff = TransformerFeedForward(
-                inner_dim=config['model_dim'] * config['inner_ff_dim_scale'],
-                out_dim=config['model_dim'],
-                act_type=config['act_type'],
-                dropout=config['dropout_rate'],
-                prefix='transformerfeedforward_',
+                inner_dim=config["model_dim"] * config["inner_ff_dim_scale"],
+                out_dim=config["model_dim"],
+                act_type=config["act_type"],
+                dropout=config["dropout_rate"],
+                prefix="transformerfeedforward_",
             )
             self.enc_post_ff = TransformerProcessBlock(
-                sequence=config['post_seq'],
-                dropout=config['dropout_rate'],
-                prefix='postfftransformerprocessblock_',
+                sequence=config["post_seq"],
+                dropout=config["dropout_rate"],
+                prefix="postfftransformerprocessblock_",
             )
 
     # noinspection PyMethodOverriding,PyPep8Naming
