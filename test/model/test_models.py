@@ -7,6 +7,7 @@ import pytest
 
 # First-party imports
 from gluonts import time_feature
+from gluonts.core.component import equals
 from gluonts.core.serde import load_code
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation.backtest import backtest_metrics
@@ -21,6 +22,7 @@ from gluonts.model.seq2seq import (
     Seq2SeqEstimator,
 )
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.model.transformer import TransformerEstimator
 
 dataset_info, train_ds, test_ds = constant_dataset()
 freq = dataset_info.metadata.freq
@@ -130,6 +132,26 @@ def deepar_estimator(hybridize: bool = True, batches_per_epoch=1):
     )
 
 
+def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        TransformerEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            hybridize=hybridize,
+            model_dim=4,
+            inner_ff_dim_scale=1,
+            num_heads=2,
+            prediction_length=prediction_length,
+            context_length=2,
+            num_eval_samples=2,
+            num_batches_per_epoch=batches_per_epoch,
+            use_symbol_block_predictor=False,
+        ),
+    )
+
+
 def seasonal_estimator():
     return SeasonalNaiveEstimator, dict(prediction_length=prediction_length)
 
@@ -145,6 +167,7 @@ def seasonal_estimator():
         seasonal_estimator() + (0.0,),
         # mqcnn_estimator(batches_per_epoch=200) + (0.2,),
         # mqrnn_estimator(batches_per_epoch=200) + (0.2,),
+        transformer_estimator(batches_per_epoch=50) + (0.2,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
@@ -166,6 +189,7 @@ def test_accuracy(Estimator, hyperparameters, accuracy):
         mqcnn_estimator(),
         mqrnn_estimator(),
         gp_estimator(),
+        transformer_estimator(),
     ],
 )
 def test_repr(Estimator, hyperparameters):
@@ -181,6 +205,7 @@ def test_repr(Estimator, hyperparameters):
         mqcnn_estimator(hybridize=True),
         mqrnn_estimator(hybridize=True),
         gp_estimator(hybridize=True),
+        transformer_estimator(hybridize=True),
     ],
 )
 def test_hybridize(Estimator, hyperparameters):
@@ -200,6 +225,7 @@ def test_hybridize(Estimator, hyperparameters):
         mqcnn_estimator(),
         mqrnn_estimator(),
         gp_estimator(),
+        transformer_estimator(),
     ],
 )
 def test_serialize(Estimator, hyperparameters):
@@ -208,4 +234,4 @@ def test_serialize(Estimator, hyperparameters):
         predictor_act = estimator.train(train_ds)
         predictor_act.serialize(Path(temp_dir))
         predictor_exp = Predictor.deserialize(Path(temp_dir))
-        assert predictor_act == predictor_exp
+        assert equals(predictor_act, predictor_exp)

@@ -8,6 +8,7 @@ from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.model.gp_forecaster import GaussianProcessEstimator
 from gluonts.model.wavenet import WaveNetEstimator
+from gluonts.model.transformer import TransformerEstimator
 
 dataset_info, train_ds, test_ds = default_synthetic()
 freq = dataset_info.metadata.freq
@@ -92,6 +93,27 @@ def wavenet_estimator(hybridize: bool = False, batches_per_epoch=1):
     )
 
 
+def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        TransformerEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            batch_size=batch_size,
+            hybridize=hybridize,
+            model_dim=16,
+            inner_ff_dim_scale=2,
+            num_heads=4,
+            prediction_length=prediction_length,
+            context_length=context_length,
+            freq=freq,
+            num_eval_samples=2,
+            num_batches_per_epoch=batches_per_epoch,
+        ),
+    )
+
+
 @pytest.mark.timeout(5)  # DeepAR occasionally fails the 5 second timeout
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
@@ -100,6 +122,7 @@ def wavenet_estimator(hybridize: bool = False, batches_per_epoch=1):
         deepar_estimator(batches_per_epoch=1) + (10.0,),
         gp_estimator(batches_per_epoch=1) + (10.0,),
         wavenet_estimator(batches_per_epoch=10) + (10.0,),
+        transformer_estimator(batches_per_epoch=1) + (10.0,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
