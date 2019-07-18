@@ -7,7 +7,6 @@ import pytest
 
 # First-party imports
 from gluonts import time_feature
-from gluonts.core.component import equals
 from gluonts.core.serde import load_code
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation.backtest import backtest_metrics
@@ -234,4 +233,4 @@ def test_serialize(Estimator, hyperparameters):
         predictor_act = estimator.train(train_ds)
         predictor_act.serialize(Path(temp_dir))
         predictor_exp = Predictor.deserialize(Path(temp_dir))
-        assert equals(predictor_act, predictor_exp)
+        assert predictor_act == predictor_exp
