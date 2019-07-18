@@ -122,7 +122,7 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
         deepar_estimator(batches_per_epoch=1) + (10.0,),
         gp_estimator(batches_per_epoch=1) + (10.0,),
         wavenet_estimator(batches_per_epoch=10) + (10.0,),
-        transformer_estimator(batches_per_epoch=1) + (10.0,),
+        transformer_estimator(batches_per_epoch=10) + (10.0,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
