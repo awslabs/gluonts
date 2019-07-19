@@ -102,7 +102,7 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
             learning_rate=1e-2,
             batch_size=batch_size,
             hybridize=hybridize,
-            model_dim=4,
+            model_dim=2,
             inner_ff_dim_scale=1,
             num_heads=2,
             prediction_length=prediction_length,

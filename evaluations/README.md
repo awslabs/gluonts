@@ -1,6 +1,8 @@
 # gluon-ts evaluations
 
-This folder aims at collecting evaluations of forecasting models. The goal is to make reproducibility and comparison easier by versioning the code producing dataset as well as the model and evaluation code.
+This folder aims at collecting evaluations of forecasting models. The goal is to make reproducibility and comparison easier by versioning the code producing dataset as well as the model and evaluation code. 
+
+Note that the evaluations are not "optimal" in the sense that the models are trained with default parameters for all the datasets, and with no additional features associated to the datasets.
 
 ## mean_wQuantileLoss
 
@@ -61,7 +63,6 @@ You can then issue a pull-request with your model, adding or updating evaluation
 
 
 ## How do you enforce that each number is valid?
-
 We do not enforce that the results are actually produced by the code (one could for instance put arbitrary 
 low numbers). 
 However, every result is versioned through git together that the code that produced it and can be checked by anyone 

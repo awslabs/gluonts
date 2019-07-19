@@ -139,7 +139,7 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
             epochs=epochs,
             learning_rate=1e-2,
             hybridize=hybridize,
-            model_dim=4,
+            model_dim=2,
             inner_ff_dim_scale=1,
             num_heads=2,
             prediction_length=prediction_length,
@@ -166,7 +166,7 @@ def seasonal_estimator():
         seasonal_estimator() + (0.0,),
         # mqcnn_estimator(batches_per_epoch=200) + (0.2,),
         # mqrnn_estimator(batches_per_epoch=200) + (0.2,),
-        transformer_estimator(batches_per_epoch=50) + (0.2,),
+        transformer_estimator(batches_per_epoch=100) + (0.2,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
