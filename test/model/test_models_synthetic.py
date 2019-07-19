@@ -130,7 +130,4 @@ def test_accuracy(Estimator, hyperparameters, accuracy):
     agg_metrics, item_metrics = backtest_metrics(
         train_dataset=train_ds, test_dataset=test_ds, forecaster=estimator
     )
-
-    print(agg_metrics["ND"])
-    print(accuracy)
     assert agg_metrics["ND"] <= accuracy
