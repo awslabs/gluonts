@@ -89,7 +89,7 @@ def _load_hyperparameters(path: Path, channels) -> dict:
     with path.open() as json_file:
         hyperparameters = parse_sagemaker_parameters(json.load(json_file))
 
-        for old_freq_name in ["time_freq", "time_granularity"]:
+        for old_freq_name in ["time_freq", "time_granularity", "frequency"]:
             if old_freq_name in hyperparameters:
                 hyperparameters["freq"] = hyperparameters[old_freq_name]
 
