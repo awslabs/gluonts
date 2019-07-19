@@ -1,0 +1,7 @@
+{
+    "ND": 0.534141028275396,
+    "RMSE": 35.15195894597652,
+    "dataset": "solar-energy",
+    "estimator": "TransformerEstimator",
+    "mean_wQuantileLoss": 0.43154053256907865
+}
