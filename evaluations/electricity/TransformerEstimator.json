@@ -1,0 +1,7 @@
+{
+    "ND": 0.0816854407897941,
+    "RMSE": 2059.355297588801,
+    "dataset": "electricity",
+    "estimator": "TransformerEstimator",
+    "mean_wQuantileLoss": 0.06648663316226647
+}

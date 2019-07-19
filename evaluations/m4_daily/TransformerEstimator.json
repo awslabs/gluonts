@@ -1,0 +1,7 @@
+{
+    "ND": 0.03222890678467195,
+    "RMSE": 664.3243889635908,
+    "dataset": "m4_daily",
+    "estimator": "TransformerEstimator",
+    "mean_wQuantileLoss": 0.026523764530829528
+}
