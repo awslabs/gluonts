@@ -33,6 +33,12 @@ from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.model.predictor import Predictor
 from gluonts.shell.sagemaker import ServeEnv
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
+    datefmt="[%Y-%m-%d %H:%M:%S %z]",
+)
+
 logger = logging.getLogger("gluonts.serve")
 
 MB = 1024 * 1024

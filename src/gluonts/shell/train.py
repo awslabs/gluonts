@@ -28,6 +28,12 @@ from gluonts.transform import Dataset, FilterTransformation, TransformedDataset
 # Relative imports
 from .sagemaker import TrainEnv
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
+    datefmt="[%Y-%m-%d %H:%M:%S %z]",
+)
+
 logger = logging.getLogger("gluonts.train")
 
 
