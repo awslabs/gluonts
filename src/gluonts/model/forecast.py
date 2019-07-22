@@ -178,9 +178,12 @@ class Forecast:
             result["mean"] = self.mean.tolist()
 
         if OutputType.quantiles in config.output_types:
-            result["quantiles"] = [
-                self.quantile(q).tolist() for q in config.quantiles
-            ]
+            quantiles = map(Quantile.parse, config.quantiles)
+
+            result["quantiles"] = {
+                quantile.name: self.quantile(quantile.value).tolist()
+                for quantile in quantiles
+            }
 
         if OutputType.samples in config.output_types:
             result["samples"] = []
