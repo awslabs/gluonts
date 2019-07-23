@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+import sys
 from typing import List, Optional
 
 import pydantic
@@ -20,6 +21,8 @@ class AlgorithmConfig(pydantic.BaseModel):
 
 
 def load(algo_path, is_train=False):
+    sys.path.insert(0, str(algo_path))
+
     config = AlgorithmConfig.parse_file(algo_path / "algorithm.json")
     log.info(
         "Loading forecaster from algorithm channel: %s", config.forecaster
