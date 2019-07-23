@@ -18,8 +18,11 @@ from typing import Dict, Optional
 from pydantic import BaseModel
 
 from gluonts.dataset.common import FileDataset, MetaData
+from gluonts.shell import log
+
 from .params import parse_sagemaker_parameters
 from .path import ServePaths, TrainPaths
+from . import algorithm
 
 
 def map_value(fn, dct):
@@ -45,10 +48,21 @@ class TrainEnv:
         self.current_host = _get_current_host(self.path.resourceconfig)
         self.datasets = _load_datasets(self.hyperparameters, self.channels)
 
+        if "algorithm" in self.channels:
+            self.forecaster = algorithm.load(
+                self.channels["algorithm"], is_train=True
+            )
+        else:
+            self.forecaster = self.hyperparameters.get("forecaster_name")
+
 
 class ServeEnv:
     def __init__(self, path: Path = Path("/opt/ml")) -> None:
         self.path = ServePaths(path)
+
+        if (self.path.model / "algorithm").exists():
+            # we just need to load the algorithm to run the pre steps again
+            algorithm.load(self.path.model / "algorithm")
 
 
 def _load_inputdataconfig(

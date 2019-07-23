@@ -144,18 +144,16 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
 
     env = TrainEnv(Path(data_path))
 
-    if forecaster is None:
-        try:
-            forecaster = env.hyperparameters["forecaster_name"]
-        except KeyError:
-            msg = (
-                "Forecaster shell parameter is `None`, but "
-                "the `forecaster_name` key is not defined in the "
-                "hyperparameters.json dictionary."
-            )
-            raise GluonTSForecasterNotFoundError(msg)
+    forecaster = forecaster if forecaster is not None else env.forecaster
 
-    assert forecaster is not None
+    if forecaster is None:
+        msg = (
+            "Forecaster shell parameter is `None`, but "
+            "the `forecaster_name` key is not defined in the "
+            "hyperparameters.json dictionary."
+        )
+        raise GluonTSForecasterNotFoundError(msg)
+
     train.run_train_and_test(env, forecaster_type_by_name(forecaster))
 
 
