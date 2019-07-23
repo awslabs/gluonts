@@ -207,7 +207,8 @@ class FileDataset(Dataset):
     ) -> None:
         self.path = path
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
-        assert len(self.files()), f"no valid file found in {path}"
+        if not self.files():
+            raise OSError(f"no valid file found in {path}")
 
     def __iter__(self) -> Iterator[DataEntry]:
         for path in self.files():

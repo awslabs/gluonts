@@ -120,7 +120,7 @@ def backtest_metrics(
         quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
     ),
     num_eval_samples: int = 100,
-    logging_file: str = None,
+    logging_file: Optional[str] = None,
     use_symbol_block_predictor: bool = False,
 ):
     """
