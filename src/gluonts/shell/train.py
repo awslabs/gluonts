@@ -108,4 +108,4 @@ def run_test(
 
     # we only log aggregate metrics for now as item metrics may be very large
     for name, score in agg_metrics.items():
-        print(f"#test_score ({env.current_host}, {name}): {score}")
+        logger.info(f"#test_score ({env.current_host}, {name}): {score}")
