@@ -33,6 +33,7 @@ def sanity_checks(workspace_name, conda_env_name, path) {
           source ci/prepare_clean_env.sh ${conda_env_name}
           python setup.py style_check
           python setup.py type_check
+          python .devtools/license check src test
           set +ex
           """
         }
