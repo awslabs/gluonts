@@ -13,6 +13,8 @@
 
 # Relative imports
 from ._base import (
+    ArtificialDataset,
+    ConstantDataset,
     ComplexSeasonalTimeSeries,
     RecipeDataset,
     constant_dataset,
@@ -20,6 +22,8 @@ from ._base import (
 )
 
 __all__ = [
+    "ArtificialDataset",
+    "ConstantDataset",
     "ComplexSeasonalTimeSeries",
     "RecipeDataset",
     "constant_dataset",
