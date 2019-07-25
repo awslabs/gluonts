@@ -17,15 +17,16 @@ from typing import List, NamedTuple
 
 # Third-party imports
 import mxnet as mx
+import numpy as np
 import pytest
 from pydantic import BaseModel
 
 # First-party imports
 from gluonts.core import serde
 
-
 # Example Types
 # -------------
+from gluonts.core.component import equals
 
 
 class Span(NamedTuple):
@@ -79,7 +80,17 @@ feature_info = CategoricalFeatureInfo(name="cat", cardinality=10)
 
 custom_type = MyGluonBlock(feature_infos=[feature_info], feature_dims=[10])
 
-list_container = [best_epoch_info, feature_info, custom_type, 42, 0.7, "fx"]
+numpy_array = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float64)
+
+list_container = [
+    best_epoch_info,
+    feature_info,
+    custom_type,
+    42,
+    0.7,
+    "fx",
+    numpy_array,
+]
 
 dict_container = dict(
     best_epoch_info=best_epoch_info,
@@ -89,7 +100,13 @@ dict_container = dict(
 
 simple_types = [1, 42.0, "Oh, Romeo"]  # float('nan')
 
-complex_types = [Path("foo/bar"), best_epoch_info, feature_info, custom_type]
+complex_types = [
+    Path("foo/bar"),
+    best_epoch_info,
+    feature_info,
+    custom_type,
+    numpy_array,
+]
 
 container_types = [list_container, dict_container]
 
@@ -98,14 +115,14 @@ examples = simple_types + complex_types + container_types  # type: ignore
 
 @pytest.mark.parametrize("e", examples)
 def test_binary_serialization(e) -> None:
-    assert e == serde.load_binary(serde.dump_binary(e))
+    assert equals(e, serde.load_binary(serde.dump_binary(e)))
 
 
 @pytest.mark.parametrize("e", examples)
 def test_json_serialization(e) -> None:
-    assert e == serde.load_json(serde.dump_json(e))
+    assert equals(e, serde.load_json(serde.dump_json(e)))
 
 
 @pytest.mark.parametrize("e", examples)
 def test_code_serialization(e) -> None:
-    assert e == serde.load_code(serde.dump_code(e))
+    assert equals(e, serde.load_code(serde.dump_code(e)))
