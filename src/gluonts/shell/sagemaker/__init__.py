@@ -18,12 +18,9 @@ from typing import Dict, Optional
 from pydantic import BaseModel
 
 from gluonts.dataset.common import FileDataset, MetaData
-from .params import parse_sagemaker_parameters
+from gluonts.support.util import map_dct_values
+from .params import decode_sagemaker_parameters
 from .path import ServePaths, TrainPaths
-
-
-def map_value(fn, dct):
-    return {key: fn(value) for key, value in dct.items()}
 
 
 class DataConfig(BaseModel):
@@ -56,7 +53,7 @@ def _load_inputdataconfig(
 ) -> Optional[Dict[str, DataConfig]]:
     if inputdataconfig.exists():
         with inputdataconfig.open() as json_file:
-            return map_value(DataConfig.parse_obj, json.load(json_file))
+            return map_dct_values(DataConfig.parse_obj, json.load(json_file))
 
     return None
 
@@ -87,7 +84,7 @@ def _load_channels(
 
 def _load_hyperparameters(path: Path, channels) -> dict:
     with path.open() as json_file:
-        hyperparameters = parse_sagemaker_parameters(json.load(json_file))
+        hyperparameters = decode_sagemaker_parameters(json.load(json_file))
 
         for old_freq_name in ["time_freq", "time_granularity", "frequency"]:
             if old_freq_name in hyperparameters:
@@ -97,6 +94,12 @@ def _load_hyperparameters(path: Path, channels) -> dict:
             with (channels["metadata"] / "metadata.json").open() as file:
                 metadata = MetaData(**json.load(file))
                 hyperparameters.update(freq=metadata.freq)
+
+        assert "freq" in hyperparameters, (
+            "The 'freq' key not in the loaded hyperparameters dictionary. "
+            "Please set the 'freq' as a hyperparameter or provide a metadata "
+            "channel which contains 'freq' information."
+        )
 
         return hyperparameters
 

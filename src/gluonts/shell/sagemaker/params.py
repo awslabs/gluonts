@@ -12,18 +12,16 @@
 # permissions and limitations under the License.
 
 
+# Standard library imports
 import json
-from typing import Union, Callable
+from typing import Union, Any
+
+# First-party imports
+from gluonts.support.util import map_dct_values
 
 
-def map_dct_values(fn: Callable, dct: dict) -> dict:
-    """Maps `fn` over a dicts values."""
-    return {key: fn(value) for key, value in dct.items()}
-
-
-def parse_sagemaker_parameter(value: str) -> Union[list, dict, str]:
+def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:
     """
-
     All values passed through the SageMaker API are encoded as strings. Thus
     we pro-actively decode values that seem like arrays or dicts.
 
@@ -44,15 +42,39 @@ def parse_sagemaker_parameter(value: str) -> Union[list, dict, str]:
         return value
 
 
-def parse_sagemaker_parameters(raw_config: dict) -> dict:
-    """Parse a raw sagemaker config where all values are strings.
+def encode_sagemaker_parameter(value: Any) -> str:
+    """
+    All values passed through the SageMaker API must be encoded as strings.
+    """
+    if not isinstance(value, str):
+        return json.dumps(value)
+    else:
+        return value
+
+
+def decode_sagemaker_parameters(encoded_params: dict) -> dict:
+    """Decode a SageMaker parameters dictionary where all values are strings.
 
     Example:
 
-    >>> parse_sagemaker_parameters({
+    >>> decode_sagemaker_parameters({
     ...     "foo": "[1, 2, 3]",
     ...     "bar": "hello"
     ... })
     {'foo': [1, 2, 3], 'bar': 'hello'}
     """
-    return map_dct_values(parse_sagemaker_parameter, raw_config)
+    return map_dct_values(decode_sagemaker_parameter, encoded_params)
+
+
+def encode_sagemaker_parameters(decoded_params: dict) -> dict:
+    """Encode a SageMaker parameters dictionary where all values are strings.
+
+    Example:
+
+    >>> encode_sagemaker_parameters({
+    ...     "foo": [1, 2, 3],
+    ...     "bar": "hello"
+    ... })
+    {'foo': '[1, 2, 3]', 'bar': 'hello'}
+    """
+    return map_dct_values(encode_sagemaker_parameter, decoded_params)

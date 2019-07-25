@@ -486,3 +486,8 @@ def get_download_path() -> Path:
     return Path(
         os.environ.get("MXNET_HOME", str(Path.home() / ".mxnet" / "gluon-ts"))
     )
+
+
+def map_dct_values(fn: Callable, dct: dict) -> dict:
+    """Maps `fn` over a dicts values."""
+    return {key: fn(value) for key, value in dct.items()}
