@@ -12,12 +12,13 @@
 # permissions and limitations under the License.
 
 import logging
-import os
 from collections import OrderedDict
 from functools import partial
 from pathlib import Path
 
+from gluonts.dataset.artificial import ConstantDataset
 from gluonts.dataset.common import TrainDatasets, load_datasets
+from gluonts.dataset.repository._artificial import generate_artificial_dataset
 from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.support.util import get_download_path
@@ -27,10 +28,12 @@ pandas_freq = "H"
 dataset_path = Path(f"m4-{m4_freq}")
 prediction_length = 48
 
-
 dataset_recipes = OrderedDict(
     {
         # each recipe generates a dataset given a path
+        "constant": partial(
+            generate_artificial_dataset, dataset=ConstantDataset()
+        ),
         "exchange_rate": partial(
             generate_lstnet_dataset, dataset_name="exchange_rate"
         ),
@@ -80,16 +83,58 @@ dataset_recipes = OrderedDict(
     }
 )
 
-
 dataset_names = list(dataset_recipes.keys())
 
 default_dataset_path = get_download_path() / "datasets"
 
 
+def materialize_dataset(
+    dataset_name: str,
+    path: Path = default_dataset_path,
+    regenerate: bool = False,
+) -> Path:
+    """
+    Ensures that the dataset is materialized under the `path / dataset_name`
+    path.
+
+    Parameters
+    ----------
+    dataset_name
+        name of the dataset, for instance "m4_hourly"
+    regenerate
+        whether to regenerate the dataset even if a local file is present.
+        If this flag is False and the file is present, the dataset will not
+        be downloaded again.
+    path
+        where the dataset should be saved
+    Returns
+    -------
+        the path where the dataset is materialized
+    """
+    assert dataset_name in dataset_recipes.keys(), (
+        f"{dataset_name} is not present, please choose one from "
+        f"{dataset_recipes.keys()}."
+    )
+
+    dataset_path = path / dataset_name
+
+    dataset_recipe = dataset_recipes[dataset_name]
+
+    if not dataset_path.exists() or regenerate:
+        logging.info(f"downloading and processing {dataset_name}")
+        dataset_recipe(dataset_path=dataset_path)
+    else:
+        logging.info(
+            f"using dataset already processed in path {dataset_path}."
+        )
+
+    return dataset_path
+
+
 def get_dataset(
     dataset_name: str,
-    regenerate: bool = False,
     path: Path = default_dataset_path,
+    regenerate: bool = False,
 ) -> TrainDatasets:
     """
     Parameters
@@ -97,29 +142,16 @@ def get_dataset(
     dataset_name
         name of the dataset, for instance "m4_hourly"
     regenerate
-        whether to regenerate the dataset even if a local file is present. If this flag is False and the
-        file is present, the dataset will not be downloaded again.
+        whether to regenerate the dataset even if a local file is present.
+        If this flag is False and the file is present, the dataset will not
+        be downloaded again.
     path
         where the dataset should be saved
     Returns
     -------
         dataset obtained by either downloading or reloading from local file.
     """
-    assert (
-        dataset_name in dataset_recipes.keys()
-    ), f"{dataset_name} is not present, please choose one from {dataset_recipes.keys()}."
-
-    dataset_path = path / dataset_name
-
-    dataset_recipe = dataset_recipes[dataset_name]
-
-    if not os.path.exists(dataset_path) or regenerate:
-        logging.info(f"downloading and processing {dataset_name}")
-        dataset_recipe(dataset_path=dataset_path)
-    else:
-        logging.info(
-            f"using dataset already processed in path {dataset_path}."
-        )
+    dataset_path = materialize_dataset(dataset_name, path, regenerate)
 
     return load_datasets(
         metadata=dataset_path,
