@@ -17,8 +17,8 @@ from pathlib import Path
 
 
 class TrainPaths:
-    def __init__(self, base="/opt/ml") -> None:
-        self.base: Path = Path(base).expanduser().resolve()
+    def __init__(self, base: Path = Path("/opt/ml")) -> None:
+        self.base: Path = base.expanduser().resolve()
         self.config: Path = self.base / "input" / "config"
         self.data: Path = self.base / "input" / "data"
         self.model: Path = self.base / "model"
@@ -35,8 +35,8 @@ class TrainPaths:
 
 
 class ServePaths:
-    def __init__(self, base="/opt/ml") -> None:
-        self.base: Path = Path(base).expanduser().resolve()
+    def __init__(self, base: Path = Path("/opt/ml")) -> None:
+        self.base: Path = base.expanduser().resolve()
         self.model: Path = self.base / "model"
         self.output: Path = self.base / "output"
 
