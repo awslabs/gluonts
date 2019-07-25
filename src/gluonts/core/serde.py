@@ -26,6 +26,7 @@ from typing import Any, Optional
 
 # Third-party imports
 import mxnet as mx
+import numpy as np
 from pydantic import BaseModel
 
 # Relative imports
@@ -446,6 +447,32 @@ def encode_mx_context(v: mx.Context) -> Any:
         "__kind__": kind_inst,
         "class": fqname_for(v.__class__),
         "args": encode([v.device_type, v.device_id]),
+    }
+
+
+@encode.register(np.ndarray)
+def encode_np_ndarray(v: np.ndarray) -> Any:
+    """
+    Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~mxnet.Context` class.
+    """
+    return {
+        "__kind__": kind_inst,
+        "class": "numpy.array",  # use "array" ctor instead of "nparray" class
+        "args": encode([v.tolist(), v.dtype]),
+    }
+
+
+@encode.register(np.dtype)
+def encode_np_dtype(v: np.dtype) -> Any:
+    """
+    Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~mxnet.Context` class.
+    """
+    return {
+        "__kind__": kind_inst,
+        "class": fqname_for(v.__class__),
+        "args": encode([v.name]),
     }
 
 
