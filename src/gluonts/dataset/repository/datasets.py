@@ -116,6 +116,7 @@ def materialize_dataset(
         f"{dataset_recipes.keys()}."
     )
 
+    path.mkdir(parents=True, exist_ok=True)
     dataset_path = path / dataset_name
 
     dataset_recipe = dataset_recipes[dataset_name]
