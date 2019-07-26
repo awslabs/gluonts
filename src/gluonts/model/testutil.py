@@ -52,8 +52,8 @@ class IdentityPredictor(RepresentablePredictor):
         self.num_samples = num_samples
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
-        for x in dataset:
-            prediction = x["target"][-self.prediction_length :]
+        for item in dataset:
+            prediction = item["target"][-self.prediction_length :]
             samples = np.broadcast_to(
                 array=np.expand_dims(prediction, 0),
                 shape=(self.num_samples, self.prediction_length),
@@ -61,9 +61,9 @@ class IdentityPredictor(RepresentablePredictor):
 
             yield SampleForecast(
                 samples=samples,
-                start_date=x["start"],
+                start_date=item["start"],
                 freq=self.freq,
-                item_id=x["id"] if "id" in x else None,
+                item_id=item["id"] if "id" in item else None,
             )
 
 
@@ -86,12 +86,54 @@ class ConstantPredictor(RepresentablePredictor):
         self.samples = samples
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
-        for x in dataset:
+        for item in dataset:
             yield SampleForecast(
                 samples=self.samples,
-                start_date=x["start"],
+                start_date=item["start"],
                 freq=self.freq,
-                item_id=x["id"] if "id" in x else None,
+                item_id=item["id"] if "id" in item else None,
+            )
+
+
+class MeanPredictor(RepresentablePredictor):
+    """
+    A :class:`Predictor` that predicts the mean of the last `context_length`
+    elements of the input target.
+
+    Parameters
+    ----------
+    context_length
+        Length of the target context used to condition the predictions.
+    prediction_length
+        Length of the prediction horizon.
+    num_eval_samples
+        Number of samples to use to construct :class:`SampleForecast` objects
+        for every prediction.
+    freq
+        Frequency of the predicted data.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        context_length: int,
+        prediction_length: int,
+        num_eval_samples: int,
+        freq: str,
+    ) -> None:
+        super().__init__(prediction_length, freq)
+        self.context_length = context_length
+        self.num_eval_samples = num_eval_samples
+        self.shape = (self.num_eval_samples, self.prediction_length)
+
+    def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
+        for item in dataset:
+            mean = np.mean(item["target"][-self.context_length :])
+            yield SampleForecast(
+                samples=mean * np.ones(shape=self.shape),
+                start_date=item["start"],
+                freq=self.freq,
+                item_id=item["id"] if "id" in item else None,
             )
 
 
@@ -114,16 +156,16 @@ class MeanEstimator(Estimator):
 
     @validated()
     def __init__(
-        self, prediction_length: int, freq: str, num_samples: int
+        self, prediction_length: int, freq: str, num_eval_samples: int
     ) -> None:
         assert (
             prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
-        assert num_samples > 0, "The value of `num_samples` should be > 0"
+        assert num_eval_samples > 0, "The value of `num_samples` should be > 0"
 
         self.prediction_length = prediction_length
         self.freq = freq
-        self.num_samples = num_samples
+        self.num_eval_samples = num_eval_samples
 
     def train(self, training_data: Dataset) -> ConstantPredictor:
         # import itertools
@@ -136,14 +178,15 @@ class MeanEstimator(Estimator):
 
         contexts = np.broadcast_to(
             array=[
-                x["target"][-self.prediction_length :] for x in training_data
+                item["target"][-self.prediction_length :]
+                for item in training_data
             ],
             shape=(len(training_data), self.prediction_length),
         )
 
         samples = np.broadcast_to(
             array=contexts.mean(axis=0),
-            shape=(self.num_samples, self.prediction_length),
+            shape=(self.num_eval_samples, self.prediction_length),
         )
 
         return ConstantPredictor(samples=samples, freq=self.freq)
