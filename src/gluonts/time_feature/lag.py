@@ -33,6 +33,26 @@ from gluonts.time_feature import (
 )
 
 
+# A dictionary mapping granularity to the period length of the longest season
+# one can expect in the given granularity.
+# This is similar to the...
+# This is useful for setting default values for past/context length for models
+# that do not do data augmentation and uses a single training example per time series in the dataset.
+FREQ_LONGEST_PERIOD_DICT = {
+    "M": 12,  # yearly seasonality
+    "W-SUN": 52,  # yearly seasonality
+    "D": 365,  # yearly seasonality
+    "B": 365,  # yearly seasonality
+    "H": 168,  # weekly seasonality
+    "T": 1440,  # daily seasonality
+}
+
+
+def longest_period_from_frequency_str(freq_str: str) -> int:
+    offset = to_offset(freq_str)
+    return FREQ_LONGEST_PERIOD_DICT[offset.name] // offset.n
+
+
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
     Returns a list of time features that will be appropriate for the given frequency string.

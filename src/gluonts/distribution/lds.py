@@ -462,8 +462,8 @@ class LDSArgsProj(mx.gluon.HybridBlock):
     def __init__(
         self,
         output_dim: int,
-        noise_std_ub: float = 20,
-        innovation_ub: float = 50,
+        noise_std_ub: float = 1.0,
+        innovation_ub: float = 0.01,
     ) -> None:
         super().__init__()
         self.output_dim = output_dim
