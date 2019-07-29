@@ -27,6 +27,7 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 
 # Relative imports
+from gluonts.shell.serve import Settings
 from .sagemaker import TrainEnv, ServeEnv
 
 Forecaster = Type[Union[Estimator, Predictor]]
@@ -111,10 +112,19 @@ def serve_command(
     logging.info("Run 'serve' command")
 
     if not force_static and forecaster is not None:
-        serve.run_inference_server(None, forecaster_type_by_name(forecaster))
+        gunicorn_app = serve.make_gunicorn_app(
+            env=None,
+            forecaster_type=forecaster_type_by_name(forecaster),
+            settings=Settings(),
+        )
     else:
-        env = ServeEnv(Path(data_path))
-        serve.run_inference_server(env, None)
+        gunicorn_app = serve.make_gunicorn_app(
+            env=ServeEnv(Path(data_path)),
+            forecaster_type=None,
+            settings=Settings(),
+        )
+
+    gunicorn_app.run()
 
 
 @cli.command(name="train")

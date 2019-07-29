@@ -16,9 +16,10 @@ import logging
 import multiprocessing
 import traceback
 from ipaddress import IPv4Address
-from typing import Optional, Tuple, Type, Union
+from typing import Iterable, List, Optional, Tuple, Type, Union
 
 # Third-party imports
+import requests
 from flask import Flask, Response, jsonify, request
 from gunicorn.app.base import BaseApplication
 from pydantic import BaseModel, BaseSettings
@@ -26,8 +27,8 @@ from pydantic import BaseModel, BaseSettings
 # First-party imports
 import gluonts
 from gluonts.core import fqname_for
-from gluonts.core.component import check_gpu_support
-from gluonts.dataset.common import ListDataset
+from gluonts.core.component import check_gpu_support, validated
+from gluonts.dataset.common import DataEntry, ListDataset, serialize_data_entry
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.model.predictor import Predictor
@@ -115,7 +116,7 @@ class Application(BaseApplication):
         return self.app
 
     def stop(self, *args, **kwargs):
-        self.app.logger.info("Shutting down GluonTS scoring service")
+        logger.info("Shutting down GluonTS scoring service")
 
 
 def make_flask_app(predictor_factory, execution_params) -> Flask:
@@ -127,7 +128,7 @@ def make_flask_app(predictor_factory, execution_params) -> Flask:
 
     @app.route("/ping")
     def ping() -> Response:
-        app.logger.info("Responding to /ping request")
+        logger.info("Responding to /ping request")
         return ""
 
     @app.route("/execution-parameters")
@@ -156,10 +157,11 @@ def make_flask_app(predictor_factory, execution_params) -> Flask:
     return app
 
 
-def run_inference_server(
+def make_gunicorn_app(
     env: Optional[ServeEnv],
     forecaster_type: Optional[Type[Union[Estimator, Predictor]]],
-) -> None:
+    settings: Settings,
+) -> Application:
     check_gpu_support()
 
     if forecaster_type is not None:
@@ -188,8 +190,6 @@ def run_inference_server(
     logger.info(f"Using gluonts v{gluonts.__version__}")
     logger.info(f"Using forecaster {forecaster_fq_name} v{forecaster_version}")
 
-    settings = Settings()
-
     execution_params = {
         "MaxConcurrentTransforms": settings.number_of_workers,
         "BatchStrategy": settings.sagemaker_batch_strategy,
@@ -207,4 +207,57 @@ def run_inference_server(
         },
     )
 
-    gunicorn_app.run()
+    return gunicorn_app
+
+
+class ServerFacade:
+    """
+    A convenience wrapper for sending requests and handling responses to
+    an inference server located at the given address.
+    """
+
+    @validated()
+    def __init__(self, base_address: str) -> None:
+        self.base_address = base_address
+
+    def url(self, path) -> str:
+        return self.base_address + path
+
+    def ping(self) -> bool:
+        try:
+            response = requests.get(url=self.url("ping"))
+            return response.status_code == 200
+        except requests.exceptions.ConnectionError:
+            return False
+
+    def execution_parameters(self) -> dict:
+        response = requests.get(
+            url=self.url("/execution-parameters"),
+            headers={"Accept": "application/json"},
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code >= 400:
+            raise RuntimeError(response.content.decode("utf-8"))
+        else:
+            raise RuntimeError(f"Unexpected {response.status_code} response")
+
+    def invocations(
+        self, data_entries: Iterable[DataEntry], configuration: dict
+    ) -> List[dict]:
+        instances = list(map(serialize_data_entry, data_entries))
+        response = requests.post(
+            url=self.url("/invocations"),
+            json={"instances": instances, "configuration": configuration},
+            headers={"Accept": "application/json"},
+        )
+
+        if response.status_code == 200:
+            predictions = response.json()["predictions"]
+            assert len(predictions) == len(instances)
+            return predictions
+        elif response.status_code >= 400:
+            raise RuntimeError(response.content.decode("utf-8"))
+        else:
+            raise RuntimeError(f"Unexpected {response.status_code} response")
