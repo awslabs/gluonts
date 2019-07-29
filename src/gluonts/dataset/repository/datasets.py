@@ -138,6 +138,12 @@ def get_dataset(
     regenerate: bool = False,
 ) -> TrainDatasets:
     """
+    Get a repository dataset.
+
+    The datasets that can be obtained through this function have been used
+    with different processing over time by several papers (e.g., [SFG17]_,
+    [LCY+18]_, and [YRD15]_).
+
     Parameters
     ----------
     dataset_name

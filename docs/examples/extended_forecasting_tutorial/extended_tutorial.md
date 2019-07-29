@@ -1,5 +1,6 @@
-
 # Extended Forecasting Tutorial 
+
+In the extended forecasting tutorial we cover the following topics.
 
 ---
 > ## Table of contents

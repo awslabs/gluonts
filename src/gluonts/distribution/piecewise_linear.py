@@ -50,11 +50,11 @@ class PiecewiseLinear(Distribution):
     slopes
         Tensor containing the slopes of each linear piece.
         All coefficients must be positive.
-        Shape: (*gamma.shape, num_pieces)
+        Shape: ``(*gamma.shape, num_pieces)``
     knot_spacings
         Tensor containing the spacings between knots in the splines.
         All coefficients must be positive and sum to one on the last axis.
-        Shape: (*gamma.shape, num_pieces)
+        Shape: ``(*gamma.shape, num_pieces)``
     F
     """
 
@@ -235,7 +235,7 @@ class PiecewiseLinear(Distribution):
         Parameters
         ----------
         x
-            Tensor of shape *gamma.shape if axis=None, or containing an
+            Tensor of shape ``*gamma.shape`` if axis=None, or containing an
             additional axis on the specified position, otherwise.
         axis
             Index of the axis containing the different quantile levels which

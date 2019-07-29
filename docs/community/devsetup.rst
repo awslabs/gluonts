@@ -1,11 +1,11 @@
-Development setup
+Development Setup
 =================
 
 .. highlight:: bash
 
-GluonTS requires Python 3.6 or higher to run. This setup guide assumes that the ``python`` command
-references a Python 3.6 version or higher. We recommend using pyenv_ or virtualenv_ for managing
-Python versions.
+GluonTS requires Python 3.6 or higher to run. This setup guide assumes that the
+``python`` command references a Python 3.6 version or higher. We recommend
+using pyenv_ for managing Python versions.
 
 Upon checking out this package, please run the following script::
 
@@ -18,7 +18,6 @@ When you create commits on a |WIP| branch, you can disable these checks for a
 with the ``--no-verify`` Git commit option.
 
 .. _pyenv: https://github.com/pyenv/pyenv
-.. _virtualenv: https://virtualenv.pypa.io/en/latest/
 
 Build Instructions
 ------------------
@@ -93,10 +92,10 @@ GluonTS documentation follows the `NumPy docstring format`_.
 If you are editing docstrings in source code, you can preview them with the
 following commands::
 
-    rm -Rf docs/api                  # remove previously generated *.rsts
-    python setup.py docs             # generate the docs, ensure that there
-                                     # are no syntax errors and warnings
+    make -C docs html                # generate the docs
     open docs/_build/html/index.html # open the generated docs in a browser
+
+Ensure that there are no syntax errors and warnings before committing a PR.
 
 If you are directly editing ``*.rst`` files within the ``docs`` folder, you
 can use a ``sphinx-autobuild`` autobuild session that starts a web server and

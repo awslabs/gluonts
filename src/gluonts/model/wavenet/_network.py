@@ -283,19 +283,21 @@ class WaveNet(nn.HybridBlock):
 
 class WaveNetSampler(WaveNet):
     """
-    Runs Wavenet generation in an auto-regressive manner using caching for speedup
-    (see https://arxiv.org/abs/1611.09482 )
+    Runs Wavenet generation in an auto-regressive manner using caching for
+    speedup [PKC+16]_.
+
+    Parameters
+    ----------
+    num_samples
+        number of sample paths to generate in parallel in the graph
+    temperature
+        if set to 1.0 (default), sample according to estimated probabilities
+      if set to 0.0 most likely sample at each step is chosen.
+    kwargs
+        Same arguments as WaveNet
     """
 
     def __init__(self, num_samples: int, temperature: float = 1.0, **kwargs):
-        """
-        Same arguments as WaveNet. In addition
-        :param pred_length: prediction length
-        :param num_samples: number of sample paths to generate in parallel in the graph
-        :param temperature: if set to 1.0 (default), sample according to estimated probabilities
-          if set to 0.0 most likely sample at each step is chosen.
-        :param post_transform: An optional post transform that will be applied to the samples.
-        """
         super().__init__(**kwargs)
         self.num_samples = num_samples
         self.temperature = temperature

@@ -30,7 +30,7 @@ class MixtureDistribution(Distribution):
     r"""
     A mixture distribution where each component is a Distribution.
 
-    Paremeters
+    Parameters
     ----------
     mixture_probs
         A tensor of mixing probabilities. The entries should all be positive

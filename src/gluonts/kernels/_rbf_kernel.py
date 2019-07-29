@@ -86,7 +86,7 @@ class RBFKernelOutput(KernelOutputDict):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
-        self, F, past_target, past_time_feat
+        self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         This function returns the scales for the GP RBF Kernel hyper-parameters by using the standard deviations
@@ -94,12 +94,12 @@ class RBFKernelOutput(KernelOutputDict):
 
         Parameters
         ----------
-        F : ModuleType
+        F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-        past_target : Tensor
+        past_target
             Training time series values of shape (batch_size, context_length).
-        past_time_feat : Tensor
+        past_time_feat
             Training features of shape (batch_size, context_length, num_features).
 
         Returns
@@ -129,12 +129,12 @@ class RBFKernelOutput(KernelOutputDict):
 
         Parameters
         ----------
-        F : ModuleType
+        F: mx.symbol or mx.nd
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-        amplitude : Tensor
+        amplitude
             RBF kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
-        length_scale : Tensor
+        length_scale
             RBF kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
 
         Returns

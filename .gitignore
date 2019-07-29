@@ -89,7 +89,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
-docs/gluonts
+docs/api/gluonts
 
 # PyBuilder
 target/

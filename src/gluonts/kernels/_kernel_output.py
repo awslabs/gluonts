@@ -41,7 +41,8 @@ class KernelOutput:
     @staticmethod
     def compute_std(F, data: Tensor, axis: int) -> Tensor:
         """
-        This function computes the standard deviation of the data along a given axis.
+        This function computes the standard deviation of the data along a given
+        axis.
 
         Parameters
         ----------
@@ -82,8 +83,9 @@ class KernelOutputDict(KernelOutput):
 
     def get_args_proj(self, float_type: DType = np.float32) -> ArgProj:
         """
-        This method calls the ArgProj block in distribution_output to project from a dense layer to kernel
-    arguments.
+        This method calls the ArgProj block in distribution_output to project
+        from a dense layer to kernel arguments.
+
         Parameters
         ----------
         float_type : DType
@@ -101,7 +103,7 @@ class KernelOutputDict(KernelOutput):
     # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
-    ) -> Tuple:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         raise NotImplementedError()
 
     # noinspection PyMethodOverriding,PyPep8Naming
