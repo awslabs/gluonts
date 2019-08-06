@@ -7,30 +7,29 @@ from mxnet.gluon import HybridBlock
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
-from gluonts.time_feature.lag import (
-    time_features_from_frequency_str,
-    longest_period_from_frequency_str,
-)
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature.lag import (
+    longest_period_from_frequency_str,
     TimeFeature,
     time_features_from_frequency_str,
 )
 from gluonts.trainer import Trainer
 from gluonts.transform import (
-    FieldName,
     AddObservedValuesIndicator,
+    AddAgeFeature,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    ExpandDimArray,
-    ExpectedNumInstanceSampler,
-    TestSplitSampler,
     CanonicalInstanceSplitter,
+    ExpandDimArray,
+    FieldName,
+    RemoveFields,
+    SetField,
+    TestSplitSampler,
     Transformation,
-    SetFieldIfNotPresent,
+    VstackFeatures,
 )
 
 # Relative imports
@@ -62,8 +61,17 @@ class DeepStateEstimator(GluonEstimator):
         Flag to indicate whether to include trend component in the
         state space model
     past_length
-        Number of steps to unroll the RNN for before computing predictions.
+        This is the length of the training time series;
+        i.e., number of steps to unroll the RNN for before computing predictions.
         Set this to (at most) the length of the shortest time series in the dataset.
+        (default: None, in which case the training length is set such that at least
+        `num_seasons_to_train` seasons are included in the training.
+        See `num_seasons_to_train`)
+    num_seasons_to_train
+        (Used only when `past_length` is not set)
+        Number of seasons to include in the training time series. (default: 4)
+        Here season corresponds to the longest cycle one can expect given the granularity of the time series.
+        See: https://stats.stackexchange.com/questions/120806/frequency-value-for-seconds-minutes-intervals-data-in-r
     trainer
         Trainer object to be used (default: Trainer())
     num_layers
@@ -78,17 +86,20 @@ class DeepStateEstimator(GluonEstimator):
         (default: 100)
     dropout_rate
         Dropout regularization parameter (default: 0.1)
+    use_feat_dynamic_real
+        Whether to use the ``feat_dynamic_real`` field from the data
+        (default: False)
+    use_feat_static_cat
+        Whether to use the ``feat_static_cat`` field from the data
+        (default: False)
     cardinality
-        Number of values of the each categorical feature (default: [1])
+        Number of values of each categorical feature.
+        This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
         Dimension of the embeddings for categorical features (the same
-        dimension is used for all embeddings, default: 5)
+        dimension is used for all embeddings, default: 20)
     scaling
         Whether to automatically scale the target values (default: true)
-    lags_seq
-        Indices of the lagged target values to use as inputs of the RNN
-        (default: None, in which case these are automatically determined
-        based on freq)
     time_features
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
@@ -101,7 +112,8 @@ class DeepStateEstimator(GluonEstimator):
         prediction_length: int,
         add_trend: bool = False,
         past_length: Optional[int] = None,
-        trainer: Trainer = Trainer(epochs=25),
+        num_seasons_to_train: int = 4,
+        trainer: Trainer = Trainer(epochs=25, hybridize=False),
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
@@ -143,7 +155,7 @@ class DeepStateEstimator(GluonEstimator):
         self.past_length = (
             past_length
             if past_length is not None
-            else 4 * longest_period_from_frequency_str(freq)
+            else num_seasons_to_train * longest_period_from_frequency_str(freq)
         )
         self.prediction_length = prediction_length
         self.add_trend = add_trend
@@ -171,8 +183,22 @@ class DeepStateEstimator(GluonEstimator):
         )
 
     def create_transformation(self) -> Transformation:
+        remove_field_names = [
+            FieldName.FEAT_DYNAMIC_CAT,
+            FieldName.FEAT_STATIC_REAL,
+        ]
+        if not self.use_feat_dynamic_real:
+            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
+
         return Chain(
-            [
+            [RemoveFields(field_names=remove_field_names)]
+            + (
+                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
+                if not self.use_feat_static_cat
+                else []
+            )
+            + [
+                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
                 AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
                 # gives target the (1, T) layout
                 ExpandDimArray(field=FieldName.TARGET, axis=0),
@@ -180,6 +206,7 @@ class DeepStateEstimator(GluonEstimator):
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
                 ),
+                # Unnormalized seasonal features
                 AddTimeFeatures(
                     time_features=CompositeISSM.seasonal_features(self.freq),
                     pred_length=self.prediction_length,
@@ -194,10 +221,21 @@ class DeepStateEstimator(GluonEstimator):
                     time_features=self.time_features,
                     pred_length=self.prediction_length,
                 ),
-                SetFieldIfNotPresent(
-                    field=FieldName.FEAT_STATIC_CAT, value=[0.0]
+                AddAgeFeature(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_AGE,
+                    pred_length=self.prediction_length,
+                    log_scale=True,
                 ),
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
+                VstackFeatures(
+                    output_field=FieldName.FEAT_TIME,
+                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
+                    + (
+                        [FieldName.FEAT_DYNAMIC_REAL]
+                        if self.use_feat_dynamic_real
+                        else []
+                    ),
+                ),
                 CanonicalInstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,

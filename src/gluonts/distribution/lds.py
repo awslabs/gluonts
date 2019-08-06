@@ -14,11 +14,13 @@
 from typing import Tuple, Optional
 
 import mxnet as mx
+import numpy as np
 
 from gluonts.distribution import Distribution, Gaussian, MultivariateGaussian
 from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
 from gluonts.support.util import make_nd_diag, _broadcast_param
+from gluonts.support.linalg_util import jitter_cholesky
 
 
 class LDS(Distribution):
@@ -315,7 +317,10 @@ class LDS(Distribution):
         # Sample the prior state.
         # samples_lat_state: (num_samples, batch_size, latent_dim, 1)
         state = MultivariateGaussian(
-            self.prior_mean, F.linalg_potrf(self.prior_cov)
+            self.prior_mean,
+            jitter_cholesky(
+                F, self.prior_cov, self.latent_dim, float_type=np.float32
+            ),
         )
         samples_lat_state = state.sample(num_samples).expand_dims(axis=-1)
 
