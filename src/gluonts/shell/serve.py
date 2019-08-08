@@ -165,7 +165,6 @@ def make_flask_app(predictor_factory, execution_params) -> Flask:
 
     @app.route("/ping")
     def ping() -> Response:
-        logger.info("Responding to /ping request")
         return ""
 
     @app.route("/execution-parameters")
