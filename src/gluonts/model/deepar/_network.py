@@ -412,9 +412,9 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
 class DeepARPredictionNetwork(DeepARNetwork):
     @validated()
-    def __init__(self, num_sample_paths: int, **kwargs) -> None:
+    def __init__(self, _num_eval_samples_per_ts: int = 100, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.num_sample_paths = num_sample_paths
+        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to the last target value
@@ -450,19 +450,21 @@ class DeepARPredictionNetwork(DeepARNetwork):
             a tensor containing sampled paths. Shape: (batch_size, num_sample_paths, prediction_length).
         """
 
-        # blows-up the dimension of each tensor to batch_size * self.num_sample_paths for increasing parallelism
+        # blows-up the dimension of each tensor to batch_size * self._num_eval_samples_per_ts for increasing parallelism
         repeated_past_target = past_target.repeat(
-            repeats=self.num_sample_paths, axis=0
+            repeats=self._num_eval_samples_per_ts, axis=0
         )
         repeated_time_feat = time_feat.repeat(
-            repeats=self.num_sample_paths, axis=0
+            repeats=self._num_eval_samples_per_ts, axis=0
         )
         repeated_static_feat = static_feat.repeat(
-            repeats=self.num_sample_paths, axis=0
+            repeats=self._num_eval_samples_per_ts, axis=0
         ).expand_dims(axis=1)
-        repeated_scale = scale.repeat(repeats=self.num_sample_paths, axis=0)
+        repeated_scale = scale.repeat(
+            repeats=self._num_eval_samples_per_ts, axis=0
+        )
         repeated_states = [
-            s.repeat(repeats=self.num_sample_paths, axis=0)
+            s.repeat(repeats=self._num_eval_samples_per_ts, axis=0)
             for s in begin_states
         ]
 
@@ -531,7 +533,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
         # (batch_size, num_samples, *target_shape, prediction_length)
         return samples.reshape(
             shape=(
-                (-1, self.num_sample_paths)
+                (-1, self._num_eval_samples_per_ts)
                 + self.target_shape
                 + (self.prediction_length,)
             )

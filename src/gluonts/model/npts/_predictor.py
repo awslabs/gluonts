@@ -152,8 +152,8 @@ class NPTSPredictor(RepresentablePredictor):
     feature_scale
         scale for time (seasonal) features in order to sample past seasons
         with higher probability
-    num_eval_samples
-        number of prediction samples required
+    _num_eval_samples_per_ts
+        Number of evaluation samples per time series
     """
 
     @validated()
@@ -167,12 +167,12 @@ class NPTSPredictor(RepresentablePredictor):
         use_seasonal_model: bool = True,
         use_default_time_features: bool = True,
         num_default_time_features: int = 1,
-        num_eval_samples: int = 100,
         feature_scale: float = 1000.0,
+        _num_eval_samples_per_ts: int = 100,
     ) -> None:
         self.prediction_length = prediction_length
         self.freq = freq
-        self.num_eval_samples = num_eval_samples
+        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
         # Similar to lag upper bound in AR2N2 we limit the context length to
         # some maximum value instead of looking at the whole history which
         # might be too large.
@@ -278,7 +278,7 @@ class NPTSPredictor(RepresentablePredictor):
             ts,
             self.prediction_length,
             sampling_weights_iterator,
-            self.num_eval_samples,
+            self._num_eval_samples_per_ts,
         )
 
         return forecast

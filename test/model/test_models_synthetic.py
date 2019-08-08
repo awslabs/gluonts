@@ -65,8 +65,8 @@ def deepar_estimator(hybridize: bool = False, batches_per_epoch=1):
             prediction_length=prediction_length,
             context_length=context_length,
             freq=freq,
-            num_eval_samples=2,
             num_batches_per_epoch=batches_per_epoch,
+            _num_eval_samples_per_ts=2,
         ),
     )
 
@@ -83,8 +83,8 @@ def gp_estimator(hybridize: bool = True, batches_per_epoch=1):
             context_length=context_length,
             freq=freq,
             cardinality=cardinality,
-            num_eval_samples=5,
             num_batches_per_epoch=batches_per_epoch,
+            _num_eval_samples_per_ts=5,
         ),
     )
 
@@ -100,8 +100,8 @@ def wavenet_estimator(hybridize: bool = False, batches_per_epoch=1):
             prediction_length=prediction_length,
             freq=freq,
             cardinality=[cardinality],
-            num_eval_samples=5,
             num_batches_per_epoch=batches_per_epoch,
+            _num_eval_samples_per_ts=5,
         ),
     )
 
@@ -121,13 +121,13 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
             prediction_length=prediction_length,
             context_length=context_length,
             freq=freq,
-            num_eval_samples=2,
             num_batches_per_epoch=batches_per_epoch,
+            _num_eval_samples_per_ts=2,
         ),
     )
 
 
-@pytest.mark.timeout(5)  # DeepAR occasionally fails the 5 second timeout
+@pytest.mark.timeout(15)  # DeepAR occasionally fails the 5 second timeout
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
     [

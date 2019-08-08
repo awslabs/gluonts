@@ -110,6 +110,47 @@ def _get_seasonality(freq: str, seasonality_dict: Optional[Dict]) -> int:
 
 
 class WaveNetEstimator(GluonEstimator):
+    """
+        Model with Wavenet architecture and quantized target.
+
+        Parameters
+        ----------
+        freq
+            Frequency of the data to train on and predict
+        prediction_length
+            Length of the prediction horizon
+        trainer
+            Trainer object to be used (default: Trainer())
+        cardinality
+            Number of values of the each categorical feature (default: [1])
+        embedding_dimension
+            Dimension of the embeddings for categorical features (the same
+            dimension is used for all embeddings, default: 5)
+        num_bins
+            Number of bins used for quantization of signal (default: 1024)
+        hybridize_prediction_net
+            Boolean (default: False)
+        n_residue
+            Number of residual channels in wavenet architecture (default: 24)
+        n_skip
+            Number of skip channels in wavenet architecture (default: 32)
+        dilation_depth
+            Number of dilation layers in wavenet architecture.
+            If set to None (default), dialation_depth is set such that the receptive length is at least
+            as long as typical seasonality for the frequency and at least 2 * prediction_length.
+        n_stacks
+            Number of dilation stacks in wavenet architecture (default: 1)
+        temperature
+            Temparature used for sampling from softmax distribution.
+            For temperature = 1.0 (default) sampling is according to estimated probability.
+        act_type
+            Activation type used after before output layer (default: "elu").
+            Can be any of 'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'.
+        _num_eval_samples_per_ts
+            Number of evaluation samples per time series to increase parallelism during inference
+            (default: 200)
+    """
+
     @validated()
     def __init__(
         self,
@@ -121,7 +162,6 @@ class WaveNetEstimator(GluonEstimator):
             num_batches_per_epoch=50,
             hybridize=False,
         ),
-        num_eval_samples: int = 200,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
         num_bins: int = 1024,
@@ -132,36 +172,12 @@ class WaveNetEstimator(GluonEstimator):
         n_stacks: int = 1,
         temperature: float = 1.0,
         act_type: str = "elu",
+        _num_eval_samples_per_ts: int = 200,
     ) -> None:
-        """
-        Model with Wavenet architecture and quantized target.
-
-        :param freq:
-        :param prediction_length:
-        :param trainer:
-        :param num_eval_samples:
-        :param cardinality:
-        :param embedding_dimension:
-        :param num_bins: Number of bins used for quantization of signal
-        :param hybridize_prediction_net:
-        :param n_residue: Number of residual channels in wavenet architecture
-        :param n_skip: Number of skip channels in wavenet architecture
-        :param dilation_depth: number of dilation layers in wavenet architecture.
-          If set to None, dialation_depth is set such that the receptive length is at least as long as typical
-          seasonality for the frequency and at least 2 * prediction_length.
-        :param n_stacks: Number of dilation stacks in wavenet architecture
-        :param temperature: Temparature used for sampling from softmax distribution.
-          For temperature = 1.0 sampling is according to estimated probability.
-        :param act_type: Activation type used after before output layer.
-          Can be any of
-              'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'
-        """
-
         super().__init__(trainer=trainer)
 
         self.freq = freq
         self.prediction_length = prediction_length
-        self.num_eval_samples = num_eval_samples
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
         self.num_bins = num_bins
@@ -172,6 +188,7 @@ class WaveNetEstimator(GluonEstimator):
         self.n_stacks = n_stacks
         self.temperature = temperature
         self.act_type = act_type
+        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
 
         seasonality = _get_seasonality(
             self.freq, {"H": 7 * 24, "D": 7, "W": 52, "M": 12, "B": 7 * 5}
@@ -309,7 +326,7 @@ class WaveNetEstimator(GluonEstimator):
     ) -> Predictor:
 
         prediction_network = WaveNetSampler(
-            num_samples=self.num_eval_samples,
+            num_samples=self._num_eval_samples_per_ts,
             temperature=self.temperature,
             **self._get_wavenet_args(bin_values),
         )
