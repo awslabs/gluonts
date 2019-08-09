@@ -307,9 +307,9 @@ class TransformerTrainingNetwork(TransformerNetwork):
 
 class TransformerPredictionNetwork(TransformerNetwork):
     @validated()
-    def __init__(self, num_sample_paths: int, **kwargs) -> None:
+    def __init__(self, num_parallel_samples: int = 100, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.num_sample_paths = num_sample_paths
+        self.num_parallel_samples = num_parallel_samples
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to the last target value
@@ -346,20 +346,22 @@ class TransformerPredictionNetwork(TransformerNetwork):
             a tensor containing sampled paths. Shape: (batch_size, num_sample_paths, prediction_length).
         """
 
-        # blows-up the dimension of each tensor to batch_size * self.num_sample_paths for increasing parallelism
+        # blows-up the dimension of each tensor to batch_size * self.num_parallel_samples for increasing parallelism
         repeated_past_target = past_target.repeat(
-            repeats=self.num_sample_paths, axis=0
+            repeats=self.num_parallel_samples, axis=0
         )
         repeated_time_feat = time_feat.repeat(
-            repeats=self.num_sample_paths, axis=0
+            repeats=self.num_parallel_samples, axis=0
         )
         repeated_static_feat = static_feat.repeat(
-            repeats=self.num_sample_paths, axis=0
+            repeats=self.num_parallel_samples, axis=0
         ).expand_dims(axis=1)
         repeated_enc_out = enc_out.repeat(
-            repeats=self.num_sample_paths, axis=0
+            repeats=self.num_parallel_samples, axis=0
         ).expand_dims(axis=1)
-        repeated_scale = scale.repeat(repeats=self.num_sample_paths, axis=0)
+        repeated_scale = scale.repeat(
+            repeats=self.num_parallel_samples, axis=0
+        )
 
         future_samples = []
 
@@ -420,7 +422,7 @@ class TransformerPredictionNetwork(TransformerNetwork):
         # (batch_size, num_samples, *target_shape, prediction_length)
         return samples.reshape(
             shape=(
-                (-1, self.num_sample_paths)
+                (-1, self.num_parallel_samples)
                 + self.target_shape
                 + (self.prediction_length,)
             )

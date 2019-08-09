@@ -80,9 +80,6 @@ class DeepAREstimator(GluonEstimator):
     cell_type
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
-    num_eval_samples
-        Number of samples paths to draw when computing predictions
-        (default: 100)
     dropout_rate
         Dropout regularization parameter (default: 0.1)
     use_feat_dynamic_real
@@ -109,6 +106,9 @@ class DeepAREstimator(GluonEstimator):
     time_features
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100)
     """
 
     @validated()
@@ -121,7 +121,6 @@ class DeepAREstimator(GluonEstimator):
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
-        num_eval_samples: int = 100,
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
@@ -131,6 +130,7 @@ class DeepAREstimator(GluonEstimator):
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
+        num_parallel_samples: int = 100,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -142,9 +142,6 @@ class DeepAREstimator(GluonEstimator):
         ), "The value of `context_length` should be > 0"
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
-        assert (
-            num_eval_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert (
             cardinality is not None or not use_feat_static_cat
@@ -155,6 +152,9 @@ class DeepAREstimator(GluonEstimator):
         assert (
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
+        assert (
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -165,7 +165,6 @@ class DeepAREstimator(GluonEstimator):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
-        self.num_sample_paths = num_eval_samples
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
@@ -184,6 +183,8 @@ class DeepAREstimator(GluonEstimator):
         )
 
         self.history_length = self.context_length + max(self.lags_seq)
+
+        self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -269,7 +270,7 @@ class DeepAREstimator(GluonEstimator):
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
         prediction_network = DeepARPredictionNetwork(
-            num_sample_paths=self.num_sample_paths,
+            num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
