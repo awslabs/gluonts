@@ -63,7 +63,7 @@ class Seq2SeqEstimator(GluonEstimator):
         context_length: Optional[int] = None,
         quantiles: List[float] = [0.1, 0.5, 0.9],
         trainer: Trainer = Trainer(),
-        _num_eval_samples_per_ts: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         assert (
             prediction_length > 0
@@ -88,7 +88,7 @@ class Seq2SeqEstimator(GluonEstimator):
             cardinalities=cardinality,
             embedding_dims=[embedding_dimension for _ in cardinality],
         )
-        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
+        self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> transform.Transformation:
         return transform.Chain(
@@ -195,7 +195,7 @@ class MLP2QRForecaster(Seq2SeqEstimator):
         context_length: Optional[int] = None,
         quantiles: List[float] = list([0.1, 0.5, 0.9]),
         trainer: Trainer = Trainer(),
-        _num_eval_samples_per_ts: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         encoder = MLPEncoder(layer_sizes=encoder_mlp_layer)
         super(MLP2QRForecaster, self).__init__(
@@ -210,7 +210,7 @@ class MLP2QRForecaster(Seq2SeqEstimator):
             scaler=scaler,
             quantiles=quantiles,
             trainer=trainer,
-            _num_eval_samples_per_ts=_num_eval_samples_per_ts,
+            num_parallel_samples=num_parallel_samples,
         )
 
 
@@ -232,7 +232,7 @@ class RNN2QRForecaster(Seq2SeqEstimator):
         context_length: Optional[int] = None,
         quantiles: List[float] = list([0.1, 0.5, 0.9]),
         trainer: Trainer = Trainer(),
-        _num_eval_samples_per_ts: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         encoder = RNNCovariateEncoder(
             mode=encoder_rnn_model,
@@ -252,7 +252,7 @@ class RNN2QRForecaster(Seq2SeqEstimator):
             scaler=scaler,
             quantiles=quantiles,
             trainer=trainer,
-            _num_eval_samples_per_ts=_num_eval_samples_per_ts,
+            num_parallel_samples=num_parallel_samples,
         )
 
 
@@ -270,7 +270,7 @@ class CNN2QRForecaster(Seq2SeqEstimator):
         context_length: Optional[int] = None,
         quantiles: List[float] = list([0.1, 0.5, 0.9]),
         trainer: Trainer = Trainer(),
-        _num_eval_samples_per_ts: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         encoder = HierarchicalCausalConv1DEncoder(
             dilation_seq=[1, 3, 9],
@@ -292,5 +292,5 @@ class CNN2QRForecaster(Seq2SeqEstimator):
             scaler=scaler,
             quantiles=quantiles,
             trainer=trainer,
-            _num_eval_samples_per_ts=_num_eval_samples_per_ts,
+            num_parallel_samples=num_parallel_samples,
         )

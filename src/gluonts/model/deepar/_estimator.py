@@ -106,9 +106,9 @@ class DeepAREstimator(GluonEstimator):
     time_features
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
-    _num_eval_samples_per_ts
-        Number of evaluation samples per time series to increase parallelism during inference
-        (default: 100)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100)
     """
 
     @validated()
@@ -130,7 +130,7 @@ class DeepAREstimator(GluonEstimator):
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
-        _num_eval_samples_per_ts: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -153,8 +153,8 @@ class DeepAREstimator(GluonEstimator):
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
         assert (
-            _num_eval_samples_per_ts > 0
-        ), "The value of `_num_eval_samples_per_ts` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -184,7 +184,7 @@ class DeepAREstimator(GluonEstimator):
 
         self.history_length = self.context_length + max(self.lags_seq)
 
-        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
+        self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -270,7 +270,7 @@ class DeepAREstimator(GluonEstimator):
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
         prediction_network = DeepARPredictionNetwork(
-            _num_eval_samples_per_ts=self._num_eval_samples_per_ts,
+            num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,

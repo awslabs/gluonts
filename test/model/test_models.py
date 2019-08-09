@@ -59,7 +59,7 @@ def seq2seq_base(seq2seq_model, hybridize: bool = True, batches_per_epoch=1):
             num_batches_per_epoch=batches_per_epoch,
             quantiles=[0.1, 0.5, 0.9],
             use_symbol_block_predictor=True,
-            _num_eval_samples_per_ts=num_eval_samples,
+            num_parallel_samples=num_eval_samples,
         ),
     )
 
@@ -79,7 +79,7 @@ def npts_estimator():
             kernel_type="uniform",
             use_default_features=True,
             prediction_length=prediction_length,
-            _num_eval_samples_per_ts=num_eval_samples,
+            num_parallel_samples=num_eval_samples,
         ),
     )
 
@@ -100,7 +100,7 @@ def simple_feedforward_estimator(hybridize: bool = True, batches_per_epoch=1):
             prediction_length=prediction_length,
             num_batches_per_epoch=batches_per_epoch,
             use_symbol_block_predictor=True,
-            _num_eval_samples_per_ts=num_eval_samples,
+            num_parallel_samples=num_eval_samples,
         ),
     )
 
@@ -118,7 +118,7 @@ def gp_estimator(hybridize: bool = True, batches_per_epoch=1):
             num_batches_per_epoch=batches_per_epoch,
             time_features=time_features,
             use_symbol_block_predictor=False,
-            _num_eval_samples_per_ts=num_eval_samples,
+            num_parallel_samples=num_eval_samples,
             # FIXME: test_shell fails with use_symbol_block_predictor=True
             # FIXME and float_type = np.float64
         ),
@@ -139,7 +139,7 @@ def deepar_estimator(hybridize: bool = True, batches_per_epoch=1):
             context_length=2,
             num_batches_per_epoch=batches_per_epoch,
             use_symbol_block_predictor=False,
-            _num_eval_samples_per_ts=2,
+            num_parallel_samples=2,
         ),
     )
 
@@ -159,7 +159,7 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
             context_length=2,
             num_batches_per_epoch=batches_per_epoch,
             use_symbol_block_predictor=False,
-            _num_eval_samples_per_ts=2,
+            num_parallel_samples=2,
         ),
     )
 

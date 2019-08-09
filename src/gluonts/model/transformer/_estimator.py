@@ -112,10 +112,10 @@ class TransformerEstimator(GluonEstimator):
         time_features
             Time features to use as inputs of the RNN (default: None, in which
             case these are automatically determined based on freq)
-        _num_eval_samples_per_ts
-            Number of evaluation samples per time series to increase parallelism during inference
-            (default: 100)
-        """
+        num_parallel_samples
+            Number of evaluation samples per time series to increase parallelism during inference.
+            This is a model optimization that does not affect the accuracy (default: 100)
+    """
 
     @validated()
     def __init__(
@@ -139,7 +139,7 @@ class TransformerEstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
-        _num_eval_samples_per_ts: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -160,8 +160,8 @@ class TransformerEstimator(GluonEstimator):
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
         assert (
-            _num_eval_samples_per_ts > 0
-        ), "The value of `_num_eval_samples_per_ts` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -174,7 +174,7 @@ class TransformerEstimator(GluonEstimator):
         self.use_feat_static_cat = use_feat_static_cat
         self.cardinality = cardinality if use_feat_static_cat else [1]
         self.embedding_dimension = embedding_dimension
-        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
+        self.num_parallel_samples = num_parallel_samples
         self.lags_seq = (
             lags_seq
             if lags_seq is not None
@@ -301,7 +301,7 @@ class TransformerEstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=True,
-            _num_eval_samples_per_ts=self._num_eval_samples_per_ts,
+            num_parallel_samples=self.num_parallel_samples,
         )
 
         copy_parameters(trained_network, prediction_network)

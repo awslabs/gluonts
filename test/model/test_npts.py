@@ -102,7 +102,7 @@ def test_climatological_forecaster(
         freq=freq,
         use_seasonal_model=use_seasonal_model,
         kernel_type=KernelType.uniform,
-        _num_eval_samples_per_ts=2000,
+        num_parallel_samples=2000,
     )
 
     dataset = ListDataset(
@@ -267,7 +267,7 @@ def test_npts_forecaster(
         kernel_type=KernelType.exponential,
         feature_scale=feature_scale,
         use_seasonal_model=use_seasonal_model,
-        _num_eval_samples_per_ts=2000,
+        num_parallel_samples=2000,
     )
 
     dataset = ListDataset(
@@ -430,7 +430,7 @@ def test_npts_custom_features(
         feature_scale=feature_scale,
         use_seasonal_model=use_seasonal_model,
         use_default_time_features=False,  # disable default time features
-        _num_eval_samples_per_ts=2000,
+        num_parallel_samples=2000,
     )
 
     dataset = ListDataset(

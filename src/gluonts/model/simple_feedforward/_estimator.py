@@ -86,9 +86,9 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     mean_scaling
         Scale the network input by the data mean and the network output by
         its inverse (default: True)
-    _num_eval_samples_per_ts
-        Number of evaluation samples per time series to increase parallelism during inference
-        (default: 100)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100)
     """
 
     # The validated() decorator makes sure that parameters are checked by
@@ -106,7 +106,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         batch_normalization: bool = False,
         mean_scaling: bool = True,
-        _num_eval_samples_per_ts: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         """
         Defines an estimator. All parameters should be serializable.
@@ -123,8 +123,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             [d > 0 for d in num_hidden_dimensions]
         ), "Elements of `num_hidden_dimensions` should be > 0"
         assert (
-            _num_eval_samples_per_ts > 0
-        ), "The value of `num_eval_samples` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.num_hidden_dimensions = num_hidden_dimensions
         self.prediction_length = prediction_length
@@ -135,7 +135,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         self.distr_output = distr_output
         self.batch_normalization = batch_normalization
         self.mean_scaling = mean_scaling
-        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
+        self.num_parallel_samples = num_parallel_samples
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -185,7 +185,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             batch_normalization=self.batch_normalization,
             mean_scaling=self.mean_scaling,
             params=trained_network.collect_params(),
-            _num_eval_samples_per_ts=self._num_eval_samples_per_ts,
+            num_parallel_samples=self.num_parallel_samples,
         )
 
         return RepresentableBlockPredictor(

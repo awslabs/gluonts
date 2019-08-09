@@ -146,9 +146,9 @@ class WaveNetEstimator(GluonEstimator):
         act_type
             Activation type used after before output layer (default: "elu").
             Can be any of 'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'.
-        _num_eval_samples_per_ts
-            Number of evaluation samples per time series to increase parallelism during inference
-            (default: 200)
+        num_parallel_samples
+            Number of evaluation samples per time series to increase parallelism during inference.
+            This is a model optimization that does not affect the accuracy (default: 200)
     """
 
     @validated()
@@ -172,7 +172,7 @@ class WaveNetEstimator(GluonEstimator):
         n_stacks: int = 1,
         temperature: float = 1.0,
         act_type: str = "elu",
-        _num_eval_samples_per_ts: int = 200,
+        num_parallel_samples: int = 200,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -188,7 +188,7 @@ class WaveNetEstimator(GluonEstimator):
         self.n_stacks = n_stacks
         self.temperature = temperature
         self.act_type = act_type
-        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
+        self.num_parallel_samples = num_parallel_samples
 
         seasonality = _get_seasonality(
             self.freq, {"H": 7 * 24, "D": 7, "W": 52, "M": 12, "B": 7 * 5}
@@ -326,7 +326,7 @@ class WaveNetEstimator(GluonEstimator):
     ) -> Predictor:
 
         prediction_network = WaveNetSampler(
-            num_samples=self._num_eval_samples_per_ts,
+            num_samples=self.num_parallel_samples,
             temperature=self.temperature,
             **self._get_wavenet_args(bin_values),
         )

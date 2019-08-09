@@ -158,10 +158,10 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
 class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
     @validated()
     def __init__(
-        self, _num_eval_samples_per_ts: int = 100, *args, **kwargs
+        self, num_parallel_samples: int = 100, *args, **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
-        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
+        self.num_parallel_samples = num_parallel_samples
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
@@ -184,7 +184,7 @@ class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
         distr = self.get_distr(F, past_target)
 
         # (num_samples, batch_size, prediction_length)
-        samples = distr.sample(self._num_eval_samples_per_ts)
+        samples = distr.sample(self.num_parallel_samples)
 
         # (batch_size, num_samples, prediction_length)
         return samples.swapaxes(0, 1)

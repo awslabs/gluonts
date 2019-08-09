@@ -93,9 +93,9 @@ class GaussianProcessEstimator(GluonEstimator):
     time_features
         Time features to use as inputs of the model (default: None, in which
         case these are automatically determined based on the frequency.)
-    _num_eval_samples_per_ts
-        Number of evaluation samples per time series to increase parallelism during inference
-        (default: 100)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100)
     """
 
     @validated()
@@ -113,7 +113,7 @@ class GaussianProcessEstimator(GluonEstimator):
         jitter_method: str = "iter",
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
-        _num_eval_samples_per_ts: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         self.float_type = float_type
         super().__init__(trainer=trainer, float_type=self.float_type)
@@ -126,8 +126,8 @@ class GaussianProcessEstimator(GluonEstimator):
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert (
-            _num_eval_samples_per_ts > 0
-        ), "The value of `_num_eval_samples_per_ts` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -145,7 +145,7 @@ class GaussianProcessEstimator(GluonEstimator):
             if time_features is not None
             else time_features_from_frequency_str(self.freq)
         )
-        self._num_eval_samples_per_ts = _num_eval_samples_per_ts
+        self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> Transformation:
         return Chain(
@@ -198,7 +198,7 @@ class GaussianProcessEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             context_length=self.context_length,
             cardinality=self.cardinality,
-            num_samples=self._num_eval_samples_per_ts,
+            num_samples=self.num_parallel_samples,
             params=trained_network.collect_params(),
             kernel_output=self.kernel_output,
             params_scaling=self.params_scaling,
