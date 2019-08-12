@@ -72,19 +72,18 @@ def test_benchmark(caplog):
     # makes sure that information logged can be reconstructed from previous
     # logs
 
-    caplog.set_level(logging.DEBUG, logger="log.txt")
+    with caplog.at_level(logging.DEBUG):
+        dataset_info, train_ds, test_ds = constant_dataset()
 
-    dataset_info, train_ds, test_ds = constant_dataset()
+        estimator = make_estimator(
+            dataset_info.metadata.freq, dataset_info.prediction_length
+        )
+        evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
+        backtest_metrics(train_ds, test_ds, estimator, evaluator)
+        train_stats = calculate_dataset_statistics(train_ds)
+        test_stats = calculate_dataset_statistics(test_ds)
 
-    estimator = make_estimator(
-        dataset_info.metadata.freq, dataset_info.prediction_length
-    )
-    evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-    backtest_metrics(train_ds, test_ds, estimator, evaluator)
-    train_stats = calculate_dataset_statistics(train_ds)
-    test_stats = calculate_dataset_statistics(test_ds)
-    log_file = str(Path(__file__).parent / "log.txt")
-    log_info = BacktestInformation.make_from_log(log_file)
+    log_info = BacktestInformation.make_from_log_contents(caplog.text)
 
     assert train_stats == log_info.train_dataset_stats
     assert test_stats == log_info.test_dataset_stats
