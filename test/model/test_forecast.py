@@ -15,9 +15,10 @@
 import numpy as np
 import pandas as pd
 import pytest
+import json
 
 # First-party imports
-from gluonts.model.forecast import QuantileForecast, SampleForecast
+from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
@@ -56,3 +57,26 @@ def test_Forecast(name):
     assert forecast.prediction_length == 1
     assert len(forecast.index) == pred_length
     assert forecast.index[0] == pd.Timestamp(START_DATE)
+
+
+JSON_OBJECT_WITH_NON_COMPLIANT_FLOATS = {
+    'a': float("nan"),
+    'k': float("infinity"),
+    'b': {
+        'c': float("nan"),
+        'd': 'testing',
+        'e': float("-infinity"),
+        'f': float("infinity"),
+        'g': {
+            'h': float("nan")
+        }
+    }
+}
+
+
+def test_as_json_dict_outputs_valid_json():
+    with pytest.raises(ValueError):
+        json.dumps(JSON_OBJECT_WITH_NON_COMPLIANT_FLOATS, allow_nan=False)
+
+    output_json = Forecast.jsonify_floats(JSON_OBJECT_WITH_NON_COMPLIANT_FLOATS)
+    json.dumps(output_json, allow_nan=False)

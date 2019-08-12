@@ -188,7 +188,32 @@ class Forecast:
         if OutputType.samples in config.output_types:
             result["samples"] = []
 
-        return result
+        return Forecast.jsonify_floats(result)
+
+    @staticmethod
+    def jsonify_floats(json_object):
+        """
+        Traverses through the JSON object and converts non JSON-spec compliant
+        floats(nan, -inf, inf) to their string representations.
+
+        Parameters
+        ----------
+        json_object
+            JSON object
+        """
+        if isinstance(json_object, dict):
+            return {k: Forecast.jsonify_floats(v) for k, v in json_object.items()}
+        elif isinstance(json_object, list):
+            return [Forecast.jsonify_floats(item) for item in json_object]
+        elif isinstance(json_object, float):
+            if np.isnan(json_object):
+                return "NaN"
+            elif np.isposinf(json_object):
+                return "Infinity"
+            elif np.isneginf(json_object):
+                return "-Infinity"
+            return json_object
+        return json_object
 
 
 class SampleForecast(Forecast):
@@ -318,7 +343,7 @@ class SampleForecast(Forecast):
         result = super().as_json_dict(config)
 
         if OutputType.samples in config.output_types:
-            result["samples"] = self.samples.tolist()
+            result["samples"] = Forecast.jsonify_floats(self.samples.tolist())
 
         return result
 
