@@ -21,6 +21,7 @@ from typing import Iterable, List, Optional, Tuple, Type, Union
 
 # Third-party imports
 import requests
+import numpy as np
 from flask import Flask, Response, jsonify, request
 from gunicorn.app.base import BaseApplication
 from pydantic import BaseModel, BaseSettings
@@ -80,6 +81,31 @@ def log_throughput(instances, timings):
         )
 
     # list(zip(timings, item_lengths)
+
+
+def jsonify_floats(json_object):
+    """
+    Traverses through the JSON object and converts non JSON-spec compliant
+    floats(nan, -inf, inf) to their string representations.
+
+    Parameters
+    ----------
+    json_object
+        JSON object
+    """
+    if isinstance(json_object, dict):
+        return {k: jsonify_floats(v) for k, v in json_object.items()}
+    elif isinstance(json_object, list):
+        return [jsonify_floats(item) for item in json_object]
+    elif isinstance(json_object, float):
+        if np.isnan(json_object):
+            return "NaN"
+        elif np.isposinf(json_object):
+            return "Infinity"
+        elif np.isneginf(json_object):
+            return "-Infinity"
+        return json_object
+    return json_object
 
 
 class Settings(BaseSettings):
@@ -191,7 +217,7 @@ def make_flask_app(predictor_factory, execution_params) -> Flask:
 
         log_throughput(req.instances, forecasts.timings)
 
-        return jsonify(predictions=predictions)
+        return jsonify(predictions=jsonify_floats(predictions))
 
     return app
 
