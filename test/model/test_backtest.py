@@ -28,7 +28,7 @@ from gluonts.dataset.stat import (  # noqa
 )
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import BacktestInformation, backtest_metrics
-from gluonts.model.testutil import MeanEstimator
+from gluonts.model.trivial.mean import MeanEstimator
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)

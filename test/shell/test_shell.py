@@ -20,7 +20,7 @@ import pytest
 
 # First-party imports
 from gluonts.core.component import equals
-from gluonts.model.testutil import MeanPredictor
+from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell import testutil
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
 from gluonts.shell.serve import Settings
