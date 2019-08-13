@@ -164,24 +164,21 @@ def test_dynamic_shell(
         assert equals(exp_samples, act_samples)
 
 
-JSON_OBJECT_WITH_NON_COMPLIANT_FLOATS = {
-    "a": float("nan"),
-    "k": float("infinity"),
-    "b": {
-        "c": float("nan"),
-        "d": "testing",
-        "e": float("-infinity"),
-        "f": float("infinity"),
-        "g": {"h": float("nan")},
-    },
-}
-
-
 def test_as_json_dict_outputs_valid_json():
-    with pytest.raises(ValueError):
-        json.dumps(JSON_OBJECT_WITH_NON_COMPLIANT_FLOATS, allow_nan=False)
+    non_compliant_json = {
+        "a": float("nan"),
+        "k": float("infinity"),
+        "b": {
+            "c": float("nan"),
+            "d": "testing",
+            "e": float("-infinity"),
+            "f": float("infinity"),
+            "g": {"h": float("nan")},
+        },
+    }
 
-    output_json = jsonify_floats(
-        JSON_OBJECT_WITH_NON_COMPLIANT_FLOATS
-    )
+    with pytest.raises(ValueError):
+        json.dumps(non_compliant_json, allow_nan=False)
+
+    output_json = jsonify_floats(non_compliant_json)
     json.dumps(output_json, allow_nan=False)
