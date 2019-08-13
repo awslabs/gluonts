@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Iterator
+from typing import Iterator, Optional
 
 # Third-party imports
 import numpy as np
@@ -25,12 +25,13 @@ from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
+from gluonts.support.pandas import frequency_add
 
 
 class MeanPredictor(RepresentablePredictor):
     """
-    A :class:`Predictor` that predicts the mean of the last `context_length`
-    elements of the input target.
+    A :class:`Predictor` that predicts the samples based on the mean of the
+    last `context_length` elements of the input target.
 
     Parameters
     ----------
@@ -48,10 +49,10 @@ class MeanPredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        context_length: int,
         prediction_length: int,
         num_eval_samples: int,
         freq: str,
+        context_length: Optional[int] = None,
     ) -> None:
         super().__init__(prediction_length, freq)
         self.context_length = context_length
@@ -60,10 +61,20 @@ class MeanPredictor(RepresentablePredictor):
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
         for item in dataset:
-            mean = np.mean(item["target"][-self.context_length :])
+            if self.context_length is not None:
+                target = item["target"][-self.context_length :]
+            else:
+                target = item["target"]
+
+            mean = np.nanmean(target)
+            std = np.nanstd(target)
+            normal = np.random.standard_normal(self.shape)
+
+            start_date = frequency_add(item["start"], len(target))
+
             yield SampleForecast(
-                samples=mean * np.ones(shape=self.shape),
-                start_date=item["start"],
+                samples=std * normal + mean,
+                start_date=start_date,
                 freq=self.freq,
                 item_id=item["id"] if "id" in item else None,
             )
