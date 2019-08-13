@@ -75,8 +75,7 @@ class MeanPredictor(RepresentablePredictor):
         std = np.nanstd(target)
         normal = np.random.standard_normal(self.shape)
 
-        start_date = frequency_add(item["start"], len(target))
-
+        start_date = frequency_add(item["start"], len(item["target"]))
         return SampleForecast(
             samples=std * normal + mean,
             start_date=start_date,
