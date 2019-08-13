@@ -20,7 +20,15 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Type,
+)
 
 # Third-party imports
 import mxnet as mx
@@ -729,3 +737,26 @@ class Localizer(Predictor):
             predictions = trained_pred.predict(local_ds, **kwargs)
             for pred in predictions:
                 yield pred
+
+
+class FallbackPredictor(Predictor):
+    @classmethod
+    def from_predictor(cls, base: Predictor) -> Predictor:
+        raise NotImplementedError
+
+
+def fallback(fallback_cls: Type[FallbackPredictor]):
+    def decorator(predict_item):
+        def fallback_predict(self, item: DataEntry) -> Forecast:
+            try:
+                return predict_item(self, item)
+            except Exception as error:
+                logging.warning(
+                    f"Base predictor didn't return result: {error}"
+                )
+                fallback_predictor = fallback_cls.from_predictor(self)
+                return fallback_predictor.predict_item(item)
+
+        return fallback_predict
+
+    return decorator
