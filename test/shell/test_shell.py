@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import json
 from typing import ContextManager
 
 # Third-party imports
@@ -23,7 +24,7 @@ from gluonts.core.component import equals
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell import testutil
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
-from gluonts.shell.serve import Settings
+from gluonts.shell.serve import Settings, jsonify_floats
 from gluonts.shell.train import run_train_and_test
 
 context_length = 5
@@ -161,3 +162,23 @@ def test_dynamic_shell(
         assert exp_samples_shape == act_samples.shape
         assert equals(exp_mean, act_mean)
         assert equals(exp_samples, act_samples)
+
+
+def test_as_json_dict_outputs_valid_json():
+    non_compliant_json = {
+        "a": float("nan"),
+        "k": float("infinity"),
+        "b": {
+            "c": float("nan"),
+            "d": "testing",
+            "e": float("-infinity"),
+            "f": float("infinity"),
+            "g": {"h": float("nan")},
+        },
+    }
+
+    with pytest.raises(ValueError):
+        json.dumps(non_compliant_json, allow_nan=False)
+
+    output_json = jsonify_floats(non_compliant_json)
+    json.dumps(output_json, allow_nan=False)
