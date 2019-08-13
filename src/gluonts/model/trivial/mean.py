@@ -20,11 +20,11 @@ from pydantic import PositiveInt
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import RepresentablePredictor
+from gluonts.model.predictor import Predictor, RepresentablePredictor
 from gluonts.support.pandas import frequency_add
 
 
@@ -46,12 +46,18 @@ class MeanPredictor(RepresentablePredictor):
         Frequency of the predicted data.
     """
 
+    @classmethod
+    def from_predictor(cls, base: Predictor) -> "MeanPredictor":
+        # Create predictor based on an existing predictor.
+        # This let's us create a MeanPredictor as a fallback on the fly.
+        return cls.from_hyperparameters(**base.__init_args__)
+
     @validated()
     def __init__(
         self,
         prediction_length: int,
-        num_eval_samples: int,
         freq: str,
+        num_eval_samples: int = 100,
         context_length: Optional[int] = None,
     ) -> None:
         super().__init__(prediction_length, freq)
@@ -59,25 +65,24 @@ class MeanPredictor(RepresentablePredictor):
         self.num_eval_samples = num_eval_samples
         self.shape = (self.num_eval_samples, self.prediction_length)
 
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
-        for item in dataset:
-            if self.context_length is not None:
-                target = item["target"][-self.context_length :]
-            else:
-                target = item["target"]
+    def predict_item(self, item: DataEntry) -> SampleForecast:
+        if self.context_length is not None:
+            target = item["target"][-self.context_length :]
+        else:
+            target = item["target"]
 
-            mean = np.nanmean(target)
-            std = np.nanstd(target)
-            normal = np.random.standard_normal(self.shape)
+        mean = np.nanmean(target)
+        std = np.nanstd(target)
+        normal = np.random.standard_normal(self.shape)
 
-            start_date = frequency_add(item["start"], len(target))
+        start_date = frequency_add(item["start"], len(target))
 
-            yield SampleForecast(
-                samples=std * normal + mean,
-                start_date=start_date,
-                freq=self.freq,
-                item_id=item["id"] if "id" in item else None,
-            )
+        return SampleForecast(
+            samples=std * normal + mean,
+            start_date=start_date,
+            freq=self.freq,
+            item_id=item["id"] if "id" in item else None,
+        )
 
 
 class MeanEstimator(Estimator):

@@ -19,7 +19,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import DataEntry
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 
@@ -42,11 +42,10 @@ class ConstantPredictor(RepresentablePredictor):
         super().__init__(samples.shape[1], freq)
         self.samples = samples
 
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
-        for item in dataset:
-            yield SampleForecast(
-                samples=self.samples,
-                start_date=item["start"],
-                freq=self.freq,
-                item_id=item["id"] if "id" in item else None,
-            )
+    def predict_item(self, item: DataEntry) -> SampleForecast:
+        return SampleForecast(
+            samples=self.samples,
+            start_date=item["start"],
+            freq=self.freq,
+            item_id=item["id"] if "id" in item else None,
+        )

@@ -149,6 +149,10 @@ class RepresentablePredictor(Predictor):
         super().__init__(prediction_length, freq)
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
+        for item in dataset:
+            yield self.predict_item(item)
+
+    def predict_item(self, item: DataEntry) -> Forecast:
         raise NotImplementedError
 
     def __eq__(self, that):

@@ -19,7 +19,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import DataEntry
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 
@@ -50,17 +50,16 @@ class IdentityPredictor(RepresentablePredictor):
 
         self.num_samples = num_samples
 
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
-        for item in dataset:
-            prediction = item["target"][-self.prediction_length :]
-            samples = np.broadcast_to(
-                array=np.expand_dims(prediction, 0),
-                shape=(self.num_samples, self.prediction_length),
-            )
+    def predict_item(self, item: DataEntry) -> Forecast:
+        prediction = item["target"][-self.prediction_length :]
+        samples = np.broadcast_to(
+            array=np.expand_dims(prediction, 0),
+            shape=(self.num_samples, self.prediction_length),
+        )
 
-            yield SampleForecast(
-                samples=samples,
-                start_date=item["start"],
-                freq=self.freq,
-                item_id=item["id"] if "id" in item else None,
-            )
+        return SampleForecast(
+            samples=samples,
+            start_date=item["start"],
+            freq=self.freq,
+            item_id=item["id"] if "id" in item else None,
+        )
