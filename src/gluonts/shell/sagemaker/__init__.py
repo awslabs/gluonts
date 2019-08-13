@@ -88,7 +88,7 @@ def _load_hyperparameters(path: Path, channels) -> dict:
 
         for old_freq_name in ["time_freq", "time_granularity", "frequency"]:
             if old_freq_name in hyperparameters:
-                hyperparameters["freq"] = hyperparameters[old_freq_name]
+                hyperparameters["freq"] = hyperparameters.pop(old_freq_name)
 
         if "metadata" in channels:
             with (channels["metadata"] / "metadata.json").open() as file:
