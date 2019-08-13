@@ -24,11 +24,11 @@ from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import RepresentablePredictor
+from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
 from gluonts.support.pandas import frequency_add
 
 
-class MeanPredictor(RepresentablePredictor):
+class MeanPredictor(RepresentablePredictor, FallbackPredictor):
     """
     A :class:`Predictor` that predicts the samples based on the mean of the
     last `context_length` elements of the input target.
@@ -45,12 +45,6 @@ class MeanPredictor(RepresentablePredictor):
     freq
         Frequency of the predicted data.
     """
-
-    @classmethod
-    def from_predictor(cls, base: RepresentablePredictor) -> "MeanPredictor":
-        # Create predictor based on an existing predictor.
-        # This let's us create a MeanPredictor as a fallback on the fly.
-        return cls.from_hyperparameters(**getattr(base, "__init_args__"))
 
     @validated()
     def __init__(
