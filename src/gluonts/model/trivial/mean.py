@@ -24,7 +24,7 @@ from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import Predictor, RepresentablePredictor
+from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import frequency_add
 
 
@@ -47,10 +47,10 @@ class MeanPredictor(RepresentablePredictor):
     """
 
     @classmethod
-    def from_predictor(cls, base: Predictor) -> "MeanPredictor":
+    def from_predictor(cls, base: RepresentablePredictor) -> "MeanPredictor":
         # Create predictor based on an existing predictor.
         # This let's us create a MeanPredictor as a fallback on the fly.
-        return cls.from_hyperparameters(**base.__init_args__)
+        return cls.from_hyperparameters(**getattr(base, "__init_args__"))
 
     @validated()
     def __init__(
