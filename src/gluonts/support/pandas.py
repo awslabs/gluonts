@@ -17,3 +17,7 @@ import pandas as pd
 
 def frequency_add(ts: pd.Timestamp, amount: int) -> pd.Timestamp:
     return ts + ts.freq * amount
+
+
+def forecast_start(entry):
+    return frequency_add(entry["start"], len(entry["target"]))

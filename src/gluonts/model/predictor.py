@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import functools
 import itertools
 import logging
 import multiprocessing as mp
@@ -741,18 +742,25 @@ class Localizer(Predictor):
 
 class FallbackPredictor(Predictor):
     @classmethod
-    def from_predictor(cls, base: Predictor) -> Predictor:
-        raise NotImplementedError
+    def from_predictor(
+        cls, base: RepresentablePredictor, **overrides
+    ) -> Predictor:
+        # Create predictor based on an existing predictor.
+        # This let's us create a MeanPredictor as a fallback on the fly.
+        return cls.from_hyperparameters(
+            **getattr(base, "__init_args__"), **overrides
+        )
 
 
 def fallback(fallback_cls: Type[FallbackPredictor]):
     def decorator(predict_item):
+        @functools.wraps(predict_item)
         def fallback_predict(self, item: DataEntry) -> Forecast:
             try:
                 return predict_item(self, item)
-            except Exception as error:
+            except Exception:
                 logging.warning(
-                    f"Base predictor didn't return result: {error}"
+                    f"Base predictor failed with: {traceback.format_exc()}"
                 )
                 fallback_predictor = fallback_cls.from_predictor(self)
                 return fallback_predictor.predict_item(item)
