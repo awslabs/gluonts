@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 
 # First-party imports
-from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
+from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
