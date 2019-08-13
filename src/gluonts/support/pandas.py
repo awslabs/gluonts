@@ -14,5 +14,6 @@
 
 import pandas as pd
 
+
 def frequency_add(ts: pd.Timestamp, amount: int) -> pd.Timestamp:
     return ts + ts.freq * amount
