@@ -43,6 +43,7 @@ from gluonts.core.component import (
     from_hyperparameters,
     validated,
 )
+from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -758,6 +759,8 @@ def fallback(fallback_cls: Type[FallbackPredictor]):
         def fallback_predict(self, item: DataEntry) -> Forecast:
             try:
                 return predict_item(self, item)
+            except GluonTSException:
+                raise
             except Exception:
                 logging.warning(
                     f"Base predictor failed with: {traceback.format_exc()}"
