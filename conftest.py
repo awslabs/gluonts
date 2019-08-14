@@ -83,18 +83,18 @@ def pytest_configure():
        variables in the environment to return to non-deterministic testing (a good thing).
     """
 
-    module_seed_str = os.getenv('MXNET_MODULE_SEED')
+    module_seed_str = os.getenv("MXNET_MODULE_SEED")
     if module_seed_str is None:
         seed = np.random.randint(0, np.iinfo(np.int32).max)
     else:
         seed = int(module_seed_str)
         logging.warning(
-            '*** module-level seed is set: '
-            'all tests running deterministically ***'
+            "*** module-level seed is set: "
+            "all tests running deterministically ***"
         )
     print(
-        'Setting module np/mx/python random seeds, '
-        'use MXNET_MODULE_SEED={} to reproduce.'.format(seed)
+        "Setting module np/mx/python random seeds, "
+        "use MXNET_MODULE_SEED={} to reproduce.".format(seed)
     )
 
     np.random.seed(seed)
@@ -103,10 +103,10 @@ def pytest_configure():
 
     # The MXNET_TEST_SEED environment variable will override MXNET_MODULE_SEED for tests with
     #  the 'with_seed()' decoration.  Inform the user of this once here at the module level.
-    if os.getenv('MXNET_TEST_SEED') is not None:
+    if os.getenv("MXNET_TEST_SEED") is not None:
         logging.warning(
             '*** test-level seed set: all "@with_seed()" '
-            'tests run deterministically ***'
+            "tests run deterministically ***"
         )
 
 
@@ -125,7 +125,7 @@ def pytest_runtest_makereport(item, call):
     setattr(item, "rep_" + rep.when, rep)
 
 
-@pytest.fixture(scope='function', autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def function_scope_seed(request):
     """A function scope fixture that manages rng seeds.
 
@@ -156,8 +156,8 @@ def function_scope_seed(request):
 
     """
 
-    seed = request.node.get_marker('seed')
-    env_seed_str = os.getenv('MXNET_TEST_SEED')
+    seed = request.node.get_marker("seed")
+    env_seed_str = os.getenv("MXNET_TEST_SEED")
 
     if seed is not None:
         seed = seed.args[0]
@@ -173,8 +173,8 @@ def function_scope_seed(request):
     random.seed(seed)
 
     seed_message = (
-        'np/mx/python random seeds are set to '
-        '{}, use MXNET_TEST_SEED={} to reproduce.'
+        "np/mx/python random seeds are set to "
+        "{}, use MXNET_TEST_SEED={} to reproduce."
     )
     seed_message = seed_message.format(seed, seed)
 
@@ -185,7 +185,7 @@ def function_scope_seed(request):
 
     yield  # run the test
 
-    if request.node.rep_call.outcome == 'failed':
+    if request.node.rep_call.outcome == "failed":
         # On failure also log seed on INFO log level
         logging.info(seed_message)
 
@@ -200,10 +200,10 @@ def hybridize(request):
 
 @pytest.fixture(autouse=True)
 def doctest(doctest_namespace):
-    doctest_namespace['np'] = np
-    doctest_namespace['gluonts'] = gluonts
-    doctest_namespace['mx'] = mx
-    doctest_namespace['gluon'] = mx.gluon
+    doctest_namespace["np"] = np
+    doctest_namespace["gluonts"] = gluonts
+    doctest_namespace["mx"] = mx
+    doctest_namespace["gluon"] = mx.gluon
     import doctest
 
-    doctest.ELLIPSIS_MARKER = '-etc-'
+    doctest.ELLIPSIS_MARKER = "-etc-"

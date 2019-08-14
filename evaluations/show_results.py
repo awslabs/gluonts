@@ -16,18 +16,18 @@ def collect_results():
     return pd.DataFrame(evals)
 
 
-def to_markdown(df: pd.DataFrame, float_format='%.3f') -> str:
+def to_markdown(df: pd.DataFrame, float_format="%.3f") -> str:
     # adapted from:
     # https://stackoverflow.com/questions/33181846/programmatically-convert-pandas-dataframe-to-markdown-table
     return os.linesep.join(
         [
-            '|'.join(df.columns),
-            '|'.join(4 * '-' for _ in df.columns),
+            "|".join(df.columns),
+            "|".join(4 * "-" for _ in df.columns),
             df.to_csv(
-                sep='|', index=False, header=False, float_format=float_format
+                sep="|", index=False, header=False, float_format=float_format
             ),
         ]
-    ).replace('|', ' | ')
+    ).replace("|", " | ")
 
 
 results_df = collect_results()
