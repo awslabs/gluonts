@@ -66,21 +66,24 @@ class ThrougputIter:
 def log_throughput(instances, timings):
     item_lengths = [len(item["target"]) for item in instances]
 
-    total_time = sum(timings)
-    avg_time = total_time / len(timings)
-    logger.info(
-        "Inference took "
-        f"{total_time:.2f}s for {len(timings)} items, "
-        f"{avg_time:.2f}s on average."
-    )
-    for idx, (duration, input_length) in enumerate(
-        zip(timings, item_lengths), start=1
-    ):
+    if timings:
+        total_time = sum(timings)
+        avg_time = total_time / len(timings)
         logger.info(
-            f"\t{idx} took -> {duration:.2f}s (len(target)=={input_length})."
+            "Inference took "
+            f"{total_time:.2f}s for {len(timings)} items, "
+            f"{avg_time:.2f}s on average."
         )
-
-    # list(zip(timings, item_lengths)
+        for idx, (duration, input_length) in enumerate(
+            zip(timings, item_lengths), start=1
+        ):
+            logger.info(
+                f"\t{idx} took -> {duration:.2f}s (len(target)=={input_length})."
+            )
+    else:
+        logger.info(
+            "No items were provided for inference. No throughput to log."
+        )
 
 
 def jsonify_floats(json_object):
