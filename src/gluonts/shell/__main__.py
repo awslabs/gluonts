@@ -170,7 +170,7 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
         train.run_train_and_test(env, forecaster_type_by_name(forecaster))
     except Exception as error:
         with open(env.path.output / "failure", "w") as out_file:
-            out_file.write(error)
+            out_file.write(str(error))
             out_file.write("\n\n")
             out_file.write(traceback.format_exc())
         raise
