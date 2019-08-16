@@ -14,6 +14,7 @@
 # Standard library imports
 import logging
 import pydoc
+import traceback
 from pathlib import Path
 from typing import Optional, Type, Union, cast
 
@@ -151,22 +152,26 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
     from gluonts.shell import train
 
     logging.info("Run 'train' command")
-
     env = TrainEnv(Path(data_path))
 
-    if forecaster is None:
-        try:
-            forecaster = env.hyperparameters["forecaster_name"]
-        except KeyError:
-            msg = (
-                "Forecaster shell parameter is `None`, but "
-                "the `forecaster_name` key is not defined in the "
-                "hyperparameters.json dictionary."
-            )
-            raise GluonTSForecasterNotFoundError(msg)
+    try:
+        if forecaster is None:
+            try:
+                forecaster = env.hyperparameters["forecaster_name"]
+            except KeyError:
+                msg = (
+                    "Forecaster shell parameter is `None`, but "
+                    "the `forecaster_name` key is not defined in the "
+                    "hyperparameters.json dictionary."
+                )
+                raise GluonTSForecasterNotFoundError(msg)
 
-    assert forecaster is not None
-    train.run_train_and_test(env, forecaster_type_by_name(forecaster))
+        assert forecaster is not None
+        train.run_train_and_test(env, forecaster_type_by_name(forecaster))
+    except Exception:
+        with open(env.path.output / "failure", "w") as out_file:
+            out_file.write(traceback.format_exc())
+        raise
 
 
 if __name__ == "__main__":
