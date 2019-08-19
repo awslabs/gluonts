@@ -35,6 +35,10 @@ from gluonts.model.seq2seq import (
 )
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.model.transformer import TransformerEstimator
+from gluonts.model.canonical._estimator import (
+    CanonicalRNNEstimator,
+    MLPForecasterEstimator,
+)
 
 dataset_info, train_ds, test_ds = constant_dataset()
 freq = dataset_info.metadata.freq
@@ -70,6 +74,44 @@ def mqcnn_estimator(hybridize: bool = True, batches_per_epoch=1):
 
 def mqrnn_estimator(hybridize: bool = True, batches_per_epoch=1):
     return seq2seq_base(MQRNNEstimator, hybridize, batches_per_epoch)
+
+
+def rnn_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        CanonicalRNNEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            hybridize=hybridize,
+            num_cells=2,
+            num_layers=1,
+            prediction_length=prediction_length,
+            context_length=2,
+            num_batches_per_epoch=batches_per_epoch,
+            use_symbol_block_predictor=False,
+            num_parallel_samples=2,
+        ),
+    )
+
+
+def mlp_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        MLPForecasterEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            hybridize=hybridize,
+            num_cells=2,
+            num_layers=1,
+            prediction_length=prediction_length,
+            context_length=2,
+            num_batches_per_epoch=batches_per_epoch,
+            use_symbol_block_predictor=False,
+            num_parallel_samples=2,
+        ),
+    )
 
 
 def npts_estimator():
@@ -180,6 +222,8 @@ def seasonal_estimator():
         # mqcnn_estimator(batches_per_epoch=200) + (0.2,),
         # mqrnn_estimator(batches_per_epoch=200) + (0.2,),
         transformer_estimator(batches_per_epoch=80) + (0.2,),
+        rnn_estimator() + (10.0,),
+        mlp_estimator() + (10.0,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
