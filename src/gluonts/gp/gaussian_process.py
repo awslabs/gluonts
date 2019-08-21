@@ -174,12 +174,32 @@ class GaussianProcess:
     def log_prob(self, x_train: Tensor, y_train: Tensor) -> Tensor:
         r"""
         This method computes the negative marginal log likelihood
-        :math:`-\frac{1}{2} (d \log(2\pi) + \log(|K|) + y^TK^{-1}y)`,
-        where :math:`d` is the dimension.
+        
+        .. math::
+            :nowrap:
+
+                \begin{aligned}
+                    \frac{1}{2} [d \log(2\pi) + \log(|K|) + y^TK^{-1}y],
+                \end{aligned}
+
+        where :math:`d` is the number of data points.
         This can be written in terms of the Cholesky factor  :math:`L` as
-        :math:`\log(|K|) = \log(|LL^T|) = \log(|L||L|^T) = \log(|L|^2) = 2\log(|L|)`
-        :math:`= 2\log(\prod_i^n L_{ii}) = 2 \sum_i^N \log(L_{ii})` and
-        :math:`y^TK^{-1}y = (y^TL^{-T})(L^{-1}y) = (L^{-1}y)^T(L^{-1}y) = ||L^{-1}y||_2^2`.
+
+        .. math::
+            :nowrap:
+
+            \begin{aligned}
+                \log(|K|) = \log(|LL^T|) &= \log(|L||L|^T) = \log(|L|^2) = 2\log(|L|) \\
+                &= 2\log\big(\prod_i^n L_{ii}\big) = 2 \sum_i^N \log(L_{ii})
+            \end{aligned}
+                 and
+
+        .. math::
+            :nowrap:
+
+                 \begin{aligned}
+                    y^TK^{-1}y = (y^TL^{-T})(L^{-1}y) = (L^{-1}y)^T(L^{-1}y) = ||L^{-1}y||_2^2.
+                \end{aligned}
 
         Parameters
         --------------------
