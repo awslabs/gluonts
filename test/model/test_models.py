@@ -35,6 +35,10 @@ from gluonts.model.seq2seq import (
 )
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.model.transformer import TransformerEstimator
+from gluonts.model.canonical._estimator import (
+    CanonicalRNNEstimator,
+    MLPForecasterEstimator,
+)
 
 dataset_info, train_ds, test_ds = constant_dataset()
 freq = dataset_info.metadata.freq
@@ -56,10 +60,10 @@ def seq2seq_base(seq2seq_model, hybridize: bool = True, batches_per_epoch=1):
             hybridize=hybridize,
             prediction_length=prediction_length,
             context_length=prediction_length,
-            num_eval_samples=num_eval_samples,
             num_batches_per_epoch=batches_per_epoch,
             quantiles=[0.1, 0.5, 0.9],
             use_symbol_block_predictor=True,
+            num_parallel_samples=num_eval_samples,
         ),
     )
 
@@ -72,6 +76,44 @@ def mqrnn_estimator(hybridize: bool = True, batches_per_epoch=1):
     return seq2seq_base(MQRNNEstimator, hybridize, batches_per_epoch)
 
 
+def rnn_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        CanonicalRNNEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            hybridize=hybridize,
+            num_cells=2,
+            num_layers=1,
+            prediction_length=prediction_length,
+            context_length=2,
+            num_batches_per_epoch=batches_per_epoch,
+            use_symbol_block_predictor=False,
+            num_parallel_samples=2,
+        ),
+    )
+
+
+def mlp_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        MLPForecasterEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            hybridize=hybridize,
+            num_cells=2,
+            num_layers=1,
+            prediction_length=prediction_length,
+            context_length=2,
+            num_batches_per_epoch=batches_per_epoch,
+            use_symbol_block_predictor=False,
+            num_parallel_samples=2,
+        ),
+    )
+
+
 def npts_estimator():
     return (
         NPTSEstimator,
@@ -79,7 +121,7 @@ def npts_estimator():
             kernel_type="uniform",
             use_default_features=True,
             prediction_length=prediction_length,
-            num_eval_samples=num_eval_samples,
+            num_parallel_samples=num_eval_samples,
         ),
     )
 
@@ -98,9 +140,9 @@ def simple_feedforward_estimator(hybridize: bool = True, batches_per_epoch=1):
             hybridize=hybridize,
             num_hidden_dimensions=[3],
             prediction_length=prediction_length,
-            num_eval_samples=num_eval_samples,
             num_batches_per_epoch=batches_per_epoch,
             use_symbol_block_predictor=True,
+            num_parallel_samples=num_eval_samples,
         ),
     )
 
@@ -115,10 +157,10 @@ def gp_estimator(hybridize: bool = True, batches_per_epoch=1):
             hybridize=hybridize,
             prediction_length=prediction_length,
             cardinality=cardinality,
-            num_eval_samples=num_eval_samples,
             num_batches_per_epoch=batches_per_epoch,
             time_features=time_features,
             use_symbol_block_predictor=False,
+            num_parallel_samples=num_eval_samples,
             # FIXME: test_shell fails with use_symbol_block_predictor=True
             # FIXME and float_type = np.float64
         ),
@@ -137,9 +179,9 @@ def deepar_estimator(hybridize: bool = True, batches_per_epoch=1):
             num_layers=1,
             prediction_length=prediction_length,
             context_length=2,
-            num_eval_samples=2,
             num_batches_per_epoch=batches_per_epoch,
             use_symbol_block_predictor=False,
+            num_parallel_samples=2,
         ),
     )
 
@@ -157,9 +199,9 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
             num_heads=2,
             prediction_length=prediction_length,
             context_length=2,
-            num_eval_samples=2,
             num_batches_per_epoch=batches_per_epoch,
             use_symbol_block_predictor=False,
+            num_parallel_samples=2,
         ),
     )
 
@@ -180,6 +222,8 @@ def seasonal_estimator():
         # mqcnn_estimator(batches_per_epoch=200) + (0.2,),
         # mqrnn_estimator(batches_per_epoch=200) + (0.2,),
         transformer_estimator(batches_per_epoch=80) + (0.2,),
+        rnn_estimator() + (10.0,),
+        mlp_estimator() + (10.0,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):

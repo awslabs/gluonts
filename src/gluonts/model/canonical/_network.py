@@ -111,7 +111,7 @@ class CanonicalTrainingNetwork(CanonicalNetworkBase):
             scale=target_scale.expand_dims(axis=1).expand_dims(axis=2),
         )
 
-        loss = distr.loss(past_target.expand_dims(axis=-1))
+        loss = distr.loss(past_target)
 
         return loss
 
@@ -167,6 +167,7 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
         )
 
         input_feat = self.assemble_features(F, feat_static_cat, time_feat)
+
         outputs = self.model(input_feat)
 
         if self.is_sequential:
@@ -176,9 +177,10 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
 
         distr = self.distr_output.distribution(
             self.proj_distr_args(outputs),
-            target_scale.expand_dims(axis=1).expand_dims(axis=2),
+            scale=target_scale.expand_dims(axis=0).expand_dims(axis=2),
         )
         samples = distr.sample(
             self.num_sample_paths
         )  # (num_samples, batch_size, prediction_length, 1)
-        return samples.swapaxes(0, 1).squeeze(axis=-1)
+
+        return samples.swapaxes(0, 1)

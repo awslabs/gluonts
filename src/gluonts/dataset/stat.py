@@ -121,11 +121,8 @@ class DatasetStatistics(NamedTuple):
     num_time_series: int
     scale_histogram: ScaleHistogram
 
-    def __str__(self):
-        # gets a pretty string representation of all dataset statistics
-        return "\n".join(
-            [f"{var_name}: {var}" for var_name, var in self._asdict().items()]
-        )
+    # DO NOT override the __str__ method, since we rely that we can load
+    # DatasetStatistics again; i.e. stats == eval(str(stats))
 
     def __eq__(self, other):
         for x, y in zip(self._asdict().values(), other._asdict().values()):

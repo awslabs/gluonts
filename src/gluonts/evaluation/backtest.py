@@ -229,9 +229,7 @@ class BacktestInformation(NamedTuple):
 
     @staticmethod
     def make_from_log_contents(log_contents):
-        regexp = re.compile(r"gluonts\[(.*)\]: (.*)")
-        # in case some metric is nan
-        messages = dict(regexp.findall(log_contents))
+        messages = dict(re.findall(r"gluonts\[(.*)\]: (.*)", log_contents))
 
         # avoid to fail if a key is missing for instance in the case a run did
         # not finish so that we can still get partial information
@@ -247,9 +245,9 @@ class BacktestInformation(NamedTuple):
                 agg_metrics={
                     k: load_code(v)
                     for k, v in messages.items()
-                    if k.startswith("metric-")
+                    if k.startswith("metric-") and v != "nan"
                 },
             )
-        except Exception as e:
-            logging.info(str(e))
+        except Exception as error:
+            logging.error(error)
             return None

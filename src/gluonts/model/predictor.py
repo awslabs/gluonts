@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import functools
 import itertools
 import logging
 import multiprocessing as mp
@@ -20,7 +21,15 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Type,
+)
 
 # Third-party imports
 import mxnet as mx
@@ -34,6 +43,7 @@ from gluonts.core.component import (
     from_hyperparameters,
     validated,
 )
+from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -149,6 +159,10 @@ class RepresentablePredictor(Predictor):
         super().__init__(prediction_length, freq)
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
+        for item in dataset:
+            yield self.predict_item(item)
+
+    def predict_item(self, item: DataEntry) -> Forecast:
         raise NotImplementedError
 
     def __eq__(self, that):
@@ -725,3 +739,35 @@ class Localizer(Predictor):
             predictions = trained_pred.predict(local_ds, **kwargs)
             for pred in predictions:
                 yield pred
+
+
+class FallbackPredictor(Predictor):
+    @classmethod
+    def from_predictor(
+        cls, base: RepresentablePredictor, **overrides
+    ) -> Predictor:
+        # Create predictor based on an existing predictor.
+        # This let's us create a MeanPredictor as a fallback on the fly.
+        return cls.from_hyperparameters(
+            **getattr(base, "__init_args__"), **overrides
+        )
+
+
+def fallback(fallback_cls: Type[FallbackPredictor]):
+    def decorator(predict_item):
+        @functools.wraps(predict_item)
+        def fallback_predict(self, item: DataEntry) -> Forecast:
+            try:
+                return predict_item(self, item)
+            except GluonTSException:
+                raise
+            except Exception:
+                logging.warning(
+                    f"Base predictor failed with: {traceback.format_exc()}"
+                )
+                fallback_predictor = fallback_cls.from_predictor(self)
+                return fallback_predictor.predict_item(item)
+
+        return fallback_predict
+
+    return decorator

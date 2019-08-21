@@ -14,12 +14,14 @@
 # Standard library imports
 import logging
 import multiprocessing
+import time
 import traceback
 from ipaddress import IPv4Address
 from typing import Iterable, List, Optional, Tuple, Type, Union
 
 # Third-party imports
 import requests
+import numpy as np
 from flask import Flask, Response, jsonify, request
 from gunicorn.app.base import BaseApplication
 from pydantic import BaseModel, BaseSettings
@@ -43,6 +45,70 @@ logging.basicConfig(
 logger = logging.getLogger("gluonts.serve")
 
 MB = 1024 * 1024
+
+
+class ThrougputIter:
+    def __init__(self, iterable):
+        self.iter = iter(iterable)
+        self.timings = []
+
+    def __iter__(self):
+        try:
+            while True:
+                start = time.time()
+                element = next(self.iter)
+                self.timings.append(time.time() - start)
+                yield element
+        except StopIteration:
+            return None
+
+
+def log_throughput(instances, timings):
+    item_lengths = [len(item["target"]) for item in instances]
+
+    if timings:
+        total_time = sum(timings)
+        avg_time = total_time / len(timings)
+        logger.info(
+            "Inference took "
+            f"{total_time:.2f}s for {len(timings)} items, "
+            f"{avg_time:.2f}s on average."
+        )
+        for idx, (duration, input_length) in enumerate(
+            zip(timings, item_lengths), start=1
+        ):
+            logger.info(
+                f"\t{idx} took -> {duration:.2f}s (len(target)=={input_length})."
+            )
+    else:
+        logger.info(
+            "No items were provided for inference. No throughput to log."
+        )
+
+
+def jsonify_floats(json_object):
+    """
+    Traverses through the JSON object and converts non JSON-spec compliant
+    floats(nan, -inf, inf) to their string representations.
+
+    Parameters
+    ----------
+    json_object
+        JSON object
+    """
+    if isinstance(json_object, dict):
+        return {k: jsonify_floats(v) for k, v in json_object.items()}
+    elif isinstance(json_object, list):
+        return [jsonify_floats(item) for item in json_object]
+    elif isinstance(json_object, float):
+        if np.isnan(json_object):
+            return "NaN"
+        elif np.isposinf(json_object):
+            return "Infinity"
+        elif np.isneginf(json_object):
+            return "-Infinity"
+        return json_object
+    return json_object
 
 
 class Settings(BaseSettings):
@@ -128,7 +194,6 @@ def make_flask_app(predictor_factory, execution_params) -> Flask:
 
     @app.route("/ping")
     def ping() -> Response:
-        logger.info("Responding to /ping request")
         return ""
 
     @app.route("/execution-parameters")
@@ -143,16 +208,19 @@ def make_flask_app(predictor_factory, execution_params) -> Flask:
         dataset = ListDataset(req.instances, predictor.freq)
 
         # create the forecasts
-        forecasts = predictor.predict(
-            dataset, num_eval_samples=req.configuration.num_eval_samples
+        forecasts = ThrougputIter(
+            predictor.predict(
+                dataset, num_eval_samples=req.configuration.num_eval_samples
+            )
         )
 
-        return jsonify(
-            predictions=[
-                forecast.as_json_dict(req.configuration)
-                for forecast in forecasts
-            ]
-        )
+        predictions = [
+            forecast.as_json_dict(req.configuration) for forecast in forecasts
+        ]
+
+        log_throughput(req.instances, forecasts.timings)
+
+        return jsonify(predictions=jsonify_floats(predictions))
 
     return app
 

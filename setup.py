@@ -14,7 +14,7 @@ from textwrap import dedent
 from setuptools import find_namespace_packages, setup
 
 ROOT = Path(__file__).parent
-SRC = ROOT / 'src'
+SRC = ROOT / "src"
 
 
 GPU_SUPPORT = 0 == int(
@@ -39,7 +39,7 @@ except ImportError:
     HAS_SPHINX = False
 
 
-def read(*names, encoding='utf8'):
+def read(*names, encoding="utf8"):
     with (ROOT / Path(*names)).open(encoding=encoding) as fp:
         return fp.read()
 
@@ -184,15 +184,15 @@ setup_kwargs: dict = dict(
         "GluonTS is a Python toolkit for probabilistic time series modeling, "
         "built around MXNet."
     ),
-    long_description=read('README.md'),
-    long_description_content_type='text/markdown',
-    url='https://github.com/awslabs/gluon-ts',
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
+    url="https://github.com/awslabs/gluon-ts",
     author="Amazon",
     author_email="gluon-ts-dev@amazon.com",
     maintainer_email="gluon-ts-dev@amazon.com",
     license="Apache License 2.0",
     python_requires=">= 3.6",
-    package_dir={'': 'src'},
+    package_dir={"": "src"},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
     setup_requires=list(
@@ -204,23 +204,23 @@ setup_kwargs: dict = dict(
     install_requires=find_requirements("requirements.txt"),
     tests_require=find_requirements("requirements-test.txt"),
     extras_require={
-        'R': find_requirements("requirements-extras-r.txt"),
-        'Prophet': find_requirements("requirements-extras-prophet.txt"),
-        'shell': find_requirements("requirements-extras-shell.txt"),
+        "R": find_requirements("requirements-extras-r.txt"),
+        "Prophet": find_requirements("requirements-extras-prophet.txt"),
+        "shell": find_requirements("requirements-extras-shell.txt"),
     },
     entry_points=dict(
         console_scripts=[
             "gluonts-validate-dataset=gluonts.dataset.validate:run"
         ],
         gluonts_forecasters=[
-            'deepar=gluonts.model.deepar:DeepAREstimator',
-            'r=gluonts.model.r_forecast:RForecastPredictor [R]',
-            'prophet=gluonts.model.prophet:ProphetPredictor [Prophet]',
+            "deepar=gluonts.model.deepar:DeepAREstimator",
+            "r=gluonts.model.r_forecast:RForecastPredictor [R]",
+            "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
         ],
     ),
     cmdclass={
-        'type_check': TypeCheckCommand,
-        'style_check': StyleCheckCommand,
+        "type_check": TypeCheckCommand,
+        "style_check": StyleCheckCommand,
     },
 )
 
@@ -241,7 +241,7 @@ if HAS_SPHINX:
             apidoc.main(args)
             super(BuildApiDoc, self).run()
 
-    for command in ['build_sphinx', 'doc', 'docs']:
+    for command in ["build_sphinx", "doc", "docs"]:
         setup_kwargs["cmdclass"][command] = BuildApiDoc
 
 # -----------------------------------------------------------------------------
