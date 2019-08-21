@@ -92,6 +92,7 @@ class BoxCoxTranform(Bijection):
                 \lambda_1 = &\ 1.1, \\
                 \lambda_2 = &\ 0.
             \end{align}
+
         Then the range of the transformation is (-0.9090, 0.0).
         If Gaussian is fit to the transformed observations and a sample is drawn from it,
         then it is likely that the sample is outside this range, e.g., when the mean is close to -0.9.

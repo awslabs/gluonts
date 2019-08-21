@@ -13,5 +13,11 @@
 
 # Relative imports
 from ._estimator import WaveNetEstimator
+from ._network import WaveNet, WaveNetSampler
 
-__all__ = ["WaveNetEstimator"]
+__all__ = ["WaveNet", "WaveNetEstimator", "WaveNetSampler"]
+
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

@@ -29,10 +29,7 @@ lint:
 	make restruc || true
 
 docs: release
-	# make -C docs html SPHINXOPTS=-W
-	# TODO really recommend turning on -W and fix any warning.
-	# allowing warnings will quickly become unmanagable.
-	make -C docs html
+	make -C docs html SPHINXOPTS=-W
 	for f in $(shell find docs/examples -type f -name '*.md' -print) ; do \
 		FILE=`echo $$f | sed 's/docs\///g'` ; \
 		DIR=`dirname $$FILE` ; \

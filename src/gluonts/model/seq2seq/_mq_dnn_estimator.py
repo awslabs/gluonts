@@ -32,7 +32,7 @@ from ._forking_estimator import ForkingSeq2SeqEstimator
 class MQDNNEstimator(ForkingSeq2SeqEstimator):
     """
     Intermediate base class for a Multi-horizon Quantile Deep Neural Network
-    (MQ-DNN), [Wen2017]_. The class fixes the decoder is a multi-quantile MLP.
+    (MQ-DNN), [WTN+17]_. The class fixes the decoder is a multi-quantile MLP.
     Subclasses fix the encoder to be either a Convolutional Neural Network
     (MQ-CNN) or a Recurrent Neural Network (MQ-RNN).
     """
@@ -80,7 +80,7 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
 class MQCNNEstimator(MQDNNEstimator):
     """
     An :class:`MQDNNEstimator` with a Convolutional Neural Network (CNN) as an
-    encoder. Implements the MQ-CNN Forecaster, proposed in [Wen2017]_.
+    encoder. Implements the MQ-CNN Forecaster, proposed in [WTN+17]_.
     """
 
     @validated()
@@ -119,7 +119,7 @@ class MQCNNEstimator(MQDNNEstimator):
 class MQRNNEstimator(MQDNNEstimator):
     """
     An :class:`MQDNNEstimator` with a Recurrent Neural Network (RNN) as an
-    encoder. Implements the MQ-RNN Forecaster, proposed in [Wen2017]_.
+    encoder. Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
     """
 
     @validated()

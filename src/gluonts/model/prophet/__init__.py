@@ -15,3 +15,8 @@
 from ._predictor import ProphetPredictor, PROPHET_IS_INSTALLED
 
 __all__ = ["ProphetPredictor", "PROPHET_IS_INSTALLED"]
+
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

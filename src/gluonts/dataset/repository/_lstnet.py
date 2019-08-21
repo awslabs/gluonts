@@ -12,12 +12,8 @@
 # permissions and limitations under the License.
 
 """
-Recipes to generate electricity, traffic, exchange_rate and solar-energy dataset.
-Such dataset have been used with different processing over time by several papers such as
-`<https://arxiv.org/abs/1704.04110>`_
-`<https://arxiv.org/abs/1703.07015>`_
-`<https://arxiv.org/pdf/1509.08333>`_
-We here reuse the datasets used by LSTNet as the processed url of the datasets are available on github.
+Here we reuse the datasets used by LSTNet as the processed url of the datasets
+are available on GitHub.
 """
 import json
 import os

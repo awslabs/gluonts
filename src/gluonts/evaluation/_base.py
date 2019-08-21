@@ -175,8 +175,11 @@ class Evaluator:
     def seasonal_error(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> float:
-        """
-        seasonal_error = mean(|Y[t] - Y[t-m]|)
+        r"""
+        .. math::
+
+            seasonal_error = mean(|Y[t] - Y[t-m]|)
+
         where m is the seasonal frequency
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
@@ -336,8 +339,11 @@ class Evaluator:
 
     @staticmethod
     def mase(target, forecast, seasonal_error):
-        """
-        mase = mean(|Y - Y_hat|) / seasonal_error
+        r"""
+        .. math::
+
+            mase = mean(|Y - Y_hat|) / seasonal_error
+
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
         flag = seasonal_error == 0
@@ -347,8 +353,11 @@ class Evaluator:
 
     @staticmethod
     def smape(target, forcecast):
-        """
-        smape = mean(2 * |Y - Y_hat| / (|Y| + |Y_hat|))
+        r"""
+        .. math::
+
+            smape = mean(2 * |Y - Y_hat| / (|Y| + |Y_hat|))
+
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
 
@@ -362,8 +371,11 @@ class Evaluator:
 
     @staticmethod
     def msis(target, lower_quantile, upper_quantile, seasonal_error, alpha):
-        """
-        msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) /seasonal_error
+        r"""
+        :math:
+
+            msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) /seasonal_error
+
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
         numerator = np.mean(

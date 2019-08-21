@@ -44,7 +44,7 @@ from ._transform import ForkingSequenceSplitter
 class ForkingSeq2SeqEstimator(GluonEstimator):
     r"""
     Sequence-to-Sequence (seq2seq) structure with the so-called
-    "Forking Sequence" proposed in [Wen2017]_.
+    "Forking Sequence" proposed in [WTN+17]_.
 
     The basic idea is that, given a sequence :math:`x_1, x_2, \cdots, x_T`,
     with a decoding length :math:`\tau`, we learn a NN that solves the
@@ -63,9 +63,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
     Essentially, this means instead of having one cut in the standard seq2seq,
     one has multiple cuts that progress linearly.
-
-    .. [Wen2017] Wen, Ruofeng, et al. "A multi-horizon quantile recurrent
-                 forecaster." arXiv preprint arXiv:1711.11053 (2017).
 
     Parameters
     ----------

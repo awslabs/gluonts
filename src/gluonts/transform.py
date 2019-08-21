@@ -673,10 +673,9 @@ class ListFeatures(SimpleTransformation):
 
 class AddObservedValuesIndicator(SimpleTransformation):
     """
-    Replaces missing values in a numpy array (NaNs) with a dummy value and adds an "observed"-indicator
-    that is
-      1 - when values are observed
-      0 - when values are missing
+    Replaces missing values in a numpy array (NaNs) with a dummy value and adds
+    an "observed"-indicator that is ``1`` when values are observed and ``0``
+    when values are missing.
 
 
     Parameters

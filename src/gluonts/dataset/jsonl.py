@@ -47,14 +47,14 @@ class JsonLinesFile:
     """
     An iterable type that draws from a JSON Lines file.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     path
         Path of the file to load data from. This should be a valid
         JSON Lines file.
     """
 
-    def __init__(self, path):
+    def __init__(self, path) -> None:
         self.path = path
 
     def __iter__(self):

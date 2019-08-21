@@ -56,10 +56,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
     """
     Multilayer perceptron decoder for sequence-to-sequence models.
 
-    See following paper for details:
-        Wen, R., Torkkola, K., and Narayanaswamy, B. (2017).
-        A multi-horizon quantile recurrent forecaster.
-        arXiv preprint arXiv:1711.11053.
+    See [WTN+17]_ for details.
 
     Parameters
     ----------

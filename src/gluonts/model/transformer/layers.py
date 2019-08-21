@@ -116,7 +116,7 @@ def combine_heads(F, x: Tensor, dim_per_head: int, heads: int) -> Tensor:
 
 class LayerNormalization(HybridBlock):
     """
-    Implements Ba et al, Layer Normalization (https://arxiv.org/abs/1607.06450).
+    Implements layer normalization as proposed in [BKH16]_.
     """
 
     def __init__(
@@ -314,11 +314,12 @@ class MultiHeadSelfAttention(MultiHeadAttentionBase):
         inputs: Tensor,
         mask: Optional[Tensor] = None,
         cache: Optional[Dict[str, Optional[Tensor]]] = None,
-    ) -> Tuple:
+    ) -> Tuple[Tensor, Optional[Dict]]:
         r"""
-        Computes multi-head attention on a set of inputs, serving as queries, keys, and values.
-        If sequence lengths are provided, they will be used to mask the attention scores.
-        May also use a cache of previously computed inputs.
+        Computes multi-head attention on a set of inputs, serving as queries,
+        keys, and values. If sequence lengths are provided, they will be used
+        to mask the attention scores. May also use a cache of previously
+        computed inputs.
 
         Parameters
         ----------
@@ -331,7 +332,8 @@ class MultiHeadSelfAttention(MultiHeadAttentionBase):
 
         Returns
         -------
-        Tensor of shape (batch_size, max_length, att_dim_out)
+        Tensor
+            A tensor of shape (batch_size, max_length, att_dim_out)
         """
 
         # Q = K = V -> Q * W_q, K * W_k, V * W_v
@@ -363,7 +365,7 @@ class MultiHeadAttention(MultiHeadAttentionBase):
     r"""
     Multi-head attention layer for queries independent from keys/values.
 
-     Parameters
+    Parameters
     ----------
     att_dim_in
         Attention dimension (number of hidden units)
@@ -438,7 +440,9 @@ class MultiHeadAttention(MultiHeadAttentionBase):
 class TransformerFeedForward(HybridBlock):
     r"""
     Position-wise feed-forward network with activation.
+
     .. math::
+
         activation(XW_1 + b_1)W_2 + b_2
 
     :math:`W_1`: (batch_size, d, inner_dim)

@@ -53,14 +53,11 @@ class DeepAREstimator(GluonEstimator):
     Construct a DeepAR estimator.
 
     This implements an RNN-based model, close to the one described in
-    [Salinas2017]_.
+    [SFG17]_.
 
     *Note:* the code of this model is unrelated to the implementation behind
-    `SageMaker's DeepAR Forecasting Algorithm <https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html>`_.
-
-    .. [Salinas2017] David Salinas, Valentin Flunkert, Jan Gasthaus
-        "DeepAR: Probabilistic Forecasting with Autoregressive Recurrent
-        Networks." arXiv preprint arXiv:1704.04110 (2017).
+    `SageMaker's DeepAR Forecasting Algorithm
+    <https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html>`_.
 
     Parameters
     ----------

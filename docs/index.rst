@@ -76,3 +76,4 @@ The best way to get started with GluonTS is by diving in using our :doc:`tutoria
    examples/index
    api/gluonts/gluonts
    community/index
+   bibliography
