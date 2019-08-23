@@ -57,6 +57,34 @@ def batch_diagonal(
     )
 
 
+def lower_triangular_ones(F, d: int, offset: int = 0) -> Tensor:
+    """
+    Constructs a lower triangular matrix consisting of ones.
+
+    Parameters
+    ----------
+    F
+    d
+        Dimension of the output tensor, whose shape will be (d, d).
+    offset
+        Indicates how many diagonals to set to zero in the lower triangular
+        part. By default, offset = 0, so the output matrix contains also the
+        main diagonal. For example, if offset = 1 then the output will be a
+        strictly lower triangular matrix (i.e. the main diagonal will be zero).
+
+    Returns
+    -------
+    Tensor
+        Tensor of shape (d, d) consisting of ones in the strictly lower
+        triangular part, and zeros elsewhere.
+
+    """
+    mask = F.zeros_like(F.eye(d))
+    for k in range(offset, d):
+        mask = mask + F.eye(d, d, -k)
+    return mask
+
+
 # noinspection PyMethodOverriding,PyPep8Naming
 def jitter_cholesky_eig(
     F,
