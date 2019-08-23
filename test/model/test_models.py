@@ -222,8 +222,10 @@ def seasonal_estimator():
         # mqcnn_estimator(batches_per_epoch=200) + (0.2,),
         # mqrnn_estimator(batches_per_epoch=200) + (0.2,),
         transformer_estimator(batches_per_epoch=80) + (0.2,),
-        rnn_estimator() + (10.0,),
-        mlp_estimator() + (10.0,),
+        rnn_estimator(hybridize=False) + (10.0,),
+        rnn_estimator(hybridize=True) + (10.0,),
+        mlp_estimator(hybridize=False) + (10.0,),
+        mlp_estimator(hybridize=True) + (10.0,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
