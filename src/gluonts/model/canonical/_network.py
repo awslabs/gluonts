@@ -41,7 +41,7 @@ class CanonicalNetworkBase(HybridBlock):
 
         with self.name_scope():
             self.proj_distr_args = self.distr_output.get_args_proj()
-            self.scaler = MeanScaler()
+            self.scaler = MeanScaler(keepdims=True)
 
     def assemble_features(
         self,
@@ -107,8 +107,7 @@ class CanonicalTrainingNetwork(CanonicalNetworkBase):
         outputs = self.model(input_feat)
 
         distr = self.distr_output.distribution(
-            self.proj_distr_args(outputs),
-            scale=target_scale.expand_dims(axis=1).expand_dims(axis=2),
+            self.proj_distr_args(outputs), scale=target_scale
         )
 
         loss = distr.loss(past_target)
@@ -176,8 +175,7 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
             )
 
         distr = self.distr_output.distribution(
-            self.proj_distr_args(outputs),
-            scale=target_scale.expand_dims(axis=0).expand_dims(axis=2),
+            self.proj_distr_args(outputs), scale=target_scale
         )
         samples = distr.sample(
             self.num_sample_paths

@@ -214,17 +214,23 @@ def seasonal_estimator():
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
     [
-        simple_feedforward_estimator(batches_per_epoch=200) + (0.3,),
-        gp_estimator(batches_per_epoch=200) + (0.2,),
-        npts_estimator() + (0.0,),
-        # deepar_estimator(batches_per_epoch=50) + (1.5,), # large value as this test is breaking frequently
-        seasonal_estimator() + (0.0,),
-        # mqcnn_estimator(batches_per_epoch=200) + (0.2,),
-        # mqrnn_estimator(batches_per_epoch=200) + (0.2,),
-        transformer_estimator(batches_per_epoch=80) + (0.2,),
-        rnn_estimator() + (10.0,),
-        mlp_estimator() + (10.0,),
-    ],
+        estimator
+        for hyb in [False, True]
+        for estimator in [
+            deepar_estimator(hybridize=hyb, batches_per_epoch=50)
+            + (1.5,),  # large value as this test is breaking frequently
+            gp_estimator(hybridize=hyb, batches_per_epoch=200) + (0.2,),
+            mlp_estimator(hybridize=hyb) + (10.0,),
+            mqcnn_estimator(hybridize=hyb, batches_per_epoch=200) + (0.2,),
+            mqrnn_estimator(hybridize=hyb, batches_per_epoch=200) + (0.2,),
+            rnn_estimator(hybridize=hyb) + (10.0,),
+            simple_feedforward_estimator(hybridize=hyb, batches_per_epoch=200)
+            + (0.3,),
+            transformer_estimator(hybridize=hyb, batches_per_epoch=80)
+            + (0.2,),
+        ]
+    ]
+    + [npts_estimator() + (0.0,), seasonal_estimator() + (0.0,)],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
     estimator = Estimator.from_hyperparameters(freq=freq, **hyperparameters)
@@ -251,24 +257,6 @@ def test_accuracy(Estimator, hyperparameters, accuracy):
 def test_repr(Estimator, hyperparameters):
     estimator = Estimator.from_hyperparameters(freq=freq, **hyperparameters)
     assert repr(estimator) == repr(load_code(repr(estimator)))
-
-
-@pytest.mark.parametrize(
-    "Estimator, hyperparameters",
-    [
-        simple_feedforward_estimator(hybridize=True),
-        deepar_estimator(hybridize=True),
-        mqcnn_estimator(hybridize=True),
-        mqrnn_estimator(hybridize=True),
-        gp_estimator(hybridize=True),
-        transformer_estimator(hybridize=True),
-    ],
-)
-def test_hybridize(Estimator, hyperparameters):
-    estimator = Estimator.from_hyperparameters(freq=freq, **hyperparameters)
-    backtest_metrics(
-        train_dataset=train_ds, test_dataset=test_ds, forecaster=estimator
-    )
 
 
 @pytest.mark.parametrize(
