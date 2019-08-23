@@ -310,19 +310,26 @@ class ProcessStartField:
     @staticmethod
     @lru_cache(maxsize=10000)
     def process(string: str, freq: str) -> pd.Timestamp:
+        rollback_cases = {
+            "B": "D",
+            "M": "M",
+            # 'W-SUN' is the standardized freqstr for W
+            "W-SUN": "W-SUN",
+            # 'A-DEC' is the standardized freqstr for Y
+            "A-DEC": "AS-JAN",
+        }
+
         timestamp = pd.Timestamp(string, freq=freq)
-        # 'W-SUN' is the standardized freqstr for W
-        if timestamp.freq.name in ("M", "W-SUN"):
-            offset = to_offset(freq)
+        if timestamp.freq.name in rollback_cases:
+            offset = to_offset(rollback_cases[timestamp.freq.name])
+            # rollback does not reset time information, thus we set
+            # these all to zero by hand
             timestamp = timestamp.replace(
                 hour=0, minute=0, second=0, microsecond=0, nanosecond=0
             )
             return pd.Timestamp(
                 offset.rollback(timestamp), freq=offset.freqstr
             )
-        if timestamp.freq == "B":
-            # does not floor on business day as it is not allowed
-            return timestamp
         return pd.Timestamp(
             timestamp.floor(timestamp.freq), freq=timestamp.freq
         )
