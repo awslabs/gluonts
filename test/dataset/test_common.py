@@ -23,7 +23,6 @@ from gluonts.dataset.common import ProcessStartField
         ("B", "2019-11-01"),
         ("W", "2019-10-27"),
         ("M", "2019-10-31"),
-        ("M", "2019-10-31"),
         ("Y", "2019"),
     ],
 )
