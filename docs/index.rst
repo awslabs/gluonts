@@ -55,7 +55,7 @@ You can install GluonTS using `pip <https://pip.pypa.io/en/stable/installing/>`_
 
 .. code-block:: console
 
-   pip install gluonts
+   pip install mxnet gluonts
 
 
 .. hint::

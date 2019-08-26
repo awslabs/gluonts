@@ -6,4 +6,3 @@ pandas>=0.25.0
 pydantic==0.28.*
 tqdm>=4.23.0
 ujson>=1.35
-
