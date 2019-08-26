@@ -16,3 +16,5 @@ dependencies:
   - black>=18
   - setuptools>=40.1
   - requests
+  - pip:
+    - mxnet-mkl>=1.3.1

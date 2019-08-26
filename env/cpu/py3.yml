@@ -26,6 +26,7 @@ dependencies:
   - setuptools>=40.1
   - requests
   - pip:
+    - mxnet-mkl>=1.3.1
     - https://github.com/mli/mx-theme/archive/0.3.1.tar.gz
     - seaborn
     - sphinx-autorun
