@@ -481,15 +481,17 @@ mx.Context.validate = MXContext.validate
 mx.Context.__get_validators__ = MXContext.__get_validators__
 
 
-def has_gpu_support() -> bool:
+def get_mxnet_context() -> mx.Context:
     """
-    Checks if the currently installed MXNet version has GPU support.
+    Returns either CPU or GPU context
     """
-    try:
-        mx.nd.array([1, 2, 3], ctx=mx.gpu(0))
-        return True
-    except mx.MXNetError:
-        return False
+    n = mx.context.num_gpus()
+    if n == 0:
+        logging.info("Using CPU")
+        return mx.context.cpu()
+    else:
+        logging.info("Using GPU")
+        return mx.context.gpu(0)
 
 
 def check_gpu_support() -> None:
@@ -497,7 +499,9 @@ def check_gpu_support() -> None:
     Emits a log line that indicates whether the currently installed MXNet
     version has GPU support.
     """
-    logger.info(f'MXNet GPU support is {"ON" if has_gpu_support() else "OFF"}')
+    logger.info(
+        f'MXNet GPU support is {"ON" if mx.context.num_gpus() > 0 else "OFF"}'
+    )
 
 
 class DType:

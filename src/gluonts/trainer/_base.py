@@ -26,7 +26,7 @@ import mxnet.gluon.nn as nn
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import has_gpu_support, validated
+from gluonts.core.component import get_mxnet_context, validated
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.support.util import HybridContext
@@ -146,13 +146,7 @@ class Trainer:
         self.weight_decay = weight_decay
         self.init = init
         self.hybridize = hybridize
-        self.ctx = (
-            ctx
-            if ctx is not None
-            else mx.Context("gpu")
-            if has_gpu_support()
-            else mx.Context("cpu")
-        )
+        self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:

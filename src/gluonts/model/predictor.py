@@ -41,6 +41,7 @@ from gluonts.core.component import (
     DType,
     equals,
     from_hyperparameters,
+    get_mxnet_context,
     validated,
 )
 from gluonts.core.exception import GluonTSException
@@ -513,7 +514,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         export_repr_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
-    def deserialize(cls, path: Path):
+    def deserialize(cls, path: Path, ctx: Optional[mx.Context] = None):
         try:
             # deserialize constructor parameters
             with (path / "parameters.json").open("r") as fp:
@@ -529,6 +530,8 @@ class RepresentableBlockPredictor(GluonPredictor):
             # input_names is derived from the prediction_net
             if "input_names" in parameters:
                 del parameters["input_names"]
+
+            parameters["ctx"] = ctx if ctx is not None else get_mxnet_context()
 
             return RepresentableBlockPredictor(
                 input_transform=transform,
