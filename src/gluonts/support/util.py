@@ -113,7 +113,10 @@ class HybridContext:
 
 
 def copy_parameters(
-    net_source: mx.gluon.Block, net_dest: mx.gluon.Block
+    net_source: mx.gluon.Block,
+    net_dest: mx.gluon.Block,
+    ignore_extra: bool = False,
+    allow_missing: bool = False,
 ) -> None:
     """
     Copies parameters from one network to another.
@@ -125,8 +128,11 @@ def copy_parameters(
     net_dest
         Output network.
     ignore_extra
-        Whether to silently ignore parameters from the source that are not
+        Whether to ignore parameters from the source that are not
         present in the target.
+    allow_missing
+        Whether to allow additional parameters in the target not
+        present in the source.
     """
     with tempfile.TemporaryDirectory(
         prefix="gluonts-estimator-temp-"
@@ -136,8 +142,8 @@ def copy_parameters(
         net_dest.load_parameters(
             model_dir_path,
             ctx=mx.current_context(),
-            allow_missing=False,
-            ignore_extra=False,
+            allow_missing=allow_missing,
+            ignore_extra=ignore_extra,
         )
 
 

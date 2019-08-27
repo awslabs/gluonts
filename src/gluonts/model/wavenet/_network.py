@@ -23,6 +23,7 @@ from mxnet.gluon import nn
 # First-party imports
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 
 class LookupValues(gluon.HybridBlock):
@@ -108,7 +109,7 @@ class CausalDilatedResidue(nn.HybridBlock):
         u = self.conv_sigmoid(x) * self.conv_tanh(x)
         s = self.skip(u)
         if not self.return_dense_out:
-            return s, F.zeros(shape=(0,))
+            return s, F.zeros(shape=(1,))
         output = self.residue(u)
         output = output + F.slice_axis(
             x, begin=(self.kernel_size - 1) * self.dilation, end=None, axis=-1
@@ -119,7 +120,7 @@ class CausalDilatedResidue(nn.HybridBlock):
 class WaveNet(nn.HybridBlock):
     def __init__(
         self,
-        bin_values: mx.nd.NDArray,
+        bin_values: List[float],
         n_residue: int,
         n_skip: int,
         dilation_depth: int,
@@ -154,7 +155,7 @@ class WaveNet(nn.HybridBlock):
                 embedding_dims=[embedding_dimension for _ in cardinality],
             )
 
-            self.post_transform = LookupValues(bin_values)
+            # self.post_transform = LookupValues(mx.nd.array(bin_values))
             self.target_embed = nn.Embedding(
                 input_dim=self.mu, output_dim=n_residue
             )
@@ -171,8 +172,7 @@ class WaveNet(nn.HybridBlock):
                     )
                 )
 
-            # heuristic assuming ~5 features
-            std = 1.0 / math.sqrt(n_residue + 5)
+            std = 1.0 / math.sqrt(n_residue)
             self.conv_project = nn.Conv1D(
                 channels=n_residue,
                 kernel_size=1,
@@ -215,7 +215,6 @@ class WaveNet(nn.HybridBlock):
         feat_static_cat: Tensor,
         past_target: Tensor,
         past_observed_values: Tensor,
-        past_is_pad: Tensor,
         past_time_feat: Tensor,
         future_time_feat: Tensor,
         future_target: Tensor,
@@ -301,10 +300,28 @@ class WaveNetSampler(WaveNet):
         An optional post transform that will be applied to the samples
     """
 
-    def __init__(self, num_samples: int, temperature: float = 1.0, **kwargs):
-        super().__init__(**kwargs)
+    @validated()
+    def __init__(
+        self,
+        bin_values: List[float],
+        num_samples: int,
+        temperature: float = 1.0,
+        **kwargs,
+    ):
+        """
+        Same arguments as WaveNet. In addition
+        :param pred_length: prediction length
+        :param num_samples: number of sample paths to generate in parallel in the graph
+        :param temperature: if set to 1.0 (default), sample according to estimated probabilities
+-         if set to 0.0 most likely sample at each step is chosen.
+        :param post_transform: An optional post transform that will be applied to the samples.
+        """
+        super().__init__(bin_values=bin_values, **kwargs)
         self.num_samples = num_samples
         self.temperature = temperature
+
+        with self.name_scope():
+            self.post_transform = LookupValues(mx.nd.array(bin_values))
 
     def hybrid_forward(
         self,
@@ -312,7 +329,6 @@ class WaveNetSampler(WaveNet):
         feat_static_cat: Tensor,
         past_target: Tensor,
         past_observed_values: Tensor,
-        past_is_pad: Tensor,
         past_time_feat: Tensor,
         future_time_feat: Tensor,
         scale: Tensor,
