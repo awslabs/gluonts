@@ -25,7 +25,7 @@ from ._base import (
 
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
 
-from .lag import get_granularity, get_lags_for_frequency
+from .lag import get_lags_for_frequency
 
 __all__ = [
     "DayOfMonth",
@@ -38,7 +38,6 @@ __all__ = [
     "WeekOfYear",
     "SPECIAL_DATE_FEATURES",
     "SpecialDateFeatureSet",
-    "get_granularity",
     "get_lags_for_frequency",
 ]
 
