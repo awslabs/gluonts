@@ -58,6 +58,8 @@ class FieldName:
     transformer instances.
     """
 
+    ITEM_ID = "item_id"
+
     START = "start"
     TARGET = "target"
 

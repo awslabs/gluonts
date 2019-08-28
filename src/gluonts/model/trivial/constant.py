@@ -24,6 +24,7 @@ from gluonts.dataset.common import DataEntry
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
 from gluonts.support.pandas import forecast_start
+from gluonts.transform import FieldName
 
 
 class ConstantPredictor(RepresentablePredictor):
@@ -49,7 +50,9 @@ class ConstantPredictor(RepresentablePredictor):
             samples=self.samples,
             start_date=item["start"],
             freq=self.freq,
-            item_id=item["id"] if "id" in item else None,
+            item_id=item[FieldName.ITEM_ID]
+            if FieldName.ITEM_ID in item
+            else None,
         )
 
 
