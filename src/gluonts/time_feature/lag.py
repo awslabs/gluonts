@@ -71,11 +71,14 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
     The following frequencies are supported:
 
+        Y   - yearly
+            alias: A
         M   - monthly
         W   - week
         D   - daily
         H   - hourly
-        min - minutely
+        T   - minutely
+            alias: min
     """
     raise RuntimeError(supported_freq_msg)
 
