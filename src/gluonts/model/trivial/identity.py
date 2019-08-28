@@ -62,7 +62,5 @@ class IdentityPredictor(RepresentablePredictor):
             samples=samples,
             start_date=item["start"],
             freq=self.freq,
-            item_id=item[FieldName.ITEM_ID]
-            if FieldName.ITEM_ID in item
-            else None,
+            item_id=item.get(FieldName.ITEM_ID),
         )

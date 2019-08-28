@@ -75,9 +75,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
             samples=std * normal + mean,
             start_date=start_date,
             freq=self.freq,
-            item_id=item[FieldName.ITEM_ID]
-            if FieldName.ITEM_ID in item
-            else None,
+            item_id=item.get(FieldName.ITEM_ID),
         )
 
 
