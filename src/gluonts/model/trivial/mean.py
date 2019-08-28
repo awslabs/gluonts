@@ -26,6 +26,7 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
 from gluonts.support.pandas import frequency_add
+from gluonts.transform import FieldName
 
 
 class MeanPredictor(RepresentablePredictor, FallbackPredictor):
@@ -74,7 +75,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
             samples=std * normal + mean,
             start_date=start_date,
             freq=self.freq,
-            item_id=item["id"] if "id" in item else None,
+            item_id=item.get(FieldName.ITEM_ID),
         )
 
 

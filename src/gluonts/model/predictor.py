@@ -57,7 +57,7 @@ from gluonts.support.util import (
     import_repr_block,
     import_symb_block,
 )
-from gluonts.transform import Transformation
+from gluonts.transform import Transformation, FieldName
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
@@ -329,8 +329,8 @@ class GluonPredictor(Predictor):
                     output,
                     start_date=batch["forecast_start"][i],
                     freq=self.freq,
-                    item_id=batch["item_id"][i]
-                    if "item_id" in batch
+                    item_id=batch[FieldName.ITEM_ID][i]
+                    if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
                     **self.forecast_kwargs,
