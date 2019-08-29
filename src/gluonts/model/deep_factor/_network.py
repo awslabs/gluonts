@@ -30,7 +30,7 @@ class DeepFactorNetworkBase(HybridBlock):
     def assemble_features(
         self,
         F,
-        feat_static_cat: Tensor,  # (batch_size, num_features)
+        feat_static_cat: Tensor,  # (batch_size, 1)
         time_feat: Tensor,  # (batch_size, history_length, num_features)
     ) -> Tensor:  # (batch_size, history_length, num_features)
         # todo: this is shared by more than one places, and should be a general routine
@@ -56,7 +56,7 @@ class DeepFactorNetworkBase(HybridBlock):
     def compute_global_local(
         self,
         F,
-        feat_static_cat: Tensor,  # (batch_size, num_features)
+        feat_static_cat: Tensor,  # (batch_size, 1)
         time_feat: Tensor,  # (batch_size, history_length, num_features)
     ) -> (Tensor, Tensor):  # both of size (batch_size, history_length, 1)
 
@@ -91,9 +91,9 @@ class DeepFactorTrainingNetwork(DeepFactorNetworkBase):
     def hybrid_forward(
         self,
         F,
-        feat_static_cat: Tensor,  # (batch_size, num_features)
+        feat_static_cat: Tensor,  # (batch_size, 1)
         past_time_feat: Tensor,
-        # (batch_size, num_features, history_length)
+        # (batch_size, history_length, num_features)
         past_target: Tensor,  # (batch_size, history_length)
     ) -> Tensor:
         """
@@ -102,7 +102,7 @@ class DeepFactorTrainingNetwork(DeepFactorNetworkBase):
         F
             Function space
         feat_static_cat
-            Shape: (batch_size, num_features)
+            Shape: (batch_size, 1)
         past_time_feat
             Shape: (batch_size, history_length, num_features)
         past_target
@@ -141,6 +141,25 @@ class DeepFactorPredictionNetwork(DeepFactorNetworkBase):
         future_time_feat: Tensor,
         past_target: Tensor,
     ) -> Tensor:
+        """
+        Parameters
+        ----------
+        F
+            Function space
+        feat_static_cat
+            Shape: (batch_size, 1)
+        past_time_feat
+            Shape: (batch_size, history_length, num_features)
+        future_time_feat
+            Shape: (batch_size, prediction_length, num_features)
+        past_target
+            Shape: (batch_size, history_length)
+
+        Returns
+        -------
+        Tensor
+            Samples of shape (batch_size, num_samples, prediction_length).
+        """
         time_feat = F.concat(past_time_feat, future_time_feat, dim=1)
         fixed_effect, random_effect = self.compute_global_local(
             F, feat_static_cat, time_feat

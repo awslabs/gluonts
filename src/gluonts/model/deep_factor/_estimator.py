@@ -2,16 +2,14 @@
 from typing import List
 
 # First-party imports
-from dataset.repository.datasets import get_dataset
-from evaluation import Evaluator
+from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.evaluation import Evaluator
 from gluonts import transform
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
 from gluonts.distribution import DistributionOutput, StudentTOutput
-from gluonts.evaluation.backtest import (
-    backtest_metrics,
-    make_evaluation_predictions,
-)
+from gluonts.evaluation.backtest import make_evaluation_predictions
+
 from gluonts.model.deep_factor.RNNModel import RNNModel
 from gluonts.model.deep_factor._network import (
     DeepFactorTrainingNetwork,
@@ -145,21 +143,21 @@ def simple_main():
     import mxnet as mx
     from pprint import pprint
 
-    dataset = get_dataset("electricity", regenerate=True)
+    dataset = get_dataset("electricity", regenerate=False)
 
     trainer = Trainer(
-        batch_size=370,
         ctx=mx.cpu(0),
-        epochs=1,
-        num_batches_per_epoch=1,
+        epochs=10,
+        num_batches_per_epoch=200,
         learning_rate=1e-3,
         hybridize=False,
     )
 
+    cardinality = int(dataset.metadata.feat_static_cat[0].cardinality)
     estimator = DeepFactorEstimator(
         trainer=trainer,
         context_length=168,
-        cardinality=[370],
+        cardinality=[cardinality],
         prediction_length=dataset.metadata.prediction_length,
         freq=dataset.metadata.freq,
     )
