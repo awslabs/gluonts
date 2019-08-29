@@ -256,8 +256,8 @@ Optional:
 
 - `feat_static_cat`: static (over time) categorical features, list with dimension equal to the number of features
 - `feat_static_real`: static (over time) real features, list with dimension equal to the number of features
-- `feat_dynamic_cat`: dynamic (over time) categorical features, array with shape equal to (target length, number of features)
-- `feat_dynamic_real`: dynamic (over time) real features, array with shape equal to (target length, number of features)
+- `feat_dynamic_cat`: dynamic (over time) categorical features, array with shape equal to (number of features, target length)
+- `feat_dynamic_real`: dynamic (over time) real features, array with shape equal to (number of features, target length)
 
 Added by `Transformation`:
 
