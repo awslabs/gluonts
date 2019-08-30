@@ -316,6 +316,10 @@ class LDS(Distribution):
 
         # Sample the prior state.
         # samples_lat_state: (num_samples, batch_size, latent_dim, 1)
+        # The prior covariance is observed to be slightly negative definite whenever there is
+        # excessive zero padding at the beginning of the time series.
+        # We add positive tolerance to the diagonal to avoid numerical issues.
+        # Note that `jitter_cholesky` adds positive tolerance only if the decomposition without jitter fails.
         state = MultivariateGaussian(
             self.prior_mean,
             jitter_cholesky(

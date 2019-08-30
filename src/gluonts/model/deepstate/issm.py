@@ -11,13 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# Standard library imports
 from typing import List, Tuple
 
+# Third-party imports
+from pandas.tseries.frequencies import to_offset
+
+# First-party imports
 from gluonts.core.component import validated
 from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
 from gluonts.support.util import _broadcast_param
-from gluonts.time_feature.lag import get_granularity
 from gluonts.time_feature import (
     TimeFeature,
     MinuteOfHour,
@@ -51,13 +55,20 @@ def _make_block_diagonal(blocks: List[Tensor]) -> Tensor:
 def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
     """
     Creates a block diagonal matrix of shape (batch_size, m+n, m+n) where m and n are the sizes of
-            the axis 1 of left and right respectively.
-            (batch_size, seq_length, latent_dim, latent_dim)
-    :param left: shape (batch_size, seq_length, m, m)
-    :param right: shape (batch_size, seq_length, n, n)
-    :return: shape (batch_size, seq_length, m+n, m+n)
-    """
+    the axis 1 of left and right respectively.
 
+    Parameters
+    ----------
+    F
+    left
+        Tensor of shape (batch_size, seq_length, m, m)
+    right
+        Tensor of shape (batch_size, seq_length, n, n)
+    Returns
+    -------
+    Tensor
+        Block diagonal matrix of shape (batch_size, seq_length, m+n, m+n)
+    """
     # shape (batch_size, seq_length, m, n)
     zeros_off_diag = F.broadcast_add(
         left.slice_axis(
@@ -82,6 +93,17 @@ def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
 
 
 class ISSM:
+    r"""
+    An abstract class for providing the basic structure of Innovation State Space Model (ISSM).
+
+    The structure of ISSM is given by
+
+        * dimension of the latent state
+        * transition and emission coefficents of the transition model
+        * emission coefficient of the observation model
+
+    """
+
     @validated()
     def __init__(self):
         pass
@@ -238,61 +260,61 @@ class CompositeISSM(ISSM):
 
     @classmethod
     def get_from_freq(cls, freq: str, add_trend: bool = DEFAULT_ADD_TREND):
-        multiple, granularity = get_granularity(freq)
+        offset = to_offset(freq)
 
         seasonal_issms: List[SeasonalityISSM] = []
 
-        if granularity == "M":
+        if offset.name == "M":
             seasonal_issms = [
                 SeasonalityISSM(num_seasons=12)  # month-of-year seasonality
             ]
-        elif granularity == "W":
+        elif offset.name == "W-SUN":
             seasonal_issms = [
                 SeasonalityISSM(num_seasons=53)  # week-of-year seasonality
             ]
-        elif granularity == "D":
+        elif offset.name == "D":
             seasonal_issms = [
                 SeasonalityISSM(num_seasons=7)  # day-of-week seasonality
             ]
-        elif granularity == "B":  # TODO: check this case
+        elif offset.name == "B":  # TODO: check this case
             seasonal_issms = [
                 SeasonalityISSM(num_seasons=7)  # day-of-week seasonality
             ]
-        elif granularity == "H":
+        elif offset.name == "H":
             seasonal_issms = [
                 SeasonalityISSM(num_seasons=24),  # hour-of-day seasonality
                 SeasonalityISSM(num_seasons=7),  # day-of-week seasonality
             ]
-        elif granularity in ["min", "T"]:
+        elif offset.name == "T":
             seasonal_issms = [
                 SeasonalityISSM(num_seasons=60),  # minute-of-hour seasonality
                 SeasonalityISSM(num_seasons=24),  # hour-of-day seasonality
             ]
         else:
-            RuntimeError(f"Unsupported granularity {granularity}")
+            RuntimeError(f"Unsupported frequency {offset.name}")
 
         return cls(seasonal_issms=seasonal_issms, add_trend=add_trend)
 
     @classmethod
     def seasonal_features(cls, freq: str) -> List[TimeFeature]:
-        multiple, granularity = get_granularity(freq)
-        if granularity == "M":
+        offset = to_offset(freq)
+        if offset.name == "M":
             return [MonthOfYear(normalized=False)]
-        elif granularity == "W":
+        elif offset.name == "W-SUN":
             return [WeekOfYear(normalized=False)]
-        elif granularity == "D":
+        elif offset.name == "D":
             return [DayOfWeek(normalized=False)]
-        elif granularity == "B":  # TODO: check this case
+        elif offset.name == "B":  # TODO: check this case
             return [DayOfWeek(normalized=False)]
-        elif granularity == "H":
+        elif offset.name == "H":
             return [HourOfDay(normalized=False), DayOfWeek(normalized=False)]
-        elif granularity in ["min", "T"]:
+        elif offset.name == "T":
             return [
                 MinuteOfHour(normalized=False),
                 HourOfDay(normalized=False),
             ]
         else:
-            RuntimeError(f"Unsupported granularity {granularity}")
+            RuntimeError(f"Unsupported frequency {offset.name}")
 
         return []
 

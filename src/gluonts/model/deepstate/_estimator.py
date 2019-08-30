@@ -16,6 +16,7 @@ from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
+from pandas.tseries.frequencies import to_offset
 
 # First-party imports
 from gluonts.core.component import validated
@@ -24,7 +25,6 @@ from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature.lag import (
-    longest_period_from_frequency_str,
     TimeFeature,
     time_features_from_frequency_str,
 )
@@ -51,14 +51,35 @@ from ._network import DeepStatePredictionNetwork, DeepStateTrainingNetwork
 SEASON_INDICATORS_FIELD = "seasonal_indicators"
 
 
+# A dictionary mapping granularity to the period length of the longest season
+# one can expect given the granularity of the time series.
+# This is similar to the frequency value in the R forecast package:
+# https://stats.stackexchange.com/questions/120806/frequency-value-for-seconds-minutes-intervals-data-in-r
+# This is useful for setting default values for past/context length for models
+# that do not do data augmentation and uses a single training example per time series in the dataset.
+FREQ_LONGEST_PERIOD_DICT = {
+    "M": 12,  # yearly seasonality
+    "W-SUN": 52,  # yearly seasonality
+    "D": 365,  # yearly seasonality
+    "B": 365,  # yearly seasonality
+    "H": 168,  # weekly seasonality
+    "T": 1440,  # daily seasonality
+}
+
+
+def longest_period_from_frequency_str(freq_str: str) -> int:
+    offset = to_offset(freq_str)
+    return FREQ_LONGEST_PERIOD_DICT[offset.name] // offset.n
+
+
 class DeepStateEstimator(GluonEstimator):
     """
     Construct a DeepState estimator.
     
     This implements the deep state space model described in
-    [Rangapuram et. al. 2018]
+    [Rangapuram et al. 2018]
 
-    .. [Rangapuram et. al. 2018] Syama S. Rangapuram, Matthias W. Seeger,
+    .. [Rangapuram et al. 2018] Syama S. Rangapuram, Matthias W. Seeger,
     Jan Gasthaus, Lorenzo Stella, Yuyang Wang, Tim Januschowski.
     Deep State Space Models for Time Series Forecasting.
     In NeurIPS 31, pages 7785–7794, 2018.
@@ -125,7 +146,7 @@ class DeepStateEstimator(GluonEstimator):
         prediction_length: int,
         add_trend: bool = False,
         past_length: Optional[int] = None,
-        num_seasons_to_train: int = 4,
+        num_periods_to_train: int = 4,
         trainer: Trainer = Trainer(epochs=25, hybridize=False),
         num_layers: int = 2,
         num_cells: int = 40,
@@ -153,7 +174,7 @@ class DeepStateEstimator(GluonEstimator):
         assert (
             num_eval_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
-        assert dropout_rate > 0, "The value of `dropout_rate` should be > 0"
+        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert (
             cardinality is not None or not use_feat_static_cat
         ), "You must set `cardinality` if `use_feat_static_cat=True`"
@@ -168,7 +189,7 @@ class DeepStateEstimator(GluonEstimator):
         self.past_length = (
             past_length
             if past_length is not None
-            else num_seasons_to_train * longest_period_from_frequency_str(freq)
+            else num_periods_to_train * longest_period_from_frequency_str(freq)
         )
         self.prediction_length = prediction_length
         self.add_trend = add_trend
