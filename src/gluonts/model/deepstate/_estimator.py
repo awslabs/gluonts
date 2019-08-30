@@ -101,10 +101,10 @@ class DeepStateEstimator(GluonEstimator):
         (default: None, in which case the training length is set such that at least
         `num_seasons_to_train` seasons are included in the training.
         See `num_seasons_to_train`)
-    num_seasons_to_train
+    num_periods_to_train
         (Used only when `past_length` is not set)
-        Number of seasons to include in the training time series. (default: 4)
-        Here season corresponds to the longest cycle one can expect given the granularity of the time series.
+        Number of periods to include in the training time series. (default: 4)
+        Here period corresponds to the longest cycle one can expect given the granularity of the time series.
         See: https://stats.stackexchange.com/questions/120806/frequency-value-for-seconds-minutes-intervals-data-in-r
     trainer
         Trainer object to be used (default: Trainer())
