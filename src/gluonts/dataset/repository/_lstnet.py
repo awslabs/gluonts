@@ -23,6 +23,7 @@ from typing import List, NamedTuple, Optional
 import pandas as pd
 
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.support.pandas import frequency_add
 
 
 def load_from_pandas(
@@ -174,7 +175,7 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
 
     # time of the first prediction
     prediction_dates = [
-        training_end + (i * ds_info.prediction_length) * training_end.freq
+        frequency_add(training_end, i * ds_info.prediction_length)
         for i in range(ds_info.rolling_evaluations)
     ]
 
@@ -182,8 +183,8 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
     for prediction_start_date in prediction_dates:
         for cat, ts in enumerate(timeseries):
             # print(prediction_start_date)
-            prediction_end_date = prediction_start_date + (
-                ds_info.prediction_length * prediction_start_date.freq
+            prediction_end_date = frequency_add(
+                prediction_start_date, ds_info.prediction_length
             )
             sliced_ts = ts[:prediction_end_date]
             test_ts.append(
