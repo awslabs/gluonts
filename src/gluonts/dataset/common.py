@@ -34,6 +34,7 @@ import pandas as pd
 import pydantic
 import ujson as json
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
@@ -310,29 +311,34 @@ class ProcessStartField:
     @staticmethod
     @lru_cache(maxsize=10000)
     def process(string: str, freq: str) -> pd.Timestamp:
-        rollback_cases = {
-            "B": "D",
-            "M": "M",
-            # 'W-SUN' is the standardized freqstr for W
-            "W-SUN": "W-SUN",
-            # 'A-DEC' is the standardized freqstr for Y
-            "A-DEC": "AS-JAN",
-        }
+        """Create timestamp and align it according to frequency.
+        """
 
         timestamp = pd.Timestamp(string, freq=freq)
-        if timestamp.freq.name in rollback_cases:
-            offset = to_offset(rollback_cases[timestamp.freq.name])
-            # rollback does not reset time information, thus we set
-            # these all to zero by hand
-            timestamp = timestamp.replace(
-                hour=0, minute=0, second=0, microsecond=0, nanosecond=0
-            )
+
+        # operate on time information (hours, minute, second)
+        if isinstance(timestamp.freq, Tick):
             return pd.Timestamp(
-                offset.rollback(timestamp), freq=offset.freqstr
+                timestamp.floor(timestamp.freq), timestamp.freq
             )
-        return pd.Timestamp(
-            timestamp.floor(timestamp.freq), freq=timestamp.freq
+
+        # since we are only interested in the data piece, we normalize the
+        # time information
+        timestamp = timestamp.replace(
+            hour=0, minute=0, second=0, microsecond=0, nanosecond=0
         )
+
+        # TODO: replace with rollforward
+        return timestamp.freq.rollback(timestamp)
+
+
+def rollback(timestamp):
+    offset = timestamp.freq
+    # if not offset.onOffset(timestamp):
+    return timestamp - offset.__class__(
+        offset.n, normalize=True, **offset.kwds
+    )
+    # return timestamp
 
 
 class ProcessTimeSeriesField:
