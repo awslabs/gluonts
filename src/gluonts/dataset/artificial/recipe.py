@@ -32,6 +32,7 @@ def generate(
     start: pd.Timestamp,
     global_state: Optional[dict] = None,
     seed: int = 0,
+    item_id_prefix: str = "",
 ) -> Iterator[DataEntry]:
     np.random.seed(seed)
 
@@ -48,24 +49,28 @@ def generate(
                     field_name=k,
                     global_state=global_state,
                 )
-            yield dict(**data, item=x, start=start)
+            yield dict(**data, item_id=item_id_prefix + str(x), start=start)
     else:
         assert callable(recipe)
         for x in itertools.count():
             data = recipe(length=length, global_state=global_state)
-            yield dict(**data, item=x, start=start)
+            yield dict(**data, item_id=item_id_prefix + str(x), start=start)
 
 
-def evaluate_recipe(
-    funcs: List[Tuple[str, Callable]], length: int, global_state: dict = None
+def evaluate(
+    funcs: List[Tuple[str, Callable]], length: int, *args, global_state: dict = None, **kwargs
 ) -> dict:
     if global_state is None:
         global_state = {}
     data: DataEntry = {}
     for k, f in funcs:
-        data[k] = f(
-            data, length=length, field_name=k, global_state=global_state
-        )
+        try:
+            data[k] = f(
+                data, length=length, field_name=k, global_state=global_state
+            )
+        except ValueError as e:
+            raise ValueError("Error while evaluating key \"{}\"".format(k), e)
+
     return data
 
 
@@ -90,6 +95,13 @@ def take_as_list(iterator, num):
     return list(itertools.islice(iterator, num))
 
 
+def resolve(val_or_callable, context, *args, **kwargs):
+    if callable(val_or_callable):
+        return val_or_callable(context, *args, **kwargs)
+    else:
+        return val_or_callable
+
+
 class Debug:
     @validated()
     def __init__(self, print_global=False):
@@ -108,6 +120,12 @@ class Lifted:
 
     def __radd__(self, other):
         return LiftedAdd(other, self)
+
+    def __sub__(self, other):
+        return LiftedSub(self, other)
+
+    def __rsub__(self, other):
+        return LiftedSub(other, self)
 
     def __mul__(self, other):
         return LiftedMul(self, other, operator.mul)
@@ -144,6 +162,12 @@ class LiftedAdd(LiftedBinaryOp):
     @validated()
     def __init__(self, left, right) -> None:
         super().__init__(left, right, operator.add)
+
+
+class LiftedSub(LiftedBinaryOp):
+    @validated()
+    def __init__(self, left, right) -> None:
+        super().__init__(left, right, operator.sub)
 
 
 class LiftedMul(LiftedBinaryOp):
@@ -250,6 +274,26 @@ class ConstantVec(Lifted):
 
     def __call__(self, x, length, *args, **kwargs):
         return self.constant * np.ones(length)
+
+
+class NormalizeMax(Lifted):
+    @validated()
+    def __init__(self, input) -> None:
+        self.input = input
+
+    def __call__(self, x, *args, **kwargs):
+        inp = resolve(self.input, x, *args, kwargs)
+        return inp / np.max(inp)
+
+
+class OnesLike(Lifted):
+    @validated()
+    def __init__(self, other) -> None:
+        self.other = other
+
+    def __call__(self, x, length, *args, **kwargs):
+        other = resolve(self.other, x, length, **kwargs)
+        return np.ones_like(other)
 
 
 class LinearTrend(Lifted):
@@ -390,8 +434,130 @@ class NanWhereNot(Lifted):
 
 class Stack(Lifted):
     @validated()
-    def __init__(self, inputs: List[str]) -> None:
+    def __init__(self, inputs: List[Callable]) -> None:
         self.inputs = inputs
 
-    def __call__(self, x, **kwargs):
-        return np.stack([x[k] for k in self.inputs], axis=0)
+    def __call__(self, x, length, **kwargs):
+        inputs = [resolve(z, x, length, **kwargs) for z in self.inputs]
+        return np.stack(inputs, axis=0)
+
+
+class StackPrefix(Lifted):
+    @validated()
+    def __init__(self, prefix: str) -> None:
+        self.prefix = prefix
+
+    def __call__(self, x, length, **kwargs):
+        inputs = [v for k, v in x.items() if k.startswith(self.prefix)]
+        return np.stack(inputs, axis=0)
+
+
+class Ref(Lifted):
+    @validated()
+    def __init__(self, field_name: str) -> None:
+        self.field_name = field_name
+
+    def __call__(self, x, *args, **kwargs):
+        return x[self.field_name]
+
+
+class RandomUniform(Lifted):
+    @validated()
+    def __init__(self, low: float = 0, high: float = 1, shape=(0, )) -> None:
+        self.low = low
+        self.high = high
+        self.shape = shape
+
+    def __call__(self, x, length, **kwargs):
+        s = np.array(self.shape)
+        s[s == 0] = length
+        return np.random.uniform(self.low, self.high, s)
+
+
+class RandomInteger(Lifted):
+    @validated()
+    def __init__(self, low: int, high: int, length=None) -> None:
+        self.low = low
+        self.high = high
+        self.length = length
+
+    def __call__(self, x, length, **kwargs):
+        length = self.length if self.length is not None else length
+        return np.random.randint(self.low, self.high, length)
+
+
+class RandomChangepoints(Lifted):
+    @validated()
+    def __init__(self, max_num_changepoints: int) -> None:
+        self.max_num_changepoints = max_num_changepoints
+
+    def __call__(self, x, length, **kwargs):
+        num_changepoints = np.random.randint(0, self.max_num_changepoints + 1)
+        change_idx = np.sort(np.random.randint(low=1, high=length - 1, size=(num_changepoints, )))
+        change_ranges = np.concatenate([change_idx, [length]])
+        out = np.zeros(length, dtype=np.int)
+        for i in range(0, num_changepoints):
+            out[change_ranges[i]:change_ranges[i+1]] = i + 1
+        return out
+
+
+class Repeated(Lifted):
+    @validated()
+    def __init__(self, pattern) -> None:
+        self.pattern = pattern
+
+    def __call__(self, x, length, **kwargs):
+        pattern = resolve(self.pattern, x, length, **kwargs)
+        repeats = length // len(pattern) + 1
+        out = np.tile(pattern, (repeats, ))
+        return out[:length]
+
+
+class Convolve(Lifted):
+    @validated()
+    def __init__(self, input: Lifted, filter) -> None:
+        self.filter = filter
+        self.input = input
+
+    def __call__(self, x, length, **kwargs):
+        fil = resolve(self.filter, x, length, **kwargs)
+        inp = resolve(self.input, x, length, **kwargs)
+        out = np.convolve(inp, fil, mode="same")
+        return out
+
+
+class Dilated(Lifted):
+    @validated()
+    def __init__(self, source: Lifted, dilation: int) -> None:
+        self.source = source
+        self.dilation = dilation
+
+    def __call__(self, x, length, **kwargs):
+        inner = self.source(x, length // self.dilation + 1, **kwargs)
+        out = np.repeat(inner, self.dilation)
+        return out[:length]
+
+
+class Choose(Lifted):
+    @validated()
+    def __init__(self, options: Lifted, selector: Lifted):
+        self.options = options
+        self.selector = selector
+
+    def __call__(self, x, length, **kwargs):
+        options = resolve(self.options, x, length, **kwargs)
+        selector = resolve(self.selector, x, length, **kwargs)
+        e = np.eye(options.shape[0])
+        out = np.sum(e[selector] * options.T, axis=1)
+        return out
+
+
+class Eval(Lifted):
+    @validated()
+    def __init__(self, env, op: Lifted):
+        self.env = env
+        self.op = op
+
+    def __call__(self, x, *args, **kwargs):
+        xx = evaluate(self.env, *args, **kwargs)
+        return self.op(xx, *args, **kwargs)
