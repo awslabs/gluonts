@@ -77,13 +77,7 @@ class DeepStateEstimator(GluonEstimator):
     Construct a DeepState estimator.
     
     This implements the deep state space model described in
-    [Rangapuram et al. 2018]
-
-    .. [Rangapuram et al. 2018] Syama S. Rangapuram, Matthias W. Seeger,
-    Jan Gasthaus, Lorenzo Stella, Yuyang Wang, Tim Januschowski.
-    Deep State Space Models for Time Series Forecasting.
-    In NeurIPS 31, pages 7785–7794, 2018.
-    https://papers.nips.cc/paper/8004-deep-state-space-models-for-time-series-forecasting
+    [RSG+18]_.
 
     Parameters
     ----------

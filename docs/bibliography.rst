@@ -15,6 +15,8 @@ Bibliography
 
 .. [PKC+16] Paine, Tom Le, et al. "Fast wavenet generation algorithm." arXiv preprint arXiv:1611.09482 (2016).
 
+.. [RSG+18] Rangapuram, Syama Sundar, et al. "Deep state space models for time series forecasting." Advances in Neural Information Processing Systems. 2018.
+
 .. [SFG17] Salinas, David, Valentin Flunkert, and Jan Gasthaus. "DeepAR: Probabilistic forecasting with autoregressive recurrent networks." arXiv preprint arXiv:1704.04110 (2017).
 
 .. [WTN+17] Wen, Ruofeng, et al. "A multi-horizon quantile recurrent forecaster." arXiv preprint arXiv:1711.11053 (2017).
