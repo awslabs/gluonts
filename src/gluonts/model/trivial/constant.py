@@ -21,10 +21,10 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
 from gluonts.support.pandas import forecast_start
-from gluonts.transform import FieldName
 
 
 class ConstantPredictor(RepresentablePredictor):

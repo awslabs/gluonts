@@ -24,6 +24,7 @@ import numpy as np
 from gluonts import transform
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
@@ -42,7 +43,6 @@ from gluonts.transform import (
     Chain,
     DataEntry,
     ExpectedNumInstanceSampler,
-    FieldName,
     InstanceSplitter,
     SetFieldIfNotPresent,
     SimpleTransformation,

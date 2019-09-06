@@ -47,6 +47,7 @@ from gluonts.core.component import (
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.support.util import (
@@ -57,7 +58,7 @@ from gluonts.support.util import (
     import_repr_block,
     import_symb_block,
 )
-from gluonts.transform import Transformation, FieldName
+from gluonts.transform import Transformation
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa

@@ -21,12 +21,12 @@ from pydantic import PositiveInt
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
 from gluonts.support.pandas import frequency_add
-from gluonts.transform import FieldName
 
 
 class MeanPredictor(RepresentablePredictor, FallbackPredictor):

@@ -17,6 +17,7 @@ import numpy as np
 # First-party imports
 from gluonts import transform
 from gluonts.dataset.common import ListDataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.seq2seq._transform import ForkingSequenceSplitter
 from gluonts.transform import TestSplitSampler
 
@@ -41,7 +42,7 @@ def test_forking_sequence_splitter() -> None:
     trans = transform.Chain(
         trans=[
             transform.AddAgeFeature(
-                target_field=transform.FieldName.TARGET,
+                target_field=FieldName.TARGET,
                 output_field="age",
                 pred_length=10,
             ),
@@ -75,7 +76,7 @@ def test_forking_sequence_splitter() -> None:
     trans_oob = transform.Chain(
         trans=[
             transform.AddAgeFeature(
-                target_field=transform.FieldName.TARGET,
+                target_field=FieldName.TARGET,
                 output_field="age",
                 pred_length=10,
             ),

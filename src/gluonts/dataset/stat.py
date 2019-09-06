@@ -23,6 +23,7 @@ import numpy as np
 from gluonts.core.component import validated
 from gluonts.core.exception import assert_data_error
 from gluonts.gluonts_tqdm import tqdm
+from gluonts.dataset.field_names import FieldName
 
 
 class ScaleHistogram:
@@ -108,14 +109,16 @@ class DatasetStatistics(NamedTuple):
     A NamedTuple to store the statistics of a Dataset.
     """
 
-    cats: List[Set[int]]
     integer_dataset: bool
     max_target: float
     mean_abs_target: float
     mean_target: float
     mean_target_length: float
     min_target: float
-    num_dynamic_feat: int
+    feat_static_real: List[Set[float]]
+    feat_static_cat: List[Set[int]]
+    num_feat_dynamic_real: Optional[int]
+    num_feat_dynamic_cat: Optional[int]
     num_missing_values: int
     num_time_observations: int
     num_time_series: int
@@ -157,93 +160,183 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     sum_target = 0.0
     sum_abs_target = 0.0
     integer_dataset = True
-    observed_cats: Optional[List[Set[int]]] = None
-    num_cats: Optional[int] = None
-    num_dynamic_feat: Optional[int] = None
+    observed_feat_static_cat: Optional[List[Set[int]]] = None
+    observed_feat_static_real: Optional[List[Set[float]]] = None
+    num_feat_static_real: Optional[int] = None
+    num_feat_static_cat: Optional[int] = None
+    num_feat_dynamic_real: Optional[int] = None
+    num_feat_dynamic_cat: Optional[int] = None
     num_missing_values = 0
 
     scale_histogram = ScaleHistogram()
 
     with tqdm(enumerate(ts_dataset, start=1), total=len(ts_dataset)) as it:
         for num_time_series, ts in it:
-            target = ts["target"]
+
+            # TARGET
+            target = ts[FieldName.TARGET]
             observed_target = target[~np.isnan(target)]
-            cat = ts["cat"] if "cat" in ts else []  # FIXME
             num_observations = len(observed_target)
-            scale_histogram.add(observed_target)
 
             if num_observations > 0:
+                # 'nan' is handled in observed_target definition
+                assert_data_error(
+                    np.all(np.isfinite(observed_target)),
+                    "Target values have to be finite (e.g., not inf, -inf, "
+                    "or None) and cannot exceed single precision floating "
+                    "point range.",
+                )
+
                 num_time_observations += num_observations
-                # TODO: this code does not handle missing value: min_target would
-                # TODO: be NaN if any missing value is present
                 min_target = float(min(min_target, observed_target.min()))
                 max_target = float(max(max_target, observed_target.max()))
                 num_missing_values += int(np.isnan(target).sum())
-
-                assert_data_error(
-                    np.all(np.isfinite(observed_target)),
-                    'Target values have to be finite (e.g., not "inf", "-inf", '
-                    '"nan", or null) and cannot exceed single precision floating '
-                    "point range.",
-                )
                 sum_target += float(observed_target.sum())
                 sum_abs_target += float(np.abs(observed_target).sum())
                 integer_dataset = integer_dataset and bool(
                     np.all(np.mod(observed_target, 1) == 0)
                 )
 
-            if num_cats is None:
-                num_cats = len(cat)
-                observed_cats = [set() for _ in range(num_cats)]
+            scale_histogram.add(
+                observed_target
+            )  # after checks for inf and None
+
+            # FEAT_STATIC_CAT
+            feat_static_cat = (
+                ts[FieldName.FEAT_STATIC_CAT]
+                if FieldName.FEAT_STATIC_CAT in ts
+                else []
+            )
+
+            if num_feat_static_cat is None:
+                num_feat_static_cat = len(feat_static_cat)
+                observed_feat_static_cat = [
+                    set() for _ in range(num_feat_static_cat)
+                ]
 
             # needed to type check
-            assert num_cats is not None
-            assert observed_cats is not None
+            assert num_feat_static_cat is not None
+            assert observed_feat_static_cat is not None
 
             assert_data_error(
-                num_cats == len(cat),
-                "Not all cat vectors have the same length {} != {}.",
-                num_cats,
-                len(cat),
+                num_feat_static_cat == len(feat_static_cat),
+                "Not all feat_static_cat vectors have the same length {} != {}.",
+                num_feat_static_cat,
+                len(feat_static_cat),
             )
-            for i, c in enumerate(cat):
-                observed_cats[i].add(c)
+            for i, c in enumerate(feat_static_cat):
+                observed_feat_static_cat[i].add(c)
 
-            dynamic_feat = ts["dynamic_feat"] if "dynamic_feat" in ts else None
+            # FEAT_STATIC_REAL
+            feat_static_real = (
+                ts[FieldName.FEAT_STATIC_REAL]
+                if FieldName.FEAT_STATIC_REAL in ts
+                else []
+            )
 
-            if dynamic_feat is None:
-                # dynamic_feat not found, check it was the first ts we encounter or
-                # that dynamic_feat were seen before
+            if num_feat_static_real is None:
+                num_feat_static_real = len(feat_static_real)
+                observed_feat_static_real = [
+                    set() for _ in range(num_feat_static_real)
+                ]
+
+            # needed to type check
+            assert num_feat_static_real is not None
+            assert observed_feat_static_real is not None
+
+            assert_data_error(
+                num_feat_static_real == len(feat_static_real),
+                "Not all feat_static_real vectors have the same length {} != {}.",
+                num_feat_static_real,
+                len(feat_static_real),
+            )
+            for i, c in enumerate(feat_static_real):
+                observed_feat_static_real[i].add(c)
+
+            # FEAT_DYNAMIC_CAT
+            feat_dynamic_cat = (
+                ts[FieldName.FEAT_DYNAMIC_CAT]
+                if FieldName.FEAT_DYNAMIC_CAT in ts
+                else None
+            )
+
+            if feat_dynamic_cat is None:
+                # feat_dynamic_cat not found, check it was the first ts we encounter or
+                # that feat_dynamic_cat were seen before
                 assert_data_error(
-                    num_dynamic_feat is None or num_dynamic_feat == 0,
-                    "dynamic_feat was found for some instances but not others.",
+                    num_feat_dynamic_cat is None or num_feat_dynamic_cat == 0,
+                    "feat_dynamic_cat was found for some instances but not others.",
                 )
-                num_dynamic_feat = 0
+                num_feat_dynamic_cat = 0
             else:
-                if num_dynamic_feat is None:
-                    # first dynamic_feat found
-                    num_dynamic_feat = dynamic_feat.shape[0]
+                if num_feat_dynamic_cat is None:
+                    # first num_feat_dynamic_cat found
+                    num_feat_dynamic_cat = feat_dynamic_cat.shape[0]
                 else:
                     assert_data_error(
-                        num_dynamic_feat == dynamic_feat.shape[0],
+                        num_feat_dynamic_cat == feat_dynamic_cat.shape[0],
                         "Found instances with different number of features in "
-                        "dynamic_feat, found one with {} and another with {}.",
-                        num_dynamic_feat,
-                        dynamic_feat.shape[0],
+                        "feat_dynamic_cat, found one with {} and another with {}.",
+                        num_feat_dynamic_cat,
+                        feat_dynamic_cat.shape[0],
                     )
 
                 assert_data_error(
-                    np.all(np.isfinite(dynamic_feat)),
+                    np.all(np.isfinite(feat_dynamic_cat)),
                     "Features values have to be finite and cannot exceed single "
                     "precision floating point range.",
                 )
-                num_dynamic_feat_time_steps = dynamic_feat.shape[1]
+                num_feat_dynamic_cat_time_steps = feat_dynamic_cat.shape[1]
                 assert_data_error(
-                    num_dynamic_feat_time_steps == len(target),
-                    "Each feature in dynamic_feat has to have the same length as "
-                    "the target. Found an instance with dynamic_feat of length {} "
+                    num_feat_dynamic_cat_time_steps == len(target),
+                    "Each feature in feat_dynamic_cat has to have the same length as "
+                    "the target. Found an instance with feat_dynamic_cat of length {} "
                     "and a target of length {}.",
-                    num_dynamic_feat_time_steps,
+                    num_feat_dynamic_cat_time_steps,
+                    len(target),
+                )
+
+            # FEAT_DYNAMIC_REAL
+            feat_dynamic_real = (
+                ts[FieldName.FEAT_DYNAMIC_REAL]
+                if FieldName.FEAT_DYNAMIC_REAL in ts
+                else None
+            )
+
+            if feat_dynamic_real is None:
+                # feat_dynamic_real not found, check it was the first ts we encounter or
+                # that feat_dynamic_real were seen before
+                assert_data_error(
+                    num_feat_dynamic_real is None
+                    or num_feat_dynamic_real == 0,
+                    "feat_dynamic_real was found for some instances but not others.",
+                )
+                num_feat_dynamic_real = 0
+            else:
+                if num_feat_dynamic_real is None:
+                    # first num_feat_dynamic_real found
+                    num_feat_dynamic_real = feat_dynamic_real.shape[0]
+                else:
+                    assert_data_error(
+                        num_feat_dynamic_real == feat_dynamic_real.shape[0],
+                        "Found instances with different number of features in "
+                        "feat_dynamic_real, found one with {} and another with {}.",
+                        num_feat_dynamic_real,
+                        feat_dynamic_real.shape[0],
+                    )
+
+                assert_data_error(
+                    np.all(np.isfinite(feat_dynamic_real)),
+                    "Features values have to be finite and cannot exceed single "
+                    "precision floating point range.",
+                )
+                num_feat_dynamic_real_time_steps = feat_dynamic_real.shape[1]
+                assert_data_error(
+                    num_feat_dynamic_real_time_steps == len(target),
+                    "Each feature in feat_dynamic_real has to have the same length as "
+                    "the target. Found an instance with feat_dynamic_real of length {} "
+                    "and a target of length {}.",
+                    num_feat_dynamic_real_time_steps,
                     len(target),
                 )
 
@@ -267,7 +360,6 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     assert len(scale_histogram) == num_time_series
 
     return DatasetStatistics(
-        cats=observed_cats if observed_cats is not None else [],
         integer_dataset=integer_dataset,
         max_target=max_target,
         mean_abs_target=mean_abs_target,
@@ -275,7 +367,14 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
         mean_target_length=mean_target_length,
         min_target=min_target,
         num_missing_values=num_missing_values,
-        num_dynamic_feat=num_dynamic_feat if num_dynamic_feat else 0,
+        feat_static_real=observed_feat_static_real
+        if observed_feat_static_real
+        else [],
+        feat_static_cat=observed_feat_static_cat
+        if observed_feat_static_cat
+        else [],
+        num_feat_dynamic_real=num_feat_dynamic_real,
+        num_feat_dynamic_cat=num_feat_dynamic_cat,
         num_time_observations=num_time_observations,
         num_time_series=num_time_series,
         scale_histogram=scale_histogram,
