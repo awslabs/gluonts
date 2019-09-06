@@ -99,8 +99,8 @@ class NegativeBinomialOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, alpha):
-        mu = softplus(F, mu)
-        alpha = softplus(F, alpha)
+        mu = softplus(F, mu) + 1e-8
+        alpha = softplus(F, alpha) + 1e-8
         return mu.squeeze(axis=-1), alpha.squeeze(axis=-1)
 
     # Overwrites the parent class method.
