@@ -13,6 +13,7 @@
 
 # First-party imports
 from gluonts.dataset.artificial import constant_dataset
+from gluonts.dataset.field_names import FieldName
 
 
 def test_listing_1():
@@ -64,7 +65,6 @@ def test_appendix_c():
     from gluonts.trainer import Trainer
     from gluonts.transform import (
         InstanceSplitter,
-        FieldName,
         Transformation,
         ExpectedNumInstanceSampler,
     )

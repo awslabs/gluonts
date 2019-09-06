@@ -237,7 +237,7 @@ As already mentioned a dataset is required to have at least the `target` and the
 
 
 ```python
-from gluonts.transform import FieldName
+from gluonts.dataset.field_names import FieldName
 ```
 
 
@@ -423,7 +423,6 @@ from gluonts.transform import (
     AddObservedValuesIndicator,
     Chain,
     ExpectedNumInstanceSampler,
-    FieldName,
     InstanceSplitter,
     SetFieldIfNotPresent,
 )
@@ -835,7 +834,7 @@ from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.core.component import validated
 from gluonts.trainer import Trainer
 from gluonts.support.util import copy_parameters
-from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter, FieldName
+from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
 from mxnet.gluon import HybridBlock
 ```
 
