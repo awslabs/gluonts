@@ -32,8 +32,7 @@ class NegativeBinomial(Distribution):
     mu
         Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
     alpha
-        Ratio between the success probability `p` of a single experiment,
-        and the maximum number of failures allowed.
+        Tensor of the shape parameters, of shape `(*batch_shape, *event_shape)`.
     F
     """
 
