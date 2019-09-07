@@ -20,6 +20,7 @@ from gluonts.evaluation import Evaluator
 from gluonts import transform
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.evaluation.backtest import make_evaluation_predictions
 
@@ -36,7 +37,6 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    FieldName,
     SetFieldIfNotPresent,
     TestSplitSampler,
     Transformation,

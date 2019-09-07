@@ -22,6 +22,7 @@ from gluonts import transform
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.rnn import RNN
 from gluonts.core.component import validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
@@ -31,7 +32,7 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    FieldName,
+    InstanceSplitter,
     SetFieldIfNotPresent,
     TestSplitSampler,
     Transformation,
@@ -84,11 +85,11 @@ class CanonicalEstimator(GluonEstimator):
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-                transform.InstanceSplitter(
-                    target_field=transform.FieldName.TARGET,
-                    is_pad_field=transform.FieldName.IS_PAD,
-                    start_field=transform.FieldName.START,
-                    forecast_start_field=transform.FieldName.FORECAST_START,
+                InstanceSplitter(
+                    target_field=FieldName.TARGET,
+                    is_pad_field=FieldName.IS_PAD,
+                    start_field=FieldName.START,
+                    forecast_start_field=FieldName.FORECAST_START,
                     train_sampler=TestSplitSampler(),
                     time_series_fields=[FieldName.FEAT_TIME],
                     past_length=self.context_length,

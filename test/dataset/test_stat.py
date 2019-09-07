@@ -37,32 +37,56 @@ def make_dummy_dynamic_feat(target, num_features) -> np.ndarray:
 # default values for TimeSeries field
 start = pd.Timestamp("1985-01-02", freq="1D")
 target = np.random.randint(0, 10, 20)
-cat = [0, 1]
+fsc = [0, 1]
+fsr = [0.1, 0.2]
 
 
 def make_time_series(
-    start=start, target=target, cat=cat, num_dynamic_feat=1
+    start=start,
+    target=target,
+    feat_static_cat=fsc,
+    feat_static_real=fsr,
+    num_feat_dynamic_cat=1,
+    num_feat_dynamic_real=1,
 ) -> DataEntry:
-    dynamic_feat = (
-        make_dummy_dynamic_feat(target, num_dynamic_feat)
-        if num_dynamic_feat > 0
+    feat_dynamic_cat = (
+        make_dummy_dynamic_feat(target, num_feat_dynamic_cat).astype("int64")
+        if num_feat_dynamic_cat > 0
+        else None
+    )
+    feat_dynamic_real = (
+        make_dummy_dynamic_feat(target, num_feat_dynamic_real).astype("float")
+        if num_feat_dynamic_real > 0
         else None
     )
     data = {
         "start": start,
         "target": target,
-        "cat": cat,
-        "dynamic_feat": dynamic_feat,
+        "feat_static_cat": feat_static_cat,
+        "feat_static_real": feat_static_real,
+        "feat_dynamic_cat": feat_dynamic_cat,
+        "feat_dynamic_real": feat_dynamic_real,
     }
     return data
 
 
-def ts(start, target, cat=None, dynamic_feat=None) -> DataEntry:
+def ts(
+    start,
+    target,
+    feat_static_cat=None,
+    feat_static_real=None,
+    feat_dynamic_cat=None,
+    feat_dynamic_real=None,
+) -> DataEntry:
     d = {"start": start, "target": target}
-    if cat is not None:
-        d["cat"] = cat
-    if dynamic_feat is not None:
-        d["dynamic_feat"] = dynamic_feat
+    if feat_static_cat is not None:
+        d["feat_static_cat"] = feat_static_cat
+    if feat_static_real is not None:
+        d["feat_static_real"] = feat_static_real
+    if feat_dynamic_cat is not None:
+        d["feat_dynamic_cat"] = feat_dynamic_cat
+    if feat_dynamic_real is not None:
+        d["feat_dynamic_real"] = feat_dynamic_real
     return d
 
 
@@ -91,8 +115,10 @@ class DatasetStatisticsTest(unittest.TestCase):
             mean_target=targets.mean(),
             mean_abs_target=targets.mean(),
             max_target=targets.max(),
-            cats=[{0}, {1, 2}],
-            num_dynamic_feat=2,
+            feat_static_real=[{0.1}, {0.2, 0.3}],
+            feat_static_cat=[{1}, {2, 3}],
+            num_feat_dynamic_real=2,
+            num_feat_dynamic_cat=2,
             num_missing_values=0,
             scale_histogram=scale_histogram,
         )
@@ -102,13 +128,25 @@ class DatasetStatisticsTest(unittest.TestCase):
             Dataset,
             [
                 make_time_series(
-                    target=targets[0, :], cat=[0, 1], num_dynamic_feat=2
+                    target=targets[0, :],
+                    feat_static_cat=[1, 2],
+                    feat_static_real=[0.1, 0.2],
+                    num_feat_dynamic_cat=2,
+                    num_feat_dynamic_real=2,
                 ),
                 make_time_series(
-                    target=targets[1, :], cat=[0, 2], num_dynamic_feat=2
+                    target=targets[1, :],
+                    feat_static_cat=[1, 3],
+                    feat_static_real=[0.1, 0.3],
+                    num_feat_dynamic_cat=2,
+                    num_feat_dynamic_real=2,
                 ),
                 make_time_series(
-                    target=np.array([]), cat=[0, 2], num_dynamic_feat=2
+                    target=np.array([]),
+                    feat_static_cat=[1, 3],
+                    feat_static_real=[0.1, 0.3],
+                    num_feat_dynamic_cat=2,
+                    num_feat_dynamic_real=2,
                 ),
             ],
         )
@@ -153,72 +191,130 @@ class DatasetStatisticsExceptions(unittest.TestCase):
             [make_time_series(target=np.random.randint(0, 10, 0))],
         )
 
-        # different number of dynamic_feat
-        check_error_message(
-            "Found instances with different number of features in "
-            "dynamic_feat, found one with 2 and another with 1.",
-            [
-                make_time_series(num_dynamic_feat=2),
-                make_time_series(num_dynamic_feat=1),
-            ],
-        )
-
-        # different number of dynamic_feat
-        check_error_message(
-            "Found instances with different number of features in "
-            "dynamic_feat, found one with 0 and another with 1.",
-            [
-                make_time_series(num_dynamic_feat=0),
-                make_time_series(num_dynamic_feat=1),
-            ],
-        )
-
-        # different number of dynamic_feat
-        check_error_message(
-            "dynamic_feat was found for some instances but not others.",
-            [
-                make_time_series(num_dynamic_feat=1),
-                make_time_series(num_dynamic_feat=0),
-            ],
-        )
-
         # infinite target
         # check_error_message(
-        #     'Target values have to be finite (e.g., not "inf", "-inf", '
-        #     '"nan", or null) and cannot exceed single precision floating '
-        #     'point range.',
+        #     "Target values have to be finite (e.g., not inf, -inf, "
+        #     "or None) and cannot exceed single precision floating "
+        #     "point range.",
         #     [make_time_series(target=np.full(20, np.inf))]
         # )
 
-        # infinite dynamic_feat
+        # different number of feat_dynamic_{cat, real}
+        check_error_message(
+            "Found instances with different number of features in "
+            "feat_dynamic_cat, found one with 2 and another with 1.",
+            [
+                make_time_series(num_feat_dynamic_cat=2),
+                make_time_series(num_feat_dynamic_cat=1),
+            ],
+        )
+        check_error_message(
+            "Found instances with different number of features in "
+            "feat_dynamic_cat, found one with 0 and another with 1.",
+            [
+                make_time_series(num_feat_dynamic_cat=0),
+                make_time_series(num_feat_dynamic_cat=1),
+            ],
+        )
+        check_error_message(
+            "feat_dynamic_cat was found for some instances but not others.",
+            [
+                make_time_series(num_feat_dynamic_cat=1),
+                make_time_series(num_feat_dynamic_cat=0),
+            ],
+        )
+        check_error_message(
+            "Found instances with different number of features in "
+            "feat_dynamic_real, found one with 2 and another with 1.",
+            [
+                make_time_series(num_feat_dynamic_real=2),
+                make_time_series(num_feat_dynamic_real=1),
+            ],
+        )
+        check_error_message(
+            "Found instances with different number of features in "
+            "feat_dynamic_real, found one with 0 and another with 1.",
+            [
+                make_time_series(num_feat_dynamic_real=0),
+                make_time_series(num_feat_dynamic_real=1),
+            ],
+        )
+        check_error_message(
+            "feat_dynamic_real was found for some instances but not others.",
+            [
+                make_time_series(num_feat_dynamic_real=1),
+                make_time_series(num_feat_dynamic_real=0),
+            ],
+        )
+
+        # infinite feat_dynamic_{cat,real}
         inf_dynamic_feat = np.full((2, len(target)), np.inf)
         check_error_message(
             "Features values have to be finite and cannot exceed single "
             "precision floating point range.",
             [
                 ts(
-                    start=start,
-                    target=target,
-                    dynamic_feat=inf_dynamic_feat,
-                    cat=[0, 1],
+                    start,
+                    target,
+                    feat_dynamic_cat=inf_dynamic_feat,
+                    feat_static_cat=[0, 1],
+                )
+            ],
+        )
+        check_error_message(
+            "Features values have to be finite and cannot exceed single "
+            "precision floating point range.",
+            [
+                ts(
+                    start,
+                    target,
+                    feat_dynamic_real=inf_dynamic_feat,
+                    feat_static_cat=[0, 1],
                 )
             ],
         )
 
-        # cat different length
+        # feat_dynamic_{cat, real} different length from target
         check_error_message(
-            "Not all cat vectors have the same length 2 != 1.",
-            [ts(start, target, [0, 1]), ts(start, target, [1])],
-        )
-
-        # cat different length
-        check_error_message(
-            "Each feature in dynamic_feat has to have the same length as the "
-            "target. Found an instance with dynamic_feat of length 1 and a "
+            "Each feature in feat_dynamic_cat has to have the same length as the "
+            "target. Found an instance with feat_dynamic_cat of length 1 and a "
             "target of length 20.",
             [
-                ts(start, target, [0, 1], dynamic_feat=np.ones((1, 1))),
-                ts(start, target, [1], dynamic_feat=np.ones((1, 1))),
+                ts(
+                    start=start,
+                    target=target,
+                    feat_static_cat=[0, 1],
+                    feat_dynamic_cat=np.ones((1, 1)),
+                )
+            ],
+        )
+        check_error_message(
+            "Each feature in feat_dynamic_real has to have the same length as the "
+            "target. Found an instance with feat_dynamic_real of length 1 and a "
+            "target of length 20.",
+            [
+                ts(
+                    start=start,
+                    target=target,
+                    feat_static_cat=[0, 1],
+                    feat_dynamic_real=np.ones((1, 1)),
+                )
+            ],
+        )
+
+        # feat_static_{cat, real} different length
+        check_error_message(
+            "Not all feat_static_cat vectors have the same length 2 != 1.",
+            [
+                ts(start=start, target=target, feat_static_cat=[0, 1]),
+                ts(start=start, target=target, feat_static_cat=[1]),
+            ],
+        )
+        check_error_message(
+            "Not all feat_static_real vectors have the same length 2 != 1.",
+            [
+                ts(start=start, target=target, feat_static_real=[0, 1]),
+                ts(start=start, target=target, feat_static_real=[1]),
             ],
         )
 
@@ -227,8 +323,8 @@ class DatasetStatisticsExceptions(unittest.TestCase):
             cast(
                 Dataset,
                 [
-                    make_time_series(num_dynamic_feat=2),
-                    make_time_series(num_dynamic_feat=2),
+                    make_time_series(num_feat_dynamic_cat=2),
+                    make_time_series(num_feat_dynamic_cat=2),
                 ],
             )
         )
@@ -238,8 +334,8 @@ class DatasetStatisticsExceptions(unittest.TestCase):
             cast(
                 Dataset,
                 [
-                    make_time_series(num_dynamic_feat=0),
-                    make_time_series(num_dynamic_feat=0),
+                    make_time_series(num_feat_dynamic_cat=0),
+                    make_time_series(num_feat_dynamic_cat=0),
                 ],
             )
         )

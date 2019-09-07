@@ -25,6 +25,7 @@ from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
 from gluonts.dataset.common import ProcessStartField
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 
 FREQ = "1D"
@@ -105,8 +106,8 @@ def test_align_timestamp():
 def test_AddTimeFeatures(start, target, is_train):
     pred_length = 13
     t = transform.AddTimeFeatures(
-        start_field=transform.FieldName.START,
-        target_field=transform.FieldName.TARGET,
+        start_field=FieldName.START,
+        target_field=FieldName.TARGET,
         output_field="myout",
         pred_length=pred_length,
         time_features=[time_feature.DayOfWeek(), time_feature.DayOfMonth()],
@@ -133,7 +134,7 @@ def test_AddAgeFeatures(start, target, is_train):
     pred_length = 13
     t = transform.AddAgeFeature(
         pred_length=pred_length,
-        target_field=transform.FieldName.TARGET,
+        target_field=FieldName.TARGET,
         output_field="age",
         log_scale=True,
     )
@@ -159,10 +160,10 @@ def test_InstanceSplitter(start, target, is_train):
     train_length = 100
     pred_length = 13
     t = transform.InstanceSplitter(
-        target_field=transform.FieldName.TARGET,
-        is_pad_field=transform.FieldName.IS_PAD,
-        start_field=transform.FieldName.START,
-        forecast_start_field=transform.FieldName.FORECAST_START,
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
         train_sampler=transform.UniformSplitSampler(p=1.0),
         past_length=train_length,
         future_length=pred_length,
@@ -222,10 +223,10 @@ def test_CanonicalInstanceSplitter(
     train_length = 100
     pred_length = 13
     t = transform.CanonicalInstanceSplitter(
-        target_field=transform.FieldName.TARGET,
-        is_pad_field=transform.FieldName.IS_PAD,
-        start_field=transform.FieldName.START,
-        forecast_start_field=transform.FieldName.FORECAST_START,
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
         instance_sampler=transform.UniformSplitSampler(p=1.0),
         instance_length=train_length,
         prediction_length=pred_length,
@@ -278,8 +279,8 @@ def test_Transformation():
     t = transform.Chain(
         trans=[
             transform.AddTimeFeatures(
-                start_field=transform.FieldName.START,
-                target_field=transform.FieldName.TARGET,
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
                 output_field="time_feat",
                 time_features=[
                     time_feature.DayOfWeek(),
@@ -289,14 +290,13 @@ def test_Transformation():
                 pred_length=pred_length,
             ),
             transform.AddAgeFeature(
-                target_field=transform.FieldName.TARGET,
+                target_field=FieldName.TARGET,
                 output_field="age",
                 pred_length=pred_length,
                 log_scale=True,
             ),
             transform.AddObservedValuesIndicator(
-                target_field=transform.FieldName.TARGET,
-                output_field="observed_values",
+                target_field=FieldName.TARGET, output_field="observed_values"
             ),
             transform.VstackFeatures(
                 output_field="dynamic_feat",
@@ -304,10 +304,10 @@ def test_Transformation():
                 drop_inputs=True,
             ),
             transform.InstanceSplitter(
-                target_field=transform.FieldName.TARGET,
-                is_pad_field=transform.FieldName.IS_PAD,
-                start_field=transform.FieldName.START,
-                forecast_start_field=transform.FieldName.FORECAST_START,
+                target_field=FieldName.TARGET,
+                is_pad_field=FieldName.IS_PAD,
+                start_field=FieldName.START,
+                forecast_start_field=FieldName.FORECAST_START,
                 train_sampler=transform.ExpectedNumInstanceSampler(
                     num_instances=4
                 ),
@@ -348,8 +348,8 @@ def test_multi_dim_transformation(is_train):
     t = transform.Chain(
         trans=[
             transform.AddTimeFeatures(
-                start_field=transform.FieldName.START,
-                target_field=transform.FieldName.TARGET,
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
                 output_field="time_feat",
                 time_features=[
                     time_feature.DayOfWeek(),
@@ -359,13 +359,13 @@ def test_multi_dim_transformation(is_train):
                 pred_length=pred_length,
             ),
             transform.AddAgeFeature(
-                target_field=transform.FieldName.TARGET,
+                target_field=FieldName.TARGET,
                 output_field="age",
                 pred_length=pred_length,
                 log_scale=True,
             ),
             transform.AddObservedValuesIndicator(
-                target_field=transform.FieldName.TARGET,
+                target_field=FieldName.TARGET,
                 output_field="observed_values",
                 convert_nans=False,
             ),
@@ -375,10 +375,10 @@ def test_multi_dim_transformation(is_train):
                 drop_inputs=True,
             ),
             transform.InstanceSplitter(
-                target_field=transform.FieldName.TARGET,
-                is_pad_field=transform.FieldName.IS_PAD,
-                start_field=transform.FieldName.START,
-                forecast_start_field=transform.FieldName.FORECAST_START,
+                target_field=FieldName.TARGET,
+                is_pad_field=FieldName.IS_PAD,
+                start_field=FieldName.START,
+                forecast_start_field=FieldName.FORECAST_START,
                 train_sampler=transform.ExpectedNumInstanceSampler(
                     num_instances=4
                 ),
@@ -437,10 +437,10 @@ def test_ExpectedNumInstanceSampler():
     t = transform.Chain(
         trans=[
             transform.InstanceSplitter(
-                target_field=transform.FieldName.TARGET,
-                is_pad_field=transform.FieldName.IS_PAD,
-                start_field=transform.FieldName.START,
-                forecast_start_field=transform.FieldName.FORECAST_START,
+                target_field=FieldName.TARGET,
+                is_pad_field=FieldName.IS_PAD,
+                start_field=FieldName.START,
+                forecast_start_field=FieldName.FORECAST_START,
                 train_sampler=transform.ExpectedNumInstanceSampler(
                     num_instances=4
                 ),
@@ -479,10 +479,10 @@ def test_BucketInstanceSampler():
     t = transform.Chain(
         trans=[
             transform.InstanceSplitter(
-                target_field=transform.FieldName.TARGET,
-                is_pad_field=transform.FieldName.IS_PAD,
-                start_field=transform.FieldName.START,
-                forecast_start_field=transform.FieldName.FORECAST_START,
+                target_field=FieldName.TARGET,
+                is_pad_field=FieldName.IS_PAD,
+                start_field=FieldName.START,
+                forecast_start_field=FieldName.FORECAST_START,
                 train_sampler=transform.BucketInstanceSampler(
                     dataset_stats.scale_histogram
                 ),

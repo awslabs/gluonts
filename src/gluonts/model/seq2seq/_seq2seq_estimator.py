@@ -31,13 +31,14 @@ from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.block.scaler import NOPScaler, Scaler
 from gluonts.core.component import validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import QuantileForecast, Quantile
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature.lag import time_features_from_frequency_str
 from gluonts.trainer import Trainer
-from gluonts.transform import ExpectedNumInstanceSampler, FieldName
+from gluonts.transform import ExpectedNumInstanceSampler
 
 # Relative imports
 from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
@@ -97,9 +98,9 @@ class Seq2SeqEstimator(GluonEstimator):
                     field=FieldName.TARGET, expected_ndim=1
                 ),
                 transform.AddTimeFeatures(
-                    start_field=transform.FieldName.START,
-                    target_field=transform.FieldName.TARGET,
-                    output_field=transform.FieldName.FEAT_TIME,
+                    start_field=FieldName.START,
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_TIME,
                     time_features=time_features_from_frequency_str(self.freq),
                     pred_length=self.prediction_length,
                 ),
@@ -114,10 +115,10 @@ class Seq2SeqEstimator(GluonEstimator):
                     field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
                 ),
                 transform.InstanceSplitter(
-                    target_field=transform.FieldName.TARGET,
-                    is_pad_field=transform.FieldName.IS_PAD,
-                    start_field=transform.FieldName.START,
-                    forecast_start_field=transform.FieldName.FORECAST_START,
+                    target_field=FieldName.TARGET,
+                    is_pad_field=FieldName.IS_PAD,
+                    start_field=FieldName.START,
+                    forecast_start_field=FieldName.FORECAST_START,
                     train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     past_length=self.context_length,
                     future_length=self.prediction_length,

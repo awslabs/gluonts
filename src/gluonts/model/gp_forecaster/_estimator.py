@@ -21,6 +21,7 @@ from mxnet.gluon import HybridBlock
 # First-party imports
 from gluonts import transform
 from gluonts.core.component import DType, validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.kernels import KernelOutput, RBFKernelOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
@@ -35,7 +36,6 @@ from gluonts.transform import (
     AsNumpyArray,
     CanonicalInstanceSplitter,
     Chain,
-    FieldName,
     SetFieldIfNotPresent,
     TestSplitSampler,
     Transformation,
@@ -161,9 +161,7 @@ class GaussianProcessEstimator(GluonEstimator):
                 SetFieldIfNotPresent(
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
-                AsNumpyArray(
-                    field=transform.FieldName.FEAT_STATIC_CAT, expected_ndim=1
-                ),
+                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
                 CanonicalInstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,

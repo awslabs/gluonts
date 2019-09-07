@@ -351,7 +351,8 @@ from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.core.component import validated
 from gluonts.support.util import copy_parameters
-from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter, FieldName
+from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
+from gluonts.dataset.field_names import FieldName
 from mxnet.gluon import HybridBlock
 ```
 

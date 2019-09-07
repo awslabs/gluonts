@@ -20,8 +20,8 @@ import pytest
 
 # First-party imports
 from gluonts.dataset.common import ListDataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.transform import FieldName
 from gluonts.trainer import Trainer
 
 

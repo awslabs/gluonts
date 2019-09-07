@@ -20,6 +20,7 @@ from gluonts.block.enc2dec import PassThroughEnc2Dec
 from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import QuantileForecast, Quantile
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
@@ -28,7 +29,6 @@ from gluonts.trainer import Trainer
 from gluonts.transform import (
     AsNumpyArray,
     Chain,
-    FieldName,
     TestSplitSampler,
     Transformation,
 )
