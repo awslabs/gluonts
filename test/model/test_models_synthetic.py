@@ -18,6 +18,7 @@ import pytest
 from gluonts.dataset.artificial import default_synthetic
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.deepar import DeepAREstimator
+from gluonts.model.deep_factor import DeepFactorEstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.model.gp_forecaster import GaussianProcessEstimator
 from gluonts.model.wavenet import WaveNetEstimator
@@ -67,6 +68,24 @@ def deepar_estimator(hybridize: bool = False, batches_per_epoch=1):
             freq=freq,
             num_batches_per_epoch=batches_per_epoch,
             num_parallel_samples=2,
+        ),
+    )
+
+
+def deep_factor_estimator(hybridize: bool = True, batches_per_epoch=1):
+    return (
+        DeepFactorEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            hybridize=hybridize,
+            prediction_length=prediction_length,
+            context_length=context_length,
+            freq=freq,
+            cardinality=[cardinality],
+            num_batches_per_epoch=batches_per_epoch,
+            num_parallel_samples=5,
         ),
     )
 
@@ -134,6 +153,7 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
         simple_feedforward_estimator(batches_per_epoch=1) + (10.0,),
         deepar_estimator(batches_per_epoch=1) + (10.0,),
         gp_estimator(batches_per_epoch=1) + (10.0,),
+        deep_factor_estimator(batches_per_epoch=1) + (10.0,),
         wavenet_estimator(batches_per_epoch=10) + (10.0,),
         # transformer_estimator(batches_per_epoch=1) + (10.0,), # usually fails the 5 second timeout
     ],

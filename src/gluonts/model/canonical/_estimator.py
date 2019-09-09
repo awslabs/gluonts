@@ -18,7 +18,6 @@ from typing import List
 from mxnet.gluon import HybridBlock, nn
 
 # First-party imports
-from gluonts import transform
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.rnn import RNN
 from gluonts.core.component import validated

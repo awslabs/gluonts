@@ -11,12 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# Third-party imports
 from mxnet.gluon import HybridBlock, nn
 
+# First-party imports
 from gluonts.block.rnn import RNN
+from gluonts.core.component import validated
 
 
 class RNNModel(HybridBlock):
+    @validated()
     def __init__(
         self,
         mode,

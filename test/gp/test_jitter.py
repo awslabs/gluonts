@@ -29,7 +29,7 @@ import pytest
 # This test verifies that both eigenvalue decomposition and iterative jitter method
 # make a non-positive definite matrix positive definite to be able to compute the cholesky.
 # Both gpu and cpu as well as single and double precision are tested.
-# FIXME: Add gpu support for the tests in braxil gets error Check failed: e == cudaSuccess || e ==
+# FIXME: Add gpu support for the tests in brazil gets error Check failed: e == cudaSuccess || e ==
 # FIXME: cudaErrorCudartUnloading CUDA: CUDA driver version is insufficient for CUDA runtime version
 # FIXME: @pytest.mark.parametrize('ctx', [mx.Context('gpu'), mx.Context('cpu')])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])

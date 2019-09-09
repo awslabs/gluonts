@@ -29,7 +29,7 @@ class RNN(HybridBlock):
         type of the RNN. Can be either: rnn_relu (RNN with relu activation),
         rnn_tanh, (RNN with tanh activation), lstm or gru.
 
-    hidden_size
+    num_hidden
         number of units per hidden layer.
 
     num_layers
