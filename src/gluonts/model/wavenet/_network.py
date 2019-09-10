@@ -191,7 +191,7 @@ class WaveNet(nn.HybridBlock):
             self.output_act = (
                 nn.ELU()
                 if act_type == "elu"
-                else nn.Activation(act_type=act_type)
+                else nn.Activation(activation=act_type)
             )
             self.cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
 
