@@ -32,7 +32,7 @@ class DeepFactorNetworkBase(HybridBlock):
     ) -> None:
         super().__init__(**kwargs)
 
-        self.global_factor = global_model
+        self.global_model = global_model
         self.local_model = local_model
         self.embedder = embedder
         with self.name_scope():
@@ -77,7 +77,7 @@ class DeepFactorNetworkBase(HybridBlock):
             F, feat_static_cat, time_feat
         )
         loadings = self.loading(cat)  # (batch_size, num_factors)
-        global_factors = self.global_factor(
+        global_factors = self.global_model(
             time_feat
         )  # (batch_size, history_length, num_factors)
 
