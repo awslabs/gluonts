@@ -28,7 +28,7 @@ jobs:
     - name: Style Check
       run: |
         pip install black
-        black check src/gluonts
+        black --check src/gluonts
     - name: Test with pytest
       run: |
         pytest -v -n 4 -m 'not (gpu or serial)' --durations=30 --cov src/gluonts --cov-report=term --cov-report xml test
