@@ -10,7 +10,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7]
-        platform: [ubuntu-latest, windows-latest]
+        # todo: add windows-latest
+        platform: [ubuntu-latest]
     
     runs-on: ${{ matrix.platform }}
 
@@ -26,10 +27,6 @@ jobs:
         pip install mxnet==1.4.*
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
-    - name: Style Check
-      run: |
-        pip install black
-        black --check src/gluonts
     - name: Test with pytest
       run: |
-        pytest -v -n 4 -m 'not (gpu or serial)' --durations=30 --cov src/gluonts --cov-report=term --cov-report xml test
+        pytest -v -n 4 --timeout 20 -m 'not (gpu or serial)' --durations=30 --cov src/gluonts --cov-report=term --cov-report xml test
