@@ -558,7 +558,7 @@ def test_box_cox_tranform(
     # Here the base distribution is Guassian which is transformed to
     # non-Gaussian via the inverse Box-Cox transform.
     # Sampling from `trans_distr` gives non-Gaussian samples
-    trans_distr = TransformedDistribution(gausian_distr, transform)
+    trans_distr = TransformedDistribution(gausian_distr, [transform])
 
     # Given the non-Gaussian samples find the true parameters
     # of the Box-Cox transformation as well as the underlying Gaussian distribution.

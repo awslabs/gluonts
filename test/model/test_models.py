@@ -238,7 +238,7 @@ def seasonal_estimator():
             deepar_estimator(hybridize=hyb, batches_per_epoch=50)
             + (1.5,),  # large value as this test is breaking frequently
             deep_factor_estimator(hybridize=hyb, batches_per_epoch=200)
-            + (0.2,),
+            + (0.3,),
             gp_estimator(hybridize=hyb, batches_per_epoch=200) + (0.2,),
             mlp_estimator(hybridize=hyb) + (10.0,),
             mqcnn_estimator(hybridize=hyb, batches_per_epoch=200) + (0.2,),

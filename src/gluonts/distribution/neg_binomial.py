@@ -16,6 +16,7 @@ from typing import Dict, Optional, Tuple
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
@@ -38,6 +39,7 @@ class NegativeBinomial(Distribution):
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(self, mu: Tensor, alpha: Tensor, F=None) -> None:
         self.mu = mu
         self.alpha = alpha

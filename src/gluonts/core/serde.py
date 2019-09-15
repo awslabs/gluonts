@@ -476,6 +476,16 @@ def encode_np_dtype(v: np.dtype) -> Any:
     }
 
 
+@encode.register(mx.nd.NDArray)
+def encode_mx_ndarray(v: mx.nd.NDArray) -> Any:
+    return {
+        "__kind__": kind_inst,
+        "class": "mxnet.nd.array",
+        "args": encode([v.asnumpy().tolist()]),
+        "kwargs": {"dtype": encode(v.dtype)},
+    }
+
+
 def decode(r: Any) -> Any:
     """
     Decodes a value from an intermediate representation `r`.

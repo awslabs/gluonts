@@ -50,6 +50,7 @@ class MixtureDistribution(Distribution):
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(
         self, mixture_probs: Tensor, components: List[Distribution], F=None
     ) -> None:

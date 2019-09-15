@@ -19,6 +19,7 @@ import numpy as np
 from gluonts.distribution import Distribution, Gaussian, MultivariateGaussian
 from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 from gluonts.support.util import make_nd_diag, _broadcast_param
 from gluonts.support.linalg_util import jitter_cholesky
 
@@ -75,6 +76,7 @@ class LDS(Distribution):
     F
     """
 
+    @validated()
     def __init__(
         self,
         emission_coeff: Tensor,

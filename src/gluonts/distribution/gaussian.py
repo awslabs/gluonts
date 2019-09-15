@@ -18,6 +18,7 @@ from typing import Dict, Optional, Tuple
 # First-party imports
 from gluonts.model.common import Tensor
 from gluonts.support.util import erf
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
@@ -40,6 +41,7 @@ class Gaussian(Distribution):
 
     is_reparameterizable = True
 
+    @validated()
     def __init__(self, mu: Tensor, sigma: Tensor, F=None) -> None:
         self.mu = mu
         self.sigma = sigma

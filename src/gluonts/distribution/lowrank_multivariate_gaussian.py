@@ -185,6 +185,7 @@ class LowrankMultivariateGaussian(Distribution):
 
     is_reparameterizable = True
 
+    @validated()
     def __init__(
         self, dim: int, rank: int, mu: Tensor, D: Tensor, W: Tensor
     ) -> None:

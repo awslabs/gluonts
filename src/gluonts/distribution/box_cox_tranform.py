@@ -115,6 +115,7 @@ class BoxCoxTranform(Bijection):
     """
     arg_names = ["box_cox.lambda_1", "box_cox.lambda_2"]
 
+    @validated()
     def __init__(
         self,
         lambda_1: Tensor,
@@ -271,6 +272,7 @@ class InverseBoxCoxTransform(InverseBijection):
 
     arg_names = ["box_cox.lambda_1", "box_cox.lambda_2"]
 
+    @validated()
     def __init__(
         self,
         lambda_1: Tensor,

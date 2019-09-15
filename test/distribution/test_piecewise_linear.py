@@ -19,6 +19,9 @@ import numpy as np
 
 from gluonts.distribution import PiecewiseLinear
 from gluonts.testutil import empirical_cdf
+from gluonts.core.serde import dump_json, load_json
+
+serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
 @pytest.mark.parametrize(
@@ -50,12 +53,15 @@ from gluonts.testutil import empirical_cdf
         ),
     ],
 )
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_values(
     distr: PiecewiseLinear,
     target: List[float],
     expected_target_cdf: List[float],
     expected_target_crps: List[float],
+    serialize_fn,
 ):
+    distr = serialize_fn(distr)
     target = mx.nd.array(target).reshape(shape=(len(target),))
     expected_target_cdf = np.array(expected_target_cdf).reshape(
         (len(expected_target_cdf),)
@@ -81,7 +87,10 @@ def test_values(
     "batch_shape, num_pieces, num_samples",
     [((3, 4, 5), 10, 100), ((1,), 2, 1), ((10,), 10, 10), ((10, 5), 2, 1)],
 )
-def test_shapes(batch_shape: Tuple, num_pieces: int, num_samples: int):
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_shapes(
+    batch_shape: Tuple, num_pieces: int, num_samples: int, serialize_fn
+):
     gamma = mx.nd.ones(shape=(*batch_shape,))
     slopes = mx.nd.ones(shape=(*batch_shape, num_pieces))  # all positive
     knot_spacings = (
@@ -92,6 +101,7 @@ def test_shapes(batch_shape: Tuple, num_pieces: int, num_samples: int):
     distr = PiecewiseLinear(
         gamma=gamma, slopes=slopes, knot_spacings=knot_spacings
     )
+    distr = serialize_fn(distr)
 
     # assert that the parameters and target have proper shapes
     assert gamma.shape == target.shape

@@ -147,9 +147,11 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
                     sigma=mx.nd.ones(shape=(3, 4, 5)),
                     nu=mx.nd.ones(shape=(3, 4, 5)),
                 ),
-                AffineTransformation(
-                    scale=1e-1 + mx.nd.random.uniform(shape=(3, 4, 5))
-                ),
+                [
+                    AffineTransformation(
+                        scale=1e-1 + mx.nd.random.uniform(shape=(3, 4, 5))
+                    )
+                ],
             ),
             (3, 4, 5),
             (),
@@ -162,9 +164,11 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
                         F=mx.nd, x=mx.nd.ones(shape=(3, 4, 5)), d=5
                     ),
                 ),
-                AffineTransformation(
-                    scale=1e-1 + mx.nd.random.uniform(shape=(3, 4, 5))
-                ),
+                [
+                    AffineTransformation(
+                        scale=1e-1 + mx.nd.random.uniform(shape=(3, 4, 5))
+                    )
+                ],
             ),
             (3, 4),
             (5,),
@@ -175,10 +179,12 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
                     low=mx.nd.zeros(shape=(3, 4, 5)),
                     high=mx.nd.ones(shape=(3, 4, 5)),
                 ),
-                BoxCoxTranform(
-                    lambda_1=mx.nd.ones(shape=(3, 4, 5)),
-                    lambda_2=mx.nd.zeros(shape=(3, 4, 5)),
-                ),
+                [
+                    BoxCoxTranform(
+                        lambda_1=mx.nd.ones(shape=(3, 4, 5)),
+                        lambda_2=mx.nd.zeros(shape=(3, 4, 5)),
+                    )
+                ],
             ),
             (3, 4, 5),
             (),
