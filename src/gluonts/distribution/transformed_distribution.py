@@ -12,13 +12,14 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 # Third-party imports
 from mxnet import autograd
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from . import bijection as bij
@@ -31,8 +32,9 @@ class TransformedDistribution(Distribution):
     of a base distribution.
     """
 
+    @validated()
     def __init__(
-        self, base_distribution: Distribution, *transforms: bij.Bijection
+        self, base_distribution: Distribution, transforms: List[bij.Bijection]
     ) -> None:
         self.base_distribution = base_distribution
         self.transforms = transforms

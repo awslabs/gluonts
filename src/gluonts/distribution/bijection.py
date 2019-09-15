@@ -19,6 +19,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import getF
@@ -31,6 +32,10 @@ class Bijection:
     This is defined through the forward tranformation (computed by the
     `f` method) and the inverse transformation (`f_inv`).
     """
+
+    @validated()
+    def __init__(self):
+        pass
 
     def f(self, x: Tensor) -> Tensor:
         r"""
@@ -89,6 +94,7 @@ class InverseBijection(Bijection):
         The transformation to invert.
     """
 
+    @validated()
     def __init__(self, bijection: Bijection) -> None:
         self._bijection = bijection
 
@@ -197,6 +203,7 @@ class AffineTransformation(Bijection):
         Scaling parameter.
     """
 
+    @validated()
     def __init__(
         self, loc: Optional[Tensor] = None, scale: Optional[Tensor] = None
     ) -> None:

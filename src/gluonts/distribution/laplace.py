@@ -16,6 +16,7 @@ from typing import Dict, Tuple
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
@@ -38,6 +39,7 @@ class Laplace(Distribution):
 
     is_reparameterizable = True
 
+    @validated()
     def __init__(self, mu: Tensor, b: Tensor, F=None) -> None:
         self.mu = mu
         self.b = b

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, Optional, Tuple, cast
+from typing import Dict, Optional, Tuple, cast, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -60,6 +60,7 @@ class PiecewiseLinear(Distribution):
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(
         self, gamma: Tensor, slopes: Tensor, knot_spacings: Tensor, F=None
     ) -> None:
@@ -342,7 +343,7 @@ class PiecewiseLinearOutput(DistributionOutput):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedPiecewiseLinear(
-                distr, AffineTransformation(scale=scale)
+                distr, [AffineTransformation(scale=scale)]
             )
 
     @property
@@ -352,10 +353,11 @@ class PiecewiseLinearOutput(DistributionOutput):
 
 # Need to inherit from PiecewiseLinear to get the overwritten loss method.
 class TransformedPiecewiseLinear(TransformedDistribution, PiecewiseLinear):
+    @validated()
     def __init__(
-        self, base_distribution: PiecewiseLinear, *transforms: Bijection
+        self, base_distribution: PiecewiseLinear, transforms: List[Bijection]
     ) -> None:
-        super().__init__(base_distribution, *transforms)
+        super().__init__(base_distribution, transforms)
 
     def crps(self, y: Tensor) -> Tensor:
         # TODO: use event_shape

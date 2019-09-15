@@ -28,6 +28,7 @@ from gluonts.distribution import (
     Binned,
     TransformedDistribution,
 )
+from gluonts.core.serde import dump_json, load_json, dump_code, load_code
 
 from gluonts.testutil import empirical_cdf
 
@@ -77,12 +78,17 @@ test_cases = [
 ]
 
 
+serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
+
+
 DISTRIBUTIONS_WITH_CDF = [Gaussian, Uniform, Laplace, Binned]
 
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
-def test_sampling(distr_class, params) -> None:
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_sampling(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
+    distr = serialize_fn(distr)
     samples = distr.sample()
     assert samples.shape == (2,)
     num_samples = 100_000
@@ -118,8 +124,10 @@ test_cases_multivariate = [
 
 
 @pytest.mark.parametrize("distr, params", test_cases_multivariate)
-def test_multivariate_sampling(distr, params) -> None:
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_multivariate_sampling(distr, params, serialize_fn) -> None:
     distr = distr(**params)
+    distr = serialize_fn(distr)
     samples = distr.sample()
     assert samples.shape == (2,)
     num_samples = 100_000
@@ -161,8 +169,10 @@ test_cases_pwl_sqf = [
 
 
 @pytest.mark.parametrize("distr, params", test_cases_pwl_sqf)
-def test_piecewise_linear_sampling(distr, params):
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_piecewise_linear_sampling(distr, params, serialize_fn):
     distr = distr(**params)
+    distr = serialize_fn(distr)
     samples = distr.sample()
     assert samples.shape == (2,)
     num_samples = 100_000
