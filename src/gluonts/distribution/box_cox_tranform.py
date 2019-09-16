@@ -142,6 +142,10 @@ class BoxCoxTranform(Bijection):
     def event_dim(self) -> int:
         return 0
 
+    @property
+    def sign(self) -> Tensor:
+        return 1.0
+
     def f(self, z: Tensor) -> Tensor:
         r"""
         Forward transformation of observations `z`
