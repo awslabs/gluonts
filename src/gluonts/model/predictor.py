@@ -106,25 +106,28 @@ class Predictor:
         raise NotImplementedError
 
     def serialize(self, path: Path) -> None:
-        try:
-            # serialize Predictor type
-            with (path / "type.txt").open("w") as fp:
-                fp.write(fqname_for(self.__class__))
-        except Exception as e:
-            raise IOError(
-                f"Cannot serialize {fqname_for(self.__class__)} in {path}"
-            ) from e
+        # serialize Predictor type
+        with (path / "type.txt").open("w") as fp:
+            fp.write(fqname_for(self.__class__))
 
     @classmethod
-    def deserialize(cls, path: Path):
-        try:
-            # deserialize Predictor type
-            with (path / "type.txt").open("r") as fp:
-                tpe = locate(fp.readline())
-        except Exception as e:
-            raise IOError(
-                f"Cannot deserialize {fqname_for(cls)} in {path}"
-            ) from e
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "Predictor":
+        """
+        Load a serialized predictor from the given path
+
+        Parameters
+        ----------
+        path
+            Path to the serialized files predictor.
+        ctx
+            Optional mxnet context to be used with the predictor.
+            If nothing is passed will use the GPU if available and CPU otherwise.
+        """
+        # deserialize Predictor type
+        with (path / "type.txt").open("r") as fp:
+            tpe = locate(fp.readline())
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):
@@ -134,7 +137,7 @@ class Predictor:
             )
 
         # call deserialize() for the concrete Predictor type
-        return tpe.deserialize(path)
+        return tpe.deserialize(path, ctx)
 
     @classmethod
     def from_hyperparameters(cls, **hyperparameters):
@@ -177,21 +180,15 @@ class RepresentablePredictor(Predictor):
     def serialize(self, path: Path) -> None:
         # call Predictor.serialize() in order to serialize the class name
         super().serialize(path)
-        try:
-            with (path / "predictor.json").open("w") as fp:
-                print(dump_json(self), file=fp)
-        except Exception as e:
-            raise IOError(
-                f"Cannot serialize {fqname_for(self.__class__)}"
-            ) from e
+        with (path / "predictor.json").open("w") as fp:
+            print(dump_json(self), file=fp)
 
     @classmethod
-    def deserialize(cls, path: Path):
-        try:
-            with (path / "predictor.json").open("r") as fp:
-                return load_json(fp.read())
-        except Exception as e:
-            raise IOError(f"Cannot deserialize {fqname_for(cls)}") from e
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "RepresentablePredictor":
+        with (path / "predictor.json").open("r") as fp:
+            return load_json(fp.read())
 
 
 class GluonPredictor(Predictor):
@@ -355,33 +352,28 @@ class GluonPredictor(Predictor):
         super().serialize(path)
 
         # serialize every GluonPredictor-specific parameters
-        try:
-            # serialize the prediction network
-            self.serialize_prediction_net(path)
+        # serialize the prediction network
+        self.serialize_prediction_net(path)
 
-            # serialize transformation chain
-            with (path / "input_transform.json").open("w") as fp:
-                print(dump_json(self.input_transform), file=fp)
+        # serialize transformation chain
+        with (path / "input_transform.json").open("w") as fp:
+            print(dump_json(self.input_transform), file=fp)
 
-            # FIXME: also needs to serialize the output_transform
+        # FIXME: also needs to serialize the output_transform
 
-            # serialize all remaining constructor parameters
-            with (path / "parameters.json").open("w") as fp:
-                parameters = dict(
-                    batch_size=self.batch_size,
-                    prediction_length=self.prediction_length,
-                    freq=self.freq,
-                    ctx=self.ctx,
-                    float_type=self.float_type,
-                    forecast_cls_name=self.forecast_cls_name,
-                    forecast_kwargs=self.forecast_kwargs,
-                    input_names=self.input_names,
-                )
-                print(dump_json(parameters), file=fp)
-        except Exception as e:
-            raise IOError(
-                f"Cannot serialize {fqname_for(self.__class__)}"
-            ) from e
+        # serialize all remaining constructor parameters
+        with (path / "parameters.json").open("w") as fp:
+            parameters = dict(
+                batch_size=self.batch_size,
+                prediction_length=self.prediction_length,
+                freq=self.freq,
+                ctx=self.ctx,
+                float_type=self.float_type,
+                forecast_cls_name=self.forecast_cls_name,
+                forecast_kwargs=self.forecast_kwargs,
+                input_names=self.input_names,
+            )
+            print(dump_json(parameters), file=fp)
 
     def serialize_prediction_net(self, path: Path) -> None:
         raise NotImplementedError()
@@ -416,11 +408,17 @@ class SymbolBlockPredictor(GluonPredictor):
         export_symb_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
-    def deserialize(cls, path: Path):
-        try:
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "SymbolBlockPredictor":
+        ctx = ctx if ctx is not None else get_mxnet_context()
+
+        with mx.Context(ctx):
             # deserialize constructor parameters
             with (path / "parameters.json").open("r") as fp:
                 parameters = load_json(fp.read())
+
+            parameters["ctx"] = ctx
 
             # deserialize transformation chain
             with (path / "input_transform.json").open("r") as fp:
@@ -437,8 +435,6 @@ class SymbolBlockPredictor(GluonPredictor):
                 prediction_net=prediction_net,
                 **parameters,
             )
-        except Exception as e:
-            raise IOError(f"Cannot deserialize {fqname_for(cls)}") from e
 
 
 class RepresentableBlockPredictor(GluonPredictor):
@@ -515,8 +511,12 @@ class RepresentableBlockPredictor(GluonPredictor):
         export_repr_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
-    def deserialize(cls, path: Path, ctx: Optional[mx.Context] = None):
-        try:
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "RepresentableBlockPredictor":
+        ctx = ctx if ctx is not None else get_mxnet_context()
+
+        with mx.Context(ctx):
             # deserialize constructor parameters
             with (path / "parameters.json").open("r") as fp:
                 parameters = load_json(fp.read())
@@ -532,15 +532,13 @@ class RepresentableBlockPredictor(GluonPredictor):
             if "input_names" in parameters:
                 del parameters["input_names"]
 
-            parameters["ctx"] = ctx if ctx is not None else get_mxnet_context()
+            parameters["ctx"] = ctx
 
             return RepresentableBlockPredictor(
                 input_transform=transform,
                 prediction_net=prediction_net,
                 **parameters,
             )
-        except Exception as e:
-            raise IOError(f"Cannot deserialize {fqname_for(cls)}") from e
 
 
 class WorkerError:
