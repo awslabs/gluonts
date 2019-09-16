@@ -610,9 +610,12 @@ class OutputType(str, Enum):
 
 
 class Config(pydantic.BaseModel):
-    num_eval_samples: int = pydantic.Schema(..., alias="num_samples")
-    output_types: Set[OutputType]
-    quantiles: List[str]  # FIXME: validate list elements
+    num_eval_samples: int = pydantic.Schema(100, alias="num_samples")
+    output_types: Set[OutputType] = {"qunatiles", "mean"}
+    # FIXME: validate list elements
+    quantiles: List[str] = ["0.1", "0.5", "0.9"]
 
     class Config:
         allow_population_by_alias = True
+        # store additional fields
+        extra = "allow"
