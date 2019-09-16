@@ -382,7 +382,7 @@ class ForEachCat(Lifted):
                 dtype=np.object,
             )
         if global_state[field_name][c] is None:
-            global_state[field_name][c] = self.fun(x, **kwargs)
+            global_state[field_name][c] = self.fun(x, length, field_name, *args, **kwargs)
         return global_state[field_name][c]
 
 
