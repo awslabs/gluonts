@@ -119,7 +119,7 @@ def test_shapes(
     assert distr.crps(target).shape == batch_shape
 
     # assert that the quantile shape is correct when computing the quantile values at knot positions - used for a_tilde
-    assert distr.quantile(knot_spacings, axis=-2).shape == (
+    assert distr.quantile_internal(knot_spacings, axis=-2).shape == (
         *batch_shape,
         num_pieces,
     )
@@ -127,9 +127,12 @@ def test_shapes(
     # assert that the samples and the quantile values shape when num_samples is None is correct
     samples = distr.sample()
     assert samples.shape == batch_shape
-    assert distr.quantile(samples).shape == batch_shape
+    assert distr.quantile_internal(samples).shape == batch_shape
 
     # assert that the samples and the quantile values shape when num_samples is not None is correct
     samples = distr.sample(num_samples)
     assert samples.shape == (num_samples, *batch_shape)
-    assert distr.quantile(samples, axis=0).shape == (num_samples, *batch_shape)
+    assert distr.quantile_internal(samples, axis=0).shape == (
+        num_samples,
+        *batch_shape,
+    )

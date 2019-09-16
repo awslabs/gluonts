@@ -509,7 +509,7 @@ def test_piecewise_linear(
 
     # Compute quantiles with the estimated parameters
     quantiles_hat = np.squeeze(
-        pwl_sqf_hat.quantile(
+        pwl_sqf_hat.quantile_internal(
             mx.nd.array(quantile_levels).expand_dims(axis=0), axis=1
         ).asnumpy()
     )
@@ -517,7 +517,7 @@ def test_piecewise_linear(
     # Compute quantiles with the original parameters
     # Since params is replicated across samples we take only the first entry
     quantiles = np.squeeze(
-        pwl_sqf.quantile(
+        pwl_sqf.quantile_internal(
             mx.nd.array(quantile_levels)
             .expand_dims(axis=0)
             .repeat(axis=0, repeats=num_samples),
