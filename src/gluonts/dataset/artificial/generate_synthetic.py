@@ -56,7 +56,7 @@ def write_csv_row(
         if freq_week_start == "W":
             freq_week_start = f"W-{week_dict[timestamp.weekday()]}"
         timestamp = pd.Timestamp(data["start"], freq=freq_week_start)
-        item_id = int(data["item"])
+        item_id = int(data["item_id"])
         for j, target in enumerate(data["target"]):
             # Using convention that there are no missing values before the start date
             if is_missing and j != 0 and j % num_missing == 0:
