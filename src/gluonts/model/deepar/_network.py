@@ -47,7 +47,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         distr_output: DistributionOutput,
         dropout_rate: float,
         cardinality: List[int],
-        embedding_dimension: int,
+        embedding_dimension: List[int],
         lags_seq: List[int],
         scaling: bool = True,
         **kwargs,
@@ -64,6 +64,10 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.embedding_dimension = embedding_dimension
         self.num_cat = len(cardinality)
         self.scaling = scaling
+
+        assert len(cardinality) == len(
+            embedding_dimension
+        ), "embedding_dimension should be a list with the same size as cardinality"
 
         assert len(set(lags_seq)) == len(
             lags_seq
@@ -98,7 +102,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                 self.rnn.add(cell)
             self.embedder = FeatureEmbedder(
                 cardinalities=cardinality,
-                embedding_dims=[embedding_dimension for _ in cardinality],
+                embedding_dims=embedding_dimension,
             )
             if scaling:
                 self.scaler = MeanScaler(keepdims=True)

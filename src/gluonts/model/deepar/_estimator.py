@@ -89,8 +89,8 @@ class DeepAREstimator(GluonEstimator):
         Number of values of each categorical feature.
         This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
-        Dimension of the embeddings for categorical features (the same
-        dimension is used for all embeddings, default: 5)
+        Dimension of the embeddings for categorical features
+        (default: [min(50, (cat+1)//2) for cat in cardinality])
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput())
@@ -122,7 +122,7 @@ class DeepAREstimator(GluonEstimator):
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
         cardinality: Optional[List[int]] = None,
-        embedding_dimension: int = 20,
+        embedding_dimension: Optional[List[int]] = None,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
@@ -146,9 +146,9 @@ class DeepAREstimator(GluonEstimator):
         assert cardinality is None or [
             c > 0 for c in cardinality
         ], "Elements of `cardinality` should be > 0"
-        assert (
-            embedding_dimension > 0
-        ), "The value of `embedding_dimension` should be > 0"
+        assert embedding_dimension is None or [
+            e > 0 for e in embedding_dimension
+        ], "Elements of `embedding_dimension` should be > 0"
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
@@ -166,7 +166,11 @@ class DeepAREstimator(GluonEstimator):
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
         self.cardinality = cardinality if use_feat_static_cat else [1]
-        self.embedding_dimension = embedding_dimension
+        self.embedding_dimension = (
+            embedding_dimension
+            if embedding_dimension is not None
+            else [min(50, (cat+1)//2) for cat in cardinality]
+        )
         self.scaling = scaling
         self.lags_seq = (
             lags_seq
