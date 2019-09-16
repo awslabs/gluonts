@@ -15,7 +15,7 @@ import logging
 import json
 import time
 import traceback
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, List
 
 from flask import Flask, Response, request, jsonify
 from pydantic import BaseModel
@@ -34,9 +34,9 @@ class InferenceRequest(BaseModel):
 
 
 class ThrougputIter:
-    def __init__(self, iterable: Iterable):
+    def __init__(self, iterable: Iterable) -> None:
         self.iter = iter(iterable)
-        self.timings = []
+        self.timings: List[float] = []
 
     def __iter__(self):
         try:

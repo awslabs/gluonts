@@ -46,6 +46,9 @@ class TrainEnv:
 
 
 class ServeEnv:
+    path: ServePaths
+    batch_config: Optional[ForecastConfig]
+
     def __init__(self, path: Path = Path("/opt/ml")) -> None:
         self.path = ServePaths(path)
 

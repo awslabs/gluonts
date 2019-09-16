@@ -113,7 +113,9 @@ def serve_command(
     logging.info("Run 'serve' command")
 
     if not force_static and forecaster is not None:
-        forecaster_type = forecaster_type_by_name(forecaster)
+        forecaster_type: Optional[Forecaster] = forecaster_type_by_name(
+            forecaster
+        )
     else:
         forecaster_type = None
 
