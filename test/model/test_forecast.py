@@ -15,9 +15,16 @@
 import numpy as np
 import pandas as pd
 import pytest
+import mxnet as mx
 
 # First-party imports
-from gluonts.model.forecast import QuantileForecast, SampleForecast
+from gluonts.model.forecast import (
+    QuantileForecast,
+    SampleForecast,
+    DistributionForecast,
+)
+
+from gluonts.distribution import Uniform
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
@@ -34,6 +41,11 @@ FORECASTS = {
     "SampleForecast": SampleForecast(
         samples=SAMPLES, start_date=START_DATE, freq=FREQ
     ),
+    "DistributionForecast": DistributionForecast(
+        distribution=Uniform(low=mx.nd.zeros(1), high=mx.nd.ones(1)),
+        start_date=START_DATE,
+        freq=FREQ,
+    ),
 }
 
 
@@ -49,10 +61,36 @@ def test_Forecast(name):
     for quantile in QUANTILES:
         test_cases = [quantile, str(quantile), percentile(quantile)]
         for quant_pred in map(forecast.quantile, test_cases):
-            assert (
-                quant_pred[0] == quantile
+            assert np.isclose(
+                quant_pred[0], quantile
             ), f"Expected {quantile} quantile {quantile}. Obtained {quant_pred}."
 
     assert forecast.prediction_length == 1
+    assert len(forecast.index) == pred_length
+    assert forecast.index[0] == pd.Timestamp(START_DATE)
+
+
+def test_DistributionForecast():
+    forecast = DistributionForecast(
+        distribution=Uniform(
+            low=mx.nd.array([0.0, 0.0]), high=mx.nd.array([1.0, 2.0])
+        ),
+        start_date=START_DATE,
+        freq=FREQ,
+    )
+
+    def percentile(value):
+        return f"p{int(round(value * 100)):02d}"
+
+    for quantile in QUANTILES:
+        test_cases = [quantile, str(quantile), percentile(quantile)]
+        for quant_pred in map(forecast.quantile, test_cases):
+            expected = quantile * np.array([1.0, 2.0])
+            assert np.allclose(
+                quant_pred, expected
+            ), f"Expected {quantile} quantile {quantile}. Obtained {quant_pred}."
+
+    pred_length = 2
+    assert forecast.prediction_length == pred_length
     assert len(forecast.index) == pred_length
     assert forecast.index[0] == pd.Timestamp(START_DATE)
