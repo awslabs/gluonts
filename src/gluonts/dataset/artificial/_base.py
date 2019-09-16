@@ -330,7 +330,7 @@ class ConstantDataset(ArtificialDataset):
             ts_data = dict(
                 start=self.start,
                 target=target,
-                item=str(i),
+                item_id=str(i),
                 feat_static_cat=[i],
                 feat_static_real=[i],
             )
@@ -508,7 +508,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             dict(
                 start=ts["start"],
                 target=ts["target"][: -self.prediction_length],
-                item=ts["item"],
+                item_id=ts["item_id"],
             )
             for ts in self.make_timeseries()
         ]
@@ -609,7 +609,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                 dict(
                     start=pd.Timestamp(start, freq=self.freq_str),
                     target=np.array(v),
-                    item=i,
+                    item_id=i,
                 )
             )
         return res
@@ -681,7 +681,9 @@ class RecipeDataset(ArtificialDataset):
         the last prediction_length time points from the target and dynamic
         features."""
         y = dict(
-            item=x["item"], start=x["start"], target=x["target"][:-length]
+            item_id=x["item_id"],
+            start=x["start"],
+            target=x["target"][:-length],
         )
 
         if "feat_dynamic_cat" in x:
@@ -703,7 +705,7 @@ class RecipeDataset(ArtificialDataset):
         assert length <= len(x["target"])
 
         y = dict(
-            item=x["item"],
+            item_id=x["item_id"],
             start=x["start"] + length * x["start"].freq,
             target=x["target"][length:],
         )
@@ -799,7 +801,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     train_ds = ListDataset(
         data_iter=[
             {
-                "item": str(i),
+                "item_id": str(i),
                 "start": start_date,
                 "target": [float(i)] * 24,
                 "feat_static_cat": [i],
@@ -813,7 +815,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     test_ds = ListDataset(
         data_iter=[
             {
-                "item": str(i),
+                "item_id": str(i),
                 "start": start_date,
                 "target": [float(i)] * 30,
                 "feat_static_cat": [i],

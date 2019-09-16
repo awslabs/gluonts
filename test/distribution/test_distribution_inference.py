@@ -509,7 +509,7 @@ def test_piecewise_linear(
 
     # Compute quantiles with the estimated parameters
     quantiles_hat = np.squeeze(
-        pwl_sqf_hat.quantile(
+        pwl_sqf_hat.quantile_internal(
             mx.nd.array(quantile_levels).expand_dims(axis=0), axis=1
         ).asnumpy()
     )
@@ -517,7 +517,7 @@ def test_piecewise_linear(
     # Compute quantiles with the original parameters
     # Since params is replicated across samples we take only the first entry
     quantiles = np.squeeze(
-        pwl_sqf.quantile(
+        pwl_sqf.quantile_internal(
             mx.nd.array(quantile_levels)
             .expand_dims(axis=0)
             .repeat(axis=0, repeats=num_samples),
@@ -558,7 +558,7 @@ def test_box_cox_tranform(
     # Here the base distribution is Guassian which is transformed to
     # non-Gaussian via the inverse Box-Cox transform.
     # Sampling from `trans_distr` gives non-Gaussian samples
-    trans_distr = TransformedDistribution(gausian_distr, transform)
+    trans_distr = TransformedDistribution(gausian_distr, [transform])
 
     # Given the non-Gaussian samples find the true parameters
     # of the Box-Cox transformation as well as the underlying Gaussian distribution.

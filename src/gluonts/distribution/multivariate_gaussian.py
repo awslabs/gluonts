@@ -49,6 +49,7 @@ class MultivariateGaussian(Distribution):
 
     is_reparameterizable = True
 
+    @validated()
     def __init__(
         self, mu: Tensor, L: Tensor, F=None, float_type: DType = np.float32
     ) -> None:

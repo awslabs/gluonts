@@ -17,6 +17,7 @@ from typing import Dict, Optional, Tuple
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import (
@@ -48,6 +49,7 @@ class StudentT(Distribution):
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(self, mu: Tensor, sigma: Tensor, nu: Tensor, F=None) -> None:
         self.mu = mu
         self.sigma = sigma

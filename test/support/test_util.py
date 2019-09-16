@@ -78,3 +78,15 @@ def test_erf() -> None:
     y_mxnet = util.erf(mx.nd, mx.nd.array(x)).asnumpy()
     y_scipy = scipy_erf(x)
     assert np.allclose(y_mxnet, y_scipy)
+
+
+def test_erfinv() -> None:
+    try:
+        from scipy.special import erfinv as scipy_erfinv
+    except:
+        pytest.skip("scipy not installed skipping test for erf")
+
+    x = np.linspace(-1.0 + 1.0e-4, 1 - 1.0e-4, 11)
+    y_mxnet = util.erfinv(mx.nd, mx.nd.array(x)).asnumpy()
+    y_scipy = scipy_erfinv(x)
+    assert np.allclose(y_mxnet, y_scipy, rtol=1e-3)

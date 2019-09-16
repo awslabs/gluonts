@@ -147,9 +147,11 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
                     sigma=mx.nd.ones(shape=(3, 4, 5)),
                     nu=mx.nd.ones(shape=(3, 4, 5)),
                 ),
-                AffineTransformation(
-                    scale=1e-1 + mx.nd.random.uniform(shape=(3, 4, 5))
-                ),
+                [
+                    AffineTransformation(
+                        scale=1e-1 + mx.nd.random.uniform(shape=(3, 4, 5))
+                    )
+                ],
             ),
             (3, 4, 5),
             (),
@@ -162,9 +164,11 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
                         F=mx.nd, x=mx.nd.ones(shape=(3, 4, 5)), d=5
                     ),
                 ),
-                AffineTransformation(
-                    scale=1e-1 + mx.nd.random.uniform(shape=(3, 4, 5))
-                ),
+                [
+                    AffineTransformation(
+                        scale=1e-1 + mx.nd.random.uniform(shape=(3, 4, 5))
+                    )
+                ],
             ),
             (3, 4),
             (5,),
@@ -175,10 +179,12 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
                     low=mx.nd.zeros(shape=(3, 4, 5)),
                     high=mx.nd.ones(shape=(3, 4, 5)),
                 ),
-                BoxCoxTranform(
-                    lambda_1=mx.nd.ones(shape=(3, 4, 5)),
-                    lambda_2=mx.nd.zeros(shape=(3, 4, 5)),
-                ),
+                [
+                    BoxCoxTranform(
+                        lambda_1=mx.nd.ones(shape=(3, 4, 5)),
+                        lambda_2=mx.nd.zeros(shape=(3, 4, 5)),
+                    )
+                ],
             ),
             (3, 4, 5),
             (),
@@ -208,3 +214,14 @@ def test_distribution_shapes(
     x3 = distr.sample(num_samples=3)
 
     assert x3.shape == (3,) + distr.batch_shape + distr.event_shape
+
+    def has_quantile(d):
+        return isinstance(d, (Uniform, Gaussian, Laplace))
+
+    if (
+        has_quantile(distr)
+        or isinstance(distr, TransformedDistribution)
+        and has_quantile(distr.base_distribution)
+    ):
+        qs1 = distr.quantile(mx.nd.array([0.5]))
+        assert qs1.shape == (1,) + distr.batch_shape + distr.event_shape

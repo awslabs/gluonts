@@ -43,6 +43,7 @@ class Binned(Distribution):
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(self, bin_probs: Tensor, bin_centers: Tensor, F=None) -> None:
         self.bin_centers = bin_centers
         self.bin_probs = bin_probs

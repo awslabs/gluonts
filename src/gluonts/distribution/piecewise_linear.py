@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, Optional, Tuple, cast
+from typing import Dict, Optional, Tuple, cast, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -60,6 +60,7 @@ class PiecewiseLinear(Distribution):
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(
         self, gamma: Tensor, slopes: Tensor, knot_spacings: Tensor, F=None
     ) -> None:
@@ -131,7 +132,10 @@ class PiecewiseLinear(Distribution):
             )
         )
 
-        sample = self.quantile(u, axis=None if num_samples is None else 0)
+        sample = self.quantile(u)
+
+        if num_samples is None:
+            sample = F.squeeze(sample, axis=0)
 
         return sample
 
@@ -199,7 +203,7 @@ class PiecewiseLinear(Distribution):
         F = self.F
         gamma, b, knot_positions = self.gamma, self.b, self.knot_positions
 
-        quantiles_at_knots = self.quantile(knot_positions, axis=-2)
+        quantiles_at_knots = self.quantile_internal(knot_positions, axis=-2)
 
         # Mask to nullify the terms corresponding to knots larger than l_0, which is the largest knot
         # (quantile level) such that the quantile at l_0, s(l_0) < x.
@@ -228,7 +232,12 @@ class PiecewiseLinear(Distribution):
 
         return a_tilde
 
-    def quantile(self, x: Tensor, axis: Optional[int] = None) -> Tensor:
+    def quantile(self, level: Tensor) -> Tensor:
+        return self.quantile_internal(level, axis=0)
+
+    def quantile_internal(
+        self, x: Tensor, axis: Optional[int] = None
+    ) -> Tensor:
         r"""
         Evaluates the quantile function at the quantile levels contained in `x`.
 
@@ -342,7 +351,7 @@ class PiecewiseLinearOutput(DistributionOutput):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedPiecewiseLinear(
-                distr, AffineTransformation(scale=scale)
+                distr, [AffineTransformation(scale=scale)]
             )
 
     @property
@@ -352,10 +361,11 @@ class PiecewiseLinearOutput(DistributionOutput):
 
 # Need to inherit from PiecewiseLinear to get the overwritten loss method.
 class TransformedPiecewiseLinear(TransformedDistribution, PiecewiseLinear):
+    @validated()
     def __init__(
-        self, base_distribution: PiecewiseLinear, *transforms: Bijection
+        self, base_distribution: PiecewiseLinear, transforms: List[Bijection]
     ) -> None:
-        super().__init__(base_distribution, *transforms)
+        super().__init__(base_distribution, transforms)
 
     def crps(self, y: Tensor) -> Tensor:
         # TODO: use event_shape

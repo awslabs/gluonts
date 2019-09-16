@@ -15,7 +15,7 @@
 import functools
 import itertools
 import operator
-from typing import Any, Callable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 # Third-party imports
 import numpy as np
@@ -25,13 +25,18 @@ import pandas as pd
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 
+ValueOrCallable = Union[Any, Callable]
+Recipe = List[Tuple[str, Callable]]
+Env = Dict[str, Any]
+
 
 def generate(
     length: int,
-    recipe: Union[Callable, List[Tuple[str, Callable]]],
+    recipe: Union[Callable, Recipe],
     start: pd.Timestamp,
     global_state: Optional[dict] = None,
     seed: int = 0,
+    item_id_prefix: str = "",
 ) -> Iterator[DataEntry]:
     np.random.seed(seed)
 
@@ -48,30 +53,34 @@ def generate(
                     field_name=k,
                     global_state=global_state,
                 )
-            yield dict(**data, item=x, start=start)
+            yield dict(**data, item_id=item_id_prefix + str(x), start=start)
     else:
         assert callable(recipe)
         for x in itertools.count():
             data = recipe(length=length, global_state=global_state)
-            yield dict(**data, item=x, start=start)
+            yield dict(**data, item_id=item_id_prefix + str(x), start=start)
 
 
-def evaluate_recipe(
-    funcs: List[Tuple[str, Callable]], length: int, global_state: dict = None
-) -> dict:
+def evaluate(
+    funcs: Recipe, length: int, *args, global_state: dict = None, **kwargs
+) -> Env:
     if global_state is None:
         global_state = {}
     data: DataEntry = {}
     for k, f in funcs:
-        data[k] = f(
-            data, length=length, field_name=k, global_state=global_state
-        )
+        try:
+            data[k] = f(
+                data, length=length, field_name=k, global_state=global_state
+            )
+        except ValueError as e:
+            raise ValueError('Error while evaluating key "{}"'.format(k), e)
+
     return data
 
 
 def make_func(
-    length: int, funcs: List[Tuple[str, Callable]], global_state=None
-) -> Callable[[int, dict], DataEntry]:
+    length: int, funcs: Recipe, global_state=None
+) -> Callable[[int, Env], DataEntry]:
     if global_state is None:
         global_state = {}
 
@@ -90,12 +99,19 @@ def take_as_list(iterator, num):
     return list(itertools.islice(iterator, num))
 
 
+def resolve(val_or_callable: ValueOrCallable, context: Env, *args, **kwargs):
+    if callable(val_or_callable):
+        return val_or_callable(context, *args, **kwargs)
+    else:
+        return val_or_callable
+
+
 class Debug:
     @validated()
-    def __init__(self, print_global=False):
+    def __init__(self, print_global=False) -> None:
         self.print_global = print_global
 
-    def __call__(self, x, global_state, **kwargs):
+    def __call__(self, x: Env, global_state, **kwargs):
         print(x)
         if self.print_global:
             print(global_state)
@@ -109,6 +125,12 @@ class Lifted:
     def __radd__(self, other):
         return LiftedAdd(other, self)
 
+    def __sub__(self, other):
+        return LiftedSub(self, other)
+
+    def __rsub__(self, other):
+        return LiftedSub(other, self)
+
     def __mul__(self, other):
         return LiftedMul(self, other, operator.mul)
 
@@ -120,6 +142,17 @@ class Lifted:
 
     def __rtruediv__(self, other):
         return LiftedTruediv(other, self, operator.truediv)
+
+    def __call__(
+        self,
+        x: Env,
+        length: int,
+        field_name: str,
+        global_state: Dict,
+        *args,
+        **kwargs
+    ):
+        pass
 
 
 class LiftedBinaryOp(Lifted):
@@ -146,6 +179,12 @@ class LiftedAdd(LiftedBinaryOp):
         super().__init__(left, right, operator.add)
 
 
+class LiftedSub(LiftedBinaryOp):
+    @validated()
+    def __init__(self, left, right) -> None:
+        super().__init__(left, right, operator.sub)
+
+
 class LiftedMul(LiftedBinaryOp):
     @validated()
     def __init__(self, left, right) -> None:
@@ -166,7 +205,7 @@ class RandomGaussian(Lifted):
         self.stddev = stddev
         self.length = length
 
-    def __call__(self, x, length, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         if self.length is not None:
             length = self.length
         return self.stddev * np.random.randn(length)
@@ -197,7 +236,7 @@ class RandomBinary(Lifted):
     def __init__(self, prob: float = 0.1) -> None:
         self.prob = prob
 
-    def __call__(self, x, length, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         return 1.0 * (np.random.rand(length) < self.prob)
 
 
@@ -223,7 +262,7 @@ class BinaryMarkovChain(Lifted):
         self.probs[0] = zero_to_one
         self.probs[1] = one_to_zero
 
-    def __call__(self, x, length, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         out = np.ones(length, dtype=np.int)  # initial state is 1
         uu = np.random.rand(length)
         for i in range(1, length):
@@ -248,8 +287,28 @@ class ConstantVec(Lifted):
     def __init__(self, constant) -> None:
         self.constant = constant
 
-    def __call__(self, x, length, *args, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         return self.constant * np.ones(length)
+
+
+class NormalizeMax(Lifted):
+    @validated()
+    def __init__(self, input) -> None:
+        self.input = input
+
+    def __call__(self, x: Env, *args, **kwargs):
+        inp = resolve(self.input, x, *args, kwargs)
+        return inp / np.max(inp)
+
+
+class OnesLike(Lifted):
+    @validated()
+    def __init__(self, other) -> None:
+        self.other = other
+
+    def __call__(self, x, length, *args, **kwargs):
+        other = resolve(self.other, x, length, **kwargs)
+        return np.ones_like(other)
 
 
 class LinearTrend(Lifted):
@@ -307,7 +366,15 @@ class ForEachCat(Lifted):
         self.cat_field = cat_field
         self.cat_idx = cat_idx
 
-    def __call__(self, x, field_name, global_state, **kwargs):
+    def __call__(
+        self,
+        x: Env,
+        length: int,
+        field_name: str,
+        global_state: Dict,
+        *args,
+        **kwargs
+    ):
         c = x[self.cat_field][self.cat_idx]
         if field_name not in global_state:
             global_state[field_name] = np.empty(
@@ -315,7 +382,9 @@ class ForEachCat(Lifted):
                 dtype=np.object,
             )
         if global_state[field_name][c] is None:
-            global_state[field_name][c] = self.fun(x, **kwargs)
+            global_state[field_name][c] = self.fun(
+                x, length, field_name, *args, **kwargs
+            )
         return global_state[field_name][c]
 
 
@@ -324,8 +393,8 @@ class Expr(Lifted):
     def __init__(self, expr: str) -> None:
         self.expr = expr
 
-    def __call__(self, x, **kwargs):
-        return eval(self.expr, globals(), dict(x=x, **kwargs))
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        return eval(self.expr, globals(), dict(x=x, length=length, **kwargs))
 
 
 class SmoothSeasonality(Lifted):
@@ -334,7 +403,7 @@ class SmoothSeasonality(Lifted):
         self.period_fun = period_fun
         self.phase_fun = phase_fun
 
-    def __call__(self, x, length, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         return (
             np.sin(
                 2.0
@@ -351,7 +420,7 @@ class Add(Lifted):
     def __init__(self, inputs) -> None:
         self.inputs = inputs
 
-    def __call__(self, x, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         return sum([x[k] for k in self.inputs])
 
 
@@ -360,7 +429,7 @@ class Mul(Lifted):
     def __init__(self, inputs) -> None:
         self.inputs = inputs
 
-    def __call__(self, x, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         return functools.reduce(operator.mul, [x[k] for k in self.inputs])
 
 
@@ -370,7 +439,7 @@ class NanWhere(Lifted):
         self.source_name = source_name
         self.nan_indicator_name = nan_indicator_name
 
-    def __call__(self, x, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         out = x[self.source_name]
         out[x[self.nan_indicator_name] == 1] = np.nan
         return out
@@ -382,7 +451,7 @@ class NanWhereNot(Lifted):
         self.source_name = source_name
         self.nan_indicator_name = nan_indicator_name
 
-    def __call__(self, x, **kwargs):
+    def __call__(self, x: Env, length: int, *args, **kwargs):
         out = x[self.source_name]
         out[x[self.nan_indicator_name] == 0] = np.nan
         return out
@@ -390,8 +459,132 @@ class NanWhereNot(Lifted):
 
 class Stack(Lifted):
     @validated()
-    def __init__(self, inputs: List[str]) -> None:
+    def __init__(self, inputs: List[ValueOrCallable]) -> None:
         self.inputs = inputs
 
-    def __call__(self, x, **kwargs):
-        return np.stack([x[k] for k in self.inputs], axis=0)
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        inputs = [resolve(z, x, length, **kwargs) for z in self.inputs]
+        return np.stack(inputs, axis=0)
+
+
+class StackPrefix(Lifted):
+    @validated()
+    def __init__(self, prefix: str) -> None:
+        self.prefix = prefix
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        inputs = [v for k, v in x.items() if k.startswith(self.prefix)]
+        return np.stack(inputs, axis=0)
+
+
+class Ref(Lifted):
+    @validated()
+    def __init__(self, field_name: str) -> None:
+        self.field_name = field_name
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        return x[self.field_name]
+
+
+class RandomUniform(Lifted):
+    @validated()
+    def __init__(self, low: float = 0, high: float = 1, shape=(0,)) -> None:
+        self.low = low
+        self.high = high
+        self.shape = shape
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        s = np.array(self.shape)
+        s[s == 0] = length
+        return np.random.uniform(self.low, self.high, s)
+
+
+class RandomInteger(Lifted):
+    @validated()
+    def __init__(self, low: int, high: int, length=None) -> None:
+        self.low = low
+        self.high = high
+        self.length = length
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        length = self.length if self.length is not None else length
+        return np.random.randint(self.low, self.high, length)
+
+
+class RandomChangepoints(Lifted):
+    @validated()
+    def __init__(self, max_num_changepoints: int) -> None:
+        self.max_num_changepoints = max_num_changepoints
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        num_changepoints = np.random.randint(0, self.max_num_changepoints + 1)
+        change_idx = np.sort(
+            np.random.randint(low=1, high=length - 1, size=(num_changepoints,))
+        )
+        change_ranges = np.concatenate([change_idx, [length]])
+        out = np.zeros(length, dtype=np.int)
+        for i in range(0, num_changepoints):
+            out[change_ranges[i] : change_ranges[i + 1]] = i + 1
+        return out
+
+
+class Repeated(Lifted):
+    @validated()
+    def __init__(self, pattern: ValueOrCallable) -> None:
+        self.pattern = pattern
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        pattern = resolve(self.pattern, x, length, **kwargs)
+        repeats = length // len(pattern) + 1
+        out = np.tile(pattern, (repeats,))
+        return out[:length]
+
+
+class Convolve(Lifted):
+    @validated()
+    def __init__(self, input: Lifted, filter) -> None:
+        self.filter = filter
+        self.input = input
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        fil = resolve(self.filter, x, length, **kwargs)
+        inp = resolve(self.input, x, length, **kwargs)
+        out = np.convolve(inp, fil, mode="same")
+        return out
+
+
+class Dilated(Lifted):
+    @validated()
+    def __init__(self, source: Lifted, dilation: int) -> None:
+        self.source = source
+        self.dilation = dilation
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        inner = self.source(x, length // self.dilation + 1, **kwargs)
+        out = np.repeat(inner, self.dilation)
+        return out[:length]
+
+
+class Choose(Lifted):
+    @validated()
+    def __init__(self, options: Lifted, selector: Lifted) -> None:
+        self.options = options
+        self.selector = selector
+
+    def __call__(self, x, length, **kwargs):
+        options = resolve(self.options, x, length, **kwargs)
+        selector = resolve(self.selector, x, length, **kwargs)
+        e = np.eye(options.shape[0])
+        out = np.sum(e[selector] * options.T, axis=1)
+        return out
+
+
+class Eval(Lifted):
+    @validated()
+    def __init__(self, recipe: Recipe, op: Lifted) -> None:
+        self.recipe = recipe
+        self.op = op
+
+    def __call__(self, x: Env, *args, **kwargs):
+        xx = evaluate(self.recipe, *args, **kwargs)
+        return self.op(xx, *args, **kwargs)

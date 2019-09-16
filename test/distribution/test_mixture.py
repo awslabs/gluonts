@@ -31,6 +31,9 @@ from gluonts.distribution import (
     MixtureDistributionOutput,
 )
 from gluonts.testutil import empirical_cdf
+from gluonts.core.serde import dump_json, load_json
+
+serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
 def plot_samples(s: Tensor, bins: int = 100) -> None:
@@ -89,10 +92,10 @@ SHAPE = (2, 1, 3)
         # TODO: add a multivariate case here
     ],
 )
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_mixture(
-    distr1: Distribution, distr2: Distribution, p: Tensor
+    distr1: Distribution, distr2: Distribution, p: Tensor, serialize_fn
 ) -> None:
-
     # sample from component distributions, and select samples
 
     samples1 = distr1.sample(num_samples=NUM_SAMPLES_LARGE)
@@ -109,6 +112,7 @@ def test_mixture(
     mixture = MixtureDistribution(
         mixture_probs=mixture_probs, components=[distr1, distr2]
     )
+    mixture = serialize_fn(mixture)
 
     samples_mix = mixture.sample(num_samples=NUM_SAMPLES_LARGE)
 
@@ -150,7 +154,8 @@ def test_mixture(
         ((MultivariateGaussianOutput(3), MultivariateGaussianOutput(3)),),
     ],
 )
-def test_mixture_output(distribution_outputs) -> None:
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_mixture_output(distribution_outputs, serialize_fn) -> None:
     mdo = MixtureDistributionOutput(*distribution_outputs)
 
     args_proj = mdo.get_args_proj()
@@ -160,6 +165,7 @@ def test_mixture_output(distribution_outputs) -> None:
 
     distr_args = args_proj(input)
     d = mdo.distribution(distr_args)
+    d = serialize_fn(d)
 
     samples = d.sample(num_samples=NUM_SAMPLES)
 

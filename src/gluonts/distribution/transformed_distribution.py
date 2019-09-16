@@ -12,13 +12,15 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 # Third-party imports
 from mxnet import autograd
+import mxnet as mx
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from . import bijection as bij
@@ -31,8 +33,9 @@ class TransformedDistribution(Distribution):
     of a base distribution.
     """
 
+    @validated()
     def __init__(
-        self, base_distribution: Distribution, *transforms: bij.Bijection
+        self, base_distribution: Distribution, transforms: List[bij.Bijection]
     ) -> None:
         self.base_distribution = base_distribution
         self.transforms = transforms
@@ -110,6 +113,26 @@ class TransformedDistribution(Distribution):
             sign = sign * t.sign
         f = self.base_distribution.cdf(x)
         return sign * (f - 0.5) + 0.5
+
+    def quantile(self, level: Tensor) -> Tensor:
+        F = getF(level)
+
+        sign = 1.0
+        for t in self.transforms:
+            sign = sign * t.sign
+
+        if not isinstance(sign, (mx.nd.NDArray, mx.sym.Symbol)):
+            sign = sign + level.zeros_like()
+
+        cond = F.broadcast_greater(sign, sign.zeros_like())
+        level = F.broadcast_mul(cond, level) + F.broadcast_mul(
+            1.0 - cond, 1.0 - level
+        )
+
+        q = self.base_distribution.quantile(level)
+        for t in self.transforms:
+            q = t.f(q)
+        return q
 
 
 def sum_trailing_axes(F, x: Tensor, k: int) -> Tensor:

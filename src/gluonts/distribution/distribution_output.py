@@ -125,7 +125,7 @@ class DistributionOutput(Output):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedDistribution(
-                distr, AffineTransformation(scale=scale)
+                distr, [AffineTransformation(scale=scale)]
             )
 
     @property

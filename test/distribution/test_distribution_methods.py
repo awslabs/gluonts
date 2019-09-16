@@ -29,6 +29,8 @@ from gluonts.distribution import (
     TransformedDistribution,
 )
 
+from gluonts.core.serde import load_json, dump_json
+
 test_cases = [
     (
         Gaussian,
@@ -117,9 +119,14 @@ DISTRIBUTIONS = [
 ]
 
 
+serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
+
+
 @pytest.mark.parametrize("distr_class, params", test_cases)
-def test_means(distr_class, params) -> None:
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_means(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
+    distr = serialize_fn(distr)
     means = distr.mean
     distr_name = distr.__class__.__name__
     assert means.shape == test_output[distr_name]["mean"].shape
@@ -130,8 +137,10 @@ def test_means(distr_class, params) -> None:
 
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
-def test_stdevs(distr_class, params) -> None:
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_stdevs(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
+    distr = serialize_fn(distr)
     stddevs = distr.stddev
     distr_name = distr.__class__.__name__
     assert stddevs.shape == test_output[distr_name]["stddev"].shape
@@ -143,8 +152,10 @@ def test_stdevs(distr_class, params) -> None:
 
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
-def test_variances(distr_class, params) -> None:
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_variances(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
+    distr = serialize_fn(distr)
     variances = distr.variance
     distr_name = distr.__class__.__name__
     assert variances.shape == test_output[distr_name]["variance"].shape
