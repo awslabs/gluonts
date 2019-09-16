@@ -113,18 +113,15 @@ def serve_command(
     logging.info("Run 'serve' command")
 
     if not force_static and forecaster is not None:
-        gunicorn_app = serve.make_gunicorn_app(
-            env=None,
-            forecaster_type=forecaster_type_by_name(forecaster),
-            settings=Settings(),
-        )
+        forecaster_type = forecaster_type_by_name(forecaster)
     else:
-        gunicorn_app = serve.make_gunicorn_app(
-            env=ServeEnv(Path(data_path)),
-            forecaster_type=None,
-            settings=Settings(),
-        )
+        forecaster_type = None
 
+    gunicorn_app = serve.make_gunicorn_app(
+        env=ServeEnv(Path(data_path)),
+        forecaster_type=forecaster_type,
+        settings=Settings(),
+    )
     gunicorn_app.run()
 
 

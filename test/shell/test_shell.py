@@ -24,7 +24,8 @@ from gluonts.core.component import equals
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell import testutil
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
-from gluonts.shell.serve import Settings, jsonify_floats
+from gluonts.shell.serve import Settings
+from gluonts.shell.serve.util import jsonify_floats
 from gluonts.shell.train import run_train_and_test
 
 context_length = 5
@@ -60,8 +61,11 @@ def static_server(
 def dynamic_server(
     train_env: TrainEnv
 ) -> ContextManager[testutil.ServerFacade]:
+    serve_env = ServeEnv(train_env.path.base)
     settings = Settings(sagemaker_server_port=testutil.free_port())
-    with testutil.temporary_server(None, MeanPredictor, settings) as server:
+    with testutil.temporary_server(
+        serve_env, MeanPredictor, settings
+    ) as server:
         yield server
 
 

@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import os
 import json
 from pathlib import Path
 from typing import Dict, Optional
@@ -18,6 +19,7 @@ from typing import Dict, Optional
 from pydantic import BaseModel
 
 from gluonts.dataset.common import FileDataset, MetaData
+from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.support.util import map_dct_values
 from .params import decode_sagemaker_parameters
 from .path import ServePaths, TrainPaths
@@ -46,6 +48,14 @@ class TrainEnv:
 class ServeEnv:
     def __init__(self, path: Path = Path("/opt/ml")) -> None:
         self.path = ServePaths(path)
+
+        batch_transform = os.environ.get("SAGEMAKER_BATCH", "false") == "true"
+        if batch_transform:
+            self.batch_config = ForecastConfig.parse_raw(
+                os.environ["INFERENCE_CONFIG"]
+            )
+        else:
+            self.batch_config = None
 
 
 def _load_inputdataconfig(
