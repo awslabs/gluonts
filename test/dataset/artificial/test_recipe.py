@@ -41,9 +41,10 @@ from gluonts.dataset.artificial.recipe import (
     RandomCat,
     RandomGaussian,
     RandomSymmetricDirichlet,
+    Ref,
     SmoothSeasonality,
     Stack,
-    evaluate_recipe,
+    evaluate,
     generate,
     take_as_list,
 )
@@ -70,7 +71,7 @@ BASE_RECIPE = [("foo", ConstantVec(1.0)), ("cat", RandomCat([10]))]
         Mul(["foo", "foo"]),
         NanWhere("foo", "foo"),
         NanWhereNot("foo", "foo"),
-        Stack(["foo", "foo"]),
+        Stack([Ref("foo"), Ref("foo")]),
         RandomGaussian() + RandomGaussian(),
         RandomGaussian() * RandomGaussian(),
         RandomGaussian() / RandomGaussian(),
@@ -78,7 +79,7 @@ BASE_RECIPE = [("foo", ConstantVec(1.0)), ("cat", RandomCat([10]))]
 )
 def test_call_and_repr(func) -> None:
     global_state = {}
-    x = evaluate_recipe(BASE_RECIPE, length=10, global_state=global_state)
+    x = evaluate(BASE_RECIPE, length=10, global_state=global_state)
     kwargs = dict(foo=42, bar=23)
     np.random.seed(0)
     ret = func(
@@ -99,6 +100,7 @@ def test_call_and_repr(func) -> None:
         global_state=global_state.copy(),
         **kwargs,
     )
+    print(ret)
     np.testing.assert_allclose(ret2, ret)
 
 
@@ -108,7 +110,7 @@ def test_call_and_repr(func) -> None:
         [
             ("target", LinearTrend() + RandomGaussian()),
             ("binary_causal", BinaryMarkovChain(0.01, 0.1)),
-            ("feat_dynamic_real", Stack(["binary_causal"])),
+            ("feat_dynamic_real", Stack([Ref("binary_causal")])),
             ("feat_static_cat", RandomCat([10])),
             (
                 "feat_static_real",
