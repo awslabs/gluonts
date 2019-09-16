@@ -394,7 +394,7 @@ class Expr(Lifted):
         self.expr = expr
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
-        return eval(self.expr, globals(), dict(x=x, **kwargs))
+        return eval(self.expr, globals(), dict(x=x, length=length, **kwargs))
 
 
 class SmoothSeasonality(Lifted):
