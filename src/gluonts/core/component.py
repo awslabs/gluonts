@@ -485,7 +485,7 @@ def get_mxnet_context() -> mx.Context:
     """
     Returns either CPU or GPU context
     """
-    n = mx.context.num_gpus()
+    n = num_gpus()
     if n == 0:
         logging.info("Using CPU")
         return mx.context.cpu()
@@ -494,14 +494,27 @@ def get_mxnet_context() -> mx.Context:
         return mx.context.gpu(0)
 
 
+NUM_GPUS = None
+
+
+def num_gpus(refresh=False):
+    global NUM_GPUS
+    if NUM_GPUS is not None or refresh:
+        n = 0
+        try:
+            n = mx.context.num_gpus()
+        except mx.base.MXNetError as e:
+            logger.error(f"Failure when querying GPU:\n{e}")
+        NUM_GPUS = n
+    return NUM_GPUS
+
+
 def check_gpu_support() -> None:
     """
     Emits a log line that indicates whether the currently installed MXNet
     version has GPU support.
     """
-    logger.info(
-        f'MXNet GPU support is {"ON" if mx.context.num_gpus() > 0 else "OFF"}'
-    )
+    logger.info(f'MXNet GPU support is {"ON" if num_gpus() > 0 else "OFF"}')
 
 
 class DType:
