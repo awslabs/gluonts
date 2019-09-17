@@ -85,6 +85,9 @@ class DeepAREstimator(GluonEstimator):
     use_feat_static_cat
         Whether to use the ``feat_static_cat`` field from the data
         (default: False)
+    use_feat_static_real
+        Whether to use the ``feat_static_real`` field from the data
+        (default: False)
     cardinality
         Number of values of each categorical feature.
         This must be set if ``use_feat_static_cat == True`` (default: None)
@@ -121,6 +124,7 @@ class DeepAREstimator(GluonEstimator):
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
+        use_feat_static_real: bool = False,
         cardinality: Optional[List[int]] = None,
         embedding_dimension: int = 20,
         distr_output: DistributionOutput = StudentTOutput(),
@@ -165,6 +169,7 @@ class DeepAREstimator(GluonEstimator):
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
+        self.use_feat_static_real = use_feat_static_real
         self.cardinality = cardinality if use_feat_static_cat else [1]
         self.embedding_dimension = embedding_dimension
         self.scaling = scaling
@@ -184,10 +189,9 @@ class DeepAREstimator(GluonEstimator):
         self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> Transformation:
-        remove_field_names = [
-            FieldName.FEAT_DYNAMIC_CAT,
-            FieldName.FEAT_STATIC_REAL,
-        ]
+        remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
+        if not self.use_feat_static_real:
+            remove_field_names.append(FieldName.FEAT_STATIC_REAL)
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
@@ -198,8 +202,20 @@ class DeepAREstimator(GluonEstimator):
                 if not self.use_feat_static_cat
                 else []
             )
+            + (
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
+                if not self.use_feat_static_real
+                else []
+            )
             + [
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
+                ),
                 AsNumpyArray(
                     field=FieldName.TARGET,
                     # in the following line, we add 1 for the time dimension
