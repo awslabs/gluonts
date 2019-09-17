@@ -226,6 +226,10 @@ class Transformation(metaclass=abc.ABCMeta):
     A Transformation processes works on a stream (iterator) of dictionaries.
     """
 
+    @validated()
+    def __init__(self) -> None:
+        self.estimator_fields = []
+
     @abc.abstractmethod
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
@@ -243,6 +247,8 @@ class Chain(Transformation):
 
     @validated()
     def __init__(self, trans: List[Transformation]) -> None:
+        super().__init__()
+
         self.trans = trans
 
     def __call__(
@@ -258,6 +264,9 @@ class Chain(Transformation):
 
 
 class Identity(Transformation):
+    def __init__(self) -> None:
+        super().__init__()
+
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
     ) -> Iterator[DataEntry]:
@@ -268,6 +277,9 @@ class MapTransformation(Transformation):
     """
     Base class for Transformations that returns exactly one result per input in the stream.
     """
+
+    def __init__(self) -> None:
+        super().__init__()
 
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
@@ -288,6 +300,9 @@ class SimpleTransformation(MapTransformation):
     Element wise transformations that are the same in train and test mode
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         return self.transform(data)
 
@@ -305,6 +320,8 @@ class AdhocTransform(SimpleTransformation):
     """
 
     def __init__(self, func: Callable[[DataEntry], DataEntry]) -> None:
+        super().__init__()
+
         self.func = func
 
     def transform(self, data: DataEntry) -> DataEntry:
@@ -316,6 +333,9 @@ class FlatMapTransformation(Transformation):
     Transformations that yield zero or more results per input, but do not combine
     elements from the input stream.
     """
+
+    def __init__(self) -> None:
+        super().__init__()
 
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
@@ -349,6 +369,8 @@ class FlatMapTransformation(Transformation):
 
 class FilterTransformation(FlatMapTransformation):
     def __init__(self, condition: Callable[[DataEntry], bool]) -> None:
+        super().__init__()
+
         self.condition = condition
 
     def flatmap_transform(
@@ -361,6 +383,8 @@ class FilterTransformation(FlatMapTransformation):
 class RemoveFields(SimpleTransformation):
     @validated()
     def __init__(self, field_names: List[str]) -> None:
+        super().__init__()
+
         self.field_names = field_names
 
     def transform(self, data: DataEntry) -> DataEntry:
@@ -406,6 +430,8 @@ class SetFieldIfNotPresent(SimpleTransformation):
 
     @validated()
     def __init__(self, field: str, value: Any) -> None:
+        super().__init__()
+
         self.output_field = field
         self.value = value
 
@@ -432,6 +458,8 @@ class AsNumpyArray(SimpleTransformation):
     def __init__(
         self, field: str, expected_ndim: int, dtype: DType = np.float32
     ) -> None:
+        super().__init__()
+
         self.field = field
         self.expected_ndim = expected_ndim
         self.dtype = dtype
@@ -475,6 +503,8 @@ class ExpandDimArray(SimpleTransformation):
 
     @validated()
     def __init__(self, field: str, axis: Optional[int] = None) -> None:
+        super().__init__()
+
         self.field = field
         self.axis = axis
 
@@ -507,8 +537,12 @@ class VstackFeatures(SimpleTransformation):
         input_fields: List[str],
         drop_inputs: bool = True,
     ) -> None:
+        super().__init__()
+
         self.output_field = output_field
         self.input_fields = input_fields
+
+        # local list of features that this transformation removes
         self.cols_to_drop = (
             []
             if not drop_inputs
@@ -553,8 +587,12 @@ class ConcatFeatures(SimpleTransformation):
         input_fields: List[str],
         drop_inputs: bool = True,
     ) -> None:
+        super().__init__()
+
         self.output_field = output_field
         self.input_fields = input_fields
+
+        # local list of features that this transformation removes
         self.cols_to_drop = (
             []
             if not drop_inputs
@@ -590,6 +628,8 @@ class SwapAxes(SimpleTransformation):
 
     @validated()
     def __init__(self, input_fields: List[str], axes: Tuple[int, int]) -> None:
+        super().__init__()
+
         self.input_fields = input_fields
         self.axis1, self.axis2 = axes
 
@@ -631,8 +671,12 @@ class ListFeatures(SimpleTransformation):
         input_fields: List[str],
         drop_inputs: bool = True,
     ) -> None:
+        super().__init__()
+
         self.output_field = output_field
         self.input_fields = input_fields
+
+        # local list of features that this transformation removes
         self.cols_to_drop = (
             []
             if not drop_inputs
@@ -677,6 +721,8 @@ class AddObservedValuesIndicator(SimpleTransformation):
         dummy_value: int = 0,
         convert_nans: bool = True,
     ) -> None:
+        super().__init__()
+
         self.dummy_value = dummy_value
         self.target_field = target_field
         self.output_field = output_field
@@ -708,6 +754,8 @@ class RenameFields(SimpleTransformation):
 
     @validated()
     def __init__(self, mapping: Dict[str, str]) -> None:
+        super().__init__()
+
         self.mapping = mapping
         values_count = Counter(mapping.values())
         for new_key, count in values_count.items():
@@ -756,6 +804,8 @@ class AddConstFeature(MapTransformation):
         const: float = 1.0,
         dtype: DType = np.float32,
     ) -> None:
+        super().__init__()
+
         self.pred_length = pred_length
         self.const = const
         self.dtype = dtype
@@ -802,6 +852,8 @@ class AddTimeFeatures(MapTransformation):
         time_features: List[TimeFeature],
         pred_length: int,
     ) -> None:
+        super().__init__()
+
         self.date_features = time_features
         self.pred_length = pred_length
         self.start_field = start_field
@@ -879,6 +931,8 @@ class AddAgeFeature(MapTransformation):
         pred_length: int,
         log_scale: bool = True,
     ) -> None:
+        super().__init__()
+
         self.pred_length = pred_length
         self.target_field = target_field
         self.feature_name = output_field
@@ -966,6 +1020,7 @@ class InstanceSplitter(FlatMapTransformation):
         time_series_fields: Optional[List[str]] = None,
         pick_incomplete: bool = True,
     ) -> None:
+        super().__init__()
 
         assert future_length > 0
 
@@ -1130,6 +1185,8 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         use_prediction_features: bool = False,
         prediction_length: Optional[int] = None,
     ) -> None:
+        super().__init__()
+
         self.instance_sampler = instance_sampler
         self.instance_length = instance_length
         self.output_NTC = output_NTC
@@ -1242,6 +1299,8 @@ class SelectFields(MapTransformation):
 
     @validated()
     def __init__(self, input_fields: List[str]) -> None:
+        super().__init__()
+
         self.input_fields = input_fields
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
