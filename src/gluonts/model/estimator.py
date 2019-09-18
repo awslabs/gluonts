@@ -253,16 +253,15 @@ class GluonEstimator(Estimator):
 
         return used_fields
 
-    def show_field_info(
-        self, estimator_fields: set, dataset_stats: NamedTuple
-    ):
+    @staticmethod
+    def show_field_info(estimator_fields: set, dataset_stats: NamedTuple):
         # In the dataset but not used
         if (
             dataset_stats.feat_static_cat
             and FieldName.FEAT_STATIC_CAT not in estimator_fields
         ):
             logging.info(
-                f"WARNING: The dataset contains the field {FieldName.FEAT_STATIC_CAT} but it is not "
+                f"WARNING: The dataset contains the field '{FieldName.FEAT_STATIC_CAT}' but it is not "
                 f"used by the estimator. The field is ignored."
             )
         if (
@@ -270,7 +269,7 @@ class GluonEstimator(Estimator):
             and FieldName.FEAT_STATIC_REAL not in estimator_fields
         ):
             logging.info(
-                f"WARNING: The dataset contains the field {FieldName.FEAT_STATIC_REAL} but it is not "
+                f"WARNING: The dataset contains the field '{FieldName.FEAT_STATIC_REAL}' but it is not "
                 f"used by the estimator. The field is ignored."
             )
         if (
@@ -278,7 +277,7 @@ class GluonEstimator(Estimator):
             and FieldName.FEAT_DYNAMIC_CAT not in estimator_fields
         ):
             logging.info(
-                f"WARNING: The dataset contains the field {FieldName.FEAT_DYNAMIC_CAT} but it is not "
+                f"WARNING: The dataset contains the field '{FieldName.FEAT_DYNAMIC_CAT}' but it is not "
                 f"used by the estimator. The field is ignored."
             )
         if (
@@ -286,7 +285,7 @@ class GluonEstimator(Estimator):
             and FieldName.FEAT_DYNAMIC_REAL not in estimator_fields
         ):
             logging.info(
-                f"WARNING: The dataset contains the field {FieldName.FEAT_DYNAMIC_REAL} but it is not "
+                f"WARNING: The dataset contains the field '{FieldName.FEAT_DYNAMIC_REAL}' but it is not "
                 f"used by the estimator. The field is ignored."
             )
 
@@ -294,5 +293,5 @@ class GluonEstimator(Estimator):
         if dataset_stats.unsupported_fields:
             for field in dataset_stats.unsupported_fields:
                 logging.info(
-                    f"WARNING: The dataset contains the field {field}. The field is not supported."
+                    f"WARNING: The dataset contains the field '{field}'. The field is not supported."
                 )
