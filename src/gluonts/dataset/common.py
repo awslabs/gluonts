@@ -316,7 +316,7 @@ class ProcessStartField:
 
         timestamp = pd.Timestamp(string, freq=freq)
 
-        # operate on time information (hours, minute, second)
+        # operate on time information (days, hours, minute, second)
         if isinstance(timestamp.freq, Tick):
             return pd.Timestamp(
                 timestamp.floor(timestamp.freq), timestamp.freq
@@ -328,8 +328,7 @@ class ProcessStartField:
             hour=0, minute=0, second=0, microsecond=0, nanosecond=0
         )
 
-        # TODO: replace with rollforward
-        return timestamp.freq.rollback(timestamp)
+        return timestamp.freq.rollforward(timestamp)
 
 
 def rollback(timestamp):
