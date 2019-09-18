@@ -112,8 +112,8 @@ def test_call_and_repr(func) -> None:
             ("feat_static_cat", RandomCat([10])),
             (
                 "feat_static_real",
-                ForEachCat(RandomGaussian(1, (10, )), "feat_static_cat")
-                + RandomGaussian(0.1, (10, )),
+                ForEachCat(RandomGaussian(1, (10,)), "feat_static_cat")
+                + RandomGaussian(0.1, (10,)),
             ),
         ],
         lambda **kwargs: dict(
