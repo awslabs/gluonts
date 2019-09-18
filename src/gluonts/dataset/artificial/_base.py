@@ -158,7 +158,9 @@ class ConstantDataset(ArtificialDataset):
                     }
                 ],
                 feat_static_real=[{"name": "feat_static_real_000"}],
-                feat_dynamic_real=[BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)],
+                feat_dynamic_real=[
+                    BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
+                ],
                 prediction_length=self.prediction_length,
             )
         return metadata
@@ -196,7 +198,9 @@ class ConstantDataset(ArtificialDataset):
             recipe.append(
                 ("binary_causal", BinaryMarkovChain(one_to_zero, zero_to_one))
             )
-            recipe.append((FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_causal"])))
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_causal"]))
+            )
             recipe_type += scale_features * Lag("binary_causal", lag=0)
         if self.holidays:
             timestamp = self.init_date()
@@ -206,7 +210,9 @@ class ConstantDataset(ArtificialDataset):
                 dates.append(timestamp)
                 timestamp += 1
             recipe.append(("binary_holidays", Binary(dates, self.holidays)))
-            recipe.append((FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"])))
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"]))
+            )
             recipe_type += scale_features * Lag("binary_holidays", lag=0)
         recipe.append((FieldName.TARGET, recipe_type))
         max_train_length = num_steps - self.prediction_length
@@ -688,9 +694,13 @@ class RecipeDataset(ArtificialDataset):
         )
 
         if FieldName.FEAT_DYNAMIC_CAT in x:
-            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][:, :-length]
+            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][
+                :, :-length
+            ]
         if FieldName.FEAT_DYNAMIC_REAL in x:
-            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][:, :-length]
+            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
+                :, :-length
+            ]
         if FieldName.FEAT_DYNAMIC_CAT in x:
             y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT]
         if FieldName.FEAT_DYNAMIC_REAL in x:
@@ -712,9 +722,13 @@ class RecipeDataset(ArtificialDataset):
         )
 
         if FieldName.FEAT_DYNAMIC_CAT in x:
-            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][:, length:]
+            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][
+                :, length:
+            ]
         if FieldName.FEAT_DYNAMIC_REAL in x:
-            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][:, length:]
+            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
+                :, length:
+            ]
         if FieldName.FEAT_DYNAMIC_CAT in x:
             y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT]
         if FieldName.FEAT_DYNAMIC_REAL in x:
@@ -764,11 +778,17 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
         recipe=recipe,
         metadata=MetaData(
             freq="D",
-            feat_static_real=[BasicFeatureInfo(name=FieldName.FEAT_STATIC_REAL)],
-            feat_static_cat=[
-                CategoricalFeatureInfo(name=FieldName.FEAT_STATIC_CAT, cardinality=10)
+            feat_static_real=[
+                BasicFeatureInfo(name=FieldName.FEAT_STATIC_REAL)
             ],
-            feat_dynamic_real=[BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)],
+            feat_static_cat=[
+                CategoricalFeatureInfo(
+                    name=FieldName.FEAT_STATIC_CAT, cardinality=10
+                )
+            ],
+            feat_dynamic_real=[
+                BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
+            ],
         ),
         max_train_length=20,
         prediction_length=10,
@@ -805,7 +825,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
                 FieldName.ITEM_ID: str(i),
                 FieldName.START: start_date,
                 FieldName.TARGET: [float(i)] * 24,
-                FieldName.FEAT_STATIC_CAT : [i],
+                FieldName.FEAT_STATIC_CAT: [i],
                 FieldName.FEAT_STATIC_REAL: [float(i)],
             }
             for i in range(10)

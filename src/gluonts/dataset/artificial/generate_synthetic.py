@@ -56,9 +56,9 @@ def write_csv_row(
         freq_week_start = freq
         if freq_week_start == "W":
             freq_week_start = f"W-{week_dict[timestamp.weekday()]}"
-        timestamp = pd.Timestamp(data[FieldName.START]], freq=freq_week_start)
-        item_id = int(data[FieldName.ITEM_ID]])
-        for j, target in enumerate(data[FieldName.TARGET]]):
+        timestamp = pd.Timestamp(data[FieldName.START], freq=freq_week_start)
+        item_id = int(data[FieldName.ITEM_ID])
+        for j, target in enumerate(data[FieldName.TARGET]):
             # Using convention that there are no missing values before the start date
             if is_missing and j != 0 and j % num_missing == 0:
                 timestamp += 1
@@ -97,9 +97,14 @@ def generate_sf2(
             ts.pop(FieldName.FEAT_STATIC_CAT, None)
             ts.pop(FieldName.FEAT_STATIC_REAL, None)
             # Chop features in training set
-            if FieldName.FEAT_DYNAMIC_REAL in ts.keys() and "train" in filename:
+            if (
+                FieldName.FEAT_DYNAMIC_REAL in ts.keys()
+                and "train" in filename
+            ):
                 # TODO: Fix for missing values
-                for i, feat_dynamic_real in enumerate(ts[FieldName.FEAT_DYNAMIC_REAL]):
+                for i, feat_dynamic_real in enumerate(
+                    ts[FieldName.FEAT_DYNAMIC_REAL]
+                ):
                     ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
                         : len(ts[FieldName.TARGET])
                     ]
