@@ -29,6 +29,7 @@ from gluonts.dataset.artificial._base import (
     ComplexSeasonalTimeSeries,
     ConstantDataset,
 )
+from gluonts.dataset.field_names import FieldName
 
 
 def write_csv_row(
@@ -51,13 +52,13 @@ def write_csv_row(
     }
     for i in range(len(time_series)):
         data = time_series[i]
-        timestamp = pd.Timestamp(data["start"])
+        timestamp = pd.Timestamp(data[FieldName.START])
         freq_week_start = freq
         if freq_week_start == "W":
             freq_week_start = f"W-{week_dict[timestamp.weekday()]}"
-        timestamp = pd.Timestamp(data["start"], freq=freq_week_start)
-        item_id = int(data["item_id"])
-        for j, target in enumerate(data["target"]):
+        timestamp = pd.Timestamp(data[FieldName.START]], freq=freq_week_start)
+        item_id = int(data[FieldName.ITEM_ID]])
+        for j, target in enumerate(data[FieldName.TARGET]]):
             # Using convention that there are no missing values before the start date
             if is_missing and j != 0 and j % num_missing == 0:
                 timestamp += 1
@@ -68,8 +69,8 @@ def write_csv_row(
                     timestamp_row = timestamp.date()
                 row = [item_id, timestamp_row, target]
                 # Check if related time series is present
-                if "feat_dynamic_real" in data.keys():
-                    for feat_dynamic_real in data["feat_dynamic_real"]:
+                if FieldName.FEAT_DYNAMIC_REAL in data.keys():
+                    for feat_dynamic_real in data[FieldName.FEAT_DYNAMIC_REAL]:
                         row.append(feat_dynamic_real[j])
                 csv_writer.writerow(row)
                 timestamp += 1
@@ -86,21 +87,21 @@ def generate_sf2(
             if is_missing:
                 target = []  # type: List
                 # For Forecast don't output feat_static_cat and feat_static_real
-                for j, val in enumerate(ts["target"]):
+                for j, val in enumerate(ts[FieldName.TARGET]):
                     # only add ones that are not missing
                     if j != 0 and j % num_missing == 0:
                         target.append(None)
                     else:
                         target.append(val)
-                ts["target"] = target
-            ts.pop("feat_static_cat", None)
-            ts.pop("feat_static_real", None)
+                ts[FieldName.TARGET] = target
+            ts.pop(FieldName.FEAT_STATIC_CAT, None)
+            ts.pop(FieldName.FEAT_STATIC_REAL, None)
             # Chop features in training set
-            if "feat_dynamic_real" in ts.keys() and "train" in filename:
+            if FieldName.FEAT_DYNAMIC_REAL in ts.keys() and "train" in filename:
                 # TODO: Fix for missing values
-                for i, feat_dynamic_real in enumerate(ts["feat_dynamic_real"]):
-                    ts["feat_dynamic_real"][i] = feat_dynamic_real[
-                        : len(ts["target"])
+                for i, feat_dynamic_real in enumerate(ts[FieldName.FEAT_DYNAMIC_REAL]):
+                    ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
+                        : len(ts[FieldName.TARGET])
                     ]
             json.dump(ts, json_file)
             json_file.write("\n")
