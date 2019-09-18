@@ -11,9 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import List
+
 # Third-party imports
 import numpy as np
 import pandas as pd
+from pandas.tseries import offsets
+from pandas.tseries.frequencies import to_offset
 
 # First-party imports
 from gluonts.core.component import validated
@@ -117,3 +121,55 @@ class WeekOfYear(TimeFeature):
             return index.weekofyear / 51.0 - 0.5
         else:
             return index.weekofyear.map(float)
+
+
+def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
+    """
+    Returns a list of time features that will be appropriate for the given frequency string.
+
+    Parameters
+    ----------
+
+    freq_str
+        Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
+
+    """
+
+    features_by_offsets = {
+        offsets.YearOffset: [],
+        offsets.MonthOffset: [MonthOfYear],
+        offsets.Week: [DayOfMonth, WeekOfYear],
+        offsets.Day: [DayOfWeek, DayOfMonth, DayOfYear],
+        offsets.BusinessDay: [DayOfWeek, DayOfMonth, DayOfYear],
+        offsets.Hour: [HourOfDay, DayOfWeek, DayOfMonth, DayOfYear],
+        offsets.Minute: [
+            MinuteOfHour,
+            HourOfDay,
+            DayOfWeek,
+            DayOfMonth,
+            DayOfYear,
+        ],
+    }
+
+    offset = to_offset(freq_str)
+
+    for offset_type, feature_classes in features_by_offsets.items():
+        if isinstance(offset, offset_type):
+            return [cls() for cls in feature_classes]
+
+    supported_freq_msg = f"""
+    Unsupported frequency {freq_str}
+
+    The following frequencies are supported:
+
+        Y   - yearly
+            alias: A
+        M   - monthly
+        W   - weekly
+        D   - daily
+        B   - business days
+        H   - hourly
+        T   - minutely
+            alias: min
+    """
+    raise RuntimeError(supported_freq_msg)

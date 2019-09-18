@@ -24,10 +24,10 @@ from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
-from gluonts.time_feature.lag import (
+from gluonts.time_feature import (
     TimeFeature,
-    get_lags_for_frequency,
     time_features_from_frequency_str,
+    get_lags_for_frequency,
 )
 from gluonts.trainer import Trainer
 from gluonts.transform import (
