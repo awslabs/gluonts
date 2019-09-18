@@ -479,7 +479,7 @@ class NanWhere(Lifted):
 
 class OneMinus(Lifted):
     @validated()
-    def __init__(self, source: ValueOrCallable):
+    def __init__(self, source: ValueOrCallable) -> None:
         self.source = source
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
