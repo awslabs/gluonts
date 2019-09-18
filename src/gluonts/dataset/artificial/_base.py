@@ -701,11 +701,6 @@ class RecipeDataset(ArtificialDataset):
             y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
                 :, :-length
             ]
-        if FieldName.FEAT_DYNAMIC_CAT in x:
-            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT]
-        if FieldName.FEAT_DYNAMIC_REAL in x:
-            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL]
-
         return y
 
     @staticmethod
@@ -729,11 +724,6 @@ class RecipeDataset(ArtificialDataset):
             y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
                 :, length:
             ]
-        if FieldName.FEAT_DYNAMIC_CAT in x:
-            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT]
-        if FieldName.FEAT_DYNAMIC_REAL in x:
-            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL]
-
         return y
 
     def generate(self) -> TrainDatasets:
