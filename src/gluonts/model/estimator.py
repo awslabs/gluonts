@@ -13,11 +13,13 @@
 
 # Standard library imports
 from typing import NamedTuple
+import logging
 
 # Third-party imports
 import numpy as np
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
+import re
 
 # First-party imports
 import gluonts
@@ -25,6 +27,7 @@ from gluonts.core import fqname_for
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import get_hybrid_forward_input_names
@@ -169,6 +172,10 @@ class GluonEstimator(Estimator):
 
         transformation.estimate(iter(training_data))
 
+        estimator_feature_fields = self.parse_transformation(transformation)
+        dataset_fields = training_data.calc_stats()
+        self.show_field_info(estimator_feature_fields, dataset_fields)
+
         training_data_loader = TrainDataLoader(
             dataset=training_data,
             transform=transformation,
@@ -201,3 +208,91 @@ class GluonEstimator(Estimator):
     def train(self, training_data: Dataset) -> Predictor:
 
         return self.train_model(training_data).predictor
+
+    def parse_transformation(self, transformation: Transformation):
+        # construct the delimiter:
+        delims = set(
+            [
+                k
+                for k, v in gluonts.transform.__dict__.items()
+                if "gluonts.transform." + str(k) in str(v)
+            ]
+        )
+        delim_str = ""
+        for d in delims:
+            delim_str += str(d) + "|"
+        delim_str = "(" + delim_str[:-1] + ")"
+
+        # split the transformation
+        split_trans = re.split(delim_str, str(transformation))
+
+        # find indices that correspond to 'RemoveFields'
+        # fields in 'RemoveFields' should not be considered as used
+        remove_idx = [
+            idx
+            for subset in [
+                [i, i + 1]
+                for i, x in enumerate(split_trans)
+                if x == "RemoveFields"
+            ]
+            for idx in subset
+        ]
+
+        if remove_idx:
+            split_trans = [
+                val for i, val in enumerate(split_trans) if i not in remove_idx
+            ]
+
+        # join back the remaining fields
+        join_trans = "".join(string for string in split_trans)
+
+        used_fields = set()
+        for field in FieldName.dataset_feature_fields():
+            if field in join_trans:
+                used_fields.add(field)
+
+        return used_fields
+
+    def show_field_info(
+        self, estimator_fields: set, dataset_stats: NamedTuple
+    ):
+        # In the dataset but not used
+        if (
+            dataset_stats.feat_static_cat
+            and FieldName.FEAT_STATIC_CAT not in estimator_fields
+        ):
+            logging.info(
+                f"WARNING: The dataset contains the field {FieldName.FEAT_STATIC_CAT} but it is not "
+                f"used by the estimator. The field is ignored."
+            )
+        if (
+            dataset_stats.feat_static_real
+            and FieldName.FEAT_STATIC_REAL not in estimator_fields
+        ):
+            logging.info(
+                f"WARNING: The dataset contains the field {FieldName.FEAT_STATIC_REAL} but it is not "
+                f"used by the estimator. The field is ignored."
+            )
+        if (
+            dataset_stats.num_feat_dynamic_cat > 0
+            and FieldName.FEAT_DYNAMIC_CAT not in estimator_fields
+        ):
+            logging.info(
+                f"WARNING: The dataset contains the field {FieldName.FEAT_DYNAMIC_CAT} but it is not "
+                f"used by the estimator. The field is ignored."
+            )
+        if (
+            dataset_stats.num_feat_dynamic_real > 0
+            and FieldName.FEAT_DYNAMIC_REAL not in estimator_fields
+        ):
+            logging.info(
+                f"WARNING: The dataset contains the field {FieldName.FEAT_DYNAMIC_REAL} but it is not "
+                f"used by the estimator. The field is ignored."
+            )
+
+        # Unsupported fields in the dataset
+        if dataset_stats.unsupported_fields:
+            for field in dataset_stats.unsupported_fields:
+                logging.info(
+                    f"WARNING: The dataset contains the field {field}. The field is not supported."
+                )

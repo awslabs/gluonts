@@ -121,6 +121,7 @@ class DatasetStatisticsTest(unittest.TestCase):
             num_feat_dynamic_cat=2,
             num_missing_values=0,
             scale_histogram=scale_histogram,
+            unsupported_fields=set()
         )
 
         # FIXME: the cast below is a hack to make mypy happy

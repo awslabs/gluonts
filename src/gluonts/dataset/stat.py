@@ -123,6 +123,7 @@ class DatasetStatistics(NamedTuple):
     num_time_observations: int
     num_time_series: int
     scale_histogram: ScaleHistogram
+    unsupported_fields: Set[str]
 
     # DO NOT override the __str__ method, since we rely that we can load
     # DatasetStatistics again; i.e. stats == eval(str(stats))
@@ -167,6 +168,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     num_feat_dynamic_real: Optional[int] = None
     num_feat_dynamic_cat: Optional[int] = None
     num_missing_values = 0
+    unsupported_fields = set()
 
     scale_histogram = ScaleHistogram()
 
@@ -340,11 +342,19 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                     len(target),
                 )
 
+            # UNSUPPORTED FIELDS
+            unsupported_fields.update(
+                set(ts.keys()) - set(FieldName.dataset_fields())
+            )
+
     assert_data_error(num_time_series > 0, "Time series dataset is empty!")
     assert_data_error(
         num_time_observations > 0,
         "Only empty time series found in the dataset!",
     )
+
+    # remove 'source' from unsupported field
+    unsupported_fields.discard("source")
 
     # note this require the above assumption to avoid a division by zero
     # runtime error
@@ -378,4 +388,5 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
         num_time_observations=num_time_observations,
         num_time_series=num_time_series,
         scale_histogram=scale_histogram,
+        unsupported_fields=unsupported_fields,
     )

@@ -35,3 +35,24 @@ class FieldName:
     OBSERVED_VALUES = "observed_values"
     IS_PAD = "is_pad"
     FORECAST_START = "forecast_start"
+
+    @staticmethod
+    def dataset_required_fields():
+        return [FieldName.START, FieldName.TARGET]
+
+    @staticmethod
+    def dataset_feature_fields():
+        return [
+            FieldName.FEAT_STATIC_CAT,
+            FieldName.FEAT_STATIC_REAL,
+            FieldName.FEAT_DYNAMIC_CAT,
+            FieldName.FEAT_DYNAMIC_REAL,
+        ]
+
+    @staticmethod
+    def dataset_fields():
+        return (
+            FieldName.dataset_feature_fields()
+            + FieldName.dataset_required_fields()
+            + [FieldName.ITEM_ID]
+        )
