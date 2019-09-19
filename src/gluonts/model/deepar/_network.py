@@ -530,12 +530,12 @@ class DeepARPredictionNetwork(DeepARNetwork):
         # (batch_size * num_samples, prediction_length, *target_shape)
         samples = F.concat(*future_samples, dim=1)
 
-        # (batch_size, num_samples, *target_shape, prediction_length)
+        # (batch_size, num_samples, prediction_length, *target_shape)
         return samples.reshape(
             shape=(
                 (-1, self.num_parallel_samples)
-                + self.target_shape
                 + (self.prediction_length,)
+                + self.target_shape
             )
         )
 
