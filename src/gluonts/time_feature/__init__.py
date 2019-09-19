@@ -21,6 +21,7 @@ from ._base import (
     MonthOfYear,
     TimeFeature,
     WeekOfYear,
+    time_features_from_frequency_str,
 )
 
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
@@ -39,6 +40,7 @@ __all__ = [
     "SPECIAL_DATE_FEATURES",
     "SpecialDateFeatureSet",
     "get_lags_for_frequency",
+    "time_features_from_frequency_str",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

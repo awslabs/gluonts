@@ -18,69 +18,6 @@ from typing import List, Tuple, Optional
 # Third-party imports
 import numpy as np
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries import offsets
-
-# First-party imports
-from gluonts.time_feature import (
-    DayOfMonth,
-    DayOfWeek,
-    DayOfYear,
-    HourOfDay,
-    MinuteOfHour,
-    MonthOfYear,
-    TimeFeature,
-    WeekOfYear,
-)
-
-
-def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
-    """
-    Returns a list of time features that will be appropriate for the given frequency string.
-
-    Parameters
-    ----------
-
-    freq_str
-        Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
-
-    """
-
-    features_by_offsets = {
-        offsets.YearOffset: [],
-        offsets.MonthOffset: [MonthOfYear],
-        offsets.Week: [DayOfMonth, WeekOfYear],
-        offsets.Day: [DayOfWeek, DayOfMonth, DayOfYear],
-        offsets.Hour: [HourOfDay, DayOfWeek, DayOfMonth, DayOfYear],
-        offsets.Minute: [
-            MinuteOfHour,
-            HourOfDay,
-            DayOfWeek,
-            DayOfMonth,
-            DayOfYear,
-        ],
-    }
-
-    offset = to_offset(freq_str)
-
-    for offset_type, feature_classes in features_by_offsets.items():
-        if isinstance(offset, offset_type):
-            return [cls() for cls in feature_classes]
-
-    supported_freq_msg = f"""
-    Unsupported frequency {freq_str}
-
-    The following frequencies are supported:
-
-        Y   - yearly
-            alias: A
-        M   - monthly
-        W   - week
-        D   - daily
-        H   - hourly
-        T   - minutely
-            alias: min
-    """
-    raise RuntimeError(supported_freq_msg)
 
 
 def _make_lags(middle: int, delta: int) -> np.ndarray:

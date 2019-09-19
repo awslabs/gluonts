@@ -25,10 +25,7 @@ from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
-from gluonts.time_feature.lag import (
-    TimeFeature,
-    time_features_from_frequency_str,
-)
+from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddObservedValuesIndicator,
