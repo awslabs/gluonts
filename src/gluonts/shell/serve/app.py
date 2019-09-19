@@ -130,6 +130,9 @@ def batch_inference_invocations(predictor_factory, configuration) -> Flask:
         predictions = handle_predictions(predictor, instances, configuration)
 
         lines = list(map(json.dumps, map(jsonify_floats, predictions)))
+
+        # force line break at the end
+        lines.append("")
         return Response("\n".join(lines), mimetype="application/jsonlines")
 
     return invocations
