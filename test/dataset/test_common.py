@@ -21,10 +21,10 @@ from gluonts.dataset.common import ProcessStartField
     "freq, expected",
     [
         ("B", "2019-11-01"),
-        ("W", "2019-10-27"),
-        ("M", "2019-10-31"),
-        ("12M", "2019-10-31"),
-        ("A-DEC", "2018-12-31"),
+        ("W", "2019-11-03"),
+        ("M", "2019-11-30"),
+        ("12M", "2019-11-30"),
+        ("A-DEC", "2019-12-31"),
     ],
 )
 def test_process_start_field(freq, expected):
