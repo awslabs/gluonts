@@ -101,8 +101,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                 )
                 self.rnn.add(cell)
             self.embedder = FeatureEmbedder(
-                cardinalities=cardinality,
-                embedding_dims=embedding_dimension,
+                cardinalities=cardinality, embedding_dims=embedding_dimension
             )
             if scaling:
                 self.scaler = MeanScaler(keepdims=True)

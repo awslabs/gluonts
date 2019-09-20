@@ -169,7 +169,9 @@ class DeepAREstimator(GluonEstimator):
         self.embedding_dimension = (
             embedding_dimension
             if embedding_dimension is not None
-            else [min(50, (cat+1)//2) for cat in cardinality]
+            else [min(50, (cat + 1) // 2) for cat in cardinality]
+            if cardinality is not None
+            else None
         )
         self.scaling = scaling
         self.lags_seq = (
