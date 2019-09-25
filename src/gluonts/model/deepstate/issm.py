@@ -111,6 +111,9 @@ class ISSM:
     def latent_dim(self) -> int:
         raise NotImplemented()
 
+    def output_dim(self) -> int:
+        raise NotImplemented()
+
     def emission_coeff(self, seasonal_indicators: Tensor):
         raise NotImplemented()
 
@@ -132,6 +135,9 @@ class ISSM:
 
 class LevelISSM(ISSM):
     def latent_dim(self) -> int:
+        return 1
+
+    def output_dim(self) -> int:
         return 1
 
     def emission_coeff(
@@ -186,6 +192,9 @@ class LevelTrendISSM(LevelISSM):
     def latent_dim(self) -> int:
         return 2
 
+    def output_dim(self) -> int:
+        return 1
+
     def transition_coeff(
         self, seasonal_indicators: Tensor  # (batch_size, time_length)
     ) -> Tensor:
@@ -225,6 +234,9 @@ class SeasonalityISSM(LevelISSM):
     def latent_dim(self) -> int:
         return self.num_seasons
 
+    def output_dim(self) -> int:
+        return 1
+
     def emission_coeff(self, seasonal_indicators: Tensor) -> Tensor:
         F = getF(seasonal_indicators)
         return F.one_hot(seasonal_indicators, depth=self.latent_dim())
@@ -257,6 +269,9 @@ class CompositeISSM(ISSM):
             sum([issm.latent_dim() for issm in self.seasonal_issms])
             + self.nonseasonal_issm.latent_dim()
         )
+
+    def output_dim(self) -> int:
+        return self.nonseasonal_issm.output_dim()
 
     @classmethod
     def get_from_freq(cls, freq: str, add_trend: bool = DEFAULT_ADD_TREND):

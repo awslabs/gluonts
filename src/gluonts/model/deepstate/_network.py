@@ -56,6 +56,8 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         self.num_cat = len(cardinality)
         self.scaling = scaling
 
+        self.univariate = self.issm.output_dim() == 1
+
         with self.name_scope():
             self.prior_mean_model = mx.gluon.nn.Dense(
                 units=self.issm.latent_dim(), flatten=False
@@ -248,5 +250,9 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
         # convert samples from
         # (num_samples, batch_size, prediction_length, target_dim)
         # to
-        # (batch_size, num_samples, target_dim, prediction_length)
-        return samples.transpose(axes=(1, 0, 3, 2))
+        # (batch_size, num_samples, prediction_length, target_dim)
+        # and last axis in the univariate case
+        if self.univariate:
+            return samples.transpose(axes=(1, 0, 2, 3)).squeeze(axis=3)
+        else:
+            return samples.transpose(axes=(1, 0, 2, 3))
