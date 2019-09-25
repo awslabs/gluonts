@@ -138,7 +138,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
             prior_mean=prior_mean,
             prior_cov=prior_cov,
             latent_dim=self.issm.latent_dim(),
-            output_dim=1,
+            output_dim=self.issm.output_dim(),
             seq_length=length,
         )
 
@@ -251,7 +251,7 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
         # (num_samples, batch_size, prediction_length, target_dim)
         # to
         # (batch_size, num_samples, prediction_length, target_dim)
-        # and last axis in the univariate case
+        # and squeeze last axis in the univariate case
         if self.univariate:
             return samples.transpose(axes=(1, 0, 2, 3)).squeeze(axis=3)
         else:
