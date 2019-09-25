@@ -56,6 +56,8 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         self.num_cat = len(cardinality)
         self.scaling = scaling
 
+        self.univariate = self.issm.output_dim() == 1
+
         with self.name_scope():
             self.prior_mean_model = mx.gluon.nn.Dense(
                 units=self.issm.latent_dim(), flatten=False
@@ -66,7 +68,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
                 flatten=False,
             )
             self.lstm = mx.gluon.rnn.HybridSequentialRNNCell()
-            self.lds_proj = LDSArgsProj(output_dim=1)
+            self.lds_proj = LDSArgsProj(output_dim=self.issm.output_dim())
             for k in range(num_layers):
                 cell = mx.gluon.rnn.LSTMCell(hidden_size=num_cells)
                 cell = mx.gluon.rnn.ResidualCell(cell) if k > 0 else cell
@@ -136,7 +138,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
             prior_mean=prior_mean,
             prior_cov=prior_cov,
             latent_dim=self.issm.latent_dim(),
-            output_dim=1,
+            output_dim=self.issm.output_dim(),
             seq_length=length,
         )
 
@@ -248,5 +250,9 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
         # convert samples from
         # (num_samples, batch_size, prediction_length, target_dim)
         # to
-        # (batch_size, num_samples, target_dim, prediction_length)
-        return samples.transpose(axes=(1, 0, 3, 2))
+        # (batch_size, num_samples, prediction_length, target_dim)
+        # and squeeze last axis in the univariate case
+        if self.univariate:
+            return samples.transpose(axes=(1, 0, 2, 3)).squeeze(axis=3)
+        else:
+            return samples.transpose(axes=(1, 0, 2, 3))
