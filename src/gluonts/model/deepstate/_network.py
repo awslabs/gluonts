@@ -68,7 +68,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
                 flatten=False,
             )
             self.lstm = mx.gluon.rnn.HybridSequentialRNNCell()
-            self.lds_proj = LDSArgsProj(output_dim=1)
+            self.lds_proj = LDSArgsProj(output_dim=self.issm.output_dim())
             for k in range(num_layers):
                 cell = mx.gluon.rnn.LSTMCell(hidden_size=num_cells)
                 cell = mx.gluon.rnn.ResidualCell(cell) if k > 0 else cell
