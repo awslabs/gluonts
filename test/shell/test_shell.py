@@ -22,11 +22,12 @@ import pytest
 # First-party imports
 from gluonts.core.component import equals
 from gluonts.model.trivial.mean import MeanPredictor
-from gluonts.shell import testutil
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
 from gluonts.shell.serve import Settings
 from gluonts.shell.serve.util import jsonify_floats
 from gluonts.shell.train import run_train_and_test
+
+import testutil
 
 context_length = 5
 prediction_length = 6
@@ -67,6 +68,23 @@ def dynamic_server(
         serve_env, MeanPredictor, settings
     ) as server:
         yield server
+
+
+@pytest.fixture
+def batch_transform(monkeypatch, train_env):
+    monkeypatch.setenv("SAGEMAKER_BATCH", "true")
+
+    inference_config = {
+        "context_length": context_length,
+        "prediction_length": prediction_length,
+        "num_eval_samples": num_eval_samples,
+        "output_types": ["mean", "samples"],
+        "quantiles": [],
+        **train_env.hyperparameters,
+    }
+
+    monkeypatch.setenv("INFERENCE_CONFIG", json.dumps(inference_config))
+    return inference_config
 
 
 def test_train_shell(train_env: TrainEnv, caplog) -> None:
@@ -149,6 +167,44 @@ def test_dynamic_shell(
         forecast = dynamic_server.invocations([entry], configuration)[0]
 
         for output_type in configuration["output_types"]:
+            assert output_type in forecast
+
+        act_mean = np.array(forecast["mean"])
+        act_samples = np.array(forecast["samples"])
+
+        mean = np.mean(entry["target"])
+
+        exp_mean_shape = (prediction_length,)
+        exp_samples_shape = (num_eval_samples, prediction_length)
+
+        exp_mean = mean * np.ones(shape=(prediction_length,))
+        exp_samples = mean * np.ones(shape=exp_samples_shape)
+
+        assert exp_mean_shape == act_mean.shape
+        assert exp_samples_shape == act_samples.shape
+        assert equals(exp_mean, act_mean)
+        assert equals(exp_samples, act_samples)
+
+
+def test_dynamic_batch_shell(
+    batch_transform,
+    train_env: TrainEnv,
+    dynamic_server: testutil.ServerFacade,
+    caplog,
+) -> None:
+    execution_parameters = dynamic_server.execution_parameters()
+
+    assert "BatchStrategy" in execution_parameters
+    assert "MaxConcurrentTransforms" in execution_parameters
+    assert "MaxPayloadInMB" in execution_parameters
+
+    assert execution_parameters["BatchStrategy"] == "SINGLE_RECORD"
+    assert execution_parameters["MaxPayloadInMB"] == 6
+
+    for entry in train_env.datasets["train"]:
+        forecast = dynamic_server.batch_invocations([entry])[0]
+
+        for output_type in batch_transform["output_types"]:
             assert output_type in forecast
 
         act_mean = np.array(forecast["mean"])
