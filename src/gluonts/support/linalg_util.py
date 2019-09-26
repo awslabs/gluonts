@@ -216,7 +216,8 @@ def jitter_cholesky(
             # gpu will not throw error but will store nans. If nan, L.sum() = nan
             # so the error tolerance can be large.
             # TODO: Add support for symbolic case: Cannot use <= operator with symbolic variables
-            assert F.max(F.abs(L.nansum() - L.sum()) <= 1e-1)
+            # Need to add absolute value because numerical issues when the inner argument is nan can make the inner argument negative when taking the max on the gpu
+            assert F.abs(F.max(F.abs(L.nansum() - L.sum()))) <= 1e-1
             return L
         except:
             if num_iter == 0:
