@@ -26,8 +26,8 @@ from gluonts.shell.sagemaker import ServeEnv, TrainEnv
 from gluonts.shell.serve import Settings
 from gluonts.shell.serve.util import jsonify_floats
 from gluonts.shell.train import run_train_and_test
+from gluonts.testutil import shell as testutil
 
-import testutil
 
 context_length = 5
 prediction_length = 6
