@@ -19,14 +19,85 @@ import time
 from contextlib import closing, contextmanager
 from multiprocessing import Process
 from pathlib import Path
-from typing import Any, ContextManager, Dict, Optional, Type
+from typing import Any, ContextManager, Dict, Optional, Type, Iterable, List
+
+import requests
 
 # First-party imports
+from gluonts.dataset.common import DataEntry, serialize_data_entry
 from gluonts.dataset.repository.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.shell.sagemaker import ServeEnv, ServePaths, TrainEnv, TrainPaths
 from gluonts.shell.sagemaker.params import encode_sagemaker_parameters
-from gluonts.shell.serve import ServerFacade, Settings, make_gunicorn_app
+from gluonts.shell.serve import Settings, make_gunicorn_app
+
+
+class ServerFacade:
+    """
+    A convenience wrapper for sending requests and handling responses to
+    an inference server located at the given address.
+    """
+
+    def __init__(self, base_address: str) -> None:
+        self.base_address = base_address
+
+    def url(self, path) -> str:
+        return self.base_address + path
+
+    def ping(self) -> bool:
+        try:
+            response = requests.get(url=self.url("/ping"))
+            return response.status_code == 200
+        except requests.exceptions.ConnectionError:
+            return False
+
+    def execution_parameters(self) -> dict:
+        response = requests.get(
+            url=self.url("/execution-parameters"),
+            headers={"Accept": "application/json"},
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code >= 400:
+            raise RuntimeError(response.content.decode("utf-8"))
+        else:
+            raise RuntimeError(f"Unexpected {response.status_code} response")
+
+    def invocations(
+        self, data_entries: Iterable[DataEntry], configuration: dict
+    ) -> List[dict]:
+        instances = list(map(serialize_data_entry, data_entries))
+        response = requests.post(
+            url=self.url("/invocations"),
+            json={"instances": instances, "configuration": configuration},
+            headers={"Accept": "application/json"},
+        )
+
+        if response.status_code == 200:
+            predictions = response.json()["predictions"]
+            assert len(predictions) == len(instances)
+            return predictions
+        elif response.status_code >= 400:
+            raise RuntimeError(response.content.decode("utf-8"))
+        else:
+            raise RuntimeError(f"Unexpected {response.status_code} response")
+
+    def batch_invocations(
+        self, data_entries: Iterable[DataEntry]
+    ) -> List[dict]:
+        instances = map(serialize_data_entry, data_entries)
+        instances = list(map(json.dumps, instances))
+
+        response = requests.post(
+            url=self.url("/invocations"), data="\n".join(instances)
+        )
+
+        assert response.status_code == 200
+
+        predictions = list(map(json.loads, response.text.splitlines()))
+        assert len(predictions) == len(instances)
+        return predictions
 
 
 def free_port() -> int:
@@ -38,7 +109,7 @@ def free_port() -> int:
 
 @contextmanager  # type: ignore
 def temporary_server(
-    env: Optional[ServeEnv],
+    env: ServeEnv,
     forecaster_type: Optional[Type[Predictor]],
     settings: Settings = Settings(),
 ) -> ContextManager[ServerFacade]:
