@@ -258,7 +258,9 @@ class WaveNetEstimator(GluonEstimator):
 
     def train(self, training_data: Dataset) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
-        mean_length = int(np.mean([len(d["target"]) for d in training_data]))
+        median_length = int(
+            np.median([len(d["target"]) for d in training_data])
+        )
         low = -10.0 if has_negative_data else 0
         high = 10.0
         bin_centers = np.linspace(low, high, self.num_bins)
@@ -269,9 +271,11 @@ class WaveNetEstimator(GluonEstimator):
         # Here we override the prediction length for training.
         # This computes the loss over longer windows and makes the convolutions more
         # efficient, since calculations are reused.
-        pred_length = min(mean_length, self.train_window_length)
+        pred_length = min(
+            median_length - self.context_length, self.train_window_length
+        )
 
-        logging.info(f"mean series length = {mean_length}")
+        logging.info(f"mean series length = {median_length}")
         logging.info(f"using training windows of length = {pred_length}")
 
         transformation = self.create_transformation(
