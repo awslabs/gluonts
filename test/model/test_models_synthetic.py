@@ -146,7 +146,7 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
     )
 
 
-@pytest.mark.timeout(5)  # DeepAR occasionally fails the 5 second timeout
+@pytest.mark.timeout(10)
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
     [
