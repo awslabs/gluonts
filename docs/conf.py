@@ -268,3 +268,7 @@ import multiprocessing
 linkcheck_ignore = [r"http[s]://apache-mxnet.s3*"]
 linkcheck_retries = 3
 linkcheck_workers = int(multiprocessing.cpu_count() / 2)
+
+intersphinx_mapping = {
+    "mxnet": ("https://mxnet.apache.org/api/python/docs", None)
+}
