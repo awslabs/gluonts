@@ -23,7 +23,7 @@ def main():
     context_length = 5
     axis = [-5, 5, -3, 3]
     float_type = np.float64
-    ctx = mx.Context('gpu')
+    ctx = mx.Context("gpu")
 
     num_samples = 3
     ts_idx = 0
@@ -74,7 +74,7 @@ def main():
 
     assert (
         np.sum(np.isnan(samples.asnumpy())) == 0
-    ), 'NaNs in predictive samples!'
+    ), "NaNs in predictive samples!"
 
     gp.plot(
         x_train=x_train,
@@ -88,5 +88,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
