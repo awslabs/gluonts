@@ -213,7 +213,7 @@ def jitter_cholesky(
                     ),
                 )
             )
-            # gpu will not throw error but will store nans. If nan, L.sum() = nan and 
+            # gpu will not throw error but will store nans. If nan, L.sum() = nan and
             # L.nansum() computes the sum treating nans as zeros so the error tolerance can be large.
             # for axis = Null, nansum() and sum() will sum over all elements and return scalar array with shape (1,)
             # TODO: Add support for symbolic case: Cannot use <= operator with symbolic variables
