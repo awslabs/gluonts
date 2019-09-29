@@ -275,7 +275,7 @@ class WaveNetEstimator(GluonEstimator):
             median_length - self.context_length, self.train_window_length
         )
 
-        logging.info(f"mean series length = {median_length}")
+        logging.info(f"median series length = {median_length}")
         logging.info(f"using training windows of length = {pred_length}")
 
         transformation = self.create_transformation(
