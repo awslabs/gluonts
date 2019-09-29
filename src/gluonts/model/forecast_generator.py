@@ -71,7 +71,7 @@ def _extract_instances(x: Any) -> Any:
         assert False
 
 
-class ForecastWrapper:
+class ForecastGenerator:
     """
     Classes used to bring the output of a network into a class.
     """
@@ -89,7 +89,7 @@ class ForecastWrapper:
         raise NotImplementedError()
 
 
-class DistributionForecastWrapper(ForecastWrapper):
+class DistributionForecastGenerator(ForecastGenerator):
     @validated()
     def __init__(self, distr_output: DistributionOutput) -> None:
         self.distr_output = distr_output
@@ -133,7 +133,7 @@ class DistributionForecastWrapper(ForecastWrapper):
             assert i + 1 == len(batch["forecast_start"])
 
 
-class QuantileForecastWrapper(ForecastWrapper):
+class QuantileForecastGenerator(ForecastGenerator):
     @validated()
     def __init__(self, quantiles: List[str]) -> None:
         self.quantiles = quantiles
@@ -174,7 +174,7 @@ class QuantileForecastWrapper(ForecastWrapper):
             assert i + 1 == len(batch["forecast_start"])
 
 
-class SampleForecastWrapper(ForecastWrapper):
+class SampleForecastGenerator(ForecastGenerator):
     @validated()
     def __init__(self):
         pass

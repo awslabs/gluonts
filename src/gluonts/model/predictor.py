@@ -51,7 +51,7 @@ from gluonts.core.component import (
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
-from .forecast_wrapper import ForecastWrapper, SampleForecastWrapper
+from .forecast_generator import ForecastGenerator, SampleForecastGenerator
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 
@@ -221,11 +221,8 @@ class GluonPredictor(Predictor):
         Output transformation
     ctx
         MXNet context to use for computation
-    forecast_cls_name
-        Class name of the forecast type that will be generated
-    forecast_kwargs
-        A dictionary that will be passed as kwargs when instantiating the
-        forecast object
+    forecast_generator
+        Class to generate forecasts from network ouputs
     """
 
     BlockType = mx.gluon.Block
@@ -239,8 +236,7 @@ class GluonPredictor(Predictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
-        forecast_wrapper: ForecastWrapper = SampleForecastWrapper(),
-        forecast_kwargs: Optional[Dict] = None,
+        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         float_type: DType = np.float32,
     ) -> None:
@@ -250,8 +246,7 @@ class GluonPredictor(Predictor):
         self.prediction_net = prediction_net
         self.batch_size = batch_size
         self.input_transform = input_transform
-        self.forecast_wrapper = forecast_wrapper
-        self.forecast_kwargs = forecast_kwargs if forecast_kwargs else {}
+        self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.ctx = ctx
         self.float_type = float_type
@@ -300,14 +295,13 @@ class GluonPredictor(Predictor):
             ctx=self.ctx,
             float_type=self.float_type,
         )
-        yield from self.forecast_wrapper(
+        yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,
             prediction_net=self.prediction_net,
             input_names=self.input_names,
             freq=self.freq,
             output_transform=self.output_transform,
             num_eval_samples=num_eval_samples,
-            **self.forecast_kwargs,
         )
 
     def __eq__(self, that):
@@ -345,8 +339,7 @@ class GluonPredictor(Predictor):
                 freq=self.freq,
                 ctx=self.ctx,
                 float_type=self.float_type,
-                forecast_wrapper=self.forecast_wrapper,
-                forecast_kwargs=self.forecast_kwargs,
+                forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )
             print(dump_json(parameters), file=fp)
@@ -440,8 +433,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
-        forecast_wrapper: ForecastWrapper = SampleForecastWrapper(),
-        forecast_kwargs: Optional[Dict] = None,
+        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
@@ -455,8 +447,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             freq=freq,
             ctx=ctx,
             input_transform=input_transform,
-            forecast_wrapper=forecast_wrapper,
-            forecast_kwargs=forecast_kwargs,
+            forecast_generator=forecast_generator,
             output_transform=output_transform,
             float_type=float_type,
         )
@@ -477,7 +468,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             freq=self.freq,
             ctx=self.ctx,
             input_transform=self.input_transform,
-            forecast_wrapper=self.forecast_wrapper,
+            forecast_generator=self.forecast_generator,
             output_transform=self.output_transform,
             float_type=self.float_type,
         )

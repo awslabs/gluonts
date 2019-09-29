@@ -39,7 +39,7 @@ from gluonts.support.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.trainer import Trainer
 from gluonts.transform import ExpectedNumInstanceSampler
-from gluonts.model.forecast_wrapper import QuantileForecastWrapper
+from gluonts.model.forecast_generator import QuantileForecastGenerator
 
 # Relative imports
 from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
@@ -177,7 +177,7 @@ class Seq2SeqEstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_wrapper=QuantileForecastWrapper(quantile_strs),
+            forecast_generator=QuantileForecastGenerator(quantile_strs),
         )
 
 
