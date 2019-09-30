@@ -1,0 +1,20 @@
+# Models
+
+# Wavenet
+/src/gluonts/model/wavenet/ @vafl
+
+# NPTS
+/src/gluonts/model/npts/ @rshyamsundar
+
+
+
+# Dataset
+
+/src/gluonts/dataset/ @jaheba
+
+/src/gluonts/dataset/artificial @jgasthaus
+
+
+# Shell
+
+/src/gluonts/shell/ @jaheba
