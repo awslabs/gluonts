@@ -38,7 +38,11 @@ class FeatureEmbedder(nn.HybridBlock):
 
     @validated()
     def __init__(
-        self, cardinalities: List[int], embedding_dims: List[int], **kwargs
+        self,
+        cardinalities: List[int],
+        embedding_dims: List[int],
+        dtype=np.float32,
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
@@ -56,9 +60,12 @@ class FeatureEmbedder(nn.HybridBlock):
         ), "Elements of `embedding_dims` should be > 0"
 
         self.__num_features = len(cardinalities)
+        self.dtype = dtype
 
         def create_embedding(i: int, c: int, d: int) -> nn.Embedding:
-            embedding = nn.Embedding(c, d, prefix=f"cat_{i}_embedding_")
+            embedding = nn.Embedding(
+                c, d, prefix=f"cat_{i}_embedding_", dtype=self.dtype
+            )
             self.register_child(embedding)
             return embedding
 

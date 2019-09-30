@@ -13,6 +13,7 @@
 
 # Standard library imports
 import math
+from functools import partial
 from typing import Dict, Optional, Tuple, List
 
 # First-party imports
@@ -85,7 +86,7 @@ class Gaussian(Distribution):
 
     def sample(self, num_samples: Optional[int] = None) -> Tensor:
         return _sample_multiple(
-            self.F.sample_normal,
+            partial(self.F.sample_normal, dtype=self.mu.dtype),
             mu=self.mu,
             sigma=self.sigma,
             num_samples=num_samples,
@@ -94,7 +95,7 @@ class Gaussian(Distribution):
     def sample_rep(self, num_samples: Optional[int] = None) -> Tensor:
         def s(mu: Tensor, sigma: Tensor) -> Tensor:
             raw_samples = self.F.sample_normal(
-                mu=mu.zeros_like(), sigma=sigma.ones_like()
+                mu=mu.zeros_like(), sigma=sigma.ones_like(), dtype=mu.dtype
             )
             return sigma * raw_samples + mu
 

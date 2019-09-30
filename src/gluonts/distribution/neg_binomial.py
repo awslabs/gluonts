@@ -87,7 +87,7 @@ class NegativeBinomial(Distribution):
             r = F.minimum(F.maximum(tol, r), 1e10)
             theta = F.minimum(F.maximum(tol, theta), 1e10)
             x = F.minimum(F.random.gamma(r, theta), 1e6)
-            return F.random.poisson(lam=x)
+            return F.random.poisson(lam=x, dtype=x.dtype)
 
         return _sample_multiple(
             s, mu=self.mu, alpha=self.alpha, num_samples=num_samples

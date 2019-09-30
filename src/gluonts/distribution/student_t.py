@@ -98,9 +98,13 @@ class StudentT(Distribution):
         def s(mu: Tensor, sigma: Tensor, nu: Tensor) -> Tensor:
             F = self.F
             gammas = F.sample_gamma(
-                alpha=nu / 2.0, beta=2.0 / (nu * F.square(sigma))
+                alpha=nu / 2.0,
+                beta=2.0 / (nu * F.square(sigma)),
+                dtype=mu.dtype,
             )
-            normal = F.sample_normal(mu=mu, sigma=1.0 / F.sqrt(gammas))
+            normal = F.sample_normal(
+                mu=mu, sigma=1.0 / F.sqrt(gammas), dtype=mu.dtype
+            )
             return normal
 
         return _sample_multiple(

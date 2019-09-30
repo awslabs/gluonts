@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+from functools import partial
 from typing import Dict, Optional, Tuple, List
 
 # First-party imports
@@ -72,7 +73,7 @@ class Uniform(Distribution):
 
     def sample(self, num_samples: Optional[int] = None) -> Tensor:
         return _sample_multiple(
-            self.F.sample_uniform,
+            partial(self.F.sample_uniform, dtype=self.low.dtype),
             low=self.low,
             high=self.high,
             num_samples=num_samples,
@@ -81,7 +82,7 @@ class Uniform(Distribution):
     def sample_rep(self, num_samples: Optional[int] = None) -> Tensor:
         def s(low: Tensor, high: Tensor) -> Tensor:
             raw_samples = self.F.sample_uniform(
-                low=low.zeros_like(), high=high.ones_like()
+                low=low.zeros_like(), high=high.ones_like(), dtype=low.dtype
             )
             return low + raw_samples * (high - low)
 

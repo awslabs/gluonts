@@ -83,12 +83,22 @@ class Output:
     """
 
     args_dim: Dict[str, int]
+    _float_type: DType = np.float32
+
+    @property
+    def float_type(self):
+        return self._float_type
+
+    @float_type.setter
+    def float_type(self, float_type: DType):
+        self._float_type = float_type
 
     def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
         return ArgProj(
             args_dim=self.args_dim,
             domain_map=gluon.nn.HybridLambda(self.domain_map),
             prefix=prefix,
+            float_type=self._float_type,
         )
 
     def domain_map(self, F, *args: Tensor):

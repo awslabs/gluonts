@@ -51,12 +51,12 @@ class MultivariateGaussian(Distribution):
 
     @validated()
     def __init__(
-        self, mu: Tensor, L: Tensor, F=None, float_type: DType = np.float32
+        self, mu: Tensor, L: Tensor, F=None, dtype: DType = np.float32
     ) -> None:
         self.mu = mu
         self.F = F if F else getF(mu)
         self.L = L
-        self.float_type = float_type
+        self.dtype = dtype
 
     @property
     def batch_shape(self) -> Tuple:
@@ -124,7 +124,7 @@ class MultivariateGaussian(Distribution):
             samples_std_normal = self.F.sample_normal(
                 mu=self.F.zeros_like(mu),
                 sigma=self.F.ones_like(mu),
-                dtype=self.float_type,
+                dtype=self.dtype,
             ).expand_dims(axis=-1)
             samples = (
                 self.F.linalg_gemm2(L, samples_std_normal).squeeze(axis=-1)

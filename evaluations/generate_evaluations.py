@@ -24,14 +24,15 @@ from typing import Dict
 from gluonts.dataset.repository.datasets import get_dataset, dataset_names
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
+from gluonts.model.deepar import DeepAREstimator
 
 metrics_persisted = ["mean_wQuantileLoss", "ND", "RMSE"]
 datasets = dataset_names
 
 Estimators = [
-    SeasonalNaivePredictor,
+    # SeasonalNaivePredictor,
     # model.simple_feedforward.SimpleFeedForwardEstimator,
-    # model.deepar.DeepAREstimator,
+    DeepAREstimator,
     # model.NPTSPredictor,
     # model.seq2seq.MQCNNEstimator,
     # TransformerEstimator,
