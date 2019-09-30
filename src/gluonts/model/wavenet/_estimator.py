@@ -272,7 +272,8 @@ class WaveNetEstimator(GluonEstimator):
         # This computes the loss over longer windows and makes the convolutions more
         # efficient, since calculations are reused.
         pred_length = min(
-            median_length - self.context_length, self.train_window_length
+            max(median_length - self.context_length, 1),
+            self.train_window_length,
         )
 
         logging.info(f"median series length = {median_length}")
