@@ -15,7 +15,17 @@
 import functools
 import itertools
 import operator
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 # Third-party imports
 import numpy as np

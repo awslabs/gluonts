@@ -212,7 +212,9 @@ class ConstantDataset(ArtificialDataset):
             recipe.append(
                 ("binary_holidays", BinaryHolidays(dates, self.holidays))
             )
-            recipe.append((FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"])))
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"]))
+            )
             recipe_type += scale_features * Lag("binary_holidays", lag=0)
         recipe.append((FieldName.TARGET, recipe_type))
         max_train_length = num_steps - self.prediction_length
