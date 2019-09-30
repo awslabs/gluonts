@@ -15,7 +15,7 @@
 import functools
 import itertools
 import operator
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 # Third-party imports
 import numpy as np
@@ -217,7 +217,7 @@ class LiftedTruediv(LiftedBinaryOp):
 class RandomGaussian(Lifted):
     @validated()
     def __init__(
-        self, stddev: ValueOrCallable = 1.0, shape: Tuple[int] = (0,)
+        self, stddev: ValueOrCallable = 1.0, shape: Sequence[int] = (0,)
     ) -> None:
         self.stddev = stddev
         self.shape = shape
@@ -262,7 +262,7 @@ class RandomBinary(Lifted):
 class RandomSymmetricDirichlet(Lifted):
     @validated()
     def __init__(
-        self, alpha: ValueOrCallable = 1.0, shape: Tuple[int] = (0,)
+        self, alpha: ValueOrCallable = 1.0, shape: Sequence[int] = (0,)
     ) -> None:
         self.alpha = alpha
         self.shape = shape
@@ -553,7 +553,7 @@ class RandomInteger(Lifted):
         self,
         low: ValueOrCallable,
         high: ValueOrCallable,
-        shape: Tuple[int] = (0,),
+        shape: Sequence[int] = (0,),
     ) -> None:
         self.low = low
         self.high = high
