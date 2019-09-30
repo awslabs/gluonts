@@ -35,6 +35,7 @@ from .piecewise_linear import (
 )
 from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
+from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
 
 __all__ = [
@@ -62,6 +63,7 @@ __all__ = [
     "PiecewiseLinearOutput",
     "TransformedPiecewiseLinear",
     "TransformedDistribution",
+    "TransformedDistributionOutput",
     "bijection",
 ]
 
