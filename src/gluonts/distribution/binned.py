@@ -124,6 +124,39 @@ class Binned(Distribution):
         mask = F.broadcast_lesser_equal(self.bin_centers, x)
         return F.broadcast_mul(self.bin_probs, mask).sum(axis=-1)
 
+    def quantile(self, level: Tensor) -> Tensor:
+        F = self.F
+
+        probs = self.bin_probs.swapaxes(0, 1)  # (num_bins, batch)
+        zeros_batch_size = F.slice_axis(probs, axis=0, begin=0, end=1).squeeze(
+            axis=0
+        )  # (batch_size,)
+
+        level = level.expand_dims(axis=0)
+        # cdf shape (batch_size, levels)
+        zeros_cdf = F.broadcast_add(
+            zeros_batch_size.expand_dims(axis=1), level.zeros_like()
+        )
+        start_state = (zeros_cdf, zeros_cdf.astype("int32"))
+
+        def step(p, state):
+            cdf, idx = state
+            cdf = F.broadcast_add(cdf, p.expand_dims(axis=1))
+            idx = F.where(F.broadcast_greater(cdf, level), idx, idx + 1)
+            return zeros_batch_size, (cdf, idx)
+
+        _, states = F.contrib.foreach(step, probs, start_state)
+        _, idx = states
+
+        # expand centers to shape (batch, levels, num_bins)
+        # so we can use pick with idx.shape = (batch, levels)
+        centers_expanded = F.broadcast_add(
+            self.bin_centers.expand_dims(axis=1),
+            zeros_cdf.expand_dims(axis=-1),
+        )
+        a = centers_expanded.pick(idx, axis=-1)
+        return a.swapaxes(0, 1)
+
     def sample(self, num_samples=None):
         def s(bin_probs):
             F = self.F
@@ -143,10 +176,16 @@ class Binned(Distribution):
 
 
 class BinnedArgs(gluon.HybridBlock):
-    def __init__(self, num_bins: int, **kwargs) -> None:
+    def __init__(
+        self, num_bins: int, bin_centers: mx.nd.NDArray, **kwargs
+    ) -> None:
         super().__init__(**kwargs)
         self.num_bins = num_bins
         with self.name_scope():
+            self.bin_centers = self.params.get_constant(
+                "bin_centers", bin_centers
+            )
+
             # needs to be named self.proj for consistency with the
             # ArgProj class and the inference tests
             self.proj = gluon.nn.HybridSequential()
@@ -160,28 +199,32 @@ class BinnedArgs(gluon.HybridBlock):
             )
             self.proj.add(gluon.nn.HybridLambda("softmax"))
 
-    def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
+    def hybrid_forward(
+        self, F, x: Tensor, bin_centers: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         ps = self.proj(x)
-        return (ps.reshape(shape=(-2, -1, self.num_bins), reverse=1),)
+        reshaped_probs = ps.reshape(shape=(-2, -1, self.num_bins), reverse=1)
+        return reshaped_probs, bin_centers
 
 
 class BinnedOutput(DistributionOutput):
     distr_cls: type = Binned
 
     @validated()
-    def __init__(self, bin_centers: List[float]) -> None:
-        self.bin_centers = mx.nd.array(bin_centers)
+    def __init__(self, bin_centers: mx.nd.NDArray) -> None:
+        self.bin_centers = bin_centers
         self.num_bins = self.bin_centers.shape[0]
         assert len(self.bin_centers.shape) == 1
 
     def get_args_proj(self, *args, **kwargs) -> gluon.nn.HybridBlock:
-        return BinnedArgs(self.num_bins)
+        return BinnedArgs(self.num_bins, self.bin_centers)
 
     def distribution(self, args, scale=None) -> Binned:
         probs = args[0]
+        bin_centers = args[1]
         F = getF(probs)
 
-        bin_centers = F.broadcast_mul(self.bin_centers, F.ones_like(probs))
+        bin_centers = F.broadcast_mul(bin_centers, F.ones_like(probs))
 
         if scale is not None:
             bin_centers = F.broadcast_mul(
