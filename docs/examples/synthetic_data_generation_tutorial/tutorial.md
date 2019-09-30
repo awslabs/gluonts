@@ -46,7 +46,7 @@ def plot_examples(recipe, target, length, num, anomaly_indicator=None):
                 np.arange(len(xx[target])), 
                 xx[anomaly_indicator] * 1.1*np.max(xx[target]), 
                 np.zeros(len(xx[target])), 
-                alpha=0.3, 
+                alpha=0.3,
                 color="red")
 
 
