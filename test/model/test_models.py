@@ -17,6 +17,7 @@ from pathlib import Path
 
 # Third-party imports
 import pytest
+from flaky import flaky
 
 # First-party imports
 from gluonts import time_feature
@@ -228,6 +229,7 @@ def seasonal_estimator():
     return SeasonalNaiveEstimator, dict(prediction_length=prediction_length)
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.timeout(10)  # DeepAR occasionally fails with the 5 second timeout
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
