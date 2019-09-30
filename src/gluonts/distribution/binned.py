@@ -204,6 +204,7 @@ class BinnedArgs(gluon.HybridBlock):
     ) -> Tuple[Tensor, Tensor]:
         ps = self.proj(x)
         reshaped_probs = ps.reshape(shape=(-2, -1, self.num_bins), reverse=1)
+        bin_centers = F.broadcast_add(bin_centers, ps.zeros_like())
         return reshaped_probs, bin_centers
 
 
