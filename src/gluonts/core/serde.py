@@ -27,6 +27,7 @@ from typing import Any, Optional
 # Third-party imports
 import mxnet as mx
 import numpy as np
+import pandas as pd
 from pydantic import BaseModel
 
 # Relative imports
@@ -460,6 +461,20 @@ def encode_np_ndarray(v: np.ndarray) -> Any:
         "__kind__": kind_inst,
         "class": "numpy.array",  # use "array" ctor instead of "nparray" class
         "args": encode([v.tolist(), v.dtype]),
+    }
+
+
+@encode.register(pd.Timestamp)
+def encode_pd_timestamp(v: pd.Timestamp) -> Any:
+    """
+    Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~pandas.Timestamp` class.
+    """
+    return {
+        "__kind__": kind_inst,
+        "class": "pandas.Timestamp",
+        "args": encode([str(v)]),
+        "kwargs": {"freq": v.freqstr if v.freq else None},
     }
 
 

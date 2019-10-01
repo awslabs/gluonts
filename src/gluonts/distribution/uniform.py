@@ -92,6 +92,14 @@ class Uniform(Distribution):
     def cdf(self, x: Tensor) -> Tensor:
         return self.F.broadcast_div(x - self.low, self.high - self.low)
 
+    def quantile(self, level: Tensor) -> Tensor:
+        F = self.F
+        for _ in range(self.all_dim):
+            level = level.expand_dims(axis=-1)
+        return F.broadcast_add(
+            F.broadcast_mul(self.high - self.low, level), self.low
+        )
+
 
 class UniformOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"low": 1, "width": 1}

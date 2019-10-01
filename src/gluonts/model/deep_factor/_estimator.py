@@ -28,7 +28,7 @@ from gluonts.model.deep_factor._network import (
 )
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-from gluonts.time_feature.lag import time_features_from_frequency_str
+from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddTimeFeatures,

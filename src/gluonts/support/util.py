@@ -29,6 +29,7 @@ from gluonts.model.common import Tensor
 
 
 MXNET_HAS_ERF = hasattr(mx.nd, "erf")
+MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")
 
 
 class Timer:
@@ -477,6 +478,56 @@ def erf(F, x: Tensor):
 
     res = ones - t * (inner - 1.26551223 - x.square()).exp()
     return F.where(F.broadcast_greater_equal(x, zeros), res, -1.0 * res)
+
+
+def erfinv(F, x: Tensor) -> Tensor:
+    if MXNET_HAS_ERFINV:
+        return F.erfinv(x)
+
+    zeros = x.zeros_like()
+
+    w = -F.log(F.broadcast_mul((1.0 - x), (1.0 + x)))
+    mask_lesser = F.broadcast_lesser(w, zeros + 5.0)
+
+    w = F.where(mask_lesser, w - 2.5, F.sqrt(w) - 3.0)
+
+    coefficients_lesser = [
+        2.81022636e-08,
+        3.43273939e-07,
+        -3.5233877e-06,
+        -4.39150654e-06,
+        0.00021858087,
+        -0.00125372503,
+        -0.00417768164,
+        0.246640727,
+        1.50140941,
+    ]
+
+    coefficients_greater_equal = [
+        -0.000200214257,
+        0.000100950558,
+        0.00134934322,
+        -0.00367342844,
+        0.00573950773,
+        -0.0076224613,
+        0.00943887047,
+        1.00167406,
+        2.83297682,
+    ]
+
+    p = F.where(
+        mask_lesser,
+        coefficients_lesser[0] + zeros,
+        coefficients_greater_equal[0] + zeros,
+    )
+
+    for c_l, c_ge in zip(
+        coefficients_lesser[1:], coefficients_greater_equal[1:]
+    ):
+        c = F.where(mask_lesser, c_l + zeros, c_ge + zeros)
+        p = c + F.broadcast_mul(p, w)
+
+    return F.broadcast_mul(p, x)
 
 
 def get_download_path() -> Path:
