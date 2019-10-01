@@ -16,6 +16,10 @@ Forecasting
       :title: Extended Forecasting Tutorial
       :link: extended_forecasting_tutorial/extended_tutorial.html
 
+   .. card::
+      :title: Synthetic Data Generation Tutorial
+      :link: synthetic_data_generation_tutorial/tutorial.html
+
 
 .. toctree::
    :hidden:
@@ -23,3 +27,4 @@ Forecasting
 
    basic_forecasting_tutorial/tutorial.ipynb
    extended_forecasting_tutorial/extended_tutorial.ipynb
+   synthetic_data_generation_tutorial/tutorial.ipynb
