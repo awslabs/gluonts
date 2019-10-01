@@ -197,7 +197,7 @@ class BoxCoxTranform(Bijection):
         base = F.relu(y * lambda_1 + 1.0)
 
         return F.where(
-            condition=F.abs(lambda_1).__ge__(tol_lambda_1),
+            condition=(F.abs(lambda_1).__ge__(tol_lambda_1)).broadcast_like(y),
             x=_power(base, 1.0 / lambda_1) - lambda_2,
             y=F.exp(y) - lambda_2,
             name="Box_Cox_inverse_trans",
@@ -254,7 +254,7 @@ class BoxCoxTransformOutput(BijectionOutput):
     def domain_map(self, F, *args: Tensor) -> Tuple[Tensor, ...]:
         lambda_1, lambda_2 = args
         if self.fix_lambda_2:
-            lambda_2 = self.lb_obs * F.ones_like(lambda_2)
+            lambda_2 = -self.lb_obs * F.ones_like(lambda_2)
         else:
             # This makes sure that :math:`z +  \lambda_2 > 0`, where :math:`z > lb_obs`
             lambda_2 = softplus(F, lambda_2) - self.lb_obs * F.ones_like(

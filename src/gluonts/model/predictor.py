@@ -23,6 +23,9 @@ from pydoc import locate
 from tempfile import TemporaryDirectory
 from typing import (
     TYPE_CHECKING,
+    Tuple,
+    Union,
+    Any,
     Callable,
     Dict,
     Iterator,
@@ -37,6 +40,7 @@ import numpy as np
 
 # First-party imports
 import gluonts
+from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.core.component import (
     DType,
     equals,
@@ -47,9 +51,10 @@ from gluonts.core.component import (
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
-from gluonts.dataset.field_names import FieldName
+from .forecast_generator import ForecastGenerator, SampleForecastGenerator
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.forecast import Forecast
+
 from gluonts.support.util import (
     export_repr_block,
     export_symb_block,
@@ -62,6 +67,9 @@ from gluonts.transform import Transformation
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
+
+
+OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
 class Predictor:
@@ -213,11 +221,8 @@ class GluonPredictor(Predictor):
         Output transformation
     ctx
         MXNet context to use for computation
-    forecast_cls_name
-        Class name of the forecast type that will be generated
-    forecast_kwargs
-        A dictionary that will be passed as kwargs when instantiating the
-        forecast object
+    forecast_generator
+        Class to generate forecasts from network ouputs
     """
 
     BlockType = mx.gluon.Block
@@ -231,28 +236,20 @@ class GluonPredictor(Predictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
-        output_transform: Optional[
-            Callable[[DataEntry, np.ndarray], np.ndarray]
-        ] = None,
+        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
+        output_transform: Optional[OutputTransform] = None,
         float_type: DType = np.float32,
-        forecast_cls_name: str = "SampleForecast",
-        forecast_kwargs: Optional[Dict] = None,
     ) -> None:
         super().__init__(prediction_length, freq)
-
-        forecast_dict = {c.__name__: c for c in Forecast.__subclasses__()}
-        assert forecast_cls_name in forecast_dict
 
         self.input_names = input_names
         self.prediction_net = prediction_net
         self.batch_size = batch_size
         self.input_transform = input_transform
+        self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.ctx = ctx
         self.float_type = float_type
-        self.forecast_cls_name = forecast_cls_name
-        self._forecast_cls = forecast_dict[forecast_cls_name]
-        self.forecast_kwargs = forecast_kwargs if forecast_kwargs else {}
 
     def hybridize(self, batch: DataBatch) -> None:
         """
@@ -298,41 +295,14 @@ class GluonPredictor(Predictor):
             ctx=self.ctx,
             float_type=self.float_type,
         )
-        for batch in inference_data_loader:
-            inputs = [batch[k] for k in self.input_names]
-            outputs = self.prediction_net(*inputs).asnumpy()
-            if self.output_transform is not None:
-                outputs = self.output_transform(batch, outputs)
-            if num_eval_samples and not self._forecast_cls == SampleForecast:
-                logging.info(
-                    "Forecast is not sample based. Ignoring parameter `num_eval_samples` from predict method."
-                )
-            if num_eval_samples and self._forecast_cls == SampleForecast:
-                num_collected_samples = outputs[0].shape[0]
-                collected_samples = [outputs]
-                while num_collected_samples < num_eval_samples:
-                    outputs = self.prediction_net(*inputs).asnumpy()
-                    if self.output_transform is not None:
-                        outputs = self.output_transform(batch, outputs)
-                    collected_samples.append(outputs)
-                    num_collected_samples += outputs[0].shape[0]
-                outputs = [
-                    np.concatenate(s)[:num_eval_samples]
-                    for s in zip(*collected_samples)
-                ]
-                assert len(outputs[0]) == num_eval_samples
-            assert len(batch["forecast_start"]) == len(outputs)
-            for i, output in enumerate(outputs):
-                yield self._forecast_cls(
-                    output,
-                    start_date=batch["forecast_start"][i],
-                    freq=self.freq,
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
-                    info=batch["info"][i] if "info" in batch else None,
-                    **self.forecast_kwargs,
-                )
+        yield from self.forecast_generator(
+            inference_data_loader=inference_data_loader,
+            prediction_net=self.prediction_net,
+            input_names=self.input_names,
+            freq=self.freq,
+            output_transform=self.output_transform,
+            num_eval_samples=num_eval_samples,
+        )
 
     def __eq__(self, that):
         if type(self) != type(that):
@@ -369,8 +339,7 @@ class GluonPredictor(Predictor):
                 freq=self.freq,
                 ctx=self.ctx,
                 float_type=self.float_type,
-                forecast_cls_name=self.forecast_cls_name,
-                forecast_kwargs=self.forecast_kwargs,
+                forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )
             print(dump_json(parameters), file=fp)
@@ -464,12 +433,11 @@ class RepresentableBlockPredictor(GluonPredictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
+        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
         float_type: DType = np.float32,
-        forecast_cls_name: str = "SampleForecast",
-        forecast_kwargs: Optional[Dict] = None,
     ) -> None:
         super().__init__(
             input_names=get_hybrid_forward_input_names(prediction_net),
@@ -479,10 +447,9 @@ class RepresentableBlockPredictor(GluonPredictor):
             freq=freq,
             ctx=ctx,
             input_transform=input_transform,
+            forecast_generator=forecast_generator,
             output_transform=output_transform,
             float_type=float_type,
-            forecast_cls_name=forecast_cls_name,
-            forecast_kwargs=forecast_kwargs,
         )
 
     def as_symbol_block_predictor(
@@ -501,10 +468,9 @@ class RepresentableBlockPredictor(GluonPredictor):
             freq=self.freq,
             ctx=self.ctx,
             input_transform=self.input_transform,
+            forecast_generator=self.forecast_generator,
             output_transform=self.output_transform,
             float_type=self.float_type,
-            forecast_cls_name=self.forecast_cls_name,
-            forecast_kwargs=self.forecast_kwargs,
         )
 
     def serialize_prediction_net(self, path: Path) -> None:
