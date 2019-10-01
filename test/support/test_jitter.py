@@ -15,6 +15,7 @@
 import math
 
 # First-party imports
+from gluonts.core.component import check_gpu_support
 from gluonts.kernels import RBFKernel
 from gluonts.gp import GaussianProcess
 from gluonts.support.linalg_util import jitter_cholesky, jitter_cholesky_eig
@@ -25,14 +26,6 @@ import mxnet as mx
 import numpy as np
 import pytest
 
-# This function is used to see if the gpu is available.
-def gpu_device(gpu_number=0):
-    try:
-        _ = mx.nd.array([1, 2, 3], ctx=mx.gpu(gpu_number))
-    except mx.MXNetError:
-        return None
-    return mx.gpu(gpu_number)
-
 
 # This test verifies that both eigenvalue decomposition and iterative jitter method
 # make a non-positive definite matrix positive definite to be able to compute the cholesky.
@@ -42,7 +35,7 @@ def gpu_device(gpu_number=0):
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
 def test_jitter_unit(jitter_method, float_type, ctx) -> None:
     # TODO: Enable GPU tests on Jenkins
-    if ctx == mx.Context("gpu") and not gpu_device():
+    if ctx == mx.Context("gpu") and not check_gpu_support():
         return
     matrix = nd.array(
         [[[1, 2], [3, 4]], [[10, 100], [-21.5, 41]]], ctx=ctx, dtype=float_type
@@ -63,9 +56,9 @@ def test_jitter_unit(jitter_method, float_type, ctx) -> None:
 @pytest.mark.parametrize("ctx", [mx.Context("gpu"), mx.Context("cpu")])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
-def test_jitter_synthetic(jitter_method, float_type, ctx) -> None:
+def test_jitter_synthetic_gp(jitter_method, float_type, ctx) -> None:
     # TODO: Enable GPU tests on Jenkins
-    if ctx == mx.Context("gpu") and not gpu_device():
+    if ctx == mx.Context("gpu") and not check_gpu_support():
         return
     # Initialize problem parameters
     batch_size = 1
