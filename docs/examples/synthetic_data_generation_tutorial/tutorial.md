@@ -58,7 +58,7 @@ def print_dicts(*dicts):
         print("}\n")
 ```
 
-# Recipes
+## Recipes
 
 Recipes are lists of `(name, expression)` tuples. The role of a recipe is to describe the generative process of a single time series. In order to do so, the `expression`s in the `(name, expression)` pairs are evaluated for each time series in the order given in the list to produce a `{name: value}` dictionary as output.
 
@@ -180,7 +180,7 @@ reconstructed = load_code(dumped)
 rcp.evaluate(reconstructed, 3)
 ```
 
-# Simple Examples
+## Simple Examples
 
 
 ```python
@@ -225,7 +225,7 @@ plot_recipe(weekly_seasonal_unscaled, 10 * 288)
 plot_examples(weekly_seasonal_unscaled, "unscaled", 10 * 288, 5)
 ```
 
-# Composing Recipes
+## Composing Recipes
 
 As recipes are just lists of expressions that evaluated sequentially, recipes can simply be composed from smaller component recipes by concatenating the corresponding lists. It is also possible to include the output of one recipe inside another one using the `EvalRecipe` operator.
 
@@ -271,7 +271,7 @@ complex_weekly_seasonal = (
 plot_examples(complex_weekly_seasonal, "z", 10 * 288, 5)
 ```
 
-# Generating Anomalies
+## Generating Anomalies
 
 Anomalies are just another effect added/multiplied to a base time series. We can define a recipe for creating certain types of anomalies, and then compose it with a base recipe.
 
@@ -297,7 +297,7 @@ plot_examples(constant_recipe + bmc_scale_anomalies, "target", 10*288, 5, "anoma
 plot_examples(weekly_seasonal + bmc_scale_anomalies, 'target', 288*7, 5, "anomaly_indicator")
 ```
 
-# Generating Changepoints
+## Generating Changepoints
 
 
 ```python
