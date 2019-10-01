@@ -30,7 +30,7 @@ For all other datasets, the more flexible `DateSplitter` can be used::
         prediction_length=24,
         split_date=pd.Timestamp('2018-01-31', freq='D')
     )
-    train, test = splitter.split_dataset(whole_dataset)
+    train, test = splitter.split(whole_dataset)
 
 The module also supports rolling splits::
 
@@ -38,7 +38,7 @@ The module also supports rolling splits::
         prediction_length=24,
         split_date=pd.Timestamp('2018-01-31', freq='D')
     )
-    train, test = splitter.rolling_split_dataset(whole_dataset, windows=7)
+    train, test = splitter.rolling_split(whole_dataset, windows=7)
 """
 
 # Standard library imports
