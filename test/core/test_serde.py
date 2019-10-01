@@ -18,6 +18,7 @@ from typing import List, NamedTuple
 # Third-party imports
 import mxnet as mx
 import numpy as np
+import pandas as pd
 import pytest
 from pydantic import BaseModel
 
@@ -154,3 +155,8 @@ def test_ndarray_serialization(a, serialize_fn) -> None:
     assert a.dtype == b.dtype
     assert a.shape == b.shape
     assert np.all((a == b).asnumpy())
+
+
+def test_timestamp_encode_decode() -> None:
+    now = pd.Timestamp.now()
+    assert now == serde.decode(serde.encode(now))

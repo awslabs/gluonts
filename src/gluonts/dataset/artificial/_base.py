@@ -22,7 +22,7 @@ import pandas as pd
 
 # First-party imports
 from gluonts.dataset.artificial.recipe import (
-    Binary,
+    BinaryHolidays,
     BinaryMarkovChain,
     Constant,
     ForEachCat,
@@ -209,7 +209,9 @@ class ConstantDataset(ArtificialDataset):
             for i in range(num_steps):
                 dates.append(timestamp)
                 timestamp += 1
-            recipe.append(("binary_holidays", Binary(dates, self.holidays)))
+            recipe.append(
+                ("binary_holidays", BinaryHolidays(dates, self.holidays))
+            )
             recipe.append(
                 (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"]))
             )
@@ -759,8 +761,8 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
         (FieldName.FEAT_STATIC_CAT, RandomCat([10])),
         (
             FieldName.FEAT_STATIC_REAL,
-            ForEachCat(RandomGaussian(1, 10), FieldName.FEAT_STATIC_CAT)
-            + RandomGaussian(0.1, 10),
+            ForEachCat(RandomGaussian(1, (10,)), FieldName.FEAT_STATIC_CAT)
+            + RandomGaussian(0.1, (10,)),
         ),
     ]
 
