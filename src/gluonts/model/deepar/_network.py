@@ -51,7 +51,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         embedding_dimension: List[int],
         lags_seq: List[int],
         scaling: bool = True,
-        batch_size: int = 32,
         dtype: DType = np.float32,
         **kwargs,
     ) -> None:
@@ -67,7 +66,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.embedding_dimension = embedding_dimension
         self.num_cat = len(cardinality)
         self.scaling = scaling
-        self.batch_size = batch_size
         self.dtype = dtype
 
         assert len(cardinality) == len(

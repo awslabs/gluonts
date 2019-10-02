@@ -21,11 +21,7 @@ from mxnet.gluon import HybridBlock
 # First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.distribution import (
-    DistributionOutput,
-    StudentTOutput,
-    GaussianOutput,
-)
+from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
