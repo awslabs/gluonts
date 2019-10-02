@@ -100,7 +100,7 @@ class StudentT(Distribution):
             gammas = F.sample_gamma(
                 alpha=nu / 2.0,
                 beta=2.0 / (nu * F.square(sigma)),
-                dtype=mu.dtype,
+                dtype=nu.dtype,
             )
             normal = F.sample_normal(
                 mu=mu, sigma=1.0 / F.sqrt(gammas), dtype=mu.dtype

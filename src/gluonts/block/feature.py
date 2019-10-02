@@ -34,6 +34,9 @@ class FeatureEmbedder(nn.HybridBlock):
 
     embedding_dims
         number of dimensions to embed each categorical feature.
+
+    dtype
+        Data type of the embedded features.
     """
 
     @validated()
@@ -41,7 +44,7 @@ class FeatureEmbedder(nn.HybridBlock):
         self,
         cardinalities: List[int],
         embedding_dims: List[int],
-        dtype=np.float32,
+        dtype: DType = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)

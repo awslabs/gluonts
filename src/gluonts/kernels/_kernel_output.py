@@ -97,7 +97,7 @@ class KernelOutputDict(KernelOutput):
         return ArgProj(
             args_dim=self.args_dim,
             domain_map=gluon.nn.HybridLambda(self.domain_map),
-            float_type=float_type,
+            dtype=float_type,
         )
 
     # noinspection PyMethodOverriding,PyPep8Naming
