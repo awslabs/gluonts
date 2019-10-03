@@ -17,6 +17,7 @@ import json
 from typing import Union, Any
 
 # First-party imports
+from gluonts.core.serde import load_json
 from gluonts.support.util import map_dct_values
 
 
@@ -37,7 +38,7 @@ def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:
     is_dict = value.startswith("{") and value.endswith("}")
 
     if is_list or is_dict:
-        return json.loads(value)
+        return load_json(value)
     else:
         return value
 
