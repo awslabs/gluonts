@@ -126,7 +126,7 @@ class TransformedDistributionOutput(DistributionOutput):
             )
         ]
 
-        trans_distr = TransformedDistribution(distr, *transforms)
+        trans_distr = TransformedDistribution(distr, transforms)
 
         # Apply scaling as well at the end if scale is not None!
         if scale is None:

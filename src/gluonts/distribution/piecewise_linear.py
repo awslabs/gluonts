@@ -132,7 +132,10 @@ class PiecewiseLinear(Distribution):
             )
         )
 
-        sample = self.quantile(u, axis=None if num_samples is None else 0)
+        sample = self.quantile(u)
+
+        if num_samples is None:
+            sample = F.squeeze(sample, axis=0)
 
         return sample
 
@@ -200,7 +203,7 @@ class PiecewiseLinear(Distribution):
         F = self.F
         gamma, b, knot_positions = self.gamma, self.b, self.knot_positions
 
-        quantiles_at_knots = self.quantile(knot_positions, axis=-2)
+        quantiles_at_knots = self.quantile_internal(knot_positions, axis=-2)
 
         # Mask to nullify the terms corresponding to knots larger than l_0, which is the largest knot
         # (quantile level) such that the quantile at l_0, s(l_0) < x.
@@ -229,7 +232,12 @@ class PiecewiseLinear(Distribution):
 
         return a_tilde
 
-    def quantile(self, x: Tensor, axis: Optional[int] = None) -> Tensor:
+    def quantile(self, level: Tensor) -> Tensor:
+        return self.quantile_internal(level, axis=0)
+
+    def quantile_internal(
+        self, x: Tensor, axis: Optional[int] = None
+    ) -> Tensor:
         r"""
         Evaluates the quantile function at the quantile levels contained in `x`.
 

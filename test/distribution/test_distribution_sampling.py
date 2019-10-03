@@ -82,6 +82,7 @@ serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
 DISTRIBUTIONS_WITH_CDF = [Gaussian, Uniform, Laplace, Binned]
+DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = [Gaussian, Uniform, Laplace, Binned]
 
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
@@ -110,6 +111,12 @@ def test_sampling(distr_class, params, serialize_fn) -> None:
         emp_cdf, edges = empirical_cdf(np_samples)
         calc_cdf = distr.cdf(mx.nd.array(edges)).asnumpy()
         assert np.allclose(calc_cdf[1:, :], emp_cdf, atol=1e-2)
+
+    if distr_class in DISTRIBUTIONS_WITH_QUANTILE_FUNCTION:
+        levels = np.linspace(1.0e-3, 1.0 - 1.0e-3, 100)
+        emp_qfunc = np.percentile(np_samples, levels * 100, axis=0)
+        calc_qfunc = distr.quantile(mx.nd.array(levels)).asnumpy()
+        assert np.allclose(calc_qfunc, emp_qfunc, rtol=1e-1)
 
 
 test_cases_multivariate = [

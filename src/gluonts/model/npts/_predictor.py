@@ -25,7 +25,7 @@ from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.time_feature.lag import time_features_from_frequency_str
+from gluonts.time_feature import time_features_from_frequency_str
 
 # Relative imports
 from ._model import NPTS

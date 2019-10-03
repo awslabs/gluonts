@@ -90,6 +90,16 @@ class Laplace(Distribution):
             s, mu=self.mu, b=self.b, num_samples=num_samples
         )
 
+    def quantile(self, level: Tensor) -> Tensor:
+        F = self.F
+        for _ in range(self.all_dim):
+            level = level.expand_dims(axis=-1)
+
+        condition = F.broadcast_greater(level, level.zeros_like() + 0.5)
+        u = F.where(condition, F.log(2.0 * level), -F.log(2.0 - 2.0 * level))
+
+        return F.broadcast_add(self.mu, F.broadcast_mul(self.b, u))
+
 
 class LaplaceOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"mu": 1, "b": 1}

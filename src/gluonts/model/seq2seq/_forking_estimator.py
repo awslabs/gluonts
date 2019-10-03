@@ -22,8 +22,9 @@ from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.forecast import QuantileForecast, Quantile
+from gluonts.model.forecast import Quantile
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.support.util import copy_parameters
 from gluonts.trainer import Trainer
 from gluonts.transform import (
@@ -158,6 +159,5 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_cls_name=QuantileForecast.__name__,
-            forecast_kwargs=dict(forecast_keys=quantile_strs),
+            forecast_generator=QuantileForecastGenerator(quantile_strs),
         )

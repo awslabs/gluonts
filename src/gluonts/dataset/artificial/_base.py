@@ -21,17 +21,8 @@ import numpy as np
 import pandas as pd
 
 # First-party imports
-from gluonts.dataset.common import (
-    BasicFeatureInfo,
-    CategoricalFeatureInfo,
-    DataEntry,
-    Dataset,
-    ListDataset,
-    MetaData,
-    TrainDatasets,
-)
 from gluonts.dataset.artificial.recipe import (
-    Binary,
+    BinaryHolidays,
     BinaryMarkovChain,
     Constant,
     ForEachCat,
@@ -43,6 +34,16 @@ from gluonts.dataset.artificial.recipe import (
     generate,
     take_as_list,
 )
+from gluonts.dataset.common import (
+    BasicFeatureInfo,
+    CategoricalFeatureInfo,
+    DataEntry,
+    Dataset,
+    ListDataset,
+    MetaData,
+    TrainDatasets,
+)
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
@@ -157,7 +158,9 @@ class ConstantDataset(ArtificialDataset):
                     }
                 ],
                 feat_static_real=[{"name": "feat_static_real_000"}],
-                feat_dynamic_real=[BasicFeatureInfo(name="feat_dynamic_real")],
+                feat_dynamic_real=[
+                    BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
+                ],
                 prediction_length=self.prediction_length,
             )
         return metadata
@@ -195,7 +198,9 @@ class ConstantDataset(ArtificialDataset):
             recipe.append(
                 ("binary_causal", BinaryMarkovChain(one_to_zero, zero_to_one))
             )
-            recipe.append(("feat_dynamic_real", Stack(["binary_causal"])))
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_causal"]))
+            )
             recipe_type += scale_features * Lag("binary_causal", lag=0)
         if self.holidays:
             timestamp = self.init_date()
@@ -204,10 +209,14 @@ class ConstantDataset(ArtificialDataset):
             for i in range(num_steps):
                 dates.append(timestamp)
                 timestamp += 1
-            recipe.append(("binary_holidays", Binary(dates, self.holidays)))
-            recipe.append(("feat_dynamic_real", Stack(["binary_holidays"])))
+            recipe.append(
+                ("binary_holidays", BinaryHolidays(dates, self.holidays))
+            )
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"]))
+            )
             recipe_type += scale_features * Lag("binary_holidays", lag=0)
-        recipe.append(("target", recipe_type))
+        recipe.append((FieldName.TARGET, recipe_type))
         max_train_length = num_steps - self.prediction_length
         data = RecipeDataset(
             recipe=recipe,
@@ -324,19 +333,19 @@ class ConstantDataset(ArtificialDataset):
                         assert generated.test is not None
                         time_series = generated.test
                     # returns np array convert to list for consistency
-                    target = list(time_series)[0]["target"].tolist()
+                    target = list(time_series)[0][FieldName.TARGET].tolist()
                 else:
                     target = [constant] * num_ts_steps
             ts_data = dict(
                 start=self.start,
                 target=target,
-                item=str(i),
+                item_id=str(i),
                 feat_static_cat=[i],
                 feat_static_real=[i],
             )
             if self.is_promotions or self.holidays:
-                ts_data["feat_dynamic_real"] = list(time_series)[0][
-                    "feat_dynamic_real"
+                ts_data[FieldName.FEAT_DYNAMIC_REAL] = list(time_series)[0][
+                    FieldName.FEAT_DYNAMIC_REAL
                 ].tolist()
             res.append(ts_data)
         return res
@@ -506,9 +515,9 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
     def train(self) -> List[DataEntry]:
         return [
             dict(
-                start=ts["start"],
-                target=ts["target"][: -self.prediction_length],
-                item=ts["item"],
+                start=ts[FieldName.START],
+                target=ts[FieldName.TARGET][: -self.prediction_length],
+                item_id=ts[FieldName.ITEM_ID],
             )
             for ts in self.make_timeseries()
         ]
@@ -609,7 +618,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                 dict(
                     start=pd.Timestamp(start, freq=self.freq_str),
                     target=np.array(v),
-                    item=i,
+                    item_id=i,
                 )
             )
         return res
@@ -681,18 +690,19 @@ class RecipeDataset(ArtificialDataset):
         the last prediction_length time points from the target and dynamic
         features."""
         y = dict(
-            item=x["item"], start=x["start"], target=x["target"][:-length]
+            item_id=x[FieldName.ITEM_ID],
+            start=x[FieldName.START],
+            target=x[FieldName.TARGET][:-length],
         )
 
-        if "feat_dynamic_cat" in x:
-            y["feat_dynamic_cat"] = x["feat_dynamic_cat"][:, :-length]
-        if "feat_dynamic_real" in x:
-            y["feat_dynamic_real"] = x["feat_dynamic_real"][:, :-length]
-        if "feat_dynamic_cat" in x:
-            y["feat_dynamic_cat"] = x["feat_dynamic_cat"]
-        if "feat_dynamic_real" in x:
-            y["feat_dynamic_real"] = x["feat_dynamic_real"]
-
+        if FieldName.FEAT_DYNAMIC_CAT in x:
+            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][
+                :, :-length
+            ]
+        if FieldName.FEAT_DYNAMIC_REAL in x:
+            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
+                :, :-length
+            ]
         return y
 
     @staticmethod
@@ -700,23 +710,22 @@ class RecipeDataset(ArtificialDataset):
         """Trim a TimeSeriesItem into a training range, by removing
         the first offset_front time points from the target and dynamic
         features."""
-        assert length <= len(x["target"])
+        assert length <= len(x[FieldName.TARGET])
 
         y = dict(
-            item=x["item"],
-            start=x["start"] + length * x["start"].freq,
-            target=x["target"][length:],
+            item_id=x[FieldName.ITEM_ID],
+            start=x[FieldName.START] + length * x[FieldName.START].freq,
+            target=x[FieldName.TARGET][length:],
         )
 
-        if "feat_dynamic_cat" in x:
-            y["feat_dynamic_cat"] = x["feat_dynamic_cat"][:, length:]
-        if "feat_dynamic_real" in x:
-            y["feat_dynamic_real"] = x["feat_dynamic_real"][:, length:]
-        if "feat_dynamic_cat" in x:
-            y["feat_dynamic_cat"] = x["feat_dynamic_cat"]
-        if "feat_dynamic_real" in x:
-            y["feat_dynamic_real"] = x["feat_dynamic_real"]
-
+        if FieldName.FEAT_DYNAMIC_CAT in x:
+            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][
+                :, length:
+            ]
+        if FieldName.FEAT_DYNAMIC_REAL in x:
+            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
+                :, length:
+            ]
         return y
 
     def generate(self) -> TrainDatasets:
@@ -748,12 +757,12 @@ class RecipeDataset(ArtificialDataset):
 def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
 
     recipe = [
-        ("target", LinearTrend() + RandomGaussian()),
-        ("feat_static_cat", RandomCat([10])),
+        (FieldName.TARGET, LinearTrend() + RandomGaussian()),
+        (FieldName.FEAT_STATIC_CAT, RandomCat([10])),
         (
-            "feat_static_real",
-            ForEachCat(RandomGaussian(1, 10), "feat_static_cat")
-            + RandomGaussian(0.1, 10),
+            FieldName.FEAT_STATIC_REAL,
+            ForEachCat(RandomGaussian(1, (10,)), FieldName.FEAT_STATIC_CAT)
+            + RandomGaussian(0.1, (10,)),
         ),
     ]
 
@@ -761,11 +770,17 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
         recipe=recipe,
         metadata=MetaData(
             freq="D",
-            feat_static_real=[BasicFeatureInfo(name="feat_static_real")],
-            feat_static_cat=[
-                CategoricalFeatureInfo(name="feat_static_cat", cardinality=10)
+            feat_static_real=[
+                BasicFeatureInfo(name=FieldName.FEAT_STATIC_REAL)
             ],
-            feat_dynamic_real=[BasicFeatureInfo(name="feat_dynamic_real")],
+            feat_static_cat=[
+                CategoricalFeatureInfo(
+                    name=FieldName.FEAT_STATIC_CAT, cardinality=10
+                )
+            ],
+            feat_dynamic_real=[
+                BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
+            ],
         ),
         max_train_length=20,
         prediction_length=10,
@@ -799,11 +814,11 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     train_ds = ListDataset(
         data_iter=[
             {
-                "item": str(i),
-                "start": start_date,
-                "target": [float(i)] * 24,
-                "feat_static_cat": [i],
-                "feat_static_real": [float(i)],
+                FieldName.ITEM_ID: str(i),
+                FieldName.START: start_date,
+                FieldName.TARGET: [float(i)] * 24,
+                FieldName.FEAT_STATIC_CAT: [i],
+                FieldName.FEAT_STATIC_REAL: [float(i)],
             }
             for i in range(10)
         ],
@@ -813,11 +828,11 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     test_ds = ListDataset(
         data_iter=[
             {
-                "item": str(i),
-                "start": start_date,
-                "target": [float(i)] * 30,
-                "feat_static_cat": [i],
-                "feat_static_real": [float(i)],
+                FieldName.ITEM_ID: str(i),
+                FieldName.START: start_date,
+                FieldName.TARGET: [float(i)] * 30,
+                FieldName.FEAT_STATIC_CAT: [i],
+                FieldName.FEAT_STATIC_REAL: [float(i)],
             }
             for i in range(10)
         ],

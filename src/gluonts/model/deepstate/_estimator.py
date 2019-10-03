@@ -25,10 +25,7 @@ from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
-from gluonts.time_feature.lag import (
-    TimeFeature,
-    time_features_from_frequency_str,
-)
+from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -169,9 +166,9 @@ class DeepStateEstimator(GluonEstimator):
             num_eval_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (
-            cardinality is not None or not use_feat_static_cat
-        ), "You must set `cardinality` if `use_feat_static_cat=True`"
+        assert (cardinality is not None and use_feat_static_cat) or (
+            cardinality is None and not use_feat_static_cat
+        ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
         assert cardinality is None or [
             c > 0 for c in cardinality
         ], "Elements of `cardinality` should be > 0"

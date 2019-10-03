@@ -32,6 +32,10 @@ def exp_cdf(x: np.ndarray) -> np.ndarray:
     return 1.0 - np.exp(-x)
 
 
+def exp_quantile(level: np.ndarray) -> np.ndarray:
+    return -np.log(1.0 - level)
+
+
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_transformed_distribution(serialize_fn) -> None:
     zero = nd.zeros(1)
@@ -51,6 +55,12 @@ def test_transformed_distribution(serialize_fn) -> None:
     v = np.linspace(0, 5, 101)
     assert np.allclose(exponential.cdf(nd.array(v)).asnumpy(), exp_cdf(v))
 
+    level = np.linspace(1.0e-5, 1.0 - 1.0e-5, 101)
+
+    qs_calc = exponential.quantile(nd.array(level)).asnumpy()[:, 0]
+    qs_theo = exp_quantile(level)
+    assert np.allclose(qs_calc, qs_theo, atol=1.0e-2)
+
     # If Y ~ Exponential(1), then U = 1 - e^{-Y} has Uniform(0, 1) distribution
     uniform = TransformedDistribution(
         exponential,
@@ -67,3 +77,6 @@ def test_transformed_distribution(serialize_fn) -> None:
 
     v = np.linspace(0, 1, 101)
     assert np.allclose(uniform.cdf(nd.array(v)).asnumpy(), v)
+
+    qs_calc = uniform.quantile(nd.array(level)).asnumpy()[:, 0]
+    assert np.allclose(qs_calc, level, atol=1.0e-2)

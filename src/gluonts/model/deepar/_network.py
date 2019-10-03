@@ -121,7 +121,8 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         Parameters
         ----------
         sequence : Tensor
-            the sequence from which lagged subsequences should be extracted. Shape: (N, T, C).
+            the sequence from which lagged subsequences should be extracted.
+            Shape: (N, T, C).
         sequence_length : int
             length of sequence in the T (time) dimension (axis = 1).
         indices : List[int]
@@ -131,14 +132,16 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         Returns
         --------
         lagged : Tensor
-            a tensor of shape (N, S, C, I), where S = subsequences_length and I = len(indices), containing lagged
-            subsequences. Specifically, lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
+            a tensor of shape (N, S, C, I), where S = subsequences_length and
+            I = len(indices), containing lagged subsequences. Specifically,
+            lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
         """
         # we must have: sequence_length - lag_index - subsequences_length >= 0
         # for all lag_index, hence the following assert
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag {max(indices)} "
-            f"while history length is only {sequence_length}"
+            f"lags cannot go further than history length, "
+            f"found lag {max(indices)} while history length is only "
+            f"{sequence_length}"
         )
         assert all(lag_index >= 0 for lag_index in indices)
 
@@ -169,6 +172,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self,
         F,
         feat_static_cat: Tensor,  # (batch_size, num_features)
+        feat_static_real: Tensor,  # (batch_size, num_features)
         past_time_feat: Tensor,  # (batch_size, history_length, num_features)
         past_target: Tensor,  # (batch_size, history_length, *target_shape)
         past_observed_values: Tensor,  # (batch_size, history_length, *target_shape)
@@ -178,7 +182,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         future_target: Optional[
             Tensor
         ],  # (batch_size, prediction_length, *target_shape)
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, List, Tensor, Tensor]:
         """
         Unrolls the LSTM encoder over past and, if present, future data.
         Returns outputs and state of the encoder, plus the scale of past_target
@@ -233,10 +237,12 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         # (batch_size, num_features)
         embedded_cat = self.embedder(feat_static_cat)
 
-        # in addition to embedding features, use the log scale as it can help prediction too
+        # in addition to embedding features, use the log scale as it can help
+        # prediction too
         # (batch_size, num_features + prod(target_shape))
         static_feat = F.concat(
             embedded_cat,
+            feat_static_real,
             F.log(scale)
             if len(self.target_shape) == 0
             else F.log(scale.squeeze(axis=1)),
@@ -284,6 +290,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
     def distribution(
         self,
         feat_static_cat: Tensor,
+        feat_static_real: Tensor,
         past_time_feat: Tensor,
         past_target: Tensor,
         past_observed_values: Tensor,
@@ -293,33 +300,30 @@ class DeepARTrainingNetwork(DeepARNetwork):
     ) -> Distribution:
         """
 
-        Returns the distribution predicted by the model on the range of past_target and future_target.
+        Returns the distribution predicted by the model on the range of
+        past_target and future_target.
 
-        The distribution is obtained by unrolling the network with the true target, this is also the distribution
-        that is being minimized during training.
-        This can be used in anomaly detection, see for instance examples/anomaly_detection.py.
+        The distribution is obtained by unrolling the network with the true
+        target, this is also the distribution that is being minimized during
+        training. This can be used in anomaly detection, see for instance
+        examples/anomaly_detection.py.
 
-        Parameters
-        ----------
-        feat_static_cat
-        past_time_feat
-        past_target
-        past_observed_values
-        future_time_feat
-        future_target
-        future_observed_values
+        Input arguments are the same as for the hybrid_forward method.
 
         Returns
         -------
-        sample_paths : Distribution
-            a distribution object whose mean has shape: (batch_size, context_length + prediction_length).
+        Distribution
+            a distribution object whose mean has shape:
+            (batch_size, context_length + prediction_length).
         """
-        # unroll the decoder in "training mode", i.e. by providing future data as well
+        # unroll the decoder in "training mode"
+        # i.e. by providing future data as well
         F = getF(feat_static_cat)
 
         rnn_outputs, _, scale, _ = self.unroll_encoder(
             F=F,
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_time_feat=past_time_feat,
             past_target=past_target,
             past_observed_values=past_observed_values,
@@ -336,6 +340,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         self,
         F,
         feat_static_cat: Tensor,
+        feat_static_real: Tensor,
         past_time_feat: Tensor,
         past_target: Tensor,
         past_observed_values: Tensor,
@@ -344,12 +349,14 @@ class DeepARTrainingNetwork(DeepARNetwork):
         future_observed_values: Tensor,
     ) -> Tensor:
         """
-        Computes the loss for training DeepAR, all inputs tensors representing time series have NTC layout.
+        Computes the loss for training DeepAR, all inputs tensors representing
+        time series have NTC layout.
 
         Parameters
         ----------
         F
         feat_static_cat : (batch_size, num_features)
+        feat_static_real : (batch_size, num_features)
         past_time_feat : (batch_size, history_length, num_features)
         past_target : (batch_size, history_length, *target_shape)
         past_observed_values : (batch_size, history_length, *target_shape, seq_len)
@@ -364,6 +371,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         distr = self.distribution(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_time_feat=past_time_feat,
             past_target=past_target,
             past_observed_values=past_observed_values,
@@ -419,8 +427,8 @@ class DeepARPredictionNetwork(DeepARNetwork):
         super().__init__(**kwargs)
         self.num_parallel_samples = num_parallel_samples
 
-        # for decoding the lags are shifted by one,
-        # at the first time-step of the decoder a lag of one corresponds to the last target value
+        # for decoding the lags are shifted by one, at the first time-step
+        # of the decoder a lag of one corresponds to the last target value
         self.shifted_lags = [l - 1 for l in self.lags_seq]
 
     def sampling_decoder(
@@ -433,7 +441,9 @@ class DeepARPredictionNetwork(DeepARNetwork):
         begin_states: List,
     ) -> Tensor:
         """
-        Computes sample paths by unrolling the LSTM starting with a initial input and state.
+        Computes sample paths by unrolling the LSTM starting with a initial
+        input and state.
+
         Parameters
         ----------
         static_feat : Tensor
@@ -449,8 +459,9 @@ class DeepARPredictionNetwork(DeepARNetwork):
             the shape of each tensor of the list should be (batch_size, num_cells)
         Returns
         --------
-        sample_paths : Tensor
-            a tensor containing sampled paths. Shape: (batch_size, num_sample_paths, prediction_length).
+        Tensor
+            A tensor containing sampled paths.
+            Shape: (batch_size, num_sample_paths, prediction_length).
         """
 
         # blows-up the dimension of each tensor to batch_size * self.num_parallel_samples for increasing parallelism
@@ -533,12 +544,12 @@ class DeepARPredictionNetwork(DeepARNetwork):
         # (batch_size * num_samples, prediction_length, *target_shape)
         samples = F.concat(*future_samples, dim=1)
 
-        # (batch_size, num_samples, *target_shape, prediction_length)
+        # (batch_size, num_samples, prediction_length, *target_shape)
         return samples.reshape(
             shape=(
                 (-1, self.num_parallel_samples)
-                + self.target_shape
                 + (self.prediction_length,)
+                + self.target_shape
             )
         )
 
@@ -547,6 +558,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
         self,
         F,
         feat_static_cat: Tensor,  # (batch_size, num_features)
+        feat_static_real: Tensor,  # (batch_size, num_features)
         past_time_feat: Tensor,  # (batch_size, history_length, num_features)
         past_target: Tensor,  # (batch_size, history_length, *target_shape)
         past_observed_values: Tensor,  # (batch_size, history_length, *target_shape)
@@ -558,20 +570,23 @@ class DeepARPredictionNetwork(DeepARNetwork):
         ----------
         F
         feat_static_cat : (batch_size, num_features)
+        feat_static_real : (batch_size, num_features)
         past_time_feat : (batch_size, history_length, num_features)
         past_target : (batch_size, history_length, *target_shape)
         past_observed_values : (batch_size, history_length, *target_shape)
         future_time_feat : (batch_size, prediction_length, num_features)
 
-        Returns predicted samples
+        Returns
         -------
-
+        Tensor
+            Predicted samples
         """
 
         # unroll the decoder in "prediction mode", i.e. with past data only
         _, state, scale, static_feat = self.unroll_encoder(
             F=F,
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_time_feat=past_time_feat,
             past_target=past_target,
             past_observed_values=past_observed_values,
