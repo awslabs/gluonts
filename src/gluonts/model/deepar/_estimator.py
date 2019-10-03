@@ -165,13 +165,13 @@ class DeepAREstimator(GluonEstimator):
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
-        self.cardinality = cardinality if use_feat_static_cat else [1]
+        self.cardinality = (
+            cardinality if cardinality and use_feat_static_cat else [1]
+        )
         self.embedding_dimension = (
             embedding_dimension
             if embedding_dimension is not None
-            else [min(50, (cat + 1) // 2) for cat in cardinality]
-            if cardinality is not None
-            else None
+            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         )
         self.scaling = scaling
         self.lags_seq = (
