@@ -88,10 +88,8 @@ def naive_multivariate_forecaster(
     :param target_dim: dimensionality of multivariate target
     :return: np.array with dimension (num_samples, target_dim, prediction_length)
     """
-    naive_pred = np.expand_dims(
-        ts.values.transpose()[:, -prediction_length - 1], axis=1
-    )
-    return naive_pred + np.zeros((num_samples, target_dim, prediction_length))
+    naive_pred = ts.values[-prediction_length - 1]
+    return naive_pred + np.zeros((num_samples, prediction_length, target_dim))
 
 
 def calculate_metrics(
@@ -103,7 +101,7 @@ def calculate_metrics(
     input_type=iterator,
 ):
     num_timeseries = timeseries.shape[0]
-    num_timestamps = timeseries.shape[-1]
+    num_timestamps = timeseries.shape[1]
 
     if has_nans:
         timeseries[0, 1] = np.nan
@@ -125,9 +123,7 @@ def calculate_metrics(
             ts_start_dates[i], periods=num_timestamps, freq=freq
         )
 
-        pd_timeseries.append(
-            ts_datastructure(timeseries[i].transpose(), index=index)
-        )
+        pd_timeseries.append(ts_datastructure(timeseries[i], index=index))
         samples.append(
             forecaster(pd_timeseries[i], prediction_length, num_samples)
         )
@@ -433,29 +429,29 @@ def test_metrics(timeseries, res, has_nans, input_type):
 
 
 TIMESERIES_MULTIVARIATE = [
-    np.ones((5, 2, 10), dtype=np.float64),
-    np.ones((5, 2, 10), dtype=np.float64),
-    np.ones((5, 2, 10), dtype=np.float64),
+    np.ones((5, 10, 2), dtype=np.float64),
+    np.ones((5, 10, 2), dtype=np.float64),
+    np.ones((5, 10, 2), dtype=np.float64),
     np.stack(
         (
             np.arange(0, 50, dtype=np.float64).reshape(5, 10),
             np.arange(50, 100, dtype=np.float64).reshape(5, 10),
         ),
-        axis=1,
+        axis=2,
     ),
     np.stack(
         (
             np.arange(0, 50, dtype=np.float64).reshape(5, 10),
             np.arange(50, 100, dtype=np.float64).reshape(5, 10),
         ),
-        axis=1,
+        axis=2,
     ),
     np.stack(
         (
             np.arange(0, 50, dtype=np.float64).reshape(5, 10),
             np.arange(50, 100, dtype=np.float64).reshape(5, 10),
         ),
-        axis=1,
+        axis=2,
     ),
 ]
 
