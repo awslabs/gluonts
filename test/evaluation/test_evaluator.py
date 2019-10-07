@@ -65,31 +65,26 @@ def iterable(it):
     return list(it)
 
 
-def naive_forecaster(ts, prediction_length, num_samples=100):
+def naive_forecaster(ts, prediction_length, num_samples=100, target_dim=0):
     """
     :param ts: pandas.Series
     :param prediction_length:
     :param num_samples: number of sample paths
+    :param target_dim: number of axes of target (0: scalar, 1: array, ...)
     :return: np.array with dimension (num_samples, prediction_length)
     """
 
     # naive prediction: last observed value
     naive_pred = ts.values[-prediction_length - 1]
-    return naive_pred + np.zeros((num_samples, prediction_length))
+    assert len(naive_pred.shape) == target_dim
+    return np.tile(
+        naive_pred,
+        (num_samples, prediction_length) + tuple(1 for _ in range(target_dim)),
+    )
 
 
-def naive_multivariate_forecaster(
-    ts, prediction_length, num_samples=100, target_dim=2
-):
-    """
-    :param ts: pandas.DataFrame
-    :param prediction_length:
-    :param num_samples: number of sample paths
-    :param target_dim: dimensionality of multivariate target
-    :return: np.array with dimension (num_samples, target_dim, prediction_length)
-    """
-    naive_pred = ts.values[-prediction_length - 1]
-    return naive_pred + np.zeros((num_samples, prediction_length, target_dim))
+def naive_multivariate_forecaster(ts, prediction_length, num_samples=100):
+    return naive_forecaster(ts, prediction_length, num_samples, target_dim=1)
 
 
 def calculate_metrics(
