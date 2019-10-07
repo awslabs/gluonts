@@ -1,4 +1,4 @@
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -11,14 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
-from .estimator import GluonTSFramework
-from .model import GluonTSPredictor, GluonTSModel
+"""Placeholder docstring"""
+from __future__ import absolute_import
 
-__all__ = ['GluonTSFramework',
-           'GluonTSPredictor',
-           'GluonTSModel']
-
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+GLUONTS_VERSION = "0.3.3"
+"""Default GluonTS version for when the framework version is not specified.
+This is no longer updated so as to not break existing workflows.
+"""
