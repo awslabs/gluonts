@@ -208,9 +208,13 @@ def dump_code(o: Any) -> str:
             return "(" + ", ".join(elems) + ",)"
         elif isinstance(x, str):
             return '"' + x + '"'  # TODO: escape comp characters
-        elif isinstance(x, float):
+        elif isinstance(x, float) or np.issubdtype(type(x), np.inexact):
             return str(x) if math.isfinite(x) else 'float("' + str(x) + '")'
-        elif isinstance(x, int) or x is None:
+        elif (
+            isinstance(x, int)
+            or np.issubdtype(type(x), np.integer)
+            or x is None
+        ):
             return str(x)
         else:
             x = fqname_for(x.__class__)
@@ -384,9 +388,9 @@ def encode(v: Any) -> Any:
     """
     if isinstance(v, type(None)):
         return None
-    elif isinstance(v, (float, int, str)):
+    elif isinstance(v, (float, int, str)) or np.issubdtype(type(v), np.number):
         return v
-    elif isinstance(v, list) or type(v) == tuple:
+    elif isinstance(v, (list, set)) or type(v) == tuple:
         return [encode(v) for v in v]
     elif isinstance(v, tuple) and not hasattr(v, "_asdict"):
         return tuple([encode(v) for v in v])
