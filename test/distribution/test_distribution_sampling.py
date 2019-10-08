@@ -16,6 +16,8 @@ import mxnet as mx
 import numpy as np
 import pytest
 
+from flaky import flaky
+
 # First-party imports
 from gluonts.distribution import (
     Uniform,
@@ -105,7 +107,7 @@ def test_sampling(distr_class, params, serialize_fn) -> None:
     )
 
     emp_std = np_samples.std(axis=0)
-    assert np.allclose(emp_std, distr.stddev.asnumpy(), atol=1e-1, rtol=5e-2)
+    assert np.allclose(emp_std, distr.stddev.asnumpy(), atol=1e-1, rtol=1e-1)
 
     if distr_class in DISTRIBUTIONS_WITH_CDF:
         emp_cdf, edges = empirical_cdf(np_samples)
