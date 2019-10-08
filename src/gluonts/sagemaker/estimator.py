@@ -10,8 +10,8 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-"""Placeholder docstring"""
-from __future__ import absolute_import
+#"""Placeholder docstring"""
+#from __future__ import absolute_import
 
 # Standard library imports
 import logging
@@ -59,7 +59,7 @@ class GluonTSFramework(Framework):
             source_dir=None,
             hyperparameters=None,
             framework_version=None,
-            image_name=None,
+            image_name=None, #ATTENTION: IF YOU USE AN IMAGE WITH MXNET GPU, YOU HAVE TO USE A GPU INSTANCE
             **kwargs
             # TODO many more missing, like: session, role, base_job_name, train_instance_type, train_instance_count,  metric_definitions, tags, maybe even imge
     ):

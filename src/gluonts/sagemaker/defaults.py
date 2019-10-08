@@ -11,8 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-"""Placeholder docstring"""
-from __future__ import absolute_import
+#"""Placeholder docstring"""
+#from __future__ import absolute_import
 
 GLUONTS_VERSION = "0.3.3"
 """Default GluonTS version for when the framework version is not specified.
