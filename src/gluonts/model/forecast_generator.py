@@ -64,6 +64,9 @@ def _extract_instances(x: Any) -> Any:
     elif isinstance(x, tuple):
         for m in zip(*[_extract_instances(y) for y in x]):
             yield tuple([r for r in m])
+    elif isinstance(x, list):
+        for m in zip(*[_extract_instances(y) for y in x]):
+            yield [r for r in m]
     elif x is None:
         while True:
             yield None
