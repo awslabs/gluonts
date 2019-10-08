@@ -27,7 +27,7 @@ from gluonts.core import serde
 
 # Example Types
 # -------------
-from gluonts.core.component import equals
+from gluonts.core.component import equals, equals_list
 
 
 class Span(NamedTuple):
@@ -93,13 +93,21 @@ list_container = [
     numpy_array,
 ]
 
+set_container = {best_epoch_info, 42, 0.7, "fx"}
+
 dict_container = dict(
     best_epoch_info=best_epoch_info,
     feature_info=feature_info,
     custom_type=custom_type,
 )
 
-simple_types = [1, 42.0, "Oh, Romeo"]  # float('nan')
+simple_types = [
+    1,
+    42.0,
+    "Oh, Romeo",
+    np.int32(33),
+    np.float64(3.1415),
+]  # float('nan')
 
 complex_types = [
     Path("foo/bar"),
@@ -109,7 +117,7 @@ complex_types = [
     numpy_array,
 ]
 
-container_types = [list_container, dict_container]
+container_types = [list_container, dict_container, set_container]
 
 examples = simple_types + complex_types + container_types  # type: ignore
 
@@ -119,14 +127,32 @@ def test_binary_serialization(e) -> None:
     assert equals(e, serde.load_binary(serde.dump_binary(e)))
 
 
+def check_equality(expected, actual) -> bool:
+    if isinstance(expected, set):
+        # Sets are serialized as lists — we check if they have the same elements
+        return equals_list(
+            sorted(expected, key=hash), sorted(actual, key=hash)
+        )
+    elif np.issubdtype(type(expected), np.integer):
+        # Integer types are expected to be equal exactly
+        return np.equal(expected, actual)
+    elif np.issubdtype(type(expected), np.inexact):
+        # Floating point types are expected to be equal up a certain digit, as specified in np.isclose
+        return np.allclose(expected, actual)
+    else:
+        return equals(expected, actual)
+
+
 @pytest.mark.parametrize("e", examples)
 def test_json_serialization(e) -> None:
-    assert equals(e, serde.load_json(serde.dump_json(e)))
+    expected, actual = e, serde.load_json(serde.dump_json(e))
+    assert check_equality(expected, actual)
 
 
 @pytest.mark.parametrize("e", examples)
 def test_code_serialization(e) -> None:
-    assert equals(e, serde.load_code(serde.dump_code(e)))
+    expected, actual = e, serde.load_code(serde.dump_code(e))
+    assert check_equality(expected, actual)
 
 
 @pytest.mark.parametrize(
