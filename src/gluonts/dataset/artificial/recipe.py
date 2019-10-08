@@ -360,7 +360,7 @@ class RandomCat:
     def __init__(
         self,
         cardinalities: List[int],
-        prob_fun: Callable = RandomSymmetricDirichlet(alpha=1.0),
+        prob_fun: Callable = RandomSymmetricDirichlet(alpha=1.0, shape=(0,)),
     ) -> None:
         self.cardinalities = cardinalities
         self.prob_fun = prob_fun
@@ -370,25 +370,40 @@ class RandomCat:
             probs = [self.prob_fun(x, length=c) for c in self.cardinalities]
             global_state[field_name] = probs
         probs = global_state[field_name]
-        cats = [
-            np.random.choice(np.arange(len(probs[i])), p=probs[i])
-            for i in range(len(probs))
-        ]
+        cats = np.array(
+            [
+                np.random.choice(np.arange(len(probs[i])), p=probs[i])
+                for i in range(len(probs))
+            ]
+        )
         return cats
 
 
 class Lag(Lifted):
     @validated()
-    def __init__(self, input: ValueOrCallable, lag: int = 0) -> None:
+    def __init__(
+        self,
+        input: ValueOrCallable,
+        lag: ValueOrCallable = 0,
+        pad_const: int = 0,
+    ) -> None:
         self.input = input
         self.lag = lag
+        self.pad_const = pad_const
 
     def __call__(self, x, *args, **kwargs):
         feat = resolve(self.input, x, *args, **kwargs)
-        if self.lag != 0:
+        lag = resolve(self.lag, x, *args, **kwargs)
+
+        if lag > 0:
             lagged_feat = np.concatenate(
-                (np.zeros(self.lag), feat[: -self.lag])
+                (self.pad_const * np.ones(lag), feat[:-lag])
             )
+        elif lag < 0:
+            lagged_feat = np.concatenate(
+                (feat[-lag:], self.pad_const * np.ones(-lag))
+            )
+
         else:
             lagged_feat = feat
         return lagged_feat
@@ -418,7 +433,7 @@ class ForEachCat(Lifted):
             )
         if global_state[field_name][c] is None:
             global_state[field_name][c] = self.fun(
-                x, length, field_name, *args, **kwargs
+                x, length=length, field_name=field_name, *args, **kwargs
             )
         return global_state[field_name][c]
 
@@ -563,7 +578,7 @@ class RandomInteger(Lifted):
         self,
         low: ValueOrCallable,
         high: ValueOrCallable,
-        shape: Sequence[int] = (0,),
+        shape: Optional[Sequence[int]] = (0,),
     ) -> None:
         self.low = low
         self.high = high
@@ -572,9 +587,12 @@ class RandomInteger(Lifted):
     def __call__(self, x: Env, length: int, *args, **kwargs):
         low = resolve(self.low, x, length, *args, **kwargs)
         high = resolve(self.high, x, length, *args, **kwargs)
-        s = np.array(self.shape)
-        s[s == 0] = length
-        return np.random.randint(low, high, s)
+        if self.shape is not None:
+            s = np.array(self.shape)
+            s[s == 0] = length
+            return np.random.randint(low, high, s)
+        else:
+            return np.random.randint(low, high)
 
 
 class RandomChangepoints(Lifted):
