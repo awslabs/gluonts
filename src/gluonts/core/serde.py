@@ -206,9 +206,6 @@ def dump_code(o: Any) -> str:
         elif isinstance(x, tuple):
             elems = [dump_code(v) for v in x]
             return "(" + ", ".join(elems) + ",)"
-        elif isinstance(x, set):
-            elems = [dump_code(v) for v in x]
-            return "{x" + ", ".join(elems) + ",}"
         elif isinstance(x, str):
             return '"' + x + '"'  # TODO: escape comp characters
         elif isinstance(x, float) or np.issubdtype(type(x), np.inexact):
