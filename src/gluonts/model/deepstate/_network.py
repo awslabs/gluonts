@@ -39,7 +39,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         issm: ISSM,
         dropout_rate: float,
         cardinality: List[int],
-        embedding_dimension: int,
+        embedding_dimension: List[int],
         scaling: bool = True,
         **kwargs,
     ) -> None:
@@ -56,6 +56,9 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         self.num_cat = len(cardinality)
         self.scaling = scaling
 
+        assert len(cardinality) == len(
+            embedding_dimension
+        ), "embedding_dimension should be a list with the same size as cardinality"
         self.univariate = self.issm.output_dim() == 1
 
         with self.name_scope():
@@ -79,8 +82,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
                 )
                 self.lstm.add(cell)
             self.embedder = FeatureEmbedder(
-                cardinalities=cardinality,
-                embedding_dims=[embedding_dimension for _ in cardinality],
+                cardinalities=cardinality, embedding_dims=embedding_dimension
             )
             if scaling:
                 self.scaler = MeanScaler(keepdims=False)
