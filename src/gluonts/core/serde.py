@@ -206,6 +206,9 @@ def dump_code(o: Any) -> str:
         elif isinstance(x, tuple):
             elems = [dump_code(v) for v in x]
             return "(" + ", ".join(elems) + ",)"
+        elif isinstance(x, set):
+            elems = [dump_code(v) for v in x]
+            return "{x" + ", ".join(elems) + ",}"
         elif isinstance(x, str):
             return '"' + x + '"'  # TODO: escape comp characters
         elif isinstance(x, float) or np.issubdtype(type(x), np.inexact):
@@ -388,8 +391,12 @@ def encode(v: Any) -> Any:
     """
     if isinstance(v, type(None)):
         return None
-    elif isinstance(v, (float, int, str)) or np.issubdtype(type(v), np.number):
+    elif isinstance(v, (float, int, str)):
         return v
+    elif np.issubdtype(type(v), np.inexact):
+        return float(v)
+    elif np.issubdtype(type(v), np.integer):
+        return int(v)
     elif isinstance(v, (list, set)) or type(v) == tuple:
         return [encode(v) for v in v]
     elif isinstance(v, tuple) and not hasattr(v, "_asdict"):
@@ -546,6 +553,9 @@ def decode(r: Any) -> Any:
     # r = [ y1, ..., yn ]
     elif type(r) == list:
         return [decode(y) for y in r]
+    # r = { y1, ..., yn }
+    elif type(r) == set:
+        return {decode(y) for y in r}
     # r = a
     else:
         return r
