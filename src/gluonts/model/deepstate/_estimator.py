@@ -72,7 +72,7 @@ def longest_period_from_frequency_str(freq_str: str) -> int:
 class DeepStateEstimator(GluonEstimator):
     """
     Construct a DeepState estimator.
-    
+
     This implements the deep state space model described in
     [RSG+18]_.
 
@@ -121,8 +121,8 @@ class DeepStateEstimator(GluonEstimator):
         Number of values of each categorical feature.
         This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
-        Dimension of the embeddings for categorical features (the same
-        dimension is used for all embeddings, default: 20)
+        Dimension of the embeddings for categorical features
+        (default: [min(50, (cat+1)//2) for cat in cardinality])
     scaling
         Whether to automatically scale the target values (default: true)
     time_features
@@ -147,7 +147,7 @@ class DeepStateEstimator(GluonEstimator):
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
         cardinality: Optional[List[int]] = None,
-        embedding_dimension: int = 20,
+        embedding_dimension: Optional[List[int]] = None,
         issm: Optional[ISSM] = None,
         scaling: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
@@ -172,9 +172,9 @@ class DeepStateEstimator(GluonEstimator):
         assert cardinality is None or [
             c > 0 for c in cardinality
         ], "Elements of `cardinality` should be > 0"
-        assert (
-            embedding_dimension > 0
-        ), "The value of `embedding_dimension` should be > 0"
+        assert embedding_dimension is None or [
+            e > 0 for e in embedding_dimension
+        ], "Elements of `embedding_dimension` should be > 0"
 
         self.freq = freq
         self.past_length = (
@@ -192,8 +192,14 @@ class DeepStateEstimator(GluonEstimator):
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
-        self.cardinality = cardinality if use_feat_static_cat else [1]
-        self.embedding_dimension = embedding_dimension
+        self.cardinality = (
+            cardinality if cardinality and use_feat_static_cat else [1]
+        )
+        self.embedding_dimension = (
+            embedding_dimension
+            if embedding_dimension is not None
+            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
+        )
 
         self.issm = (
             issm

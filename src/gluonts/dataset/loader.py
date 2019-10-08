@@ -65,6 +65,10 @@ class BatchBuffer:
             return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
         elif isinstance(xs[0], mx.nd.NDArray):
             return mx.nd.stack(*xs)
+        elif isinstance(xs[0], list):
+            return [self.stack(t) for t in zip(*[x for x in xs])]
+        elif isinstance(xs[0], tuple):
+            return tuple([self.stack(t) for t in zip(*[x for x in xs])])
         else:
             return xs  # stack all other types as list
 
