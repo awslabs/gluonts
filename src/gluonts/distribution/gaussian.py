@@ -16,6 +16,9 @@ import math
 from functools import partial
 from typing import Dict, Optional, Tuple, List
 
+# Third-party imports
+import numpy as np
+
 # First-party imports
 from gluonts.model.common import Tensor
 from gluonts.support.util import erf, erfinv
@@ -84,18 +87,22 @@ class Gaussian(Distribution):
         )
         return (erf(F, u) + 1.0) / 2.0
 
-    def sample(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         return _sample_multiple(
-            partial(self.F.sample_normal, dtype=self.mu.dtype),
+            partial(self.F.sample_normal, dtype=dtype),
             mu=self.mu,
             sigma=self.sigma,
             num_samples=num_samples,
         )
 
-    def sample_rep(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample_rep(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         def s(mu: Tensor, sigma: Tensor) -> Tensor:
             raw_samples = self.F.sample_normal(
-                mu=mu.zeros_like(), sigma=sigma.ones_like(), dtype=mu.dtype
+                mu=mu.zeros_like(), sigma=sigma.ones_like(), dtype=dtype
             )
             return sigma * raw_samples + mu
 

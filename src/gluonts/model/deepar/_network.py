@@ -105,7 +105,9 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                 self.rnn.add(cell)
             self.rnn.cast(dtype=dtype)
             self.embedder = FeatureEmbedder(
-                cardinalities=cardinality, embedding_dims=embedding_dimension, dtype=self.dtype,
+                cardinalities=cardinality,
+                embedding_dims=embedding_dimension,
+                dtype=self.dtype,
             )
             if scaling:
                 self.scaler = MeanScaler(keepdims=True)
@@ -544,7 +546,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
             )
 
             # (batch_size * num_samples, 1, *target_shape)
-            new_samples = distr.sample()
+            new_samples = distr.sample(dtype=self.dtype)
 
             # (batch_size * num_samples, seq_len, *target_shape)
             repeated_past_target = F.concat(

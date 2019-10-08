@@ -117,9 +117,7 @@ class DeepAREstimator(GluonEstimator):
         self,
         freq: str,
         prediction_length: int,
-        trainer: Trainer = Trainer(
-            hybridize=True, num_batches_per_epoch=1, epochs=1
-        ),
+        trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
         num_layers: int = 2,
         num_cells: int = 40,
@@ -297,7 +295,6 @@ class DeepAREstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
-            batch_size=self.trainer.batch_size,
             dtype=self.dtype,
         )
 
