@@ -46,7 +46,8 @@ class GluonTSFramework(Framework):
 
     LATEST_VERSION = "0.3.3"
 
-    TRAIN_ENTRY_POINT_SCRIPT = str(Path(os.path.dirname(os.path.abspath(__file__))) / "entry_point_scripts" / "train_entry_point.py")
+    TRAIN_ENTRY_POINT_SCRIPT = str(
+        Path(os.path.dirname(os.path.abspath(__file__))) / "entry_point_scripts" / "train_entry_point.py")
 
     def __init__(
             self,
@@ -56,15 +57,14 @@ class GluonTSFramework(Framework):
             sagemaker_session: session.Session,
             role: str,
             train_instance_type: str,
-            train_instance_count: str,
+            train_instance_count: int,
             base_job_name: str,
+            image_name: str,  # ATTENTION: IF YOU USE AN IMAGE WITH MXNET GPU, YOU HAVE TO USE A GPU INSTANCE
             entry_point: str = TRAIN_ENTRY_POINT_SCRIPT,
             framework_version: str = GLUONTS_VERSION,
-            source_dir=None,
+            # source_dir=None,  # TODO figure out why this doesnt work
             hyperparameters=None,
-            image_name=None,  # ATTENTION: IF YOU USE AN IMAGE WITH MXNET GPU, YOU HAVE TO USE A GPU INSTANCE
             **kwargs
-            # TODO many more missing, like: session, role, base_job_name, train_instance_type, train_instance_count,  metric_definitions, tags, maybe even imge
     ):
         """This ``Estimator`` executes an MXNet script in a managed MXNet
         execution environment, within a SageMaker Training Job. The managed
@@ -117,7 +117,17 @@ class GluonTSFramework(Framework):
         # TODO: use pre built image if applicable
 
         super(GluonTSFramework, self).__init__(
-            entry_point, source_dir, hyperparameters, image_name=image_name, **kwargs
+            dependencies=dependencies,
+            output_path=output_path,
+            code_location=code_location,
+            sagemaker_session=sagemaker_session,
+            role=role,
+            train_instance_type=train_instance_type,
+            train_instance_count=train_instance_count,
+            base_job_name=base_job_name,
+            entry_point=entry_point,
+            hyperparameters=hyperparameters,
+            image_name=image_name, **kwargs
         )
 
         # must be set
@@ -313,12 +323,13 @@ class GluonTSFramework(Framework):
 
         self.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
-        # retrieve metrics
-        metrics_output_dir = Path(self.output_path)
-        with s3fs.S3FileSystem().open(metrics_output_dir / "agg_metrics.json", "r") as f:
-            agg_metrics = json.load(f)
-        with s3fs.S3FileSystem().open(metrics_output_dir / "item_metrics.csv", "r") as f:
-            item_metrics = pd.read_csv(f)
+        # retrieve metrics # TODO fix this: download zip, unpack and stuff...
+        #with s3fs.S3FileSystem().open(f"{self.output_path}/{job_name}/agg_metrics.json", "r") as f:
+        #    agg_metrics = json.load(f)
+        #with s3fs.S3FileSystem().open(f"{self.output_path}/{job_name}/item_metrics.csv", "r") as f:
+        #    item_metrics = pd.read_csv(f)
+        agg_metrics = None
+        item_metrics = None
 
         return agg_metrics, item_metrics, job_name
 
@@ -391,7 +402,8 @@ class GluonTSFramework(Framework):
         # specify job_name if not set
         if not job_name:
             milliseconds = str(int(round(time.time() * 1000)) % 1000)
-            job_name = experiment.base_job_name + "-" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime()) + "-" + milliseconds
+            job_name = experiment.base_job_name + "-" + time.strftime("%Y-%m-%d-%H-%M-%S",
+                                                                      time.gmtime()) + "-" + milliseconds
 
         experiment.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
