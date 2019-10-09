@@ -37,6 +37,10 @@ from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
+from .box_cox_tranform import (
+    BoxCoxTransformOutput,
+    InverseBoxCoxTransformOutput,
+)
 
 __all__ = [
     "Distribution",
@@ -64,6 +68,8 @@ __all__ = [
     "TransformedPiecewiseLinear",
     "TransformedDistribution",
     "TransformedDistributionOutput",
+    "InverseBoxCoxTransformOutput",
+    "BoxCoxTransformOutput",
     "bijection",
 ]
 

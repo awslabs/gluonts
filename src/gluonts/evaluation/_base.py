@@ -216,7 +216,10 @@ class Evaluator:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
-        mean_fcst = forecast.mean
+        try:
+            mean_fcst = forecast.mean
+        except:
+            mean_fcst = None
         median_fcst = forecast.quantile(0.5)
         seasonal_error = self.seasonal_error(time_series, forecast)
         # For MSIS: alpha/2 quantile may not exist. Find the closest.
@@ -230,7 +233,9 @@ class Evaluator:
 
         metrics = {
             "item_id": forecast.item_id,
-            "MSE": self.mse(pred_target, mean_fcst),
+            "MSE": self.mse(pred_target, mean_fcst)
+            if mean_fcst is not None
+            else None,
             "abs_error": self.abs_error(pred_target, median_fcst),
             "abs_target_sum": self.abs_target_sum(pred_target),
             "abs_target_mean": self.abs_target_mean(pred_target),

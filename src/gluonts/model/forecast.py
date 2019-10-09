@@ -569,6 +569,7 @@ class DistributionForecast(Forecast):
 
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
+        self._mean = None
 
     @property
     def mean(self):
@@ -578,7 +579,7 @@ class DistributionForecast(Forecast):
         if self._mean is not None:
             return self._mean
         else:
-            self._mean = self.distribution.mean
+            self._mean = self.distribution.mean.asnumpy()
             return self._mean
 
     @property
