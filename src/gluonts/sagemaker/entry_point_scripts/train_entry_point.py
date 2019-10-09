@@ -29,17 +29,15 @@ from gluonts.evaluation import Evaluator, backtest
 
 
 def train(arguments):
-    # Generic gluonts training method
+    """
+    Generic train method that trains a specified estimator on a specified dataset.
+    """
 
-    print(arguments) # TODO remove this
-
-    # deserialize the estimator
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Downloading - Downloading estimator config.")
     estimator_config = Path(arguments.estimator) / "estimator.json"
     with open(estimator_config, 'r') as f:
         estimator = serde.load_json(str(f.read()))
 
-    # load the dataset into gluonts format
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Downloading - Downloading dataset.")
     if arguments.s3_dataset == "None":
         # load built in dataset
@@ -51,24 +49,31 @@ def train(arguments):
                                        train=s3_dataset_dir / "train",
                                        test=s3_dataset_dir / "test")
 
-    # train and evaluate the models
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Starting - Starting model training.")
     predictor = estimator.train(dataset.train)
     forecast_it, ts_it = backtest.make_evaluation_predictions(
         dataset=dataset.test,
         predictor=predictor,
-        num_eval_samples=100  # TODO make this a HP
+        num_eval_samples=int(arguments.num_eval_samples)
     )
-    evaluator = Evaluator(quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))  # TODO make this a HP
-    agg_metrics, item_metrics = evaluator(forecast_it, ts_it) #, num_series=len(dataset.test))
 
-    # save the evaluation results to the right location
-    metrics_output_dir = Path(arguments.output_dir)
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Starting - Starting model evaluation.")
+    evaluator = Evaluator(quantiles=eval(arguments.quantiles))
+    agg_metrics, item_metrics = evaluator(ts_it, forecast_it, num_series=len(dataset.test))
+
+    # TODO:
+    # we only log aggregate metrics for now as item metrics may be very large
+    # for name, value in agg_metrics.items():
+    #    serialize_message(logger, f"metric-{name}", value)
+
+    # save the evaluation results
+    metrics_output_dir = Path(arguments.output_data_dir)
     with open(metrics_output_dir / "agg_metrics.json", "w") as f:
         json.dump(agg_metrics, f)
     with open(metrics_output_dir / "item_metrics.csv", "w") as f:
         item_metrics.to_csv(f)
 
-    # save the model to the right location
+    # save the model
     model_output_dir = Path(arguments.model_dir)
     predictor.serialize(model_output_dir)
 
@@ -79,15 +84,16 @@ if __name__ == '__main__':
     # an alternative way to load hyperparameters via SM_HPS environment variable.
     parser.add_argument('--sm_hps', type=json.loads, default=os.environ['SM_HPS'])
 
-    # input data and model directories
+    # input data, output dir and model directories
     parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--input_dir', type=str, default=os.environ['SM_INPUT_DIR'])
-    parser.add_argument('--output_dir', type=str, default=os.environ['SM_OUTPUT_DIR'])
+    parser.add_argument('--output_data_dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
 
     parser.add_argument('--estimator', type=str, default=os.environ['SM_CHANNEL_ESTIMATOR'])
     # argument possibly not set
-    parser.add_argument('--s3_dataset', type=str, default=os.environ.get('SM_CHANNEL_S3_DATASET'))
+    parser.add_argument('--s3_dataset', type=str, default=str(os.environ.get('SM_CHANNEL_S3_DATASET')))
     parser.add_argument('--dataset', type=str, default=os.environ['SM_HP_DATASET'])
+    parser.add_argument('--num_eval_samples', type=str, default=os.environ['SM_HP_NUM_EVAL_SAMPLES'])
+    parser.add_argument('--quantiles', type=str, default=os.environ['SM_HP_QUANTILES'])
 
     args, _ = parser.parse_known_args()
 
