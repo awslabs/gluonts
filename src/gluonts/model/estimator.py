@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 # Third-party imports
 import numpy as np
@@ -45,7 +45,9 @@ class Estimator:
     prediction_length: int
     freq: str
 
-    def train(self, training_data: Dataset) -> Predictor:
+    def train(
+        self, training_data: Dataset, valid_data: Optional[Dataset] = None
+    ) -> Predictor:
         """
         Train the estimator on the given data.
 
@@ -53,6 +55,8 @@ class Estimator:
         ----------
         training_data
             Dataset to train the model on.
+        valid_data
+            Dataset to validate the model on during training.
 
         Returns
         -------
@@ -83,7 +87,9 @@ class DummyEstimator(Estimator):
     def __init__(self, predictor_cls: type, **kwargs) -> None:
         self.predictor = predictor_cls(**kwargs)
 
-    def train(self, training_data: Dataset) -> Predictor:
+    def train(
+        self, training_data: Dataset, valid_dataset: Optional[Dataset] = None
+    ) -> Predictor:
         return self.predictor
 
 
@@ -164,7 +170,9 @@ class GluonEstimator(Estimator):
         """
         raise NotImplementedError
 
-    def train_model(self, training_data: Dataset) -> TrainOutput:
+    def train_model(
+        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+    ) -> TrainOutput:
         transformation = self.create_transformation()
 
         transformation.estimate(iter(training_data))
@@ -178,6 +186,19 @@ class GluonEstimator(Estimator):
             float_type=self.float_type,
         )
 
+        validation_data_loader = (
+            TrainDataLoader(
+                dataset=validation_data,
+                transform=transformation,
+                batch_size=self.trainer.batch_size,
+                num_batches_per_epoch=self.trainer.num_batches_per_epoch,
+                ctx=self.trainer.ctx,
+                float_type=self.float_type,
+            )
+            if validation_data is not None
+            else None
+        )
+
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
         with self.trainer.ctx:
@@ -187,6 +208,7 @@ class GluonEstimator(Estimator):
             net=trained_net,
             input_names=get_hybrid_forward_input_names(trained_net),
             train_iter=training_data_loader,
+            val_iter=validation_data_loader,
         )
 
         with self.trainer.ctx:
@@ -198,6 +220,7 @@ class GluonEstimator(Estimator):
                 predictor=self.create_predictor(transformation, trained_net),
             )
 
-    def train(self, training_data: Dataset) -> Predictor:
-
-        return self.train_model(training_data).predictor
+    def train(
+        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+    ) -> Predictor:
+        return self.train_model(training_data, validation_data).predictor
