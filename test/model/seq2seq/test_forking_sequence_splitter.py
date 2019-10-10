@@ -1,9 +1,23 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Third-party imports
 import numpy as np
 
 # First-party imports
 from gluonts import transform
 from gluonts.dataset.common import ListDataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.seq2seq._transform import ForkingSequenceSplitter
 from gluonts.transform import TestSplitSampler
 
@@ -17,10 +31,10 @@ def test_forking_sequence_splitter() -> None:
 
         return ListDataset(
             [
-                {'start': '2012-01-01', 'target': targets[i, :]}
+                {"start": "2012-01-01", "target": targets[i, :]}
                 for i in range(n)
             ],
-            freq='D',
+            freq="D",
         )
 
     ds = make_dataset(1, 20)
@@ -28,13 +42,13 @@ def test_forking_sequence_splitter() -> None:
     trans = transform.Chain(
         trans=[
             transform.AddAgeFeature(
-                target_field=transform.FieldName.TARGET,
-                output_field='age',
+                target_field=FieldName.TARGET,
+                output_field="age",
                 pred_length=10,
             ),
             ForkingSequenceSplitter(
                 train_sampler=TestSplitSampler(),
-                time_series_fields=['age'],
+                time_series_fields=["age"],
                 enc_len=5,
                 dec_len=3,
             ),
@@ -55,20 +69,20 @@ def test_forking_sequence_splitter() -> None:
     )
 
     assert (
-        np.linalg.norm(future_target - transformed_data['future_target'])
+        np.linalg.norm(future_target - transformed_data["future_target"])
         < 1e-5
     ), "the forking sequence target should be computed correctly."
 
     trans_oob = transform.Chain(
         trans=[
             transform.AddAgeFeature(
-                target_field=transform.FieldName.TARGET,
-                output_field='age',
+                target_field=FieldName.TARGET,
+                output_field="age",
                 pred_length=10,
             ),
             ForkingSequenceSplitter(
                 train_sampler=TestSplitSampler(),
-                time_series_fields=['age'],
+                time_series_fields=["age"],
                 enc_len=20,
                 dec_len=20,
             ),
@@ -78,6 +92,6 @@ def test_forking_sequence_splitter() -> None:
     transformed_data_oob = next(iter(trans_oob(iter(ds), is_train=True)))
 
     assert (
-        np.sum(transformed_data_oob['future_target']) - np.sum(np.arange(20))
+        np.sum(transformed_data_oob["future_target"]) - np.sum(np.arange(20))
         < 1e-5
     ), "the forking sequence target should be computed correctly."

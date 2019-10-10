@@ -19,6 +19,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import getF
@@ -31,6 +32,10 @@ class Bijection:
     This is defined through the forward tranformation (computed by the
     `f` method) and the inverse transformation (`f_inv`).
     """
+
+    @validated()
+    def __init__(self):
+        pass
 
     def f(self, x: Tensor) -> Tensor:
         r"""
@@ -57,7 +62,7 @@ class Bijection:
         """
         raise NotImplementedError
 
-    def inverse_bijection(self) -> 'Bijection':
+    def inverse_bijection(self) -> "Bijection":
         r"""
         Returns a Bijection instance that represents the inverse of this
         transformation.
@@ -66,6 +71,13 @@ class Bijection:
 
     @property
     def event_dim(self) -> int:
+        raise NotImplementedError()
+
+    @property
+    def sign(self) -> Tensor:
+        """
+        Return the sign of the Jacobian's determinant.
+        """
         raise NotImplementedError()
 
 
@@ -82,6 +94,7 @@ class InverseBijection(Bijection):
         The transformation to invert.
     """
 
+    @validated()
     def __init__(self, bijection: Bijection) -> None:
         self._bijection = bijection
 
@@ -101,6 +114,10 @@ class InverseBijection(Bijection):
     def event_dim(self) -> int:
         return self._bijection.event_dim
 
+    @property
+    def sign(self) -> Tensor:
+        return self._bijection.sign
+
 
 class _Exp(Bijection):
     def f(self, x: Tensor) -> Tensor:
@@ -115,6 +132,10 @@ class _Exp(Bijection):
     @property
     def event_dim(self) -> int:
         return 0
+
+    @property
+    def sign(self) -> Tensor:
+        return 1.0
 
 
 class _Log(Bijection):
@@ -131,6 +152,10 @@ class _Log(Bijection):
     def event_dim(self) -> int:
         return 0
 
+    @property
+    def sign(self) -> Tensor:
+        return 1.0
+
 
 class _Softrelu(Bijection):
     def _log_expm1(self, F, y: Tensor) -> Tensor:
@@ -143,7 +168,7 @@ class _Softrelu(Bijection):
 
     def f(self, x: Tensor) -> Tensor:
         F = getF(x)
-        return F.Activation(x.clip(-100.0, np.inf), act_type='softrelu')
+        return F.Activation(x.clip(-100.0, np.inf), act_type="softrelu")
 
     def f_inv(self, y: Tensor) -> Tensor:
         F = getF(y)
@@ -156,6 +181,10 @@ class _Softrelu(Bijection):
     @property
     def event_dim(self) -> int:
         return 0
+
+    @property
+    def sign(self) -> Tensor:
+        return 1.0
 
 
 class AffineTransformation(Bijection):
@@ -174,6 +203,7 @@ class AffineTransformation(Bijection):
         Scaling parameter.
     """
 
+    @validated()
     def __init__(
         self, loc: Optional[Tensor] = None, scale: Optional[Tensor] = None
     ) -> None:
@@ -201,6 +231,10 @@ class AffineTransformation(Bijection):
             return self.scale.broadcast_like(x).abs().log()
         else:
             raise RuntimeError("scale is of type None in log_abs_det_jac")
+
+    @property
+    def sign(self):
+        return self.scale.sign()
 
     @property
     def event_dim(self) -> int:

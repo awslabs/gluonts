@@ -16,6 +16,7 @@ from typing import Dict, Optional, Tuple
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
@@ -32,13 +33,13 @@ class NegativeBinomial(Distribution):
     mu
         Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
     alpha
-        Ratio between the success probability `p` of a single experiment,
-        and the maximum number of failures allowed.
+        Tensor of the shape parameters, of shape `(*batch_shape, *event_shape)`.
     F
     """
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(self, mu: Tensor, alpha: Tensor, F=None) -> None:
         self.mu = mu
         self.alpha = alpha
@@ -99,8 +100,8 @@ class NegativeBinomialOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, alpha):
-        mu = softplus(F, mu)
-        alpha = softplus(F, alpha)
+        mu = softplus(F, mu) + 1e-8
+        alpha = softplus(F, alpha) + 1e-8
         return mu.squeeze(axis=-1), alpha.squeeze(axis=-1)
 
     # Overwrites the parent class method.

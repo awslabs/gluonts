@@ -1,0 +1,7 @@
+{
+    "ND": 1.3637727499008179,
+    "RMSE": 65.98619079589844,
+    "dataset": "solar-energy",
+    "estimator": "RForecastPredictor_ets",
+    "mean_wQuantileLoss": 1.7778815031051636
+}

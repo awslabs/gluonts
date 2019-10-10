@@ -1,0 +1,7 @@
+{
+    "ND": 0.15895396710660367,
+    "RMSE": 0.025626387137168773,
+    "dataset": "traffic",
+    "estimator": "TransformerEstimator",
+    "mean_wQuantileLoss": 0.13221504583305113
+}

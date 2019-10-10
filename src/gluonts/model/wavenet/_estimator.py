@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 import logging
 import re
@@ -11,6 +24,7 @@ import numpy as np
 from gluonts import transform
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
@@ -19,7 +33,7 @@ from gluonts.support.util import (
     copy_parameters,
     get_hybrid_forward_input_names,
 )
-from gluonts.time_feature.lag import time_features_from_frequency_str
+from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddAgeFeature,
@@ -29,7 +43,6 @@ from gluonts.transform import (
     Chain,
     DataEntry,
     ExpectedNumInstanceSampler,
-    FieldName,
     InstanceSplitter,
     SetFieldIfNotPresent,
     SimpleTransformation,
@@ -38,7 +51,7 @@ from gluonts.transform import (
 
 
 class QuantizeScaled(SimpleTransformation):
-    '''
+    """
     Rescale and quantize the target variable.
 
     Requires
@@ -48,16 +61,17 @@ class QuantizeScaled(SimpleTransformation):
     Then the bin_edges are used to quantize the rescaled target.
 
     The calculated scale is included as a new field "scale"
-    '''
+    """
 
+    @validated()
     def __init__(
         self,
-        bin_edges: np.ndarray,
+        bin_edges: List[float],
         past_target: str,
         future_target: str,
-        scale: str = 'scale',
+        scale: str = "scale",
     ):
-        self.bin_edges = bin_edges
+        self.bin_edges = np.array(bin_edges)
         self.future_target = future_target
         self.past_target = past_target
         self.scale = scale
@@ -76,27 +90,63 @@ class QuantizeScaled(SimpleTransformation):
         return data
 
 
-def _get_seasonality(freq: str, seasonality_dict: Optional[Dict]) -> int:
-    match = re.match(r'(\d*)(\w+)', freq)
+def _get_seasonality(freq: str, seasonality_dict: Dict) -> int:
+    match = re.match(r"(\d*)(\w+)", freq)
     assert match, "Cannot match freq regex"
     multiple, base_freq = match.groups()
     multiple = int(multiple) if multiple else 1
-    sdict = (
-        seasonality_dict
-        if seasonality_dict
-        else {'H': 7 * 24, 'D': 7, 'W': 52, 'M': 12, 'B': 7 * 5}
-    )
-    seasonality = sdict[base_freq]
+    seasonality = seasonality_dict[base_freq]
     if seasonality % multiple != 0:
         logging.warning(
-            f'multiple {multiple} does not divide base seasonality {seasonality}.'
-            f'Falling back to seasonality 1'
+            f"multiple {multiple} does not divide base seasonality {seasonality}."
+            f"Falling back to seasonality 1"
         )
         return 1
     return seasonality // multiple
 
 
 class WaveNetEstimator(GluonEstimator):
+    """
+        Model with Wavenet architecture and quantized target.
+
+        Parameters
+        ----------
+        freq
+            Frequency of the data to train on and predict
+        prediction_length
+            Length of the prediction horizon
+        trainer
+            Trainer object to be used (default: Trainer())
+        cardinality
+            Number of values of the each categorical feature (default: [1])
+        embedding_dimension
+            Dimension of the embeddings for categorical features (the same
+            dimension is used for all embeddings, default: 5)
+        num_bins
+            Number of bins used for quantization of signal (default: 1024)
+        hybridize_prediction_net
+            Boolean (default: False)
+        n_residue
+            Number of residual channels in wavenet architecture (default: 24)
+        n_skip
+            Number of skip channels in wavenet architecture (default: 32)
+        dilation_depth
+            Number of dilation layers in wavenet architecture.
+            If set to None (default), dialation_depth is set such that the receptive length is at least
+            as long as typical seasonality for the frequency and at least 2 * prediction_length.
+        n_stacks
+            Number of dilation stacks in wavenet architecture (default: 1)
+        temperature
+            Temparature used for sampling from softmax distribution.
+            For temperature = 1.0 (default) sampling is according to estimated probability.
+        act_type
+            Activation type used after before output layer (default: "elu").
+            Can be any of 'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'.
+        num_parallel_samples
+            Number of evaluation samples per time series to increase parallelism during inference.
+            This is a model optimization that does not affect the accuracy (default: 200)
+    """
+
     @validated()
     def __init__(
         self,
@@ -108,8 +158,8 @@ class WaveNetEstimator(GluonEstimator):
             num_batches_per_epoch=50,
             hybridize=False,
         ),
-        num_eval_samples: int = 200,
         cardinality: List[int] = [1],
+        seasonality: Optional[int] = None,
         embedding_dimension: int = 5,
         num_bins: int = 1024,
         hybridize_prediction_net: bool = False,
@@ -117,8 +167,10 @@ class WaveNetEstimator(GluonEstimator):
         n_skip=32,
         dilation_depth: Optional[int] = None,
         n_stacks: int = 1,
+        train_window_length: int = 1000,
         temperature: float = 1.0,
-        act_type: str = 'elu',
+        act_type: str = "elu",
+        num_parallel_samples: int = 200,
     ) -> None:
         """
         Model with Wavenet architecture and quantized target.
@@ -134,9 +186,13 @@ class WaveNetEstimator(GluonEstimator):
         :param n_residue: Number of residual channels in wavenet architecture
         :param n_skip: Number of skip channels in wavenet architecture
         :param dilation_depth: number of dilation layers in wavenet architecture.
-          If set to None, dialation_depth is set such that the receptive length is at least as long as typical
-          seasonality for the frequency and at least 2 * prediction_length.
+          If set to None, dialation_depth is set such that the receptive length is at
+          least as long as 2 * seasonality for the frequency and at least
+          2 * prediction_length.
         :param n_stacks: Number of dilation stacks in wavenet architecture
+        :param train_window_length: Length of windows used for training. This should be
+          longer than context + prediction length. Larger values result in more efficient
+          reuse of computations for convolutions.
         :param temperature: Temparature used for sampling from softmax distribution.
           For temperature = 1.0 sampling is according to estimated probability.
         :param act_type: Activation type used after before output layer.
@@ -148,7 +204,6 @@ class WaveNetEstimator(GluonEstimator):
 
         self.freq = freq
         self.prediction_length = prediction_length
-        self.num_eval_samples = num_eval_samples
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
         self.num_bins = num_bins
@@ -157,13 +212,30 @@ class WaveNetEstimator(GluonEstimator):
         self.n_residue = n_residue
         self.n_skip = n_skip
         self.n_stacks = n_stacks
+        self.train_window_length = train_window_length
         self.temperature = temperature
         self.act_type = act_type
+        self.num_parallel_samples = num_parallel_samples
 
-        seasonality = _get_seasonality(
-            self.freq, {'H': 7 * 24, 'D': 7, 'W': 52, 'M': 12, 'B': 7 * 5}
+        seasonality = (
+            _get_seasonality(
+                self.freq,
+                {
+                    "H": 7 * 24,
+                    "D": 7,
+                    "W": 52,
+                    "M": 12,
+                    "B": 7 * 5,
+                    "min": 24 * 60,
+                },
+            )
+            if seasonality is None
+            else seasonality
         )
-        goal_receptive_length = max(seasonality, 2 * self.prediction_length)
+
+        goal_receptive_length = max(
+            2 * seasonality, 2 * self.prediction_length
+        )
         if dilation_depth is None:
             d = 1
             while (
@@ -181,11 +253,12 @@ class WaveNetEstimator(GluonEstimator):
         )
         self.logger = logging.getLogger(__name__)
         self.logger.info(
-            f'Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}'
+            f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
         )
 
     def train(self, training_data: Dataset) -> Predictor:
-        has_negative_data = any(np.any(d['target'] < 0) for d in training_data)
+        has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
+        mean_length = int(np.mean([len(d["target"]) for d in training_data]))
         low = -10.0 if has_negative_data else 0
         high = 10.0
         bin_centers = np.linspace(low, high, self.num_bins)
@@ -193,7 +266,17 @@ class WaveNetEstimator(GluonEstimator):
             [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
         )
 
-        transformation = self.create_transformation(bin_edges)
+        # Here we override the prediction length for training.
+        # This computes the loss over longer windows and makes the convolutions more
+        # efficient, since calculations are reused.
+        pred_length = min(mean_length, self.train_window_length)
+
+        logging.info(f"mean series length = {mean_length}")
+        logging.info(f"using training windows of length = {pred_length}")
+
+        transformation = self.create_transformation(
+            bin_edges, pred_length=pred_length
+        )
 
         transformation.estimate(iter(training_data))
 
@@ -208,7 +291,9 @@ class WaveNetEstimator(GluonEstimator):
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
         with self.trainer.ctx:
-            trained_net = WaveNet(**self._get_wavenet_args(bin_centers))
+            params = self._get_wavenet_args(bin_centers)
+            params.update(pred_length=pred_length)
+            trained_net = WaveNet(**params)
 
         self.trainer(
             net=trained_net,
@@ -224,7 +309,7 @@ class WaveNetEstimator(GluonEstimator):
             )
 
     def create_transformation(
-        self, bin_edges: np.ndarray
+        self, bin_edges: np.ndarray, pred_length: int
     ) -> transform.Transformation:
         return Chain(
             [
@@ -260,7 +345,7 @@ class WaveNetEstimator(GluonEstimator):
                     forecast_start_field=FieldName.FORECAST_START,
                     train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     past_length=self.context_length,
-                    future_length=self.prediction_length,
+                    future_length=pred_length,
                     output_NTC=False,
                     time_series_fields=[
                         FieldName.FEAT_TIME,
@@ -268,9 +353,9 @@ class WaveNetEstimator(GluonEstimator):
                     ],
                 ),
                 QuantizeScaled(
-                    bin_edges=bin_edges,
-                    future_target='future_target',
-                    past_target='past_target',
+                    bin_edges=bin_edges.tolist(),
+                    future_target="future_target",
+                    past_target="past_target",
                 ),
             ]
         )
@@ -284,7 +369,7 @@ class WaveNetEstimator(GluonEstimator):
             act_type=self.act_type,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
-            bin_values=bin_centers,
+            bin_values=bin_centers.tolist(),
             pred_length=self.prediction_length,
         )
 
@@ -296,14 +381,19 @@ class WaveNetEstimator(GluonEstimator):
     ) -> Predictor:
 
         prediction_network = WaveNetSampler(
-            num_samples=self.num_eval_samples,
+            num_samples=self.num_parallel_samples,
             temperature=self.temperature,
             **self._get_wavenet_args(bin_values),
         )
 
-        # copy_parameters(net_source=trained_network, net_dest=prediction_network, ignore_extra=True)
+        # The lookup layer is specific to the sampling network here
+        # we make sure it is initialized.
+        prediction_network.initialize()
+
         copy_parameters(
-            net_source=trained_network, net_dest=prediction_network
+            net_source=trained_network,
+            net_dest=prediction_network,
+            allow_missing=True,
         )
 
         return RepresentableBlockPredictor(

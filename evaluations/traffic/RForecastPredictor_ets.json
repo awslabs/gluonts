@@ -1,0 +1,7 @@
+{
+    "ND": 0.38495776057243347,
+    "RMSE": 0.03865032270550728,
+    "dataset": "traffic",
+    "estimator": "RForecastPredictor_ets",
+    "mean_wQuantileLoss": 0.37311694025993347
+}

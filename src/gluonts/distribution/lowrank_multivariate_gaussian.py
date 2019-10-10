@@ -185,6 +185,7 @@ class LowrankMultivariateGaussian(Distribution):
 
     is_reparameterizable = True
 
+    @validated()
     def __init__(
         self, dim: int, rank: int, mu: Tensor, D: Tensor, W: Tensor
     ) -> None:
@@ -345,7 +346,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
 
         # apply softplus to D_vector and reshape coefficient of W_vector to a matrix
         D_diag = F.Activation(
-            D_vector + inv_softplus(self.sigma_bias ** 2), act_type='softrelu'
+            D_vector + inv_softplus(self.sigma_bias ** 2), act_type="softrelu"
         )
 
         return mu_vector + self.mu_bias, D_diag, W_matrix

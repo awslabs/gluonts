@@ -14,11 +14,14 @@
 from typing import Tuple, Optional
 
 import mxnet as mx
+import numpy as np
 
 from gluonts.distribution import Distribution, Gaussian, MultivariateGaussian
 from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 from gluonts.support.util import make_nd_diag, _broadcast_param
+from gluonts.support.linalg_util import jitter_cholesky
 
 
 class LDS(Distribution):
@@ -73,6 +76,7 @@ class LDS(Distribution):
     F
     """
 
+    @validated()
     def __init__(
         self,
         emission_coeff: Tensor,
@@ -314,8 +318,15 @@ class LDS(Distribution):
 
         # Sample the prior state.
         # samples_lat_state: (num_samples, batch_size, latent_dim, 1)
+        # The prior covariance is observed to be slightly negative definite whenever there is
+        # excessive zero padding at the beginning of the time series.
+        # We add positive tolerance to the diagonal to avoid numerical issues.
+        # Note that `jitter_cholesky` adds positive tolerance only if the decomposition without jitter fails.
         state = MultivariateGaussian(
-            self.prior_mean, F.linalg_potrf(self.prior_cov)
+            self.prior_mean,
+            jitter_cholesky(
+                F, self.prior_cov, self.latent_dim, float_type=np.float32
+            ),
         )
         samples_lat_state = state.sample(num_samples).expand_dims(axis=-1)
 
@@ -462,34 +473,34 @@ class LDSArgsProj(mx.gluon.HybridBlock):
     def __init__(
         self,
         output_dim: int,
-        noise_std_ub: float = 20,
-        innovation_ub: float = 50,
+        noise_std_ub: float = 1.0,
+        innovation_ub: float = 0.01,
     ) -> None:
         super().__init__()
         self.output_dim = output_dim
         self.dense_noise_std = mx.gluon.nn.Dense(
             units=1,
             flatten=False,
-            activation='softrelu'
-            if noise_std_ub is float('inf')
-            else 'sigmoid',
+            activation="softrelu"
+            if noise_std_ub is float("inf")
+            else "sigmoid",
         )
         self.dense_innovation = mx.gluon.nn.Dense(
             units=1,
             flatten=False,
-            activation='softrelu'
-            if innovation_ub is float('inf')
-            else 'sigmoid',
+            activation="softrelu"
+            if innovation_ub is float("inf")
+            else "sigmoid",
         )
         self.dense_residual = mx.gluon.nn.Dense(
             units=output_dim, flatten=False
         )
 
         self.innovation_factor = (
-            1.0 if innovation_ub is float('inf') else innovation_ub
+            1.0 if innovation_ub is float("inf") else innovation_ub
         )
         self.noise_factor = (
-            1.0 if noise_std_ub is float('inf') else noise_std_ub
+            1.0 if noise_std_ub is float("inf") else noise_std_ub
         )
 
     # noinspection PyMethodOverriding,PyPep8Naming

@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Third-party imports
 from mxnet.gluon import HybridBlock
 
@@ -28,7 +41,7 @@ class CanonicalNetworkBase(HybridBlock):
 
         with self.name_scope():
             self.proj_distr_args = self.distr_output.get_args_proj()
-            self.scaler = MeanScaler()
+            self.scaler = MeanScaler(keepdims=True)
 
     def assemble_features(
         self,
@@ -94,11 +107,10 @@ class CanonicalTrainingNetwork(CanonicalNetworkBase):
         outputs = self.model(input_feat)
 
         distr = self.distr_output.distribution(
-            self.proj_distr_args(outputs),
-            scale=target_scale.expand_dims(axis=1).expand_dims(axis=2),
+            self.proj_distr_args(outputs), scale=target_scale
         )
 
-        loss = distr.loss(past_target.expand_dims(axis=-1))
+        loss = distr.loss(past_target)
 
         return loss
 
@@ -154,6 +166,7 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
         )
 
         input_feat = self.assemble_features(F, feat_static_cat, time_feat)
+
         outputs = self.model(input_feat)
 
         if self.is_sequential:
@@ -162,10 +175,10 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
             )
 
         distr = self.distr_output.distribution(
-            self.proj_distr_args(outputs),
-            target_scale.expand_dims(axis=1).expand_dims(axis=2),
+            self.proj_distr_args(outputs), scale=target_scale
         )
         samples = distr.sample(
             self.num_sample_paths
         )  # (num_samples, batch_size, prediction_length, 1)
-        return samples.swapaxes(0, 1).squeeze(axis=-1)
+
+        return samples.swapaxes(0, 1)

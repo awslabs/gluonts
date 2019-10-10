@@ -1,7 +1,7 @@
 {
-    "ND": 0.01847315949955941,
+    "ND": 0.01905256323516369,
     "RMSE": NaN,
     "dataset": "exchange_rate",
     "estimator": "MQCNNEstimator",
-    "mean_wQuantileLoss": 0.01581872726535706
+    "mean_wQuantileLoss": 0.015689939260482788
 }

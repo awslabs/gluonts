@@ -13,7 +13,7 @@
 
 # Standard library imports
 from collections import ChainMap
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 # Third-party imports
 import numpy as np
@@ -31,6 +31,7 @@ from gluonts.distribution.transformed_distribution import (
     TransformedDistribution,
 )
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 
 class TransformedDistributionOutput(DistributionOutput):
@@ -39,10 +40,11 @@ class TransformedDistributionOutput(DistributionOutput):
     by a sequence of learnable bijections.
     """
 
+    @validated()
     def __init__(
         self,
         base_distr_output: DistributionOutput,
-        *transforms_output: BijectionOutput,
+        transforms_output: List[BijectionOutput],
     ) -> None:
         super().__init__()
         self.base_distr_output = base_distr_output
@@ -124,7 +126,7 @@ class TransformedDistributionOutput(DistributionOutput):
             )
         ]
 
-        trans_distr = TransformedDistribution(distr, *transforms)
+        trans_distr = TransformedDistribution(distr, transforms)
 
         # Apply scaling as well at the end if scale is not None!
         if scale is None:

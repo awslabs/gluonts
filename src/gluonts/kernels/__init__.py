@@ -12,17 +12,21 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from .kernel import Kernel
-from .kernel_output import KernelOutput, KernelOutputDict
-from .periodic_kernel import PeriodicKernel, PeriodicKernelOutput
-from .rbf_kernel import RBFKernel, RBFKernelOutput
+from ._kernel import Kernel
+from ._kernel_output import KernelOutput, KernelOutputDict
+from ._periodic_kernel import PeriodicKernel, PeriodicKernelOutput
+from ._rbf_kernel import RBFKernel, RBFKernelOutput
 
 __all__ = [
-    'Kernel',
-    'PeriodicKernel',
-    'RBFKernel',
-    'PeriodicKernelOutput',
-    'RBFKernelOutput',
-    'KernelOutput',
-    'KernelOutputDict',
+    "Kernel",
+    "PeriodicKernel",
+    "RBFKernel",
+    "PeriodicKernelOutput",
+    "RBFKernelOutput",
+    "KernelOutput",
+    "KernelOutputDict",
 ]
+
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

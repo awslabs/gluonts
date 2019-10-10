@@ -35,32 +35,45 @@ from .piecewise_linear import (
 )
 from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
+from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
+from .box_cox_tranform import (
+    BoxCoxTransformOutput,
+    InverseBoxCoxTransformOutput,
+)
 
 __all__ = [
-    'Distribution',
-    'DistributionOutput',
-    'StudentTOutput',
-    'StudentT',
-    'GaussianOutput',
-    'Gaussian',
-    'LaplaceOutput',
-    'Laplace',
-    'MultivariateGaussian',
-    'MultivariateGaussianOutput',
-    'LowrankMultivariateGaussian',
-    'LowrankMultivariateGaussianOutput',
-    'MixtureDistributionOutput',
-    'MixtureDistribution',
-    'NegativeBinomialOutput',
-    'NegativeBinomial',
-    'UniformOutput',
-    'Uniform',
-    'Binned',
-    'BinnedOutput',
-    'PiecewiseLinear',
-    'PiecewiseLinearOutput',
-    'TransformedPiecewiseLinear',
-    'TransformedDistribution',
-    'bijection',
+    "Distribution",
+    "DistributionOutput",
+    "StudentTOutput",
+    "StudentT",
+    "GaussianOutput",
+    "Gaussian",
+    "LaplaceOutput",
+    "Laplace",
+    "MultivariateGaussian",
+    "MultivariateGaussianOutput",
+    "LowrankMultivariateGaussian",
+    "LowrankMultivariateGaussianOutput",
+    "MixtureDistributionOutput",
+    "MixtureDistribution",
+    "NegativeBinomialOutput",
+    "NegativeBinomial",
+    "UniformOutput",
+    "Uniform",
+    "Binned",
+    "BinnedOutput",
+    "PiecewiseLinear",
+    "PiecewiseLinearOutput",
+    "TransformedPiecewiseLinear",
+    "TransformedDistribution",
+    "TransformedDistributionOutput",
+    "InverseBoxCoxTransformOutput",
+    "BoxCoxTransformOutput",
+    "bijection",
 ]
+
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Third-party imports
 import numpy as np
 import pandas as pd
@@ -88,7 +101,7 @@ test_dates = {
 }
 
 
-@pytest.mark.parametrize('holiday', test_dates.keys())
+@pytest.mark.parametrize("holiday", test_dates.keys())
 def test_holidays(holiday):
     for test_date in test_dates[holiday]:
         test_date = pd.to_datetime(test_date)
@@ -100,7 +113,7 @@ def test_holidays(holiday):
 
 def test_special_date_feature_set_daily():
     date_indices = pd.date_range(
-        start="2016-12-24", end="2016-12-31", freq='D'
+        start="2016-12-24", end="2016-12-31", freq="D"
     )
 
     reference_features = np.array(
@@ -120,7 +133,7 @@ def test_special_date_feature_set_daily():
 
 def test_special_date_feature_set_hourly():
     date_indices = pd.date_range(
-        start="2016-12-24", end="2016-12-25", freq='H'
+        start="2016-12-24", end="2016-12-25", freq="H"
     )
 
     reference_features = np.array(
@@ -218,7 +231,7 @@ def test_special_date_feature_set_hourly():
 
 def test_special_date_feature_set_daily_squared_exponential():
     date_indices = pd.date_range(
-        start="2016-12-24", end="2016-12-29", freq='D'
+        start="2016-12-24", end="2016-12-29", freq="D"
     )
     reference_features = np.array(
         [

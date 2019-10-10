@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Third-party imports
 import mxnet as mx
 import numpy as np
@@ -17,6 +30,10 @@ from gluonts.distribution import (
     MultivariateGaussianOutput,
     MixtureDistributionOutput,
 )
+from gluonts.testutil import empirical_cdf
+from gluonts.core.serde import dump_json, load_json
+
+serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
 def plot_samples(s: Tensor, bins: int = 100) -> None:
@@ -39,7 +56,11 @@ def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
     return np.mean(np.abs(x - y))
 
 
-NUM_SAMPLES = 1000
+NUM_SAMPLES = 1_000
+NUM_SAMPLES_LARGE = 100_000
+
+
+SHAPE = (2, 1, 3)
 
 
 @pytest.mark.parametrize(
@@ -47,40 +68,40 @@ NUM_SAMPLES = 1000
     [
         (
             Gaussian(
-                mu=mx.nd.zeros(shape=(3, 4, 5)),
-                sigma=1e-3 + 0.2 * mx.nd.ones(shape=(3, 4, 5)),
+                mu=mx.nd.zeros(shape=SHAPE),
+                sigma=1e-3 + 0.2 * mx.nd.ones(shape=SHAPE),
             ),
             Gaussian(
-                mu=mx.nd.ones(shape=(3, 4, 5)),
-                sigma=1e-3 + 0.1 * mx.nd.ones(shape=(3, 4, 5)),
+                mu=mx.nd.ones(shape=SHAPE),
+                sigma=1e-3 + 0.1 * mx.nd.ones(shape=SHAPE),
             ),
-            0.2 * mx.nd.ones(shape=(3, 4, 5)),
+            0.2 * mx.nd.ones(shape=SHAPE),
         ),
         (
             StudentT(
-                mu=mx.nd.ones(shape=(3, 4, 5)),
-                sigma=1e-1 + mx.nd.zeros(shape=(3, 4, 5)),
-                nu=mx.nd.ones(shape=(3, 4, 5)),
+                mu=mx.nd.ones(shape=SHAPE),
+                sigma=1e-1 + mx.nd.zeros(shape=SHAPE),
+                nu=mx.nd.zeros(shape=SHAPE) + 2.2,
             ),
             Gaussian(
-                mu=-mx.nd.ones(shape=(3, 4, 5)),
-                sigma=1e-1 + mx.nd.zeros(shape=(3, 4, 5)),
+                mu=-mx.nd.ones(shape=SHAPE),
+                sigma=1e-1 + mx.nd.zeros(shape=SHAPE),
             ),
-            mx.nd.random_uniform(shape=(3, 1, 5)),
+            mx.nd.random_uniform(shape=SHAPE),
         ),
         # TODO: add a multivariate case here
     ],
 )
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_mixture(
-    distr1: Distribution, distr2: Distribution, p: Tensor
+    distr1: Distribution, distr2: Distribution, p: Tensor, serialize_fn
 ) -> None:
-
     # sample from component distributions, and select samples
 
-    samples1 = distr1.sample(num_samples=NUM_SAMPLES)
-    samples2 = distr2.sample(num_samples=NUM_SAMPLES)
+    samples1 = distr1.sample(num_samples=NUM_SAMPLES_LARGE)
+    samples2 = distr2.sample(num_samples=NUM_SAMPLES_LARGE)
 
-    rand = mx.nd.random.uniform(shape=(NUM_SAMPLES, *p.shape))
+    rand = mx.nd.random.uniform(shape=(NUM_SAMPLES_LARGE, *p.shape))
     choice = (rand < p.expand_dims(axis=0)).broadcast_like(samples1)
     samples_ref = mx.nd.where(choice, samples1, samples2)
 
@@ -91,8 +112,9 @@ def test_mixture(
     mixture = MixtureDistribution(
         mixture_probs=mixture_probs, components=[distr1, distr2]
     )
+    mixture = serialize_fn(mixture)
 
-    samples_mix = mixture.sample(num_samples=NUM_SAMPLES)
+    samples_mix = mixture.sample(num_samples=NUM_SAMPLES_LARGE)
 
     # check that shapes are right
 
@@ -103,14 +125,25 @@ def test_mixture(
         == samples_ref.shape
     )
 
-    # check that histograms are close
+    # check mean and stddev
+    calc_mean = mixture.mean.asnumpy()
+    sample_mean = samples_mix.asnumpy().mean(axis=0)
 
+    assert np.allclose(calc_mean, sample_mean, atol=1e-1)
+
+    # check that histograms are close
     assert (
         diff(
             histogram(samples_mix.asnumpy()), histogram(samples_ref.asnumpy())
         )
         < 0.05
     )
+
+    # can only calculated cdf for gaussians currently
+    if isinstance(distr1, Gaussian) and isinstance(distr2, Gaussian):
+        emp_cdf, edges = empirical_cdf(samples_mix.asnumpy())
+        calc_cdf = mixture.cdf(mx.nd.array(edges)).asnumpy()
+        assert np.allclose(calc_cdf[1:, :], emp_cdf, atol=1e-2)
 
 
 @pytest.mark.parametrize(
@@ -121,7 +154,8 @@ def test_mixture(
         ((MultivariateGaussianOutput(3), MultivariateGaussianOutput(3)),),
     ],
 )
-def test_mixture_output(distribution_outputs) -> None:
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_mixture_output(distribution_outputs, serialize_fn) -> None:
     mdo = MixtureDistributionOutput(*distribution_outputs)
 
     args_proj = mdo.get_args_proj()
@@ -131,6 +165,7 @@ def test_mixture_output(distribution_outputs) -> None:
 
     distr_args = args_proj(input)
     d = mdo.distribution(distr_args)
+    d = serialize_fn(d)
 
     samples = d.sample(num_samples=NUM_SAMPLES)
 
@@ -166,7 +201,7 @@ EXPECTED_HIST = histogram(np_samples)
 
 
 @pytest.mark.timeout(20)
-@pytest.mark.skip('Skip test that takes long time to run')
+@pytest.mark.skip("Skip test that takes long time to run")
 def test_mixture_inference() -> None:
     mdo = MixtureDistributionOutput([GaussianOutput(), GaussianOutput()])
 
@@ -182,7 +217,7 @@ def test_mixture_inference() -> None:
     # plot_samples(d.sample())
 
     trainer = mx.gluon.Trainer(
-        args_proj.collect_params(), 'sgd', {'learning_rate': 0.02}
+        args_proj.collect_params(), "sgd", {"learning_rate": 0.02}
     )
 
     mixture_samples = mx.nd.array(np_samples)
@@ -196,7 +231,7 @@ def test_mixture_inference() -> None:
             loss = d.loss(mixture_samples)
         loss.backward()
         loss_value = loss.mean().asnumpy()
-        t.set_postfix({'loss': loss_value})
+        t.set_postfix({"loss": loss_value})
         trainer.step(BATCH_SIZE)
 
     distr_args = args_proj(input)

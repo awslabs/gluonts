@@ -26,7 +26,7 @@ import mxnet.gluon.nn as nn
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import has_gpu_support, validated
+from gluonts.core.component import get_mxnet_context, validated
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.support.util import HybridContext
@@ -35,10 +35,10 @@ from gluonts.gluonts_tqdm import tqdm
 # Relative imports
 from . import learning_rate_scheduler as lrs
 
-logger = logging.getLogger('trainer')
+logger = logging.getLogger("trainer")
 
-MODEL_ARTIFACT_FILE_NAME = 'model'
-STATE_ARTIFACT_FILE_NAME = 'state'
+MODEL_ARTIFACT_FILE_NAME = "model"
+STATE_ARTIFACT_FILE_NAME = "state"
 
 # make the IDE happy: mx.py does not explicitly import autograd
 mx.autograd = autograd
@@ -111,19 +111,19 @@ class Trainer:
         minimum_learning_rate: float = 5e-5,
         clip_gradient: float = 10.0,
         weight_decay: float = 1e-8,
-        init: Union[str, mx.initializer.Initializer] = 'xavier',
+        init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
     ) -> None:
 
         assert (
-            0 <= epochs < float('inf')
+            0 <= epochs < float("inf")
         ), "The value of `epochs` should be >= 0"
         assert 0 < batch_size, "The value of `batch_size` should be > 0"
         assert (
             0 < num_batches_per_epoch
         ), "The value of `num_batches_per_epoch` should be > 0"
         assert (
-            0 < learning_rate < float('inf')
+            0 < learning_rate < float("inf")
         ), "The value of `learning_rate` should be > 0"
         assert (
             0 <= learning_rate_decay_factor < 1
@@ -146,13 +146,7 @@ class Trainer:
         self.weight_decay = weight_decay
         self.init = init
         self.hybridize = hybridize
-        self.ctx = (
-            ctx
-            if ctx is not None
-            else mx.Context('gpu')
-            if has_gpu_support()
-            else mx.Context('cpu')
-        )
+        self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:
@@ -176,7 +170,7 @@ class Trainer:
         self.halt = False
 
         with tempfile.TemporaryDirectory(
-            prefix='gluonts-trainer-temp-'
+            prefix="gluonts-trainer-temp-"
         ) as gluonts_temp:
 
             def base_path() -> str:
@@ -205,7 +199,7 @@ class Trainer:
                 epoch_loss = mx.metric.Loss()
 
                 best_epoch_info = BestEpochInfo(
-                    params_path='%s-%s.params' % (base_path(), 'init'),
+                    params_path="%s-%s.params" % (base_path(), "init"),
                     epoch_no=-1,
                     metric_value=np.Inf,
                 )
@@ -227,7 +221,7 @@ class Trainer:
                 trainer = mx.gluon.Trainer(
                     net.collect_params(),
                     optimizer=optimizer,
-                    kvstore='device',  # FIXME: initialize properly
+                    kvstore="device",  # FIXME: initialize properly
                 )
 
                 for epoch_no in range(self.epochs):
@@ -272,7 +266,7 @@ class Trainer:
                             epoch_loss.update(None, preds=loss)
                             it.set_postfix(
                                 ordered_dict={
-                                    'avg_epoch_loss': loss_value(epoch_loss)
+                                    "avg_epoch_loss": loss_value(epoch_loss)
                                 },
                                 refresh=False,
                             )
@@ -280,7 +274,7 @@ class Trainer:
                     # mark epoch end time and log time cost of current epoch
                     toc = time.time()
                     logging.info(
-                        'Epoch[%d] Elapsed time %.3f seconds',
+                        "Epoch[%d] Elapsed time %.3f seconds",
                         epoch_no,
                         (toc - tic),
                     )
@@ -288,7 +282,7 @@ class Trainer:
                     # check and log epoch loss
                     check_loss_finite(loss_value(epoch_loss))
                     logging.info(
-                        'Epoch[%d] Evaluation metric \'%s\'=%f',
+                        "Epoch[%d] Evaluation metric '%s'=%f",
                         epoch_no,
                         "epoch_loss",
                         loss_value(epoch_loss),
@@ -298,7 +292,7 @@ class Trainer:
 
                     if loss_value(epoch_loss) < best_epoch_info.metric_value:
                         best_epoch_info = BestEpochInfo(
-                            params_path='%s-%04d.params'
+                            params_path="%s-%04d.params"
                             % (base_path(), epoch_no),
                             epoch_no=epoch_no,
                             metric_value=loss_value(epoch_loss),

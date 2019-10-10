@@ -25,16 +25,11 @@ from gluonts.model.common import Tensor
 class CausalConv1D(gluon.HybridBlock):
     """
     1D causal temporal convolution, where the term causal means that output[t]
-    does not depend on input[t+1:]. Notice that Conv1D is not implemented in Gluon.
+    does not depend on input[t+1:]. Notice that Conv1D is not implemented in
+    Gluon.
 
-    This is the basic structure used in Wavenet and Temporal Convolution Network. See the following papers for details.
-
-    1. Van Den Oord, A., Dieleman, S., Zen, H., Simonyan, K., Vinyals, O., Graves, A., Kalchbrenner,
-    N., Senior, A.W. and Kavukcuoglu, K., 2016, September. WaveNet: A generative model for raw audio. In SSW (p. 125).
-
-    2. Bai, S., Kolter, J.Z. and Koltun, V., 2018.
-    An empirical evaluation of generic convolutional and recurrent networks for sequence modeling.
-    arXiv preprint arXiv:1803.01271.
+    This is the basic structure used in Wavenet [ODZ+16]_ and Temporal
+    Convolution Network [BKK18]_.
 
     The output has the same shape as the input, while we always left-pad zeros.
 
@@ -63,7 +58,7 @@ class CausalConv1D(gluon.HybridBlock):
         channels: int,
         kernel_size: int,
         dilation: int = 1,
-        activation: Optional[str] = 'relu',
+        activation: Optional[str] = "relu",
         **kwargs,
     ):
         super(CausalConv1D, self).__init__(**kwargs)

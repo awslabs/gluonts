@@ -12,12 +12,8 @@
 # permissions and limitations under the License.
 
 """
-Recipes to generate electricity, traffic, exchange_rate and solar-energy dataset.
-Such dataset have been used with different processing over time by several papers such as
-`<https://arxiv.org/abs/1704.04110>`_
-`<https://arxiv.org/abs/1703.07015>`_
-`<https://arxiv.org/pdf/1509.08333>`_
-We here reuse the datasets used by LSTNet as the processed url of the datasets are available on github.
+Here we reuse the datasets used by LSTNet as the processed url of the datasets
+are available on GitHub.
 """
 import json
 import os
@@ -27,6 +23,7 @@ from typing import List, NamedTuple, Optional
 import pandas as pd
 
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.support.pandas import frequency_add
 
 
 def load_from_pandas(
@@ -75,8 +72,8 @@ datasets_info = {
         num_time_steps=7588,
         prediction_length=30,
         rolling_evaluations=5,
-        start_date='1990-01-01',
-        freq='1B',
+        start_date="1990-01-01",
+        freq="1B",
         agg_freq=None,
     ),
     "electricity": LstnetDataset(
@@ -89,8 +86,8 @@ datasets_info = {
         num_time_steps=26304,
         prediction_length=24,
         rolling_evaluations=7,
-        start_date='2012-01-01',
-        freq='1H',
+        start_date="2012-01-01",
+        freq="1H",
         agg_freq=None,
     ),
     "traffic": LstnetDataset(
@@ -102,8 +99,8 @@ datasets_info = {
         num_time_steps=17544,
         prediction_length=24,
         rolling_evaluations=7,
-        start_date='2015-01-01',
-        freq='H',
+        start_date="2015-01-01",
+        freq="H",
         agg_freq=None,
     ),
     "solar-energy": LstnetDataset(
@@ -113,9 +110,9 @@ datasets_info = {
         num_time_steps=52560,
         prediction_length=24,
         rolling_evaluations=7,
-        start_date='2006-01-01',
-        freq='10min',
-        agg_freq='1H',
+        start_date="2006-01-01",
+        freq="10min",
+        agg_freq="1H",
     ),
 }
 
@@ -125,7 +122,7 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
 
     os.makedirs(dataset_path, exist_ok=True)
 
-    with open(dataset_path / 'metadata.json', 'w') as f:
+    with open(dataset_path / "metadata.json", "w") as f:
         f.write(
             json.dumps(
                 metadata(
@@ -178,7 +175,7 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
 
     # time of the first prediction
     prediction_dates = [
-        training_end + i * ds_info.prediction_length
+        frequency_add(training_end, i * ds_info.prediction_length)
         for i in range(ds_info.rolling_evaluations)
     ]
 
@@ -186,8 +183,8 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
     for prediction_start_date in prediction_dates:
         for cat, ts in enumerate(timeseries):
             # print(prediction_start_date)
-            prediction_end_date = (
-                prediction_start_date + ds_info.prediction_length
+            prediction_end_date = frequency_add(
+                prediction_start_date, ds_info.prediction_length
             )
             sliced_ts = ts[:prediction_end_date]
             test_ts.append(

@@ -34,6 +34,7 @@ Estimators = [
     # model.deepar.DeepAREstimator,
     # model.NPTSPredictor,
     # model.seq2seq.MQCNNEstimator,
+    # TransformerEstimator,
 ]
 
 dir_path = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -58,7 +59,7 @@ def persist_evaluation(
     evaluation["dataset"] = dataset
     evaluation["estimator"] = estimator_name
 
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write(json.dumps(evaluation, indent=4, sort_keys=True))
 
 
@@ -69,12 +70,12 @@ if __name__ == "__main__":
             dataset = get_dataset(
                 dataset_name=dataset_name,
                 regenerate=False,
-                path="../datasets/",
+                path=Path("../datasets/"),
             )
 
             estimator = Estimator(
                 prediction_length=dataset.metadata.prediction_length,
-                freq=dataset.metadata.time_granularity,
+                freq=dataset.metadata.freq,
             )
 
             estimator_name = type(estimator).__name__

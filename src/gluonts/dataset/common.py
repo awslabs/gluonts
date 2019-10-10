@@ -34,6 +34,7 @@ import pandas as pd
 import pydantic
 import ujson as json
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
@@ -130,7 +131,7 @@ class CategoricalFeatureInfo(pydantic.BaseModel):
 
 
 class MetaData(pydantic.BaseModel):
-    time_granularity: str
+    freq: str = pydantic.Schema(..., alias="time_granularity")  # type: ignore
     target: Optional[BasicFeatureInfo] = None
 
     feat_static_cat: List[CategoricalFeatureInfo] = []
@@ -139,6 +140,9 @@ class MetaData(pydantic.BaseModel):
     feat_dynamic_cat: List[CategoricalFeatureInfo] = []
 
     prediction_length: Optional[int] = None
+
+    class Config(pydantic.BaseConfig):
+        allow_population_by_alias = True
 
 
 class SourceContext(NamedTuple):
@@ -166,7 +170,7 @@ class Channel(pydantic.BaseModel):
     train: Path
     test: Optional[Path] = None
 
-    def get_datasets(self) -> 'TrainDatasets':
+    def get_datasets(self) -> "TrainDatasets":
         return load_datasets(self.metadata, self.train, self.test)
 
 
@@ -193,23 +197,25 @@ class FileDataset(Dataset):
         or ending with '_SUCCESS'. A valid line in a file can be for
         instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
     freq
-        Time-series frequency. Must be a valid Pandas frequency.
+        Frequency of the observation in the time series.
+        Must be a valid Pandas frequency.
     one_dim_target
-        Whether to accept only univariate target time-series.
+        Whether to accept only univariate target time series.
     """
 
     def __init__(
         self, path: Path, freq: str, one_dim_target: bool = True
     ) -> None:
         self.path = path
-        self.process = ProcessSF2Dict(freq, one_dim_target=one_dim_target)
-        assert len(self.files()), f"no valid file found in {path}"
+        self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
+        if not self.files():
+            raise OSError(f"no valid file found in {path}")
 
     def __iter__(self) -> Iterator[DataEntry]:
         for path in self.files():
             for line in jsonl.JsonLinesFile(path):
                 data = self.process(line.content)
-                data['source'] = SourceContext(
+                data["source"] = SourceContext(
                     source=line.span, row=line.span.line
                 )
                 yield data
@@ -244,9 +250,10 @@ class ListDataset(Dataset):
         Each item should be a dictionary mapping strings to values.
         For instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
     freq
-        Time-series frequency. Must be a valid Pandas frequency.
+        Frequency of the observation in the time series.
+        Must be a valid Pandas frequency.
     one_dim_target
-        Whether to accept only univariate target time-series.
+        Whether to accept only univariate target time series.
     """
 
     def __init__(
@@ -255,13 +262,13 @@ class ListDataset(Dataset):
         freq: str,
         one_dim_target: bool = True,
     ) -> None:
-        process = ProcessSF2Dict(freq, one_dim_target)
+        process = ProcessDataEntry(freq, one_dim_target)
         self.list_data = [process(data) for data in data_iter]
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
         for row_number, data in enumerate(self.list_data, start=1):
-            data['source'] = SourceContext(source=source_name, row=row_number)
+            data["source"] = SourceContext(source=source_name, row=row_number)
             yield data
 
     def __len__(self):
@@ -304,32 +311,33 @@ class ProcessStartField:
     @staticmethod
     @lru_cache(maxsize=10000)
     def process(string: str, freq: str) -> pd.Timestamp:
+        """Create timestamp and align it according to frequency.
+        """
+
         timestamp = pd.Timestamp(string, freq=freq)
-        # 'W-SUN' is the standardized freqstr for W
-        if timestamp.freq.name in ("M", "W-SUN"):
-            offset = to_offset(freq)
-            timestamp = timestamp.replace(
-                hour=0, minute=0, second=0, microsecond=0, nanosecond=0
-            )
+
+        # operate on time information (days, hours, minute, second)
+        if isinstance(timestamp.freq, Tick):
             return pd.Timestamp(
-                offset.rollback(timestamp), freq=offset.freqstr
+                timestamp.floor(timestamp.freq), timestamp.freq
             )
-        if timestamp.freq == 'B':
-            # does not floor on business day as it is not allowed
-            return timestamp
-        return pd.Timestamp(
-            timestamp.floor(timestamp.freq), freq=timestamp.freq
+
+        # since we are only interested in the data piece, we normalize the
+        # time information
+        timestamp = timestamp.replace(
+            hour=0, minute=0, second=0, microsecond=0, nanosecond=0
         )
 
+        return timestamp.freq.rollforward(timestamp)
 
-class ProcessItem:
-    def __init__(self) -> None:
-        pass
 
-    def __call__(self, data: DataEntry) -> DataEntry:
-        if "item_id" in "item":
-            data["item"] = data["item_id"]
-        return data
+def rollback(timestamp):
+    offset = timestamp.freq
+    # if not offset.onOffset(timestamp):
+    return timestamp - offset.__class__(
+        offset.n, normalize=True, **offset.kwds
+    )
+    # return timestamp
 
 
 class ProcessTimeSeriesField:
@@ -396,7 +404,7 @@ class ProcessTimeSeriesField:
             )
 
 
-class ProcessSF2Dict:
+class ProcessDataEntry:
     def __init__(self, freq: str, one_dim_target: bool = True) -> None:
         # TODO: create a FormatDescriptor object that can be derived from a
         # TODO: Metadata and pass it instead of freq.
@@ -405,7 +413,6 @@ class ProcessSF2Dict:
         self.trans = cast(
             List[Callable[[DataEntry], DataEntry]],
             [
-                ProcessItem(),
                 ProcessStartField("start", freq=freq),
                 # The next line abuses is_static=True in case of 1D targets.
                 ProcessTimeSeriesField(
@@ -468,8 +475,8 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds = FileDataset(train, meta.time_granularity)
-    test_ds = FileDataset(test, meta.time_granularity) if test else None
+    train_ds = FileDataset(train, meta.freq)
+    test_ds = FileDataset(test, meta.freq) if test else None
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 

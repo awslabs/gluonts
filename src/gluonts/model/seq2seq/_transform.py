@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import Iterator, List
 
@@ -6,7 +19,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.transform import DataEntry, FlatMapTransformation, compute_date
+from gluonts.transform import DataEntry, FlatMapTransformation, shift_timestamp
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
@@ -19,10 +32,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         enc_len: int,
         dec_len: int,
         time_series_fields: List[str] = None,
-        target_in='target',
-        is_pad_out: str = 'is_pad',
-        start_in: str = 'start',
-        forecast_start_out: str = 'forecast_start',
+        target_in="target",
+        is_pad_out: str = "is_pad",
+        start_in: str = "start",
+        forecast_start_out: str = "forecast_start",
     ) -> None:
         assert enc_len > 0, "The value of `enc_len` should be > 0"
         assert dec_len > 0, "The value of `dec_len` should be > 0"
@@ -39,10 +52,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         self.forecast_start_out = forecast_start_out
 
     def _past(self, col_name):
-        return f'past_{col_name}'
+        return f"past_{col_name}"
 
     def _future(self, col_name):
-        return f'future_{col_name}'
+        return f"future_{col_name}"
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
@@ -105,5 +118,5 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1
             d[self._past(self.is_pad_out)] = pad_indicator
-            d[self.forecast_start_out] = compute_date(d[self.start_in], i)
+            d[self.forecast_start_out] = shift_timestamp(d[self.start_in], i)
             yield d

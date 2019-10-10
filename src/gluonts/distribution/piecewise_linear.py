@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, Optional, Tuple, cast
+from typing import Dict, Optional, Tuple, cast, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -50,16 +50,17 @@ class PiecewiseLinear(Distribution):
     slopes
         Tensor containing the slopes of each linear piece.
         All coefficients must be positive.
-        Shape: (*gamma.shape, num_pieces)
+        Shape: ``(*gamma.shape, num_pieces)``
     knot_spacings
         Tensor containing the spacings between knots in the splines.
         All coefficients must be positive and sum to one on the last axis.
-        Shape: (*gamma.shape, num_pieces)
+        Shape: ``(*gamma.shape, num_pieces)``
     F
     """
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(
         self, gamma: Tensor, slopes: Tensor, knot_spacings: Tensor, F=None
     ) -> None:
@@ -131,7 +132,10 @@ class PiecewiseLinear(Distribution):
             )
         )
 
-        sample = self.quantile(u, axis=None if num_samples is None else 0)
+        sample = self.quantile(u)
+
+        if num_samples is None:
+            sample = F.squeeze(sample, axis=0)
 
         return sample
 
@@ -157,7 +161,7 @@ class PiecewiseLinear(Distribution):
         F = self.F
         gamma, b, knot_positions = self.gamma, self.b, self.knot_positions
 
-        a_tilde = self._cdf(x)
+        a_tilde = self.cdf(x)
 
         max_a_tilde_knots = F.broadcast_maximum(
             a_tilde.expand_dims(axis=-1), knot_positions
@@ -180,7 +184,7 @@ class PiecewiseLinear(Distribution):
 
         return crps
 
-    def _cdf(self, x: Tensor) -> Tensor:
+    def cdf(self, x: Tensor) -> Tensor:
         r"""
         Computes the quantile level :math:`\alpha` such that
         :math:`q(\alpha) = x`.
@@ -199,7 +203,7 @@ class PiecewiseLinear(Distribution):
         F = self.F
         gamma, b, knot_positions = self.gamma, self.b, self.knot_positions
 
-        quantiles_at_knots = self.quantile(knot_positions, axis=-2)
+        quantiles_at_knots = self.quantile_internal(knot_positions, axis=-2)
 
         # Mask to nullify the terms corresponding to knots larger than l_0, which is the largest knot
         # (quantile level) such that the quantile at l_0, s(l_0) < x.
@@ -228,14 +232,19 @@ class PiecewiseLinear(Distribution):
 
         return a_tilde
 
-    def quantile(self, x: Tensor, axis: Optional[int] = None) -> Tensor:
+    def quantile(self, level: Tensor) -> Tensor:
+        return self.quantile_internal(level, axis=0)
+
+    def quantile_internal(
+        self, x: Tensor, axis: Optional[int] = None
+    ) -> Tensor:
         r"""
         Evaluates the quantile function at the quantile levels contained in `x`.
 
         Parameters
         ----------
         x
-            Tensor of shape *gamma.shape if axis=None, or containing an
+            Tensor of shape ``*gamma.shape`` if axis=None, or containing an
             additional axis on the specified position, otherwise.
         axis
             Index of the axis containing the different quantile levels which
@@ -324,7 +333,7 @@ class PiecewiseLinearOutput(DistributionOutput):
         I_sml_thresh = F.broadcast_lesser(slopes, thresh)
         slopes_proj = (
             I_sml_thresh
-            * F.Activation(data=(I_sml_thresh * slopes), act_type='softrelu')
+            * F.Activation(data=(I_sml_thresh * slopes), act_type="softrelu")
             + I_grt_thresh * slopes
         )
         # slopes = F.Activation(slopes, 'softrelu')
@@ -342,7 +351,7 @@ class PiecewiseLinearOutput(DistributionOutput):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedPiecewiseLinear(
-                distr, AffineTransformation(scale=scale)
+                distr, [AffineTransformation(scale=scale)]
             )
 
     @property
@@ -352,10 +361,11 @@ class PiecewiseLinearOutput(DistributionOutput):
 
 # Need to inherit from PiecewiseLinear to get the overwritten loss method.
 class TransformedPiecewiseLinear(TransformedDistribution, PiecewiseLinear):
+    @validated()
     def __init__(
-        self, base_distribution: PiecewiseLinear, *transforms: Bijection
+        self, base_distribution: PiecewiseLinear, transforms: List[Bijection]
     ) -> None:
-        super().__init__(base_distribution, *transforms)
+        super().__init__(base_distribution, transforms)
 
     def crps(self, y: Tensor) -> Tensor:
         # TODO: use event_shape

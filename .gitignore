@@ -18,7 +18,6 @@
 .pytest_cache
 tags
 __pycache__
-**/gluonts/version*.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -90,7 +89,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
-docs/gluonts
+docs/api/gluonts
 
 # PyBuilder
 target/
@@ -160,3 +159,7 @@ conda
 
 # vscode
 .vscode
+
+# not to be tracked
+src/gluonts/version.py
+

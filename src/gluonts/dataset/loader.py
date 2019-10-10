@@ -60,11 +60,15 @@ class BatchBuffer:
     def stack(self, xs):
         if isinstance(xs[0], np.ndarray):
             data = np.asarray(xs)
-            if data.dtype.kind == 'f':
+            if data.dtype.kind == "f":
                 data = data.astype(self.float_type)
             return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
         elif isinstance(xs[0], mx.nd.NDArray):
             return mx.nd.stack(*xs)
+        elif isinstance(xs[0], list):
+            return [self.stack(t) for t in zip(*[x for x in xs])]
+        elif isinstance(xs[0], tuple):
+            return tuple([self.stack(t) for t in zip(*[x for x in xs])])
         else:
             return xs  # stack all other types as list
 
@@ -169,7 +173,7 @@ class TrainDataLoader(DataLoader):
             try:
                 first = next(iter(collection))
             except StopIteration:
-                raise Exception('empty dataset')
+                raise Exception("empty dataset")
             else:
                 for x in itertools.chain([first], collection):
                     yield x

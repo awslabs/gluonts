@@ -6,39 +6,16 @@ import itertools
 import logging
 import re
 import subprocess
-import os  # noqa
 import sys
 from pathlib import Path
 from textwrap import dedent
 
 # Third-party imports
-import setuptools
-import setuptools.command.build_py
 from setuptools import find_namespace_packages, setup
 
 ROOT = Path(__file__).parent
-SRC = ROOT / 'src'
+SRC = ROOT / "src"
 
-
-def read(*names, **kwargs):
-    with io.open(
-        os.path.join(os.path.dirname(__file__), *names),
-        encoding=kwargs.get("encoding", "utf8"),
-    ) as fp:
-        return fp.read()
-
-
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(
-        r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M
-    )
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
-
-
-VERSION = find_version('src', 'gluonts', '__init__.py')
 
 GPU_SUPPORT = 0 == int(
     subprocess.call(
@@ -62,43 +39,13 @@ except ImportError:
     HAS_SPHINX = False
 
 
-def get_git_hash():
-    try:
-        sp = subprocess.Popen(
-            ["git", "rev-parse", "HEAD"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        hash = sp.communicate()[0].decode("utf-8").strip()
-        sp = subprocess.Popen(
-            ["git", "diff-index", "--quiet", "HEAD"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        sp.communicate()
-        if sp.returncode != 0:
-            return "modified (latest: {})".format(hash)
-        else:
-            return hash
-    except:  # noqa
-        return "unkown"
-
-
-def write_version_py():
-    content = dedent(
-        f"""
-        # This file is auto generated. Don't modify it and don't add it to git.
-        PKG_VERSION = '{VERSION}'
-        GIT_REVISION = '{get_git_hash()}'
-        """
-    ).lstrip()
-
-    with (SRC / "gluonts" / "version.py").open("w") as f:
-        f.write(content)
+def read(*names, encoding="utf8"):
+    with (ROOT / Path(*names)).open(encoding=encoding) as fp:
+        return fp.read()
 
 
 def find_requirements(filename):
-    with (ROOT / filename).open() as f:
+    with (ROOT / "requirements" / filename).open() as f:
         mxnet_old = "mxnet=="
         mxnet_new = "mxnet-cu92mkl==" if GPU_SUPPORT else mxnet_old
         return [
@@ -128,9 +75,7 @@ class TypeCheckCommand(distutils.cmd.Command):
         import mypy.api
 
         mypy_opts = ["--follow-imports=silent", "--ignore-missing-imports"]
-        mypy_args = [
-            str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")
-        ]
+        mypy_args = [str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")]
 
         print(
             "the following folders contain a `.typesafe` marker file "
@@ -180,6 +125,7 @@ class StyleCheckCommand(distutils.cmd.Command):
 
         # import here (after the setup_requires list is loaded),
         # otherwise a module-not-found error is thrown
+        import click
         import black
 
         black_opts = []
@@ -205,6 +151,8 @@ class StyleCheckCommand(distutils.cmd.Command):
             exit_code = black.main.invoke(ctx)
         except SystemExit as e:
             exit_code = e.code
+        except click.exceptions.Exit as e:
+            exit_code = e.exit_code
 
         if exit_code:
             error_msg = dedent(
@@ -229,50 +177,51 @@ class StyleCheckCommand(distutils.cmd.Command):
             sys.exit(exit_code)
 
 
-class BuildPyCommand(setuptools.command.build_py.build_py):
-    """Custom `build_py` command that preprends a `typecheck` call."""
-
-    def run(self):
-        self.run_command("type_check")
-        self.run_command("style_check")
-        setuptools.command.build_py.build_py.run(self)
-
-
 setup_kwargs: dict = dict(
     name="gluonts",
-    version=VERSION,
+    use_scm_version={"fallback_version": "0.0.0"},
     description=(
         "GluonTS is a Python toolkit for probabilistic time series modeling, "
         "built around MXNet."
     ),
-    long_description=read('README.md'),
-    long_description_content_type='text/markdown',
-    url='https://github.com/awslabs/gluon-ts',
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
+    url="https://github.com/awslabs/gluon-ts",
     author="Amazon",
     author_email="gluon-ts-dev@amazon.com",
     maintainer_email="gluon-ts-dev@amazon.com",
     license="Apache License 2.0",
     python_requires=">= 3.6",
-    package_dir={'':'src'},
+    package_dir={"": "src"},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
-    setup_requires=find_requirements("requirements-setup.txt"),
+    setup_requires=list(
+        itertools.chain(
+            find_requirements("requirements-setup.txt"),
+            find_requirements("requirements-docs.txt"),
+        )
+    ),
     install_requires=find_requirements("requirements.txt"),
     tests_require=find_requirements("requirements-test.txt"),
     extras_require={
-        'R': find_requirements("requirements-extras-r.txt"),
-        'Prophet': find_requirements("requirements-extras-prophet.txt"),
+        "R": find_requirements("requirements-extras-r.txt"),
+        "Prophet": find_requirements("requirements-extras-prophet.txt"),
+        "shell": find_requirements("requirements-extras-shell.txt"),
     },
     entry_points=dict(
         console_scripts=[
             "gluonts-validate-dataset=gluonts.dataset.validate:run"
-        ]
+        ],
+        gluonts_forecasters=[
+            "deepar=gluonts.model.deepar:DeepAREstimator",
+            "r=gluonts.model.r_forecast:RForecastPredictor [R]",
+            "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
+        ],
     ),
-    cmdclass=dict(
-        type_check=TypeCheckCommand,
-        style_check=StyleCheckCommand,
-        build_py=BuildPyCommand,
-    ),
+    cmdclass={
+        "type_check": TypeCheckCommand,
+        "style_check": StyleCheckCommand,
+    },
 )
 
 if HAS_SPHINX:
@@ -292,8 +241,7 @@ if HAS_SPHINX:
             apidoc.main(args)
             super(BuildApiDoc, self).run()
 
-    setup_kwargs["doc_command"] = "build_sphinx"
-    for command in ['build_sphinx', 'doc', 'docs']:
+    for command in ["build_sphinx", "doc", "docs"]:
         setup_kwargs["cmdclass"][command] = BuildApiDoc
 
 # -----------------------------------------------------------------------------
@@ -305,5 +253,4 @@ if HAS_SPHINX:
 # -----------------------------------------------------------------------------
 
 # do the work
-write_version_py()
 setup(**setup_kwargs)

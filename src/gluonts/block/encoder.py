@@ -181,7 +181,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
                 channels=channels,
                 kernel_size=kernel_size,
                 dilation=dilation,
-                activation='relu',
+                activation="relu",
                 prefix=f"conv_{layer_no:#02d}'_",
             )
             self.cnn.add(convolution)

@@ -13,6 +13,7 @@
 
 # Standard library imports
 import inspect
+import os
 import signal
 import tempfile
 import time
@@ -25,6 +26,10 @@ import mxnet as mx
 # First-party imports
 from gluonts.core.serde import dump_json, load_json
 from gluonts.model.common import Tensor
+
+
+MXNET_HAS_ERF = hasattr(mx.nd, "erf")
+MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")
 
 
 class Timer:
@@ -95,7 +100,7 @@ class HybridContext:
         self.net = net
         self.required_mode = hybridize
 
-        self.original_mode = getattr(net, '_active', False)
+        self.original_mode = getattr(net, "_active", False)
         self.data_batch = data_batch
         self.kwargs = kwargs
 
@@ -109,7 +114,10 @@ class HybridContext:
 
 
 def copy_parameters(
-    net_source: mx.gluon.Block, net_dest: mx.gluon.Block
+    net_source: mx.gluon.Block,
+    net_dest: mx.gluon.Block,
+    ignore_extra: bool = False,
+    allow_missing: bool = False,
 ) -> None:
     """
     Copies parameters from one network to another.
@@ -121,28 +129,31 @@ def copy_parameters(
     net_dest
         Output network.
     ignore_extra
-        Whether to silently ignore parameters from the source that are not
+        Whether to ignore parameters from the source that are not
         present in the target.
+    allow_missing
+        Whether to allow additional parameters in the target not
+        present in the source.
     """
     with tempfile.TemporaryDirectory(
-        prefix='gluonts-estimator-temp-'
+        prefix="gluonts-estimator-temp-"
     ) as model_dir:
-        model_dir_path = str(Path(model_dir) / 'tmp_model')
+        model_dir_path = str(Path(model_dir) / "tmp_model")
         net_source.save_parameters(model_dir_path)
         net_dest.load_parameters(
             model_dir_path,
             ctx=mx.current_context(),
-            allow_missing=False,
-            ignore_extra=False,
+            allow_missing=allow_missing,
+            ignore_extra=ignore_extra,
         )
 
 
 def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
     params = inspect.signature(hb.hybrid_forward).parameters
     param_names = list(params)
-    assert param_names[0] == 'F', (
-        f'Expected first argument of HybridBlock to be `F`, '
-        f'but found `{param_names[0]}`'
+    assert param_names[0] == "F", (
+        f"Expected first argument of HybridBlock to be `F`, "
+        f"but found `{param_names[0]}`"
     )
     return param_names[1:]  # skip: F
 
@@ -172,11 +183,11 @@ def hybrid_block_to_symbol_block(
         The resulting Gluon block backed by an MXNet symbol graph.
     """
     with tempfile.TemporaryDirectory(
-        prefix='gluonts-estimator-temp-'
+        prefix="gluonts-estimator-temp-"
     ) as model_dir:
         num_inputs = len(data_batch)
         model_dir_path = Path(model_dir)
-        model_name = 'gluonts-model'
+        model_name = "gluonts-model"
 
         with HybridContext(
             net=hb,
@@ -236,16 +247,16 @@ def import_symb_block(
         The deserialized block.
     """
     if num_inputs == 1:
-        input_names = ['data']
+        input_names = ["data"]
     else:
-        input_names = [f'data{i}' for i in range(num_inputs)]
+        input_names = [f"data{i}" for i in range(num_inputs)]
 
     # FIXME: mx.gluon.SymbolBlock cannot infer float_type and uses default np.float32
     # FIXME: https://github.com/apache/incubator-mxnet/issues/11849
     return mx.gluon.SymbolBlock.imports(
-        symbol_file=str(model_dir / f'{model_name}-symbol.json'),
+        symbol_file=str(model_dir / f"{model_name}-symbol.json"),
         input_names=input_names,
-        param_file=str(model_dir / f'{model_name}-{epoch:04}.params'),
+        param_file=str(model_dir / f"{model_name}-{epoch:04}.params"),
         ctx=mx.current_context(),
     )
 
@@ -268,9 +279,9 @@ def export_repr_block(
         The epoch number, which together with the `model_name` identifies the
         model parameters.
     """
-    with (model_dir / f'{model_name}-network.json').open('w') as fp:
+    with (model_dir / f"{model_name}-network.json").open("w") as fp:
         print(dump_json(rb), file=fp)
-    rb.save_parameters(str(model_dir / f'{model_name}-{epoch:04}.params'))
+    rb.save_parameters(str(model_dir / f"{model_name}-{epoch:04}.params"))
 
 
 def import_repr_block(
@@ -294,10 +305,10 @@ def import_repr_block(
     mx.gluon.HybridBlock:
         The deserialized block.
     """
-    with (model_dir / f'{model_name}-network.json').open('r') as fp:
+    with (model_dir / f"{model_name}-network.json").open("r") as fp:
         rb = cast(mx.gluon.HybridBlock, load_json(fp.read()))
     rb.load_parameters(
-        str(model_dir / f'{model_name}-{epoch:04}.params'),
+        str(model_dir / f"{model_name}-{epoch:04}.params"),
         ctx=mx.current_context(),
         allow_missing=False,
         ignore_extra=False,
@@ -437,3 +448,103 @@ def _broadcast_param(param, axes, sizes):
         )
 
     return param
+
+
+def erf(F, x: Tensor):
+    if MXNET_HAS_ERF:
+        return F.erf(x)
+    # Using numerical recipes approximation for erf function
+    # accurate to 1E-7
+
+    ones = x.ones_like()
+    zeros = x.zeros_like()
+    t = ones / (ones + 0.5 * x.abs())
+
+    coefficients = [
+        1.00002368,
+        0.37409196,
+        0.09678418,
+        -0.18628806,
+        0.27886807,
+        -1.13520398,
+        1.48851587,
+        -0.82215223,
+        0.17087277,
+    ]
+
+    inner = zeros
+    for c in coefficients[::-1]:
+        inner = t * (c + inner)
+
+    res = ones - t * (inner - 1.26551223 - x.square()).exp()
+    return F.where(F.broadcast_greater_equal(x, zeros), res, -1.0 * res)
+
+
+def erfinv(F, x: Tensor) -> Tensor:
+    if MXNET_HAS_ERFINV:
+        return F.erfinv(x)
+
+    zeros = x.zeros_like()
+
+    w = -F.log(F.broadcast_mul((1.0 - x), (1.0 + x)))
+    mask_lesser = F.broadcast_lesser(w, zeros + 5.0)
+
+    w = F.where(mask_lesser, w - 2.5, F.sqrt(w) - 3.0)
+
+    coefficients_lesser = [
+        2.81022636e-08,
+        3.43273939e-07,
+        -3.5233877e-06,
+        -4.39150654e-06,
+        0.00021858087,
+        -0.00125372503,
+        -0.00417768164,
+        0.246640727,
+        1.50140941,
+    ]
+
+    coefficients_greater_equal = [
+        -0.000200214257,
+        0.000100950558,
+        0.00134934322,
+        -0.00367342844,
+        0.00573950773,
+        -0.0076224613,
+        0.00943887047,
+        1.00167406,
+        2.83297682,
+    ]
+
+    p = F.where(
+        mask_lesser,
+        coefficients_lesser[0] + zeros,
+        coefficients_greater_equal[0] + zeros,
+    )
+
+    for c_l, c_ge in zip(
+        coefficients_lesser[1:], coefficients_greater_equal[1:]
+    ):
+        c = F.where(mask_lesser, c_l + zeros, c_ge + zeros)
+        p = c + F.broadcast_mul(p, w)
+
+    return F.broadcast_mul(p, x)
+
+
+def get_download_path() -> Path:
+    """
+
+    Returns
+    -------
+    Path
+        default path to download datasets or models of gluon-ts.
+        The path is either $MXNET_HOME if the environment variable is defined or
+        /home/username/.mxnet/gluon-ts/
+    """
+    return Path(
+        os.environ.get("MXNET_HOME", str(Path.home() / ".mxnet" / "gluon-ts"))
+    )
+
+
+def map_dct_values(fn: Callable, dct: dict) -> dict:
+    """Maps `fn` over a dicts values."""
+    return {key: fn(value) for key, value in dct.items()}

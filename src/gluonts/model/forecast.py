@@ -13,8 +13,8 @@
 
 # Standard library imports
 import re
-import typing
-from typing import Dict, List, Optional, Union
+from enum import Enum
+from typing import Dict, List, NamedTuple, Optional, Set, Union
 
 # Third-party imports
 import mxnet as mx
@@ -23,66 +23,93 @@ import pandas as pd
 import pydantic
 
 # First-party imports
-from gluonts.core.exception import GluonTSUserError, assert_gluonts
+from gluonts.core.exception import GluonTSUserError
+from gluonts.distribution import Distribution
+from gluonts.core.component import validated
 
 
-def parse_quantile_input(q: Union[float, str]):
-    """
-    Produces equivalent float and string representation of a given
-    quantile level.
+class Quantile(NamedTuple):
+    value: float
+    name: str
 
-    >>> parse_quantile_input(0.1)
-    (0.1, '0.1')
+    @property
+    def loss_name(self):
+        return f"QuantileLoss[{self.name}]"
 
-    >>> parse_quantile_input('0.2')
-    (0.2, '0.2')
+    @property
+    def weighted_loss_name(self):
+        return f"wQuantileLoss[{self.name}]"
 
-    >>> parse_quantile_input('0.20')
-    (0.2, '0.20')
+    @property
+    def coverage_name(self):
+        return f"Coverage[{self.name}]"
 
-    >>> parse_quantile_input('p99')
-    (0.99, '0.99')
+    @classmethod
+    def checked(cls, value: float, name: str) -> "Quantile":
+        if not 0 <= value <= 1:
+            raise GluonTSUserError(
+                f"quantile value should be in [0, 1] but found {value}"
+            )
 
-    Parameters
-    ----------
-    q
-        Quantile, can be a float a str representing a float e.g. '0.1' or a
-        quantile string of the form 'p0.1'.
+        return Quantile(value, name)
 
-    Returns
-    -------
-    Tuple[float, str]
-        A tuple containing both a float and a string representation of the
-        input quantile level.
-    """
+    @classmethod
+    def from_float(cls, quantile: float) -> "Quantile":
+        assert isinstance(quantile, float)
+        return cls.checked(value=quantile, name=str(quantile))
 
-    assert isinstance(q, (float, str))
+    @classmethod
+    def from_str(cls, quantile: str) -> "Quantile":
+        assert isinstance(quantile, str)
+        try:
+            return cls.checked(value=float(quantile), name=quantile)
+        except ValueError:
+            m = re.match(r"^p(\d{2})$", quantile)
 
-    if isinstance(q, float):
-        q_str = str(q)
-        q_value = q
-    elif re.match(r'^\d\.\d+$', q):
-        q_value = float(q)
-        q_str = q
-    else:
-        m = re.match(r'^p(\d\d)$', q)
-        assert_gluonts(
-            GluonTSUserError,
-            m,
-            'Quantile string should be of the form "p10", "p50", ... or "0.1", "0.5", ... but found {}',
-            q,
-        )
-        q_str = f'0.{m.group(1)}'.rstrip('0')
-        q_value = float(q_str)
+            if m is None:
+                raise GluonTSUserError(
+                    "Quantile string should be of the form "
+                    f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
+                )
+            else:
+                quantile: float = int(m.group(1)) / 100
+                return cls(value=quantile, name=str(quantile))
 
-    assert_gluonts(
-        GluonTSUserError,
-        0 <= q_value <= 1,
-        'quantile value should be in [0, 1] but found {}',
-        q_value,
-    )
+    @classmethod
+    def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
+        """Produces equivalent float and string representation of a given
+        quantile level.
 
-    return (q_value, q_str)
+        >>> Quantile.parse(0.1)
+        Quantile(value=0.1, name='0.1')
+
+        >>> Quantile.parse('0.2')
+        Quantile(value=0.2, name='0.2')
+
+        >>> Quantile.parse('0.20')
+        Quantile(value=0.2, name='0.20')
+
+        >>> Quantile.parse('p99')
+        Quantile(value=0.99, name='0.99')
+
+        Parameters
+        ----------
+        quantile
+            Quantile, can be a float a str representing a float e.g. '0.1' or a
+            quantile string of the form 'p0.1'.
+
+        Returns
+        -------
+        Quantile
+            A tuple containing both a float and a string representation of the
+            input quantile level.
+        """
+        if isinstance(quantile, Quantile):
+            return quantile
+        elif isinstance(quantile, float):
+            return cls.from_float(quantile)
+        else:
+            return cls.from_str(quantile)
 
 
 class Forecast:
@@ -114,11 +141,101 @@ class Forecast:
         """
         raise NotImplementedError()
 
-    def plot(self, **kwargs):
+    def plot(
+        self,
+        prediction_intervals=(50.0, 90.0),
+        show_mean=False,
+        color="b",
+        label=None,
+        output_file=None,
+        *args,
+        **kwargs,
+    ):
         """
-        Plot the forecast.
+        Plots the median of the forecast as well as confidence bounds.
+        (requires matplotlib and pandas).
+
+        Parameters
+        ----------
+        prediction_intervals : float or list of floats in [0, 100]
+            Confidence interval size(s). If a list, it will stack the error
+            plots for each confidence interval. Only relevant for error styles
+            with "ci" in the name.
+        show_mean : boolean
+            Whether to also show the mean of the forecast.
+        color : matplotlib color name or dictionary
+            The color used for plotting the forecast.
+        label : string
+            A label (prefix) that is used for the forecast
+        output_file : str or None, default None
+            Output path for the plot file. If None, plot is not saved to file.
+        args :
+            Other arguments are passed to main plot() call
+        kwargs :
+            Other keyword arguments are passed to main plot() call
         """
-        raise NotImplementedError()
+
+        # matplotlib==2.0.* gives errors in Brazil builds and has to be
+        # imported locally
+        import matplotlib.pyplot as plt
+
+        label_prefix = "" if label is None else label + "-"
+
+        for c in prediction_intervals:
+            assert 0.0 <= c <= 100.0
+
+        ps = [50.0] + [
+            50.0 + f * c / 2.0
+            for c in prediction_intervals
+            for f in [-1.0, +1.0]
+        ]
+        percentiles_sorted = sorted(set(ps))
+
+        def alpha_for_percentile(p):
+            return (p / 100.0) ** 0.3
+
+        ps_data = [self.quantile(p / 100.0) for p in percentiles_sorted]
+        i_p50 = len(percentiles_sorted) // 2
+
+        p50_data = ps_data[i_p50]
+        p50_series = pd.Series(data=p50_data, index=self.index)
+        p50_series.plot(color=color, ls="-", label=f"{label_prefix}median")
+
+        if show_mean:
+            mean_data = np.mean(self._sorted_samples, axis=0)
+            pd.Series(data=mean_data, index=self.index).plot(
+                color=color,
+                ls=":",
+                label=f"{label_prefix}mean",
+                *args,
+                **kwargs,
+            )
+
+        for i in range(len(percentiles_sorted) // 2):
+            ptile = percentiles_sorted[i]
+            alpha = alpha_for_percentile(ptile)
+            plt.fill_between(
+                self.index,
+                ps_data[i],
+                ps_data[-i - 1],
+                facecolor=color,
+                alpha=alpha,
+                interpolate=True,
+                *args,
+                **kwargs,
+            )
+            # Hack to create labels for the error intervals.
+            # Doesn't actually plot anything, because we only pass a single data point
+            pd.Series(data=p50_data[:1], index=self.index[:1]).plot(
+                color=color,
+                alpha=alpha,
+                linewidth=10,
+                label=f"{label_prefix}{100 - ptile * 2}%",
+                *args,
+                **kwargs,
+            )
+        if output_file:
+            plt.savefig(output_file)
 
     @property
     def index(self) -> pd.DatetimeIndex:
@@ -146,6 +263,25 @@ class Forecast:
         """
         raise NotImplementedError()
 
+    def as_json_dict(self, config: "Config") -> dict:
+        result = {}
+
+        if OutputType.mean in config.output_types:
+            result["mean"] = self.mean.tolist()
+
+        if OutputType.quantiles in config.output_types:
+            quantiles = map(Quantile.parse, config.quantiles)
+
+            result["quantiles"] = {
+                quantile.name: self.quantile(quantile.value).tolist()
+                for quantile in quantiles
+            }
+
+        if OutputType.samples in config.output_types:
+            result["samples"] = []
+
+        return result
+
 
 class SampleForecast(Forecast):
     """
@@ -165,9 +301,10 @@ class SampleForecast(Forecast):
         parameters, number of iterations ran etc.
     """
 
+    @validated()
     def __init__(
         self,
-        samples,
+        samples: Union[mx.nd.NDArray, np.ndarray],
         start_date,
         freq,
         item_id: Optional[str] = None,
@@ -236,7 +373,7 @@ class SampleForecast(Forecast):
         return pd.Series(self.index, self.mean)
 
     def quantile(self, q):
-        q, _ = parse_quantile_input(q)
+        q = Quantile.parse(q).value
         sample_idx = int(np.round((self.num_samples - 1) * q))
         return self._sorted_samples[sample_idx, :]
 
@@ -246,7 +383,7 @@ class SampleForecast(Forecast):
         else:
             assert (
                 dim < self.samples.shape[1]
-            ), f'dim should be target_dim - 1, but got dim={dim}, target_dim={self.samples.shape[1]}'
+            ), f"dim should be target_dim - 1, but got dim={dim}, target_dim={self.samples.shape[1]}"
             samples = self.samples[:, dim]
 
         return SampleForecast(
@@ -270,115 +407,22 @@ class SampleForecast(Forecast):
                     1
                 ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
 
-    def plot(
-        self,
-        prediction_intervals=(50.0, 90.0),
-        show_mean=False,
-        color='b',
-        label=None,
-        output_file=None,
-        *args,
-        **kwargs,
-    ):
-        """
-        Plots the median of the forecast as well as confidence bounds.
-        (requires matplotlib and pandas).
+    def as_json_dict(self, config: "Config") -> dict:
+        result = super().as_json_dict(config)
 
-        Parameters
-        ----------
-        prediction_intervals : float or list of floats in [0, 100]
-            Confidence interval size(s). If a list, it will stack the error
-            plots for each confidence interval. Only relevant for error styles
-            with "ci" in the name.
-        show_mean : boolean
-            Whether to also show the mean of the forecast.
-        color : matplotlib color name or dictionary
-            The color used for plotting the forecast.
-        label : string
-            A label (prefix) that is used for the forecast
-        output_file : str or None, default None
-            Output path for the plot file. If None, plot is not saved to file.
-        args :
-            Other arguments are passed to main plot() call
-        kwargs :
-            Other keyword arguments are passed to main plot() call
-        """
+        if OutputType.samples in config.output_types:
+            result["samples"] = self.samples.tolist()
 
-        # matplotlib==2.0.* gives errors in Brazil builds and has to be
-        # imported locally
-        import matplotlib.pyplot as plt
-
-        label_prefix = '' if label is None else label + '-'
-
-        for c in prediction_intervals:
-            assert 0.0 <= c <= 100.0
-
-        ps = [50.0] + [
-            50.0 + f * c / 2.0
-            for c in prediction_intervals
-            for f in [-1.0, +1.0]
-        ]
-        percentiles_sorted = sorted(set(ps))
-
-        def alpha_for_percentile(p):
-            return (p / 100.0) ** 0.3
-
-        ps_data = np.percentile(
-            self._sorted_samples,
-            q=percentiles_sorted,
-            axis=0,
-            interpolation='lower',
-        )
-        i_p50 = len(percentiles_sorted) // 2
-
-        p50_data = ps_data[i_p50]
-        p50_series = pd.Series(data=p50_data, index=self.index)
-        p50_series.plot(color=color, ls='-', label=f'{label_prefix}median')
-
-        if show_mean:
-            mean_data = np.mean(self._sorted_samples, axis=0)
-            pd.Series(data=mean_data, index=self.index).plot(
-                color=color,
-                ls=':',
-                label=f'{label_prefix}mean',
-                *args,
-                **kwargs,
-            )
-
-        for i in range(len(percentiles_sorted) // 2):
-            ptile = percentiles_sorted[i]
-            alpha = alpha_for_percentile(ptile)
-            plt.fill_between(
-                self.index,
-                ps_data[i],
-                ps_data[-i - 1],
-                facecolor=color,
-                alpha=alpha,
-                interpolate=True,
-                *args,
-                **kwargs,
-            )
-            # Hack to create labels for the error intervals.
-            # Doesn't actually plot anything, because we only pass a single data point
-            pd.Series(data=p50_data[:1], index=self.index[:1]).plot(
-                color=color,
-                alpha=alpha,
-                linewidth=10,
-                label=f'{label_prefix}{100 - ptile * 2}%',
-                *args,
-                **kwargs,
-            )
-        if output_file:
-            plt.savefig(output_file)
+        return result
 
     def __repr__(self):
-        return ', '.join(
+        return ", ".join(
             [
-                f'SampleForecast({self.samples!r})',
-                f'{self.start_date!r}',
-                f'{self.freq!r}',
-                f'item_id={self.item_id!r}',
-                f'info={self.info!r})',
+                f"SampleForecast({self.samples!r})",
+                f"{self.start_date!r}",
+                f"{self.freq!r}",
+                f"item_id={self.item_id!r}",
+                f"info={self.info!r})",
             ]
         )
 
@@ -419,8 +463,8 @@ class QuantileForecast(Forecast):
 
         # normalize keys
         self.forecast_keys = [
-            parse_quantile_input(k)[1] if k != 'mean' else k
-            for k in forecast_keys
+            Quantile.from_str(key).name if key != "mean" else key
+            for key in forecast_keys
         ]
         self.item_id = item_id
         self.info = info
@@ -428,8 +472,8 @@ class QuantileForecast(Forecast):
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (
-            f'The forecast_array (shape={shape} should have the same '
-            f'length as the forecast_keys (len={len(self.forecast_keys)}).'
+            f"The forecast_array (shape={shape} should have the same "
+            f"length as the forecast_keys (len={len(self.forecast_keys)})."
         )
         self.prediction_length = shape[-1]
         self._forecast_dict = {
@@ -439,7 +483,7 @@ class QuantileForecast(Forecast):
         self._nan_out = np.array([np.nan] * self.prediction_length)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
-        _, q_str = parse_quantile_input(q)
+        q_str = Quantile.parse(q).name
         # We return nan here such that evaluation runs through
         return self._forecast_dict.get(q_str, self._nan_out)
 
@@ -448,7 +492,7 @@ class QuantileForecast(Forecast):
         """
         Forecast mean.
         """
-        return self._forecast_dict.get('mean', self._nan_out)
+        return self._forecast_dict.get("mean", self._nan_out)
 
     def dim(self) -> int:
         if self._dim is not None:
@@ -463,76 +507,116 @@ class QuantileForecast(Forecast):
                     1
                 ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
 
-    def plot(
-        self,
-        quantiles=None,
-        show_mean=False,
-        color='b',
-        label=None,
-        *args,
-        **kwargs,
-    ):
-        if show_mean:
-            mean_ts = pd.Series(self.index, self.mean)
-            mean_ts.plot()
-
-        qs = [q for q in self.forecast_keys if q != 'mean']
-        if quantiles is not None:
-            qs = [q for q in qs if q in quantiles]
-        qs = sorted(qs)
-
-        for q in qs:
-            self.quantile(q)
-
     def __repr__(self):
-        return ', '.join(
+        return ", ".join(
             [
-                f'QuantileForecast({self.forecast_array!r})',
-                f'start_date={self.start_date!r}',
-                f'freq={self.freq!r}',
-                f'forecast_keys={self.forecast_keys!r}',
-                f'item_id={self.item_id!r}',
-                f'info={self.info!r})',
+                f"QuantileForecast({self.forecast_array!r})",
+                f"start_date={self.start_date!r}",
+                f"freq={self.freq!r}",
+                f"forecast_keys={self.forecast_keys!r}",
+                f"item_id={self.item_id!r}",
+                f"info={self.info!r})",
             ]
         )
 
 
-class OutputType:
-    values = {'mean', 'samples', 'quantiles'}
+class DistributionForecast(Forecast):
+    """
+    A `Forecast` object that uses a GluonTS distribution directly.
+    This can for instance be used to represent marginal probability distributions for each time
+    point -- although joint distributions are also possible, e.g. when using MultiVariateGaussian).
 
-    def __init__(self, v):
-        assert (
-            v in OutputType.values
-        ), f'unknown output type {v}, expected one of: {", ".join(OutputType.values)}'
+    Parameters
+    ----------
+    distribution
+        GluonTS distribution or list of distributions.
+        The distribution should represent the entire prediction length, i.e., if we draw `num_samples` samples
+        from the distribution, the sample shape should be
 
-        self.v = v
+           samples = trans_dist.sample(num_samples)
+           samples.shape -> (num_samples, prediction_length)
 
-    def __repr__(self) -> str:
-        return self.v
+    start_date
+        start of the forecast
+    freq
+        forecast frequency
+    info
+        additional information that the forecaster may provide e.g. estimated
+        parameters, number of iterations ran etc.
+    """
 
-    def __eq__(self, that):
-        return str(that) == str(self)
+    @validated()
+    def __init__(
+        self,
+        distribution: Distribution,
+        start_date,
+        freq,
+        item_id: Optional[str] = None,
+        info: Optional[Dict] = None,
+    ):
+        self.distribution = distribution
+        self.shape = (
+            self.distribution.batch_shape + self.distribution.event_shape
+        )
+        self.prediction_length = self.shape[0]
+        self.item_id = item_id
+        self.info = info
 
-    def __hash__(self):
-        return hash(str(self))
+        assert isinstance(
+            start_date, pd.Timestamp
+        ), "start_date should be a pandas Timestamp object"
+        self.start_date = start_date
 
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+        assert isinstance(freq, str), "freq should be a string"
+        self.freq = freq
+        self._mean = None
 
-    @classmethod
-    def validate(cls, v):
-        if not isinstance(v, str):
-            raise ValueError(
-                f'strict string: expected string value, got {type(v)}'
-            )
-        try:
-            return OutputType(v)
-        except AssertionError as e:
-            raise ValueError(str(e))
+    @property
+    def mean(self):
+        """
+        Forecast mean.
+        """
+        if self._mean is not None:
+            return self._mean
+        else:
+            self._mean = self.distribution.mean.asnumpy()
+            return self._mean
+
+    @property
+    def mean_ts(self):
+        """
+        Forecast mean, as a pandas.Series object.
+        """
+        return pd.Series(self.index, self.mean)
+
+    def quantile(self, level):
+        level = Quantile.parse(level).value
+        q = self.distribution.quantile(mx.nd.array([level])).asnumpy()[0]
+        return q
+
+    def to_sample_forecast(self, num_samples: int = 200) -> SampleForecast:
+        return SampleForecast(
+            samples=self.distribution.sample(num_samples),
+            start_date=self.start_date,
+            freq=self.freq,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
+
+class OutputType(str, Enum):
+    mean = "mean"
+    samples = "samples"
+    quantiles = "quantiles"
 
 
 class Config(pydantic.BaseModel):
-    num_eval_samples: int
-    output_types: typing.Set[OutputType]
-    quantiles: typing.List[str]  # FIXME: validate list elements
+    num_eval_samples: int = pydantic.Schema(100, alias="num_samples")
+    output_types: Set[OutputType] = {"quantiles", "mean"}
+    # FIXME: validate list elements
+    quantiles: List[str] = ["0.1", "0.5", "0.9"]
+
+    class Config:
+        allow_population_by_alias = True
+        # store additional fields
+        extra = "allow"

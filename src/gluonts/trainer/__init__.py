@@ -15,4 +15,9 @@
 from . import learning_rate_scheduler as lrs
 from ._base import Trainer
 
-__all__ = ['lrs', 'Trainer']
+__all__ = ["lrs", "Trainer"]
+
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

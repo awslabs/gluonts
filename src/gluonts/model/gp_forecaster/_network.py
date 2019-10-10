@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import Tuple
 
@@ -38,23 +51,23 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         """
         Parameters
         ----------
-        prediction_length : int
+        prediction_length
             Prediction length.
-        context_length : int
+        context_length
             Training length.
-        cardinality : int
+        cardinality
             Number of time series.
-        kernel_output : KernelOutput
+        kernel_output
             KernelOutput instance to determine which kernel subclass to be instantiated.
-        params_scaling : bool
+        params_scaling
             Determines whether or not to scale the model parameters.
-        ctx : mx.Context
+        ctx
             Determines whether to compute on the cpu or gpu.
-        float_type : DType
+        float_type
             Determines whether to use single or double precision.
-        max_iter_jitter : int
+        max_iter_jitter
             Maximum number of iterations for jitter to iteratively make the matrix positive definite.
-        jitter_method : str
+        jitter_method
             Iteratively jitter method or use eigenvalue decomposition depending on problem size.
         **kwargs
             Arbitrary keyword arguments.
@@ -96,14 +109,14 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
 
         Parameters
         ----------
-        F : ModuleType
+        F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-        past_target : Tensor
+        past_target
             Training time series values of shape (batch_size, context_length).
-        past_time_feat : Tensor
+        past_time_feat
             Training features of shape (batch_size, context_length, num_features).
-        feat_static_cat : Tensor
+        feat_static_cat
             Time series indices of shape (batch_size, 1).
 
         Returns
@@ -207,7 +220,7 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
     def __init__(
         self, num_samples: int, sample_noise: bool, *args, **kwargs
     ) -> None:
-        """
+        r"""
         Parameters
         ----------
         num_samples

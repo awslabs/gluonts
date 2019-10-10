@@ -1,0 +1,7 @@
+{
+    "ND": 0.14858973026275635,
+    "RMSE": 2066.3466796875,
+    "dataset": "m4_yearly",
+    "estimator": "RForecastPredictor_ets",
+    "mean_wQuantileLoss": 0.1256110519170761
+}

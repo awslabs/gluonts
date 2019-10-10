@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import List, Optional
 
@@ -6,6 +19,7 @@ from mxnet.gluon import HybridBlock
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
@@ -13,7 +27,6 @@ from gluonts.trainer import Trainer
 from gluonts.transform import (
     Chain,
     ExpectedNumInstanceSampler,
-    FieldName,
     InstanceSplitter,
     Transformation,
 )
@@ -56,24 +69,26 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     Parameters
     ----------
     freq
-        Time time granularity of the data.
+        Time time granularity of the data
     prediction_length
-        Number of time units to predict.
+        Length of the prediction horizon
     trainer
-        The Trainer instance to be used for model training.
+        Trainer object to be used (default: Trainer())
     num_hidden_dimensions
-        Number of hidden nodes in each layer.
+        Number of hidden nodes in each layer (default: [40, 40])
     context_length
-        Number of time units that condition the predictions.
+        Number of time units that condition the predictions
+        (default: None, in which case context_length = prediction_length)
     distr_output
-        Distribution to fit.
+        Distribution to fit (default: StudentTOutput())
     batch_normalization
-        Whether to use batch normalization.
+        Whether to use batch normalization (default: False)
     mean_scaling
         Scale the network input by the data mean and the network output by
-        its inverse.
-    num_eval_samples
-        Number of samples drawn for evaluations.
+        its inverse (default: True)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100)
     """
 
     # The validated() decorator makes sure that parameters are checked by
@@ -91,7 +106,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         batch_normalization: bool = False,
         mean_scaling: bool = True,
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
     ) -> None:
         """
         Defines an estimator. All parameters should be serializable.
@@ -108,8 +123,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             [d > 0 for d in num_hidden_dimensions]
         ), "Elements of `num_hidden_dimensions` should be > 0"
         assert (
-            num_eval_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.num_hidden_dimensions = num_hidden_dimensions
         self.prediction_length = prediction_length
@@ -119,8 +134,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         self.freq = freq
         self.distr_output = distr_output
         self.batch_normalization = batch_normalization
-        self.num_sample_paths = num_eval_samples
         self.mean_scaling = mean_scaling
+        self.num_parallel_samples = num_parallel_samples
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -169,8 +184,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             distr_output=self.distr_output,
             batch_normalization=self.batch_normalization,
             mean_scaling=self.mean_scaling,
-            num_sample_paths=self.num_sample_paths,
             params=trained_network.collect_params(),
+            num_parallel_samples=self.num_parallel_samples,
         )
 
         return RepresentableBlockPredictor(

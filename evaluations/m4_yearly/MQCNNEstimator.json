@@ -1,7 +1,7 @@
 {
-    "ND": 0.14978874730826042,
+    "ND": 0.1463247388601303,
     "RMSE": NaN,
     "dataset": "m4_yearly",
     "estimator": "MQCNNEstimator",
-    "mean_wQuantileLoss": 0.12373507855186519
+    "mean_wQuantileLoss": 0.12227378785610199
 }

@@ -92,6 +92,7 @@ class BoxCoxTranform(Bijection):
                 \lambda_1 = &\ 1.1, \\
                 \lambda_2 = &\ 0.
             \end{align}
+
         Then the range of the transformation is (-0.9090, 0.0).
         If Gaussian is fit to the transformed observations and a sample is drawn from it,
         then it is likely that the sample is outside this range, e.g., when the mean is close to -0.9.
@@ -112,8 +113,9 @@ class BoxCoxTranform(Bijection):
         `tol_lambda_1`
     F
     """
-    arg_names = ['box_cox.lambda_1', 'box_cox.lambda_2']
+    arg_names = ["box_cox.lambda_1", "box_cox.lambda_2"]
 
+    @validated()
     def __init__(
         self,
         lambda_1: Tensor,
@@ -139,6 +141,10 @@ class BoxCoxTranform(Bijection):
     @property
     def event_dim(self) -> int:
         return 0
+
+    @property
+    def sign(self) -> Tensor:
+        return 1.0
 
     def f(self, z: Tensor) -> Tensor:
         r"""
@@ -191,7 +197,7 @@ class BoxCoxTranform(Bijection):
         base = F.relu(y * lambda_1 + 1.0)
 
         return F.where(
-            condition=F.abs(lambda_1).__ge__(tol_lambda_1),
+            condition=(F.abs(lambda_1).__ge__(tol_lambda_1)).broadcast_like(y),
             x=_power(base, 1.0 / lambda_1) - lambda_2,
             y=F.exp(y) - lambda_2,
             name="Box_Cox_inverse_trans",
@@ -248,7 +254,7 @@ class BoxCoxTransformOutput(BijectionOutput):
     def domain_map(self, F, *args: Tensor) -> Tuple[Tensor, ...]:
         lambda_1, lambda_2 = args
         if self.fix_lambda_2:
-            lambda_2 = self.lb_obs * F.ones_like(lambda_2)
+            lambda_2 = -self.lb_obs * F.ones_like(lambda_2)
         else:
             # This makes sure that :math:`z +  \lambda_2 > 0`, where :math:`z > lb_obs`
             lambda_2 = softplus(F, lambda_2) - self.lb_obs * F.ones_like(
@@ -268,8 +274,9 @@ class InverseBoxCoxTransform(InverseBijection):
     Implements the inverse of Box-Cox transformation as a bijection.
     """
 
-    arg_names = ['box_cox.lambda_1', 'box_cox.lambda_2']
+    arg_names = ["box_cox.lambda_1", "box_cox.lambda_2"]
 
+    @validated()
     def __init__(
         self,
         lambda_1: Tensor,

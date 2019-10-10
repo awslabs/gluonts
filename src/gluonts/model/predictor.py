@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import functools
 import itertools
 import logging
 import multiprocessing as mp
@@ -20,18 +21,40 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import Callable, Dict, Iterator, List, Optional, TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Tuple,
+    Union,
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Type,
+)
 
 # Third-party imports
 import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import DType, equals, validated
+import gluonts
+from gluonts.distribution import Distribution, DistributionOutput
+from gluonts.core.component import (
+    DType,
+    equals,
+    from_hyperparameters,
+    get_mxnet_context,
+    validated,
+)
+from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
+from .forecast_generator import ForecastGenerator, SampleForecastGenerator
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.forecast import Forecast
+
 from gluonts.support.util import (
     export_repr_block,
     export_symb_block,
@@ -42,9 +65,11 @@ from gluonts.support.util import (
 )
 from gluonts.transform import Transformation
 
-
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
+
+
+OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
 class Predictor:
@@ -58,6 +83,8 @@ class Predictor:
     freq
         Frequency of the predicted data.
     """
+
+    __version__: str = gluonts.__version__
 
     def __init__(self, prediction_length: int, freq: str) -> None:
         assert (
@@ -87,33 +114,42 @@ class Predictor:
         raise NotImplementedError
 
     def serialize(self, path: Path) -> None:
-        try:
-            # serialize Predictor type
-            with (path / 'type.txt').open('w') as fp:
-                fp.write(fqname_for(self.__class__))
-        except Exception as e:
-            raise IOError(
-                f'Cannot serialize {fqname_for(self.__class__)}'
-            ) from e
+        # serialize Predictor type
+        with (path / "type.txt").open("w") as fp:
+            fp.write(fqname_for(self.__class__))
 
     @classmethod
-    def deserialize(cls, path: Path):
-        try:
-            # deserialize Predictor type
-            with (path / 'type.txt').open('r') as fp:
-                tpe = locate(fp.readline())
-        except Exception as e:
-            raise IOError(f'Cannot deserialize {fqname_for(cls)}') from e
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "Predictor":
+        """
+        Load a serialized predictor from the given path
+
+        Parameters
+        ----------
+        path
+            Path to the serialized files predictor.
+        ctx
+            Optional mxnet context to be used with the predictor.
+            If nothing is passed will use the GPU if available and CPU otherwise.
+        """
+        # deserialize Predictor type
+        with (path / "type.txt").open("r") as fp:
+            tpe = locate(fp.readline())
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):
             raise IOError(
-                f'Class {fqname_for(tpe)} is not '
-                f'a subclass of {fqname_for(Predictor)}'
+                f"Class {fqname_for(tpe)} is not "
+                f"a subclass of {fqname_for(Predictor)}"
             )
 
         # call deserialize() for the concrete Predictor type
-        return tpe.deserialize(path)
+        return tpe.deserialize(path, ctx)
+
+    @classmethod
+    def from_hyperparameters(cls, **hyperparameters):
+        return from_hyperparameters(cls, **hyperparameters)
 
 
 class RepresentablePredictor(Predictor):
@@ -136,6 +172,10 @@ class RepresentablePredictor(Predictor):
         super().__init__(prediction_length, freq)
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
+        for item in dataset:
+            yield self.predict_item(item)
+
+    def predict_item(self, item: DataEntry) -> Forecast:
         raise NotImplementedError
 
     def __eq__(self, that):
@@ -148,21 +188,15 @@ class RepresentablePredictor(Predictor):
     def serialize(self, path: Path) -> None:
         # call Predictor.serialize() in order to serialize the class name
         super().serialize(path)
-        try:
-            with (path / 'predictor.json').open('w') as fp:
-                print(dump_json(self), file=fp)
-        except Exception as e:
-            raise IOError(
-                f'Cannot serialize {fqname_for(self.__class__)}'
-            ) from e
+        with (path / "predictor.json").open("w") as fp:
+            print(dump_json(self), file=fp)
 
     @classmethod
-    def deserialize(cls, path: Path):
-        try:
-            with (path / 'predictor.json').open('r') as fp:
-                return load_json(fp.read())
-        except Exception as e:
-            raise IOError(f'Cannot deserialize {fqname_for(cls)}') from e
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "RepresentablePredictor":
+        with (path / "predictor.json").open("r") as fp:
+            return load_json(fp.read())
 
 
 class GluonPredictor(Predictor):
@@ -187,11 +221,8 @@ class GluonPredictor(Predictor):
         Output transformation
     ctx
         MXNet context to use for computation
-    forecast_cls_name
-        Class name of the forecast type that will be generated
-    forecast_kwargs
-        A dictionary that will be passed as kwargs when instantiating the
-        forecast object
+    forecast_generator
+        Class to generate forecasts from network ouputs
     """
 
     BlockType = mx.gluon.Block
@@ -205,28 +236,20 @@ class GluonPredictor(Predictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
-        output_transform: Optional[
-            Callable[[DataEntry, np.ndarray], np.ndarray]
-        ] = None,
+        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
+        output_transform: Optional[OutputTransform] = None,
         float_type: DType = np.float32,
-        forecast_cls_name: str = 'SampleForecast',
-        forecast_kwargs: Optional[Dict] = None,
     ) -> None:
         super().__init__(prediction_length, freq)
-
-        forecast_dict = {c.__name__: c for c in Forecast.__subclasses__()}
-        assert forecast_cls_name in forecast_dict
 
         self.input_names = input_names
         self.prediction_net = prediction_net
         self.batch_size = batch_size
         self.input_transform = input_transform
+        self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.ctx = ctx
         self.float_type = float_type
-        self.forecast_cls_name = forecast_cls_name
-        self._forecast_cls = forecast_dict[forecast_cls_name]
-        self.forecast_kwargs = forecast_kwargs if forecast_kwargs else {}
 
     def hybridize(self, batch: DataBatch) -> None:
         """
@@ -243,7 +266,7 @@ class GluonPredictor(Predictor):
 
     def as_symbol_block_predictor(
         self, batch: DataBatch
-    ) -> 'SymbolBlockPredictor':
+    ) -> "SymbolBlockPredictor":
         """
         Returns a variant of the current :class:`GluonPredictor` backed
         by a Gluon `SymbolBlock`. If the current predictor is already a
@@ -272,41 +295,14 @@ class GluonPredictor(Predictor):
             ctx=self.ctx,
             float_type=self.float_type,
         )
-        for batch in inference_data_loader:
-            inputs = [batch[k] for k in self.input_names]
-            outputs = self.prediction_net(*inputs).asnumpy()
-            if self.output_transform is not None:
-                outputs = self.output_transform(batch, outputs)
-            if num_eval_samples and not self._forecast_cls == SampleForecast:
-                logging.info(
-                    'Forecast is not sample based. Ignoring parameter `num_eval_samples` from predict method.'
-                )
-            if num_eval_samples and self._forecast_cls == SampleForecast:
-                num_collected_samples = outputs[0].shape[0]
-                collected_samples = [outputs]
-                while num_collected_samples < num_eval_samples:
-                    outputs = self.prediction_net(*inputs).asnumpy()
-                    if self.output_transform is not None:
-                        outputs = self.output_transform(batch, outputs)
-                    collected_samples.append(outputs)
-                    num_collected_samples += outputs[0].shape[0]
-                outputs = [
-                    np.concatenate(s)[:num_eval_samples]
-                    for s in zip(*collected_samples)
-                ]
-                assert len(outputs[0]) == num_eval_samples
-            assert len(batch['forecast_start']) == len(outputs)
-            for i, output in enumerate(outputs):
-                yield self._forecast_cls(
-                    output,
-                    start_date=batch['forecast_start'][i],
-                    freq=self.freq,
-                    item_id=batch['item_id'][i]
-                    if 'item_id' in batch
-                    else None,
-                    info=batch['info'][i] if 'info' in batch else None,
-                    **self.forecast_kwargs,
-                )
+        yield from self.forecast_generator(
+            inference_data_loader=inference_data_loader,
+            prediction_net=self.prediction_net,
+            input_names=self.input_names,
+            freq=self.freq,
+            output_transform=self.output_transform,
+            num_eval_samples=num_eval_samples,
+        )
 
     def __eq__(self, that):
         if type(self) != type(that):
@@ -326,33 +322,27 @@ class GluonPredictor(Predictor):
         super().serialize(path)
 
         # serialize every GluonPredictor-specific parameters
-        try:
-            # serialize the prediction network
-            self.serialize_prediction_net(path)
+        # serialize the prediction network
+        self.serialize_prediction_net(path)
 
-            # serialize transformation chain
-            with (path / 'input_transform.json').open('w') as fp:
-                print(dump_json(self.input_transform), file=fp)
+        # serialize transformation chain
+        with (path / "input_transform.json").open("w") as fp:
+            print(dump_json(self.input_transform), file=fp)
 
-            # FIXME: also needs to serialize the output_transform
+        # FIXME: also needs to serialize the output_transform
 
-            # serialize all remaining constructor parameters
-            with (path / 'parameters.json').open('w') as fp:
-                parameters = dict(
-                    batch_size=self.batch_size,
-                    prediction_length=self.prediction_length,
-                    freq=self.freq,
-                    ctx=self.ctx,
-                    float_type=self.float_type,
-                    forecast_cls_name=self.forecast_cls_name,
-                    forecast_kwargs=self.forecast_kwargs,
-                    input_names=self.input_names,
-                )
-                print(dump_json(parameters), file=fp)
-        except Exception as e:
-            raise IOError(
-                f'Cannot serialize {fqname_for(self.__class__)}'
-            ) from e
+        # serialize all remaining constructor parameters
+        with (path / "parameters.json").open("w") as fp:
+            parameters = dict(
+                batch_size=self.batch_size,
+                prediction_length=self.prediction_length,
+                freq=self.freq,
+                ctx=self.ctx,
+                float_type=self.float_type,
+                forecast_generator=self.forecast_generator,
+                input_names=self.input_names,
+            )
+            print(dump_json(parameters), file=fp)
 
     def serialize_prediction_net(self, path: Path) -> None:
         raise NotImplementedError()
@@ -372,35 +362,41 @@ class SymbolBlockPredictor(GluonPredictor):
 
     def as_symbol_block_predictor(
         self, batch: DataBatch
-    ) -> 'SymbolBlockPredictor':
+    ) -> "SymbolBlockPredictor":
         return self
 
     def serialize(self, path: Path) -> None:
         logging.warning(
-            'Serializing RepresentableBlockPredictor instances does not save '
-            'the prediction network structure in a backwards-compatible '
-            'manner. Be careful not to use this method in production.'
+            "Serializing RepresentableBlockPredictor instances does not save "
+            "the prediction network structure in a backwards-compatible "
+            "manner. Be careful not to use this method in production."
         )
         super().serialize(path)
 
     def serialize_prediction_net(self, path: Path) -> None:
-        export_symb_block(self.prediction_net, path, 'prediction_net')
+        export_symb_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
-    def deserialize(cls, path: Path):
-        try:
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "SymbolBlockPredictor":
+        ctx = ctx if ctx is not None else get_mxnet_context()
+
+        with mx.Context(ctx):
             # deserialize constructor parameters
-            with (path / 'parameters.json').open('r') as fp:
+            with (path / "parameters.json").open("r") as fp:
                 parameters = load_json(fp.read())
 
+            parameters["ctx"] = ctx
+
             # deserialize transformation chain
-            with (path / 'input_transform.json').open('r') as fp:
+            with (path / "input_transform.json").open("r") as fp:
                 transform = load_json(fp.read())
 
             # deserialize prediction network
-            num_inputs = len(parameters['input_names'])
+            num_inputs = len(parameters["input_names"])
             prediction_net = import_symb_block(
-                num_inputs, path, 'prediction_net'
+                num_inputs, path, "prediction_net"
             )
 
             return SymbolBlockPredictor(
@@ -408,8 +404,6 @@ class SymbolBlockPredictor(GluonPredictor):
                 prediction_net=prediction_net,
                 **parameters,
             )
-        except Exception as e:
-            raise IOError(f'Cannot deserialize {fqname_for(cls)}') from e
 
 
 class RepresentableBlockPredictor(GluonPredictor):
@@ -439,12 +433,11 @@ class RepresentableBlockPredictor(GluonPredictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
+        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
         float_type: DType = np.float32,
-        forecast_cls_name: str = 'SampleForecast',
-        forecast_kwargs: Optional[Dict] = None,
     ) -> None:
         super().__init__(
             input_names=get_hybrid_forward_input_names(prediction_net),
@@ -454,10 +447,9 @@ class RepresentableBlockPredictor(GluonPredictor):
             freq=freq,
             ctx=ctx,
             input_transform=input_transform,
+            forecast_generator=forecast_generator,
             output_transform=output_transform,
             float_type=float_type,
-            forecast_cls_name=forecast_cls_name,
-            forecast_kwargs=forecast_kwargs,
         )
 
     def as_symbol_block_predictor(
@@ -476,40 +468,43 @@ class RepresentableBlockPredictor(GluonPredictor):
             freq=self.freq,
             ctx=self.ctx,
             input_transform=self.input_transform,
+            forecast_generator=self.forecast_generator,
             output_transform=self.output_transform,
             float_type=self.float_type,
-            forecast_cls_name=self.forecast_cls_name,
-            forecast_kwargs=self.forecast_kwargs,
         )
 
     def serialize_prediction_net(self, path: Path) -> None:
-        export_repr_block(self.prediction_net, path, 'prediction_net')
+        export_repr_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
-    def deserialize(cls, path: Path):
-        try:
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "RepresentableBlockPredictor":
+        ctx = ctx if ctx is not None else get_mxnet_context()
+
+        with mx.Context(ctx):
             # deserialize constructor parameters
-            with (path / 'parameters.json').open('r') as fp:
+            with (path / "parameters.json").open("r") as fp:
                 parameters = load_json(fp.read())
 
             # deserialize transformation chain
-            with (path / 'input_transform.json').open('r') as fp:
+            with (path / "input_transform.json").open("r") as fp:
                 transform = load_json(fp.read())
 
             # deserialize prediction network
-            prediction_net = import_repr_block(path, 'prediction_net')
+            prediction_net = import_repr_block(path, "prediction_net")
 
             # input_names is derived from the prediction_net
-            if 'input_names' in parameters:
-                del parameters['input_names']
+            if "input_names" in parameters:
+                del parameters["input_names"]
+
+            parameters["ctx"] = ctx
 
             return RepresentableBlockPredictor(
                 input_transform=transform,
                 prediction_net=prediction_net,
                 **parameters,
             )
-        except Exception as e:
-            raise IOError(f'Cannot deserialize {fqname_for(cls)}') from e
 
 
 class WorkerError:
@@ -698,17 +693,49 @@ class Localizer(Predictor):
         The estimator object to train on each dataset entry at prediction time.
     """
 
-    def __init__(self, estimator: 'Estimator'):
+    def __init__(self, estimator: "Estimator"):
         super().__init__(estimator.prediction_length, estimator.freq)
         self.estimator = estimator
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         logger = logging.getLogger(__name__)
         for i, ts in enumerate(dataset, start=1):
-            logger.info(f'training for time series {i} / {len(dataset)}')
+            logger.info(f"training for time series {i} / {len(dataset)}")
             local_ds = ListDataset([ts], freq=self.freq)
             trained_pred = self.estimator.train(local_ds)
-            logger.info(f'predicting for time series {i} / {len(dataset)}')
+            logger.info(f"predicting for time series {i} / {len(dataset)}")
             predictions = trained_pred.predict(local_ds, **kwargs)
             for pred in predictions:
                 yield pred
+
+
+class FallbackPredictor(Predictor):
+    @classmethod
+    def from_predictor(
+        cls, base: RepresentablePredictor, **overrides
+    ) -> Predictor:
+        # Create predictor based on an existing predictor.
+        # This let's us create a MeanPredictor as a fallback on the fly.
+        return cls.from_hyperparameters(
+            **getattr(base, "__init_args__"), **overrides
+        )
+
+
+def fallback(fallback_cls: Type[FallbackPredictor]):
+    def decorator(predict_item):
+        @functools.wraps(predict_item)
+        def fallback_predict(self, item: DataEntry) -> Forecast:
+            try:
+                return predict_item(self, item)
+            except GluonTSException:
+                raise
+            except Exception:
+                logging.warning(
+                    f"Base predictor failed with: {traceback.format_exc()}"
+                )
+                fallback_predictor = fallback_cls.from_predictor(self)
+                return fallback_predictor.predict_item(item)
+
+        return fallback_predict
+
+    return decorator

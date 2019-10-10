@@ -1,0 +1,7 @@
+{
+    "ND": 0.14966879785060883,
+    "RMSE": 3195.74658203125,
+    "dataset": "electricity",
+    "estimator": "RForecastPredictor_ets",
+    "mean_wQuantileLoss": 0.12122032791376114
+}

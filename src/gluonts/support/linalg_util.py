@@ -57,12 +57,40 @@ def batch_diagonal(
     )
 
 
+def lower_triangular_ones(F, d: int, offset: int = 0) -> Tensor:
+    """
+    Constructs a lower triangular matrix consisting of ones.
+
+    Parameters
+    ----------
+    F
+    d
+        Dimension of the output tensor, whose shape will be (d, d).
+    offset
+        Indicates how many diagonals to set to zero in the lower triangular
+        part. By default, offset = 0, so the output matrix contains also the
+        main diagonal. For example, if offset = 1 then the output will be a
+        strictly lower triangular matrix (i.e. the main diagonal will be zero).
+
+    Returns
+    -------
+    Tensor
+        Tensor of shape (d, d) consisting of ones in the strictly lower
+        triangular part, and zeros elsewhere.
+
+    """
+    mask = F.zeros_like(F.eye(d))
+    for k in range(offset, d):
+        mask = mask + F.eye(d, d, -k)
+    return mask
+
+
 # noinspection PyMethodOverriding,PyPep8Naming
 def jitter_cholesky_eig(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx: mx.Context = mx.Context('cpu'),
+    ctx: mx.Context = mx.Context("cpu"),
     float_type: DType = np.float64,
     diag_weight: float = 1e-6,
 ) -> Tensor:
@@ -122,7 +150,7 @@ def jitter_cholesky(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx: mx.Context = mx.Context('cpu'),
+    ctx: mx.Context = mx.Context("cpu"),
     float_type: DType = np.float64,
     max_iter_jitter: int = 10,
     neg_tol: float = -1e-8,
@@ -172,7 +200,7 @@ def jitter_cholesky(
     # TODO: Add support for symbolic case: Cannot use < operator with symbolic variables
     if F.sum(diag <= neg_tol) > 0:
         raise mx.base.MXNetError(
-            ' Matrix is not positive definite: negative diagonal elements'
+            " Matrix is not positive definite: negative diagonal elements"
         )
     while num_iter <= max_iter_jitter:
         try:
@@ -185,10 +213,11 @@ def jitter_cholesky(
                     ),
                 )
             )
-            # gpu will not throw error but will store nans. If nan, L.sum() = nan
-            # so the error tolerance can be large.
+            # gpu will not throw error but will store nans. If nan, L.sum() = nan and
+            # L.nansum() computes the sum treating nans as zeros so the error tolerance can be large.
+            # for axis = Null, nansum() and sum() will sum over all elements and return scalar array with shape (1,)
             # TODO: Add support for symbolic case: Cannot use <= operator with symbolic variables
-            assert F.max(F.abs(L.nansum() - L.sum()) <= 1e-1)
+            assert F.abs(L.nansum() - L.sum()) <= 1e-1
             return L
         except:
             if num_iter == 0:
@@ -202,6 +231,6 @@ def jitter_cholesky(
         finally:
             num_iter += 1
     raise mx.base.MXNetError(
-        f' Matrix is not positive definite after the maximum number of iterations = {max_iter_jitter} '
-        f'with a maximum jitter = {F.max(jitter)}'
+        f" Matrix is not positive definite after the maximum number of iterations = {max_iter_jitter} "
+        f"with a maximum jitter = {F.max(jitter)}"
     )

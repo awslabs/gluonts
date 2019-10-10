@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import List
 
@@ -5,20 +18,20 @@ from typing import List
 from mxnet.gluon import HybridBlock, nn
 
 # First-party imports
-from gluonts import transform
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.rnn import RNN
 from gluonts.core.component import validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-from gluonts.time_feature.lag import time_features_from_frequency_str
+from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    FieldName,
+    InstanceSplitter,
     SetFieldIfNotPresent,
     TestSplitSampler,
     Transformation,
@@ -71,11 +84,11 @@ class CanonicalEstimator(GluonEstimator):
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-                transform.InstanceSplitter(
-                    target_field=transform.FieldName.TARGET,
-                    is_pad_field=transform.FieldName.IS_PAD,
-                    start_field=transform.FieldName.START,
-                    forecast_start_field=transform.FieldName.FORECAST_START,
+                InstanceSplitter(
+                    target_field=FieldName.TARGET,
+                    is_pad_field=FieldName.IS_PAD,
+                    start_field=FieldName.START,
+                    forecast_start_field=FieldName.FORECAST_START,
                     train_sampler=TestSplitSampler(),
                     time_series_fields=[FieldName.FEAT_TIME],
                     past_length=self.context_length,
@@ -130,7 +143,7 @@ class CanonicalRNNEstimator(CanonicalEstimator):
         trainer: Trainer = Trainer(),
         num_layers: int = 1,
         num_cells: int = 50,
-        cell_type: str = 'lstm',
+        cell_type: str = "lstm",
         num_eval_samples: int = 100,
         cardinality: List[int] = list([1]),
         embedding_dimension: int = 10,
@@ -175,7 +188,7 @@ class MLPForecasterEstimator(CanonicalEstimator):
                 nn.Dense(
                     layer_dim,
                     flatten=False,
-                    activation='relu',
+                    activation="relu",
                     prefix="mlp_%d_" % layer,
                 )
             )

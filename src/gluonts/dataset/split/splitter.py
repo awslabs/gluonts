@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 """
 Train/test splitter
 ~~~~~~~~~~~~~~~~~~~
@@ -17,7 +30,7 @@ For all other datasets, the more flexible `DateSplitter` can be used::
         prediction_length=24,
         split_date=pd.Timestamp('2018-01-31', freq='D')
     )
-    train, test = splitter.split_dataset(whole_dataset)
+    train, test = splitter.split(whole_dataset)
 
 The module also supports rolling splits::
 
@@ -25,7 +38,7 @@ The module also supports rolling splits::
         prediction_length=24,
         split_date=pd.Timestamp('2018-01-31', freq='D')
     )
-    train, test = splitter.rolling_split_dataset(whole_dataset, windows=7)
+    train, test = splitter.rolling_split(whole_dataset, windows=7)
 """
 
 # Standard library imports
@@ -173,8 +186,8 @@ class AbstractBaseSplitter(ABC):
         pass
 
     def _trim_history(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
-        if getattr(self, 'max_history') is not None:
-            return item[: -getattr(self, 'max_history')]
+        if getattr(self, "max_history") is not None:
+            return item[: -getattr(self, "max_history")]
         else:
             return item
 
@@ -187,7 +200,7 @@ class AbstractBaseSplitter(ABC):
 
             split._add_train_slice(train)
 
-            assert len(test) - len(train) >= getattr(self, 'prediction_length')
+            assert len(test) - len(train) >= getattr(self, "prediction_length")
             split._add_test_slice(test)
 
         return split
@@ -200,7 +213,7 @@ class AbstractBaseSplitter(ABC):
     ) -> TrainTestSplit:
         # distance defaults to prediction_length
         if distance is None:
-            distance = getattr(self, 'prediction_length')
+            distance = getattr(self, "prediction_length")
         assert distance is not None
 
         split = TrainTestSplit()
@@ -215,7 +228,7 @@ class AbstractBaseSplitter(ABC):
                     self._test_slice(item, offset=offset)
                 )
 
-                assert len(test) - len(train) >= getattr(self, 'max_history')
+                assert len(test) - len(train) >= getattr(self, "max_history")
                 split._add_test_slice(test)
 
         return split

@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import List, Optional
 
@@ -18,13 +31,15 @@ from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.block.scaler import NOPScaler, Scaler
 from gluonts.core.component import validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.forecast import QuantileForecast, parse_quantile_input
+from gluonts.model.forecast import QuantileForecast, Quantile
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
-from gluonts.time_feature.lag import time_features_from_frequency_str
+from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.trainer import Trainer
-from gluonts.transform import ExpectedNumInstanceSampler, FieldName
+from gluonts.transform import ExpectedNumInstanceSampler
+from gluonts.model.forecast_generator import QuantileForecastGenerator
 
 # Relative imports
 from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
@@ -48,9 +63,9 @@ class Seq2SeqEstimator(GluonEstimator):
         decoder_mlp_static_dim: int,
         scaler: Scaler = NOPScaler(),
         context_length: Optional[int] = None,
-        num_eval_samples: int = 100,
-        quantiles: List[float] = list([0.1, 0.5, 0.9]),
+        quantiles: List[float] = [0.1, 0.5, 0.9],
         trainer: Trainer = Trainer(),
+        num_parallel_samples: int = 100,
     ) -> None:
         assert (
             prediction_length > 0
@@ -61,7 +76,6 @@ class Seq2SeqEstimator(GluonEstimator):
 
         super().__init__(trainer=trainer)
 
-        self.num_eval_samples = num_eval_samples
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
@@ -76,6 +90,7 @@ class Seq2SeqEstimator(GluonEstimator):
             cardinalities=cardinality,
             embedding_dims=[embedding_dimension for _ in cardinality],
         )
+        self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> transform.Transformation:
         return transform.Chain(
@@ -84,9 +99,9 @@ class Seq2SeqEstimator(GluonEstimator):
                     field=FieldName.TARGET, expected_ndim=1
                 ),
                 transform.AddTimeFeatures(
-                    start_field=transform.FieldName.START,
-                    target_field=transform.FieldName.TARGET,
-                    output_field=transform.FieldName.FEAT_TIME,
+                    start_field=FieldName.START,
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_TIME,
                     time_features=time_features_from_frequency_str(self.freq),
                     pred_length=self.prediction_length,
                 ),
@@ -101,10 +116,10 @@ class Seq2SeqEstimator(GluonEstimator):
                     field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
                 ),
                 transform.InstanceSplitter(
-                    target_field=transform.FieldName.TARGET,
-                    is_pad_field=transform.FieldName.IS_PAD,
-                    start_field=transform.FieldName.START,
-                    forecast_start_field=transform.FieldName.FORECAST_START,
+                    target_field=FieldName.TARGET,
+                    is_pad_field=FieldName.IS_PAD,
+                    start_field=FieldName.START,
+                    forecast_start_field=FieldName.FORECAST_START,
                     train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     past_length=self.context_length,
                     future_length=self.prediction_length,
@@ -140,7 +155,9 @@ class Seq2SeqEstimator(GluonEstimator):
         trained_network: Seq2SeqTrainingNetwork,
     ) -> Predictor:
         # todo: this is specific to quantile output
-        quantile_strs = [parse_quantile_input(q)[1] for q in self.quantiles]
+        quantile_strs = [
+            Quantile.from_float(quantile).name for quantile in self.quantiles
+        ]
 
         prediction_network = Seq2SeqPredictionNetwork(
             embedder=trained_network.embedder,
@@ -160,8 +177,7 @@ class Seq2SeqEstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_cls_name=QuantileForecast.__name__,
-            forecast_kwargs=dict(forecast_keys=quantile_strs),
+            forecast_generator=QuantileForecastGenerator(quantile_strs),
         )
 
 
@@ -178,9 +194,9 @@ class MLP2QRForecaster(Seq2SeqEstimator):
         decoder_mlp_static_dim: int,
         scaler: Scaler = NOPScaler,
         context_length: Optional[int] = None,
-        num_eval_samples: int = 100,
         quantiles: List[float] = list([0.1, 0.5, 0.9]),
         trainer: Trainer = Trainer(),
+        num_parallel_samples: int = 100,
     ) -> None:
         encoder = MLPEncoder(layer_sizes=encoder_mlp_layer)
         super(MLP2QRForecaster, self).__init__(
@@ -193,9 +209,9 @@ class MLP2QRForecaster(Seq2SeqEstimator):
             decoder_mlp_static_dim=decoder_mlp_static_dim,
             context_length=context_length,
             scaler=scaler,
-            num_eval_samples=num_eval_samples,
             quantiles=quantiles,
             trainer=trainer,
+            num_parallel_samples=num_parallel_samples,
         )
 
 
@@ -211,13 +227,13 @@ class RNN2QRForecaster(Seq2SeqEstimator):
         encoder_rnn_num_hidden: int,
         decoder_mlp_layer: List[int],
         decoder_mlp_static_dim: int,
-        encoder_rnn_model: str = 'lstm',
+        encoder_rnn_model: str = "lstm",
         encoder_rnn_bidirectional: bool = True,
         scaler: Scaler = NOPScaler,
         context_length: Optional[int] = None,
-        num_eval_samples: int = 100,
         quantiles: List[float] = list([0.1, 0.5, 0.9]),
         trainer: Trainer = Trainer(),
+        num_parallel_samples: int = 100,
     ) -> None:
         encoder = RNNCovariateEncoder(
             mode=encoder_rnn_model,
@@ -235,9 +251,9 @@ class RNN2QRForecaster(Seq2SeqEstimator):
             decoder_mlp_static_dim=decoder_mlp_static_dim,
             context_length=context_length,
             scaler=scaler,
-            num_eval_samples=num_eval_samples,
             quantiles=quantiles,
             trainer=trainer,
+            num_parallel_samples=num_parallel_samples,
         )
 
 
@@ -253,9 +269,9 @@ class CNN2QRForecaster(Seq2SeqEstimator):
         decoder_mlp_static_dim: int,
         scaler: Scaler = NOPScaler,
         context_length: Optional[int] = None,
-        num_eval_samples: int = 100,
         quantiles: List[float] = list([0.1, 0.5, 0.9]),
         trainer: Trainer = Trainer(),
+        num_parallel_samples: int = 100,
     ) -> None:
         encoder = HierarchicalCausalConv1DEncoder(
             dilation_seq=[1, 3, 9],
@@ -275,7 +291,7 @@ class CNN2QRForecaster(Seq2SeqEstimator):
             decoder_mlp_static_dim=decoder_mlp_static_dim,
             context_length=context_length,
             scaler=scaler,
-            num_eval_samples=num_eval_samples,
             quantiles=quantiles,
             trainer=trainer,
+            num_parallel_samples=num_parallel_samples,
         )

@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import List, Optional
 
@@ -6,23 +19,19 @@ import numpy as np
 from mxnet.gluon import HybridBlock
 
 # First-party imports
-from gluonts import transform
 from gluonts.core.component import DType, validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.kernels import KernelOutput, RBFKernelOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
-from gluonts.time_feature.lag import (
-    TimeFeature,
-    time_features_from_frequency_str,
-)
+from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     CanonicalInstanceSplitter,
     Chain,
-    FieldName,
     SetFieldIfNotPresent,
     TestSplitSampler,
     Transformation,
@@ -36,7 +45,7 @@ from ._network import (
 
 
 class GaussianProcessEstimator(GluonEstimator):
-    """
+    r"""
     GaussianProcessEstimator shows how to build a local time series model using
     Gaussian Processes (GP).
 
@@ -61,27 +70,28 @@ class GaussianProcessEstimator(GluonEstimator):
     cardinality
         Number of time series.
     trainer
-        Trainer instance to be used for model training.
+        Trainer instance to be used for model training (default: Trainer()).
     context_length
-        Training length.
-    num_eval_samples
-        Number of samples to be drawn.
+        Training length (default: None, in which case context_length = prediction_length).
     kernel_output
         KernelOutput instance to determine which kernel subclass to be
-        instantiated.
+        instantiated (default: RBFKernelOutput()).
     params_scaling
-        Determines whether or not to scale the model parameters.
+        Determines whether or not to scale the model parameters (default: True).
     float_type
-        Determines whether to use single or double precision.
+        Determines whether to use single or double precision (default: np.float64).
     max_iter_jitter
-        Maximum number of iterations for jitter to iteratively make the matrix positive definite.
+        Maximum number of iterations for jitter to iteratively make the matrix positive definite (default: 10).
     jitter_method
-        Iteratively jitter method or use eigenvalue decomposition depending on problem size.
+        Iteratively jitter method or use eigenvalue decomposition depending on problem size (default: "iter").
     sample_noise
-        Boolean to determine whether to add :math:`\sigma^2I` to the predictive covariance matrix.
+        Boolean to determine whether to add :math:`\sigma^2I` to the predictive covariance matrix (default: True).
     time_features
         Time features to use as inputs of the model (default: None, in which
-        case these are automatically determined based on the frequency.)
+        case these are automatically determined based on the frequency).
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100).
     """
 
     @validated()
@@ -92,14 +102,14 @@ class GaussianProcessEstimator(GluonEstimator):
         cardinality: int,
         trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
-        num_eval_samples: int = 100,
         kernel_output: KernelOutput = RBFKernelOutput(),
         params_scaling: bool = True,
         float_type: DType = np.float64,
         max_iter_jitter: int = 10,
-        jitter_method: str = 'iter',
+        jitter_method: str = "iter",
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
+        num_parallel_samples: int = 100,
     ) -> None:
         self.float_type = float_type
         super().__init__(trainer=trainer, float_type=self.float_type)
@@ -112,8 +122,8 @@ class GaussianProcessEstimator(GluonEstimator):
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert (
-            num_eval_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -121,7 +131,6 @@ class GaussianProcessEstimator(GluonEstimator):
             context_length if context_length is not None else prediction_length
         )
         self.cardinality = cardinality
-        self.num_eval_samples = num_eval_samples
         self.kernel_output = kernel_output
         self.params_scaling = params_scaling
         self.max_iter_jitter = max_iter_jitter
@@ -132,6 +141,7 @@ class GaussianProcessEstimator(GluonEstimator):
             if time_features is not None
             else time_features_from_frequency_str(self.freq)
         )
+        self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> Transformation:
         return Chain(
@@ -147,9 +157,7 @@ class GaussianProcessEstimator(GluonEstimator):
                 SetFieldIfNotPresent(
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
-                AsNumpyArray(
-                    field=transform.FieldName.FEAT_STATIC_CAT, expected_ndim=1
-                ),
+                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
                 CanonicalInstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,
@@ -184,7 +192,7 @@ class GaussianProcessEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             context_length=self.context_length,
             cardinality=self.cardinality,
-            num_samples=self.num_eval_samples,
+            num_samples=self.num_parallel_samples,
             params=trained_network.collect_params(),
             kernel_output=self.kernel_output,
             params_scaling=self.params_scaling,

@@ -21,23 +21,29 @@ from ._base import (
     MonthOfYear,
     TimeFeature,
     WeekOfYear,
+    time_features_from_frequency_str,
 )
 
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
 
-from .lag import get_granularity, get_lags_for_frequency
+from .lag import get_lags_for_frequency
 
 __all__ = [
-    'DayOfMonth',
-    'DayOfWeek',
-    'DayOfYear',
-    'HourOfDay',
-    'MinuteOfHour',
-    'MonthOfYear',
-    'TimeFeature',
-    'WeekOfYear',
-    'SPECIAL_DATE_FEATURES',
-    'SpecialDateFeatureSet',
-    'get_granularity',
-    'get_lags_for_frequency',
+    "DayOfMonth",
+    "DayOfWeek",
+    "DayOfYear",
+    "HourOfDay",
+    "MinuteOfHour",
+    "MonthOfYear",
+    "TimeFeature",
+    "WeekOfYear",
+    "SPECIAL_DATE_FEATURES",
+    "SpecialDateFeatureSet",
+    "get_lags_for_frequency",
+    "time_features_from_frequency_str",
 ]
+
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

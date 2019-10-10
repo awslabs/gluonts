@@ -31,7 +31,7 @@ To send us a pull request, please:
 
 1. Fork the repository.
 2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
-3. Ensure local tests pass.
+3. Ensure local tests pass by executing `pytest`.
 4. Commit to your fork using clear commit messages.
 5. Send us a pull request, answering any default questions in the pull request interface.
 6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
@@ -50,16 +50,40 @@ type checking. Any code changes that you contribute should pass these checks.
 The easiest way to get set up for development is to run the following script:
 
 ```bash
+# first fork the repo on github
+
+# then clone your fork
+git clone https://github.com/<your-github-username>/gluon-ts.git
+
+# enter the cloned repo
+cd gluon-ts
+
+# run development setup
 ./dev_setup.sh
+
+# install GluonTS from current source with shell dependencies
+pip install -e ".[shell]"
 ```
+Note that windows and other versions of linux (not mac versions) will require
+something slightly different to initiate the `dev_setup.sh` script.
 
 This will install all the requirements and also install a git hook that runs
-all code checks when you commit.
+all code checks when you commit. This also separates your workflow so that
+pull-requests go through your forked repo and then into upstream if approved.
 
+You may wish to familiarize yourself with forked repositories on github, for
+more see:
+https://help.github.com/en/articles/working-with-forks
+
+To avoid conflicts with existing python installations you may want to setup
+a virtual environment. For more on virtual environments in python see:
+https://docs.python.org/3/tutorial/venv.html
+for python virtual environments and
+https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+for conda virtual environments.
 
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/gluon-ts/labels/help%20wanted) issues is a great place to start.
-
 
 ## Code of Conduct
 This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).

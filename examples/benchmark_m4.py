@@ -73,7 +73,7 @@ def evaluate(dataset_name, estimator):
     dataset = get_dataset(dataset_name)
     estimator = estimator(
         prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.time_granularity,
+        freq=dataset.metadata.freq,
     )
 
     print(f"evaluating {estimator} on {dataset}")

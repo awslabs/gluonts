@@ -30,7 +30,7 @@ class MixtureDistribution(Distribution):
     r"""
     A mixture distribution where each component is a Distribution.
 
-    Paremeters
+    Parameters
     ----------
     mixture_probs
         A tensor of mixing probabilities. The entries should all be positive
@@ -50,6 +50,7 @@ class MixtureDistribution(Distribution):
 
     is_reparameterizable = False
 
+    @validated()
     def __init__(
         self, mixture_probs: Tensor, components: List[Distribution], F=None
     ) -> None:
@@ -94,21 +95,26 @@ class MixtureDistribution(Distribution):
 
     @property
     def mean(self) -> Tensor:
-        return self.F.sum(
-            [
-                pi * d.mean()
-                for pi, d, in zip(self.mixture_probs, self.components)
-            ],
-            axis=-1,
+        F = self.F
+        mean_values = F.stack(*[c.mean for c in self.components], axis=-1)
+        return F.sum(
+            F.broadcast_mul(mean_values, self.mixture_probs, axis=-1), axis=-1
         )
+
+    def cdf(self, x: Tensor) -> Tensor:
+        F = self.F
+        cdf_values = F.stack(*[c.cdf(x) for c in self.components], axis=-1)
+        erg = F.sum(
+            F.broadcast_mul(cdf_values, self.mixture_probs, axis=-1), axis=-1
+        )
+        return erg
 
     @property
     def stddev(self) -> Tensor:
-        return self.F.sum(
-            [
-                pi * d.stddev()
-                for pi, d, in zip(self.mixture_probs, self.components)
-            ],
+        F = self.F
+        stddev_values = F.stack(*[c.stddev for c in self.components], axis=-1)
+        return F.sum(
+            F.broadcast_mul(stddev_values, self.mixture_probs, axis=-1),
             axis=-1,
         )
 
@@ -142,10 +148,10 @@ class MixtureArgs(gluon.HybridBlock):
             self.proj_mixture_probs = gluon.nn.HybridSequential()
             self.proj_mixture_probs.add(
                 gluon.nn.Dense(
-                    self.num_components, prefix=f'{prefix}_pi_', flatten=False
+                    self.num_components, prefix=f"{prefix}_pi_", flatten=False
                 )
             )
-            self.proj_mixture_probs.add(gluon.nn.HybridLambda('softmax'))
+            self.proj_mixture_probs.add(gluon.nn.HybridLambda("softmax"))
 
             for k, do in enumerate(distr_outputs):
                 self.component_projections.append(

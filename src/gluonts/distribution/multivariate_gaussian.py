@@ -27,6 +27,7 @@ from gluonts.distribution.distribution import (
 )
 from gluonts.distribution.distribution_output import DistributionOutput
 from gluonts.model.common import Tensor
+from gluonts.support.linalg_util import lower_triangular_ones
 
 
 class MultivariateGaussian(Distribution):
@@ -48,6 +49,7 @@ class MultivariateGaussian(Distribution):
 
     is_reparameterizable = True
 
+    @validated()
     def __init__(
         self, mu: Tensor, L: Tensor, F=None, float_type: DType = np.float32
     ) -> None:
@@ -143,12 +145,6 @@ class MultivariateGaussianOutput(DistributionOutput):
         self.dim = dim
         self.mask = None
 
-    def lower_triangular_ones(self, F, d: int) -> Tensor:
-        mask = F.zeros_like(F.eye(d))
-        for k in range(d):
-            mask = mask + F.eye(d, d, -k)
-        return mask
-
     def domain_map(self, F, mu_vector, L_vector):
         # apply softplus to the diagonal of L and mask upper coefficient to make it lower-triangular
         # diagonal matrix whose elements are diagonal elements of L mapped through a softplus
@@ -159,12 +155,12 @@ class MultivariateGaussianOutput(DistributionOutput):
 
         L_diag = F.broadcast_mul(
             F.Activation(
-                F.broadcast_mul(L_matrix, F.eye(d)), act_type='softrelu'
+                F.broadcast_mul(L_matrix, F.eye(d)), act_type="softrelu"
             ),
             F.eye(d),
         )
 
-        mask = self.lower_triangular_ones(F, d)
+        mask = lower_triangular_ones(F, d, offset=1)
 
         L_low = F.broadcast_mul(L_matrix, mask)
 

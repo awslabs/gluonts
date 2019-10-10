@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 from pathlib import Path
 import os
 import json
@@ -15,15 +28,15 @@ def generate_m4_dataset(
         "https://github.com/M4Competition/M4-methods/raw/master/Dataset"
     )
     train_df = pd.read_csv(
-        f'{m4_dataset_url}/Train/{m4_freq}-train.csv', index_col=0
+        f"{m4_dataset_url}/Train/{m4_freq}-train.csv", index_col=0
     )
     test_df = pd.read_csv(
-        f'{m4_dataset_url}/Test/{m4_freq}-test.csv', index_col=0
+        f"{m4_dataset_url}/Test/{m4_freq}-test.csv", index_col=0
     )
 
     os.makedirs(dataset_path, exist_ok=True)
 
-    with open(dataset_path / 'metadata.json', 'w') as f:
+    with open(dataset_path / "metadata.json", "w") as f:
         f.write(
             json.dumps(
                 metadata(
@@ -44,7 +57,7 @@ def generate_m4_dataset(
         for train_ts, test_ts in zip(train_target_values, test_df.values)
     ]
 
-    if m4_freq == 'Yearly':
+    if m4_freq == "Yearly":
         # some time series have more than 300 years which can not be represented in pandas,
         # this is probably due to a misclassification of those time series as Yearly
         # we simply use only the last 300 years for training

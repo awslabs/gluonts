@@ -47,14 +47,14 @@ class JsonLinesFile:
     """
     An iterable type that draws from a JSON Lines file.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     path
         Path of the file to load data from. This should be a valid
         JSON Lines file.
     """
 
-    def __init__(self, path):
+    def __init__(self, path) -> None:
         self.path = path
 
     def __iter__(self):
@@ -63,7 +63,7 @@ class JsonLinesFile:
                 span = Span(path=self.path, line=line_number)
                 try:
                     yield Line(json.loads(raw), span=span)
-                except ValueError as _:
+                except ValueError:
                     raise GluonTSDataError(
                         f"Could not read json line {line_number}, {raw}"
                     )
@@ -74,4 +74,4 @@ class JsonLinesFile:
 
         with open(self.path) as file_obj:
             read_chunk = functools.partial(file_obj.read, BUF_SIZE)
-            return sum(chunk.count('\n') for chunk in iter(read_chunk, ''))
+            return sum(chunk.count("\n") for chunk in iter(read_chunk, ""))

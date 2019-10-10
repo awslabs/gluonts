@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import List
 
@@ -66,7 +79,7 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             self.mlp = mx.gluon.nn.HybridSequential()
             dims = self.num_hidden_dimensions
             for layer_no, units in enumerate(dims[:-1]):
-                self.mlp.add(mx.gluon.nn.Dense(units=units, activation='relu'))
+                self.mlp.add(mx.gluon.nn.Dense(units=units, activation="relu"))
                 if self.batch_normalization:
                     self.mlp.add(mx.gluon.nn.BatchNorm())
             self.mlp.add(mx.gluon.nn.Dense(units=prediction_length * dims[-1]))
@@ -144,9 +157,11 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
 
 class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
     @validated()
-    def __init__(self, num_sample_paths: int, *args, **kwargs) -> None:
+    def __init__(
+        self, num_parallel_samples: int = 100, *args, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.num_sample_paths = num_sample_paths
+        self.num_parallel_samples = num_parallel_samples
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
@@ -169,7 +184,7 @@ class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
         distr = self.get_distr(F, past_target)
 
         # (num_samples, batch_size, prediction_length)
-        samples = distr.sample(self.num_sample_paths)
+        samples = distr.sample(self.num_parallel_samples)
 
         # (batch_size, num_samples, prediction_length)
         return samples.swapaxes(0, 1)

@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from itertools import chain, combinations
 
@@ -46,12 +59,12 @@ mx.random.seed(78_431_519)
     )(10, 20),
 )
 def test_feature_embedder(config, hybridize):
-    out_shape = config['shape'][:-1] + (
-        sum(config['kwargs']['embedding_dims']),
+    out_shape = config["shape"][:-1] + (
+        sum(config["kwargs"]["embedding_dims"]),
     )
 
     embed_feature = FeatureEmbedder(
-        prefix='embed_feature_', **config['kwargs']
+        prefix="embed_feature_", **config["kwargs"]
     )
     embed_feature.collect_params().initialize(mx.initializer.One())
 
@@ -60,15 +73,15 @@ def test_feature_embedder(config, hybridize):
 
     def test_parameters_length():
         exp_params_len = len(embed_feature.collect_params().keys())
-        act_params_len = len(config['kwargs']['embedding_dims'])
+        act_params_len = len(config["kwargs"]["embedding_dims"])
         assert exp_params_len == act_params_len
 
     def test_parameter_names():
         for param in embed_feature.collect_params():
-            assert param.startswith('embed_feature_')
+            assert param.startswith("embed_feature_")
 
     def test_forward_pass():
-        act_output = embed_feature(mx.nd.ones(shape=config['shape']))
+        act_output = embed_feature(mx.nd.ones(shape=config["shape"]))
         exp_output = mx.nd.ones(shape=out_shape)
 
         assert act_output.shape == exp_output.shape
@@ -94,12 +107,12 @@ def test_feature_embedder(config, hybridize):
                 embed_static=dict(
                     cardinalities=[2, 4],
                     embedding_dims=[3, 6],
-                    prefix='static_cat_',
+                    prefix="static_cat_",
                 ),
                 embed_dynamic=dict(
                     cardinalities=[30, 30, 30],
                     embedding_dims=[10, 20, 30],
-                    prefix='dynamic_cat_',
+                    prefix="dynamic_cat_",
                 ),
             )
         ]
@@ -108,10 +121,10 @@ def test_feature_embedder(config, hybridize):
 def test_feature_assembler(config, hybridize):
     # iterate over the power-set of all possible feature types, excluding the empty set
     feature_types = {
-        'static_cat',
-        'static_real',
-        'dynamic_cat',
-        'dynamic_real',
+        "static_cat",
+        "static_real",
+        "dynamic_cat",
+        "dynamic_real",
     }
     feature_combs = chain.from_iterable(
         combinations(feature_types, r)
@@ -119,7 +132,7 @@ def test_feature_assembler(config, hybridize):
     )
 
     # iterate over the power-set of all possible feature types, including the empty set
-    embedder_types = {'embed_static', 'embed_dynamic'}
+    embedder_types = {"embed_static", "embed_dynamic"}
     embedder_combs = chain.from_iterable(
         combinations(embedder_types, r)
         for r in range(0, len(embedder_types) + 1)
@@ -127,19 +140,19 @@ def test_feature_assembler(config, hybridize):
 
     for enabled_embedders in embedder_combs:
         embed_static = (
-            FeatureEmbedder(**config['embed_static'])
-            if 'embed_static' in enabled_embedders
+            FeatureEmbedder(**config["embed_static"])
+            if "embed_static" in enabled_embedders
             else None
         )
         embed_dynamic = (
-            FeatureEmbedder(**config['embed_dynamic'])
-            if 'embed_dynamic' in enabled_embedders
+            FeatureEmbedder(**config["embed_dynamic"])
+            if "embed_dynamic" in enabled_embedders
             else None
         )
 
         for enabled_features in feature_combs:
             assemble_feature = FeatureAssembler(
-                T=config['T'],
+                T=config["T"],
                 # use_static_cat='static_cat' in enabled_features,
                 # use_static_real='static_real' in enabled_features,
                 # use_dynamic_cat='dynamic_cat' in enabled_features,
@@ -156,8 +169,8 @@ def test_feature_assembler(config, hybridize):
             def test_parameters_length():
                 exp_params_len = sum(
                     [
-                        len(config[k]['embedding_dims'])
-                        for k in ['embed_static', 'embed_dynamic']
+                        len(config[k]["embedding_dims"])
+                        for k in ["embed_static", "embed_dynamic"]
                         if k in enabled_embedders
                     ]
                 )
@@ -167,28 +180,28 @@ def test_feature_assembler(config, hybridize):
             def test_parameter_names():
                 if embed_static:
                     for param in embed_static.collect_params():
-                        assert param.startswith('static_cat_')
+                        assert param.startswith("static_cat_")
                 if embed_dynamic:
                     for param in embed_dynamic.collect_params():
-                        assert param.startswith('dynamic_cat_')
+                        assert param.startswith("dynamic_cat_")
 
             def test_forward_pass():
-                N, T = config['N'], config['T']
+                N, T = config["N"], config["T"]
 
                 inp_features = []
                 out_features = []
 
-                if 'static_cat' not in enabled_features:
+                if "static_cat" not in enabled_features:
                     inp_features.append(mx.nd.zeros(shape=(N, 1)))
                     out_features.append(mx.nd.zeros(shape=(N, T, 1)))
                 elif embed_static:  # and 'static_cat' in enabled_features
-                    C = config['static_cat']['C']
+                    C = config["static_cat"]["C"]
                     inp_features.append(
                         mx.nd.concat(
                             *[
                                 mx.nd.random.uniform(
                                     0,
-                                    config['embed_static']['cardinalities'][c],
+                                    config["embed_static"]["cardinalities"][c],
                                     shape=(N, 1),
                                 ).floor()
                                 for c in range(C)
@@ -201,18 +214,18 @@ def test_feature_assembler(config, hybridize):
                             shape=(
                                 N,
                                 T,
-                                sum(config['embed_static']['embedding_dims']),
+                                sum(config["embed_static"]["embedding_dims"]),
                             )
                         )
                     )
                 else:  # not embed_static and 'static_cat' in enabled_features
-                    C = config['static_cat']['C']
+                    C = config["static_cat"]["C"]
                     inp_features.append(
                         mx.nd.concat(
                             *[
                                 mx.nd.random.uniform(
                                     0,
-                                    config['embed_static']['cardinalities'][c],
+                                    config["embed_static"]["cardinalities"][c],
                                     shape=(N, 1),
                                 ).floor()
                                 for c in range(C)
@@ -227,11 +240,11 @@ def test_feature_assembler(config, hybridize):
                         )
                     )
 
-                if 'static_real' not in enabled_features:
+                if "static_real" not in enabled_features:
                     inp_features.append(mx.nd.zeros(shape=(N, 1)))
                     out_features.append(mx.nd.zeros(shape=(N, T, 1)))
                 else:
-                    C = config['static_real']['C']
+                    C = config["static_real"]["C"]
                     static_real = mx.nd.random.uniform(0, 100, shape=(N, C))
                     inp_features.append(static_real)
                     out_features.append(
@@ -240,17 +253,17 @@ def test_feature_assembler(config, hybridize):
                         )
                     )
 
-                if 'dynamic_cat' not in enabled_features:
+                if "dynamic_cat" not in enabled_features:
                     inp_features.append(mx.nd.zeros(shape=(N, T, 1)))
                     out_features.append(mx.nd.zeros(shape=(N, T, 1)))
                 elif embed_dynamic:  # and 'static_cat' in enabled_features
-                    C = config['dynamic_cat']['C']
+                    C = config["dynamic_cat"]["C"]
                     inp_features.append(
                         mx.nd.concat(
                             *[
                                 mx.nd.random.uniform(
                                     0,
-                                    config['embed_dynamic']['cardinalities'][
+                                    config["embed_dynamic"]["cardinalities"][
                                         c
                                     ],
                                     shape=(N, T, 1),
@@ -265,18 +278,18 @@ def test_feature_assembler(config, hybridize):
                             shape=(
                                 N,
                                 T,
-                                sum(config['embed_dynamic']['embedding_dims']),
+                                sum(config["embed_dynamic"]["embedding_dims"]),
                             )
                         )
                     )
                 else:  # not embed_dynamic and 'dynamic_cat' in enabled_features
-                    C = config['dynamic_cat']['C']
+                    C = config["dynamic_cat"]["C"]
                     inp_features.append(
                         mx.nd.concat(
                             *[
                                 mx.nd.random.uniform(
                                     0,
-                                    config['embed_dynamic']['cardinalities'][
+                                    config["embed_dynamic"]["cardinalities"][
                                         c
                                     ],
                                     shape=(N, T, 1),
@@ -288,11 +301,11 @@ def test_feature_assembler(config, hybridize):
                     )
                     out_features.append(inp_features[-1])
 
-                if 'dynamic_real' not in enabled_features:
+                if "dynamic_real" not in enabled_features:
                     inp_features.append(mx.nd.zeros(shape=(N, T, 1)))
                     out_features.append(mx.nd.zeros(shape=(N, T, 1)))
                 else:
-                    C = config['dynamic_real']['C']
+                    C = config["dynamic_real"]["C"]
                     dynamic_real = mx.nd.random.uniform(
                         0, 100, shape=(N, T, C)
                     )

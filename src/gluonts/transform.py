@@ -27,6 +27,7 @@ from gluonts.core.exception import GluonTSDateBoundsError, assert_data_error
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import ScaleHistogram
 from gluonts.time_feature import TimeFeature
+from gluonts.runtime_params import GLUONTS_MAX_IDLE_TRANSFORMS
 
 
 def serialize_data_entry(data_entry: DataEntry) -> Dict:
@@ -51,39 +52,20 @@ def serialize_data_entry(data_entry: DataEntry) -> Dict:
     }
 
 
-class FieldName:
+def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
     """
-    A bundle of default field names to be used by clients when instantiating
-    transformer instances.
+    Computes a shifted timestamp.
+
+    Basic wrapping around pandas ``ts + offset`` with caching and exception
+    handling.
     """
-
-    START = 'start'
-    TARGET = 'target'
-
-    FEAT_STATIC_CAT = 'feat_static_cat'
-    FEAT_STATIC_REAL = 'feat_static_real'
-    FEAT_DYNAMIC_CAT = 'feat_dynamic_cat'
-    FEAT_DYNAMIC_REAL = 'feat_dynamic_real'
-
-    FEAT_TIME = 'time_feat'
-    FEAT_CONST = 'feat_dynamic_const'
-    FEAT_AGE = 'feat_dynamic_age'
-
-    OBSERVED_VALUES = 'observed_values'
-    IS_PAD = 'is_pad'
-    FORECAST_START = 'forecast_start'
-
-
-def compute_date(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
-    """
-    Computes an offsetted timestamp.
-    Basic wrapping around pandas `ts + offset` with caching and exception handling.
-    """
-    return _compute_date_helper(ts, ts.freq, offset)
+    return _shift_timestamp_helper(ts, ts.freq, offset)
 
 
 @lru_cache(maxsize=10000)
-def _compute_date_helper(ts, freq, offset):
+def _shift_timestamp_helper(
+    ts: pd.Timestamp, freq: str, offset: int
+) -> pd.Timestamp:
     """
     We are using this helper function which explicitly uses the frequency as a
     parameter, because the frequency is not included in the hash of a time
@@ -92,17 +74,13 @@ def _compute_date_helper(ts, freq, offset):
     I.e.
       pd.Timestamp(x, freq='1D')  and pd.Timestamp(x, freq='1min')
 
-    hash to the same value
-
+    hash to the same value.
     """
     try:
         # this line looks innocent, but can create a date which is out of
         # bounds values over year 9999 raise a ValueError
         # values over 2262-04-11 raise a pandas OutOfBoundsDatetime
-        result = ts + offset * ts.freq
-        # For freq M and W pandas seems to lose the freq of the timestamp,
-        # so we explicitly set it.
-        return pd.Timestamp(result, freq=ts.freq)
+        return ts + offset * ts.freq
     except (ValueError, pd._libs.OutOfBoundsDatetime) as ex:
         raise GluonTSDateBoundsError(ex)
 
@@ -342,14 +320,25 @@ class FlatMapTransformation(Transformation):
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
     ) -> Iterator:
+        num_idle_transforms = 0
         for data_entry in data_it:
+            num_idle_transforms += 1
             try:
                 for result in self.flatmap_transform(
                     data_entry.copy(), is_train
                 ):
+                    num_idle_transforms = 0
                     yield result
             except Exception as e:
                 raise e
+            if num_idle_transforms > GLUONTS_MAX_IDLE_TRANSFORMS:
+                raise Exception(
+                    f"Reached maximum number of idle transformation calls.\n"
+                    f"This means the transformation looped over "
+                    f"GLUONTS_MAX_IDLE_TRANSFORMS={GLUONTS_MAX_IDLE_TRANSFORMS} "
+                    f"inputs without returning any output.\n"
+                    f"This occurred in the following transformation:\n{self}"
+                )
 
     @abc.abstractmethod
     def flatmap_transform(
@@ -367,6 +356,18 @@ class FilterTransformation(FlatMapTransformation):
     ) -> Iterator[DataEntry]:
         if self.condition(data):
             yield data
+
+
+class RemoveFields(SimpleTransformation):
+    @validated()
+    def __init__(self, field_names: List[str]) -> None:
+        self.field_names = field_names
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        for k in self.field_names:
+            if k in data.keys():
+                del data[k]
+        return data
 
 
 class SetField(SimpleTransformation):
@@ -450,8 +451,8 @@ class AsNumpyArray(SimpleTransformation):
         assert_data_error(
             value.ndim >= self.expected_ndim,
             'Input for field "{self.field}" does not have the required'
-            'dimension (field: {self.field}, ndim observed: {value.ndim}, '
-            'expected ndim: {self.expected_ndim})',
+            "dimension (field: {self.field}, ndim observed: {value.ndim}, "
+            "expected ndim: {self.expected_ndim})",
             value=value,
             self=self,
         )
@@ -485,7 +486,9 @@ class ExpandDimArray(SimpleTransformation):
 
 class VstackFeatures(SimpleTransformation):
     """
-    Stack fields together using `np.vstack`.
+    Stack fields together using ``np.vstack``.
+
+    Fields with value ``None`` are ignored.
 
     Parameters
     ----------
@@ -515,7 +518,11 @@ class VstackFeatures(SimpleTransformation):
         )
 
     def transform(self, data: DataEntry) -> DataEntry:
-        r = [data[fname] for fname in self.input_fields]
+        r = [
+            data[fname]
+            for fname in self.input_fields
+            if data[fname] is not None
+        ]
         output = np.vstack(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
@@ -525,7 +532,9 @@ class VstackFeatures(SimpleTransformation):
 
 class ConcatFeatures(SimpleTransformation):
     """
-    Concatenate values together using `np.concatenate`.
+    Concatenate fields together using ``np.concatenate``.
+
+    Fields with value ``None`` are ignored.
 
     Parameters
     ----------
@@ -555,7 +564,11 @@ class ConcatFeatures(SimpleTransformation):
         )
 
     def transform(self, data: DataEntry) -> DataEntry:
-        r = [data[fname] for fname in self.input_fields]
+        r = [
+            data[fname]
+            for fname in self.input_fields
+            if data[fname] is not None
+        ]
         output = np.concatenate(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
@@ -592,8 +605,8 @@ class SwapAxes(SimpleTransformation):
             return [self.swap(x) for x in v]
         else:
             raise ValueError(
-                f'Unexpected field type {type(v).__name__}, expected '
-                f'np.ndarray or list[np.ndarray]'
+                f"Unexpected field type {type(v).__name__}, expected "
+                f"np.ndarray or list[np.ndarray]"
             )
 
 
@@ -637,10 +650,9 @@ class ListFeatures(SimpleTransformation):
 
 class AddObservedValuesIndicator(SimpleTransformation):
     """
-    Replaces missing values in a numpy array (NaNs) with a dummy value and adds an "observed"-indicator
-    that is
-      1 - when values are observed
-      0 - when values are missing
+    Replaces missing values in a numpy array (NaNs) with a dummy value and adds
+    an "observed"-indicator that is ``1`` when values are observed and ``0``
+    when values are missing.
 
 
     Parameters
@@ -699,7 +711,7 @@ class RenameFields(SimpleTransformation):
         self.mapping = mapping
         values_count = Counter(mapping.values())
         for new_key, count in values_count.items():
-            assert count == 1, f'Mapped key {new_key} occurs multiple time'
+            assert count == 1, f"Mapped key {new_key} occurs multiple time"
 
     def transform(self, data: DataEntry):
         for key, new_key in self.mapping.items():
@@ -801,7 +813,7 @@ class AddTimeFeatures(MapTransformation):
         self._date_index: pd.DatetimeIndex = None
 
     def _update_cache(self, start: pd.Timestamp, length: int) -> None:
-        end = compute_date(start, length)
+        end = shift_timestamp(start, length)
         if self._min_time_point is not None:
             if self._min_time_point <= start and end <= self._max_time_point:
                 return
@@ -809,9 +821,11 @@ class AddTimeFeatures(MapTransformation):
             self._min_time_point = start
             self._max_time_point = end
         self._min_time_point = min(
-            compute_date(start, -50), self._min_time_point
+            shift_timestamp(start, -50), self._min_time_point
         )
-        self._max_time_point = max(compute_date(end, 50), self._max_time_point)
+        self._max_time_point = max(
+            shift_timestamp(end, 50), self._max_time_point
+        )
         self.full_date_range = pd.date_range(
             self._min_time_point, self._max_time_point, freq=start.freq
         )
@@ -969,10 +983,10 @@ class InstanceSplitter(FlatMapTransformation):
         self.pick_incomplete = pick_incomplete
 
     def _past(self, col_name):
-        return f'past_{col_name}'
+        return f"past_{col_name}"
 
     def _future(self, col_name):
-        return f'future_{col_name}'
+        return f"future_{col_name}"
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
@@ -1039,7 +1053,9 @@ class InstanceSplitter(FlatMapTransformation):
                     ].transpose()
 
             d[self._past(self.is_pad_field)] = pad_indicator
-            d[self.forecast_start_field] = compute_date(d[self.start_field], i)
+            d[self.forecast_start_field] = shift_timestamp(
+                d[self.start_field], i
+            )
             yield d
 
 
@@ -1133,10 +1149,10 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         self.prediction_length = prediction_length
 
     def _past(self, col_name):
-        return f'past_{col_name}'
+        return f"past_{col_name}"
 
     def _future(self, col_name):
-        return f'future_{col_name}'
+        return f"future_{col_name}"
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
@@ -1167,7 +1183,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
             pad_length = max(self.instance_length - i, 0)
 
             # update start field
-            d[self.start_field] = compute_date(
+            d[self.start_field] = shift_timestamp(
                 data[self.start_field], i - self.instance_length
             )
 
@@ -1207,7 +1223,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 
                 del d[ts_field]
 
-            d[self.forecast_start_field] = compute_date(
+            d[self.forecast_start_field] = shift_timestamp(
                 d[self.start_field], self.instance_length
             )
 

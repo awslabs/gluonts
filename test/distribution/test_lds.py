@@ -1,7 +1,21 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 import pytest
 import json
 import gzip
+import os
 
 # Third-party imports
 import numpy as np
@@ -17,6 +31,8 @@ def assert_shape_and_finite(x, shape):
     assert not np.isinf(x.asnumpy()).any()
 
 
+current_path = os.path.dirname(os.path.abspath(__file__))
+
 # The following files contain different sets of LDS parameters
 # (coefficients and noise terms) and observations, and the log-density
 # of the observations that were computed using pykalman
@@ -24,11 +40,13 @@ def assert_shape_and_finite(x, shape):
 @pytest.mark.parametrize(
     "data_filename",
     [
-        "./test/distribution/test_lds_data/data_level_issm.json.gz",
-        "./test/distribution/test_lds_data/data_level_trend_issm.json.gz",
-        (
-            "./test/distribution/test_lds_data/"
-            + "data_level_trend_weekly_seasonal_issm.json.gz"
+        os.path.join(current_path, "test_lds_data/data_level_issm.json.gz"),
+        os.path.join(
+            current_path, "test_lds_data/data_level_trend_issm.json.gz"
+        ),
+        os.path.join(
+            current_path,
+            "test_lds_data/data_level_trend_weekly_seasonal_issm.json.gz",
         ),
     ],
 )
@@ -38,7 +56,7 @@ def test_lds_likelihood(data_filename):
     innovation state space models (ISSM).
     Note that ISSM is a special case of LDS.
     """
-    with gzip.GzipFile(data_filename, 'r') as fp:
+    with gzip.GzipFile(data_filename, "r") as fp:
         data = json.load(fp=fp)
 
     lds = LDS(

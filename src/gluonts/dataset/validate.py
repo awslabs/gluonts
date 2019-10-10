@@ -19,7 +19,7 @@ from gluonts.dataset.jsonl import JsonLinesFile
 def test_file(path):
     for raw_dataset in JsonLinesFile(path):
         TimeSeriesItem.parse_obj(raw_dataset.content)
-    print('ok')
+    print("ok")
 
 
 def run():
@@ -28,5 +28,5 @@ def run():
     test_file(sys.argv[1])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

@@ -17,6 +17,8 @@ from typing import Dict, Optional, Tuple
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.support.util import erf, erfinv
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
@@ -39,6 +41,7 @@ class Gaussian(Distribution):
 
     is_reparameterizable = True
 
+    @validated()
     def __init__(self, mu: Tensor, sigma: Tensor, F=None) -> None:
         self.mu = mu
         self.sigma = sigma
@@ -73,6 +76,13 @@ class Gaussian(Distribution):
     def stddev(self) -> Tensor:
         return self.sigma
 
+    def cdf(self, x):
+        F = self.F
+        u = F.broadcast_div(
+            F.broadcast_minus(x, self.mu), self.sigma * math.sqrt(2.0)
+        )
+        return (erf(F, u) + 1.0) / 2.0
+
     def sample(self, num_samples: Optional[int] = None) -> Tensor:
         return _sample_multiple(
             self.F.sample_normal,
@@ -90,6 +100,20 @@ class Gaussian(Distribution):
 
         return _sample_multiple(
             s, mu=self.mu, sigma=self.sigma, num_samples=num_samples
+        )
+
+    def quantile(self, level: Tensor) -> Tensor:
+        F = self.F
+        # we consider level to be an independent axis and so expand it
+        # to shape (num_levels, 1, 1, ...)
+        for _ in range(self.all_dim):
+            level = level.expand_dims(axis=-1)
+
+        return F.broadcast_add(
+            self.mu,
+            F.broadcast_mul(
+                self.sigma, math.sqrt(2.0) * erfinv(F, 2.0 * level - 1.0)
+            ),
         )
 
 

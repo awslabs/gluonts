@@ -29,7 +29,7 @@ class RNN(HybridBlock):
         type of the RNN. Can be either: rnn_relu (RNN with relu activation),
         rnn_tanh, (RNN with tanh activation), lstm or gru.
 
-    hidden_size
+    num_hidden
         number of units per hidden layer.
 
     num_layers
@@ -51,34 +51,34 @@ class RNN(HybridBlock):
         super(RNN, self).__init__(**kwargs)
 
         with self.name_scope():
-            if mode == 'rnn_relu':
+            if mode == "rnn_relu":
                 self.rnn = rnn.RNN(
                     num_hidden,
                     num_layers,
                     bidirectional=bidirectional,
-                    activation='relu',
-                    layout='NTC',
+                    activation="relu",
+                    layout="NTC",
                 )
-            elif mode == 'rnn_tanh':
+            elif mode == "rnn_tanh":
                 self.rnn = rnn.RNN(
                     num_hidden,
                     num_layers,
                     bidirectional=bidirectional,
-                    layout='NTC',
+                    layout="NTC",
                 )
-            elif mode == 'lstm':
+            elif mode == "lstm":
                 self.rnn = rnn.LSTM(
                     num_hidden,
                     num_layers,
                     bidirectional=bidirectional,
-                    layout='NTC',
+                    layout="NTC",
                 )
-            elif mode == 'gru':
+            elif mode == "gru":
                 self.rnn = rnn.GRU(
                     num_hidden,
                     num_layers,
                     bidirectional=bidirectional,
-                    layout='NTC',
+                    layout="NTC",
                 )
             else:
                 raise ValueError(

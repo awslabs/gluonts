@@ -27,7 +27,7 @@ def nans_like(x: Tensor) -> Tensor:
 
 
 def softplus(F, x: Tensor) -> Tensor:
-    return F.Activation(x, act_type='softrelu')
+    return F.Activation(x, act_type="softrelu")
 
 
 def getF(var: Tensor):
@@ -170,6 +170,13 @@ class Distribution:
         """
         return len(self.batch_shape)
 
+    @property
+    def all_dim(self) -> int:
+        r"""
+        Number of overall dimensions.
+        """
+        return self.batch_dim + self.event_dim
+
     def sample(self, num_samples: Optional[int] = None) -> Tensor:
         r"""
         Draw samples from the distribution.
@@ -216,6 +223,35 @@ class Distribution:
         Tensor containing the variance of the distribution.
         """
         return self.stddev.square()
+
+    def cdf(self, x: Tensor) -> Tensor:
+        r"""
+        Returns the value of the cumulative distribution function evaluated at x
+        """
+        raise NotImplementedError()
+
+    def quantile(self, level: Tensor) -> Tensor:
+        r"""
+
+        Calculates quantiles for the given levels.
+
+        Parameters
+        ----------
+        level
+            Level values to use for computing the quantiles.
+            `level` should be a 1d tensor of level values between 0 and 1.
+
+        Returns
+        -------
+        quantiles
+            Quantile values corresponding to the levels passed.
+            The return shape is
+
+               (num_levels, ...DISTRIBUTION_SHAPE...),
+
+            where DISTRIBUTION_SHAPE is the shape of the underlying distribution.
+        """
+        raise NotImplementedError()
 
 
 def _expand_param(p: Tensor, num_samples: Optional[int] = None) -> Tensor:

@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Third-party imports
 import mxnet as mx
 import numpy as np
@@ -49,3 +62,31 @@ def test_cumsum(vec) -> None:
         f"reverse cumsum (exclusive) did not match: "
         f"expected: {np_reverse_cumsum_excl}, obtained: {reverse_cumsum_excl}"
     )
+
+
+def test_erf() -> None:
+    try:
+        from scipy.special import erf as scipy_erf
+    except:
+        pytest.skip("scipy not installed skipping test for erf")
+
+    x = np.array(
+        [-1000, -100, -10]
+        + np.linspace(-5, 5, 1001).tolist()
+        + [10, 100, 1000]
+    )
+    y_mxnet = util.erf(mx.nd, mx.nd.array(x)).asnumpy()
+    y_scipy = scipy_erf(x)
+    assert np.allclose(y_mxnet, y_scipy)
+
+
+def test_erfinv() -> None:
+    try:
+        from scipy.special import erfinv as scipy_erfinv
+    except:
+        pytest.skip("scipy not installed skipping test for erf")
+
+    x = np.linspace(-1.0 + 1.0e-4, 1 - 1.0e-4, 11)
+    y_mxnet = util.erfinv(mx.nd, mx.nd.array(x)).asnumpy()
+    y_scipy = scipy_erfinv(x)
+    assert np.allclose(y_mxnet, y_scipy, rtol=1e-3)

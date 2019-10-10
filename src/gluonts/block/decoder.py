@@ -56,10 +56,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
     """
     Multilayer perceptron decoder for sequence-to-sequence models.
 
-    See following paper for details:
-        Wen, R., Torkkola, K., and Narayanaswamy, B. (2017).
-        A multi-horizon quantile recurrent forecaster.
-        arXiv preprint arXiv:1711.11053.
+    See [WTN+17]_ for details.
 
     Parameters
     ----------
@@ -94,7 +91,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
                 layer = nn.Dense(
                     dec_len * layer_dim,
                     flatten=False,
-                    activation='relu',
+                    activation="relu",
                     prefix=f"mlp_{layer_no:#02d}'_",
                 )
                 self.model.add(layer)
@@ -102,7 +99,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
             layer = nn.Dense(
                 dec_len * final_dim,
                 flatten=False,
-                activation='relu',
+                activation="softrelu",
                 prefix=f"mlp_{len(hidden_dimension_sequence):#02d}'_",
             )
             self.model.add(layer)

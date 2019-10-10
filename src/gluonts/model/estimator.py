@@ -11,15 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-from typing import Tuple
-
 # Standard library imports
+from typing import NamedTuple
+
+# Third-party imports
 import numpy as np
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
 
 # First-party imports
+import gluonts
 from gluonts.core import fqname_for
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
@@ -39,6 +40,8 @@ class Estimator:
     a training `Dataset`, producing a `Predictor` object.
     """
 
+    __version__: str = gluonts.__version__
+
     prediction_length: int
     freq: str
 
@@ -57,6 +60,10 @@ class Estimator:
             The predictor containing the trained model.
         """
         raise NotImplementedError
+
+    @classmethod
+    def from_hyperparameters(cls, **hyperparameters):
+        return from_hyperparameters(cls, **hyperparameters)
 
 
 class DummyEstimator(Estimator):
@@ -79,9 +86,11 @@ class DummyEstimator(Estimator):
     def train(self, training_data: Dataset) -> Predictor:
         return self.predictor
 
-    @classmethod
-    def from_hyperparameters(cls, **hyperparameters):
-        return from_hyperparameters(cls, **hyperparameters)
+
+class TrainOutput(NamedTuple):
+    transformation: Transformation
+    trained_net: HybridBlock
+    predictor: Predictor
 
 
 class GluonEstimator(Estimator):
@@ -100,20 +109,20 @@ class GluonEstimator(Estimator):
         self.float_type = float_type
 
     @classmethod
-    def from_hyperparameters(cls, **hyperparameters) -> 'GluonEstimator':
-        Model = getattr(cls.__init__, 'Model', None)
+    def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
+        Model = getattr(cls.__init__, "Model", None)
 
         if not Model:
             raise AttributeError(
-                f'Cannot find attribute Model attached to the '
-                f'{fqname_for(cls)}. Most probably you have forgotten to mark '
-                f'the class constructor as @validated().'
+                f"Cannot find attribute Model attached to the "
+                f"{fqname_for(cls)}. Most probably you have forgotten to mark "
+                f"the class constructor as @validated()."
             )
 
         try:
             trainer = from_hyperparameters(Trainer, **hyperparameters)
             return cls(
-                **Model(**{**hyperparameters, 'trainer': trainer}).__values__
+                **Model(**{**hyperparameters, "trainer": trainer}).__values__
             )
         except ValidationError as e:
             raise GluonTSHyperparametersError from e
@@ -155,9 +164,7 @@ class GluonEstimator(Estimator):
         """
         raise NotImplementedError
 
-    def train_model(
-        self, training_data: Dataset
-    ) -> Tuple[Transformation, HybridBlock]:
+    def train_model(self, training_data: Dataset) -> TrainOutput:
         transformation = self.create_transformation()
 
         transformation.estimate(iter(training_data))
@@ -182,13 +189,15 @@ class GluonEstimator(Estimator):
             train_iter=training_data_loader,
         )
 
-        return transformation, trained_net
+        with self.trainer.ctx:
+            # ensure that the prediction network is created within the same MXNet
+            # context as the one that was used during training
+            return TrainOutput(
+                transformation=transformation,
+                trained_net=trained_net,
+                predictor=self.create_predictor(transformation, trained_net),
+            )
 
     def train(self, training_data: Dataset) -> Predictor:
 
-        training_transformation, trained_net = self.train_model(training_data)
-
-        # ensure that the prediction network is created within the same MXNet
-        # context as the one that was used during training
-        with self.trainer.ctx:
-            return self.create_predictor(training_transformation, trained_net)
+        return self.train_model(training_data).predictor

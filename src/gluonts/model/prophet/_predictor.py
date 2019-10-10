@@ -1,54 +1,124 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
-from typing import Callable, Dict, Iterator, Optional
+from typing import Callable, Dict, Iterator, NamedTuple, Optional, List
 
 # Third-party imports
+import numpy as np
 import pandas as pd
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
-from gluonts.model.forecast import SampleForecast
+from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.model.forecast import SampleForecast, Config
 from gluonts.model.predictor import RepresentablePredictor
 
+try:
+    from fbprophet import Prophet
+except ImportError:
+    Prophet = None
+
+PROPHET_IS_INSTALLED = Prophet is not None
+
 USAGE_MESSAGE = """
-The `ProphetPredictor` is a thin wrapper for calling the Prophet package.
-In order to use it you need to install fbprophet
+Cannot import `fbprophet`.
 
-pip install fbprophet
+The `ProphetPredictor` is a thin wrapper for calling the `fbprophet` package.
+In order to use it you need to install it using one of the following two
+methods:
 
+    # 1) install fbprophet directly
+    pip install fbprophet
+
+    # 2) install gluonts with the Prophet extras
+    pip install gluonts[Prophet]
 """
+
+
+def feat_name(i: int) -> str:
+    """The canonical name of a feature with index `i`."""
+    return f"feat_dynamic_real_{i:03d}"
+
+
+class ProphetDataEntry(NamedTuple):
+    """
+    A named tuple containing relevant base and derived data that is
+    required in order to call Prophet.
+    """
+
+    train_length: int
+    prediction_length: int
+    start: pd.Timestamp
+    target: np.ndarray
+    feat_dynamic_real: List[np.ndarray]
+
+    @property
+    def prophet_training_data(self) -> pd.DataFrame:
+        return pd.DataFrame(
+            data={
+                **{
+                    "ds": pd.date_range(
+                        start=self.start,
+                        periods=self.train_length,
+                        freq=self.start.freq,
+                    ),
+                    "y": self.target,
+                },
+                **{
+                    feat_name(i): feature[: self.train_length]
+                    for i, feature in enumerate(self.feat_dynamic_real)
+                },
+            }
+        )
+
+    @property
+    def forecast_start(self) -> pd.Timestamp:
+        return self.start + self.train_length * self.start.freq
 
 
 class ProphetPredictor(RepresentablePredictor):
     """
     Wrapper around `Prophet <https://github.com/facebook/prophet>`_.
 
-    The `ProphetPredictor` is a thin wrapper for calling the Prophet package.
-    In order to use it you need to install fbprophet::
+    The `ProphetPredictor` is a thin wrapper for calling the `fbprophet`
+    package. In order to use it you need to install the package::
 
+        # you can either install Prophet directly
         pip install fbprophet
+
+        # or install gluonts with the Prophet extras
+        pip install gluonts[Prophet]
 
     Parameters
     ----------
+    freq
+        Time frequency of the data, e.g. '1H'
     prediction_length
         Number of time points to predict
-    freq
-        Time frequency of the data, e.g. "1H"
-    num_samples
+    num_eval_samples
         Number of samples to draw for predictions
-    params
-        Parameters to pass when instantiating the prophet model,
-        e.g. `fbprophet.Prophet(**params)`
-    model_callback
+    prophet_params
+        Parameters to pass when instantiating the prophet model.
+    init_model
         An optional function that will be called with the configured model.
         This can be used to configure more complex setups, e.g.
 
-    Examples
-    --------
-    >>> def configure_model(model):
-    ...     model.add_seasonality(
-    ...         name='weekly', period=7, fourier_order=3, prior_scale=0.1
-    ...     )
+        >>> def configure_model(model):
+        ...     model.add_seasonality(
+        ...         name='weekly', period=7, fourier_order=3, prior_scale=0.1
+        ...     )
+        ...     return model
     """
 
     @validated()
@@ -57,72 +127,92 @@ class ProphetPredictor(RepresentablePredictor):
         freq: str,
         prediction_length: int,
         num_eval_samples: int = 100,
-        params: Optional[Dict] = None,
-        model_callback: Optional[Callable] = None,
+        prophet_params: Optional[Dict] = None,
+        init_model: Callable = lambda m: m,
     ) -> None:
-        try:
-            import fbprophet
-        except ImportError as e:
-            raise ImportError(str(e) + USAGE_MESSAGE) from e
+        super().__init__(prediction_length, freq)
 
-        self._fbprophet = fbprophet
+        if not PROPHET_IS_INSTALLED:
+            raise ImportError(USAGE_MESSAGE)
 
-        self.prediction_length = prediction_length
-        self.freq = freq
+        if prophet_params is None:
+            prophet_params = {}
+
+        assert "uncertainty_samples" not in prophet_params, (
+            "Parameter 'uncertainty_samples' should not be set directly. "
+            "Please use 'num_eval_samples' instead."
+        )
+
+        prophet_params.update(uncertainty_samples=num_eval_samples)
+
         self.num_eval_samples = num_eval_samples
-        self.params = params if params is not None else {}
-        assert (
-            'uncertainty_samples' not in self.params
-        ), "parameter 'uncertainty_samples' should not be set directly. Please use num_samples."
-        self._cb = (
-            model_callback if model_callback is not None else lambda m: m
-        )
+        self.prophet_params = prophet_params
+        self.init_model = init_model
 
-        self.params['uncertainty_samples'] = self.num_eval_samples
-        self.model_callback = model_callback
-
-    def _prepare_input_df(self, d):
-        index = pd.date_range(
-            d["start"], periods=len(d["target"]), freq=self.freq
-        )
-        df = pd.DataFrame({"ds": index, "y": d["target"]})
-        return df
-
-    def predict(
-        self, dataset: Dataset, num_eval_samples=None, **kwargs
-    ) -> Iterator[SampleForecast]:
+    def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
         for entry in dataset:
-            if isinstance(entry, dict):
-                data = entry
-            else:
-                data = entry.data
-            params = self.params.copy()
-            num_eval_samples = (
-                num_eval_samples
-                if num_eval_samples is not None
-                else self.num_eval_samples
-            )
-            params['uncertainty_samples'] = num_eval_samples
-            forecast = self._run_prophet(data, params)
-            samples = forecast['yhat'].T
-            forecast_start = pd.Timestamp(data['start'], freq=self.freq) + len(
-                data['target']
-            )
-            assert samples.shape == (
-                num_eval_samples,
-                self.prediction_length,
-            ), samples.shape
+            data = self._make_prophet_data_entry(entry)
+
+            forecast_samples = self._run_prophet(data)
+
             yield SampleForecast(
-                samples, forecast_start, forecast_start.freqstr
+                samples=forecast_samples,
+                start_date=data.forecast_start,
+                freq=self.freq,
             )
 
-    def _run_prophet(self, d, params):
-        m = self._fbprophet.Prophet(**params)
-        self._cb(m)
-        inp = self._prepare_input_df(d)
-        model = m.fit(inp)
-        future_df = model.make_future_dataframe(
-            self.prediction_length, freq=self.freq, include_history=False
+    def _run_prophet(self, data: ProphetDataEntry) -> np.array:
+        """
+        Construct and run a :class:`Prophet` model on the given
+        :class:`ProphetDataEntry` and return the resulting array of samples.
+        """
+
+        prophet = self.init_model(Prophet(**self.prophet_params))
+
+        # Register dynamic features as regressors to the model
+        for i in range(len(data.feat_dynamic_real)):
+            prophet.add_regressor(feat_name(i))
+
+        prophet.fit(data.prophet_training_data)
+
+        future_df = prophet.make_future_dataframe(
+            periods=self.prediction_length,
+            freq=self.freq,
+            include_history=False,
         )
-        forecast = model.predictive_samples(future_df)
-        return forecast
+
+        # Add dynamic features in the prediction range
+        for i, feature in enumerate(data.feat_dynamic_real):
+            future_df[feat_name(i)] = feature[data.train_length :]
+
+        prophet_result = prophet.predictive_samples(future_df)
+
+        return prophet_result["yhat"].T
+
+    def _make_prophet_data_entry(self, entry: DataEntry) -> ProphetDataEntry:
+        """
+        Construct a :class:`ProphetDataEntry` from a regular
+        :class:`DataEntry`.
+        """
+
+        train_length = len(entry["target"])
+        prediction_length = self.prediction_length
+        start = entry["start"]
+        target = entry["target"]
+        feat_dynamic_real = entry.get("feat_dynamic_real", [])
+
+        # make sure each dynamic feature has the desired length
+        for i, feature in enumerate(feat_dynamic_real):
+            assert len(feature) == train_length + prediction_length, (
+                f"Length mismatch for dynamic real-valued feature #{i}: "
+                f"expected {train_length + prediction_length}, "
+                f"got {len(feature)}"
+            )
+
+        return ProphetDataEntry(
+            train_length=train_length,
+            prediction_length=prediction_length,
+            start=start,
+            target=target,
+            feat_dynamic_real=feat_dynamic_real,
+        )

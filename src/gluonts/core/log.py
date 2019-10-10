@@ -18,10 +18,10 @@ from typing import Any
 
 from gluonts.core.serde import dump_code
 
-DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
-logger = logging.getLogger('SWIST')
+logger = logging.getLogger("gluonts")
 
 
 def metric(metric: str, value: Any) -> None:
@@ -35,4 +35,4 @@ def metric(metric: str, value: Any) -> None:
     value
         The metric value to be reported.
     """
-    logger.info(f'gluonts[{metric}]: {dump_code(value)}')
+    logger.info(f"gluonts[{metric}]: {dump_code(value)}")

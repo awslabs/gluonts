@@ -1,7 +1,20 @@
-'''
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
+"""
 Test that maximizing likelihood allows to correctly recover distribution parameters for all
 distributions exposed to the user.
-'''
+"""
 # Standard library imports
 from typing import Iterable, List, Tuple
 
@@ -37,10 +50,10 @@ from gluonts.distribution import (
     BinnedOutput,
 )
 from gluonts.distribution.transformed_distribution_output import (
-    TransformedDistributionOutput
+    TransformedDistributionOutput,
 )
 from gluonts.distribution.transformed_distribution import (
-    TransformedDistribution
+    TransformedDistribution,
 )
 
 
@@ -82,8 +95,8 @@ def maximum_likelihood_estimate_sgd(
 
     trainer = mx.gluon.Trainer(
         arg_proj.collect_params(),
-        'sgd',
-        {'learning_rate': learning_rate, 'clip_gradient': 10.0},
+        "sgd",
+        {"learning_rate": learning_rate, "clip_gradient": 10.0},
     )
 
     # The input data to our model is one-dimensional
@@ -125,9 +138,9 @@ def maximum_likelihood_estimate_sgd(
 def test_studentT_likelihood(
     mu: float, sigma: float, nu: float, hybridize: bool
 ) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
 
     # generate samples
     mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
@@ -168,9 +181,9 @@ def test_studentT_likelihood(
 @pytest.mark.parametrize("mu, sigma", [(1.0, 0.1)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_gaussian_likelihood(mu: float, sigma: float, hybridize: bool):
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
 
     # generate samples
     mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
@@ -296,11 +309,11 @@ def test_lowrank_multivariate_gaussian() -> None:
 @pytest.mark.parametrize("mu", [6.0])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_deterministic_l2(mu: float, hybridize: bool) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters.
     This tests uses the Gaussian distribution with fixed variance and sample mean.
     This essentially reduces to determistic L2.
-    '''
+    """
     # generate samples
     mu = mu
     mus = mx.nd.zeros(NUM_SAMPLES) + mu
@@ -330,11 +343,11 @@ def test_deterministic_l2(mu: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("mu", [1.0])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_deterministic_l1(mu: float, hybridize: bool) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters.
     This tests uses the Laplace distribution with fixed variance and sample mean.
     This essentially reduces to determistic L1.
-    '''
+    """
     # generate samples
     mu = mu
     mus = mx.nd.zeros(NUM_SAMPLES) + mu
@@ -364,9 +377,9 @@ def test_deterministic_l1(mu: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("mu_alpha", [(2.5, 0.7)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
     # test instance
     mu, alpha = mu_alpha
 
@@ -402,9 +415,9 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
 @pytest.mark.parametrize("mu_b", [(3.3, 0.7)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_laplace(mu_b: Tuple[float, float], hybridize: bool) -> None:
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
     # test instance
     mu, b = mu_b
 
@@ -443,9 +456,9 @@ def test_piecewise_linear(
     knot_spacings: np.ndarray,
     hybridize: bool,
 ) -> None:
-    '''
+    """
     Test to check that minimizing the CRPS recovers the quantile function
-    '''
+    """
     num_samples = 500  # use a few samples for timeout failure
 
     gammas = mx.nd.zeros((num_samples,)) + gamma
@@ -496,7 +509,7 @@ def test_piecewise_linear(
 
     # Compute quantiles with the estimated parameters
     quantiles_hat = np.squeeze(
-        pwl_sqf_hat.quantile(
+        pwl_sqf_hat.quantile_internal(
             mx.nd.array(quantile_levels).expand_dims(axis=0), axis=1
         ).asnumpy()
     )
@@ -504,7 +517,7 @@ def test_piecewise_linear(
     # Compute quantiles with the original parameters
     # Since params is replicated across samples we take only the first entry
     quantiles = np.squeeze(
-        pwl_sqf.quantile(
+        pwl_sqf.quantile_internal(
             mx.nd.array(quantile_levels)
             .expand_dims(axis=0)
             .repeat(axis=0, repeats=num_samples),
@@ -529,9 +542,9 @@ def test_piecewise_linear(
 def test_box_cox_tranform(
     lam_1: float, lam_2: float, mu: float, sigma: float, hybridize: bool
 ):
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
 
     # generate samples
     lamdas_1 = mx.nd.zeros((NUM_SAMPLES,)) + lam_1
@@ -545,7 +558,7 @@ def test_box_cox_tranform(
     # Here the base distribution is Guassian which is transformed to
     # non-Gaussian via the inverse Box-Cox transform.
     # Sampling from `trans_distr` gives non-Gaussian samples
-    trans_distr = TransformedDistribution(gausian_distr, transform)
+    trans_distr = TransformedDistribution(gausian_distr, [transform])
 
     # Given the non-Gaussian samples find the true parameters
     # of the Box-Cox transformation as well as the underlying Gaussian distribution.
@@ -589,13 +602,17 @@ def test_box_cox_tranform(
 @pytest.mark.parametrize(
     "bin_probabilites", [np.array([0.3, 0.1, 0.05, 0.2, 0.1, 0.25])]
 )
-@pytest.mark.parametrize("hybridize", [True, False])
+# some strange mxnet issue similar to this: https://github.com/apache/incubator-mxnet/issues/14228
+# prevents hybridization for the maximum_likelihood_estimate_sgd test testing function.
+# However, BinnedOutput does work with hybridize in a normal model.
+# @pytest.mark.parametrize("hybridize", [True, False])
+@pytest.mark.parametrize("hybridize", [False])
 def test_binned_likelihood(
     num_bins: float, bin_probabilites: np.ndarray, hybridize: bool
 ):
-    '''
+    """
     Test to check that maximizing the likelihood recovers the parameters
-    '''
+    """
 
     bin_prob = mx.nd.array(bin_probabilites)
     bin_center = mx.nd.array(np.logspace(-1, 1, num_bins))
@@ -613,8 +630,8 @@ def test_binned_likelihood(
 
     init_biases = [bin_prob_init]
 
-    bin_prob_hat, = maximum_likelihood_estimate_sgd(
-        BinnedOutput(list(bin_center.asnumpy())),
+    bin_prob_hat, _ = maximum_likelihood_estimate_sgd(
+        BinnedOutput(bin_center),
         samples,
         init_biases=init_biases,
         hybridize=hybridize,

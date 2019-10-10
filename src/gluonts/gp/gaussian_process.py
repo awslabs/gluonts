@@ -40,9 +40,9 @@ class GaussianProcess:
         prediction_length: Optional[int] = None,
         context_length: Optional[int] = None,
         num_samples: Optional[int] = None,
-        ctx: mx.Context = mx.Context('cpu'),
+        ctx: mx.Context = mx.Context("cpu"),
         float_type: DType = np.float64,
-        jitter_method: str = 'iter',
+        jitter_method: str = "iter",
         max_iter_jitter: int = 10,
         neg_tol: float = -1e-8,
         diag_weight: float = 1e-6,
@@ -50,7 +50,7 @@ class GaussianProcess:
         sample_noise: bool = True,
         F=None,
     ) -> None:
-        """
+        r"""
         Parameters
         ----------
         sigma
@@ -118,7 +118,7 @@ class GaussianProcess:
         num_data_points: Optional[int] = None,
         noise: bool = True,
     ) -> Tensor:
-        """
+        r"""
         Parameters
         --------------------
         kernel_matrix
@@ -147,7 +147,7 @@ class GaussianProcess:
             )
         # Warning: This method is more expensive than the iterative jitter
         # but it works for mx.sym
-        if self.jitter_method == 'eig':
+        if self.jitter_method == "eig":
             return jitter_cholesky_eig(
                 self.F,
                 kernel_matrix,
@@ -156,7 +156,7 @@ class GaussianProcess:
                 self.float_type,
                 self.diag_weight,
             )
-        elif self.jitter_method == 'iter' and self.F is mx.nd:
+        elif self.jitter_method == "iter" and self.F is mx.nd:
             return jitter_cholesky(
                 self.F,
                 kernel_matrix,
@@ -174,12 +174,32 @@ class GaussianProcess:
     def log_prob(self, x_train: Tensor, y_train: Tensor) -> Tensor:
         r"""
         This method computes the negative marginal log likelihood
-        :math:`-\frac{1}{2} (d \log(2\pi) + \log(|K|) + y^TK^{-1}y)`,
-        where :math:`d` is the dimension.
+        
+        .. math::
+            :nowrap:
+
+                \begin{aligned}
+                    \frac{1}{2} [d \log(2\pi) + \log(|K|) + y^TK^{-1}y],
+                \end{aligned}
+
+        where :math:`d` is the number of data points.
         This can be written in terms of the Cholesky factor  :math:`L` as
-        :math:`\log(|K|) = \log(|LL^T|) = \log(|L||L|^T) = \log(|L|^2) = 2\log(|L|)`
-        :math:`= 2\log(\prod_i^n L_{ii}) = 2 \sum_i^N \log(L_{ii})` and
-        :math:`y^TK^{-1}y = (y^TL^{-T})(L^{-1}y) = (L^{-1}y)^T(L^{-1}y) = ||L^{-1}y||_2^2`.
+
+        .. math::
+            :nowrap:
+
+            \begin{aligned}
+                \log(|K|) = \log(|LL^T|) &= \log(|L||L|^T) = \log(|L|^2) = 2\log(|L|) \\
+                &= 2\log\big(\prod_i^n L_{ii}\big) = 2 \sum_i^N \log(L_{ii})
+            \end{aligned}
+                 and
+
+        .. math::
+            :nowrap:
+
+                 \begin{aligned}
+                    y^TK^{-1}y = (y^TL^{-T})(L^{-1}y) = (L^{-1}y)^T(L^{-1}y) = ||L^{-1}y||_2^2.
+                \end{aligned}
 
         Parameters
         --------------------
@@ -205,7 +225,7 @@ class GaussianProcess:
         ).log_prob(y_train)
 
     def sample(self, mean: Tensor, covariance: Tensor) -> Tensor:
-        """
+        r"""
         Parameters
         ----------
         covariance
@@ -351,7 +371,7 @@ class GaussianProcess:
             x_train = x_train[ts_idx, :, :].asnumpy()
             if y_train is not None:
                 y_train = y_train[ts_idx, :].asnumpy()
-                plt.plot(x_train, y_train, 'bs', ms=8)
+                plt.plot(x_train, y_train, "bs", ms=8)
         if x_test is not None:
             x_test = x_test[ts_idx, :, :].asnumpy()
             if samples is not None:
@@ -359,7 +379,7 @@ class GaussianProcess:
                 plt.plot(x_test, samples)
             if mean is not None:
                 mean = mean[ts_idx, :].asnumpy()
-                plt.plot(x_test, mean, 'r--', lw=2)
+                plt.plot(x_test, mean, "r--", lw=2)
                 if std is not None:
                     std = std[ts_idx, :].asnumpy()
                     plt.gca().fill_between(
@@ -370,5 +390,5 @@ class GaussianProcess:
                     )
         if axis is not None:
             plt.axis(axis)
-        plt.title(f'Samples from GP for time series {ts_idx}')
+        plt.title(f"Samples from GP for time series {ts_idx}")
         plt.show()

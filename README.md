@@ -1,5 +1,7 @@
 # GluonTS - Probabilistic Time Series Modeling in Python
 
+![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square) ![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)
+
 GluonTS is a Python toolkit for probabilistic time series modeling,
 built around [Apache MXNet (incubating)](https://mxnet.incubator.apache.org/).
 
@@ -107,7 +109,8 @@ centered around the median (dark green line).
 The following are good entry-points to understand how to use
 many features of GluonTS:
 
-* [GluonTS Forecasting Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/forecasting/tutorial.md): a tutorial on forecasting.
+* [Quick Start Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/basic_forecasting_tutorial/tutorial.md): a quick start guide.
+* [Extended Forecasting Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/extended_forecasting_tutorial/extended_tutorial.md): a detailed tutorial on forecasting.
 * [evaluate_model.py](https://github.com/awslabs/gluon-ts/tree/master/examples/evaluate_model.py): how to train a model and compute evaluation metrics.
 * [benchmark_m4.py](https://github.com/awslabs/gluon-ts/tree/master/examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
 
@@ -121,13 +124,20 @@ The following modules illustrate how custom models can be implemented:
 If you wish to contribute to the project, please refer to our
 [contribution guidelines](https://github.com/awslabs/gluon-ts/tree/master/CONTRIBUTING.md).
 
-## How to cite GluonTS
+## Citing
 
-For technical information about GluonTS, see our paper on the arXiv ([BibTeX](gluonTS.bib)):
+If you use GluonTS in a scientific publication, we encourage you to add
+the following reference to the associated
+[paper](https://arxiv.org/abs/1906.05264):
 
-> Alexander Alexandrov, Konstantinos Benidis, Michael Bohlke-Schneider, Valentin Flunkert, 
-> Jan Gasthaus, Tim Januschowski, Danielle C. Maddix, Syama Rangapuram, David Salinas, Jasper Schulz, 
-> Lorenzo Stella, Ali Caner Türkmen, Yuyang Wang. 2019.
-> [GluonTS: Probabilistic Time Series Models in Python](https://arxiv.org/abs/1906.05264). ArXiv e-prints.
-
-
+```
+@article{gluonts,
+  title={{GluonTS: Probabilistic Time Series Modeling in Python}},
+  author={Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
+          Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
+          and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
+          Türkmen, A. C. and Wang, Y.},
+  journal={arXiv preprint arXiv:1906.05264},
+  year={2019}
+}
+```

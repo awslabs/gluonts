@@ -1,0 +1,7 @@
+{
+    "ND": 0.12845446889239298,
+    "RMSE": 1494.8842288785966,
+    "dataset": "m4_quarterly",
+    "estimator": "TransformerEstimator",
+    "mean_wQuantileLoss": 0.10526812662613398
+}

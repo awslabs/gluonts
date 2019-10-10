@@ -31,4 +31,5 @@ Interested in contributing to GluonTS? Check our contribution guide:
 .. toctree::
    :maxdepth: 3
 
+   devsetup
    contribute

@@ -1,0 +1,14 @@
+ipython
+ipykernel
+nbconvert
+nbsphinx>=0.3.4,<0.4
+notedown
+pytest-runner==2.11.*
+recommonmark
+sphinx==1.7.*
+sphinx-autobuild==0.7.*
+sphinx-autorun
+sphinx-gallery
+sphinx_rtd_theme==0.4.*
+tornado==5.1.1
+mxtheme==0.3.*

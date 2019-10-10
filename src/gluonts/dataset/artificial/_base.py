@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 import math
 import random
@@ -8,17 +21,8 @@ import numpy as np
 import pandas as pd
 
 # First-party imports
-from gluonts.dataset.common import (
-    BasicFeatureInfo,
-    CategoricalFeatureInfo,
-    DataEntry,
-    Dataset,
-    ListDataset,
-    MetaData,
-    TrainDatasets,
-)
 from gluonts.dataset.artificial.recipe import (
-    Binary,
+    BinaryHolidays,
     BinaryMarkovChain,
     Constant,
     ForEachCat,
@@ -30,6 +34,16 @@ from gluonts.dataset.artificial.recipe import (
     generate,
     take_as_list,
 )
+from gluonts.dataset.common import (
+    BasicFeatureInfo,
+    CategoricalFeatureInfo,
+    DataEntry,
+    Dataset,
+    ListDataset,
+    MetaData,
+    TrainDatasets,
+)
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
@@ -55,8 +69,8 @@ class ArtificialDataset:
     Parent class of a dataset that can be generated from code.
     """
 
-    def __init__(self, time_granularity) -> None:
-        self.time_granularity = time_granularity
+    def __init__(self, freq) -> None:
+        self.freq = freq
 
     @property
     def metadata(self) -> MetaData:
@@ -74,8 +88,8 @@ class ArtificialDataset:
     def generate(self) -> TrainDatasets:
         return TrainDatasets(
             metadata=self.metadata,
-            train=ListDataset(self.train, self.time_granularity),
-            test=ListDataset(self.test, self.time_granularity),
+            train=ListDataset(self.train, self.freq),
+            test=ListDataset(self.test, self.freq),
         )
 
 
@@ -84,7 +98,7 @@ class ConstantDataset(ArtificialDataset):
         self,
         num_timeseries: int = 10,
         num_steps: int = 30,
-        time_granularity: str = "1H",
+        freq: str = "1H",
         start: str = "2000-01-01 00:00:00",
         is_nan: bool = False,  # Generates constant dataset of 0s with explicit NaN missing values
         is_random_constant: bool = False,  # Inserts random constant value for each time series
@@ -103,7 +117,7 @@ class ConstantDataset(ArtificialDataset):
         ] = None,  # Determines whether to add holidays to the target time series
         # and to store in metadata
     ) -> None:
-        super(ConstantDataset, self).__init__(time_granularity)
+        super(ConstantDataset, self).__init__(freq)
         self.num_timeseries = num_timeseries
         self.num_steps = num_steps
         self.num_training_steps = self.num_steps // 10 * 8
@@ -124,7 +138,7 @@ class ConstantDataset(ArtificialDataset):
     @property
     def metadata(self) -> MetaData:
         metadata = MetaData(
-            time_granularity=self.time_granularity,
+            freq=self.freq,
             feat_static_cat=[
                 {
                     "name": "feat_static_cat_000",
@@ -136,7 +150,7 @@ class ConstantDataset(ArtificialDataset):
         )
         if self.is_promotions or self.holidays:
             metadata = MetaData(
-                time_granularity=self.time_granularity,
+                freq=self.freq,
                 feat_static_cat=[
                     {
                         "name": "feat_static_cat_000",
@@ -144,7 +158,9 @@ class ConstantDataset(ArtificialDataset):
                     }
                 ],
                 feat_static_real=[{"name": "feat_static_real_000"}],
-                feat_dynamic_real=[BasicFeatureInfo(name='feat_dynamic_real')],
+                feat_dynamic_real=[
+                    BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
+                ],
                 prediction_length=self.prediction_length,
             )
         return metadata
@@ -180,10 +196,12 @@ class ConstantDataset(ArtificialDataset):
             recipe_type += LinearTrend()
         if self.is_promotions:
             recipe.append(
-                ('binary_causal', BinaryMarkovChain(one_to_zero, zero_to_one))
+                ("binary_causal", BinaryMarkovChain(one_to_zero, zero_to_one))
             )
-            recipe.append(('feat_dynamic_real', Stack(['binary_causal'])))
-            recipe_type += scale_features * Lag('binary_causal', lag=0)
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_causal"]))
+            )
+            recipe_type += scale_features * Lag("binary_causal", lag=0)
         if self.holidays:
             timestamp = self.init_date()
             # Compute dates array
@@ -191,10 +209,14 @@ class ConstantDataset(ArtificialDataset):
             for i in range(num_steps):
                 dates.append(timestamp)
                 timestamp += 1
-            recipe.append(('binary_holidays', Binary(dates, self.holidays)))
-            recipe.append(('feat_dynamic_real', Stack(['binary_holidays'])))
-            recipe_type += scale_features * Lag('binary_holidays', lag=0)
-        recipe.append(('target', recipe_type))
+            recipe.append(
+                ("binary_holidays", BinaryHolidays(dates, self.holidays))
+            )
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"]))
+            )
+            recipe_type += scale_features * Lag("binary_holidays", lag=0)
+        recipe.append((FieldName.TARGET, recipe_type))
         max_train_length = num_steps - self.prediction_length
         data = RecipeDataset(
             recipe=recipe,
@@ -233,18 +255,18 @@ class ConstantDataset(ArtificialDataset):
 
     def init_date(self) -> pd.Timestamp:
         week_dict = {
-            0: 'MON',
-            1: 'TUE',
-            2: 'WED',
-            3: 'THU',
-            4: 'FRI',
-            5: 'SAT',
-            6: 'SUN',
+            0: "MON",
+            1: "TUE",
+            2: "WED",
+            3: "THU",
+            4: "FRI",
+            5: "SAT",
+            6: "SUN",
         }
         timestamp = pd.Timestamp(self.start)
-        freq_week_start = self.time_granularity
-        if freq_week_start == 'W':
-            freq_week_start = f'W-{week_dict[timestamp.weekday()]}'
+        freq_week_start = self.freq
+        if freq_week_start == "W":
+            freq_week_start = f"W-{week_dict[timestamp.weekday()]}"
         return pd.Timestamp(self.start, freq=freq_week_start)
 
     @staticmethod
@@ -311,19 +333,19 @@ class ConstantDataset(ArtificialDataset):
                         assert generated.test is not None
                         time_series = generated.test
                     # returns np array convert to list for consistency
-                    target = list(time_series)[0]['target'].tolist()
+                    target = list(time_series)[0][FieldName.TARGET].tolist()
                 else:
                     target = [constant] * num_ts_steps
             ts_data = dict(
                 start=self.start,
                 target=target,
-                item=str(i),
+                item_id=str(i),
                 feat_static_cat=[i],
                 feat_static_real=[i],
             )
             if self.is_promotions or self.holidays:
-                ts_data['feat_dynamic_real'] = list(time_series)[0][
-                    'feat_dynamic_real'
+                ts_data[FieldName.FEAT_DYNAMIC_REAL] = list(time_series)[0][
+                    FieldName.FEAT_DYNAMIC_REAL
                 ].tolist()
             res.append(ts_data)
         return res
@@ -363,6 +385,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         is_scale: bool = True,
         percentage_unique_timestamps: float = 0.07,
         is_out_of_bounds_date: bool = False,
+        seasonality: Optional[int] = None,
+        clip_values: bool = False,
     ) -> None:
         """
         :param num_series: number of time series generated in the train and
@@ -380,6 +404,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         :param is_scale: whether to add scale
         :param percentage_unique_timestamps: percentage of random start dates bounded between 0 and 1
         :param is_out_of_bounds_date: determines whether to use very old start dates and start dates far in the future
+        :param seasonality: Seasonality of the generated data. If not given uses default seasonality for frequency
+        :param clip_values: if True the values will be clipped to [min_val, max_val], otherwise linearly scales them
         """
         assert length_low > prediction_length
         super(ComplexSeasonalTimeSeries, self).__init__(freq_str)
@@ -396,24 +422,27 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         self.is_scale = is_scale
         self.percentage_unique_timestamps = percentage_unique_timestamps
         self.is_out_of_bounds_date = is_out_of_bounds_date
+        self.seasonality = seasonality
+        self.clip_values = clip_values
 
     @property
     def metadata(self) -> MetaData:
         return MetaData(
-            time_granularity=self.time_granularity,
-            prediction_length=self.prediction_length,
+            freq=self.freq, prediction_length=self.prediction_length
         )
 
     def _get_period(self) -> int:
-        if self.freq_str == 'M':
+        if self.seasonality is not None:
+            return self.seasonality
+        if self.freq_str == "M":
             return 24
-        elif self.freq_str == 'W':
+        elif self.freq_str == "W":
             return 52
-        elif self.freq_str == 'D':
+        elif self.freq_str == "D":
             return 14
-        elif self.freq_str == 'H':
+        elif self.freq_str == "H":
             return 24
-        elif self.freq_str == 'min':
+        elif self.freq_str == "min":
             return 60
         else:
             raise RuntimeError()
@@ -448,19 +477,19 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             start_y, start_m, start_d = 2013, 11, 28
             start_h, start_min = 18, 36
 
-        if self.freq_str == 'M':
-            return '%04.d-%02.d' % (start_y, start_m)
-        elif self.freq_str in ['W', 'D']:
-            return '%04.d-%02.d-%02.d' % (start_y, start_m, start_d)
-        elif self.freq_str == 'H':
-            return '%04.d-%02.d-%02.d %02.d:00:00' % (
+        if self.freq_str == "M":
+            return "%04.d-%02.d" % (start_y, start_m)
+        elif self.freq_str in ["W", "D"]:
+            return "%04.d-%02.d-%02.d" % (start_y, start_m, start_d)
+        elif self.freq_str == "H":
+            return "%04.d-%02.d-%02.d %02.d:00:00" % (
                 start_y,
                 start_m,
                 start_d,
                 start_h,
             )
         else:
-            return '%04.d-%02.d-%02.d %02.d:%02.d:00' % (
+            return "%04.d-%02.d-%02.d %02.d:%02.d:00" % (
                 start_y,
                 start_m,
                 start_d,
@@ -469,15 +498,15 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             )
 
     def _special_time_point_indicator(self, index) -> bool:
-        if self.freq_str == 'M':
+        if self.freq_str == "M":
             return index.month == 1
-        elif self.freq_str == 'W':
+        elif self.freq_str == "W":
             return index.month % 2 == 0
-        elif self.freq_str == 'D':
+        elif self.freq_str == "D":
             return index.dayofweek == 0
-        elif self.freq_str == 'H':
+        elif self.freq_str == "H":
             return index.hour == 0
-        elif self.freq_str == 'min':
+        elif self.freq_str == "min":
             return index.minute % 30 == 0
         else:
             raise RuntimeError(f'Bad freq_str value "{index}"')
@@ -486,9 +515,9 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
     def train(self) -> List[DataEntry]:
         return [
             dict(
-                start=ts['start'],
-                target=ts['target'][: -self.prediction_length],
-                item=ts['item'],
+                start=ts[FieldName.START],
+                target=ts[FieldName.TARGET][: -self.prediction_length],
+                item_id=ts[FieldName.ITEM_ID],
             )
             for ts in self.make_timeseries()
         ]
@@ -513,15 +542,10 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             length = state.randint(low=self.length_low, high=self.length_high)
             start = self._get_start(i, my_random)
             envelope = sigmoid((np.arange(length) - 20.0) / 10.0)
-            if self.is_scale:
-                scale = 0.1 * val_range * state.random_sample()
             level = 0.3 * val_range * (state.random_sample() - 0.5)
             phi = 2 * np.pi * state.random_sample()
-            T = self._get_period()
-            w = 2 * np.pi / T
-            D = 0.02 * val_range * state.random_sample()
-            if self.is_noise:
-                noise = D * state.normal(size=length)
+            period = self._get_period()
+            w = 2 * np.pi / period
             t = np.arange(length)
             idx = pd.date_range(
                 start=start, freq=self.freq_str, periods=length
@@ -529,18 +553,52 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             special_tp_indicator = self._special_time_point_indicator(idx)
             sunday_effect = state.random_sample() * special_tp_indicator
             v = np.sin(w * t + phi) + sunday_effect
+
             if self.is_scale:
+                scale = 0.1 * val_range * state.random_sample()
                 v *= scale
             v += level
             if self.is_noise:
+                noise_range = 0.02 * val_range * state.random_sample()
+                noise = noise_range * state.normal(size=length)
                 v += noise
             v = envelope * v
-            z = np.zeros_like(v)
-            v = np.max(np.vstack([v, z + self.min_val]), axis=0)
-            v = np.min(np.vstack([v, z + self.max_val]), axis=0)
+            if self.clip_values:
+                np.clip(v, a_min=self.min_val, a_max=self.max_val, out=v)
+            else:
+                """
+                Rather than mapping [v_min, v_max] to [self.min_val, self.max_val] which would lead to
+                all the time series having the same min and max, we want to keep the same interval length
+                (v_max - v_min). We thus shift the interval [v_min, v_max] in [self.min_val, self.max_val]
+                and clip it if needed.
+                """
+                v_min, v_max = v.min(), v.max()
+                p_min, p_max = (
+                    max(self.min_val, v_min),
+                    min(self.max_val, v_max),
+                )
+                shifted_min = np.clip(
+                    p_min + (p_max - v_max),
+                    a_min=self.min_val,
+                    a_max=self.max_val,
+                )
+                shifted_max = np.clip(
+                    p_max + (p_min - v_min),
+                    a_min=self.min_val,
+                    a_max=self.max_val,
+                )
+                v = shifted_min + (shifted_max - shifted_min) * (v - v_min) / (
+                    v_max - v_min
+                )
 
             if self.is_integer:
-                v = v.astype(np.int)
+                np.clip(
+                    v,
+                    a_min=np.ceil(self.min_val),
+                    a_max=np.floor(self.max_val),
+                    out=v,
+                )
+                v = np.round(v).astype(int)
             v = list(v.tolist())
             if self.proportion_missing_values > 0:
                 assert (
@@ -556,7 +614,13 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                     # Using convention that there are no missing values before the start date.
                     if j != 0:
                         v[j] = None if state.rand() < 0.5 else "NaN"
-            res.append(dict(start=start, target=v, item=i))
+            res.append(
+                dict(
+                    start=pd.Timestamp(start, freq=self.freq_str),
+                    target=np.array(v),
+                    item_id=i,
+                )
+            )
         return res
 
 
@@ -597,7 +661,7 @@ class RecipeDataset(ArtificialDataset):
                (shortened) training length
         :param data_start: Start date for the data set
         """
-        super().__init__(time_granularity=metadata.time_granularity)
+        super().__init__(freq=metadata.freq)
 
         self.recipe = recipe
         self._metadata = metadata
@@ -605,9 +669,7 @@ class RecipeDataset(ArtificialDataset):
         self.prediction_length = prediction_length
         self.trim_length_fun = trim_length_fun
         self.num_timeseries = num_timeseries
-        self.data_start = pd.Timestamp(
-            data_start, freq=self._metadata.time_granularity
-        )
+        self.data_start = pd.Timestamp(data_start, freq=self._metadata.freq)
 
     @property
     def metadata(self) -> MetaData:
@@ -615,7 +677,7 @@ class RecipeDataset(ArtificialDataset):
 
     def dataset_info(self, train_ds: Dataset, test_ds: Dataset) -> DatasetInfo:
         return DatasetInfo(
-            name=f'RecipeDataset({repr(self.recipe)})',
+            name=f"RecipeDataset({repr(self.recipe)})",
             metadata=self.metadata,
             prediction_length=self.prediction_length,
             train_statistics=calculate_dataset_statistics(train_ds),
@@ -628,18 +690,19 @@ class RecipeDataset(ArtificialDataset):
         the last prediction_length time points from the target and dynamic
         features."""
         y = dict(
-            item=x['item'], start=x['start'], target=x['target'][:-length]
+            item_id=x[FieldName.ITEM_ID],
+            start=x[FieldName.START],
+            target=x[FieldName.TARGET][:-length],
         )
 
-        if 'feat_dynamic_cat' in x:
-            y['feat_dynamic_cat'] = x['feat_dynamic_cat'][:, :-length]
-        if 'feat_dynamic_real' in x:
-            y['feat_dynamic_real'] = x['feat_dynamic_real'][:, :-length]
-        if 'feat_dynamic_cat' in x:
-            y['feat_dynamic_cat'] = x['feat_dynamic_cat']
-        if 'feat_dynamic_real' in x:
-            y['feat_dynamic_real'] = x['feat_dynamic_real']
-
+        if FieldName.FEAT_DYNAMIC_CAT in x:
+            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][
+                :, :-length
+            ]
+        if FieldName.FEAT_DYNAMIC_REAL in x:
+            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
+                :, :-length
+            ]
         return y
 
     @staticmethod
@@ -647,23 +710,22 @@ class RecipeDataset(ArtificialDataset):
         """Trim a TimeSeriesItem into a training range, by removing
         the first offset_front time points from the target and dynamic
         features."""
-        assert length <= len(x['target'])
+        assert length <= len(x[FieldName.TARGET])
 
         y = dict(
-            item=x['item'],
-            start=x['start'] + length * x['start'].freq,
-            target=x['target'][length:],
+            item_id=x[FieldName.ITEM_ID],
+            start=x[FieldName.START] + length * x[FieldName.START].freq,
+            target=x[FieldName.TARGET][length:],
         )
 
-        if 'feat_dynamic_cat' in x:
-            y['feat_dynamic_cat'] = x['feat_dynamic_cat'][:, length:]
-        if 'feat_dynamic_real' in x:
-            y['feat_dynamic_real'] = x['feat_dynamic_real'][:, length:]
-        if 'feat_dynamic_cat' in x:
-            y['feat_dynamic_cat'] = x['feat_dynamic_cat']
-        if 'feat_dynamic_real' in x:
-            y['feat_dynamic_real'] = x['feat_dynamic_real']
-
+        if FieldName.FEAT_DYNAMIC_CAT in x:
+            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][
+                :, length:
+            ]
+        if FieldName.FEAT_DYNAMIC_REAL in x:
+            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
+                :, length:
+            ]
         return y
 
     def generate(self) -> TrainDatasets:
@@ -687,39 +749,45 @@ class RecipeDataset(ArtificialDataset):
         ]
         return TrainDatasets(
             metadata=metadata,
-            train=ListDataset(train_data, metadata.time_granularity),
-            test=ListDataset(test_data, metadata.time_granularity),
+            train=ListDataset(train_data, metadata.freq),
+            test=ListDataset(test_data, metadata.freq),
         )
 
 
 def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
 
     recipe = [
-        ('target', LinearTrend() + RandomGaussian()),
-        ('feat_static_cat', RandomCat([10])),
+        (FieldName.TARGET, LinearTrend() + RandomGaussian()),
+        (FieldName.FEAT_STATIC_CAT, RandomCat([10])),
         (
-            'feat_static_real',
-            ForEachCat(RandomGaussian(1, 10), 'feat_static_cat')
-            + RandomGaussian(0.1, 10),
+            FieldName.FEAT_STATIC_REAL,
+            ForEachCat(RandomGaussian(1, (10,)), FieldName.FEAT_STATIC_CAT)
+            + RandomGaussian(0.1, (10,)),
         ),
     ]
 
     data = RecipeDataset(
         recipe=recipe,
         metadata=MetaData(
-            time_granularity='D',
-            feat_static_real=[BasicFeatureInfo(name='feat_static_real')],
-            feat_static_cat=[
-                CategoricalFeatureInfo(name='feat_static_cat', cardinality=10)
+            freq="D",
+            feat_static_real=[
+                BasicFeatureInfo(name=FieldName.FEAT_STATIC_REAL)
             ],
-            feat_dynamic_real=[BasicFeatureInfo(name='feat_dynamic_real')],
+            feat_static_cat=[
+                CategoricalFeatureInfo(
+                    name=FieldName.FEAT_STATIC_CAT, cardinality=10
+                )
+            ],
+            feat_dynamic_real=[
+                BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
+            ],
         ),
         max_train_length=20,
         prediction_length=10,
         num_timeseries=10,
         trim_length_fun=lambda x, **kwargs: np.minimum(
-            int(np.random.geometric(1 / (kwargs['train_length'] / 2))),
-            kwargs['train_length'],
+            int(np.random.geometric(1 / (kwargs["train_length"] / 2))),
+            kwargs["train_length"],
         ),
     )
 
@@ -732,47 +800,47 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
 
 def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     metadata = MetaData(
-        time_granularity='1H',
+        freq="1H",
         feat_static_cat=[
             CategoricalFeatureInfo(
-                name='feat_static_cat_000', cardinality='10'
+                name="feat_static_cat_000", cardinality="10"
             )
         ],
-        feat_static_real=[BasicFeatureInfo(name='feat_static_real_000')],
+        feat_static_real=[BasicFeatureInfo(name="feat_static_real_000")],
     )
 
-    start_date = '2000-01-01 00:00:00'
+    start_date = "2000-01-01 00:00:00"
 
     train_ds = ListDataset(
         data_iter=[
             {
-                'item': str(i),
-                'start': start_date,
-                'target': [float(i)] * 24,
-                'feat_static_cat': [i],
-                'feat_static_real': [float(i)],
+                FieldName.ITEM_ID: str(i),
+                FieldName.START: start_date,
+                FieldName.TARGET: [float(i)] * 24,
+                FieldName.FEAT_STATIC_CAT: [i],
+                FieldName.FEAT_STATIC_REAL: [float(i)],
             }
             for i in range(10)
         ],
-        freq=metadata.time_granularity,
+        freq=metadata.freq,
     )
 
     test_ds = ListDataset(
         data_iter=[
             {
-                'item': str(i),
-                'start': start_date,
-                'target': [float(i)] * 30,
-                'feat_static_cat': [i],
-                'feat_static_real': [float(i)],
+                FieldName.ITEM_ID: str(i),
+                FieldName.START: start_date,
+                FieldName.TARGET: [float(i)] * 30,
+                FieldName.FEAT_STATIC_CAT: [i],
+                FieldName.FEAT_STATIC_REAL: [float(i)],
             }
             for i in range(10)
         ],
-        freq=metadata.time_granularity,
+        freq=metadata.freq,
     )
 
     info = DatasetInfo(
-        name='constant_dataset',
+        name="constant_dataset",
         metadata=metadata,
         prediction_length=2,
         train_statistics=calculate_dataset_statistics(train_ds),

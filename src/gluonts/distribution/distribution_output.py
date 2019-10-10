@@ -52,8 +52,9 @@ class ArgProj(gluon.HybridBlock):
         domain_map: Callable[..., Tuple[Tensor]],
         float_type: DType = np.float32,
         prefix: Optional[str] = None,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.args_dim = args_dim
         self.float_type = float_type
         self.proj = [
@@ -125,7 +126,7 @@ class DistributionOutput(Output):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedDistribution(
-                distr, AffineTransformation(scale=scale)
+                distr, [AffineTransformation(scale=scale)]
             )
 
     @property

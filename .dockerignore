@@ -1,0 +1,21 @@
+# .git/
+.mypy_cache/
+
+build
+dist
+docs
+test
+
+**/*.egg-info
+**/*.eggs/
+**/*.pyc
+**/*.swp
+
+.tox
+.coverage
+codecov.yml
+**/html/*
+**/__pycache__
+
+# Compiled Documentation
+docs/_build

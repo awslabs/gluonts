@@ -1,7 +1,7 @@
 {
-    "ND": 0.011191410259944728,
-    "RMSE": 0.013872809443110442,
+    "ND": 0.029246876016259193,
+    "RMSE": 0.033031441271305084,
     "dataset": "exchange_rate",
     "estimator": "DeepAREstimator",
-    "mean_wQuantileLoss": 0.008540799569758152
+    "mean_wQuantileLoss": 0.02326393313705921
 }

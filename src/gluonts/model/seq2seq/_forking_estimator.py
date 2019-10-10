@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import Optional
 
@@ -7,15 +20,16 @@ from gluonts.block.enc2dec import PassThroughEnc2Dec
 from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.forecast import QuantileForecast, parse_quantile_input
+from gluonts.model.forecast import Quantile
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.support.util import copy_parameters
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AsNumpyArray,
     Chain,
-    FieldName,
     TestSplitSampler,
     Transformation,
 )
@@ -31,7 +45,7 @@ from ._transform import ForkingSequenceSplitter
 class ForkingSeq2SeqEstimator(GluonEstimator):
     r"""
     Sequence-to-Sequence (seq2seq) structure with the so-called
-    "Forking Sequence" proposed in [Wen2017]_.
+    "Forking Sequence" proposed in [WTN+17]_.
 
     The basic idea is that, given a sequence :math:`x_1, x_2, \cdots, x_T`,
     with a decoding length :math:`\tau`, we learn a NN that solves the
@@ -50,9 +64,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
     Essentially, this means instead of having one cut in the standard seq2seq,
     one has multiple cuts that progress linearly.
-
-    .. [Wen2017] Wen, Ruofeng, et al. "A multi-horizon quantile recurrent
-                 forecaster." arXiv preprint arXiv:1711.11053 (2017).
 
     Parameters
     ----------
@@ -128,7 +139,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     ) -> Predictor:
         # todo: this is specific to quantile output
         quantile_strs = [
-            parse_quantile_input(q)[1] for q in self.quantile_output.quantiles
+            Quantile.from_float(quantile).name
+            for quantile in self.quantile_output.quantiles
         ]
 
         prediction_network = ForkingSeq2SeqPredictionNetwork(
@@ -147,6 +159,5 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_cls_name=QuantileForecast.__name__,
-            forecast_kwargs=dict(forecast_keys=quantile_strs),
+            forecast_generator=QuantileForecastGenerator(quantile_strs),
         )

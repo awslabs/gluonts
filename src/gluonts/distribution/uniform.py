@@ -16,6 +16,7 @@ from typing import Dict, Optional, Tuple
 
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
@@ -37,6 +38,7 @@ class Uniform(Distribution):
 
     is_reparameterizable = True
 
+    @validated()
     def __init__(self, low: Tensor, high: Tensor, F=None) -> None:
         self.low = low
         self.high = high
@@ -81,10 +83,21 @@ class Uniform(Distribution):
             raw_samples = self.F.sample_uniform(
                 low=low.zeros_like(), high=high.ones_like()
             )
-            return low + raw_samples + high
+            return low + raw_samples * (high - low)
 
         return _sample_multiple(
             s, low=self.low, high=self.high, num_samples=num_samples
+        )
+
+    def cdf(self, x: Tensor) -> Tensor:
+        return self.F.broadcast_div(x - self.low, self.high - self.low)
+
+    def quantile(self, level: Tensor) -> Tensor:
+        F = self.F
+        for _ in range(self.all_dim):
+            level = level.expand_dims(axis=-1)
+        return F.broadcast_add(
+            F.broadcast_mul(self.high - self.low, level), self.low
         )
 
 

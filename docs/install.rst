@@ -9,7 +9,7 @@ command installs the latest version of MXNet.
 
 .. code-block:: console
 
-   pip install --upgrade mxnet>=1.4.0
+   pip install --upgrade mxnet>=1.3.1,<1.5.*
 
 .. note::
 
@@ -42,7 +42,7 @@ Use the following command to automatically download and install the current code
 
 .. code-block:: console
 
-   pip install https://github.com/awslabs/gluon-ts/tarball/master
+   pip install git+https://github.com/awslabs/gluon-ts.git
 
 
 Install from Source Code

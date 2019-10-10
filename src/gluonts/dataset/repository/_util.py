@@ -35,7 +35,7 @@ def to_dict(
     }
 
     if cat is not None:
-        res['feat_static_cat'] = cat
+        res["feat_static_cat"] = cat
 
     return res
 
@@ -44,15 +44,15 @@ def save_to_file(path: Path, data: List[Dict]):
     print(f"saving time-series into {path}")
     path_dir = os.path.dirname(path)
     os.makedirs(path_dir, exist_ok=True)
-    with open(path, 'wb') as fp:
+    with open(path, "wb") as fp:
         for d in data:
             fp.write(json.dumps(d).encode("utf-8"))
-            fp.write("\n".encode('utf-8'))
+            fp.write("\n".encode("utf-8"))
 
 
 def metadata(cardinality: int, freq: str, prediction_length: int):
     return {
-        "time_granularity": freq,
+        "freq": freq,
         "prediction_length": prediction_length,
         "feat_static_cat": [
             {"name": "feat_static_cat", "cardinality": str(cardinality)}

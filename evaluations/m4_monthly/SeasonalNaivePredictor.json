@@ -1,7 +1,7 @@
 {
-    "ND": 0.14553329066743095,
-    "RMSE": 1628.7943016954816,
+    "ND": 0.14553329348564148,
+    "RMSE": 1628.7943115234375,
     "dataset": "m4_monthly",
     "estimator": "SeasonalNaivePredictor",
-    "mean_wQuantileLoss": 0.14553329064145998
+    "mean_wQuantileLoss": 0.14553329348564148
 }

@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 import math
 from typing import List
@@ -10,22 +23,23 @@ from mxnet.gluon import nn
 # First-party imports
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 
 
 class LookupValues(gluon.HybridBlock):
     def __init__(self, values: mx.nd.NDArray, **kwargs):
         super().__init__(**kwargs)
         with self.name_scope():
-            self.bin_values = self.params.get_constant('bin_values', values)
+            self.bin_values = self.params.get_constant("bin_values", values)
 
     def hybrid_forward(self, F, indices, bin_values):
         return F.take(bin_values, indices)
 
 
 def conv1d(channels, kernel_size, in_channels, use_bias=True, **kwargs):
-    '''
+    """
     Conv1D with better default initialization.
-    '''
+    """
     n = in_channels
     kernel_size = (
         kernel_size if isinstance(kernel_size, list) else [kernel_size]
@@ -37,7 +51,7 @@ def conv1d(channels, kernel_size, in_channels, use_bias=True, **kwargs):
     if use_bias:
         binit = mx.initializer.Uniform(stdv)
     else:
-        binit = 'zeros'
+        binit = "zeros"
     return nn.Conv1D(
         channels=channels,
         kernel_size=kernel_size,
@@ -71,14 +85,14 @@ class CausalDilatedResidue(nn.HybridBlock):
                 channels=n_residue,
                 kernel_size=kernel_size,
                 dilation=dilation,
-                activation='sigmoid',
+                activation="sigmoid",
             )
             self.conv_tanh = conv1d(
                 in_channels=n_residue,
                 channels=n_residue,
                 kernel_size=kernel_size,
                 dilation=dilation,
-                activation='tanh',
+                activation="tanh",
             )
             self.skip = conv1d(
                 in_channels=n_residue, channels=n_skip, kernel_size=1
@@ -95,7 +109,7 @@ class CausalDilatedResidue(nn.HybridBlock):
         u = self.conv_sigmoid(x) * self.conv_tanh(x)
         s = self.skip(u)
         if not self.return_dense_out:
-            return s, F.zeros(shape=(0,))
+            return s, F.zeros(shape=(1,))
         output = self.residue(u)
         output = output + F.slice_axis(
             x, begin=(self.kernel_size - 1) * self.dilation, end=None, axis=-1
@@ -106,7 +120,7 @@ class CausalDilatedResidue(nn.HybridBlock):
 class WaveNet(nn.HybridBlock):
     def __init__(
         self,
-        bin_values: mx.nd.NDArray,
+        bin_values: List[float],
         n_residue: int,
         n_skip: int,
         dilation_depth: int,
@@ -141,7 +155,7 @@ class WaveNet(nn.HybridBlock):
                 embedding_dims=[embedding_dimension for _ in cardinality],
             )
 
-            self.post_transform = LookupValues(bin_values)
+            # self.post_transform = LookupValues(mx.nd.array(bin_values))
             self.target_embed = nn.Embedding(
                 input_dim=self.mu, output_dim=n_residue
             )
@@ -158,14 +172,13 @@ class WaveNet(nn.HybridBlock):
                     )
                 )
 
-            # heuristic assuming ~5 features
-            std = 1.0 / math.sqrt(n_residue + 5)
+            std = 1.0 / math.sqrt(n_residue)
             self.conv_project = nn.Conv1D(
                 channels=n_residue,
                 kernel_size=1,
                 use_bias=True,
                 weight_initializer=mx.init.Uniform(std),
-                bias_initializer='zero',
+                bias_initializer="zero",
             )
 
             self.conv1 = conv1d(
@@ -177,8 +190,8 @@ class WaveNet(nn.HybridBlock):
             )
             self.output_act = (
                 nn.ELU()
-                if act_type == 'elu'
-                else nn.Activation(act_type=act_type)
+                if act_type == "elu"
+                else nn.Activation(activation=act_type)
             )
             self.cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
 
@@ -202,7 +215,6 @@ class WaveNet(nn.HybridBlock):
         feat_static_cat: Tensor,
         past_target: Tensor,
         past_observed_values: Tensor,
-        past_is_pad: Tensor,
         past_time_feat: Tensor,
         future_time_feat: Tensor,
         future_target: Tensor,
@@ -214,7 +226,7 @@ class WaveNet(nn.HybridBlock):
         static_feat = F.concat(embedded_cat, F.log(scale + 1.0), dim=1)
 
         full_target = F.concat(past_target, future_target, dim=-1).astype(
-            'int32'
+            "int32"
         )
 
         full_observed = F.expand_dims(
@@ -269,23 +281,47 @@ class WaveNet(nn.HybridBlock):
 
 
 class WaveNetSampler(WaveNet):
-    '''
-    Runs Wavenet generation in an auto-regressive manner using caching for speedup
-    (see https://arxiv.org/abs/1611.09482 )
-    '''
+    """
+    Runs Wavenet generation in an auto-regressive manner using caching for
+    speedup [PKC+16]_.
 
-    def __init__(self, num_samples: int, temperature: float = 1.0, **kwargs):
+    Same arguments as WaveNet. In addition
+
+    Parameters
+    ----------
+    pred_length
+        Length of the prediction horizon
+    num_samples
+        Number of sample paths to generate in parallel in the graph
+    temperature
+        If set to 1.0 (default), sample according to estimated probabilities, if set to 0.0
+        most likely sample at each step is chosen.
+    post_transform
+        An optional post transform that will be applied to the samples
+    """
+
+    @validated()
+    def __init__(
+        self,
+        bin_values: List[float],
+        num_samples: int,
+        temperature: float = 1.0,
+        **kwargs,
+    ):
         """
         Same arguments as WaveNet. In addition
         :param pred_length: prediction length
         :param num_samples: number of sample paths to generate in parallel in the graph
         :param temperature: if set to 1.0 (default), sample according to estimated probabilities
-          if set to 0.0 most likely sample at each step is chosen.
+-         if set to 0.0 most likely sample at each step is chosen.
         :param post_transform: An optional post transform that will be applied to the samples.
         """
-        super().__init__(**kwargs)
+        super().__init__(bin_values=bin_values, **kwargs)
         self.num_samples = num_samples
         self.temperature = temperature
+
+        with self.name_scope():
+            self.post_transform = LookupValues(mx.nd.array(bin_values))
 
     def hybrid_forward(
         self,
@@ -293,7 +329,6 @@ class WaveNetSampler(WaveNet):
         feat_static_cat: Tensor,
         past_target: Tensor,
         past_observed_values: Tensor,
-        past_is_pad: Tensor,
         past_time_feat: Tensor,
         future_time_feat: Tensor,
         scale: Tensor,
@@ -302,7 +337,7 @@ class WaveNetSampler(WaveNet):
         embedded_cat = self.feature_embedder(feat_static_cat)
         static_feat = F.concat(embedded_cat, F.log(scale + 1.0), dim=1)
 
-        past_target = past_target.astype('int32')
+        past_target = past_target.astype("int32")
 
         def blow_up(u):
             """
@@ -407,7 +442,7 @@ class WaveNetSampler(WaveNet):
                 y = F.sample_multinomial(probs.swapaxes(1, 2))
             else:
                 y = F.argmax(unnormalized_outputs, axis=1)
-            y = y.astype('int32')
+            y = y.astype("int32")
             res = F.concat(res, y, num_args=2, dim=-1)
         samples = F.slice_axis(res, begin=-self.pred_length, end=None, axis=-1)
         samples = samples.reshape(
