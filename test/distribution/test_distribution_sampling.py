@@ -15,6 +15,7 @@
 import mxnet as mx
 import numpy as np
 import pytest
+from flaky import flaky
 
 # First-party imports
 from gluonts.distribution import (
@@ -85,6 +86,7 @@ DISTRIBUTIONS_WITH_CDF = [Gaussian, Uniform, Laplace, Binned]
 DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = [Gaussian, Uniform, Laplace, Binned]
 
 
+@flaky(max_runs=3)
 @pytest.mark.parametrize("distr_class, params", test_cases)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_sampling(distr_class, params, serialize_fn) -> None:
