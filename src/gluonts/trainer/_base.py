@@ -189,12 +189,6 @@ class Trainer:
                 static_alloc=True,
                 static_shape=True,
             ):
-                net_name = type(net).__name__
-                num_model_param = self.count_model_params(net)
-                logging.info(
-                    f"Number of parameters in {net_name}: {num_model_param}"
-                )
-
                 batch_size = train_iter.batch_size
                 epoch_loss = mx.metric.Loss()
 
@@ -259,6 +253,14 @@ class Trainer:
                                     loss = output[0]
                                 else:
                                     loss = output
+
+                            # only invoke the following during the first forward pass
+                            if it == 1:
+                                net_name = type(net).__name__
+                                num_model_param = self.count_model_params(net)
+                                logging.info(
+                                    f"Number of parameters in {net_name}: {num_model_param}"
+                                )
 
                             loss.backward()
                             trainer.step(batch_size)
