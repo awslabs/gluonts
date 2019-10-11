@@ -829,9 +829,13 @@ class AddTimeFeatures(MapTransformation):
         self.full_date_range = pd.date_range(
             self._min_time_point, self._max_time_point, freq=start.freq
         )
-        self._full_range_date_features = np.vstack(
-            [feat(self.full_date_range) for feat in self.date_features]
-        ) if self.date_features else None
+        self._full_range_date_features = (
+            np.vstack(
+                [feat(self.full_date_range) for feat in self.date_features]
+            )
+            if self.date_features
+            else None
+        )
         self._date_index = pd.Series(
             index=self.full_date_range,
             data=np.arange(len(self.full_date_range)),
@@ -846,7 +850,7 @@ class AddTimeFeatures(MapTransformation):
         i0 = self._date_index[start]
         features = (
             self._full_range_date_features[..., i0 : i0 + length]
-            if self.date_features 
+            if self.date_features
             else None
         )
         data[self.output_field] = features
