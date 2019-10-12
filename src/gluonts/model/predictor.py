@@ -21,6 +21,7 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
+import json
 from typing import (
     TYPE_CHECKING,
     Tuple,
@@ -117,7 +118,8 @@ class Predictor:
         # serialize Predictor type
         with (path / "type.txt").open("w") as fp:
             fp.write(fqname_for(self.__class__))
-            fp.write("\ngluonts version: " + self.__version__ + "\n")
+        with (path / "version.json").open("w") as fp:
+            json.dump({"model": self.__version__, "gluonts": gluonts.__version__}, fp)
 
     @classmethod
     def deserialize(
