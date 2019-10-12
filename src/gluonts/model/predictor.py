@@ -119,7 +119,9 @@ class Predictor:
         with (path / "type.txt").open("w") as fp:
             fp.write(fqname_for(self.__class__))
         with (path / "version.json").open("w") as fp:
-            json.dump({"model": self.__version__, "gluonts": gluonts.__version__}, fp)
+            json.dump(
+                {"model": self.__version__, "gluonts": gluonts.__version__}, fp
+            )
 
     @classmethod
     def deserialize(
