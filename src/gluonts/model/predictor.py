@@ -117,6 +117,7 @@ class Predictor:
         # serialize Predictor type
         with (path / "type.txt").open("w") as fp:
             fp.write(fqname_for(self.__class__))
+            fp.write("\ngluonts version: " + self.__version__ + "\n")
 
     @classmethod
     def deserialize(
