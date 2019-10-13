@@ -94,14 +94,15 @@ def test_sampling(distr_class, params, serialize_fn) -> None:
     distr = serialize_fn(distr)
     samples = distr.sample()
     assert samples.shape == (2,)
-    num_samples = 100_000
+    num_samples = 1_000_000
     samples = distr.sample(num_samples)
     assert samples.shape == (num_samples, 2)
 
     np_samples = samples.asnumpy()
+    # avoid accuracy issues with float32 when calculating std
+    np_samples = np_samples.astype(np.float64)
 
     assert np.isfinite(np_samples).all()
-
     assert np.allclose(
         np_samples.mean(axis=0), distr.mean.asnumpy(), atol=1e-2, rtol=1e-2
     )
