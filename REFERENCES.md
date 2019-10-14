@@ -54,7 +54,8 @@ Using RNNs to parametrize State Space Models.
 	Year = {2018}
 }
 ```
-A scalable state space model.
+A scalable state space model. Note that code for this model
+is currently not available in GluonTS.
 ```
 @inproceedings{seeger2016bayesian,
 	Author = {Seeger, Matthias W and Salinas, David and Flunkert, Valentin},
