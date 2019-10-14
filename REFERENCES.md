@@ -3,7 +3,7 @@ We encourage you to also check out work by the group behind
 GluonTS. They are grouped according to topic and ordered 
 chronographically.
 
-### Methods
+## Methods
 A number of the below methods are available in GluonTS.
 
 ```
@@ -69,7 +69,7 @@ A scalable state space model.
 
 
 
-### Tutorials
+## Tutorials
 Tutorials are available in bibtex and with accompanying material,
  in particular slides, linked from below.
 [Tutorial at KDD 2019](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
@@ -114,7 +114,7 @@ Tutorials are available in bibtex and with accompanying material,
 }
 ```
 
-### General audience
+## General audience
 An overview of forecasting libraries in Python.
 ```
 @article{januschowski19opensource,
@@ -166,7 +166,7 @@ pages = {42-47}
 }
 ```
 
-### System Aspects
+## System Aspects
 A large-scale retail forecasting system.
 ```
 @article{bose2017probabilistic,
