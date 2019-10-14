@@ -86,7 +86,6 @@ DISTRIBUTIONS_WITH_CDF = [Gaussian, Uniform, Laplace, Binned]
 DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = [Gaussian, Uniform, Laplace, Binned]
 
 
-@flaky(max_runs=3)
 @pytest.mark.parametrize("distr_class, params", test_cases)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_sampling(distr_class, params, serialize_fn) -> None:
@@ -100,6 +99,7 @@ def test_sampling(distr_class, params, serialize_fn) -> None:
 
     np_samples = samples.asnumpy()
     # avoid accuracy issues with float32 when calculating std
+    # see https://github.com/numpy/numpy/issues/8869
     np_samples = np_samples.astype(np.float64)
 
     assert np.isfinite(np_samples).all()
