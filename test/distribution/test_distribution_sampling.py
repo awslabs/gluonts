@@ -15,7 +15,6 @@
 import mxnet as mx
 import numpy as np
 import pytest
-from flaky import flaky
 
 # First-party imports
 from gluonts.distribution import (
