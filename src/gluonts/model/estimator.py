@@ -184,6 +184,7 @@ class GluonEstimator(Estimator):
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
             float_type=self.float_type,
+            use_training_transform=True,
         )
 
         validation_data_loader = (
@@ -194,6 +195,7 @@ class GluonEstimator(Estimator):
                 num_batches_per_epoch=self.trainer.num_batches_per_epoch,
                 ctx=self.trainer.ctx,
                 float_type=self.float_type,
+                use_training_transform=False,
             )
             if validation_data is not None
             else None

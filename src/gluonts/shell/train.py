@@ -55,11 +55,16 @@ def run_train_and_test(
         f"{dump_code(forecaster)}"
     )
 
+    logger.info(
+        "Using the following data channels: "
+        f"{', '.join(name for name in ['train', 'validation', 'test'] if name in env.datasets)}"
+    )
+
     if isinstance(forecaster, Predictor):
         predictor = forecaster
     else:
         predictor = run_train(
-            forecaster, env.datasets["train"], env.datasets.get("test")
+            forecaster, env.datasets["train"], env.datasets.get("validation")
         )
 
     predictor.serialize(env.path.model)
