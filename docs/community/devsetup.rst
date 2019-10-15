@@ -7,9 +7,13 @@ GluonTS requires Python 3.6 or higher to run. This setup guide assumes that the
 ``python`` command references a Python 3.6 version or higher. We recommend
 using pyenv_ for managing Python versions.
 
-Upon checking out this package, please run the following script::
+Upon checking out this package, please run the following::
 
     ./dev_setup.sh
+    pip install -e .[dev]
+
+    # if you use zsh you might need to escape `[` and `]`
+    pip install -e ".[dev]"
 
 This will install all required packages with pip and setup a Git hook that does
 automated type and style checks when you try to create a new Git commit.
@@ -22,12 +26,10 @@ with the ``--no-verify`` Git commit option.
 Build Instructions
 ------------------
 
-To build the project from source::
-
-    python setup.py build
-
 To run the project tests::
 
+    pytest
+    # or
     python setup.py tests
 
 To build the project documentation::

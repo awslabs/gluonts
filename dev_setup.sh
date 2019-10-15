@@ -54,8 +54,3 @@ fi
 
 # update location of Git hooks from default (.git/hooks) to the versioned folder .devtools/githooks
 git config core.hooksPath ".devtools/githooks"
-
-# install project requirements
-python -m pip install -r requirements/requirements-setup.txt
-python -m pip install -r requirements/requirements-test.txt
-python -m pip install -r requirements/requirements.txt

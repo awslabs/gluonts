@@ -191,12 +191,6 @@ class Trainer:
                 static_alloc=True,
                 static_shape=True,
             ):
-                net_name = type(net).__name__
-                num_model_param = self.count_model_params(net)
-                logging.info(
-                    f"Number of parameters in {net_name}: {num_model_param}"
-                )
-
                 batch_size = train_iter.batch_size
 
                 best_epoch_info = BestEpochInfo(
@@ -226,7 +220,7 @@ class Trainer:
                 )
 
                 def loop(
-                    batch_iter, is_training: bool = True
+                    epoch_no, batch_iter, is_training: bool = True
                 ) -> mx.metric.Loss:
                     tic = time.time()
 
@@ -263,6 +257,13 @@ class Trainer:
                                 },
                                 refresh=False,
                             )
+                            # print out parameters of the network at the first pass
+                            if batch_no == 1 and epoch_no == 0:
+                                net_name = type(net).__name__
+                                num_model_param = self.count_model_params(net)
+                                logging.info(
+                                    f"Number of parameters in {net_name}: {num_model_param}"
+                                )
                     # mark epoch end time and log time cost of current epoch
                     toc = time.time()
                     logging.info(
@@ -293,9 +294,11 @@ class Trainer:
                         f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
                     )
 
-                    epoch_loss = loop(train_iter)
+                    epoch_loss = loop(epoch_no, train_iter)
                     if is_validation_available:
-                        epoch_loss = loop(val_iter, is_training=False)
+                        epoch_loss = loop(
+                            epoch_no, val_iter, is_training=False
+                        )
 
                     lr_scheduler.step(loss_value(epoch_loss))
 
