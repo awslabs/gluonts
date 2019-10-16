@@ -146,7 +146,7 @@ def test_AddTimeFeatures_empty_time_features(start, target, is_train):
 
     data = {"start": start, "target": target}
     res = t.map_transform(data, is_train=is_train)
-    assert not res["myout"]
+    assert res["myout"] is None
 
 
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
