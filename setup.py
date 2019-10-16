@@ -177,6 +177,12 @@ class StyleCheckCommand(distutils.cmd.Command):
             sys.exit(exit_code)
 
 
+tests_require = find_requirements("requirements-test.txt")
+shell_require = find_requirements("requirements-extras-shell.txt")
+setup_requires = find_requirements(
+    "requirements-setup.txt"
+) + find_requirements("requirements-docs.txt")
+
 setup_kwargs: dict = dict(
     name="gluonts",
     use_scm_version={"fallback_version": "0.0.0"},
@@ -195,18 +201,14 @@ setup_kwargs: dict = dict(
     package_dir={"": "src"},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
-    setup_requires=list(
-        itertools.chain(
-            find_requirements("requirements-setup.txt"),
-            find_requirements("requirements-docs.txt"),
-        )
-    ),
+    setup_requires=setup_requires,
     install_requires=find_requirements("requirements.txt"),
-    tests_require=find_requirements("requirements-test.txt"),
+    tests_require=tests_require,
     extras_require={
+        "dev": tests_require + shell_require + setup_requires,
         "R": find_requirements("requirements-extras-r.txt"),
         "Prophet": find_requirements("requirements-extras-prophet.txt"),
-        "shell": find_requirements("requirements-extras-shell.txt"),
+        "shell": shell_require,
     },
     entry_points=dict(
         console_scripts=[
