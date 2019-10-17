@@ -174,6 +174,10 @@ class Binned(Distribution):
 
         return _sample_multiple(s, self.bin_probs, num_samples=num_samples)
 
+    @property
+    def args(self) -> List:
+        return [self.bin_probs, self.bin_centers]
+
 
 class BinnedArgs(gluon.HybridBlock):
     def __init__(
