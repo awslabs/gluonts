@@ -261,7 +261,7 @@ class Distribution:
         as specified by the provided bounds. Relies on ``mx.nd.slice_axis``.
         """
         sliced_distr = self.__class__(
-            *[a.slice_axis(axis, begin, end) for a in self.args]
+            *[arg.slice_axis(axis, begin, end) for arg in self.args]
         )
         assert isinstance(sliced_distr, type(self))
         return sliced_distr
