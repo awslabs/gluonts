@@ -13,21 +13,6 @@ DISTR_CASES = [
     )
 ]
 
-SLICE_CASES = [
-    [((None, None), (None, None)), DISTR_SHAPE],
-    [((1, None), (None, -1)), (2, 3)],
-]
-
-
-@pytest.mark.parametrize("slice_args, expected_shape", SLICE_CASES)
-@pytest.mark.parametrize("distr", DISTR_CASES)
-def test_distr_slice(distr, slice_args, expected_shape):
-    begin, end = slice_args
-    distr_sliced = distr.slice(begin, end)
-
-    assert distr_sliced.batch_shape == expected_shape
-
-
 SLICE_AXIS_CASES = [[(0, 0, None), 3], [(0, 1, 3), 2], [(1, -1, None), 1]]
 
 

@@ -253,17 +253,6 @@ class Distribution:
         """
         raise NotImplementedError()
 
-    def slice(self, begin: Tuple, end: Tuple) -> "Distribution":
-        """
-        Construct a new distribution by slicing all constructor arguments
-        as specified by the provided bounds. Relies on ``mx.nd.slice``.
-        """
-        sliced_distr = self.__class__(
-            *[a.slice(begin, end) for a in self.args]
-        )
-        assert isinstance(sliced_distr, type(self))
-        return sliced_distr
-
     def slice_axis(
         self, axis: int, begin: int, end: Optional[int]
     ) -> "Distribution":
