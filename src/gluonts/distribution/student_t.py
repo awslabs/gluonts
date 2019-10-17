@@ -13,7 +13,7 @@
 
 # Standard library imports
 import math
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -110,6 +110,10 @@ class StudentT(Distribution):
             nu=self.nu,
             num_samples=num_samples,
         )
+
+    @property
+    def args(self) -> List:
+        return [self.mu, self.sigma, self.nu]
 
 
 class StudentTOutput(DistributionOutput):
