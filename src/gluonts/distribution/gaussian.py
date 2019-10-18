@@ -13,7 +13,7 @@
 
 # Standard library imports
 import math
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -115,6 +115,10 @@ class Gaussian(Distribution):
                 self.sigma, math.sqrt(2.0) * erfinv(F, 2.0 * level - 1.0)
             ),
         )
+
+    @property
+    def args(self) -> List:
+        return [self.mu, self.sigma]
 
 
 class GaussianOutput(DistributionOutput):
