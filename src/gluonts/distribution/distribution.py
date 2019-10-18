@@ -253,6 +253,19 @@ class Distribution:
         """
         raise NotImplementedError()
 
+    def slice_axis(
+        self, axis: int, begin: int, end: Optional[int]
+    ) -> "Distribution":
+        """
+        Construct a new distribution by slicing all constructor arguments
+        as specified by the provided bounds. Relies on ``mx.nd.slice_axis``.
+        """
+        sliced_distr = self.__class__(
+            *[arg.slice_axis(axis, begin, end) for arg in self.args]
+        )
+        assert isinstance(sliced_distr, type(self))
+        return sliced_distr
+
 
 def _expand_param(p: Tensor, num_samples: Optional[int] = None) -> Tensor:
     """

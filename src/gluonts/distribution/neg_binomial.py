@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -92,6 +92,10 @@ class NegativeBinomial(Distribution):
         return _sample_multiple(
             s, mu=self.mu, alpha=self.alpha, num_samples=num_samples
         )
+
+    @property
+    def args(self) -> List:
+        return [self.mu, self.alpha]
 
 
 class NegativeBinomialOutput(DistributionOutput):
