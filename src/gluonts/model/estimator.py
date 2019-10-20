@@ -186,8 +186,7 @@ class GluonEstimator(Estimator):
         self.trainer(
             net=trained_net,
             input_names=get_hybrid_forward_input_names(trained_net),
-            train_iter=training_data_loader,
-            verbose=False
+            train_iter=training_data_loader
         )
 
         with self.trainer.ctx:

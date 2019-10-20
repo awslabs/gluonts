@@ -112,8 +112,7 @@ class Trainer:
         clip_gradient: float = 10.0,
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
-        hybridize: bool = True,
-        optimizer=None
+        hybridize: bool = True
     ) -> None:
 
         assert (
