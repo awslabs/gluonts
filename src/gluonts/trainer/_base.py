@@ -112,7 +112,7 @@ class Trainer:
         clip_gradient: float = 10.0,
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
-        hybridize: bool = True
+        hybridize: bool = True,
     ) -> None:
 
         assert (
@@ -165,7 +165,7 @@ class Trainer:
         self,
         net: nn.HybridBlock,
         input_names: List[str],
-        train_iter: TrainDataLoader
+        train_iter: TrainDataLoader,
     ) -> None:  # TODO: we may want to return some training information here
         self.halt = False
 
