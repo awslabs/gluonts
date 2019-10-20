@@ -15,6 +15,7 @@
 import math
 
 # First-party imports
+from gluonts.core.component import check_gpu_support
 from gluonts.kernels import RBFKernel
 from gluonts.gp import GaussianProcess
 from gluonts.support.linalg_util import jitter_cholesky, jitter_cholesky_eig
@@ -29,12 +30,13 @@ import pytest
 # This test verifies that both eigenvalue decomposition and iterative jitter method
 # make a non-positive definite matrix positive definite to be able to compute the cholesky.
 # Both gpu and cpu as well as single and double precision are tested.
-# FIXME: Add gpu support for the tests in brazil gets error Check failed: e == cudaSuccess || e ==
-# FIXME: cudaErrorCudartUnloading CUDA: CUDA driver version is insufficient for CUDA runtime version
-# FIXME: @pytest.mark.parametrize('ctx', [mx.Context('gpu'), mx.Context('cpu')])
+@pytest.mark.parametrize("ctx", [mx.Context("gpu"), mx.Context("cpu")])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
-def test_jitter_unit(jitter_method, float_type, ctx=mx.Context("cpu")):
+def test_jitter_unit(jitter_method, float_type, ctx) -> None:
+    # TODO: Enable GPU tests on Jenkins
+    if ctx == mx.Context("gpu") and not check_gpu_support():
+        return
     matrix = nd.array(
         [[[1, 2], [3, 4]], [[10, 100], [-21.5, 41]]], ctx=ctx, dtype=float_type
     )
@@ -51,14 +53,13 @@ def test_jitter_unit(jitter_method, float_type, ctx=mx.Context("cpu")):
 # Without the jitter method, NaNs occurs on the gpu for single and double precision and on the cpu for only single
 # precision.  This test verifies that applying the default jitter method fixes these numerical issues on both cpu
 # and gpu and for single and double precision.
-# FIXME: Add gpu support for the tests in braxil gets error Check failed: e == cudaSuccess || e ==
-# FIXME: cudaErrorCudartUnloading CUDA: CUDA driver version is insufficient for CUDA runtime version
-# FIXME: @pytest.mark.parametrize('ctx', [mx.Context('gpu'), mx.Context('cpu')])
+@pytest.mark.parametrize("ctx", [mx.Context("gpu"), mx.Context("cpu")])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
-def test_jitter_synthetic(
-    jitter_method, float_type, ctx=mx.Context("cpu")
-) -> None:
+def test_jitter_synthetic_gp(jitter_method, float_type, ctx) -> None:
+    # TODO: Enable GPU tests on Jenkins
+    if ctx == mx.Context("gpu") and not check_gpu_support():
+        return
     # Initialize problem parameters
     batch_size = 1
     prediction_length = 50

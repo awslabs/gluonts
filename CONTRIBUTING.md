@@ -31,7 +31,7 @@ To send us a pull request, please:
 
 1. Fork the repository.
 2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
-3. Ensure local tests pass.
+3. Ensure local tests pass by executing `pytest`.
 4. Commit to your fork using clear commit messages.
 5. Send us a pull request, answering any default questions in the pull request interface.
 6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
@@ -55,8 +55,14 @@ The easiest way to get set up for development is to run the following script:
 # then clone your fork
 git clone https://github.com/<your-github-username>/gluon-ts.git
 
-# enter the cloned repo and run
+# enter the cloned repo
+cd gluon-ts
+
+# run development setup
 ./dev_setup.sh
+
+# install GluonTS from current source with shell dependencies
+pip install -e ".[shell]"
 ```
 Note that windows and other versions of linux (not mac versions) will require
 something slightly different to initiate the `dev_setup.sh` script.

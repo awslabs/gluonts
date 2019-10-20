@@ -92,20 +92,22 @@ def test_sampling(distr_class, params, serialize_fn) -> None:
     distr = serialize_fn(distr)
     samples = distr.sample()
     assert samples.shape == (2,)
-    num_samples = 100_000
+    num_samples = 1_000_000
     samples = distr.sample(num_samples)
     assert samples.shape == (num_samples, 2)
 
     np_samples = samples.asnumpy()
+    # avoid accuracy issues with float32 when calculating std
+    # see https://github.com/numpy/numpy/issues/8869
+    np_samples = np_samples.astype(np.float64)
 
     assert np.isfinite(np_samples).all()
-
     assert np.allclose(
         np_samples.mean(axis=0), distr.mean.asnumpy(), atol=1e-2, rtol=1e-2
     )
 
     emp_std = np_samples.std(axis=0)
-    assert np.allclose(emp_std, distr.stddev.asnumpy(), atol=1e-1, rtol=5e-2)
+    assert np.allclose(emp_std, distr.stddev.asnumpy(), atol=1e-1, rtol=1e-1)
 
     if distr_class in DISTRIBUTIONS_WITH_CDF:
         emp_cdf, edges = empirical_cdf(np_samples)

@@ -258,8 +258,7 @@ class Forecast:
         Parameters
         ----------
         dim
-            The returned forecast object will only have samples of this
-            dimension.
+            The returned forecast object will only represent this dimension.
         """
         raise NotImplementedError()
 
@@ -381,10 +380,12 @@ class SampleForecast(Forecast):
         if len(self.samples.shape) == 2:
             samples = self.samples
         else:
-            assert (
-                dim < self.samples.shape[1]
-            ), f"dim should be target_dim - 1, but got dim={dim}, target_dim={self.samples.shape[1]}"
-            samples = self.samples[:, dim]
+            target_dim = self.samples.shape[2]
+            assert dim < target_dim, (
+                f"must set 0 <= dim < target_dim, but got dim={dim},"
+                f" target_dim={target_dim}"
+            )
+            samples = self.samples[:, :, dim]
 
         return SampleForecast(
             samples=samples,
@@ -398,14 +399,14 @@ class SampleForecast(Forecast):
         if self._dim is not None:
             return self._dim
         else:
-            if (
-                len(self.samples.shape) == 2
-            ):  # 1D target. shape: (num_samples, prediction_length)
+            if len(self.samples.shape) == 2:
+                # univariate target
+                # shape: (num_samples, prediction_length)
                 return 1
             else:
-                return self.samples.shape[
-                    1
-                ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
+                # multivariate target
+                # shape: (num_samples, prediction_length, target_dim)
+                return self.samples.shape[2]
 
     def as_json_dict(self, config: "Config") -> dict:
         result = super().as_json_dict(config)
@@ -523,15 +524,16 @@ class QuantileForecast(Forecast):
 class DistributionForecast(Forecast):
     """
     A `Forecast` object that uses a GluonTS distribution directly.
-    This can for instance be used to represent marginal probability distributions for each time
-    point -- although joint distributions are also possible, e.g. when using MultiVariateGaussian).
+    This can for instance be used to represent marginal probability
+    distributions for each time point -- although joint distributions are
+    also possible, e.g. when using MultiVariateGaussian).
 
     Parameters
     ----------
     distribution
-        GluonTS distribution or list of distributions.
-        The distribution should represent the entire prediction length, i.e., if we draw `num_samples` samples
-        from the distribution, the sample shape should be
+        Distribution object. This should represent the entire prediction
+        length, i.e., if we draw `num_samples` samples from the distribution,
+        the sample shape should be
 
            samples = trans_dist.sample(num_samples)
            samples.shape -> (num_samples, prediction_length)
@@ -569,6 +571,7 @@ class DistributionForecast(Forecast):
 
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
+        self._mean = None
 
     @property
     def mean(self):
@@ -578,7 +581,7 @@ class DistributionForecast(Forecast):
         if self._mean is not None:
             return self._mean
         else:
-            self._mean = self.distribution.mean
+            self._mean = self.distribution.mean.asnumpy()
             return self._mean
 
     @property
