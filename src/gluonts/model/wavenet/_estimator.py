@@ -167,7 +167,7 @@ class WaveNetEstimator(GluonEstimator):
         n_skip=32,
         dilation_depth: Optional[int] = None,
         n_stacks: int = 1,
-        train_window_length: int = 1000,
+        train_window_length: Optional[int] = None,
         temperature: float = 1.0,
         act_type: str = "elu",
         num_parallel_samples: int = 200,
@@ -258,9 +258,6 @@ class WaveNetEstimator(GluonEstimator):
 
     def train(self, training_data: Dataset) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
-        median_length = int(
-            np.median([len(d["target"]) for d in training_data])
-        )
         low = -10.0 if has_negative_data else 0
         high = 10.0
         bin_centers = np.linspace(low, high, self.num_bins)
@@ -268,15 +265,15 @@ class WaveNetEstimator(GluonEstimator):
             [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
         )
 
-        # Here we override the prediction length for training.
+        # Here we override the prediction length for training if explicitly specified via train_window_length.
         # This computes the loss over longer windows and makes the convolutions more
         # efficient, since calculations are reused.
-        pred_length = min(
-            max(median_length - self.context_length, 1),
-            self.train_window_length,
+        pred_length = (
+            self.train_window_length
+            if self.train_window_length is not None
+            else self.prediction_length
         )
 
-        logging.info(f"median series length = {median_length}")
         logging.info(f"using training windows of length = {pred_length}")
 
         transformation = self.create_transformation(
