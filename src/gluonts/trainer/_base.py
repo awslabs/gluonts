@@ -170,7 +170,7 @@ class Trainer:
         self.halt = False
 
         with tempfile.TemporaryDirectory(
-                prefix="gluonts-trainer-temp-"
+            prefix="gluonts-trainer-temp-"
         ) as gluonts_temp:
 
             def base_path() -> str:
@@ -226,13 +226,13 @@ class Trainer:
                         break
 
                     curr_lr = trainer.learning_rate
-
                     logging.info(
                         f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
                     )
 
                     # mark epoch start time
                     tic = time.time()
+
                     epoch_loss.reset()
 
                     with tqdm(train_iter) as it:
@@ -268,14 +268,12 @@ class Trainer:
                             if batch_no == 1 and epoch_no == 0:
                                 net_name = type(net).__name__
                                 num_model_param = self.count_model_params(net)
-
                                 logging.info(
                                     f"Number of parameters in {net_name}: {num_model_param}"
                                 )
 
                     # mark epoch end time and log time cost of current epoch
                     toc = time.time()
-
                     logging.info(
                         "Epoch[%d] Elapsed time %.3f seconds",
                         epoch_no,
@@ -319,7 +317,6 @@ class Trainer:
                     f"Loading parameters from best epoch "
                     f"({best_epoch_info.epoch_no})"
                 )
-
                 net.load_parameters(best_epoch_info.params_path, self.ctx)
 
                 logging.info(
