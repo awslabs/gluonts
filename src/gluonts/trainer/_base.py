@@ -169,7 +169,9 @@ class Trainer:
     ) -> None:  # TODO: we may want to return some training information here
         self.halt = False
 
-        with tempfile.TemporaryDirectory(prefix="gluonts-trainer-temp-") as gluonts_temp:
+        with tempfile.TemporaryDirectory(
+                prefix="gluonts-trainer-temp-"
+        ) as gluonts_temp:
 
             def base_path() -> str:
                 return os.path.join(
