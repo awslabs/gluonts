@@ -217,9 +217,6 @@ class Trainer:
                     kvstore="device",  # FIXME: initialize properly
                 )
 
-                tic = time.time()
-                print(f'Data load time: {time.time() - tic}')
-
                 for epoch_no in range(self.epochs):
                     if self.halt:
                         logging.info(
@@ -237,8 +234,8 @@ class Trainer:
                     tic = time.time()
                     epoch_loss.reset()
 
-                    with train_iter as it:
-                        for batch_no, data_entry in enumerate(train_iter, start=1):
+                    with tqdm(train_iter) as it:
+                        for batch_no, data_entry in enumerate(it, start=1):
                             if self.halt:
                                 break
 
