@@ -166,8 +166,7 @@ class Trainer:
         self,
         net: nn.HybridBlock,
         input_names: List[str],
-        train_iter: TrainDataLoader,
-        verbose: bool = True
+        train_iter: TrainDataLoader
     ) -> None:  # TODO: we may want to return some training information here
         self.halt = False
 
@@ -219,7 +218,6 @@ class Trainer:
                 )
 
                 tic = time.time()
-                it = tqdm(train_iter) if verbose else train_iter
                 print(f'Data load time: {time.time() - tic}')
 
                 for epoch_no in range(self.epochs):
@@ -231,50 +229,48 @@ class Trainer:
 
                     curr_lr = trainer.learning_rate
 
-                    if verbose:
-                        logging.info(
-                            f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
-                        )
+                    logging.info(
+                        f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
+                    )
 
                     # mark epoch start time
                     tic = time.time()
                     epoch_loss.reset()
 
-                    # with train_iter as it:
-                    for batch_no, data_entry in enumerate(it, start=1):
-                        if self.halt:
-                            break
+                    with train_iter as it:
+                        for batch_no, data_entry in enumerate(train_iter, start=1):
+                            if self.halt:
+                                break
 
-                        inputs = [data_entry[k] for k in input_names]
+                            inputs = [data_entry[k] for k in input_names]
 
-                        with mx.autograd.record():
-                            output = net(*inputs)
+                            with mx.autograd.record():
+                                output = net(*inputs)
 
-                            # network can returns several outputs, the first being always the loss
-                            # when having multiple outputs, the forward returns a list in the case of hybrid and a
-                            # tuple otherwise
-                            # we may wrap network outputs in the future to avoid this type check
-                            if isinstance(output, (list, tuple)):
-                                loss = output[0]
-                            else:
-                                loss = output
+                                # network can returns several outputs, the first being always the loss
+                                # when having multiple outputs, the forward returns a list in the case of hybrid and a
+                                # tuple otherwise
+                                # we may wrap network outputs in the future to avoid this type check
+                                if isinstance(output, (list, tuple)):
+                                    loss = output[0]
+                                else:
+                                    loss = output
 
-                        loss.backward()
-                        trainer.step(batch_size)
+                            loss.backward()
+                            trainer.step(batch_size)
 
-                        epoch_loss.update(None, preds=loss)
-                        # it.set_postfix(
-                        #     ordered_dict={
-                        #         "avg_epoch_loss": loss_value(epoch_loss)
-                        #     },
-                        #     refresh=False,
-                        # )
-                        # print out parameters of the network at the first pass
-                        if batch_no == 1 and epoch_no == 0:
-                            net_name = type(net).__name__
-                            num_model_param = self.count_model_params(net)
+                            epoch_loss.update(None, preds=loss)
+                            it.set_postfix(
+                                ordered_dict={
+                                    "avg_epoch_loss": loss_value(epoch_loss)
+                                },
+                                refresh=False,
+                            )
+                            # print out parameters of the network at the first pass
+                            if batch_no == 1 and epoch_no == 0:
+                                net_name = type(net).__name__
+                                num_model_param = self.count_model_params(net)
 
-                            if verbose:
                                 logging.info(
                                     f"Number of parameters in {net_name}: {num_model_param}"
                                 )
@@ -291,13 +287,12 @@ class Trainer:
                     # check and log epoch loss
                     check_loss_finite(loss_value(epoch_loss))
 
-                    if verbose:
-                        logging.info(
-                            "Epoch[%d] Evaluation metric '%s'=%f",
-                            epoch_no,
-                            "epoch_loss",
-                            loss_value(epoch_loss),
-                        )
+                    logging.info(
+                        "Epoch[%d] Evaluation metric '%s'=%f",
+                        epoch_no,
+                        "epoch_loss",
+                        loss_value(epoch_loss),
+                    )
 
                     lr_scheduler.step(loss_value(epoch_loss))
 
@@ -313,25 +308,26 @@ class Trainer:
                         )  # TODO: handle possible exception
 
                     if not trainer.learning_rate == curr_lr:
-                        if verbose:
-                            logging.info(
-                                f"Loading parameters from best epoch "
-                                f"({best_epoch_info.epoch_no})"
-                            )
+                        logging.info(
+                            f"Loading parameters from best epoch "
+                            f"({best_epoch_info.epoch_no})"
+                        )
+
                         net.load_parameters(
                             best_epoch_info.params_path, self.ctx
                         )
 
-                if verbose:
-                    logging.info(
-                        f"Loading parameters from best epoch "
-                        f"({best_epoch_info.epoch_no})"
-                    )
-                    logging.info(
-                        f"Final loss: {best_epoch_info.metric_value} "
-                        f"(occurred at epoch {best_epoch_info.epoch_no})"
-                    )
+                logging.info(
+                    f"Loading parameters from best epoch "
+                    f"({best_epoch_info.epoch_no})"
+                )
+
                 net.load_parameters(best_epoch_info.params_path, self.ctx)
+
+                logging.info(
+                    f"Final loss: {best_epoch_info.metric_value} "
+                    f"(occurred at epoch {best_epoch_info.epoch_no})"
+                )
 
                 # save net parameters
                 net.save_parameters(best_epoch_info.params_path)

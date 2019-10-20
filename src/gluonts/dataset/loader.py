@@ -203,6 +203,7 @@ class TrainDataLoader(DataLoader):
                     if batch_count >= self.num_batches_per_epoch:
                         return
 
+
 class InferenceDataLoader(DataLoader):
     """
     An Iterable type for iterating and transforming a dataset just once, in

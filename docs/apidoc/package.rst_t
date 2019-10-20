@@ -19,7 +19,7 @@
 API Docs
 ========
 {% else %}
-{{- pkgname.split(".") | last | e | heading }}
+{{- pkgname | e | heading }}
 {%  endif %}
 {% endif %}
 
