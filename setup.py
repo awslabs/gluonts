@@ -1,10 +1,8 @@
 # Standard library imports
 import distutils.cmd
 import distutils.log
-import io
 import itertools
 import logging
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -49,12 +47,7 @@ def find_requirements(filename):
         mxnet_old = r"mxnet"
         mxnet_new = "mxnet-cu92mkl" if GPU_SUPPORT else mxnet_old
         return [
-            re.subn(
-                pattern=mxnet_old,
-                repl=mxnet_new,
-                string=line.rstrip(),
-                count=1,
-            )[0]
+            line.rstrip().replace(mxnet_old, mxnet_new, 1)
             for line in f
             if not (line.startswith("#") or line.startswith("http"))
         ]

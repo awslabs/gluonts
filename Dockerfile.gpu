@@ -9,7 +9,7 @@ RUN apt-get update --fix-missing && \
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.7 get-pip.py
 
 # We're emulating nvidia-smi to be able to build GPU container on devices without GPU
-RUN echo '#!/bin/bash\necho Biilding container with GPU support' > /usr/bin/nvidia-smi && \
+RUN echo '#!/bin/bash\necho Building container with GPU support' > /usr/bin/nvidia-smi && \
     chmod +x /usr/bin/nvidia-smi
 
 ADD . /gluonts
