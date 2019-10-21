@@ -121,18 +121,35 @@ def inference_invocations(predictor_factory) -> Flask:
 
 
 def batch_inference_invocations(predictor_factory, configuration) -> Flask:
+    DEBUG = configuration.dict().get("DEBUG")
     predictor = predictor_factory({"configuration": configuration.dict()})
 
     def invocations() -> Response:
         request_data = request.data.decode("utf8").strip()
         instances = list(map(json.loads, request_data.splitlines()))
+        predictions = []
 
-        predictions = handle_predictions(predictor, instances, configuration)
+        # we have to take this as the initial start-time since the first
+        # forecast is produced before the loop in predictor.predict
+        start = time.time()
+
+        forecast_iter = predictor.predict(
+            ListDataset(instances, predictor.freq),
+            num_eval_samples=configuration.num_eval_samples,
+        )
+
+        for forecast in forecast_iter:
+            end = time.time()
+            prediction = forecast.as_json_dict(configuration)
+
+            if DEBUG:
+                prediction["debug"] = {"timing": end - start}
+
+            predictions.append(prediction)
+
+            start = time.time()
 
         lines = list(map(json.dumps, map(jsonify_floats, predictions)))
-
-        # force line break at the end
-        lines.append("")
         return Response("\n".join(lines), mimetype="application/jsonlines")
 
     return invocations
