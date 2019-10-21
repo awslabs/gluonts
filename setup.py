@@ -44,7 +44,7 @@ def read(*names, encoding="utf8"):
 
 def find_requirements(filename):
     with (ROOT / "requirements" / filename).open() as f:
-        mxnet_old = r"mxnet"
+        mxnet_old = "mxnet"
         mxnet_new = "mxnet-cu92mkl" if GPU_SUPPORT else mxnet_old
         return [
             line.rstrip().replace(mxnet_old, mxnet_new, 1)
