@@ -118,6 +118,9 @@ class TrainDataLoader(DataLoader):
     An Iterable type for iterating and transforming a dataset, in batches of a
     prescribed size, until a given number of batches is reached.
 
+    The transformation are applied with in training mode, i.e. with the flag
+    `is_train = True`.
+
     Parameters
     ----------
     dataset
