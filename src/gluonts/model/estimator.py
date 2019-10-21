@@ -25,7 +25,7 @@ from gluonts.core import fqname_for
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import TrainDataLoader
+from gluonts.dataset.loader import TrainDataLoader, InferenceDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.trainer import Trainer
@@ -184,18 +184,15 @@ class GluonEstimator(Estimator):
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
             float_type=self.float_type,
-            use_training_transform=True,
         )
 
         validation_data_loader = (
-            TrainDataLoader(
+            InferenceDataLoader(
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
-                num_batches_per_epoch=self.trainer.num_batches_per_epoch,
                 ctx=self.trainer.ctx,
                 float_type=self.float_type,
-                use_training_transform=False,
             )
             if validation_data is not None
             else None

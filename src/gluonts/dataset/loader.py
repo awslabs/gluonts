@@ -132,9 +132,6 @@ class TrainDataLoader(DataLoader):
         Number of batches to return in one complete iteration over this object.
     float_type
         Floating point type to use.
-    use_training_transform
-        Enables training mode for transformations, i.e. with the flag
-    `is_train = True`.
     """
 
     def __init__(
@@ -147,12 +144,10 @@ class TrainDataLoader(DataLoader):
         float_type: DType = np.float32,
         shuffle_for_training: bool = True,
         num_batches_for_shuffling: int = 10,
-        use_training_transform: bool = True,
     ) -> None:
         super().__init__(dataset, transform, batch_size, ctx, float_type)
         self.num_batches_per_epoch = num_batches_per_epoch
         self.shuffle_for_training = shuffle_for_training
-        self.use_training_transform = use_training_transform
         self._num_buffered_batches = (
             num_batches_for_shuffling if shuffle_for_training else 1
         )
@@ -187,8 +182,7 @@ class TrainDataLoader(DataLoader):
         batch_count = 0
         if self._cur_iter is None:
             self._cur_iter = self.transform(
-                self._iterate_forever(self.dataset),
-                is_train=self.use_training_transform,
+                self._iterate_forever(self.dataset), is_train=True
             )
         assert self._cur_iter is not None
         while True:

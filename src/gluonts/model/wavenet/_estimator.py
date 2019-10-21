@@ -25,7 +25,7 @@ from gluonts import transform
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import TrainDataLoader
+from gluonts.dataset.loader import TrainDataLoader, InferenceDataLoader
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
@@ -291,11 +291,10 @@ class WaveNetEstimator(GluonEstimator):
         )
 
         validation_data_loader = (
-            TrainDataLoader(
+            InferenceDataLoader(
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
-                num_batches_per_epoch=self.trainer.num_batches_per_epoch,
                 ctx=self.trainer.ctx,
                 float_type=self.float_type,
             )
