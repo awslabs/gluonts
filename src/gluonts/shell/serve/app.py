@@ -121,6 +121,7 @@ def inference_invocations(predictor_factory) -> Flask:
 
 
 def batch_inference_invocations(predictor_factory, configuration) -> Flask:
+    DEBUG = configuration.dict().get("DEBUG")
     predictor = predictor_factory({"configuration": configuration.dict()})
 
     def invocations() -> Response:
@@ -141,15 +142,15 @@ def batch_inference_invocations(predictor_factory, configuration) -> Flask:
             end = time.time()
             prediction = forecast.as_json_dict(configuration)
 
-            if configuration.get("DEBUG"):
+            if DEBUG:
                 prediction["debug"] = {"timing": end - start}
 
             predictions.append(prediction)
 
             start = time.time()
 
-            lines = list(map(json.dumps, map(jsonify_floats, predictions)))
-            return Response("\n".join(lines), mimetype="application/jsonlines")
+        lines = list(map(json.dumps, map(jsonify_floats, predictions)))
+        return Response("\n".join(lines), mimetype="application/jsonlines")
 
     return invocations
 
