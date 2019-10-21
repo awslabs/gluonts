@@ -46,10 +46,15 @@ def read(*names, encoding="utf8"):
 
 def find_requirements(filename):
     with (ROOT / "requirements" / filename).open() as f:
-        mxnet_old = "mxnet=="
-        mxnet_new = "mxnet-cu92mkl==" if GPU_SUPPORT else mxnet_old
+        mxnet_old = r"mxnet"
+        mxnet_new = "mxnet-cu92mkl" if GPU_SUPPORT else mxnet_old
         return [
-            line.rstrip().replace(mxnet_old, mxnet_new, 1)
+            re.subn(
+                pattern=mxnet_old,
+                repl=mxnet_new,
+                string=line.rstrip(),
+                count=1,
+            )[0]
             for line in f
             if not (line.startswith("#") or line.startswith("http"))
         ]
