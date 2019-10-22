@@ -28,6 +28,7 @@ from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
 from sagemaker import session
 import s3fs
 import pandas as pd
+import tarfile
 
 # First-party imports
 from gluonts.sagemaker.defaults import GLUONTS_VERSION
@@ -239,7 +240,11 @@ class GluonTSFramework(Framework):
                     training_job_name
                 )
         """
+
         # TODO: handle conversion from image name to params, when necessary
+        # Example implementation:
+        #   https://github.com/aws/sagemaker-python-sdk/blob/master/src/sagemaker/mxnet/estimator.py
+
         return init_params
 
     # TODO hyperparameter override for hyper parameter optimization
@@ -323,13 +328,11 @@ class GluonTSFramework(Framework):
 
         self.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
-        # retrieve metrics # TODO fix this: download zip, unpack and stuff...
-        #with s3fs.S3FileSystem().open(f"{self.output_path}/{job_name}/agg_metrics.json", "r") as f:
-        #    agg_metrics = json.load(f)
-        #with s3fs.S3FileSystem().open(f"{self.output_path}/{job_name}/item_metrics.csv", "r") as f:
-        #    item_metrics = pd.read_csv(f)
-        agg_metrics = None
-        item_metrics = None
+        # retrieve metrics
+        with s3fs.S3FileSystem().open(f"{self.output_path}/{job_name}/output/output.tar.gz", "rb") as f:
+            with tarfile.open(mode='r:gz', fileobj=f) as tar:
+                agg_metrics = json.load(tar.extractfile("agg_metrics.json"))
+                item_metrics = pd.read_csv(tar.extractfile("item_metrics.csv"))
 
         return agg_metrics, item_metrics, job_name
 

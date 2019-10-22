@@ -145,5 +145,8 @@ class GluonTSModel(FrameworkModel):
         )
         """
 
-        # TODO implement the proper logic for handling images...
+        # TODO implement the proper logic for handling images
+        # Example implementation:
+        #   https://github.com/aws/sagemaker-python-sdk/blob/master/src/sagemaker/mxnet/model.py
+
         return super().prepare_container_def(instance_type, accelerator_type)

@@ -71,7 +71,7 @@ def train(arguments):
     with open(metrics_output_dir / "agg_metrics.json", "w") as f:
         json.dump(agg_metrics, f)
     with open(metrics_output_dir / "item_metrics.csv", "w") as f:
-        item_metrics.to_csv(f)
+        item_metrics.to_csv(f, index=False)
 
     # save the model
     model_output_dir = Path(arguments.model_dir)
