@@ -17,6 +17,7 @@ import argparse
 import os
 import json
 import time
+import logging
 
 # Third-party imports
 
@@ -27,7 +28,10 @@ from gluonts.dataset import common
 from gluonts.dataset.repository import datasets
 from gluonts.evaluation import Evaluator, backtest
 
+logger = logging.getLogger(__name__)
 
+
+# TODO figure out proper logging way: stuts histor (the ones with timestamp...)
 def train(arguments):
     """
     Generic train method that trains a specified estimator on a specified dataset.
@@ -59,12 +63,13 @@ def train(arguments):
 
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Starting - Starting model evaluation.")
     evaluator = Evaluator(quantiles=eval(arguments.quantiles))
-    agg_metrics, item_metrics = evaluator(ts_it, forecast_it, num_series=len(dataset.test))
 
-    # TODO:
-    # we only log aggregate metrics for now as item metrics may be very large
-    # for name, value in agg_metrics.items():
-    #    serialize_message(logger, f"metric-{name}", value)
+    agg_metrics, item_metrics = evaluator(
+        ts_it, forecast_it, num_series=len(dataset.test)
+    )
+
+    for name, value in agg_metrics.items():
+        logger.info(f"gluonts[metric-{name}]: {value}")
 
     # save the evaluation results
     metrics_output_dir = Path(arguments.output_data_dir)
@@ -92,7 +97,7 @@ if __name__ == '__main__':
     # argument possibly not set
     parser.add_argument('--s3_dataset', type=str, default=str(os.environ.get('SM_CHANNEL_S3_DATASET')))
     parser.add_argument('--dataset', type=str, default=os.environ['SM_HP_DATASET'])
-    parser.add_argument('--num_eval_samples', type=str, default=os.environ['SM_HP_NUM_EVAL_SAMPLES'])
+    parser.add_argument('--num_eval_samples', type=int, default=os.environ['SM_HP_NUM_EVAL_SAMPLES'])
     parser.add_argument('--quantiles', type=str, default=os.environ['SM_HP_QUANTILES'])
 
     args, _ = parser.parse_known_args()

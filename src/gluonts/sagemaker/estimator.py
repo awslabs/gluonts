@@ -20,6 +20,7 @@ import os
 import time
 from typing import List, Optional, Tuple
 import json
+import re
 
 # Third-party imports
 from sagemaker.estimator import Framework
@@ -39,6 +40,11 @@ from gluonts.dataset.repository import datasets
 
 logger = logging.getLogger("sagemaker")
 
+# Defaults
+TRAIN_ENTRY_POINT_SCRIPT = str(
+        Path(os.path.dirname(os.path.abspath(__file__))) / "entry_point_scripts" / "train_entry_point.py")
+MONITORED_METRICS = ('mean_wQuantileLoss', 'ND', 'RMSE')
+
 
 class GluonTSFramework(Framework):
     """Handle end-to-end training and deployment of custom GluonTS code."""
@@ -46,9 +52,6 @@ class GluonTSFramework(Framework):
     __framework_name__ = "gluonts"
 
     LATEST_VERSION = "0.3.3"
-
-    TRAIN_ENTRY_POINT_SCRIPT = str(
-        Path(os.path.dirname(os.path.abspath(__file__))) / "entry_point_scripts" / "train_entry_point.py")
 
     def __init__(
             self,
@@ -128,7 +131,8 @@ class GluonTSFramework(Framework):
             base_job_name=base_job_name,
             entry_point=entry_point,
             hyperparameters=hyperparameters,
-            image_name=image_name, **kwargs
+            image_name=image_name,
+            **kwargs
         )
 
         # must be set
@@ -247,14 +251,22 @@ class GluonTSFramework(Framework):
 
         return init_params
 
+    @classmethod
+    def _get_metrics(cls, metrics_names):
+        avg_epoch_loss_metric = {"Name": "training_loss", "Regex": r"'avg_epoch_loss'=(\S+)"}
+        final_loss_metric = {"Name": "final_loss", "Regex": r"Final loss: (\S+)"}
+        other_metrics = [{'Name': m, 'Regex': rf"gluonts\[metric-{re.escape(m)}\]: (\S+)"} for m in metrics_names]
+
+        return [avg_epoch_loss_metric, final_loss_metric] + other_metrics
+
     # TODO hyperparameter override for hyper parameter optimization
-    # TODO metric logging // see swist experiments
     # TODO check what happens when gluonts is already installed....
     def train(self,
               dataset: str,
               estimator: GluonEstimator,
               num_eval_samples: Optional[int] = 100,
               quantiles: Optional[Tuple[int]] = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9),
+              monitored_metrics: Tuple[str] = MONITORED_METRICS,
               wait: bool = True,
               logs: bool = True,
               job_name: str = None
@@ -278,9 +290,13 @@ class GluonTSFramework(Framework):
                 you must have specified the code location in the dependencies argument of the GLuonTSFramework.
             num_eval_samples:
                 The num_eval_sample parameter for the gluonts.evaluation.backtest.make_evaluation_predictions
-                method used for evaluation.
+                method used for evaluation. (default: (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
             quantiles:
-                The quantiles parameter for the gluonts.evaluation.Evaluator used for evaluation.
+                The quantiles parameter for the gluonts.evaluation.Evaluator used
+                for evaluation. (default: 0.1)
+            monitored_metrics:
+                Names of the metrics that will be parsed from logs in a one minute interval
+                in order to monitor them in Sagemaker.
             wait:
                 Whether the call should wait until the job completes (default: True).
             logs:
@@ -298,12 +314,15 @@ class GluonTSFramework(Framework):
         if self.sagemaker_session.local_mode:
             raise NotImplementedError()
 
-        # sagemaker cant handle PosixPaths
+        # set metrics to be monitored
+        self.metric_definitions = GluonTSFramework._get_metrics(monitored_metrics)
+
+        # Sagemaker cant handle PosixPaths
         dataset = str(dataset)
 
         # pass dataset as hyper-parameter
         self._hyperparameters["DATASET"] = dataset
-        self._hyperparameters["NUM_EVAL_SAMPLES"] = str(num_eval_samples)
+        self._hyperparameters["NUM_EVAL_SAMPLES"] = num_eval_samples
         self._hyperparameters["QUANTILES"] = str(quantiles)
 
         # specify job_name if not set
@@ -346,10 +365,11 @@ class GluonTSFramework(Framework):
             sagemaker_session: session.Session,
             role: str,
             train_instance_type: str,
-            train_instance_count: str,
+            train_instance_count: int,
             base_job_name: str,
             image_name: str,
             framework_version: str = GLUONTS_VERSION,
+            monitored_metrics: Tuple[str] = MONITORED_METRICS,
             wait: bool = True,
             logs: bool = True,
             job_name: str = None
@@ -400,6 +420,7 @@ class GluonTSFramework(Framework):
             base_job_name=base_job_name,
             image_name=image_name,
             framework_version=framework_version,
+            metric_definitions=GluonTSFramework._get_metrics(MONITORED_METRICS)
         )
 
         # specify job_name if not set
