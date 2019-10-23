@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -99,6 +99,10 @@ class Uniform(Distribution):
         return F.broadcast_add(
             F.broadcast_mul(self.high - self.low, level), self.low
         )
+
+    @property
+    def args(self) -> List:
+        return [self.low, self.high]
 
 
 class UniformOutput(DistributionOutput):

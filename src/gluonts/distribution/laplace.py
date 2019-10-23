@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -99,6 +99,10 @@ class Laplace(Distribution):
         u = F.where(condition, F.log(2.0 * level), -F.log(2.0 - 2.0 * level))
 
         return F.broadcast_add(self.mu, F.broadcast_mul(self.b, u))
+
+    @property
+    def args(self) -> List:
+        return [self.mu, self.b]
 
 
 class LaplaceOutput(DistributionOutput):

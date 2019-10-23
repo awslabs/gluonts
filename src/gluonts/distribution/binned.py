@@ -87,7 +87,7 @@ class Binned(Distribution):
 
     @property
     def batch_shape(self) -> Tuple:
-        return self.bin_centers.shape[:-1]
+        return self.bin_probs.shape[:-1]
 
     @property
     def event_shape(self) -> Tuple:
@@ -173,6 +173,10 @@ class Binned(Distribution):
                 ).pick(indices, -1)
 
         return _sample_multiple(s, self.bin_probs, num_samples=num_samples)
+
+    @property
+    def args(self) -> List:
+        return [self.bin_probs, self.bin_centers]
 
 
 class BinnedArgs(gluon.HybridBlock):
