@@ -310,7 +310,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
             return distr
         else:
             return TransformedDistribution(
-                distr, bijection.AffineTransformation(scale=scale)
+                distr, [bijection.AffineTransformation(scale=scale)]
             )
 
     def domain_map(self, F, mu_vector, D_vector, W_vector):
