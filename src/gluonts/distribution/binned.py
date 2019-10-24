@@ -87,7 +87,7 @@ class Binned(Distribution):
 
     @property
     def batch_shape(self) -> Tuple:
-        return self.bin_centers.shape[:-1]
+        return self.bin_probs.shape[:-1]
 
     @property
     def event_shape(self) -> Tuple:

@@ -23,6 +23,7 @@ from gluonts.distribution import (
     LaplaceOutput,
     MixtureDistributionOutput,
     MultivariateGaussianOutput,
+    LowrankMultivariateGaussianOutput,
     NegativeBinomialOutput,
     PiecewiseLinearOutput,
     StudentTOutput,
@@ -49,6 +50,13 @@ from gluonts.distribution import (
         ),
         (
             MultivariateGaussianOutput(dim=5),
+            mx.nd.random.normal(shape=(3, 4, 10)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4),
+            (5,),
+        ),
+        (
+            LowrankMultivariateGaussianOutput(dim=5, rank=4),
             mx.nd.random.normal(shape=(3, 4, 10)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4),
