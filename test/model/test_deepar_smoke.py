@@ -12,10 +12,12 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+from functools import partial
 from random import randint
 from typing import List, Tuple
 
 # Third-party imports
+import numpy as np
 import pytest
 
 # First-party imports
@@ -80,12 +82,13 @@ common_estimator_hps = dict(
     [
         # No features
         (
-            DeepAREstimator(**common_estimator_hps),
+            partial(DeepAREstimator, **common_estimator_hps),
             _make_dummy_datasets_with_features(),
         ),
         # Single static categorical feature
         (
-            DeepAREstimator(
+            partial(
+                DeepAREstimator,
                 **common_estimator_hps,
                 use_feat_static_cat=True,
                 cardinality=[5],
@@ -94,7 +97,8 @@ common_estimator_hps = dict(
         ),
         # Multiple static categorical features
         (
-            DeepAREstimator(
+            partial(
+                DeepAREstimator,
                 **common_estimator_hps,
                 use_feat_static_cat=True,
                 cardinality=[3, 10, 42],
@@ -103,31 +107,36 @@ common_estimator_hps = dict(
         ),
         # Multiple static categorical features (ignored)
         (
-            DeepAREstimator(**common_estimator_hps),
+            partial(DeepAREstimator, **common_estimator_hps),
             _make_dummy_datasets_with_features(cardinality=[3, 10, 42]),
         ),
         # Single dynamic real feature
         (
-            DeepAREstimator(
-                **common_estimator_hps, use_feat_dynamic_real=True
+            partial(
+                DeepAREstimator,
+                **common_estimator_hps,
+                use_feat_dynamic_real=True,
             ),
             _make_dummy_datasets_with_features(num_feat_dynamic_real=1),
         ),
         # Multiple dynamic real feature
         (
-            DeepAREstimator(
-                **common_estimator_hps, use_feat_dynamic_real=True
+            partial(
+                DeepAREstimator,
+                **common_estimator_hps,
+                use_feat_dynamic_real=True,
             ),
             _make_dummy_datasets_with_features(num_feat_dynamic_real=3),
         ),
         # Multiple dynamic real feature (ignored)
         (
-            DeepAREstimator(**common_estimator_hps),
+            partial(DeepAREstimator, **common_estimator_hps),
             _make_dummy_datasets_with_features(num_feat_dynamic_real=3),
         ),
         # Both static categorical and dynamic real features
         (
-            DeepAREstimator(
+            partial(
+                DeepAREstimator,
                 **common_estimator_hps,
                 use_feat_dynamic_real=True,
                 use_feat_static_cat=True,
@@ -139,15 +148,18 @@ common_estimator_hps = dict(
         ),
         # Both static categorical and dynamic real features (ignored)
         (
-            DeepAREstimator(**common_estimator_hps),
+            partial(DeepAREstimator, **common_estimator_hps),
             _make_dummy_datasets_with_features(
                 cardinality=[3, 10, 42], num_feat_dynamic_real=3
             ),
         ),
     ],
 )
-def test_deepar_smoke(estimator, datasets):
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_deepar_smoke(estimator, datasets, dtype):
+    estimator = estimator(dtype=dtype)
     dataset_train, dataset_test = datasets
     predictor = estimator.train(dataset_train)
-    forecasts = predictor.predict(dataset_test)
-    assert len(list(forecasts)) == len(dataset_test)
+    forecasts = list(predictor.predict(dataset_test))
+    assert all([forecast.samples.dtype == dtype for forecast in forecasts])
+    assert len(forecasts) == len(dataset_test)

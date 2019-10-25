@@ -17,6 +17,7 @@ from typing import Optional, Tuple, List
 # Third-party imports
 from mxnet import autograd
 import mxnet as mx
+import numpy as np
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -80,15 +81,21 @@ class TransformedDistribution(Distribution):
         assert isinstance(self._event_shape, tuple)
         return self._event_shape
 
-    def sample(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         with autograd.pause():
-            s = self.base_distribution.sample(num_samples=num_samples)
+            s = self.base_distribution.sample(
+                num_samples=num_samples, dtype=dtype
+            )
             for t in self.transforms:
                 s = t.f(s)
             return s
 
-    def sample_rep(self, num_samples: Optional[int] = None) -> Tensor:
-        s = self.base_distribution.sample_rep()
+    def sample_rep(
+        self, num_samples: Optional[int] = None, dtype=np.float
+    ) -> Tensor:
+        s = self.base_distribution.sample_rep(dtype=dtype)
         for t in self.transforms:
             s = t.f(s)
         return s

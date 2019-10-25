@@ -102,11 +102,9 @@ class GluonEstimator(Estimator):
     """
 
     @validated()
-    def __init__(
-        self, trainer: Trainer, float_type: DType = np.float32
-    ) -> None:
+    def __init__(self, trainer: Trainer, dtype: DType = np.float32) -> None:
         self.trainer = trainer
-        self.float_type = float_type
+        self.dtype = dtype
 
     @classmethod
     def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
@@ -175,7 +173,7 @@ class GluonEstimator(Estimator):
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
-            float_type=self.float_type,
+            dtype=self.dtype,
         )
 
         # ensure that the training network is created within the same MXNet

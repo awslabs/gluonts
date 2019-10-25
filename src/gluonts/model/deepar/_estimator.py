@@ -12,13 +12,14 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import numpy as np
 from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
@@ -132,8 +133,9 @@ class DeepAREstimator(GluonEstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        dtype: DType = np.float32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, dtype=dtype)
 
         assert (
             prediction_length > 0
@@ -163,6 +165,7 @@ class DeepAREstimator(GluonEstimator):
         )
         self.prediction_length = prediction_length
         self.distr_output = distr_output
+        self.distr_output.dtype = dtype
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
@@ -218,18 +221,26 @@ class DeepAREstimator(GluonEstimator):
                 else []
             )
             + [
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
                 AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
+                    field=FieldName.FEAT_STATIC_CAT,
+                    expected_ndim=1,
+                    dtype=self.dtype,
+                ),
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_REAL,
+                    expected_ndim=1,
+                    dtype=self.dtype,
                 ),
                 AsNumpyArray(
                     field=FieldName.TARGET,
                     # in the following line, we add 1 for the time dimension
                     expected_ndim=1 + len(self.distr_output.event_shape),
+                    dtype=self.dtype,
                 ),
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    dtype=self.dtype,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,
@@ -243,6 +254,7 @@ class DeepAREstimator(GluonEstimator):
                     output_field=FieldName.FEAT_AGE,
                     pred_length=self.prediction_length,
                     log_scale=True,
+                    dtype=self.dtype,
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
@@ -283,6 +295,7 @@ class DeepAREstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            dtype=self.dtype,
         )
 
     def create_predictor(
@@ -302,6 +315,7 @@ class DeepAREstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            dtype=self.dtype,
         )
 
         copy_parameters(trained_network, prediction_network)
@@ -313,4 +327,5 @@ class DeepAREstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
+            dtype=self.dtype,
         )

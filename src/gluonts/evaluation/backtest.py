@@ -180,7 +180,7 @@ def backtest_metrics(
                 transform=predictor.input_transform,
                 batch_size=forecaster.trainer.batch_size,
                 ctx=forecaster.trainer.ctx,
-                float_type=forecaster.float_type,
+                dtype=forecaster.dtype,
             )
 
             if forecaster.trainer.hybridize:

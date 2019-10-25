@@ -17,6 +17,7 @@ from typing import List, Optional, Tuple
 # Third-party imports
 import mxnet as mx
 from mxnet import autograd
+import numpy as np
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -177,12 +178,21 @@ class Distribution:
         """
         return self.batch_dim + self.event_dim
 
-    def sample(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         r"""
         Draw samples from the distribution.
 
         If num_samples is given the first dimension of the output will be
         num_samples.
+
+        Parameters
+        ----------
+        num_samples
+            Number of samples to to be drawn.
+        dtype
+            Data-type of the samples.
 
         Returns
         -------
@@ -192,11 +202,13 @@ class Distribution:
             and  `(num_samples, *batch_shape, *eval_shape)` otherwise.
         """
         with autograd.pause():
-            var = self.sample_rep(num_samples=num_samples)
+            var = self.sample_rep(num_samples=num_samples, dtype=dtype)
             F = getF(var)
             return F.BlockGrad(var)
 
-    def sample_rep(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample_rep(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         raise NotImplementedError()
 
     @property
