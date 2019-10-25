@@ -10,7 +10,7 @@ BUILDDIR      = _build
 
 
 APIDOC        = sphinx-apidoc
-APIDOC_OPTS   = --implicit-namespaces --separate --module-first -t apidoc
+APIDOC_OPTS   = --implicit-namespaces --separate --module-first --templatedir apidoc
 APIDOC_ROOT   = gluonts
 
 # Put it first so that "make" without argument is like "make help".
