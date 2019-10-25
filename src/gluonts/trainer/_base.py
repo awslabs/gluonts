@@ -308,7 +308,6 @@ class Trainer:
                             f"Loading parameters from best epoch "
                             f"({best_epoch_info.epoch_no})"
                         )
-
                         net.load_parameters(
                             best_epoch_info.params_path, self.ctx
                         )
