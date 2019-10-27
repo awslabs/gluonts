@@ -30,13 +30,13 @@ DataBatch = Dict[str, Any]
 
 class BatchBuffer:
     def __init__(
-        self, batch_size: int, ctx: mx.Context, float_type: DType = np.float32
+        self, batch_size: int, ctx: mx.Context, dtype: DType = np.float32
     ) -> None:
         self._buffers: Dict[Any, List[Any]] = defaultdict(list)
         self.batch_size = batch_size
         self._size = 0
         self.ctx = ctx
-        self.float_type = float_type
+        self.dtype = dtype
 
     def add(self, d: Dict[str, List[np.ndarray]]):
         if self._buffers:
@@ -61,7 +61,7 @@ class BatchBuffer:
         if isinstance(xs[0], np.ndarray):
             data = np.asarray(xs)
             if data.dtype.kind == "f":
-                data = data.astype(self.float_type)
+                data = data.astype(self.dtype)
             return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
         elif isinstance(xs[0], mx.nd.NDArray):
             return mx.nd.stack(*xs)
@@ -94,7 +94,7 @@ class DataLoader(Iterable[DataEntry]):
         The size of the batches to emit.
     ctx
         MXNet context to use to store data.
-    float_type
+    dtype
         Floating point type to use.
     """
 
@@ -104,13 +104,13 @@ class DataLoader(Iterable[DataEntry]):
         transform: Transformation,
         batch_size: int,
         ctx: mx.Context,
-        float_type: DType = np.float32,
+        dtype: DType = np.float32,
     ) -> None:
         self.dataset = dataset
         self.transform = transform
         self.batch_size = batch_size
         self.ctx = ctx
-        self.float_type = float_type
+        self.dtype = dtype
 
 
 class TrainDataLoader(DataLoader):
@@ -133,7 +133,7 @@ class TrainDataLoader(DataLoader):
         MXNet context to use to store data.
     num_batches_per_epoch
         Number of batches to return in one complete iteration over this object.
-    float_type
+    dtype
         Floating point type to use.
     """
 
@@ -144,18 +144,18 @@ class TrainDataLoader(DataLoader):
         batch_size: int,
         ctx: mx.Context,
         num_batches_per_epoch: int,
-        float_type: DType = np.float32,
+        dtype: DType = np.float32,
         shuffle_for_training: bool = True,
         num_batches_for_shuffling: int = 10,
     ) -> None:
-        super().__init__(dataset, transform, batch_size, ctx, float_type)
+        super().__init__(dataset, transform, batch_size, ctx, dtype)
         self.num_batches_per_epoch = num_batches_per_epoch
         self.shuffle_for_training = shuffle_for_training
         self._num_buffered_batches = (
             num_batches_for_shuffling if shuffle_for_training else 1
         )
         self._cur_iter: Optional[Iterator] = None
-        self._buffer = BatchBuffer(self.batch_size, ctx, float_type)
+        self._buffer = BatchBuffer(self.batch_size, ctx, dtype)
 
     def _emit_batches_while_buffer_larger_than(
         self, thresh
@@ -222,12 +222,12 @@ class InferenceDataLoader(DataLoader):
         The size of the batches to emit.
     ctx
         MXNet context to use to store data.
-    float_type
+    dtype
         Floating point type to use.
     """
 
     def __iter__(self) -> Iterator[DataBatch]:
-        buffer = BatchBuffer(self.batch_size, self.ctx, self.float_type)
+        buffer = BatchBuffer(self.batch_size, self.ctx, self.dtype)
         for data_entry in self.transform(iter(self.dataset), is_train=False):
             buffer.add(data_entry)
             if len(buffer) >= self.batch_size:

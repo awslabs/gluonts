@@ -14,6 +14,9 @@
 # Standard library imports
 from typing import Dict, Tuple, List
 
+# Third-party imports
+import numpy as np
+
 # First-party imports
 from gluonts.model.common import Tensor
 from gluonts.core.component import validated
@@ -74,12 +77,12 @@ class Laplace(Distribution):
         y = (x - self.mu) / self.b
         return 0.5 + 0.5 * y.sign() * (1.0 - self.F.exp(-y.abs()))
 
-    def sample_rep(self, num_samples=None) -> Tensor:
+    def sample_rep(self, num_samples=None, dtype=np.float32) -> Tensor:
         F = self.F
 
         def s(mu: Tensor, b: Tensor) -> Tensor:
             ones = mu.ones_like()
-            x = F.random.uniform(-0.5 * ones, 0.5 * ones)
+            x = F.random.uniform(-0.5 * ones, 0.5 * ones, dtype=dtype)
             laplace_samples = mu - b * F.sign(x) * F.log(
                 (1.0 - 2.0 * F.abs(x)).clip(1.0e-30, 1.0e30)
                 # 1.0 - 2.0 * F.abs(x)

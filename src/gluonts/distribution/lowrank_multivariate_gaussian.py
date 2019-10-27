@@ -237,7 +237,7 @@ class LowrankMultivariateGaussian(Distribution):
 
         return self.Cov
 
-    def sample_rep(self, num_samples: int = None) -> Tensor:
+    def sample_rep(self, num_samples: int = None, dtype=np.float32) -> Tensor:
         r"""
         Draw samples from the multivariate Gaussian distribution:
 
@@ -250,6 +250,8 @@ class LowrankMultivariateGaussian(Distribution):
         ----------
         num_samples
             number of samples to be drawn.
+        dtype
+            Data-type of the samples.
 
         Returns
         -------
@@ -260,7 +262,7 @@ class LowrankMultivariateGaussian(Distribution):
             F = getF(mu)
 
             samples_D = F.sample_normal(
-                mu=F.zeros_like(mu), sigma=F.ones_like(mu)
+                mu=F.zeros_like(mu), sigma=F.ones_like(mu), dtype=dtype
             )
             cov_D = D.sqrt() * samples_D
 
@@ -270,7 +272,9 @@ class LowrankMultivariateGaussian(Distribution):
             ).squeeze(axis=-1)
 
             samples_W = F.sample_normal(
-                mu=F.zeros_like(dummy_tensor), sigma=F.ones_like(dummy_tensor)
+                mu=F.zeros_like(dummy_tensor),
+                sigma=F.ones_like(dummy_tensor),
+                dtype=dtype,
             )
 
             cov_W = F.linalg_gemm2(W, samples_W.expand_dims(axis=-1)).squeeze(

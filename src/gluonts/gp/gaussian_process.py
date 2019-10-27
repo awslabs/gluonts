@@ -250,9 +250,8 @@ class GaussianProcess:
             self._compute_cholesky_gp(
                 covariance, self.prediction_length, self.sample_noise
             ),
-            float_type=self.float_type,
         ).sample_rep(
-            self.num_samples
+            self.num_samples, dtype=self.float_type
         )  # Shape (num_samples, batch_size, prediction_length)
         return self.F.transpose(samples, axes=(1, 2, 0))
 

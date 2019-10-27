@@ -16,6 +16,7 @@ from typing import List, Optional, Tuple
 
 # Third-party imports
 from mxnet import gluon
+import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
@@ -118,8 +119,10 @@ class MixtureDistribution(Distribution):
             axis=-1,
         )
 
-    def sample(self, num_samples: Optional[int] = None) -> Tensor:
-        samples_list = [c.sample(num_samples) for c in self.components]
+    def sample(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
+        samples_list = [c.sample(num_samples, dtype) for c in self.components]
         samples = self.F.stack(*samples_list, axis=-1)
 
         mixture_probs = _expand_param(self.mixture_probs, num_samples)
