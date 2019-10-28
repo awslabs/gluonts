@@ -149,12 +149,12 @@ class DeepAREstimator(GluonEstimator):
         assert (cardinality is not None and use_feat_static_cat) or (
             cardinality is None and not use_feat_static_cat
         ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
-        assert cardinality is None or [
-            c > 0 for c in cardinality
-        ], "Elements of `cardinality` should be > 0"
-        assert embedding_dimension is None or [
-            e > 0 for e in embedding_dimension
-        ], "Elements of `embedding_dimension` should be > 0"
+        assert cardinality is None or all(
+            [c > 0 for c in cardinality]
+        ), "Elements of `cardinality` should be > 0"
+        assert embedding_dimension is None or all(
+            [e > 0 for e in embedding_dimension]
+        ), "Elements of `embedding_dimension` should be > 0"
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
