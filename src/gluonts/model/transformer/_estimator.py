@@ -153,9 +153,9 @@ class TransformerEstimator(GluonEstimator):
         assert (
             cardinality is not None or not use_feat_static_cat
         ), "You must set `cardinality` if `use_feat_static_cat=True`"
-        assert cardinality is None or [
-            c > 0 for c in cardinality
-        ], "Elements of `cardinality` should be > 0"
+        assert cardinality is None or all(
+            [c > 0 for c in cardinality]
+        ), "Elements of `cardinality` should be > 0"
         assert (
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
