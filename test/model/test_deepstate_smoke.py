@@ -146,6 +146,6 @@ def test_deepstate_smoke(estimator, datasets):
         ),
     ],
 )
-def test_deepstate_static_feat(estimator, datasets):
+def test_deepstate_exceptions_with_feat_static_cat(estimator, datasets):
     with pytest.raises(Exception):
         estimator()
