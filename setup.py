@@ -209,9 +209,6 @@ setup_kwargs: dict = dict(
         "shell": shell_require,
     },
     entry_points=dict(
-        console_scripts=[
-            "gluonts-validate-dataset=gluonts.dataset.validate:run"
-        ],
         gluonts_forecasters=[
             "deepar=gluonts.model.deepar:DeepAREstimator",
             "r=gluonts.model.r_forecast:RForecastPredictor [R]",
