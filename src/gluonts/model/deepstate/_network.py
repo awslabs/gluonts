@@ -21,8 +21,7 @@ import mxnet as mx
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.scaler import NOPScaler, MeanScaler
 from gluonts.core.component import validated
-from gluonts.distribution.lds import LDS, LDSArgsProj
-from gluonts.model.deepstate import BoundedParam
+from gluonts.distribution.lds import BoundedParam, LDS, LDSArgsProj
 from gluonts.model.deepstate.issm import ISSM
 from gluonts.model.common import Tensor
 from gluonts.support.util import weighted_average, make_nd_diag

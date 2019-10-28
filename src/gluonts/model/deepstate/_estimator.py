@@ -22,7 +22,7 @@ from pandas.tseries.frequencies import to_offset
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.deepstate import BoundedParam
+from gluonts.distribution.lds import BoundedParam
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
@@ -199,18 +199,16 @@ class DeepStateEstimator(GluonEstimator):
 
         # For simplicity we do not allow infinity as upper bound here.
         assert all(
-            [
-                np.isfinite(
-                    [
-                        noise_std.lower_bound,
-                        prior_cov.lower_bound,
-                        innovation.lower_bound,
-                        noise_std.upper_bound,
-                        prior_cov.upper_bound,
-                        innovation.upper_bound,
-                    ]
-                )
-            ]
+            np.isfinite(
+                [
+                    noise_std.lower_bound,
+                    prior_cov.lower_bound,
+                    innovation.lower_bound,
+                    noise_std.upper_bound,
+                    prior_cov.upper_bound,
+                    innovation.upper_bound,
+                ]
+            )
         ), (
             "Lower and upper bounds of noise standard deviation, (diagonal of) prior covariance matrix "
             "and innovation strength should be finite."
@@ -372,7 +370,7 @@ class DeepStateEstimator(GluonEstimator):
             params=trained_network.collect_params(),
             noise_std=self.noise_std,
             prior_cov=self.prior_cov,
-            innvoation=self.innovation,
+            innovation=self.innovation,
         )
 
         copy_parameters(trained_network, prediction_network)

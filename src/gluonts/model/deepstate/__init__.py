@@ -10,19 +10,8 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
-# Standard library imports
-from dataclasses import dataclass
-
-
 # Relative imports
 from ._estimator import DeepStateEstimator
 
+
 __all__ = ["DeepStateEstimator"]
-
-
-# Better way than extending NamedTuple to support type annotation.
-@dataclass
-class BoundedParam:
-    lower_bound: float
-    upper_bound: float
