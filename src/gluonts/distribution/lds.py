@@ -19,6 +19,7 @@ import numpy as np
 from gluonts.distribution import Distribution, Gaussian, MultivariateGaussian
 from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
+from gluonts.model.deepstate import BoundedParam
 from gluonts.core.component import validated
 from gluonts.support.util import make_nd_diag, _broadcast_param
 from gluonts.support.linalg_util import jitter_cholesky
@@ -473,40 +474,38 @@ class LDSArgsProj(mx.gluon.HybridBlock):
     def __init__(
         self,
         output_dim: int,
-        noise_std_ub: float = 1.0,
-        innovation_ub: float = 0.01,
+        noise_std: BoundedParam,
+        innovation: BoundedParam,
     ) -> None:
         super().__init__()
         self.output_dim = output_dim
         self.dense_noise_std = mx.gluon.nn.Dense(
-            units=1,
-            flatten=False,
-            activation="softrelu"
-            if noise_std_ub is float("inf")
-            else "sigmoid",
+            units=1, flatten=False, activation="sigmoid"
         )
         self.dense_innovation = mx.gluon.nn.Dense(
-            units=1,
-            flatten=False,
-            activation="softrelu"
-            if innovation_ub is float("inf")
-            else "sigmoid",
+            units=1, flatten=False, activation="sigmoid"
         )
         self.dense_residual = mx.gluon.nn.Dense(
             units=output_dim, flatten=False
         )
 
-        self.innovation_factor = (
-            1.0 if innovation_ub is float("inf") else innovation_ub
-        )
-        self.noise_factor = (
-            1.0 if noise_std_ub is float("inf") else noise_std_ub
-        )
+        self.innovation = innovation
+        self.noise_std = noise_std
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
-        noise_std = self.dense_noise_std(x) * self.noise_factor
-        innovation = self.dense_innovation(x) * self.innovation_factor
+        noise_std = (
+            self.dense_noise_std(x)
+            * (self.noise_std.upper_bound - self.noise_std.lower_bound)
+            + self.noise_std.lower_bound
+        )
+
+        innovation = (
+            self.dense_innovation(x)
+            * (self.innovation.upper_bound - self.innovation.lower_bound)
+            + self.innovation.lower_bound
+        )
+
         residual = self.dense_residual(x)
 
         return noise_std, innovation, residual

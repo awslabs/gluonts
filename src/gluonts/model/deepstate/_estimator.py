@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import numpy as np
 from typing import List, Optional
 
 # Third-party imports
@@ -21,6 +22,7 @@ from pandas.tseries.frequencies import to_offset
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
+from gluonts.model.deepstate import BoundedParam
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
@@ -43,7 +45,7 @@ from gluonts.transform import (
 )
 
 # Relative imports
-from ._network import DeepStatePredictionNetwork, DeepStateTrainingNetwork
+from ._network import DeepStateTrainingNetwork, DeepStatePredictionNetwork
 
 SEASON_INDICATORS_FIELD = "seasonal_indicators"
 
@@ -57,8 +59,8 @@ SEASON_INDICATORS_FIELD = "seasonal_indicators"
 FREQ_LONGEST_PERIOD_DICT = {
     "M": 12,  # yearly seasonality
     "W-SUN": 52,  # yearly seasonality
-    "D": 365,  # yearly seasonality
-    "B": 365,  # yearly seasonality
+    "D": 31,  # monthly seasonality
+    "B": 31,  # monthly seasonality
     "H": 168,  # weekly seasonality
     "T": 1440,  # daily seasonality
 }
@@ -129,6 +131,12 @@ class DeepStateEstimator(GluonEstimator):
     time_features
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
+    noise_std
+        Lower and upper bounds for the standard deviation of the observation noise
+    prior_cov
+        Lower and upper bounds for the diagonal of the prior covariance matrix
+    innovation
+        Lower and upper bounds for the standard deviation of the observation noise
     """
 
     @validated()
@@ -140,7 +148,9 @@ class DeepStateEstimator(GluonEstimator):
         add_trend: bool = False,
         past_length: Optional[int] = None,
         num_periods_to_train: int = 4,
-        trainer: Trainer = Trainer(epochs=25, hybridize=False),
+        trainer: Trainer = Trainer(
+            epochs=100, num_batches_per_epoch=50, hybridize=False
+        ),
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
@@ -152,6 +162,9 @@ class DeepStateEstimator(GluonEstimator):
         issm: Optional[ISSM] = None,
         scaling: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
+        noise_std: BoundedParam = BoundedParam(1e-6, 1.0),
+        prior_cov: BoundedParam = BoundedParam(1e-6, 1.0),
+        innovation: BoundedParam = BoundedParam(1e-6, 0.01),
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -174,6 +187,44 @@ class DeepStateEstimator(GluonEstimator):
         assert embedding_dimension is None or all(
             e > 0 for e in embedding_dimension
         ), "Elements of `embedding_dimension` should be > 0"
+        assert (
+            noise_std.lower_bound > 0
+        ), "Lower bound of noise standard deviation should be positive."
+        assert (
+            prior_cov.lower_bound > 0
+        ), "Lower bound of (diagonal of) prior covariance matrix should be positive."
+        assert (
+            innovation.lower_bound > 0
+        ), "Lower bound of innovation strength should be positive."
+
+        # For simplicity we do not allow infinity as upper bound here.
+        assert all(
+            [
+                np.isfinite(
+                    [
+                        noise_std.lower_bound,
+                        prior_cov.lower_bound,
+                        innovation.lower_bound,
+                        noise_std.upper_bound,
+                        prior_cov.upper_bound,
+                        innovation.upper_bound,
+                    ]
+                )
+            ]
+        ), (
+            "Lower and upper bounds of noise standard deviation, (diagonal of) prior covariance matrix "
+            "and innovation strength should be finite."
+        )
+
+        assert all(
+            [
+                param.upper_bound - param.lower_bound >= 0
+                for param in [noise_std, prior_cov, innovation]
+            ]
+        ), (
+            "Upper bounds of noise standard deviation, (diagonal of) prior covariance matrix "
+            "and innovation strength should be larger or equal to their respective lower bounds."
+        )
 
         self.freq = freq
         self.past_length = (
@@ -211,6 +262,10 @@ class DeepStateEstimator(GluonEstimator):
             if time_features is not None
             else time_features_from_frequency_str(self.freq)
         )
+
+        self.noise_std = noise_std
+        self.prior_cov = prior_cov
+        self.innovation = innovation
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -315,6 +370,9 @@ class DeepStateEstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
             params=trained_network.collect_params(),
+            noise_std=self.noise_std,
+            prior_cov=self.prior_cov,
+            innvoation=self.innovation,
         )
 
         copy_parameters(trained_network, prediction_network)
