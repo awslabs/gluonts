@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import numpy as np
 from typing import List, Optional
 
 # Third-party imports
@@ -168,12 +167,12 @@ class DeepStateEstimator(GluonEstimator):
             num_eval_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert not use_feat_static_cat or np.prod(cardinality) > 1, (
-            f"Number of distinct values across static categorical features (i.e., prod(`cardinality`)) "
-            f"must be larger than 1 if `use_feat_static_cat=True`. But cardinality provided is: {cardinality}"
+        assert not use_feat_static_cat or any(c > 1 for c in cardinality), (
+            f"Cardinality of at least one static categorical feature must be larger than 1 "
+            f"if `use_feat_static_cat=True`. But cardinality provided is: {cardinality}"
         )
         assert embedding_dimension is None or all(
-            [e > 0 for e in embedding_dimension]
+            e > 0 for e in embedding_dimension
         ), "Elements of `embedding_dimension` should be > 0"
 
         self.freq = freq
