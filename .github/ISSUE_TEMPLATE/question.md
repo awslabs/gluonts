@@ -1,6 +1,6 @@
 ---
 name: Question
-about: Ask for support about the project features
+about: Ask a question about GluonTS.
 title: ''
 labels: 'question'
 assignees: ''
