@@ -38,6 +38,8 @@ from gluonts.distribution import (
     MultivariateGaussianOutput,
     LowrankMultivariateGaussian,
     LowrankMultivariateGaussianOutput,
+    Dirichlet,
+    DirichletOutput,
     NegativeBinomial,
     NegativeBinomialOutput,
     Laplace,
@@ -126,7 +128,14 @@ def maximum_likelihood_estimate_sgd(
             num_batches += 1
 
             cumulative_loss += mx.nd.mean(loss).asscalar()
+
+            assert not np.isnan(cumulative_loss)
         print("Epoch %s, loss: %s" % (e, cumulative_loss / num_batches))
+
+    if len(distr_args[0].shape) == 1:
+        return [
+            param.asnumpy() for param in arg_proj(mx.nd.array(np.ones((1, 1))))
+        ]
 
     return [
         param[0].asnumpy() for param in arg_proj(mx.nd.array(np.ones((1, 1))))
@@ -251,6 +260,39 @@ def test_multivariate_gaussian() -> None:
     assert np.allclose(
         Sigma_hat, Sigma, atol=0.1, rtol=0.1
     ), f"Sigma did not match: sigma = {Sigma}, sigma_hat = {Sigma_hat}"
+
+
+@pytest.mark.timeout(30)
+def test_dirichlet() -> None:
+    num_samples = 2000
+    dim = 3
+
+    alpha = np.random.gamma(shape=1, size=dim) + 0.5
+
+    distr = Dirichlet(alpha=mx.nd.array(alpha))
+    cov = distr.variance.asnumpy()
+
+    samples = distr.sample(num_samples)
+
+    alpha_hat = maximum_likelihood_estimate_sgd(
+        DirichletOutput(dim=dim),
+        samples,
+        init_biases=None,
+        hybridize=False,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(10),
+    )
+
+    distr = Dirichlet(alpha=mx.nd.array(alpha_hat))
+
+    cov_hat = distr.variance.asnumpy()
+
+    assert np.allclose(
+        alpha_hat, alpha, atol=0.1, rtol=0.1
+    ), f"alpha did not match: alpha = {alpha}, alpha_hat = {alpha_hat}"
+    assert np.allclose(
+        cov_hat, cov, atol=0.1, rtol=0.1
+    ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
 @pytest.mark.timeout(10)

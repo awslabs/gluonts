@@ -27,6 +27,7 @@ from gluonts.distribution import (
     PiecewiseLinear,
     Binned,
     TransformedDistribution,
+    Dirichlet,
 )
 from gluonts.core.serde import dump_json, load_json, dump_code, load_code
 
@@ -158,6 +159,36 @@ def test_multivariate_sampling(distr, params, serialize_fn) -> None:
     # TODO: we probably need unit tests for .mean, .variance anyway
     assert np.allclose(
         np.linalg.cholesky(distr.variance.asnumpy()), params["L"].asnumpy()
+    )
+
+
+test_cases_dirichlet = [(Dirichlet, {"alpha": mx.nd.array([0.2, 0.4, 0.9])})]
+
+
+@pytest.mark.parametrize("distr, params", test_cases_dirichlet)
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_dirichlet_sampling(distr, params, serialize_fn) -> None:
+    distr = distr(**params)
+    distr = serialize_fn(distr)
+    samples = distr.sample()
+    assert samples.shape == (3,)
+    samples = distr.sample(num_samples=1)
+    assert samples.shape == (1, 3)
+    num_samples = 100_000
+    samples = distr.sample(num_samples)
+    assert samples.shape == (num_samples, 3)
+
+    np_samples = samples.asnumpy()
+
+    assert np.allclose(
+        np_samples.mean(axis=0), distr.mean.asnumpy(), atol=1e-2, rtol=1e-2
+    )
+
+    assert np.allclose(
+        np.cov(np_samples.transpose()),
+        distr.variance.asnumpy(),
+        atol=1e-1,
+        rtol=1e-1,
     )
 
 
