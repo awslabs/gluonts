@@ -224,7 +224,8 @@ def test_gaussian_likelihood(mu: float, sigma: float, hybridize: bool):
 
 
 @pytest.mark.timeout(10)
-def test_multivariate_gaussian() -> None:
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_multivariate_gaussian(hybridize: bool) -> None:
     num_samples = 2000
     dim = 2
 
@@ -243,7 +244,7 @@ def test_multivariate_gaussian() -> None:
         MultivariateGaussianOutput(dim=dim),
         samples,
         init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
-        hybridize=False,
+        hybridize=hybridize,
         learning_rate=PositiveFloat(0.01),
         num_epochs=PositiveInt(10),
     )
@@ -262,8 +263,8 @@ def test_multivariate_gaussian() -> None:
     ), f"Sigma did not match: sigma = {Sigma}, sigma_hat = {Sigma_hat}"
 
 
-@pytest.mark.timeout(30)
-def test_dirichlet() -> None:
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_dirichlet(hybridize: bool) -> None:
     num_samples = 2000
     dim = 3
 
@@ -278,7 +279,7 @@ def test_dirichlet() -> None:
         DirichletOutput(dim=dim),
         samples,
         init_biases=None,
-        hybridize=False,
+        hybridize=hybridize,
         learning_rate=PositiveFloat(0.05),
         num_epochs=PositiveInt(10),
     )
@@ -296,7 +297,8 @@ def test_dirichlet() -> None:
 
 
 @pytest.mark.timeout(10)
-def test_lowrank_multivariate_gaussian() -> None:
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
     num_samples = 2000
     dim = 2
     rank = 1
@@ -326,7 +328,7 @@ def test_lowrank_multivariate_gaussian() -> None:
         learning_rate=PositiveFloat(0.01),
         num_epochs=PositiveInt(10),
         init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
-        hybridize=False,
+        hybridize=hybridize,
     )
 
     distr = LowrankMultivariateGaussian(
