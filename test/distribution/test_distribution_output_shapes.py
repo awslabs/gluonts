@@ -28,6 +28,7 @@ from gluonts.distribution import (
     PiecewiseLinearOutput,
     StudentTOutput,
     UniformOutput,
+    DirichletOutput,
 )
 
 
@@ -59,6 +60,13 @@ from gluonts.distribution import (
             LowrankMultivariateGaussianOutput(dim=5, rank=4),
             mx.nd.random.normal(shape=(3, 4, 10)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4),
+            (5,),
+        ),
+        (
+            DirichletOutput(dim=5),
+            mx.nd.random.gamma(shape=(3, 4, 5)),
+            [None],
             (3, 4),
             (5,),
         ),
