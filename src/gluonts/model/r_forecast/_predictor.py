@@ -30,7 +30,7 @@ USAGE_MESSAGE = """
 The RForecastPredictor is a thin wrapper for calling the R forecast package.
 In order to use it you need to install R and run
 
-pip install rpy2
+pip install 'rpy2>=2.9.*,<3.*'
 
 R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
 """
@@ -44,7 +44,7 @@ class RForecastPredictor(RepresentablePredictor):
     The `RForecastPredictor` is a thin wrapper for calling the R forecast
     package.  In order to use it you need to install R and run::
 
-        pip install rpy2
+        pip install 'rpy2>=2.9.*,<3.*'
         R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
 
     Parameters

@@ -28,6 +28,7 @@ from gluonts.distribution import (
     StudentT,
     Uniform,
     TransformedDistribution,
+    Dirichlet,
 )
 from gluonts.distribution.bijection import AffineTransformation
 from gluonts.distribution.box_cox_tranform import BoxCoxTranform
@@ -61,6 +62,7 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
             (3, 4),
             (5,),
         ),
+        (Dirichlet(alpha=mx.nd.ones(shape=(3, 4, 5))), (3, 4), (5,)),
         (
             Laplace(
                 mu=mx.nd.zeros(shape=(3, 4, 5)), b=mx.nd.ones(shape=(3, 4, 5))

@@ -1,10 +1,8 @@
 # Standard library imports
 import distutils.cmd
 import distutils.log
-import io
 import itertools
 import logging
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -46,8 +44,8 @@ def read(*names, encoding="utf8"):
 
 def find_requirements(filename):
     with (ROOT / "requirements" / filename).open() as f:
-        mxnet_old = "mxnet=="
-        mxnet_new = "mxnet-cu92mkl==" if GPU_SUPPORT else mxnet_old
+        mxnet_old = "mxnet"
+        mxnet_new = "mxnet-cu92mkl" if GPU_SUPPORT else mxnet_old
         return [
             line.rstrip().replace(mxnet_old, mxnet_new, 1)
             for line in f
@@ -211,9 +209,6 @@ setup_kwargs: dict = dict(
         "shell": shell_require,
     },
     entry_points=dict(
-        console_scripts=[
-            "gluonts-validate-dataset=gluonts.dataset.validate:run"
-        ],
         gluonts_forecasters=[
             "deepar=gluonts.model.deepar:DeepAREstimator",
             "r=gluonts.model.r_forecast:RForecastPredictor [R]",

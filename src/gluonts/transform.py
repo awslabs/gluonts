@@ -676,11 +676,13 @@ class AddObservedValuesIndicator(SimpleTransformation):
         output_field: str,
         dummy_value: int = 0,
         convert_nans: bool = True,
+        dtype: DType = np.float32,
     ) -> None:
         self.dummy_value = dummy_value
         self.target_field = target_field
         self.output_field = output_field
         self.convert_nans = convert_nans
+        self.dtype = dtype
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
@@ -692,7 +694,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
 
         data[self.target_field] = value
         # Invert bool array so that missing values are zeros and store as float
-        data[self.output_field] = np.invert(nan_entries).astype(np.float32)
+        data[self.output_field] = np.invert(nan_entries).astype(self.dtype)
         return data
 
 
@@ -829,8 +831,12 @@ class AddTimeFeatures(MapTransformation):
         self.full_date_range = pd.date_range(
             self._min_time_point, self._max_time_point, freq=start.freq
         )
-        self._full_range_date_features = np.vstack(
-            [feat(self.full_date_range) for feat in self.date_features]
+        self._full_range_date_features = (
+            np.vstack(
+                [feat(self.full_date_range) for feat in self.date_features]
+            )
+            if self.date_features
+            else None
         )
         self._date_index = pd.Series(
             index=self.full_date_range,
@@ -844,7 +850,11 @@ class AddTimeFeatures(MapTransformation):
         )
         self._update_cache(start, length)
         i0 = self._date_index[start]
-        features = self._full_range_date_features[..., i0 : i0 + length]
+        features = (
+            self._full_range_date_features[..., i0 : i0 + length]
+            if self.date_features
+            else None
+        )
         data[self.output_field] = features
         return data
 
@@ -878,12 +888,14 @@ class AddAgeFeature(MapTransformation):
         output_field: str,
         pred_length: int,
         log_scale: bool = True,
+        dtype: DType = np.float32,
     ) -> None:
         self.pred_length = pred_length
         self.target_field = target_field
         self.feature_name = output_field
         self.log_scale = log_scale
         self._age_feature = np.zeros(0)
+        self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         length = target_transformation_length(
@@ -891,9 +903,9 @@ class AddAgeFeature(MapTransformation):
         )
 
         if self.log_scale:
-            age = np.log10(2.0 + np.arange(length, dtype=np.float32))
+            age = np.log10(2.0 + np.arange(length, dtype=self.dtype))
         else:
-            age = np.arange(length, dtype=np.float32)
+            age = np.arange(length, dtype=self.dtype)
 
         data[self.feature_name] = age.reshape((1, length))
 

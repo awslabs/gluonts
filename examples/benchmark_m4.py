@@ -74,6 +74,11 @@ def evaluate(dataset_name, estimator):
     estimator = estimator(
         prediction_length=dataset.metadata.prediction_length,
         freq=dataset.metadata.freq,
+        use_feat_static_cat=True,
+        cardinality=[
+            feat_static_cat.cardinality
+            for feat_static_cat in dataset.metadata.feat_static_cat
+        ],
     )
 
     print(f"evaluating {estimator} on {dataset}")
