@@ -47,7 +47,7 @@ def train_env() -> ContextManager[TrainEnv]:
 
 @pytest.fixture(scope="function")  # type: ignore
 def static_server(
-    train_env: TrainEnv
+    train_env: TrainEnv,
 ) -> ContextManager[testutil.ServerFacade]:
     predictor = MeanPredictor.from_hyperparameters(**train_env.hyperparameters)
     predictor.serialize(train_env.path.model)
@@ -60,7 +60,7 @@ def static_server(
 
 @pytest.fixture(scope="function")  # type: ignore
 def dynamic_server(
-    train_env: TrainEnv
+    train_env: TrainEnv,
 ) -> ContextManager[testutil.ServerFacade]:
     serve_env = ServeEnv(train_env.path.base)
     settings = Settings(sagemaker_server_port=testutil.free_port())
