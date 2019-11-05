@@ -106,7 +106,7 @@ class ProphetPredictor(RepresentablePredictor):
         Time frequency of the data, e.g. '1H'
     prediction_length
         Number of time points to predict
-    num_eval_samples
+    num_samples
         Number of samples to draw for predictions
     prophet_params
         Parameters to pass when instantiating the prophet model.
@@ -126,7 +126,7 @@ class ProphetPredictor(RepresentablePredictor):
         self,
         freq: str,
         prediction_length: int,
-        num_eval_samples: int = 100,
+        num_samples: int = 100,
         prophet_params: Optional[Dict] = None,
         init_model: Callable = lambda m: m,
     ) -> None:
@@ -140,12 +140,12 @@ class ProphetPredictor(RepresentablePredictor):
 
         assert "uncertainty_samples" not in prophet_params, (
             "Parameter 'uncertainty_samples' should not be set directly. "
-            "Please use 'num_eval_samples' instead."
+            "Please use 'num_samples' instead."
         )
 
-        prophet_params.update(uncertainty_samples=num_eval_samples)
+        prophet_params.update(uncertainty_samples=num_samples)
 
-        self.num_eval_samples = num_eval_samples
+        self.num_samples = num_samples
         self.prophet_params = prophet_params
         self.init_model = init_model
 

@@ -37,7 +37,7 @@ from gluonts.transform import TransformedDataset
 
 
 def make_evaluation_predictions(
-    dataset: Dataset, predictor: Predictor, num_eval_samples: int
+    dataset: Dataset, predictor: Predictor, num_samples: int
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
     Return predictions on the last portion of predict_length time units of the
@@ -52,7 +52,7 @@ def make_evaluation_predictions(
         the prediction_length portion is used when making prediction.
     predictor
         Model used to draw predictions.
-    num_eval_samples
+    num_samples
         Number of samples to draw on the model when evaluating.
 
     Returns
@@ -97,7 +97,7 @@ def make_evaluation_predictions(
     )
 
     return (
-        predictor.predict(dataset_trunc, num_eval_samples=num_eval_samples),
+        predictor.predict(dataset_trunc, num_samples=num_samples),
         ts_iter(dataset),
     )
 
@@ -119,7 +119,7 @@ def backtest_metrics(
     evaluator=Evaluator(
         quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
     ),
-    num_eval_samples: int = 100,
+    num_samples: int = 100,
     logging_file: Optional[str] = None,
     use_symbol_block_predictor: bool = False,
 ):
@@ -134,7 +134,7 @@ def backtest_metrics(
         An estimator or a predictor to use for generating predictions.
     evaluator
         Evaluator to use.
-    num_eval_samples
+    num_samples
         Number of samples to use when generating sample-based forecasts.
     logging_file
         If specified, information of the backtest is redirected to this file.
@@ -194,7 +194,7 @@ def backtest_metrics(
         predictor = forecaster
 
     forecast_it, ts_it = make_evaluation_predictions(
-        test_dataset, predictor=predictor, num_eval_samples=num_eval_samples
+        test_dataset, predictor=predictor, num_samples=num_samples
     )
 
     agg_metrics, item_metrics = evaluator(
