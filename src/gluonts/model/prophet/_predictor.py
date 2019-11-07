@@ -137,7 +137,7 @@ class ProphetPredictor(RepresentablePredictor):
 
         assert "uncertainty_samples" not in prophet_params, (
             "Parameter 'uncertainty_samples' should not be set directly. "
-            "Please use 'num_samples' instead."
+            "Please use 'num_samples' in the 'predict' method instead."
         )
 
         self.prophet_params = prophet_params
@@ -167,7 +167,7 @@ class ProphetPredictor(RepresentablePredictor):
         :class:`ProphetDataEntry` and return the resulting array of samples.
         """
 
-        prophet = self.init_model(Prophet(params))
+        prophet = self.init_model(Prophet(**params))
 
         # Register dynamic features as regressors to the model
         for i in range(len(data.feat_dynamic_real)):
