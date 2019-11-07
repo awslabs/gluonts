@@ -48,7 +48,7 @@ class Dirichlet(Distribution):
         API in MXNet
     """
 
-    is_reparameterizable = True
+    is_reparameterizable = False
 
     @validated()
     def __init__(
@@ -113,22 +113,9 @@ class Dirichlet(Distribution):
 
         return diagonal - cross
 
-    def sample_rep(
+    def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
-        r"""
-        Draw samples from the dirichlet distributions.
-
-        Parameters
-        ----------
-        num_samples
-            Number of samples to be drawn.
-        Returns
-        -------
-        Tensor
-            Tensor with shape (num_samples, ..., d).
-        """
-
         def s(alpha: Tensor) -> Tensor:
             F = getF(alpha)
             samples_gamma = F.sample_gamma(
