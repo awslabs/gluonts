@@ -77,7 +77,7 @@ class RForecastPredictor(RepresentablePredictor):
         prediction_length: int,
         method_name: str = "ets",
         period: int = None,
-        num_eval_samples: int = 100,
+        num_samples: int = 100,
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
@@ -117,7 +117,7 @@ class RForecastPredictor(RepresentablePredictor):
         self.prediction_length = prediction_length
         self.freq = freq
         self.period = period if period is not None else get_seasonality(freq)
-        self.num_samples = num_eval_samples
+        self.num_samples = num_samples
         self.trunc_length = trunc_length
 
         self.params = {

@@ -152,9 +152,8 @@ class NPTSPredictor(RepresentablePredictor):
     feature_scale
         scale for time (seasonal) features in order to sample past seasons
         with higher probability
-    num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism during inference.
-        This is a model optimization that does not affect the accuracy
+    num_samples
+        Number of samples to set in the :class:`SampleForecast` object
     """
 
     @validated()
@@ -169,11 +168,11 @@ class NPTSPredictor(RepresentablePredictor):
         use_default_time_features: bool = True,
         num_default_time_features: int = 1,
         feature_scale: float = 1000.0,
-        num_parallel_samples: int = 100,
+        num_samples: int = 100,
     ) -> None:
         self.prediction_length = prediction_length
         self.freq = freq
-        self.num_parallel_samples = num_parallel_samples
+        self.num_samples = num_samples
         # Similar to lag upper bound in AR2N2 we limit the context length to
         # some maximum value instead of looking at the whole history which
         # might be too large.
@@ -279,7 +278,7 @@ class NPTSPredictor(RepresentablePredictor):
             ts,
             self.prediction_length,
             sampling_weights_iterator,
-            self.num_parallel_samples,
+            self.num_samples,
         )
 
         return forecast
