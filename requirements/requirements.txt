@@ -1,7 +1,6 @@
 boto3==1.*
 holidays==0.9.*
 matplotlib==3.*
-mxnet>=1.4.1,<1.5.*
 numpy==1.14.*
 pandas>=0.25.0
 pydantic==0.28.*
