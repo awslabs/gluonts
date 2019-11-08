@@ -17,5 +17,5 @@ jobs:
         python -m pip install --upgrade pip
     - name: Style Check
       run: |
-        pip install black
-        black --check src/gluonts
+        pip install black -c requirements/requirements-setup.txt
+        black --check src test examples

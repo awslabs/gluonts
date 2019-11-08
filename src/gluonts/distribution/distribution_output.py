@@ -50,18 +50,18 @@ class ArgProj(gluon.HybridBlock):
         self,
         args_dim: Dict[str, int],
         domain_map: Callable[..., Tuple[Tensor]],
-        float_type: DType = np.float32,
+        dtype: DType = np.float32,
         prefix: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.args_dim = args_dim
-        self.float_type = float_type
+        self.dtype = dtype
         self.proj = [
             gluon.nn.Dense(
                 dim,
                 flatten=False,
-                dtype=self.float_type,
+                dtype=self.dtype,
                 prefix=f"{prefix}_distr_{name}_",
             )
             for name, dim in args_dim.items()
@@ -83,12 +83,22 @@ class Output:
     """
 
     args_dim: Dict[str, int]
+    _dtype: DType = np.float32
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @dtype.setter
+    def dtype(self, dtype: DType):
+        self._dtype = dtype
 
     def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
         return ArgProj(
             args_dim=self.args_dim,
             domain_map=gluon.nn.HybridLambda(self.domain_map),
             prefix=prefix,
+            dtype=self.dtype,
         )
 
     def domain_map(self, F, *args: Tensor):

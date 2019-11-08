@@ -17,6 +17,7 @@ from typing import Tuple, List
 # Third-party imports
 import mxnet as mx
 from mxnet import gluon
+import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
@@ -87,7 +88,7 @@ class Binned(Distribution):
 
     @property
     def batch_shape(self) -> Tuple:
-        return self.bin_centers.shape[:-1]
+        return self.bin_probs.shape[:-1]
 
     @property
     def event_shape(self) -> Tuple:
@@ -157,7 +158,7 @@ class Binned(Distribution):
         a = centers_expanded.pick(idx, axis=-1)
         return a.swapaxes(0, 1)
 
-    def sample(self, num_samples=None):
+    def sample(self, num_samples=None, dtype=np.float32):
         def s(bin_probs):
             F = self.F
             indices = F.sample_multinomial(bin_probs)

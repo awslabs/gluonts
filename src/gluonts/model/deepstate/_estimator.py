@@ -82,6 +82,10 @@ class DeepStateEstimator(GluonEstimator):
         Frequency of the data to train on and predict
     prediction_length
         Length of the prediction horizon
+    cardinality
+        Number of values of each categorical feature.
+        This must be set by default unless ``use_feat_static_cat``
+        is set to `False` explicitly (which is NOT recommended).
     add_trend
         Flag to indicate whether to include trend component in the
         state space model
@@ -106,9 +110,9 @@ class DeepStateEstimator(GluonEstimator):
     cell_type
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
-    num_eval_samples
-        Number of samples paths to draw when computing predictions
-        (default: 100)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100).
     dropout_rate
         Dropout regularization parameter (default: 0.1)
     use_feat_dynamic_real
@@ -117,9 +121,6 @@ class DeepStateEstimator(GluonEstimator):
     use_feat_static_cat
         Whether to use the ``feat_static_cat`` field from the data
         (default: False)
-    cardinality
-        Number of values of each categorical feature.
-        This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
         Dimension of the embeddings for categorical features
         (default: [min(50, (cat+1)//2) for cat in cardinality])
@@ -135,6 +136,7 @@ class DeepStateEstimator(GluonEstimator):
         self,
         freq: str,
         prediction_length: int,
+        cardinality: List[int],
         add_trend: bool = False,
         past_length: Optional[int] = None,
         num_periods_to_train: int = 4,
@@ -142,11 +144,10 @@ class DeepStateEstimator(GluonEstimator):
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        cardinality: Optional[List[int]] = None,
+        use_feat_static_cat: bool = True,
         embedding_dimension: Optional[List[int]] = None,
         issm: Optional[ISSM] = None,
         scaling: bool = True,
@@ -163,18 +164,16 @@ class DeepStateEstimator(GluonEstimator):
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
         assert (
-            num_eval_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (cardinality is not None and use_feat_static_cat) or (
-            cardinality is None and not use_feat_static_cat
-        ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
-        assert cardinality is None or [
-            c > 0 for c in cardinality
-        ], "Elements of `cardinality` should be > 0"
-        assert embedding_dimension is None or [
+        assert not use_feat_static_cat or any(c > 1 for c in cardinality), (
+            f"Cardinality of at least one static categorical feature must be larger than 1 "
+            f"if `use_feat_static_cat=True`. But cardinality provided is: {cardinality}"
+        )
+        assert embedding_dimension is None or all(
             e > 0 for e in embedding_dimension
-        ], "Elements of `embedding_dimension` should be > 0"
+        ), "Elements of `embedding_dimension` should be > 0"
 
         self.freq = freq
         self.past_length = (
@@ -187,7 +186,7 @@ class DeepStateEstimator(GluonEstimator):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
-        self.num_sample_paths = num_eval_samples
+        self.num_parallel_samples = num_parallel_samples
         self.scaling = scaling
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
@@ -304,7 +303,7 @@ class DeepStateEstimator(GluonEstimator):
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
         prediction_network = DeepStatePredictionNetwork(
-            num_sample_paths=self.num_sample_paths,
+            num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,

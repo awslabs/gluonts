@@ -62,9 +62,7 @@ def test_localizer():
         freq="1H",
     )
 
-    estimator = MeanEstimator(
-        prediction_length=10, freq="1H", num_eval_samples=50
-    )
+    estimator = MeanEstimator(prediction_length=10, freq="1H", num_samples=50)
 
     local_pred = Localizer(estimator=estimator)
     agg_metrics, _ = backtest_metrics(

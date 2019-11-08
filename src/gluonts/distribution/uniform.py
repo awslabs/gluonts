@@ -12,7 +12,11 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+from functools import partial
 from typing import Dict, Optional, Tuple, List
+
+# Third-party imports
+import numpy as np
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -70,18 +74,22 @@ class Uniform(Distribution):
     def stddev(self) -> Tensor:
         return (self.high - self.low) / (12 ** 0.5)
 
-    def sample(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         return _sample_multiple(
-            self.F.sample_uniform,
+            partial(self.F.sample_uniform, dtype=dtype),
             low=self.low,
             high=self.high,
             num_samples=num_samples,
         )
 
-    def sample_rep(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample_rep(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         def s(low: Tensor, high: Tensor) -> Tensor:
             raw_samples = self.F.sample_uniform(
-                low=low.zeros_like(), high=high.ones_like()
+                low=low.zeros_like(), high=high.ones_like(), dtype=dtype
             )
             return low + raw_samples * (high - low)
 
