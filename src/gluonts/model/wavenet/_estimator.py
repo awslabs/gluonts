@@ -274,7 +274,8 @@ class WaveNetEstimator(GluonEstimator):
         )
 
         transformation = self.create_transformation(
-            bin_edges, pred_length=self.train_window_length
+            bin_edges,
+            pred_length=self.train_window_length - self.prediction_length,
         )
 
         transformation.estimate(iter(training_data))
@@ -291,7 +292,9 @@ class WaveNetEstimator(GluonEstimator):
         # context as the one that will be used during training
         with self.trainer.ctx:
             params = self._get_wavenet_args(bin_centers)
-            params.update(pred_length=self.train_window_length)
+            params.update(
+                pred_length=self.train_window_length - self.prediction_length
+            )
             trained_net = WaveNet(**params)
 
         self.trainer(
