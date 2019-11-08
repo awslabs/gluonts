@@ -51,7 +51,7 @@ class CanonicalEstimator(GluonEstimator):
         context_length: int,
         prediction_length: int,
         trainer: Trainer = Trainer(),
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         cardinality: List[int] = list([1]),
         embedding_dimension: int = 10,
         distr_output: DistributionOutput = StudentTOutput(),
@@ -63,7 +63,7 @@ class CanonicalEstimator(GluonEstimator):
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.distr_output = distr_output
-        self.num_sample_paths = num_eval_samples
+        self.num_parallel_samples = num_parallel_samples
         self.cardinality = cardinality
         self.embedding_dimensions = [embedding_dimension for _ in cardinality]
         self.model = model
@@ -119,7 +119,7 @@ class CanonicalEstimator(GluonEstimator):
             distr_output=trained_network.distr_output,
             is_sequential=trained_network.is_sequential,
             prediction_len=self.prediction_length,
-            num_sample_paths=self.num_sample_paths,
+            num_parallel_samples=self.num_parallel_samples,
             params=trained_network.collect_params(),
         )
 
@@ -144,7 +144,7 @@ class CanonicalRNNEstimator(CanonicalEstimator):
         num_layers: int = 1,
         num_cells: int = 50,
         cell_type: str = "lstm",
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         cardinality: List[int] = list([1]),
         embedding_dimension: int = 10,
         distr_output: DistributionOutput = StudentTOutput(),
@@ -160,7 +160,7 @@ class CanonicalRNNEstimator(CanonicalEstimator):
             context_length=context_length,
             prediction_length=prediction_length,
             trainer=trainer,
-            num_eval_samples=num_eval_samples,
+            num_parallel_samples=num_parallel_samples,
             cardinality=cardinality,
             embedding_dimension=embedding_dimension,
             distr_output=distr_output,
@@ -176,7 +176,7 @@ class MLPForecasterEstimator(CanonicalEstimator):
         prediction_length: int,
         trainer: Trainer = Trainer(),
         hidden_dim_sequence=list([50]),
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         cardinality: List[int] = list([1]),
         embedding_dimension: int = 10,
         distr_output: DistributionOutput = StudentTOutput(),
@@ -200,7 +200,7 @@ class MLPForecasterEstimator(CanonicalEstimator):
             context_length=context_length,
             prediction_length=prediction_length,
             trainer=trainer,
-            num_eval_samples=num_eval_samples,
+            num_parallel_samples=num_parallel_samples,
             cardinality=cardinality,
             embedding_dimension=embedding_dimension,
             distr_output=distr_output,

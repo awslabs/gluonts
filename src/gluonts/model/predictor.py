@@ -291,7 +291,7 @@ class GluonPredictor(Predictor):
         raise NotImplementedError
 
     def predict(
-        self, dataset: Dataset, num_eval_samples: Optional[int] = None
+        self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
             dataset,
@@ -306,7 +306,7 @@ class GluonPredictor(Predictor):
             input_names=self.input_names,
             freq=self.freq,
             output_transform=self.output_transform,
-            num_eval_samples=num_eval_samples,
+            num_samples=num_samples,
         )
 
     def __eq__(self, that):

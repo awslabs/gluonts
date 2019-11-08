@@ -97,7 +97,7 @@ def run_test(
         )
 
     forecast_it, ts_it = backtest.make_evaluation_predictions(
-        dataset=test_dataset, predictor=predictor, num_eval_samples=100
+        dataset=test_dataset, predictor=predictor, num_samples=100
     )
 
     agg_metrics, _item_metrics = Evaluator()(
