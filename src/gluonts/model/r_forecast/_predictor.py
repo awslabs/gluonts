@@ -60,8 +60,6 @@ class RForecastPredictor(RepresentablePredictor):
         The period to be used (this is called `frequency` in the R forecast
         package), result to a tentative reasonable default if not specified
         (for instance 24 for hourly freq '1H')
-    num_samples
-        Number of samples to draw.
     trunc_length
         Maximum history length to feed to the model (some models become slow
         with very long series).
@@ -77,7 +75,6 @@ class RForecastPredictor(RepresentablePredictor):
         prediction_length: int,
         method_name: str = "ets",
         period: int = None,
-        num_eval_samples: int = 100,
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
@@ -117,13 +114,11 @@ class RForecastPredictor(RepresentablePredictor):
         self.prediction_length = prediction_length
         self.freq = freq
         self.period = period if period is not None else get_seasonality(freq)
-        self.num_samples = num_eval_samples
         self.trunc_length = trunc_length
 
         self.params = {
             "prediction_length": self.prediction_length,
             "output_types": ["samples"],
-            "num_samples": self.num_samples,
             "frequency": self.period,
         }
         if params is not None:
@@ -171,7 +166,11 @@ class RForecastPredictor(RepresentablePredictor):
         return forecast_dict, buf
 
     def predict(
-        self, dataset: Dataset, num_samples=None, save_info=False, **kwargs
+        self,
+        dataset: Dataset,
+        num_samples: int = 100,
+        save_info: bool = False,
+        **kwargs,
     ) -> Iterator[SampleForecast]:
         for entry in dataset:
             if isinstance(entry, dict):
@@ -182,8 +181,8 @@ class RForecastPredictor(RepresentablePredictor):
                     data = data[-self.trunc_length :]
 
             params = self.params.copy()
-            if num_samples is not None:
-                params["num_samples"] = num_samples
+            params["num_samples"] = num_samples
+
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )

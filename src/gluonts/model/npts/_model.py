@@ -177,13 +177,13 @@ class NPTS:
 
     @staticmethod
     def log_distance_kernel(
-        alpha: float
+        alpha: float,
     ) -> Callable[[np.ndarray, np.ndarray], float]:
         return lambda x, y: cast(float, -alpha * np.sum(np.abs(x - y)))
 
     @staticmethod
     def log_weighted_distance_kernel(
-        kernel_weights: List[float]
+        kernel_weights: List[float],
     ) -> Callable[[np.ndarray, np.ndarray], float]:
         kernel_weights_nd = np.ndarray(kernel_weights, dtype=np.float32)
         return lambda x, y: cast(

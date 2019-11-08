@@ -140,9 +140,11 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
             )
             prior_cov = make_nd_diag(F, prior_cov_diag, self.issm.latent_dim())
 
-        emission_coeff, transition_coeff, innovation_coeff = self.issm.get_issm_coeff(
-            seasonal_indicators
-        )
+        (
+            emission_coeff,
+            transition_coeff,
+            innovation_coeff,
+        ) = self.issm.get_issm_coeff(seasonal_indicators)
 
         noise_std, innovation, residuals = self.lds_proj(output)
 
@@ -207,9 +209,9 @@ class DeepStateTrainingNetwork(DeepStateNetwork):
 
 class DeepStatePredictionNetwork(DeepStateNetwork):
     @validated()
-    def __init__(self, num_sample_paths: int, *args, **kwargs) -> None:
+    def __init__(self, num_parallel_samples: int, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.num_sample_paths = num_sample_paths
+        self.num_parallel_samples = num_parallel_samples
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
@@ -261,7 +263,7 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
         )
 
         samples = lds_prediction.sample(
-            num_samples=self.num_sample_paths, scale=scale
+            num_samples=self.num_parallel_samples, scale=scale
         )
 
         # convert samples from
