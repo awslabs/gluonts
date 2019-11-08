@@ -198,7 +198,7 @@ class DeepStateEstimator(GluonEstimator):
         ), "Elements of `embedding_dimension` should be > 0"
 
         assert all(
-            np.isfinite([p.lower, p.upper]) and p.lower > 0
+            np.isfinite(p.lower) and np.isfinite(p.upper) and p.lower > 0
             for p in [noise_std_bounds, prior_cov_bounds, innovation_bounds]
         ), "All parameter bounds should be finite, and lower bounds should be positive"
 
@@ -328,13 +328,15 @@ class DeepStateEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
+            noise_std_bounds=self.noise_std_bounds,
+            prior_cov_bounds=self.prior_cov_bounds,
+            innovation_bounds=self.innovation_bounds,
         )
 
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
         prediction_network = DeepStatePredictionNetwork(
-            num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
@@ -345,10 +347,11 @@ class DeepStateEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
+            num_parallel_samples=self.num_parallel_samples,
+            noise_std_bounds=self.noise_std_bounds,
+            prior_cov_bounds=self.prior_cov_bounds,
+            innovation_bounds=self.innovation_bounds,
             params=trained_network.collect_params(),
-            noise_std=self.noise_std_bounds,
-            prior_cov=self.prior_cov_bounds,
-            innovation=self.innovation_bounds,
         )
 
         copy_parameters(trained_network, prediction_network)
