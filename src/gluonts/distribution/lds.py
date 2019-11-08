@@ -27,9 +27,13 @@ from gluonts.support.util import make_nd_diag, _broadcast_param
 from gluonts.support.linalg_util import jitter_cholesky
 
 
-class BoundedParam(NamedTuple):
-    lower_bound: float
-    upper_bound: float
+class ParameterBounds:
+    def __init__(self, lower, upper) -> None:
+        assert (
+            lower <= upper
+        ), "lower bound should be smaller or equal to upper bound"
+        self.lower = lower
+        self.upper = upper
 
 
 class LDS(Distribution):
@@ -481,8 +485,8 @@ class LDSArgsProj(mx.gluon.HybridBlock):
     def __init__(
         self,
         output_dim: int,
-        noise_std: BoundedParam,
-        innovation: BoundedParam,
+        noise_std_bounds: ParameterBounds,
+        innovation_bounds: ParameterBounds,
     ) -> None:
         super().__init__()
         self.output_dim = output_dim
@@ -496,21 +500,21 @@ class LDSArgsProj(mx.gluon.HybridBlock):
             units=output_dim, flatten=False
         )
 
-        self.innovation = innovation
-        self.noise_std = noise_std
+        self.innovation = innovation_bounds
+        self.noise_std = noise_std_bounds
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         noise_std = (
             self.dense_noise_std(x)
-            * (self.noise_std.upper_bound - self.noise_std.lower_bound)
-            + self.noise_std.lower_bound
+            * (self.noise_std.upper - self.noise_std.lower)
+            + self.noise_std.lower
         )
 
         innovation = (
             self.dense_innovation(x)
-            * (self.innovation.upper_bound - self.innovation.lower_bound)
-            + self.innovation.lower_bound
+            * (self.innovation.upper - self.innovation.lower)
+            + self.innovation.lower
         )
 
         residual = self.dense_residual(x)
