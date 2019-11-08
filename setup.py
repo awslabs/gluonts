@@ -3,6 +3,7 @@ import distutils.cmd
 import distutils.log
 import itertools
 import logging
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,8 +20,8 @@ GPU_SUPPORT = 0 == int(
     subprocess.call(
         "nvidia-smi",
         shell=True,
-        stdout=open("/dev/null", "w"),
-        stderr=open("/dev/null", "w"),
+        stdout=open(os.devnull, "w"),
+        stderr=open(os.devnull, "w"),
     )
 )
 
