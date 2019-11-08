@@ -31,7 +31,7 @@ from gluonts.testutil import shell as testutil
 
 context_length = 5
 prediction_length = 6
-num_eval_samples = 4
+num_samples = 4
 
 
 @pytest.fixture(scope="function")  # type: ignore
@@ -39,7 +39,7 @@ def train_env() -> ContextManager[TrainEnv]:
     hyperparameters = {
         "context_length": context_length,
         "prediction_length": prediction_length,
-        "num_eval_samples": num_eval_samples,
+        "num_samples": num_samples,
     }
     with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
@@ -77,7 +77,7 @@ def batch_transform(monkeypatch, train_env):
     inference_config = {
         "context_length": context_length,
         "prediction_length": prediction_length,
-        "num_eval_samples": num_eval_samples,
+        "num_samples": num_samples,
         "output_types": ["mean", "samples"],
         "quantiles": [],
         **train_env.hyperparameters,
@@ -116,7 +116,7 @@ def test_server_shell(
     assert execution_parameters["MaxPayloadInMB"] == 6
 
     configuration = {
-        "num_eval_samples": 1,  # FIXME: this is ignored
+        "num_samples": 1,  # FIXME: this is ignored
         "output_types": ["mean", "samples"],
         "quantiles": [],
     }
@@ -133,7 +133,7 @@ def test_server_shell(
         mean = np.mean(entry["target"])
 
         exp_mean_shape = (prediction_length,)
-        exp_samples_shape = (num_eval_samples, prediction_length)
+        exp_samples_shape = (num_samples, prediction_length)
 
         exp_mean = mean * np.ones(shape=(prediction_length,))
         exp_samples = mean * np.ones(shape=exp_samples_shape)
@@ -175,7 +175,7 @@ def test_dynamic_shell(
         mean = np.mean(entry["target"])
 
         exp_mean_shape = (prediction_length,)
-        exp_samples_shape = (num_eval_samples, prediction_length)
+        exp_samples_shape = (num_samples, prediction_length)
 
         exp_mean = mean * np.ones(shape=(prediction_length,))
         exp_samples = mean * np.ones(shape=exp_samples_shape)
@@ -213,7 +213,7 @@ def test_dynamic_batch_shell(
         mean = np.mean(entry["target"])
 
         exp_mean_shape = (prediction_length,)
-        exp_samples_shape = (num_eval_samples, prediction_length)
+        exp_samples_shape = (num_samples, prediction_length)
 
         exp_mean = mean * np.ones(shape=(prediction_length,))
         exp_samples = mean * np.ones(shape=exp_samples_shape)

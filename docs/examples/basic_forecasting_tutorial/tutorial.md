@@ -173,7 +173,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=dataset.test,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -436,7 +436,7 @@ predictor = estimator.train(dataset.train)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=dataset.test,
     predictor=predictor,
-    num_eval_samples=100
+    num_samples=100
 )
 ```
 

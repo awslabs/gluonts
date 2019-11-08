@@ -102,7 +102,6 @@ def test_climatological_forecaster(
         freq=freq,
         use_seasonal_model=use_seasonal_model,
         kernel_type=KernelType.uniform,
-        num_parallel_samples=2000,
     )
 
     dataset = ListDataset(
@@ -113,7 +112,7 @@ def test_climatological_forecaster(
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
 
-    forecast = next(predictor.predict(dataset))
+    forecast = next(predictor.predict(dataset, num_samples=2000))
 
     train_targets = (
         train_ts.values
@@ -267,7 +266,6 @@ def test_npts_forecaster(
         kernel_type=KernelType.exponential,
         feature_scale=feature_scale,
         use_seasonal_model=use_seasonal_model,
-        num_parallel_samples=2000,
     )
 
     dataset = ListDataset(
@@ -278,7 +276,7 @@ def test_npts_forecaster(
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
 
-    forecast = next(predictor.predict(dataset))
+    forecast = next(predictor.predict(dataset, num_samples=2000))
 
     train_targets = (
         train_ts.values
@@ -430,7 +428,6 @@ def test_npts_custom_features(
         feature_scale=feature_scale,
         use_seasonal_model=use_seasonal_model,
         use_default_time_features=False,  # disable default time features
-        num_parallel_samples=2000,
     )
 
     dataset = ListDataset(
@@ -447,7 +444,7 @@ def test_npts_custom_features(
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
 
-    forecast = next(predictor.predict(dataset))
+    forecast = next(predictor.predict(dataset, num_samples=2000))
 
     train_targets = (
         train_ts.values

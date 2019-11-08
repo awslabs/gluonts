@@ -73,7 +73,7 @@ class DeepFactorEstimator(GluonEstimator):
         Trainer object to be used (default: Trainer()).
     context_length
         Training length (default: None, in which case context_length = prediction_length).
-    num_eval_samples
+    num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100).
     cardinality
@@ -99,7 +99,7 @@ class DeepFactorEstimator(GluonEstimator):
         cell_type: str = "lstm",
         trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         cardinality: List[int] = list([1]),
         embedding_dimension: int = 10,
         distr_output: DistributionOutput = StudentTOutput(),
@@ -128,8 +128,8 @@ class DeepFactorEstimator(GluonEstimator):
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
         assert (
-            num_eval_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -137,7 +137,7 @@ class DeepFactorEstimator(GluonEstimator):
         )
         self.prediction_length = prediction_length
         self.distr_output = distr_output
-        self.num_sample_paths = num_eval_samples
+        self.num_parallel_samples = num_parallel_samples
         self.cardinality = cardinality
         self.embedding_dimensions = [embedding_dimension for _ in cardinality]
 
@@ -204,7 +204,7 @@ class DeepFactorEstimator(GluonEstimator):
             global_model=trained_network.global_model,
             local_model=trained_network.local_model,
             prediction_len=self.prediction_length,
-            num_sample_paths=self.num_sample_paths,
+            num_parallel_samples=self.num_parallel_samples,
             params=trained_network.collect_params(),
         )
 

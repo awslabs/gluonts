@@ -192,7 +192,7 @@ class GaussianProcessEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             context_length=self.context_length,
             cardinality=self.cardinality,
-            num_samples=self.num_parallel_samples,
+            num_parallel_samples=self.num_parallel_samples,
             params=trained_network.collect_params(),
             kernel_output=self.kernel_output,
             params_scaling=self.params_scaling,
