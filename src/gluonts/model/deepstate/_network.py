@@ -21,7 +21,7 @@ import mxnet as mx
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.scaler import NOPScaler, MeanScaler
 from gluonts.core.component import validated
-from gluonts.distribution.lds import LDS, LDSArgsProj
+from gluonts.distribution.lds import ParameterBounds, LDS, LDSArgsProj
 from gluonts.model.deepstate.issm import ISSM
 from gluonts.model.common import Tensor
 from gluonts.support.util import weighted_average, make_nd_diag
@@ -41,6 +41,9 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         cardinality: List[int],
         embedding_dimension: List[int],
         scaling: bool = True,
+        noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
+        prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
+        innovation_bounds: ParameterBounds = ParameterBounds(1e-6, 0.01),
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -61,17 +64,25 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         ), "embedding_dimension should be a list with the same size as cardinality"
         self.univariate = self.issm.output_dim() == 1
 
+        self.noise_std_bounds = noise_std_bounds
+        self.prior_cov_bounds = prior_cov_bounds
+        self.innovation_bounds = innovation_bounds
+
         with self.name_scope():
             self.prior_mean_model = mx.gluon.nn.Dense(
                 units=self.issm.latent_dim(), flatten=False
             )
             self.prior_cov_diag_model = mx.gluon.nn.Dense(
                 units=self.issm.latent_dim(),
-                activation="sigmoid",  # TODO: puot explicit upper bound
+                activation="sigmoid",
                 flatten=False,
             )
             self.lstm = mx.gluon.rnn.HybridSequentialRNNCell()
-            self.lds_proj = LDSArgsProj(output_dim=self.issm.output_dim())
+            self.lds_proj = LDSArgsProj(
+                output_dim=self.issm.output_dim(),
+                noise_std_bounds=self.noise_std_bounds,
+                innovation_bounds=self.innovation_bounds,
+            )
             for k in range(num_layers):
                 cell = mx.gluon.rnn.LSTMCell(hidden_size=num_cells)
                 cell = mx.gluon.rnn.ResidualCell(cell) if k > 0 else cell
@@ -122,7 +133,11 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
             )
 
             prior_mean = self.prior_mean_model(prior_input)
-            prior_cov_diag = self.prior_cov_diag_model(prior_input)
+            prior_cov_diag = (
+                self.prior_cov_diag_model(prior_input)
+                * (self.prior_cov_bounds.upper - self.prior_cov_bounds.lower)
+                + self.prior_cov_bounds.lower
+            )
             prior_cov = make_nd_diag(F, prior_cov_diag, self.issm.latent_dim())
 
         (
