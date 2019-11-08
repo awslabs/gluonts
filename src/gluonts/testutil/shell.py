@@ -93,7 +93,8 @@ class ServerFacade:
             url=self.url("/invocations"), data="\n".join(instances)
         )
 
-        assert response.status_code == 200
+        if response.status_code != 200:
+            raise RuntimeError(response.content.decode("utf-8"))
 
         predictions = list(map(json.loads, response.text.splitlines()))
         assert len(predictions) == len(instances)

@@ -14,6 +14,11 @@
 # Relative imports
 from . import bijection
 from .binned import Binned, BinnedOutput
+from .box_cox_tranform import (
+    BoxCoxTransformOutput,
+    InverseBoxCoxTransformOutput,
+)
+from .dirichlet import Dirichlet, DirichletOutput
 from .distribution import Distribution
 from .distribution_output import DistributionOutput
 from .gaussian import Gaussian, GaussianOutput
@@ -37,10 +42,6 @@ from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
-from .box_cox_tranform import (
-    BoxCoxTransformOutput,
-    InverseBoxCoxTransformOutput,
-)
 
 __all__ = [
     "Distribution",
@@ -71,6 +72,7 @@ __all__ = [
     "InverseBoxCoxTransformOutput",
     "BoxCoxTransformOutput",
     "bijection",
+    "Dirichlet",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

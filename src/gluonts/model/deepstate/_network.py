@@ -125,9 +125,11 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
             prior_cov_diag = self.prior_cov_diag_model(prior_input)
             prior_cov = make_nd_diag(F, prior_cov_diag, self.issm.latent_dim())
 
-        emission_coeff, transition_coeff, innovation_coeff = self.issm.get_issm_coeff(
-            seasonal_indicators
-        )
+        (
+            emission_coeff,
+            transition_coeff,
+            innovation_coeff,
+        ) = self.issm.get_issm_coeff(seasonal_indicators)
 
         noise_std, innovation, residuals = self.lds_proj(output)
 

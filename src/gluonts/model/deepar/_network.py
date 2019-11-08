@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import numpy as np
 from typing import List, Optional, Tuple
 
 # Third-party imports
@@ -20,7 +21,7 @@ import mxnet as mx
 # First-party imports
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.scaler import MeanScaler, NOPScaler
-from gluonts.core.component import validated
+from gluonts.core.component import DType, validated
 from gluonts.distribution import DistributionOutput, Distribution
 from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
@@ -50,6 +51,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         embedding_dimension: List[int],
         lags_seq: List[int],
         scaling: bool = True,
+        dtype: DType = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -64,6 +66,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.embedding_dimension = embedding_dimension
         self.num_cat = len(cardinality)
         self.scaling = scaling
+        self.dtype = dtype
 
         assert len(cardinality) == len(
             embedding_dimension
@@ -100,8 +103,11 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                     else cell
                 )
                 self.rnn.add(cell)
+            self.rnn.cast(dtype=dtype)
             self.embedder = FeatureEmbedder(
-                cardinalities=cardinality, embedding_dims=embedding_dimension
+                cardinalities=cardinality,
+                embedding_dims=embedding_dimension,
+                dtype=self.dtype,
             )
             if scaling:
                 self.scaler = MeanScaler(keepdims=True)
@@ -277,6 +283,13 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             length=subsequences_length,
             layout="NTC",
             merge_outputs=True,
+            begin_state=self.rnn.begin_state(
+                func=F.zeros,
+                dtype=self.dtype,
+                batch_size=inputs.shape[0]
+                if isinstance(inputs, mx.nd.NDArray)
+                else 0,
+            ),
         )
 
         # outputs: (batch_size, seq_len, num_cells)
@@ -533,7 +546,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
             )
 
             # (batch_size * num_samples, 1, *target_shape)
-            new_samples = distr.sample()
+            new_samples = distr.sample(dtype=self.dtype)
 
             # (batch_size * num_samples, seq_len, *target_shape)
             repeated_past_target = F.concat(

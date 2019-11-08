@@ -170,7 +170,9 @@ class Evaluator:
         )
 
         # cut the time series using the dates of the forecast object
-        return np.squeeze(time_series.loc[forecast.index].transpose())
+        return np.atleast_1d(
+            np.squeeze(time_series.loc[forecast.index].transpose())
+        )
 
     def seasonal_error(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast

@@ -42,10 +42,6 @@ core_logic: {
     build_steps.create_website('gluon-ts-gpu-py3', 'gpu/py3'),
     build_steps.website_linkcheck('gluon-ts-cpu-py3', 'cpu/py3')
   ])
-
-  utils.parallel_stage('Deploy', [
-    build_steps.post_website_link()
-  ])
 }
 ,
 failure_handler: {}

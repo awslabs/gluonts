@@ -243,7 +243,7 @@ class GluonPredictor(Predictor):
         input_transform: Transformation,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
-        float_type: DType = np.float32,
+        dtype: DType = np.float32,
     ) -> None:
         super().__init__(prediction_length, freq)
 
@@ -254,7 +254,7 @@ class GluonPredictor(Predictor):
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.ctx = ctx
-        self.float_type = float_type
+        self.dtype = dtype
 
     def hybridize(self, batch: DataBatch) -> None:
         """
@@ -298,7 +298,7 @@ class GluonPredictor(Predictor):
             self.input_transform,
             self.batch_size,
             ctx=self.ctx,
-            float_type=self.float_type,
+            dtype=self.dtype,
         )
         yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,
@@ -343,7 +343,7 @@ class GluonPredictor(Predictor):
                 prediction_length=self.prediction_length,
                 freq=self.freq,
                 ctx=self.ctx,
-                float_type=self.float_type,
+                dtype=self.dtype,
                 forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )
@@ -442,7 +442,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
-        float_type: DType = np.float32,
+        dtype: DType = np.float32,
     ) -> None:
         super().__init__(
             input_names=get_hybrid_forward_input_names(prediction_net),
@@ -454,7 +454,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             input_transform=input_transform,
             forecast_generator=forecast_generator,
             output_transform=output_transform,
-            float_type=float_type,
+            dtype=dtype,
         )
 
     def as_symbol_block_predictor(
@@ -475,7 +475,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             input_transform=self.input_transform,
             forecast_generator=self.forecast_generator,
             output_transform=self.output_transform,
-            float_type=self.float_type,
+            dtype=self.dtype,
         )
 
     def serialize_prediction_net(self, path: Path) -> None:

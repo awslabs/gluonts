@@ -12,7 +12,10 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
+
+# Third-party imports
+import numpy as np
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -78,7 +81,9 @@ class NegativeBinomial(Distribution):
     def stddev(self) -> Tensor:
         return self.F.sqrt(self.mu * (1.0 + self.mu * self.alpha))
 
-    def sample(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         def s(mu: Tensor, alpha: Tensor) -> Tensor:
             F = self.F
             tol = 1e-5
@@ -87,11 +92,15 @@ class NegativeBinomial(Distribution):
             r = F.minimum(F.maximum(tol, r), 1e10)
             theta = F.minimum(F.maximum(tol, theta), 1e10)
             x = F.minimum(F.random.gamma(r, theta), 1e6)
-            return F.random.poisson(lam=x)
+            return F.random.poisson(lam=x, dtype=dtype)
 
         return _sample_multiple(
             s, mu=self.mu, alpha=self.alpha, num_samples=num_samples
         )
+
+    @property
+    def args(self) -> List:
+        return [self.mu, self.alpha]
 
 
 class NegativeBinomialOutput(DistributionOutput):

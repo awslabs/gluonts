@@ -132,6 +132,26 @@ def test_AddTimeFeatures(start, target, is_train):
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
+def test_AddTimeFeatures_empty_time_features(start, target, is_train):
+    pred_length = 13
+    t = transform.AddTimeFeatures(
+        start_field=FieldName.START,
+        target_field=FieldName.TARGET,
+        output_field="myout",
+        pred_length=pred_length,
+        time_features=[],
+    )
+
+    assert_serializable(t)
+
+    data = {"start": start, "target": target}
+    res = t.map_transform(data, is_train=is_train)
+    assert res["myout"] is None
+
+
+@pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
+@pytest.mark.parametrize("target", TEST_VALUES["target"])
+@pytest.mark.parametrize("start", TEST_VALUES["start"])
 def test_AddAgeFeatures(start, target, is_train):
     pred_length = 13
     t = transform.AddAgeFeature(

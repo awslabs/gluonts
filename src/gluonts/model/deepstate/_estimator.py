@@ -82,6 +82,10 @@ class DeepStateEstimator(GluonEstimator):
         Frequency of the data to train on and predict
     prediction_length
         Length of the prediction horizon
+    cardinality
+        Number of values of each categorical feature.
+        This must be set by default unless ``use_feat_static_cat``
+        is set to `False` explicitly (which is NOT recommended).
     add_trend
         Flag to indicate whether to include trend component in the
         state space model
@@ -117,9 +121,6 @@ class DeepStateEstimator(GluonEstimator):
     use_feat_static_cat
         Whether to use the ``feat_static_cat`` field from the data
         (default: False)
-    cardinality
-        Number of values of each categorical feature.
-        This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
         Dimension of the embeddings for categorical features
         (default: [min(50, (cat+1)//2) for cat in cardinality])
@@ -135,6 +136,7 @@ class DeepStateEstimator(GluonEstimator):
         self,
         freq: str,
         prediction_length: int,
+        cardinality: List[int],
         add_trend: bool = False,
         past_length: Optional[int] = None,
         num_periods_to_train: int = 4,
@@ -145,8 +147,7 @@ class DeepStateEstimator(GluonEstimator):
         num_eval_samples: int = 100,
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        cardinality: Optional[List[int]] = None,
+        use_feat_static_cat: bool = True,
         embedding_dimension: Optional[List[int]] = None,
         issm: Optional[ISSM] = None,
         scaling: bool = True,
@@ -166,15 +167,13 @@ class DeepStateEstimator(GluonEstimator):
             num_eval_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (cardinality is not None and use_feat_static_cat) or (
-            cardinality is None and not use_feat_static_cat
-        ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
-        assert cardinality is None or [
-            c > 0 for c in cardinality
-        ], "Elements of `cardinality` should be > 0"
-        assert embedding_dimension is None or [
+        assert not use_feat_static_cat or any(c > 1 for c in cardinality), (
+            f"Cardinality of at least one static categorical feature must be larger than 1 "
+            f"if `use_feat_static_cat=True`. But cardinality provided is: {cardinality}"
+        )
+        assert embedding_dimension is None or all(
             e > 0 for e in embedding_dimension
-        ], "Elements of `embedding_dimension` should be > 0"
+        ), "Elements of `embedding_dimension` should be > 0"
 
         self.freq = freq
         self.past_length = (
