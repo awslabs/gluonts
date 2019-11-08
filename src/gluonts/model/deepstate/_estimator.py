@@ -110,9 +110,9 @@ class DeepStateEstimator(GluonEstimator):
     cell_type
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
-    num_eval_samples
-        Number of samples paths to draw when computing predictions
-        (default: 100)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100).
     dropout_rate
         Dropout regularization parameter (default: 0.1)
     use_feat_dynamic_real
@@ -144,7 +144,7 @@ class DeepStateEstimator(GluonEstimator):
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = True,
@@ -164,8 +164,8 @@ class DeepStateEstimator(GluonEstimator):
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
         assert (
-            num_eval_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert not use_feat_static_cat or any(c > 1 for c in cardinality), (
             f"Cardinality of at least one static categorical feature must be larger than 1 "
@@ -186,7 +186,7 @@ class DeepStateEstimator(GluonEstimator):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
-        self.num_sample_paths = num_eval_samples
+        self.num_parallel_samples = num_parallel_samples
         self.scaling = scaling
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
@@ -303,7 +303,7 @@ class DeepStateEstimator(GluonEstimator):
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
         prediction_network = DeepStatePredictionNetwork(
-            num_sample_paths=self.num_sample_paths,
+            num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,

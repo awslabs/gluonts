@@ -37,7 +37,7 @@ root.setLevel(logging.DEBUG)
 def make_estimator(freq, prediction_length):
     # noinspection PyTypeChecker
     return MeanEstimator(
-        prediction_length=prediction_length, freq=freq, num_eval_samples=5
+        prediction_length=prediction_length, freq=freq, num_samples=5
     )
 
 

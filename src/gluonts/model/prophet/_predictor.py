@@ -106,8 +106,6 @@ class ProphetPredictor(RepresentablePredictor):
         Time frequency of the data, e.g. '1H'
     prediction_length
         Number of time points to predict
-    num_eval_samples
-        Number of samples to draw for predictions
     prophet_params
         Parameters to pass when instantiating the prophet model.
     init_model
@@ -126,7 +124,6 @@ class ProphetPredictor(RepresentablePredictor):
         self,
         freq: str,
         prediction_length: int,
-        num_eval_samples: int = 100,
         prophet_params: Optional[Dict] = None,
         init_model: Callable = lambda m: m,
     ) -> None:
@@ -140,20 +137,23 @@ class ProphetPredictor(RepresentablePredictor):
 
         assert "uncertainty_samples" not in prophet_params, (
             "Parameter 'uncertainty_samples' should not be set directly. "
-            "Please use 'num_eval_samples' instead."
+            "Please use 'num_samples' in the 'predict' method instead."
         )
 
-        prophet_params.update(uncertainty_samples=num_eval_samples)
-
-        self.num_eval_samples = num_eval_samples
         self.prophet_params = prophet_params
         self.init_model = init_model
 
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
+    def predict(
+        self, dataset: Dataset, num_samples: int = 100, **kwargs
+    ) -> Iterator[SampleForecast]:
+
+        params = self.prophet_params.copy()
+        params.update(uncertainty_samples=num_samples)
+
         for entry in dataset:
             data = self._make_prophet_data_entry(entry)
 
-            forecast_samples = self._run_prophet(data)
+            forecast_samples = self._run_prophet(data, params)
 
             yield SampleForecast(
                 samples=forecast_samples,
@@ -161,13 +161,13 @@ class ProphetPredictor(RepresentablePredictor):
                 freq=self.freq,
             )
 
-    def _run_prophet(self, data: ProphetDataEntry) -> np.array:
+    def _run_prophet(self, data: ProphetDataEntry, params: dict) -> np.array:
         """
         Construct and run a :class:`Prophet` model on the given
         :class:`ProphetDataEntry` and return the resulting array of samples.
         """
 
-        prophet = self.init_model(Prophet(**self.prophet_params))
+        prophet = self.init_model(Prophet(**params))
 
         # Register dynamic features as regressors to the model
         for i in range(len(data.feat_dynamic_real)):

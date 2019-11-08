@@ -639,7 +639,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -925,7 +925,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1137,7 +1137,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1395,7 +1395,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1753,7 +1753,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
