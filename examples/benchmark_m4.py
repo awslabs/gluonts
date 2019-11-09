@@ -86,7 +86,7 @@ def evaluate(dataset_name, estimator):
     predictor = estimator.train(dataset.train)
 
     forecast_it, ts_it = make_evaluation_predictions(
-        dataset.test, predictor=predictor, num_eval_samples=100
+        dataset.test, predictor=predictor, num_samples=100
     )
 
     agg_metrics, item_metrics = Evaluator()(
