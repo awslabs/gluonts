@@ -1,6 +1,6 @@
 # fixes conflict with dateutil requirement
 # see: https://github.com/boto/botocore/commit/e87e7a745fd972815b235a9ee685232745aa94f9
-botocore==1.*,<1.13.9
+python-dateutil==2.8.0
 
 boto3==1.*
 holidays==0.9.*
