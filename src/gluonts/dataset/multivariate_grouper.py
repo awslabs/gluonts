@@ -32,9 +32,11 @@ class MultivariateGrouper:
     a separate copy of the dataset.
 
     The Multivariate Grouper has two different modes:
+
     Training: For training data, the univariate time series get aligned to the
-       earliest time stamp in the dataset. Time series will be left and right
-       padded to produce an array of shape (dim, num_time_steps)
+    earliest time stamp in the dataset. Time series will be left and right
+    padded to produce an array of shape (dim, num_time_steps)
+
     Test: The test dataset might have multiple start dates (usually because
           the test dataset mimics a rolling evaluation scenario). In this case,
           the univariate dataset will be split into n multivariate time series,
