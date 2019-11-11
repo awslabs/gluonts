@@ -22,7 +22,7 @@ import textwrap
 from functools import singledispatch
 from pathlib import PurePath
 from pydoc import locate
-from typing import Any, Optional
+from typing import cast, Any, NamedTuple, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -419,10 +419,11 @@ def encode(v: Any) -> Any:
     # we have to check for namedtuples first, to encode them not as plain
     # tuples (which would become lists)
     if isinstance(v, tuple) and hasattr(v, "_asdict"):
+        v = cast(NamedTuple, v)
         return {
             "__kind__": kind_inst,
             "class": fqname_for(v.__class__),
-            "kwargs": encode(v._asdict()),  # mypy: ignore
+            "kwargs": encode(v._asdict()),
         }
 
     if isinstance(v, (list, set, tuple)):
