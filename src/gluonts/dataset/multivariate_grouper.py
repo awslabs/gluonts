@@ -54,7 +54,7 @@ class MultivariateGrouper:
         time series and groups them to multivariate time series.
     num_test_dates
         Number of test dates in the test set. This can be more than one if
-        the test set contains more then one forecast start dates (often the
+        the test set contains more than one forecast start date (often the
         case in a rolling evaluation scenario). Must be set to convert test
         data.
     train_fill_rule
