@@ -22,7 +22,7 @@ import textwrap
 from functools import singledispatch
 from pathlib import PurePath
 from pydoc import locate
-from typing import Any, NamedTuple, Optional
+from typing import Any, Optional
 
 # Third-party imports
 import mxnet as mx
