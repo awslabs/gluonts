@@ -57,7 +57,7 @@ def train_env() -> ContextManager[TrainEnv]:
 @pytest.fixture(scope="function")  # type: ignore
 def static_server(
     train_env: TrainEnv,
-) -> ContextManager[testutil.ServerFacade]:
+) -> ContextManager["testutil.ServerFacade"]:
     predictor = MeanPredictor.from_hyperparameters(**train_env.hyperparameters)
     predictor.serialize(train_env.path.model)
 
@@ -70,7 +70,7 @@ def static_server(
 @pytest.fixture(scope="function")  # type: ignore
 def dynamic_server(
     train_env: TrainEnv,
-) -> ContextManager[testutil.ServerFacade]:
+) -> ContextManager["testutil.ServerFacade"]:
     serve_env = ServeEnv(train_env.path.base)
     settings = Settings(sagemaker_server_port=testutil.free_port())
     with testutil.temporary_server(
@@ -113,7 +113,7 @@ def test_train_shell(train_env: TrainEnv, caplog) -> None:
 
 
 def test_server_shell(
-    train_env: TrainEnv, static_server: testutil.ServerFacade, caplog
+    train_env: TrainEnv, static_server: "testutil.ServerFacade", caplog
 ) -> None:
     execution_parameters = static_server.execution_parameters()
 
@@ -154,7 +154,7 @@ def test_server_shell(
 
 
 def test_dynamic_shell(
-    train_env: TrainEnv, dynamic_server: testutil.ServerFacade, caplog
+    train_env: TrainEnv, dynamic_server: "testutil.ServerFacade", caplog
 ) -> None:
     execution_parameters = dynamic_server.execution_parameters()
 
@@ -198,7 +198,7 @@ def test_dynamic_shell(
 def test_dynamic_batch_shell(
     batch_transform,
     train_env: TrainEnv,
-    dynamic_server: testutil.ServerFacade,
+    dynamic_server: "testutil.ServerFacade",
     caplog,
 ) -> None:
     execution_parameters = dynamic_server.execution_parameters()
