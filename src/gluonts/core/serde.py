@@ -207,7 +207,8 @@ def dump_code(o: Any) -> str:
             elems = [dump_code(v) for v in x]
             return "(" + ", ".join(elems) + ",)"
         elif isinstance(x, str):
-            return '"' + x + '"'  # TODO: escape comp characters
+            # json.dumps escapes the string
+            return json.dumps(x)
         elif isinstance(x, float) or np.issubdtype(type(x), np.inexact):
             return str(x) if math.isfinite(x) else 'float("' + str(x) + '")'
         elif (
