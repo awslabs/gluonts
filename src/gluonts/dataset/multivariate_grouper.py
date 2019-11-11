@@ -15,12 +15,13 @@
 import logging
 import numpy as np
 import pandas as pd
-from typing import Callable
+from typing import Callable, Optional
 
 # First-party imports
 from gluonts.dataset.common import ListDataset, DataEntry, Dataset
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.constants import DateConstants
 
 
 class MultivariateGrouper:
@@ -44,13 +45,32 @@ class MultivariateGrouper:
 
     Rules for padding for training and test datasets can be specified by the
     user.
+
+    Parameters
+    ----------
+    max_target_dim
+        Set maximum dimensionality (for faster testing or when hitting
+        constraints of multivariate model). Takes the last max_target_dim
+        time series and groups them to multivariate time series.
+    num_test_dates
+        Number of test dates in the test set. This can be more than one if
+        the test set contains more then one forecast start dates (often the
+        case in a rolling evaluation scenario). Must be set to convert test
+        data.
+    train_fill_rule
+        Implements the rule that fills missing data after alignment of the
+        time series for the training dataset.
+    test_fill_rule
+        Implements the rule that fills missing data after alignment of the
+        time series for the test dataset.
+
     """
 
     @validated()
     def __init__(
         self,
-        max_target_dim: int = None,
-        num_test_dates: int = None,
+        max_target_dim: Optional[int] = None,
+        num_test_dates: Optional[int] = None,
         train_fill_rule: Callable = np.mean,
         test_fill_rule: Callable = lambda x: 0.0,
     ) -> None:
@@ -59,8 +79,8 @@ class MultivariateGrouper:
         self.train_fill_function = train_fill_rule
         self.test_fill_rule = test_fill_rule
 
-        self.first_timestamp = pd.Timestamp(2200, 1, 1, 12)
-        self.last_timestamp = pd.Timestamp(1800, 1, 1, 12)
+        self.first_timestamp = DateConstants.LATEST_SUPPORTED_TIMESTAMP
+        self.last_timestamp = DateConstants.OLDEST_SUPPORTED_TIMESTAMP
         self.frequency = ""
 
     def __call__(self, dataset: Dataset) -> Dataset:
@@ -165,13 +185,16 @@ class MultivariateGrouper:
 
         Parameters
         ----------
-        data: multivariate data entry with (dim, num_timesteps) target field
+        data
+            multivariate data entry with (dim, num_timesteps) target field
 
         Returns
         -------
-        data multivariate data entry with (max_target_dimension, num_timesteps)
-        target field
+        DataEntry
+            data multivariate data entry with
+            (max_target_dimension, num_timesteps) target field
         """
+
         if self.max_target_dimension is not None:
             # restrict maximum dimensionality (for faster testing)
             data[FieldName.TARGET] = data[FieldName.TARGET][
