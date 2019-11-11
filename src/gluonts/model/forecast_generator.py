@@ -86,7 +86,7 @@ class ForecastGenerator:
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
-        num_eval_samples: Optional[int],
+        num_samples: Optional[int],
         **kwargs
     ) -> Iterator[Forecast]:
         raise NotImplementedError()

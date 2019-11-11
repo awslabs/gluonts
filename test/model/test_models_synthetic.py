@@ -46,7 +46,7 @@ def simple_feedforward_estimator(hybridize: bool = True, batches_per_epoch=1):
             prediction_length=prediction_length,
             context_length=context_length,
             freq=freq,
-            num_eval_samples=5,
+            num_parallel_samples=5,
             num_batches_per_epoch=batches_per_epoch,
         ),
     )
