@@ -14,6 +14,7 @@
 # Standard library imports
 import json
 from typing import ContextManager
+import sys
 
 # Third-party imports
 import numpy as np
@@ -23,10 +24,18 @@ import pytest
 from gluonts.core.component import equals
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
-from gluonts.shell.serve import Settings
 from gluonts.shell.serve.util import jsonify_floats
 from gluonts.shell.train import run_train_and_test
 from gluonts.testutil import shell as testutil
+
+try:
+    from gluonts.shell.serve import Settings
+except ImportError:
+    if sys.platform != "win32":
+        raise
+
+    # gunicorn doesn't work on windows, so we skip these tests
+    pytestmark = pytest.mark.skip
 
 
 context_length = 5
