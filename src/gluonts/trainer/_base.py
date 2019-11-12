@@ -28,7 +28,7 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import get_mxnet_context, validated
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset.loader import TrainDataLoader, DataLoader
+from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.support.util import HybridContext
 from gluonts.gluonts_tqdm import tqdm
 
@@ -166,9 +166,9 @@ class Trainer:
         net: nn.HybridBlock,
         input_names: List[str],
         train_iter: TrainDataLoader,
-        val_iter: Optional[TrainDataLoader] = None,
+        validation_iter: Optional[ValidationDataLoader] = None,
     ) -> None:  # TODO: we may want to return some training information here
-        is_validation_available = val_iter is not None
+        is_validation_available = validation_iter is not None
         self.halt = False
 
         with tempfile.TemporaryDirectory(
@@ -252,7 +252,7 @@ class Trainer:
                             epoch_loss.update(None, preds=loss)
                             it.set_postfix(
                                 ordered_dict={
-                                    ("" if is_training else "val_")
+                                    ("" if is_training else "validation_")
                                     + "avg_epoch_loss": loss_value(epoch_loss)
                                 },
                                 refresh=False,
@@ -277,7 +277,7 @@ class Trainer:
                     logging.info(
                         "Epoch[%d] Evaluation metric '%s'=%f",
                         epoch_no,
-                        ("" if is_training else "val_") + "epoch_loss",
+                        ("" if is_training else "validation_") + "epoch_loss",
                         loss_value(epoch_loss),
                     )
                     return epoch_loss
@@ -297,7 +297,7 @@ class Trainer:
                     epoch_loss = loop(epoch_no, train_iter)
                     if is_validation_available:
                         epoch_loss = loop(
-                            epoch_no, val_iter, is_training=False
+                            epoch_no, validation_iter, is_training=False
                         )
 
                     lr_scheduler.step(loss_value(epoch_loss))

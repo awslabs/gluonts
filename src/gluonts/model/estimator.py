@@ -25,7 +25,7 @@ from gluonts.core import fqname_for
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import TrainDataLoader, InferenceDataLoader
+from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.trainer import Trainer
@@ -46,7 +46,7 @@ class Estimator:
     freq: str
 
     def train(
-        self, training_data: Dataset, valid_data: Optional[Dataset] = None
+        self, training_data: Dataset, validation_data: Optional[Dataset] = None
     ) -> Predictor:
         """
         Train the estimator on the given data.
@@ -55,7 +55,7 @@ class Estimator:
         ----------
         training_data
             Dataset to train the model on.
-        valid_data
+        validation_data
             Dataset to validate the model on during training.
 
         Returns
@@ -88,7 +88,9 @@ class DummyEstimator(Estimator):
         self.predictor = predictor_cls(**kwargs)
 
     def train(
-        self, training_data: Dataset, valid_dataset: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_dataset: Optional[Dataset] = None,
     ) -> Predictor:
         return self.predictor
 
@@ -184,17 +186,15 @@ class GluonEstimator(Estimator):
             dtype=self.dtype,
         )
 
-        validation_data_loader = (
-            InferenceDataLoader(
+        validation_data_loader = None
+        if validation_data is not None:
+            validation_data_loader = ValidationDataLoader(
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
                 ctx=self.trainer.ctx,
-                float_type=self.float_type,
+                dtype=self.dtype,
             )
-            if validation_data is not None
-            else None
-        )
 
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
@@ -205,7 +205,7 @@ class GluonEstimator(Estimator):
             net=trained_net,
             input_names=get_hybrid_forward_input_names(trained_net),
             train_iter=training_data_loader,
-            val_iter=validation_data_loader,
+            validation_iter=validation_data_loader,
         )
 
         with self.trainer.ctx:

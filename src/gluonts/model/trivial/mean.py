@@ -108,7 +108,9 @@ class MeanEstimator(Estimator):
         self.num_samples = num_samples
 
     def train(
-        self, training_data: Dataset, valid_dataset: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_dataset: Optional[Dataset] = None,
     ) -> ConstantPredictor:
         contexts = np.broadcast_to(
             array=[

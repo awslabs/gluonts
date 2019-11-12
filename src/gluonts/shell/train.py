@@ -76,11 +76,11 @@ def run_train_and_test(
 def run_train(
     forecaster: Estimator,
     train_dataset: Dataset,
-    valid_dataset: Optional[Dataset],
+    validation_dataset: Optional[Dataset],
 ) -> Predictor:
     log.metric("train_dataset_stats", train_dataset.calc_stats())
 
-    return forecaster.train(train_dataset, valid_dataset)
+    return forecaster.train(train_dataset, validation_dataset)
 
 
 def run_test(

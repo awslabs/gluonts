@@ -25,7 +25,7 @@ from gluonts import transform
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import TrainDataLoader, InferenceDataLoader
+from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
@@ -290,17 +290,15 @@ class WaveNetEstimator(GluonEstimator):
             ctx=self.trainer.ctx,
         )
 
-        validation_data_loader = (
-            InferenceDataLoader(
+        validation_data_loader = None
+        if validation_data is not None:
+            validation_data_loader = ValidationDataLoader(
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
                 ctx=self.trainer.ctx,
-                float_type=self.float_type,
+                dtype=self.dtype,
             )
-            if validation_data is not None
-            else None
-        )
 
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
@@ -313,7 +311,7 @@ class WaveNetEstimator(GluonEstimator):
             net=trained_net,
             input_names=get_hybrid_forward_input_names(trained_net),
             train_iter=training_data_loader,
-            val_iter=validation_data_loader,
+            validation_iter=validation_data_loader,
         )
 
         # ensure that the prediction network is created within the same MXNet
