@@ -40,7 +40,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         Length of the target context used to condition the predictions.
     prediction_length
         Length of the prediction horizon.
-    num_eval_samples
+    num_samples
         Number of samples to use to construct :class:`SampleForecast` objects
         for every prediction.
     freq
@@ -52,13 +52,13 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         self,
         prediction_length: int,
         freq: str,
-        num_eval_samples: int = 100,
+        num_samples: int = 100,
         context_length: Optional[int] = None,
     ) -> None:
         super().__init__(prediction_length, freq)
         self.context_length = context_length
-        self.num_eval_samples = num_eval_samples
-        self.shape = (self.num_eval_samples, self.prediction_length)
+        self.num_samples = num_samples
+        self.shape = (self.num_samples, self.prediction_length)
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
         if self.context_length is not None:
@@ -101,11 +101,11 @@ class MeanEstimator(Estimator):
         self,
         prediction_length: PositiveInt,
         freq: str,
-        num_eval_samples: PositiveInt,
+        num_samples: PositiveInt,
     ) -> None:
         self.prediction_length = prediction_length
         self.freq = freq
-        self.num_eval_samples = num_eval_samples
+        self.num_samples = num_samples
 
     def train(self, training_data: Dataset) -> ConstantPredictor:
         contexts = np.broadcast_to(
@@ -118,7 +118,7 @@ class MeanEstimator(Estimator):
 
         samples = np.broadcast_to(
             array=contexts.mean(axis=0),
-            shape=(self.num_eval_samples, self.prediction_length),
+            shape=(self.num_samples, self.prediction_length),
         )
 
         return ConstantPredictor(samples=samples, freq=self.freq)

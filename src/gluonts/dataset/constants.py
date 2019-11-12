@@ -10,7 +10,15 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-# Relative imports
-from ._estimator import DeepStateEstimator
 
-__all__ = ["DeepStateEstimator"]
+# Standard library imports
+import pandas as pd
+
+
+class DateConstants:
+    """
+    Default constants for specific dates.
+    """
+
+    OLDEST_SUPPORTED_TIMESTAMP = pd.Timestamp(1800, 1, 1, 12)
+    LATEST_SUPPORTED_TIMESTAMP = pd.Timestamp(2200, 1, 1, 12)
