@@ -15,19 +15,19 @@
 from functools import partial
 
 # Third-party imports
-import numpy as np
 import pytest
 
 # First-party imports
+from gluonts.model.deepstate import DeepStateEstimator
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
-from gluonts.model.deepar import DeepAREstimator
 from gluonts.trainer import Trainer
 
 
 common_estimator_hps = dict(
     freq="D",
     prediction_length=3,
-    trainer=Trainer(epochs=3, num_batches_per_epoch=2, batch_size=4),
+    trainer=Trainer(epochs=3, num_batches_per_epoch=2, batch_size=1),
+    past_length=10,
 )
 
 
@@ -36,39 +36,45 @@ common_estimator_hps = dict(
     [
         # No features
         (
-            partial(DeepAREstimator, **common_estimator_hps),
+            partial(
+                DeepStateEstimator,
+                **common_estimator_hps,
+                cardinality=[1],
+                use_feat_static_cat=False,
+            ),
             make_dummy_datasets_with_features(),
         ),
         # Single static categorical feature
         (
             partial(
-                DeepAREstimator,
-                **common_estimator_hps,
-                use_feat_static_cat=True,
-                cardinality=[5],
+                DeepStateEstimator, **common_estimator_hps, cardinality=[5]
             ),
             make_dummy_datasets_with_features(cardinality=[5]),
         ),
         # Multiple static categorical features
         (
             partial(
-                DeepAREstimator,
+                DeepStateEstimator,
                 **common_estimator_hps,
-                use_feat_static_cat=True,
                 cardinality=[3, 10, 42],
             ),
             make_dummy_datasets_with_features(cardinality=[3, 10, 42]),
         ),
-        # Multiple static categorical features (ignored)
-        (
-            partial(DeepAREstimator, **common_estimator_hps),
-            make_dummy_datasets_with_features(cardinality=[3, 10, 42]),
-        ),
-        # Single dynamic real feature
+        # Multiple static categorical features for one of which cardinality = 1
         (
             partial(
-                DeepAREstimator,
+                DeepStateEstimator,
                 **common_estimator_hps,
+                cardinality=[3, 1, 42],
+            ),
+            make_dummy_datasets_with_features(cardinality=[3, 1, 42]),
+        ),
+        (
+            partial(
+                DeepStateEstimator,
+                **common_estimator_hps,
+                cardinality=[1],
+                use_feat_static_cat=False,
                 use_feat_dynamic_real=True,
             ),
             make_dummy_datasets_with_features(num_feat_dynamic_real=1),
@@ -76,21 +82,28 @@ common_estimator_hps = dict(
         # Multiple dynamic real feature
         (
             partial(
-                DeepAREstimator,
+                DeepStateEstimator,
                 **common_estimator_hps,
+                cardinality=[1],
+                use_feat_static_cat=False,
                 use_feat_dynamic_real=True,
             ),
             make_dummy_datasets_with_features(num_feat_dynamic_real=3),
         ),
         # Multiple dynamic real feature (ignored)
         (
-            partial(DeepAREstimator, **common_estimator_hps),
+            partial(
+                DeepStateEstimator,
+                **common_estimator_hps,
+                cardinality=[1],
+                use_feat_static_cat=False,
+            ),
             make_dummy_datasets_with_features(num_feat_dynamic_real=3),
         ),
         # Both static categorical and dynamic real features
         (
             partial(
-                DeepAREstimator,
+                DeepStateEstimator,
                 **common_estimator_hps,
                 use_feat_dynamic_real=True,
                 use_feat_static_cat=True,
@@ -100,20 +113,39 @@ common_estimator_hps = dict(
                 cardinality=[3, 10, 42], num_feat_dynamic_real=3
             ),
         ),
-        # Both static categorical and dynamic real features (ignored)
-        (
-            partial(DeepAREstimator, **common_estimator_hps),
-            make_dummy_datasets_with_features(
-                cardinality=[3, 10, 42], num_feat_dynamic_real=3
-            ),
-        ),
     ],
 )
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
-def test_deepar_smoke(estimator, datasets, dtype):
-    estimator = estimator(dtype=dtype)
+def test_deepstate_smoke(estimator, datasets):
+    # TODO: pass `dtype` below once you add `dtype` support to `DeepStateEstimator`
+    estimator = estimator()
     dataset_train, dataset_test = datasets
     predictor = estimator.train(dataset_train)
     forecasts = list(predictor.predict(dataset_test))
-    assert all([forecast.samples.dtype == dtype for forecast in forecasts])
     assert len(forecasts) == len(dataset_test)
+
+
+# This test makes sure that `DeepStateEstimator` raises exception when it is misused.
+#   * cardinality is not passed explicitly
+#   * product of cardinalities is not greater than 1 even though `use_feat_static_cat == True`
+@pytest.mark.parametrize(
+    "estimator, datasets",
+    [
+        # Static categorical feature ignored
+        (
+            partial(DeepStateEstimator, **common_estimator_hps),
+            make_dummy_datasets_with_features(cardinality=[3]),
+        ),
+        # Static categorical features are ignored by wrongly setting cardinality = [1, 1, 1]
+        (
+            partial(
+                DeepStateEstimator,
+                **common_estimator_hps,
+                cardinality=[1, 1, 1],
+            ),
+            make_dummy_datasets_with_features(cardinality=[3, 10, 42]),
+        ),
+    ],
+)
+def test_deepstate_exceptions_with_feat_static_cat(estimator, datasets):
+    with pytest.raises(Exception):
+        estimator()

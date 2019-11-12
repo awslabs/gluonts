@@ -218,12 +218,12 @@ class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
 class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
     @validated()
     def __init__(
-        self, num_samples: int, sample_noise: bool, *args, **kwargs
+        self, num_parallel_samples: int, sample_noise: bool, *args, **kwargs
     ) -> None:
         r"""
         Parameters
         ----------
-        num_samples
+        num_parallel_samples
             Number of samples to be drawn.
         sample_noise
             Boolean to determine whether to add :math:`\sigma^2I` to the predictive covariance matrix.
@@ -233,7 +233,7 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
             Arbitrary keyword arguments.
         """
         super().__init__(*args, **kwargs)
-        self.num_samples = num_samples
+        self.num_parallel_samples = num_parallel_samples
         self.sample_noise = sample_noise
 
     # noinspection PyMethodOverriding,PyPep8Naming
@@ -272,7 +272,7 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
             kernel=self.kernel_output.kernel(kernel_args),
             context_length=self.context_length,
             prediction_length=self.prediction_length,
-            num_samples=self.num_samples,
+            num_samples=self.num_parallel_samples,
             ctx=self.ctx,
             float_type=self.float_type,
             max_iter_jitter=self.max_iter_jitter,

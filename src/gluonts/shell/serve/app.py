@@ -95,7 +95,7 @@ def handle_predictions(predictor, instances, configuration):
     forecasts = ThrougputIter(
         predictor.predict(
             ListDataset(instances, predictor.freq),
-            num_eval_samples=configuration.num_eval_samples,
+            num_samples=configuration.num_samples,
         )
     )
 
@@ -135,7 +135,7 @@ def batch_inference_invocations(predictor_factory, configuration) -> Flask:
 
         forecast_iter = predictor.predict(
             ListDataset(instances, predictor.freq),
-            num_eval_samples=configuration.num_eval_samples,
+            num_samples=configuration.num_samples,
         )
 
         for forecast in forecast_iter:

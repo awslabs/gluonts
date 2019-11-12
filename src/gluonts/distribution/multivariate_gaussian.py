@@ -50,13 +50,10 @@ class MultivariateGaussian(Distribution):
     is_reparameterizable = True
 
     @validated()
-    def __init__(
-        self, mu: Tensor, L: Tensor, F=None, float_type: DType = np.float32
-    ) -> None:
+    def __init__(self, mu: Tensor, L: Tensor, F=None) -> None:
         self.mu = mu
         self.F = F if F else getF(mu)
         self.L = L
-        self.float_type = float_type
 
     @property
     def batch_shape(self) -> Tuple:
@@ -101,7 +98,9 @@ class MultivariateGaussian(Distribution):
     def variance(self) -> Tensor:
         return self.F.linalg_gemm2(self.L, self.L, transpose_b=True)
 
-    def sample_rep(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample_rep(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         r"""
         Draw samples from the multivariate Gaussian distributions.
         Internally, Cholesky factorization of the covariance matrix is used:
@@ -114,6 +113,8 @@ class MultivariateGaussian(Distribution):
         ----------
         num_samples
             Number of samples to be drawn.
+        dtype
+            Data-type of the samples.
         Returns
         -------
         Tensor
@@ -124,7 +125,7 @@ class MultivariateGaussian(Distribution):
             samples_std_normal = self.F.sample_normal(
                 mu=self.F.zeros_like(mu),
                 sigma=self.F.ones_like(mu),
-                dtype=self.float_type,
+                dtype=dtype,
             ).expand_dims(axis=-1)
             samples = (
                 self.F.linalg_gemm2(L, samples_std_normal).squeeze(axis=-1)

@@ -14,6 +14,7 @@
 # Standard library imports
 import json
 from typing import ContextManager
+import sys
 
 # Third-party imports
 import numpy as np
@@ -23,15 +24,23 @@ import pytest
 from gluonts.core.component import equals
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
-from gluonts.shell.serve import Settings
-from gluonts.shell.serve.util import jsonify_floats
 from gluonts.shell.train import run_train_and_test
-from gluonts.testutil import shell as testutil
+
+try:
+    from gluonts.shell.serve import Settings
+    from gluonts.shell.serve.util import jsonify_floats
+    from gluonts.testutil import shell as testutil
+except ImportError:
+    if sys.platform != "win32":
+        raise
+
+    # gunicorn doesn't work on windows, so we skip these tests
+    pytestmark = pytest.mark.skip
 
 
 context_length = 5
 prediction_length = 6
-num_eval_samples = 4
+num_samples = 4
 
 
 @pytest.fixture(scope="function")  # type: ignore
@@ -39,7 +48,7 @@ def train_env() -> ContextManager[TrainEnv]:
     hyperparameters = {
         "context_length": context_length,
         "prediction_length": prediction_length,
-        "num_eval_samples": num_eval_samples,
+        "num_samples": num_samples,
     }
     with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
@@ -47,8 +56,8 @@ def train_env() -> ContextManager[TrainEnv]:
 
 @pytest.fixture(scope="function")  # type: ignore
 def static_server(
-    train_env: TrainEnv
-) -> ContextManager[testutil.ServerFacade]:
+    train_env: TrainEnv,
+) -> ContextManager["testutil.ServerFacade"]:
     predictor = MeanPredictor.from_hyperparameters(**train_env.hyperparameters)
     predictor.serialize(train_env.path.model)
 
@@ -60,8 +69,8 @@ def static_server(
 
 @pytest.fixture(scope="function")  # type: ignore
 def dynamic_server(
-    train_env: TrainEnv
-) -> ContextManager[testutil.ServerFacade]:
+    train_env: TrainEnv,
+) -> ContextManager["testutil.ServerFacade"]:
     serve_env = ServeEnv(train_env.path.base)
     settings = Settings(sagemaker_server_port=testutil.free_port())
     with testutil.temporary_server(
@@ -77,7 +86,7 @@ def batch_transform(monkeypatch, train_env):
     inference_config = {
         "context_length": context_length,
         "prediction_length": prediction_length,
-        "num_eval_samples": num_eval_samples,
+        "num_samples": num_samples,
         "output_types": ["mean", "samples"],
         "quantiles": [],
         **train_env.hyperparameters,
@@ -104,7 +113,7 @@ def test_train_shell(train_env: TrainEnv, caplog) -> None:
 
 
 def test_server_shell(
-    train_env: TrainEnv, static_server: testutil.ServerFacade, caplog
+    train_env: TrainEnv, static_server: "testutil.ServerFacade", caplog
 ) -> None:
     execution_parameters = static_server.execution_parameters()
 
@@ -116,7 +125,7 @@ def test_server_shell(
     assert execution_parameters["MaxPayloadInMB"] == 6
 
     configuration = {
-        "num_eval_samples": 1,  # FIXME: this is ignored
+        "num_samples": 1,  # FIXME: this is ignored
         "output_types": ["mean", "samples"],
         "quantiles": [],
     }
@@ -133,7 +142,7 @@ def test_server_shell(
         mean = np.mean(entry["target"])
 
         exp_mean_shape = (prediction_length,)
-        exp_samples_shape = (num_eval_samples, prediction_length)
+        exp_samples_shape = (num_samples, prediction_length)
 
         exp_mean = mean * np.ones(shape=(prediction_length,))
         exp_samples = mean * np.ones(shape=exp_samples_shape)
@@ -145,7 +154,7 @@ def test_server_shell(
 
 
 def test_dynamic_shell(
-    train_env: TrainEnv, dynamic_server: testutil.ServerFacade, caplog
+    train_env: TrainEnv, dynamic_server: "testutil.ServerFacade", caplog
 ) -> None:
     execution_parameters = dynamic_server.execution_parameters()
 
@@ -175,7 +184,7 @@ def test_dynamic_shell(
         mean = np.mean(entry["target"])
 
         exp_mean_shape = (prediction_length,)
-        exp_samples_shape = (num_eval_samples, prediction_length)
+        exp_samples_shape = (num_samples, prediction_length)
 
         exp_mean = mean * np.ones(shape=(prediction_length,))
         exp_samples = mean * np.ones(shape=exp_samples_shape)
@@ -189,7 +198,7 @@ def test_dynamic_shell(
 def test_dynamic_batch_shell(
     batch_transform,
     train_env: TrainEnv,
-    dynamic_server: testutil.ServerFacade,
+    dynamic_server: "testutil.ServerFacade",
     caplog,
 ) -> None:
     execution_parameters = dynamic_server.execution_parameters()
@@ -213,7 +222,7 @@ def test_dynamic_batch_shell(
         mean = np.mean(entry["target"])
 
         exp_mean_shape = (prediction_length,)
-        exp_samples_shape = (num_eval_samples, prediction_length)
+        exp_samples_shape = (num_samples, prediction_length)
 
         exp_mean = mean * np.ones(shape=(prediction_length,))
         exp_samples = mean * np.ones(shape=exp_samples_shape)

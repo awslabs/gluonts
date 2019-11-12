@@ -11,22 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
-from gluonts.dataset.common import TimeSeriesItem
-from gluonts.dataset.jsonl import JsonLinesFile
+# Standard library imports
+import pandas as pd
 
 
-def test_file(path):
-    for raw_dataset in JsonLinesFile(path):
-        TimeSeriesItem.parse_obj(raw_dataset.content)
-    print("ok")
+class DateConstants:
+    """
+    Default constants for specific dates.
+    """
 
-
-def run():
-    import sys
-
-    test_file(sys.argv[1])
-
-
-if __name__ == "__main__":
-    run()
+    OLDEST_SUPPORTED_TIMESTAMP = pd.Timestamp(1800, 1, 1, 12)
+    LATEST_SUPPORTED_TIMESTAMP = pd.Timestamp(2200, 1, 1, 12)
