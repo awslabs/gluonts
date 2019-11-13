@@ -26,6 +26,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.deep_factor import DeepFactorEstimator
+from gluonts.model.deepstate import DeepStateEstimator
 from gluonts.model.gp_forecaster import GaussianProcessEstimator
 from gluonts.model.npts import NPTSEstimator
 from gluonts.model.predictor import Predictor
@@ -229,6 +230,28 @@ def seasonal_estimator():
     return SeasonalNaiveEstimator, dict(prediction_length=prediction_length)
 
 
+def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        DeepStateEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            hybridize=hybridize,
+            num_cells=2,
+            num_layers=1,
+            prediction_length=prediction_length,
+            context_length=2,
+            past_length=prediction_length,
+            cardinality=[1],
+            use_feat_static_cat=False,
+            num_batches_per_epoch=batches_per_epoch,
+            use_symbol_block_predictor=False,
+            num_parallel_samples=2,
+        ),
+    )
+
+
 @flaky(max_runs=3, min_passes=1)
 @pytest.mark.timeout(10)  # DeepAR occasionally fails with the 5 second timeout
 @pytest.mark.parametrize(
@@ -252,7 +275,11 @@ def seasonal_estimator():
             + (0.2,),
         ]
     ]
-    + [npts_estimator() + (0.0,), seasonal_estimator() + (0.0,)],
+    + [
+        npts_estimator() + (0.0,),
+        seasonal_estimator() + (0.0,),
+        deepstate_estimator(hybridize=False, batches_per_epoch=100) + (0.5,),
+    ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
     estimator = Estimator.from_hyperparameters(freq=freq, **hyperparameters)
@@ -296,6 +323,7 @@ def test_repr(Estimator, hyperparameters):
         mqrnn_estimator(),
         gp_estimator(),
         transformer_estimator(),
+        deepstate_estimator(),
     ],
 )
 def test_serialize(Estimator, hyperparameters):
