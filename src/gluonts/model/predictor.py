@@ -370,14 +370,6 @@ class SymbolBlockPredictor(GluonPredictor):
     ) -> "SymbolBlockPredictor":
         return self
 
-    def serialize(self, path: Path) -> None:
-        logging.warning(
-            "Serializing RepresentableBlockPredictor instances does not save "
-            "the prediction network structure in a backwards-compatible "
-            "manner. Be careful not to use this method in production."
-        )
-        super().serialize(path)
-
     def serialize_prediction_net(self, path: Path) -> None:
         export_symb_block(self.prediction_net, path, "prediction_net")
 
@@ -477,6 +469,14 @@ class RepresentableBlockPredictor(GluonPredictor):
             output_transform=self.output_transform,
             dtype=self.dtype,
         )
+
+    def serialize(self, path: Path) -> None:
+        logging.warning(
+            "Serializing RepresentableBlockPredictor instances does not save "
+            "the prediction network structure in a backwards-compatible "
+            "manner. Be careful not to use this method in production."
+        )
+        super().serialize(path)
 
     def serialize_prediction_net(self, path: Path) -> None:
         export_repr_block(self.prediction_net, path, "prediction_net")
