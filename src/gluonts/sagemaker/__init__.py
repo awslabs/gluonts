@@ -15,9 +15,7 @@
 from .estimator import GluonTSFramework
 from .model import GluonTSPredictor, GluonTSModel
 
-__all__ = ['GluonTSFramework',
-           'GluonTSPredictor',
-           'GluonTSModel']
+__all__ = ["GluonTSFramework", "GluonTSPredictor", "GluonTSModel"]
 
 for item in __all__:
     if hasattr(item, "__module__"):

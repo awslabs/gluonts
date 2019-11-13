@@ -18,7 +18,7 @@ import logging
 from pathlib import Path
 import os
 import time
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 import json
 import re
 
@@ -42,8 +42,33 @@ logger = logging.getLogger("sagemaker")
 
 # Defaults
 TRAIN_ENTRY_POINT_SCRIPT = str(
-        Path(os.path.dirname(os.path.abspath(__file__))) / "entry_point_scripts" / "train_entry_point.py")
-MONITORED_METRICS = ('mean_wQuantileLoss', 'ND', 'RMSE')
+    Path(os.path.dirname(os.path.abspath(__file__)))
+    / "entry_point_scripts"
+    / "train_entry_point.py"
+)
+MONITORED_METRICS = ("mean_wQuantileLoss", "ND", "RMSE")
+
+"""
+OVERALL TODOS:
+    > TEST EVERYTHING
+    > Add hyper parameter optimization (HPO) support
+    > Add local mode support
+    > Add officially provided images
+    > Add python tests cases and scripts
+    > Finish documentation 
+    > Add support for multiple instances
+    > Add support methods to easily retrieve training artifacts like the model
+    > Implement: given a hash, install that gluonts version
+    > Figure out dynamic install of python libraries
+"""
+
+# Create the following setup.py file and provide in the dependencies to
+# install requirements.txt: //figure out alternative
+"""
+from setuptools import setup
+
+setup()
+"""
 
 
 class GluonTSFramework(Framework):
@@ -54,21 +79,20 @@ class GluonTSFramework(Framework):
     LATEST_VERSION = "0.3.3"
 
     def __init__(
-            self,
-            sagemaker_session: session.Session,
-            role: str,
-            image_name: str,  # ATTENTION: IF YOU USE AN IMAGE WITH MXNET GPU, YOU HAVE TO USE A GPU INSTANCE
-            train_instance_type: str,
-            train_instance_count: int,
-            base_job_name: str,
-
-            dependencies: Optional[List[str]] = [],
-            output_path: str = None,
-            code_location: str = None,
-            framework_version: str = GLUONTS_VERSION,
-            hyperparameters = None,
-            entry_point: str = TRAIN_ENTRY_POINT_SCRIPT,  # SHOULD NOT BE CHANGED
-            **kwargs
+        self,
+        sagemaker_session: session.Session,
+        role: str,
+        image_name: str,
+        base_job_name: str,
+        train_instance_type: str,
+        train_instance_count: int = 1,
+        dependencies: Optional[List[str]] = [],
+        output_path: str = None,
+        code_location: str = None,
+        framework_version: str = GLUONTS_VERSION,
+        hyperparameters: Dict = None,
+        entry_point: str = TRAIN_ENTRY_POINT_SCRIPT,
+        **kwargs,
     ):
         """This ``Estimator`` can be used to easily train and evaluate any GluonTS model on any dataset
         (own or built-in) in AWS Sagemaker using the provided Docker container.
@@ -93,26 +117,28 @@ class GluonTSFramework(Framework):
                 After the endpoint is created, the inference code might use the IAM role,
                 if it needs to access an AWS resource.
             image_name:
-                Attention: if you use an image with MXNET with GPU support, you will have to
-                use a GPU instance.
                 The estimator will use this image for training and hosting. It must be an ECR url.
+                If you use an image with MXNET with GPU support, you will have to
+                use a GPU instance.
                 Example:
                     123.dkr.ecr.us-west-2.amazonaws.com/my-custom-image:1.0
+            base_job_name:
+                Prefix for training job name when the :meth:`GluonTSFramework.train` or
+                :meth:`GluonTSFramework.run` method is called.
             train_instance_type:
                 Type of EC2 instance to use for training.
                 Example:
                     "ml.c5.xlarge" # CPU,
                     "ml.p2.xlarge" # GPU
             train_instance_count:
-                Number of Amazon EC2 instances to use for training.
-            base_job_name:
-                Prefix for training job name when the :meth:`GluonTSFramework.train` or
-                :meth:`GluonTSFramework.run` method is called.
+                Currently not more than one supported.
+                Otherwise the number of Amazon EC2 instances to use for training.
             dependencies:
-                A list of paths to directories (absolute or relative) with any additional libraries that
+                A list of paths to files or directories (absolute or relative) with any additional libraries that
                 will be exported to the container. The library folders will be
                 copied to SageMaker in the same folder where the entrypoint is
-                copied. If 'git_config' is provided, 'dependencies' should be a
+                copied. Include a path to a "requirements.txt" to install further dependencies at runtime.
+                If 'git_config' is provided, 'dependencies' should be a
                 list of relative locations to directories with any additional
                 libraries needed in the Git repo.
                     Example:
@@ -124,8 +150,8 @@ class GluonTSFramework(Framework):
                     # >>>     |------ virtual-env
                     To use a custom gluonts version just import your custom gluonts version and then call:
                     # >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
-                    The provided gluonts version will take precedence over the pre-installed
-                    version in the Docker image.
+                    A pre-installed gluonts version in the Docker image would take precedence over a provided
+                    one in case of "import gluonts".
             output_path:
                 S3 location for saving the transform result. If not specified,
                 results are stored to a default bucket.
@@ -134,24 +160,34 @@ class GluonTSFramework(Framework):
                 uploaded. The code file uploaded in S3 is 'code_location/source/sourcedir.tar.gz'.
                 If not specified, the default code location is s3://default_bucket/job-name/.
                 And code file uploaded to S3 is s3://default_bucket/job-name/source/sourcedir.tar.gz
+            framework_version:
+                GluonTS version. If not specified, this will default to 0.3.3. Currently has no effect.
+                # TODO link to where to find supported versions.
             hyperparameters:
-                Hyperparameters that will be used for training. The hyperparameters are made
+                Not the Estimator hyperparameters, those are provided through the GluonEstimator in
+                the :meth:`GluonTSFramework.train` method. If you use the :meth:`GluonTSFramework.run`
+                method its up to you what you do with this parameter and you could use it to define the
+                hyperparameters of your models.
+                There is no support for Hyper Parameter Optimization (HPO) so far.
+                In general hyperparameters will be used for training. They are made
                 accessible as a dict[str, str] to the training code on
                 SageMaker. For convenience, this accepts other types for keys
                 and values, but ``str()`` will be called to convert them before training.
                 # TODO add support for HPO
-            framework_version (str):
-                GluonTS version. If not specified, this will default to 0.3.3.
-                # TODO link to where to find supported versions.
-            entry_point (str):
-                Should not be overwritten, and only be specified through the :meth:`GluonTSFramework.run` method.
+            entry_point:
+                Should not be overwritten if you intend to use the :meth:`GluonTSFramework.train` method,
+                and only be specified through the :meth:`GluonTSFramework.run` method.
             **kwargs:
                 Additional kwargs passed to the :class:`~sagemaker.estimator.Framework` constructor.
         """
 
         # framework_version currently serves no purpose, except for compatibility with the sagemaker framework.
         if framework_version is None:
-            logger.warning(empty_framework_version_warning(GLUONTS_VERSION, self.LATEST_VERSION))
+            logger.warning(
+                empty_framework_version_warning(
+                    GLUONTS_VERSION, self.LATEST_VERSION
+                )
+            )
         self.framework_version = framework_version or GLUONTS_VERSION
 
         super(GluonTSFramework, self).__init__(
@@ -166,22 +202,22 @@ class GluonTSFramework(Framework):
             entry_point=entry_point,
             hyperparameters=hyperparameters,
             image_name=image_name,
-            **kwargs
+            **kwargs,
         )
 
         # must be set
         self.py_version = "py3"
 
     def create_model(
-            self,
-            model_server_workers=None,
-            role=None,
-            vpc_config_override=VPC_CONFIG_DEFAULT,
-            entry_point=None,
-            source_dir=None,
-            dependencies=None,
-            image_name=None,
-            **kwargs
+        self,
+        model_server_workers=None,
+        role=None,
+        vpc_config_override=VPC_CONFIG_DEFAULT,
+        entry_point=None,
+        source_dir=None,
+        dependencies=None,
+        image_name=None,
+        **kwargs,
     ) -> GluonTSModel:
         """Create a ``GluonTSModel`` object that can be deployed to an
         ``Endpoint``.
@@ -235,7 +271,9 @@ class GluonTSFramework(Framework):
         )
 
     @classmethod
-    def _prepare_init_params_from_job_description(cls, job_details, model_channel_name=None):
+    def _prepare_init_params_from_job_description(
+        cls, job_details, model_channel_name=None
+    ):
         """Convert the job description to init params that can be handled by the
         class constructor
         Args:
@@ -287,24 +325,43 @@ class GluonTSFramework(Framework):
 
     @classmethod
     def _get_metrics(cls, metrics_names):
-        avg_epoch_loss_metric = {"Name": "training_loss", "Regex": r"'avg_epoch_loss'=(\S+)"}
-        final_loss_metric = {"Name": "final_loss", "Regex": r"Final loss: (\S+)"}
-        other_metrics = [{'Name': m, 'Regex': rf"gluonts\[metric-{re.escape(m)}\]: (\S+)"} for m in metrics_names]
+        avg_epoch_loss_metric = {
+            "Name": "training_loss",
+            "Regex": r"'avg_epoch_loss'=(\S+)",
+        }
+        final_loss_metric = {
+            "Name": "final_loss",
+            "Regex": r"Final loss: (\S+)",
+        }
+        other_metrics = [
+            {"Name": m, "Regex": rf"gluonts\[metric-{re.escape(m)}\]: (\S+)"}
+            for m in metrics_names
+        ]
 
         return [avg_epoch_loss_metric, final_loss_metric] + other_metrics
 
     # TODO hyperparameter override for hyper parameter optimization
-    # TODO check what happens when gluonts is already installed: will be overwritten by dependecy gluonts
-    def train(self,
-              dataset: str,
-              estimator: GluonEstimator,
-              num_eval_samples: Optional[int] = 100,
-              quantiles: Optional[Tuple[int]] = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9),
-              monitored_metrics: Tuple[str] = MONITORED_METRICS,
-              wait: bool = True,
-              logs: bool = True,
-              job_name: str = None
-              ) -> Tuple[dict, pd.DataFrame, str]:
+    def train(
+        self,
+        dataset: str,
+        estimator: GluonEstimator,
+        num_eval_samples: Optional[int] = 100,
+        quantiles: Optional[Tuple[int]] = (
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.7,
+            0.8,
+            0.9,
+        ),
+        monitored_metrics: Tuple[str] = MONITORED_METRICS,
+        wait: bool = True,
+        logs: bool = True,
+        job_name: str = None,
+    ) -> Tuple[dict, pd.DataFrame, str]:
         """
         Use this function to train and evaluate any GluonTS model on Sagemaker. You need to call this method before
         you can call 'deploy'.
@@ -349,7 +406,9 @@ class GluonTSFramework(Framework):
             raise NotImplementedError()
 
         # set metrics to be monitored
-        self.metric_definitions = GluonTSFramework._get_metrics(monitored_metrics)
+        self.metric_definitions = GluonTSFramework._get_metrics(
+            monitored_metrics
+        )
 
         # Sagemaker cant handle PosixPaths
         dataset = str(dataset)
@@ -362,67 +421,97 @@ class GluonTSFramework(Framework):
         # specify job_name if not set
         if not job_name:
             milliseconds = str(int(round(time.time() * 1000)) % 1000)
-            job_name = self.base_job_name + "-" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime()) + "-" + milliseconds
+            job_name = (
+                self.base_job_name
+                + "-"
+                + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+                + "-"
+                + milliseconds
+            )
 
         # needed to set default output and code location properly
         if self.output_path is None:
-            self.output_path = f"s3://{self.sagemaker_session.default_bucket()}"
-        print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), f"OUTPUT_PATH: {self.output_path}")
+            self.output_path = (
+                f"s3://{self.sagemaker_session.default_bucket()}"
+            )
+        print(
+            time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+            f"OUTPUT_PATH: {self.output_path}/{job_name}/output",
+        )
         if self.code_location is None:
             code_bucket, _ = parse_s3_url(self.output_path)
-            self.code_location = f"s3://{code_bucket}"  # for consistency with sagemaker API
-        print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), f"CODE_LOCATION: {self.code_location}/{job_name}")
+            self.code_location = (
+                f"s3://{code_bucket}"
+            )  # for consistency with sagemaker API
+        print(
+            time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+            f"CODE_LOCATION: {self.code_location}/{job_name}/source",
+        )
 
         # serialize estimator to s3
-        print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Uploading - Uploading estimator config to s3.")
+        print(
+            time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+            " Uploading - Uploading estimator config to s3.",
+        )
         s3_estimator = f"{self.code_location}/{job_name}/source/estimator.json"
-        with s3fs.S3FileSystem().open(s3_estimator, 'w') as f:
+        with s3fs.S3FileSystem().open(s3_estimator, "w") as f:
             f.write(serde.dump_json(estimator))
-        inputs = {"estimator": session.s3_input(s3_estimator, content_type='application/json')}
+        inputs = {
+            "estimator": session.s3_input(
+                s3_estimator, content_type="application/json"
+            )
+        }
 
         # handle different dataset sources
         if dataset[:5] == "s3://":
-            inputs.update({"s3_dataset": session.s3_input(dataset, content_type='application/json')})
+            inputs.update(
+                {
+                    "s3_dataset": session.s3_input(
+                        dataset, content_type="application/json"
+                    )
+                }
+            )
         else:
             assert dataset in datasets.dataset_recipes.keys(), (
                 f"{dataset} is not present, please choose one from "
-                f"{datasets.dataset_recipes.keys()}.")
+                f"{datasets.dataset_recipes.keys()}."
+            )
 
         self.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
         # retrieve metrics
-        with s3fs.S3FileSystem().open(f"{self.output_path}/{job_name}/output/output.tar.gz", "rb") as f:
-            with tarfile.open(mode='r:gz', fileobj=f) as tar:
+        with s3fs.S3FileSystem().open(
+            f"{self.output_path}/{job_name}/output/output.tar.gz", "rb"
+        ) as f:
+            with tarfile.open(mode="r:gz", fileobj=f) as tar:
                 agg_metrics = json.load(tar.extractfile("agg_metrics.json"))
                 item_metrics = pd.read_csv(tar.extractfile("item_metrics.csv"))
 
         return agg_metrics, item_metrics, job_name
 
     @classmethod
-    def run(cls,
-            entry_point: str,
-            inputs,
-
-            sagemaker_session: session.Session,
-            role: str,
-            image_name: str,
-            train_instance_type: str,
-            train_instance_count: int,
-            base_job_name: str,
-
-            dependencies: Optional[List[str]],
-            output_path: str,
-            code_location: str,
-            framework_version: str = GLUONTS_VERSION,
-            hyperparameters=None,
-            source_dir: str = None,  # ATTENTION: IF SPECIFIED ENTRY POINT HAS TO BE RELATIVE PATH: THIS BRAKES .train
-
-            monitored_metrics: Tuple[str] = MONITORED_METRICS,
-            wait: bool = True,
-            logs: bool = True,
-            job_name: str = None,
-            **kwargs
-            ) -> Tuple[Framework, str]:
+    def run(
+        cls,
+        entry_point: str,
+        inputs,
+        sagemaker_session: session.Session,
+        role: str,
+        image_name: str,
+        base_job_name: str,
+        train_instance_type: str,
+        train_instance_count: int = 1,
+        dependencies: Optional[List[str]] = [],
+        output_path: str = None,
+        code_location: str = None,
+        framework_version: str = GLUONTS_VERSION,
+        hyperparameters=None,
+        source_dir: str = None,  # ATTENTION: IF SPECIFIED ENTRY POINT HAS TO BE RELATIVE PATH: THIS BRAKES .train
+        monitored_metrics: Tuple[str] = MONITORED_METRICS,
+        wait: bool = True,
+        logs: bool = True,
+        job_name: str = None,
+        **kwargs,
+    ) -> Tuple[Framework, str]:
         """
         self,
             sagemaker_session: session.Session,
@@ -483,26 +572,28 @@ class GluonTSFramework(Framework):
                 After the endpoint is created, the inference code might use the IAM role,
                 if it needs to access an AWS resource.
             image_name:
-                Attention: if you use an image with MXNET with GPU support, you will have to
-                use a GPU instance.
                 The estimator will use this image for training and hosting. It must be an ECR url.
+                If you use an image with MXNET with GPU support, you will have to
+                use a GPU instance.
                 Example:
                     123.dkr.ecr.us-west-2.amazonaws.com/my-custom-image:1.0
+            base_job_name:
+                Prefix for training job name when the :meth:`GluonTSFramework.train` or
+                :meth:`GluonTSFramework.run` method is called.
             train_instance_type:
                 Type of EC2 instance to use for training.
                 Example:
                     "ml.c5.xlarge" # CPU,
                     "ml.p2.xlarge" # GPU
             train_instance_count:
-                Number of Amazon EC2 instances to use for training.
-            base_job_name:
-                Prefix for training job name when the :meth:`GluonTSFramework.train` or
-                :meth:`GluonTSFramework.run` method is called.
+                Currently not more than one supported.
+                Otherwise the number of Amazon EC2 instances to use for training.
             dependencies:
-                A list of paths to directories (absolute or relative) with any additional libraries that
+                A list of paths to files or directories (absolute or relative) with any additional libraries that
                 will be exported to the container. The library folders will be
                 copied to SageMaker in the same folder where the entrypoint is
-                copied. If 'git_config' is provided, 'dependencies' should be a
+                copied. Include a path to a "requirements.txt" to install further dependencies at runtime.
+                If 'git_config' is provided, 'dependencies' should be a
                 list of relative locations to directories with any additional
                 libraries needed in the Git repo.
                     Example:
@@ -514,8 +605,8 @@ class GluonTSFramework(Framework):
                     # >>>     |------ virtual-env
                     To use a custom gluonts version just import your custom gluonts version and then call:
                     # >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
-                    The provided gluonts version will take precedence over the pre-installed
-                    version in the Docker image.
+                    A pre-installed gluonts version in the Docker image would take precedence over a provided
+                    one in case of "import gluonts".
             output_path:
                 S3 location for saving the transform result. If not specified,
                 results are stored to a default bucket.
@@ -523,9 +614,18 @@ class GluonTSFramework(Framework):
                 uploaded. The code file uploaded in S3 is 'code_location/source/sourcedir.tar.gz'.
                 If not specified, the default code location is s3://default_bucket/job-name/.
                 And code file uploaded to S3 is s3://default_bucket/job-name/source/sourcedir.tar.gz
-
+            framework_version:
+                GluonTS version. If not specified, this will default to 0.3.3. Currently has no effect.
+                # TODO link to where to find supported versions.
+            hyperparameters:
+                Its up to you what you do with this parameter and you could use it to define the
+                hyperparameters of your models.
+                In general hyperparameters will be used for training. They are made
+                accessible as a dict[str, str] to the training code on
+                SageMaker. For convenience, this accepts other types for keys
+                and values, but ``str()`` will be called to convert them before training.
             source_dir:
-                Attention: if you set this, your training script will have to be located within the
+                If you set this, your training script will have to be located within the
                 specified source_dir and you will have to set entry_point to the relative path within
                 your source_dir.
                 Path (absolute, relative, or an S3 URI) to a directory with all training source code
@@ -540,7 +640,9 @@ class GluonTSFramework(Framework):
                     # >>>         |----- test.py
                     and you need 'train.py' as entry point and 'test.py' as training source code as well,
                     you must set entry_point='train.py', source_dir='src'.
-
+            monitored_metrics:
+                Names of the metrics that will be parsed from logs in a one minute interval
+                in order to monitor them in Sagemaker.
             wait: bool
                 Whether the call should wait until the job completes (default: True).
             logs: bool
@@ -566,16 +668,23 @@ class GluonTSFramework(Framework):
             image_name=image_name,
             framework_version=framework_version,
             source_dir=source_dir,
-            metric_definitions=GluonTSFramework._get_metrics(monitored_metrics),
+            metric_definitions=GluonTSFramework._get_metrics(
+                monitored_metrics
+            ),
             hyperparameters=hyperparameters,
-            **kwargs
+            **kwargs,
         )
 
         # specify job_name if not set
         if not job_name:
             milliseconds = str(int(round(time.time() * 1000)) % 1000)
-            job_name = experiment.base_job_name + "-" + time.strftime("%Y-%m-%d-%H-%M-%S",
-                                                                      time.gmtime()) + "-" + milliseconds
+            job_name = (
+                experiment.base_job_name
+                + "-"
+                + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+                + "-"
+                + milliseconds
+            )
 
         experiment.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 

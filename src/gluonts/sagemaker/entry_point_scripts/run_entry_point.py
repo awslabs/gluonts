@@ -19,21 +19,39 @@ import time
 
 
 def run(arguments):
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), "Starting - started running custom script.")
-    pass
+    print(
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        "Starting - started running custom script.",
+    )
+
+    # TODO: WRITE YOUR CUSTOM CODE HERE
+
+    return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # load hyperparameters via SM_HPS environment variable
-    parser.add_argument('--sm_hps', type=json.loads, default=os.environ['SM_HPS'])
+    parser.add_argument(
+        "--sm_hps", type=json.loads, default=os.environ["SM_HPS"]
+    )
 
-    # input data, output dir and model directories
-    parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--input_dir', type=str, default=os.environ['SM_INPUT_DIR'])
-    # contents will be written back to s3
-    parser.add_argument('--output_data_dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
+    # save your model here to deploy it to an endpoint later with deploy()
+    parser.add_argument(
+        "--model_dir", type=str, default=os.environ["SM_MODEL_DIR"]
+    )
+    # specified inputs (input channels) are saved here
+    parser.add_argument(
+        "--input_dir", type=str, default=os.environ["SM_INPUT_DIR"]
+    )
+    # contents of this folder will be written back to s3
+    parser.add_argument(
+        "--output_data_dir", type=str, default=os.environ["SM_OUTPUT_DATA_DIR"]
+    )
+
+    # TODO: DONT FORGET TO PARSE ANY ADDITIONAL ARGUMENTS YOU SPECIFIED, FOR EXAMPLE THE INPUTS
+    # parser.add_argument('--<your_input_var_name>', type=str, default=os.environ['SM_CHANNEL_<YOUR_INPUT_VAR_NAME>'])
 
     args, _ = parser.parse_known_args()
 

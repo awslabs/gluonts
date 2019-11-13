@@ -18,9 +18,9 @@ import os
 import json
 import time
 import logging
+import sys
 
 # Third-party imports
-
 
 # First-party imports
 from gluonts.core import serde
@@ -28,40 +28,63 @@ from gluonts.dataset import common
 from gluonts.dataset.repository import datasets
 from gluonts.evaluation import Evaluator, backtest
 
+# import rather gluonts from dependencies, if it exists:
+"""
+potential_gluonts_path = Path(arguments.input_dir) / "gluonts"
+if os.path.isdir(potential_gluonts_path)
+    # insert it at beginning, so it will override other installs of gluonts
+    sys.path.insert(1, '/path/to/application/app/folder') 
+import gluonts
+"""
+
 logger = logging.getLogger(__name__)
 
 
-# TODO figure out proper logging way: stuts histor (the ones with timestamp...)
+# TODO figure out proper logging way
 def train(arguments):
     """
     Generic train method that trains a specified estimator on a specified dataset.
     """
 
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Downloading - Downloading estimator config.")
+    print(
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        " Downloading - Downloading estimator config.",
+    )
     estimator_config = Path(arguments.estimator) / "estimator.json"
-    with open(estimator_config, 'r') as f:
+    with open(estimator_config, "r") as f:
         estimator = serde.load_json(str(f.read()))
 
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Downloading - Downloading dataset.")
+    print(
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        " Downloading - Downloading dataset.",
+    )
     if arguments.s3_dataset == "None":
         # load built in dataset
         dataset = datasets.get_dataset(arguments.dataset)
     else:
         # load custom dataset
         s3_dataset_dir = Path(arguments.s3_dataset)
-        dataset = common.load_datasets(metadata=s3_dataset_dir,
-                                       train=s3_dataset_dir / "train",
-                                       test=s3_dataset_dir / "test")
+        dataset = common.load_datasets(
+            metadata=s3_dataset_dir,
+            train=s3_dataset_dir / "train",
+            test=s3_dataset_dir / "test",
+        )
 
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Starting - Starting model training.")
+    print(
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        " Starting - Starting model training.",
+    )
     predictor = estimator.train(dataset.train)
     forecast_it, ts_it = backtest.make_evaluation_predictions(
         dataset=dataset.test,
         predictor=predictor,
-        num_eval_samples=int(arguments.num_eval_samples)
+        num_eval_samples=int(arguments.num_eval_samples),
     )
 
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), " Starting - Starting model evaluation.")
+    print(
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        " Starting - Starting model evaluation.",
+    )
     evaluator = Evaluator(quantiles=eval(arguments.quantiles))
 
     agg_metrics, item_metrics = evaluator(
@@ -83,22 +106,46 @@ def train(arguments):
     predictor.serialize(model_output_dir)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # an alternative way to load hyperparameters via SM_HPS environment variable.
-    parser.add_argument('--sm_hps', type=json.loads, default=os.environ['SM_HPS'])
+    parser.add_argument(
+        "--sm_hps", type=json.loads, default=os.environ["SM_HPS"]
+    )
 
     # input data, output dir and model directories
-    parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--output_data_dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
+    parser.add_argument(
+        "--model_dir", type=str, default=os.environ["SM_MODEL_DIR"]
+    )
+    parser.add_argument(
+        "--output_data_dir", type=str, default=os.environ["SM_OUTPUT_DATA_DIR"]
+    )
 
-    parser.add_argument('--estimator', type=str, default=os.environ['SM_CHANNEL_ESTIMATOR'])
+    parser.add_argument(
+        "--input_dir", type=str, default=os.environ["SM_INPUT_DIR"]
+    )
+
+    parser.add_argument(
+        "--estimator", type=str, default=os.environ["SM_CHANNEL_ESTIMATOR"]
+    )
     # argument possibly not set
-    parser.add_argument('--s3_dataset', type=str, default=str(os.environ.get('SM_CHANNEL_S3_DATASET')))
-    parser.add_argument('--dataset', type=str, default=os.environ['SM_HP_DATASET'])
-    parser.add_argument('--num_eval_samples', type=int, default=os.environ['SM_HP_NUM_EVAL_SAMPLES'])
-    parser.add_argument('--quantiles', type=str, default=os.environ['SM_HP_QUANTILES'])
+    parser.add_argument(
+        "--s3_dataset",
+        type=str,
+        default=str(os.environ.get("SM_CHANNEL_S3_DATASET")),
+    )
+    parser.add_argument(
+        "--dataset", type=str, default=os.environ["SM_HP_DATASET"]
+    )
+    parser.add_argument(
+        "--num_eval_samples",
+        type=int,
+        default=os.environ["SM_HP_NUM_EVAL_SAMPLES"],
+    )
+    parser.add_argument(
+        "--quantiles", type=str, default=os.environ["SM_HP_QUANTILES"]
+    )
 
     args, _ = parser.parse_known_args()
 

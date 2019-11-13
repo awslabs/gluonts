@@ -15,7 +15,11 @@
 
 # Third-party imports
 from sagemaker.model import FrameworkModel
-from sagemaker.predictor import RealTimePredictor, json_serializer, json_deserializer
+from sagemaker.predictor import (
+    RealTimePredictor,
+    json_serializer,
+    json_deserializer,
+)
 from sagemaker import session
 from typing import List, Optional, Tuple, Dict
 
@@ -29,9 +33,9 @@ class GluonTSPredictor(RealTimePredictor):
     This is able to serialize and deserialize datasets in the gluonts data format.
     """
 
-    def __init__(self,
-                 endpoint_name: str,
-                 sagemaker_session: session.Session = None):
+    def __init__(
+        self, endpoint_name: str, sagemaker_session: session.Session = None
+    ):
         """Initialize an ``GluonTSPredictor``.
         Parameters
         ----------
@@ -46,7 +50,10 @@ class GluonTSPredictor(RealTimePredictor):
         # Use the default functions from MXNet (they handle more than we need
         # (e.g: np.ndarrays), but that should be fine)
         super(GluonTSPredictor, self).__init__(
-            endpoint_name, sagemaker_session, json_serializer, json_deserializer
+            endpoint_name,
+            sagemaker_session,
+            json_serializer,
+            json_deserializer,
         )
 
 
@@ -54,7 +61,7 @@ class GluonTSModel(FrameworkModel):
     """An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker ``Endpoint``."""
 
     __framework_name__ = "gluonts"
-    _LOWEST_MMS_VERSION = "0.3.3" # TODO: figure out the meaning of this...
+    _LOWEST_MMS_VERSION = "0.3.3"  # TODO: figure out the meaning of this...
 
     def __init__(
         self,
@@ -63,7 +70,7 @@ class GluonTSModel(FrameworkModel):
         entry_point,
         image: str = None,
         framework_version: str = GLUONTS_VERSION,
-        predictor_cls = GluonTSPredictor, # (callable[str, session.Session])
+        predictor_cls=GluonTSPredictor,  # (callable[str, session.Session])
         model_server_workers: int = None,
         **kwargs
     ):
@@ -98,15 +105,19 @@ class GluonTSModel(FrameworkModel):
                 Keyword arguments passed to the ``FrameworkModel`` initializer.
         """
         super(GluonTSModel, self).__init__(
-            model_data, image, role, entry_point, predictor_cls=predictor_cls, **kwargs
+            model_data,
+            image,
+            role,
+            entry_point,
+            predictor_cls=predictor_cls,
+            **kwargs
         )
 
         self.framework_version = framework_version
         self.model_server_workers = model_server_workers
 
-    def prepare_container_def(self,
-                              instance_type,
-                              accelerator_type=None
+    def prepare_container_def(
+        self, instance_type, accelerator_type=None
     ) -> Dict[str, str]:
         """
         Return a container definition with framework configuration set in
@@ -167,6 +178,8 @@ class GluonTSModel(FrameworkModel):
         # Example implementation:
         #   https://github.com/aws/sagemaker-python-sdk/blob/master/src/sagemaker/mxnet/model.py
 
-        container_def = super().prepare_container_def(instance_type, accelerator_type)
+        container_def = super().prepare_container_def(
+            instance_type, accelerator_type
+        )
 
         return container_def
