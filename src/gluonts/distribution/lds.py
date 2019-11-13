@@ -28,6 +28,7 @@ from gluonts.support.linalg_util import jitter_cholesky
 
 
 class ParameterBounds:
+    @validated()
     def __init__(self, lower, upper) -> None:
         assert (
             lower <= upper
