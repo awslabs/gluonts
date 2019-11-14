@@ -141,6 +141,10 @@ class Forecast:
         """
         raise NotImplementedError()
 
+    @property
+    def median(self) -> np.ndarray:
+        return self.quantile(0.5)
+
     def plot(
         self,
         prediction_intervals=(50.0, 90.0),
