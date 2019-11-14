@@ -28,7 +28,7 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import get_mxnet_context, validated
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset.loader import TrainDataLoader
+from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.support.util import HybridContext
 from gluonts.gluonts_tqdm import tqdm
 
@@ -166,7 +166,9 @@ class Trainer:
         net: nn.HybridBlock,
         input_names: List[str],
         train_iter: TrainDataLoader,
+        validation_iter: Optional[ValidationDataLoader] = None,
     ) -> None:  # TODO: we may want to return some training information here
+        is_validation_available = validation_iter is not None
         self.halt = False
 
         with tempfile.TemporaryDirectory(
@@ -190,7 +192,6 @@ class Trainer:
                 static_shape=True,
             ):
                 batch_size = train_iter.batch_size
-                epoch_loss = mx.metric.Loss()
 
                 best_epoch_info = BestEpochInfo(
                     params_path="%s-%s.params" % (base_path(), "init"),
@@ -218,24 +219,14 @@ class Trainer:
                     kvstore="device",  # FIXME: initialize properly
                 )
 
-                for epoch_no in range(self.epochs):
-                    if self.halt:
-                        logging.info(
-                            f"Epoch[{epoch_no}] Interrupting training"
-                        )
-                        break
-
-                    curr_lr = trainer.learning_rate
-                    logging.info(
-                        f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
-                    )
-
-                    # mark epoch start time
+                def loop(
+                    epoch_no, batch_iter, is_training: bool = True
+                ) -> mx.metric.Loss:
                     tic = time.time()
 
-                    epoch_loss.reset()
+                    epoch_loss = mx.metric.Loss()
 
-                    with tqdm(train_iter) as it:
+                    with tqdm(batch_iter) as it:
                         for batch_no, data_entry in enumerate(it, start=1):
                             if self.halt:
                                 break
@@ -254,13 +245,15 @@ class Trainer:
                                 else:
                                     loss = output
 
-                            loss.backward()
-                            trainer.step(batch_size)
+                            if is_training:
+                                loss.backward()
+                                trainer.step(batch_size)
 
                             epoch_loss.update(None, preds=loss)
                             it.set_postfix(
                                 ordered_dict={
-                                    "avg_epoch_loss": loss_value(epoch_loss)
+                                    ("" if is_training else "validation_")
+                                    + "avg_epoch_loss": loss_value(epoch_loss)
                                 },
                                 refresh=False,
                             )
@@ -271,7 +264,6 @@ class Trainer:
                                 logging.info(
                                     f"Number of parameters in {net_name}: {num_model_param}"
                                 )
-
                     # mark epoch end time and log time cost of current epoch
                     toc = time.time()
                     logging.info(
@@ -285,9 +277,28 @@ class Trainer:
                     logging.info(
                         "Epoch[%d] Evaluation metric '%s'=%f",
                         epoch_no,
-                        "epoch_loss",
+                        ("" if is_training else "validation_") + "epoch_loss",
                         loss_value(epoch_loss),
                     )
+                    return epoch_loss
+
+                for epoch_no in range(self.epochs):
+                    if self.halt:
+                        logging.info(
+                            f"Epoch[{epoch_no}] Interrupting training"
+                        )
+                        break
+
+                    curr_lr = trainer.learning_rate
+                    logging.info(
+                        f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
+                    )
+
+                    epoch_loss = loop(epoch_no, train_iter)
+                    if is_validation_available:
+                        epoch_loss = loop(
+                            epoch_no, validation_iter, is_training=False
+                        )
 
                     lr_scheduler.step(loss_value(epoch_loss))
 

@@ -25,7 +25,7 @@ from gluonts import transform
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import TrainDataLoader
+from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
@@ -256,7 +256,9 @@ class WaveNetEstimator(GluonEstimator):
             f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
         )
 
-    def train(self, training_data: Dataset) -> Predictor:
+    def train(
+        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+    ) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
         mean_length = int(np.mean([len(d["target"]) for d in training_data]))
         low = -10.0 if has_negative_data else 0
@@ -288,6 +290,16 @@ class WaveNetEstimator(GluonEstimator):
             ctx=self.trainer.ctx,
         )
 
+        validation_data_loader = None
+        if validation_data is not None:
+            validation_data_loader = ValidationDataLoader(
+                dataset=validation_data,
+                transform=transformation,
+                batch_size=self.trainer.batch_size,
+                ctx=self.trainer.ctx,
+                dtype=self.dtype,
+            )
+
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
         with self.trainer.ctx:
@@ -299,6 +311,7 @@ class WaveNetEstimator(GluonEstimator):
             net=trained_net,
             input_names=get_hybrid_forward_input_names(trained_net),
             train_iter=training_data_loader,
+            validation_iter=validation_data_loader,
         )
 
         # ensure that the prediction network is created within the same MXNet
