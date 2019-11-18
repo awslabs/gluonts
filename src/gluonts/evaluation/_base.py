@@ -527,10 +527,10 @@ class MultivariateEvaluator(Evaluator):
             if self._eval_dims is not None
             else list(range(0, target_dimensionality))
         )
-        assert (
-            max(eval_dims) < target_dimensionality
-        ), f"eval dims should range from 0 to target_dimensionality - 1, " \
-           f"but got max eval_dim {max(eval_dims)}"
+        assert max(eval_dims) < target_dimensionality, (
+            f"eval dims should range from 0 to target_dimensionality - 1, "
+            f"but got max eval_dim {max(eval_dims)}"
+        )
         return eval_dims
 
     def calculate_aggregate_multivariate_metrics(
@@ -638,7 +638,7 @@ class MultivariateEvaluator(Evaluator):
             }
 
             for key, metric_dict in multivariate_metrics.items():
-                prefix = f'm_{key}_'
+                prefix = f"m_{key}_"
                 for metric, value in metric_dict.items():
                     all_agg_metrics[prefix + metric] = value
 

@@ -564,9 +564,11 @@ def test_metrics_multivariate(
     timeseries, res, has_nans, eval_dims, input_type
 ):
     ts_datastructure = pd.DataFrame
-    evaluator = MultivariateEvaluator(quantiles=QUANTILES,
-                                      eval_dims=eval_dims,
-                                      target_agg_funcs={"sum": np.sum})
+    evaluator = MultivariateEvaluator(
+        quantiles=QUANTILES,
+        eval_dims=eval_dims,
+        target_agg_funcs={"sum": np.sum},
+    )
 
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
