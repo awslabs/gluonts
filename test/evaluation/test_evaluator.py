@@ -464,6 +464,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 0.0,
@@ -478,6 +479,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 0.0,
@@ -492,6 +494,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -506,6 +509,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.077_151_674_981_045_956,
         "ND": 0.071_428_571_428_571_42,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -520,6 +524,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.027_695_473_070_119_065,
         "ND": 0.025_641_025_641_025_64,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -534,6 +539,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.040_759_375_461_684_65,
         "ND": 0.037_735_849_056_603_77,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
 ]
 
@@ -558,7 +564,10 @@ def test_metrics_multivariate(
     timeseries, res, has_nans, eval_dims, input_type
 ):
     ts_datastructure = pd.DataFrame
-    evaluator = MultivariateEvaluator(quantiles=QUANTILES, eval_dims=eval_dims)
+    evaluator = MultivariateEvaluator(quantiles=QUANTILES,
+                                      eval_dims=eval_dims,
+                                      target_agg_funcs={"sum": np.sum})
+
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
         evaluator,
