@@ -32,8 +32,8 @@ import pandas as pd
 import tarfile
 
 # First-party imports
-from gluonts.sagemaker.defaults import GLUONTS_VERSION
-from gluonts.sagemaker.model import GluonTSModel, GluonTSPredictor
+from gluonts.nursery.sagemaker_sdk.defaults import GLUONTS_VERSION
+from gluonts.nursery.sagemaker_sdk.model import GluonTSModel, GluonTSPredictor
 from gluonts.core import serde
 from gluonts.model.estimator import GluonEstimator
 from gluonts.dataset.repository import datasets
@@ -50,28 +50,19 @@ OVERALL TODOS:
     > TEST EVERYTHING
     > Add hyper parameter optimization (HPO) support
     > Add local mode support
-    > Add officially provided images
+    > Add officially provided images //images work now
     > Add python tests cases and scripts
     > Finish documentation 
     > Add support for multiple instances
     > Add support methods to easily retrieve training artifacts like the model
-    > Implement: given a hash, install that gluonts version
-    > Figure out dynamic install of python libraries
-"""
-
-# Create the following setup.py file and provide in the dependencies to
-# install requirements.txt: //figure out alternative
-"""
-from setuptools import setup
-
-setup()
+    > Implement: given a hash, install that gluonts version: DONE //specify in requirements.txt
+    > Figure out dynamic install of python libraries: DONE //specify in requirements.txt
 """
 
 
 class GluonTSFramework(Framework):
-   """
-
-   This ``Estimator`` can be used to easily train and evaluate any GluonTS model on any dataset
+    """
+    This ``Estimator`` can be used to easily train and evaluate any GluonTS model on any dataset
     (own or built-in) in AWS Sagemaker using the provided Docker container.
     It also allows for the execution of custom scripts on AWS Sagemaker.
     Training is started by calling :meth:`GluonTSFramework.train` on this Estimator.
@@ -113,22 +104,22 @@ class GluonTSFramework(Framework):
         dependencies:
             A list of paths to files or directories (absolute or relative) with any additional libraries that
             will be exported to the container. The library folders will be
-            copied to SageMaker in the same folder where the entrypoint is
+            copied to SageMaker in the same folder where the "train.py" is
             copied. Include a path to a "requirements.txt" to install further dependencies at runtime.
+            The provided dependencies take precedence over the pre-installed ones.
             If 'git_config' is provided, 'dependencies' should be a
             list of relative locations to directories with any additional
             libraries needed in the Git repo.
                 Example:
-                # >>> GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'virtual-env'])
+                # >>> GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
                 results in the following inside the container:
                 # >>> opt/ml/code
                 # >>>     |------ train.py
                 # >>>     |------ common
-                # >>>     |------ virtual-env
-                To use a custom gluonts version just import your custom gluonts version and then call:
-                # >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
-                A pre-installed gluonts version in the Docker image would take precedence over a provided
-                one in case of "import gluonts".
+                # >>>     |------ requirements.txt
+            To use a custom GluonTS version just import your custom GluonTS version and then call:
+            # >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+            This may brake the :meth:`GluonTSFramework.train` method though.
         output_path:
             S3 location for saving the transform result. If not specified,
             results are stored to a default bucket.
@@ -187,7 +178,7 @@ class GluonTSFramework(Framework):
             )
         self.framework_version = framework_version or GLUONTS_VERSION
 
-        super(GluonTSFramework, self).__init__(
+        super().__init__(
             dependencies=dependencies,
             output_path=output_path,
             code_location=code_location,
@@ -331,8 +322,8 @@ class GluonTSFramework(Framework):
             "Regex": r"Final loss: (\S+)",
         }
         other_metrics = [
-            {"Name": m, "Regex": rf"gluonts\[metric-{re.escape(m)}\]: (\S+)"}
-            for m in metrics_names
+            {"Name": metric, "Regex": rf"gluonts\[metric-{re.escape(metric)}\]: (\S+)"}
+            for metric in metrics_names
         ]
 
         return [avg_epoch_loss_metric, final_loss_metric] + other_metrics
@@ -342,8 +333,8 @@ class GluonTSFramework(Framework):
         self,
         dataset: str,
         estimator: GluonEstimator,
-        num_eval_samples: Optional[int] = 100,
-        quantiles: Optional[Tuple[int]] = (
+        num_samples: Optional[int] = 100,
+        quantiles: Optional[List[int]] = (
             0.1,
             0.2,
             0.3,
@@ -354,7 +345,7 @@ class GluonTSFramework(Framework):
             0.8,
             0.9,
         ),
-        monitored_metrics: Tuple[str] = MONITORED_METRICS,
+        monitored_metrics: List[str] = MONITORED_METRICS,
         wait: bool = True,
         logs: bool = True,
         job_name: str = None,
@@ -376,8 +367,8 @@ class GluonTSFramework(Framework):
             estimator:
                 The GluonTS estimator that should be trained. If you want to train a custom estimator
                 you must have specified the code location in the dependencies argument of the GLuonTSFramework.
-            num_eval_samples:
-                The num_eval_sample parameter for the gluonts.evaluation.backtest.make_evaluation_predictions
+            num_samples:
+                The num_samples parameter for the gluonts.evaluation.backtest.make_evaluation_predictions
                 method used for evaluation. (default: (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
             quantiles:
                 The quantiles parameter for the gluonts.evaluation.Evaluator used
@@ -412,14 +403,13 @@ class GluonTSFramework(Framework):
 
         # pass dataset as hyper-parameter
         self._hyperparameters["DATASET"] = dataset
-        self._hyperparameters["NUM_EVAL_SAMPLES"] = num_eval_samples
+        self._hyperparameters["NUM_SAMPLES"] = num_samples
         self._hyperparameters["QUANTILES"] = str(quantiles)
 
         # specify job_name if not set
         if not job_name:
             milliseconds = str(int(round(time.time() * 1000)) % 1000)
-            job_name =
-            (
+            job_name = (
                 self.base_job_name
                 + "-"
                 + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
@@ -504,7 +494,7 @@ class GluonTSFramework(Framework):
         framework_version: str = GLUONTS_VERSION,
         hyperparameters=None,
         source_dir: str = None,  # ATTENTION: IF SPECIFIED ENTRY POINT HAS TO BE RELATIVE PATH: THIS BRAKES .train
-        monitored_metrics: Tuple[str] = MONITORED_METRICS,
+        monitored_metrics: List[str] = MONITORED_METRICS,
         wait: bool = True,
         logs: bool = True,
         job_name: str = None,
@@ -589,22 +579,22 @@ class GluonTSFramework(Framework):
             dependencies:
                 A list of paths to files or directories (absolute or relative) with any additional libraries that
                 will be exported to the container. The library folders will be
-                copied to SageMaker in the same folder where the entrypoint is
+                copied to SageMaker in the same folder where the "train.py" is
                 copied. Include a path to a "requirements.txt" to install further dependencies at runtime.
+                The provided dependencies take precedence over the pre-installed ones.
                 If 'git_config' is provided, 'dependencies' should be a
                 list of relative locations to directories with any additional
                 libraries needed in the Git repo.
                     Example:
-                    # >>> GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'virtual-env'])
+                    # >>> GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
                     results in the following inside the container:
                     # >>> opt/ml/code
                     # >>>     |------ train.py
                     # >>>     |------ common
-                    # >>>     |------ virtual-env
-                    To use a custom gluonts version just import your custom gluonts version and then call:
-                    # >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
-                    A pre-installed gluonts version in the Docker image would take precedence over a provided
-                    one in case of "import gluonts".
+                    # >>>     |------ requirements.txt
+                To use a custom GluonTS version just import your custom GluonTS version and then call:
+                # >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+                This may brake the :meth:`GluonTSFramework.train` method though.
             output_path:
                 S3 location for saving the transform result. If not specified,
                 results are stored to a default bucket.

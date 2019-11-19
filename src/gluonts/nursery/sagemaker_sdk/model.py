@@ -24,7 +24,7 @@ from sagemaker import session
 from typing import List, Optional, Tuple, Dict
 
 # First-party imports
-from gluonts.sagemaker.defaults import GLUONTS_VERSION
+from gluonts.nursery.sagemaker_sdk.defaults import GLUONTS_VERSION
 
 
 class GluonTSPredictor(RealTimePredictor):

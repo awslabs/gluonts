@@ -18,7 +18,6 @@ import os
 import json
 import time
 import logging
-import sys
 
 # Third-party imports
 
@@ -28,14 +27,6 @@ from gluonts.dataset import common
 from gluonts.dataset.repository import datasets
 from gluonts.evaluation import Evaluator, backtest
 
-# import rather gluonts from dependencies, if it exists:
-"""
-potential_gluonts_path = Path(arguments.input_dir) / "gluonts"
-if os.path.isdir(potential_gluonts_path)
-    # insert it at beginning, so it will override other installs of gluonts
-    sys.path.insert(1, '/path/to/application/app/folder') 
-import gluonts
-"""
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +69,7 @@ def train(arguments):
     forecast_it, ts_it = backtest.make_evaluation_predictions(
         dataset=dataset.test,
         predictor=predictor,
-        num_eval_samples=int(arguments.num_eval_samples),
+        num_samples=int(arguments.num_samples),
     )
 
     print(
@@ -139,9 +130,9 @@ if __name__ == "__main__":
         "--dataset", type=str, default=os.environ["SM_HP_DATASET"]
     )
     parser.add_argument(
-        "--num_eval_samples",
+        "--num_samples",
         type=int,
-        default=os.environ["SM_HP_NUM_EVAL_SAMPLES"],
+        default=os.environ["SM_HP_NUM_SAMPLES"],
     )
     parser.add_argument(
         "--quantiles", type=str, default=os.environ["SM_HP_QUANTILES"]
