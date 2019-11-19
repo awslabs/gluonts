@@ -625,14 +625,14 @@ class MultivariateEvaluator(Evaluator):
             all_agg_metrics, all_metrics_per_ts
         )
 
-        if len(self.target_agg_funcs) != 0:
+        if self.target_agg_funcs:
             multivariate_metrics = {
-                key_value[0]: self.calculate_aggregate_multivariate_metrics(
+                agg_fun_name: self.calculate_aggregate_multivariate_metrics(
                     ts_iterator_set[-(index + 1)],
                     fcst_iterator_set[-(index + 1)],
-                    key_value[1],
+                    agg_fun,
                 )
-                for index, key_value in enumerate(
+                for index, (agg_fun_name, agg_fun) in enumerate(
                     self.target_agg_funcs.items()
                 )
             }
