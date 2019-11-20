@@ -423,6 +423,7 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
+    
     The MultivariateEvaluator class owns functionality for evaluating
     multidimensional target arrays of shape
     (target_dimensionality, prediction_length).
@@ -439,14 +440,14 @@ class MultivariateEvaluator(Evaluator):
 
     Example:
         {'0_MSE': 0.004307240342677687, # MSE of dimension 0
-         '0_abs_error': 1.6246897801756859,
-         '1_MSE': 0.003949341769475723, # MSE of dimension 1
-         '1_abs_error': 1.5052175521850586,
-         'MSE': 0.004128291056076705, # MSE of all dimensions
-         'abs_error': 3.1299073323607445,
-         'm_sum_MSE': 0.02 # MSE of aggregated target and aggregated forecast
-                             (if target_agg_funcs is set).
-         'm_sum_abs_error': 4.2}
+        '0_abs_error': 1.6246897801756859,
+        '1_MSE': 0.003949341769475723, # MSE of dimension 1
+        '1_abs_error': 1.5052175521850586,
+        'MSE': 0.004128291056076705, # MSE of all dimensions
+        'abs_error': 3.1299073323607445,
+        'm_sum_MSE': 0.02 # MSE of aggregated target and aggregated forecast
+        (if target_agg_funcs is set).
+        'm_sum_abs_error': 4.2}
     """
 
     def __init__(
