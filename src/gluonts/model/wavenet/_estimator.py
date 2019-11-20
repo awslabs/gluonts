@@ -167,7 +167,7 @@ class WaveNetEstimator(GluonEstimator):
         n_skip=32,
         dilation_depth: Optional[int] = None,
         n_stacks: int = 1,
-        train_window_length: int = 1000,
+        train_window_length: Optional[int] = None,
         temperature: float = 1.0,
         act_type: str = "elu",
         num_parallel_samples: int = 200,
@@ -212,7 +212,11 @@ class WaveNetEstimator(GluonEstimator):
         self.n_residue = n_residue
         self.n_skip = n_skip
         self.n_stacks = n_stacks
-        self.train_window_length = train_window_length
+        self.train_window_length = (
+            train_window_length
+            if train_window_length is not None
+            else prediction_length
+        )
         self.temperature = temperature
         self.act_type = act_type
         self.num_parallel_samples = num_parallel_samples
@@ -260,7 +264,6 @@ class WaveNetEstimator(GluonEstimator):
         self, training_data: Dataset, validation_data: Optional[Dataset] = None
     ) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
-        mean_length = int(np.mean([len(d["target"]) for d in training_data]))
         low = -10.0 if has_negative_data else 0
         high = 10.0
         bin_centers = np.linspace(low, high, self.num_bins)
@@ -268,16 +271,12 @@ class WaveNetEstimator(GluonEstimator):
             [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
         )
 
-        # Here we override the prediction length for training.
-        # This computes the loss over longer windows and makes the convolutions more
-        # efficient, since calculations are reused.
-        pred_length = min(mean_length, self.train_window_length)
-
-        logging.info(f"mean series length = {mean_length}")
-        logging.info(f"using training windows of length = {pred_length}")
+        logging.info(
+            f"using training windows of length = {self.train_window_length}"
+        )
 
         transformation = self.create_transformation(
-            bin_edges, pred_length=pred_length
+            bin_edges, pred_length=self.train_window_length
         )
 
         transformation.estimate(iter(training_data))
@@ -304,7 +303,7 @@ class WaveNetEstimator(GluonEstimator):
         # context as the one that will be used during training
         with self.trainer.ctx:
             params = self._get_wavenet_args(bin_centers)
-            params.update(pred_length=pred_length)
+            params.update(pred_length=self.train_window_length)
             trained_net = WaveNet(**params)
 
         self.trainer(
