@@ -16,8 +16,8 @@ from pathlib import Path
 import argparse
 import os
 import json
-import time
 import logging
+import time
 
 # Third-party imports
 
@@ -27,28 +27,21 @@ from gluonts.dataset import common
 from gluonts.dataset.repository import datasets
 from gluonts.evaluation import Evaluator, backtest
 
-
+# Logging: print logs analogously to Sagemaker.
 logger = logging.getLogger(__name__)
 
 
-# TODO figure out proper logging way
 def train(arguments):
     """
     Generic train method that trains a specified estimator on a specified dataset.
     """
 
-    print(
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-        " Downloading - Downloading estimator config.",
-    )
+    logger.info("Downloading estimator config.")
     estimator_config = Path(arguments.estimator) / "estimator.json"
     with open(estimator_config, "r") as f:
         estimator = serde.load_json(str(f.read()))
 
-    print(
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-        " Downloading - Downloading dataset.",
-    )
+    logger.info("Downloading dataset.")
     if arguments.s3_dataset == "None":
         # load built in dataset
         dataset = datasets.get_dataset(arguments.dataset)
@@ -61,10 +54,7 @@ def train(arguments):
             test=s3_dataset_dir / "test",
         )
 
-    print(
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-        " Starting - Starting model training.",
-    )
+    logger.info("Starting model training.")
     predictor = estimator.train(dataset.train)
     forecast_it, ts_it = backtest.make_evaluation_predictions(
         dataset=dataset.test,
@@ -72,16 +62,14 @@ def train(arguments):
         num_samples=int(arguments.num_samples),
     )
 
-    print(
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-        " Starting - Starting model evaluation.",
-    )
+    logger.info("Starting model evaluation.")
     evaluator = Evaluator(quantiles=eval(arguments.quantiles))
 
     agg_metrics, item_metrics = evaluator(
         ts_it, forecast_it, num_series=len(dataset.test)
     )
 
+    # required for metric tracking.
     for name, value in agg_metrics.items():
         logger.info(f"gluonts[metric-{name}]: {value}")
 
@@ -130,9 +118,7 @@ if __name__ == "__main__":
         "--dataset", type=str, default=os.environ["SM_HP_DATASET"]
     )
     parser.add_argument(
-        "--num_samples",
-        type=int,
-        default=os.environ["SM_HP_NUM_SAMPLES"],
+        "--num_samples", type=int, default=os.environ["SM_HP_NUM_SAMPLES"]
     )
     parser.add_argument(
         "--quantiles", type=str, default=os.environ["SM_HP_QUANTILES"]

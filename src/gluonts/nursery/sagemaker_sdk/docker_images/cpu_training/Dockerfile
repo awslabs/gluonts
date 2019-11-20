@@ -36,6 +36,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825
     apt-get install -y r-base r-base-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# Install Python
 RUN wget https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz && \
         tar -xvf Python-$PYTHON_VERSION.tgz && cd Python-$PYTHON_VERSION && \
         ./configure && make && make install && \
@@ -48,9 +49,12 @@ RUN ln -s $(which ${PYTHON}) /usr/local/bin/python
 
 WORKDIR /
 
+COPY sagemaker_mxnet_container.tar.gz /sagemaker_mxnet_container.tar.gz
+
 # Install MXNet and current sagemaker-mxnet-containers version
 RUN ${PIP} install --no-cache --upgrade mxnet-mkl==$MX_VERSION && \
-    ${PIP} install git+https://github.com/aws/sagemaker-mxnet-containers
+    ${PIP} install --no-cache-dir /sagemaker_mxnet_container.tar.gz && \
+    rm /sagemaker_mxnet_container.tar.gz
 
 # Add other GluonTS requirements
 ADD \

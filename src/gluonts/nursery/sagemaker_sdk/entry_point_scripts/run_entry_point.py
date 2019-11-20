@@ -15,14 +15,14 @@
 import argparse
 import os
 import json
-import time
+import logging
+
+# Logging: print logs analogously to Sagemaker.
+logger = logging.getLogger(__name__)
 
 
 def run(arguments):
-    print(
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-        "Starting - started running custom script.",
-    )
+    logger.info("Starting - started running custom script.")
 
     # TODO: WRITE YOUR CUSTOM CODE HERE
 

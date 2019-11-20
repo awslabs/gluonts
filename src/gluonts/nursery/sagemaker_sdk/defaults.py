@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+
 # Default GluonTS version for when the framework version is not specified.
 # This is no longer updated so as to not break existing workflows.
-GLUONTS_VERSION = "0.3.3"
+GLUONTS_VERSION = "0.4.1"

@@ -61,7 +61,7 @@ class GluonTSModel(FrameworkModel):
     """An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker ``Endpoint``."""
 
     __framework_name__ = "gluonts"
-    _LOWEST_MMS_VERSION = "0.3.3"  # TODO: figure out the meaning of this...
+    _LOWEST_MMS_VERSION = "1.4"  # TODO: figure out the meaning of this...
 
     def __init__(
         self,
