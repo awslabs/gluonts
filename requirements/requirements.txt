@@ -8,5 +8,5 @@ matplotlib~=3.0
 numpy~=1.14
 pandas>=0.25,<0.26
 pydantic~=1.1
-tqdm~=4.23,<5
+tqdm~=4.23
 ujson~=1.35
