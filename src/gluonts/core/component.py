@@ -341,9 +341,9 @@ def validated(base_model=None):
     >>> c = ComplexNumber(y=None)
     Traceback (most recent call last):
         ...
-    pydantic.error_wrappers.ValidationError: 1 validation error
+    pydantic.error_wrappers.ValidationError: 1 validation error for ComplexNumberModel
     y
-      value is not a valid float (type=type_error.float)
+      none is not an allowed value (type=type_error.none.not_allowed)
 
     Internally, the decorator delegates all validation and conversion logic to
     `a Pydantic model <https://pydantic-docs.helpmanual.io/>`_, which can be
