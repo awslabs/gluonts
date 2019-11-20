@@ -7,6 +7,6 @@ holidays==0.9.*
 matplotlib==3.*
 numpy==1.14.*
 pandas>=0.25.0
-pydantic==0.28.*
+pydantic~=1
 tqdm>=4.23.0
 ujson>=1.35

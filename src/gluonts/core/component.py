@@ -77,7 +77,7 @@ def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
         )
 
     try:
-        return cls(**Model(**hyperparameters).__values__)  # type: ignore
+        return cls(**Model(**hyperparameters).__dict__)  # type: ignore
     except ValidationError as e:
         raise GluonTSHyperparametersError from e
 
@@ -424,7 +424,7 @@ def validated(base_model=None):
             model = PydanticModel(**{**nmargs, **kwargs})
 
             # merge nmargs, kwargs, and the model fields into a single dict
-            all_args = {**nmargs, **kwargs, **model.__values__}
+            all_args = {**nmargs, **kwargs, **model.__dict__}
 
             # save the merged dictionary for Representable use, but only of the
             # __init_args__ is not already set in order to avoid overriding a

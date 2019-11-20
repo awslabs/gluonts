@@ -469,7 +469,7 @@ def encode_pydantic_model(v: BaseModel) -> Any:
     return {
         "__kind__": kind_inst,
         "class": fqname_for(v.__class__),
-        "kwargs": encode(v.__values__),
+        "kwargs": encode(v.__dict__),
     }
 
 
