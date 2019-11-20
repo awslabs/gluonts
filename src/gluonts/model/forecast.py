@@ -14,7 +14,7 @@
 # Standard library imports
 import re
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Union
+from typing import Dict, List, NamedTuple, Optional, Set, Union, Callable
 
 # Third-party imports
 import mxnet as mx
@@ -266,6 +266,19 @@ class Forecast:
         """
         raise NotImplementedError()
 
+    def copy_aggregate(self, agg_fun: Callable):
+        """
+        Returns a new Forecast object with a time series aggregated over the
+        dimension axis.
+
+        Parameters
+        ----------
+        agg_fun
+            Aggregation function that defines the aggregation operation
+            (typically mean or sum).
+        """
+        raise NotImplementedError()
+
     def as_json_dict(self, config: "Config") -> dict:
         result = {}
 
@@ -294,7 +307,8 @@ class SampleForecast(Forecast):
     Parameters
     ----------
     samples
-        Array of size (num_samples, prediction_length)
+        Array of size (num_samples, prediction_length) (1D case) or
+        (num_samples, prediction_length, target_dim) (multivariate case)
     start_date
         start of the forecast
     freq
@@ -391,6 +405,20 @@ class SampleForecast(Forecast):
             )
             samples = self.samples[:, :, dim]
 
+        return SampleForecast(
+            samples=samples,
+            start_date=self.start_date,
+            freq=self.freq,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
+    def copy_aggregate(self, agg_fun: Callable):
+        if len(self.samples.shape) == 2:
+            samples = self.samples
+        else:
+            # Aggregate over target dimension axis
+            samples = agg_fun(self.samples, axis=2)
         return SampleForecast(
             samples=samples,
             start_date=self.start_date,

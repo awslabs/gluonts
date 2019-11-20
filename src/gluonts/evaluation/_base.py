@@ -16,7 +16,17 @@ import logging
 import re
 from functools import lru_cache
 from itertools import chain, tee
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    Callable,
+)
 
 # Third-party imports
 import numpy as np
@@ -37,8 +47,8 @@ def get_seasonality(freq: str) -> int:
     """
     match = re.match(r"(\d*)(\w+)", freq)
     assert match, "Cannot match freq regex"
-    multiple, base_freq = match.groups()
-    multiple = int(multiple) if multiple else 1
+    mult, base_freq = match.groups()
+    multiple = int(mult) if mult else 1
 
     seasonalities = {"H": 24, "D": 1, "W": 1, "M": 12, "B": 5}
     if base_freq in seasonalities:
@@ -47,7 +57,8 @@ def get_seasonality(freq: str) -> int:
         seasonality = 1
     if seasonality % multiple != 0:
         logging.warning(
-            f"multiple {multiple} does not divide base seasonality {seasonality}."
+            f"multiple {multiple} does not divide base "
+            f"seasonality {seasonality}."
             f"Falling back to seasonality 1"
         )
         return 1
@@ -83,7 +94,7 @@ class Evaluator:
         quantiles: Iterable[Union[float, str]] = default_quantiles,
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
-    ):
+    ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
@@ -214,7 +225,7 @@ class Evaluator:
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Union[float, str, None]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
@@ -246,8 +257,8 @@ class Evaluator:
             "sMAPE": self.smape(pred_target, median_fcst),
             "MSIS": self.msis(
                 pred_target,
-                forecast.quantile(lower_q),
-                forecast.quantile(upper_q),
+                forecast.quantile(lower_q.value),
+                forecast.quantile(upper_q.value),
                 seasonal_error,
                 self.alpha,
             ),
@@ -412,46 +423,67 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-    The MultivariateEvaluator class owns functionality for evaluating multidimensional target arrays of shape
+    
+    The MultivariateEvaluator class owns functionality for evaluating
+    multidimensional target arrays of shape
     (target_dimensionality, prediction_length).
 
-    The aggregate metric keys in the output dictionary correspond to the aggregated metrics over the entire target
-    array. Additionally, evaluations of individual dimensions will be stored in the corresponding dimension key and
-    contain the metrics calculated by only this dimension. Evaluation dimensions can be set by the user.
+    Evaluations of individual dimensions will be stored with the corresponding
+    dimension prefix and contain the metrics calculated by only this dimension.
+    Metrics with the plain metric name correspond to metrics calculated over
+    all dimensions.
+    Additionally, the user can provide additional aggregation functions that
+    first aggregate the target and forecast over dimensions and then calculate
+    the metric. These metrics will be prefixed with m_<aggregation_fun_name>_
+
+    The evaluation dimensions can be set by the user.
 
     Example:
-        {0: {'MSE': 0.004307240342677687, 'abs_error': 1.6246897801756859, 'abs_target_sum': 90.0, ...},
-        1: {'MSE': 0.003949341769475723, 'abs_error': 1.5052175521850586, 'abs_target_sum': 290.0,...},
-        MSE': 0.004128291056076705, 'abs_error': 3.1299073323607445, 'abs_target_sum': 380.0, ...}
-
+        {'0_MSE': 0.004307240342677687, # MSE of dimension 0
+        '0_abs_error': 1.6246897801756859,
+        '1_MSE': 0.003949341769475723, # MSE of dimension 1
+        '1_abs_error': 1.5052175521850586,
+        'MSE': 0.004128291056076705, # MSE of all dimensions
+        'abs_error': 3.1299073323607445,
+        'm_sum_MSE': 0.02 # MSE of aggregated target and aggregated forecast
+        (if target_agg_funcs is set).
+        'm_sum_abs_error': 4.2}
     """
 
     def __init__(
         self,
-        quantiles: Iterable[Union[float, str]],
+        quantiles: Iterable[Union[float, str]] = np.linspace(0.1, 0.9, 9),
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
         eval_dims: List[int] = None,
-    ):
+        target_agg_funcs: Dict[str, Callable] = {},
+    ) -> None:
         """
 
         Parameters
         ----------
         quantiles
-            list of strings of the form 'p10' or floats in [0, 1] with the quantile levels
+            list of strings of the form 'p10' or floats in [0, 1] with the
+            quantile levels
         seasonality
-            seasonality to use for seasonal_error, if nothing is passed uses the default seasonality
-            for the given series frequency as returned by `get_seasonality`
+            seasonality to use for seasonal_error, if nothing is passed uses
+            the default seasonality for the given series frequency as
+            returned by `get_seasonality`
         alpha
             parameter of the MSIS metric that defines the CI,
             e.g., for alpha=0.05 the 95% CI is considered in the metric.
         eval_dims
-            dimensions of the target that will be evaluated
+            dimensions of the target that will be evaluated.
+        target_agg_funcs
+            pass key-value pairs that define aggregation functions over the
+            dimension axis. Useful to compute metrics over aggregated target
+            and forecast (typically sum or mean).
         """
         super().__init__(
             quantiles=quantiles, seasonality=seasonality, alpha=alpha
         )
         self._eval_dims = eval_dims
+        self.target_agg_funcs = target_agg_funcs
 
     @staticmethod
     def extract_target_by_dim(
@@ -468,6 +500,20 @@ class MultivariateEvaluator(Evaluator):
             yield forecast.copy_dim(dim)
 
     @staticmethod
+    def extract_aggregate_target(
+        it_iterator: Iterator[pd.DataFrame], agg_fun: Callable
+    ) -> Iterator[pd.DataFrame]:
+        for i in it_iterator:
+            yield i.agg(agg_fun, axis=1)
+
+    @staticmethod
+    def extract_aggregate_forecast(
+        forecast_iterator: Iterator[Forecast], agg_fun: Callable
+    ) -> Iterator[Forecast]:
+        for forecast in forecast_iterator:
+            yield forecast.copy_aggregate(agg_fun)
+
+    @staticmethod
     def peek(iterator: Iterator[Any]) -> Tuple[Any, Iterator[Any]]:
         peeked_object = iterator.__next__()
         iterator = chain([peeked_object], iterator)
@@ -477,7 +523,8 @@ class MultivariateEvaluator(Evaluator):
     def get_target_dimensionality(forecast: Forecast) -> int:
         target_dim = forecast.dim()
         assert target_dim > 1, (
-            f"the dimensionality of the forecast should be larger than 1, but got {target_dim}. "
+            f"the dimensionality of the forecast should be larger than 1, "
+            f"but got {target_dim}. "
             f"Please use the Evaluator to evaluate 1D forecasts."
         )
         return target_dim
@@ -488,16 +535,44 @@ class MultivariateEvaluator(Evaluator):
             if self._eval_dims is not None
             else list(range(0, target_dimensionality))
         )
-        assert (
-            max(eval_dims) < target_dimensionality
-        ), f"eval dims should range from 0 to target_dimensionality - 1, but got max eval_dim {max(eval_dims)}"
+        assert max(eval_dims) < target_dimensionality, (
+            f"eval dims should range from 0 to target_dimensionality - 1, "
+            f"but got max eval_dim {max(eval_dims)}"
+        )
         return eval_dims
+
+    def calculate_aggregate_multivariate_metrics(
+        self,
+        ts_iterator: Iterator[pd.DataFrame],
+        forecast_iterator: Iterator[Forecast],
+        agg_fun: Callable,
+    ) -> Dict[str, float]:
+        """
+
+        Parameters
+        ----------
+        ts_iterator
+            Iterator over time series
+        forecast_iterator
+            Iterator over forecasts
+        agg_fun
+            aggregation function
+        Returns
+        -------
+        Dict[str, float]
+            dictionary with aggregate datasets metrics
+        """
+        agg_metrics, _ = super(MultivariateEvaluator, self).__call__(
+            self.extract_aggregate_target(ts_iterator, agg_fun),
+            self.extract_aggregate_forecast(forecast_iterator, agg_fun),
+        )
+        return agg_metrics
 
     def calculate_aggregate_vector_metrics(
         self,
-        all_agg_metrics: Dict[int, Dict[str, float]],
+        all_agg_metrics: Dict[str, float],
         all_metrics_per_ts: pd.DataFrame,
-    ):
+    ) -> Dict[str, float]:
         """
 
         Parameters
@@ -505,12 +580,14 @@ class MultivariateEvaluator(Evaluator):
         all_agg_metrics
             dictionary with aggregate metrics of individual dimensions
         all_metrics_per_ts
-            DataFrame containing metrics for all time series of all evaluated dimensions
+            DataFrame containing metrics for all time series of all evaluated
+            dimensions
 
         Returns
         -------
-        Dict[int, Dict[str, float]]
-            dictionary with aggregate metrics (of individual (evaluated) dimensions and the entire vector)
+        Dict[str, float]
+            dictionary with aggregate metrics (of individual (evaluated)
+            dimensions and the entire vector)
         """
         vector_aggregate_metrics, _ = self.get_aggregate_metrics(
             all_metrics_per_ts
@@ -524,7 +601,7 @@ class MultivariateEvaluator(Evaluator):
         ts_iterator: Iterable[pd.DataFrame],
         fcst_iterator: Iterable[Forecast],
         num_series=None,
-    ):
+    ) -> Tuple[Dict[str, float], pd.DataFrame]:
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
 
@@ -535,8 +612,12 @@ class MultivariateEvaluator(Evaluator):
         target_dimensionality = self.get_target_dimensionality(peeked_forecast)
         eval_dims = self.get_eval_dims(target_dimensionality)
 
-        ts_iterator_set = tee(ts_iterator, target_dimensionality)
-        fcst_iterator_set = tee(fcst_iterator, target_dimensionality)
+        ts_iterator_set = tee(
+            ts_iterator, target_dimensionality + len(self.target_agg_funcs)
+        )
+        fcst_iterator_set = tee(
+            fcst_iterator, target_dimensionality + len(self.target_agg_funcs)
+        )
 
         for dim in eval_dims:
             agg_metrics, metrics_per_ts = super(
@@ -547,11 +628,30 @@ class MultivariateEvaluator(Evaluator):
             )
 
             all_metrics_per_ts.append(metrics_per_ts)
-            all_agg_metrics[dim] = agg_metrics
+
+            for metric, value in agg_metrics.items():
+                all_agg_metrics[f"{dim}_{metric}"] = value
 
         all_metrics_per_ts = pd.concat(all_metrics_per_ts)
         all_agg_metrics = self.calculate_aggregate_vector_metrics(
             all_agg_metrics, all_metrics_per_ts
         )
+
+        if self.target_agg_funcs:
+            multivariate_metrics = {
+                agg_fun_name: self.calculate_aggregate_multivariate_metrics(
+                    ts_iterator_set[-(index + 1)],
+                    fcst_iterator_set[-(index + 1)],
+                    agg_fun,
+                )
+                for index, (agg_fun_name, agg_fun) in enumerate(
+                    self.target_agg_funcs.items()
+                )
+            }
+
+            for key, metric_dict in multivariate_metrics.items():
+                prefix = f"m_{key}_"
+                for metric, value in metric_dict.items():
+                    all_agg_metrics[prefix + metric] = value
 
         return all_agg_metrics, all_metrics_per_ts
