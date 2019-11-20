@@ -163,17 +163,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
 
         return F.stack(*lagged_values, axis=-1)
 
-    @staticmethod
-    def weighted_average(
-        F, tensor: Tensor, weights: Optional[Tensor] = None, axis=None
-    ):
-        if weights is not None:
-            weighted_tensor = tensor * weights
-            sum_weights = F.maximum(1.0, weights.sum(axis=axis))
-            return weighted_tensor.sum(axis=axis) / sum_weights
-        else:
-            return tensor.mean(axis=axis)
-
     def unroll_encoder(
         self,
         F,
