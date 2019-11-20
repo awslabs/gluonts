@@ -62,7 +62,9 @@ def make_evaluation_predictions(
     prediction_length = predictor.prediction_length
     freq = predictor.freq
 
-    def add_ts_dataframe(data_iterator: Iterator[DataEntry]) -> DataEntry:
+    def add_ts_dataframe(
+        data_iterator: Iterator[DataEntry]
+    ) -> Iterator[DataEntry]:
         for data_entry in data_iterator:
             data = data_entry.copy()
             index = pd.date_range(
@@ -170,6 +172,7 @@ def backtest_metrics(
 
     if isinstance(forecaster, Estimator):
         serialize_message(logger, estimator_key, forecaster)
+        assert train_dataset is not None
         predictor = forecaster.train(train_dataset)
 
         if isinstance(forecaster, GluonEstimator) and isinstance(

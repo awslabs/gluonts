@@ -47,8 +47,8 @@ def get_seasonality(freq: str) -> int:
     """
     match = re.match(r"(\d*)(\w+)", freq)
     assert match, "Cannot match freq regex"
-    multiple, base_freq = match.groups()
-    multiple = int(multiple) if multiple else 1
+    mult, base_freq = match.groups()
+    multiple = int(mult) if mult else 1
 
     seasonalities = {"H": 24, "D": 1, "W": 1, "M": 12, "B": 5}
     if base_freq in seasonalities:
@@ -57,7 +57,8 @@ def get_seasonality(freq: str) -> int:
         seasonality = 1
     if seasonality % multiple != 0:
         logging.warning(
-            f"multiple {multiple} does not divide base seasonality {seasonality}."
+            f"multiple {multiple} does not divide base "
+            f"seasonality {seasonality}."
             f"Falling back to seasonality 1"
         )
         return 1
@@ -93,7 +94,7 @@ class Evaluator:
         quantiles: Iterable[Union[float, str]] = default_quantiles,
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
-    ):
+    ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
@@ -224,7 +225,7 @@ class Evaluator:
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Union[float, str, None]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
@@ -256,8 +257,8 @@ class Evaluator:
             "sMAPE": self.smape(pred_target, median_fcst),
             "MSIS": self.msis(
                 pred_target,
-                forecast.quantile(lower_q),
-                forecast.quantile(upper_q),
+                forecast.quantile(lower_q.value),
+                forecast.quantile(upper_q.value),
                 seasonal_error,
                 self.alpha,
             ),
@@ -426,20 +427,26 @@ class MultivariateEvaluator(Evaluator):
     multidimensional target arrays of shape
     (target_dimensionality, prediction_length).
 
-    The aggregate metric keys in the output dictionary correspond to the
-    aggregated metrics over the entire target array. Additionally, evaluations
-    of individual dimensions will be stored in the corresponding dimension key
-    and contain the metrics calculated by only this dimension. Evaluation
-    dimensions can be set by the user.
+    Evaluations of individual dimensions will be stored with the corresponding
+    dimension prefix and contain the metrics calculated by only this dimension.
+    Metrics with the plain metric name correspond to metrics calculated over
+    all dimensions.
+    Additionally, the user can provide additional aggregation functions that
+    first aggregate the target and forecast over dimensions and then calculate
+    the metric. These metrics will be prefixed with m_<aggregation_fun_name>_
+
+    The evaluation dimensions can be set by the user.
 
     Example:
-        {0: {'MSE': 0.004307240342677687, 'abs_error': 1.6246897801756859,
-        'abs_target_sum': 90.0, ...},
-        1: {'MSE': 0.003949341769475723, 'abs_error': 1.5052175521850586,
-        'abs_target_sum': 290.0,...},
-        MSE': 0.004128291056076705, 'abs_error': 3.1299073323607445,
-        'abs_target_sum': 380.0, ...}
-
+        {'0_MSE': 0.004307240342677687, # MSE of dimension 0
+         '0_abs_error': 1.6246897801756859,
+         '1_MSE': 0.003949341769475723, # MSE of dimension 1
+         '1_abs_error': 1.5052175521850586,
+         'MSE': 0.004128291056076705, # MSE of all dimensions
+         'abs_error': 3.1299073323607445,
+         'm_sum_MSE': 0.02 # MSE of aggregated target and aggregated forecast
+                             (if target_agg_funcs is set).
+         'm_sum_abs_error': 4.2}
     """
 
     def __init__(
@@ -449,7 +456,7 @@ class MultivariateEvaluator(Evaluator):
         alpha: float = 0.05,
         eval_dims: List[int] = None,
         target_agg_funcs: Dict[str, Callable] = {},
-    ):
+    ) -> None:
         """
 
         Parameters
@@ -551,6 +558,7 @@ class MultivariateEvaluator(Evaluator):
             aggregation function
         Returns
         -------
+        Dict[str, float]
             dictionary with aggregate datasets metrics
         """
         agg_metrics, _ = super(MultivariateEvaluator, self).__call__(
@@ -561,9 +569,9 @@ class MultivariateEvaluator(Evaluator):
 
     def calculate_aggregate_vector_metrics(
         self,
-        all_agg_metrics: Dict[int, Dict[str, float]],
+        all_agg_metrics: Dict[str, float],
         all_metrics_per_ts: pd.DataFrame,
-    ) -> Dict[int, Dict[str, float]]:
+    ) -> Dict[str, float]:
         """
 
         Parameters
@@ -576,6 +584,7 @@ class MultivariateEvaluator(Evaluator):
 
         Returns
         -------
+        Dict[str, float]
             dictionary with aggregate metrics (of individual (evaluated)
             dimensions and the entire vector)
         """
@@ -591,7 +600,7 @@ class MultivariateEvaluator(Evaluator):
         ts_iterator: Iterable[pd.DataFrame],
         fcst_iterator: Iterable[Forecast],
         num_series=None,
-    ):
+    ) -> Tuple[Dict[str, float], pd.DataFrame]:
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
 
@@ -618,7 +627,9 @@ class MultivariateEvaluator(Evaluator):
             )
 
             all_metrics_per_ts.append(metrics_per_ts)
-            all_agg_metrics[dim] = agg_metrics
+
+            for metric, value in agg_metrics.items():
+                all_agg_metrics[f"{dim}_{metric}"] = value
 
         all_metrics_per_ts = pd.concat(all_metrics_per_ts)
         all_agg_metrics = self.calculate_aggregate_vector_metrics(

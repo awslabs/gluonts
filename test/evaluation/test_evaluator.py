@@ -453,6 +453,8 @@ TIMESERIES_MULTIVARIATE = [
 RES_MULTIVARIATE = [
     {
         "MSE": 0.0,
+        "0_MSE": 0.0,
+        "1_MSE": 0.0,
         "abs_error": 0.0,
         "abs_target_sum": 15.0,
         "abs_target_mean": 1.0,
