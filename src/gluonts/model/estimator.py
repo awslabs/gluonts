@@ -128,7 +128,7 @@ class GluonEstimator(Estimator):
         try:
             trainer = from_hyperparameters(Trainer, **hyperparameters)
             return cls(
-                **Model(**{**hyperparameters, "trainer": trainer}).__values__
+                **Model(**{**hyperparameters, "trainer": trainer}).__dict__
             )
         except ValidationError as e:
             raise GluonTSHyperparametersError from e
