@@ -24,3 +24,4 @@ jobs:
     - name: Build docs
       run: |
         make -C docs html SPHINXOPTS=-W
+        pytest --doctest-modules src/gluonts
