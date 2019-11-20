@@ -212,7 +212,11 @@ class WaveNetEstimator(GluonEstimator):
         self.n_residue = n_residue
         self.n_skip = n_skip
         self.n_stacks = n_stacks
-        self.train_window_length = train_window_length
+        self.train_window_length = (
+            train_window_length
+            if train_window_length is not None
+            else prediction_length
+        )
         self.temperature = temperature
         self.act_type = act_type
         self.num_parallel_samples = num_parallel_samples
@@ -265,19 +269,12 @@ class WaveNetEstimator(GluonEstimator):
             [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
         )
 
-        # Here we override the prediction length for training if explicitly specified via train_window_length.
-        # This computes the loss over longer windows and makes the convolutions more
-        # efficient, since calculations are reused.
-        pred_length = (
-            self.train_window_length
-            if self.train_window_length is not None
-            else self.prediction_length
+        logging.info(
+            f"using training windows of length = {self.train_window_length}"
         )
 
-        logging.info(f"using training windows of length = {pred_length}")
-
         transformation = self.create_transformation(
-            bin_edges, pred_length=pred_length
+            bin_edges, pred_length=self.train_window_length
         )
 
         transformation.estimate(iter(training_data))
@@ -294,7 +291,7 @@ class WaveNetEstimator(GluonEstimator):
         # context as the one that will be used during training
         with self.trainer.ctx:
             params = self._get_wavenet_args(bin_centers)
-            params.update(pred_length=pred_length)
+            params.update(pred_length=self.train_window_length)
             trained_net = WaveNet(**params)
 
         self.trainer(
