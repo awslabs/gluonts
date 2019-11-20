@@ -10,8 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7]
-        # todo: add windows-latest
-        platform: [ubuntu-latest]
+        platform: [ubuntu-latest, windows-latest]
     
     runs-on: ${{ matrix.platform }}
 

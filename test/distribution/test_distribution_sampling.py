@@ -15,6 +15,7 @@
 import mxnet as mx
 import numpy as np
 import pytest
+from flaky import flaky
 
 # First-party imports
 from gluonts.distribution import (
@@ -135,6 +136,7 @@ test_cases_multivariate = [
 ]
 
 
+@flaky(min_passes=1, max_runs=3)
 @pytest.mark.parametrize("distr, params, dim", test_cases_multivariate)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_multivariate_sampling(distr, params, dim, serialize_fn) -> None:

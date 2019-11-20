@@ -107,7 +107,11 @@ class MeanEstimator(Estimator):
         self.freq = freq
         self.num_samples = num_samples
 
-    def train(self, training_data: Dataset) -> ConstantPredictor:
+    def train(
+        self,
+        training_data: Dataset,
+        validation_dataset: Optional[Dataset] = None,
+    ) -> ConstantPredictor:
         contexts = np.broadcast_to(
             array=[
                 item["target"][-self.prediction_length :]

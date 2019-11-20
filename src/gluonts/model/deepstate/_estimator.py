@@ -129,7 +129,7 @@ class DeepStateEstimator(GluonEstimator):
         (default: False)
     use_feat_static_cat
         Whether to use the ``feat_static_cat`` field from the data
-        (default: False)
+        (default: True)
     embedding_dimension
         Dimension of the embeddings for categorical features
         (default: [min(50, (cat+1)//2) for cat in cardinality])

@@ -14,6 +14,7 @@
 # Standard library imports
 import json
 from typing import ContextManager
+import sys
 
 # Third-party imports
 import numpy as np
@@ -23,10 +24,18 @@ import pytest
 from gluonts.core.component import equals
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
-from gluonts.shell.serve import Settings
-from gluonts.shell.serve.util import jsonify_floats
 from gluonts.shell.train import run_train_and_test
-from gluonts.testutil import shell as testutil
+
+try:
+    from gluonts.shell.serve import Settings
+    from gluonts.shell.serve.util import jsonify_floats
+    from gluonts.testutil import shell as testutil
+except ImportError:
+    if sys.platform != "win32":
+        raise
+
+    # gunicorn doesn't work on windows, so we skip these tests
+    pytestmark = pytest.mark.skip
 
 
 context_length = 5
@@ -48,7 +57,7 @@ def train_env() -> ContextManager[TrainEnv]:
 @pytest.fixture(scope="function")  # type: ignore
 def static_server(
     train_env: TrainEnv,
-) -> ContextManager[testutil.ServerFacade]:
+) -> ContextManager["testutil.ServerFacade"]:
     predictor = MeanPredictor.from_hyperparameters(**train_env.hyperparameters)
     predictor.serialize(train_env.path.model)
 
@@ -61,7 +70,7 @@ def static_server(
 @pytest.fixture(scope="function")  # type: ignore
 def dynamic_server(
     train_env: TrainEnv,
-) -> ContextManager[testutil.ServerFacade]:
+) -> ContextManager["testutil.ServerFacade"]:
     serve_env = ServeEnv(train_env.path.base)
     settings = Settings(sagemaker_server_port=testutil.free_port())
     with testutil.temporary_server(
@@ -104,7 +113,7 @@ def test_train_shell(train_env: TrainEnv, caplog) -> None:
 
 
 def test_server_shell(
-    train_env: TrainEnv, static_server: testutil.ServerFacade, caplog
+    train_env: TrainEnv, static_server: "testutil.ServerFacade", caplog
 ) -> None:
     execution_parameters = static_server.execution_parameters()
 
@@ -145,7 +154,7 @@ def test_server_shell(
 
 
 def test_dynamic_shell(
-    train_env: TrainEnv, dynamic_server: testutil.ServerFacade, caplog
+    train_env: TrainEnv, dynamic_server: "testutil.ServerFacade", caplog
 ) -> None:
     execution_parameters = dynamic_server.execution_parameters()
 
@@ -189,7 +198,7 @@ def test_dynamic_shell(
 def test_dynamic_batch_shell(
     batch_transform,
     train_env: TrainEnv,
-    dynamic_server: testutil.ServerFacade,
+    dynamic_server: "testutil.ServerFacade",
     caplog,
 ) -> None:
     execution_parameters = dynamic_server.execution_parameters()

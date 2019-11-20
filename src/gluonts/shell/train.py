@@ -13,7 +13,7 @@
 
 # Standard library imports
 import logging
-from typing import Type, Union
+from typing import Type, Union, Optional
 
 # First-party imports
 import gluonts
@@ -55,10 +55,17 @@ def run_train_and_test(
         f"{dump_code(forecaster)}"
     )
 
+    logger.info(
+        "Using the following data channels: "
+        f"{', '.join(name for name in ['train', 'validation', 'test'] if name in env.datasets)}"
+    )
+
     if isinstance(forecaster, Predictor):
         predictor = forecaster
     else:
-        predictor = run_train(forecaster, env.datasets["train"])
+        predictor = run_train(
+            forecaster, env.datasets["train"], env.datasets.get("validation")
+        )
 
     predictor.serialize(env.path.model)
 
@@ -66,10 +73,14 @@ def run_train_and_test(
         run_test(env, predictor, env.datasets["test"])
 
 
-def run_train(forecaster: Estimator, train_dataset: Dataset) -> Predictor:
+def run_train(
+    forecaster: Estimator,
+    train_dataset: Dataset,
+    validation_dataset: Optional[Dataset],
+) -> Predictor:
     log.metric("train_dataset_stats", train_dataset.calc_stats())
 
-    return forecaster.train(train_dataset)
+    return forecaster.train(train_dataset, validation_dataset)
 
 
 def run_test(

@@ -204,6 +204,38 @@ class TrainDataLoader(DataLoader):
                         return
 
 
+class ValidationDataLoader(DataLoader):
+    """
+     An Iterable type for iterating and transforming a dataset just once, in
+     batches of a prescribed size.
+
+     The transformation are applied with in training mode, i.e. with the flag
+     `is_train = True`.
+
+     Parameters
+     ----------
+     dataset
+         The dataset from which to load data.
+     transform
+         A transformation to apply to each entry in the dataset.
+     batch_size
+         The size of the batches to emit.
+     ctx
+         MXNet context to use to store data.
+     dtype
+         Floating point type to use.
+     """
+
+    def __iter__(self) -> Iterator[DataBatch]:
+        buffer = BatchBuffer(self.batch_size, self.ctx, self.dtype)
+        for data_entry in self.transform(iter(self.dataset), is_train=True):
+            buffer.add(data_entry)
+            if len(buffer) >= self.batch_size:
+                yield buffer.next_batch()
+        if len(buffer) > 0:
+            yield buffer.next_batch()
+
+
 class InferenceDataLoader(DataLoader):
     """
     An Iterable type for iterating and transforming a dataset just once, in

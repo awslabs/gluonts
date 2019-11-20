@@ -18,7 +18,7 @@ GluonTS requires Python 3.6, and the easiest
 way to install it is via `pip`:
 
 ```bash
-pip install gluonts
+pip install mxnet==1.4.1 gluonts
 ```
 
 ## Quick start guide
