@@ -133,7 +133,7 @@ class TransformedDistributionOutput(DistributionOutput):
             return trans_distr
         else:
             return TransformedDistribution(
-                trans_distr, AffineTransformation(scale=scale)
+                trans_distr, [AffineTransformation(scale=scale)]
             )
 
     @property
