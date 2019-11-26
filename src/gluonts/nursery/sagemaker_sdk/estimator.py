@@ -29,6 +29,7 @@ from sagemaker import session
 import s3fs
 import pandas as pd
 import tarfile
+import tempfile
 
 # First-party imports
 from gluonts.nursery.sagemaker_sdk.defaults import GLUONTS_VERSION
@@ -36,6 +37,7 @@ from gluonts.nursery.sagemaker_sdk.model import GluonTSModel
 from gluonts.core import serde
 from gluonts.model.estimator import GluonEstimator
 from gluonts.dataset.repository import datasets
+from gluonts.model.predictor import Predictor
 
 # Defaults
 ENTRY_POINTS_FOLDER = Path(__file__).parent.resolve() / "entry_point_scripts"
@@ -370,7 +372,7 @@ class GluonTSFramework(Framework):
         wait: bool = True,
         logs: bool = True,
         job_name: str = None,
-    ) -> Tuple[dict, pd.DataFrame, str]:
+    ) -> Tuple[Predictor, dict, pd.DataFrame, str]:
         """
         Use this function to train and evaluate any GluonTS model on Sagemaker. You need to call this method before
         you can call 'deploy'.
@@ -475,14 +477,21 @@ class GluonTSFramework(Framework):
         # retrieve metrics
         with s3fs.S3FileSystem().open(
             f"{self.output_path}/{job_name}/output/output.tar.gz", "rb"
-        ) as f:
-            with tarfile.open(mode="r:gz", fileobj=f) as tar:
+        ) as model_metrics:
+            with tarfile.open(mode="r:gz", fileobj=model_metrics) as tar:
                 agg_metrics = json.load(tar.extractfile("agg_metrics.json"))
                 item_metrics = pd.read_csv(tar.extractfile("item_metrics.csv"))
 
-        # TODO: maybe lead model from S3 and return it too
+        # retrieve the model itself
+        temp_dir = tempfile.mkdtemp()
+        with s3fs.S3FileSystem().open(
+                f"{self.output_path}/{job_name}/output/model.tar.gz", "rb"
+        ) as model_artifacts:
+            with tarfile.open(mode="r:gz", fileobj=model_artifacts) as tar:
+                tar.extractall(temp_dir)
+                my_predictor = Predictor.deserialize(Path(temp_dir))
 
-        return agg_metrics, item_metrics, job_name
+        return my_predictor, agg_metrics, item_metrics, job_name
 
     @classmethod
     def run(

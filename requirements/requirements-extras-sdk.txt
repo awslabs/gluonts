@@ -1,2 +1,4 @@
+requests<2.21,>=2.20.0
 sagemaker
 s3fs
+tox
