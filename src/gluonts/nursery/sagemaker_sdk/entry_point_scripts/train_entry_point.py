@@ -17,7 +17,6 @@ import argparse
 import os
 import json
 import logging
-import time
 
 # Third-party imports
 
@@ -38,11 +37,11 @@ def train(arguments):
 
     logger.info("Downloading estimator config.")
     estimator_config = Path(arguments.estimator) / "estimator.json"
-    with open(estimator_config, "r") as f:
-        estimator = serde.load_json(str(f.read()))
+    with estimator_config.open() as config_file:
+        estimator = serde.load_json(config_file.read())
 
     logger.info("Downloading dataset.")
-    if arguments.s3_dataset == "None":
+    if arguments.s3_dataset is None:  # == "None":
         # load built in dataset
         dataset = datasets.get_dataset(arguments.dataset)
     else:
@@ -86,6 +85,7 @@ def train(arguments):
 
 
 if __name__ == "__main__":
+    # TODO switch to click
     parser = argparse.ArgumentParser()
 
     # an alternative way to load hyperparameters via SM_HPS environment variable.
@@ -112,7 +112,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--s3_dataset",
         type=str,
-        default=str(os.environ.get("SM_CHANNEL_S3_DATASET")),
+        default=os.environ.get(
+            "SM_CHANNEL_S3_DATASET"
+        ),  # str(os.environ.get("SM_CHANNEL_S3_DATASET")),
     )
     parser.add_argument(
         "--dataset", type=str, default=os.environ["SM_HP_DATASET"]

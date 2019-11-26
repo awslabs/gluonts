@@ -36,7 +36,7 @@ tag:
 
 login:
 	@echo Logging into AWS ECR.
-	aws ecr get-login --region $(REGION) --no-include-email --registry-ids $(ACCOUNT_ACCOUNT_ID) --profile $(PROFILE)
+	$(shell aws ecr get-login --region $(REGION) --no-include-email --registry-ids $(ACCOUNT_ACCOUNT_ID) --profile $(PROFILE))
 
 push:
 	@echo Pushing image $(ECR_IMAGE) to AWS ECR.

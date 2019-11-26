@@ -16,7 +16,6 @@
 # Standard library imports
 import logging
 from pathlib import Path
-import os
 import time
 from typing import List, Optional, Tuple, Dict
 import json
@@ -33,22 +32,23 @@ import tarfile
 
 # First-party imports
 from gluonts.nursery.sagemaker_sdk.defaults import GLUONTS_VERSION
-from gluonts.nursery.sagemaker_sdk.model import GluonTSModel, GluonTSPredictor
+from gluonts.nursery.sagemaker_sdk.model import GluonTSModel
 from gluonts.core import serde
 from gluonts.model.estimator import GluonEstimator
 from gluonts.dataset.repository import datasets
 
 # Defaults
 ENTRY_POINTS_FOLDER = Path(__file__).parent.resolve() / "entry_point_scripts"
-MONITORED_METRICS = ("mean_wQuantileLoss", "ND", "RMSE")
+MONITORED_METRICS = "mean_wQuantileLoss", "ND", "RMSE"
+
+
+# Logging: print log statements analogously to Sagemaker.
+logger = logging.getLogger("sagemaker")
 
 
 # Logging: print log statements analogously to Sagemaker.
 def sagemaker_log(message):
-    print(
-        time.strftime("%Y-%m-%d %H:%M:%S ", time.gmtime()),
-        message,
-    )
+    print(time.strftime("%Y-%m-%d %H:%M:%S ", time.gmtime()), message)
 
 
 """
@@ -160,20 +160,20 @@ class GluonTSFramework(Framework):
     LATEST_VERSION = "0.4.1"
 
     def __init__(
-            self,
-            sagemaker_session: session.Session,
-            role: str,
-            image_name: str,
-            base_job_name: str,
-            train_instance_type: str,
-            train_instance_count: int = 1,
-            dependencies: Optional[List[str]] = [],
-            output_path: str = None,
-            code_location: str = None,
-            framework_version: str = GLUONTS_VERSION,
-            hyperparameters: Dict = None,
-            entry_point: str = str(ENTRY_POINTS_FOLDER / "train_entry_point.py"),
-            **kwargs,
+        self,
+        sagemaker_session: session.Session,
+        role: str,
+        image_name: str,
+        base_job_name: str,
+        train_instance_type: str,
+        train_instance_count: int = 1,
+        dependencies: Optional[List[str]] = (),
+        output_path: str = None,
+        code_location: str = None,
+        framework_version: str = GLUONTS_VERSION,
+        hyperparameters: Dict = None,
+        entry_point: str = str(ENTRY_POINTS_FOLDER / "train_entry_point.py"),
+        **kwargs,
     ):
         # framework_version currently serves no purpose, except for compatibility with the sagemaker framework.
         if framework_version is None:
@@ -203,15 +203,15 @@ class GluonTSFramework(Framework):
         self.py_version = "py3"
 
     def create_model(
-            self,
-            model_server_workers=None,
-            role=None,
-            vpc_config_override=VPC_CONFIG_DEFAULT,
-            entry_point=None,
-            source_dir=None,
-            dependencies=None,
-            image_name=None,
-            **kwargs,
+        self,
+        model_server_workers=None,
+        role=None,
+        vpc_config_override=VPC_CONFIG_DEFAULT,
+        entry_point=None,
+        source_dir=None,
+        dependencies=None,
+        image_name=None,
+        **kwargs,
     ) -> GluonTSModel:
         """Create a ``GluonTSModel`` object that can be deployed to an
         ``Endpoint``.
@@ -266,7 +266,7 @@ class GluonTSFramework(Framework):
 
     @classmethod
     def _prepare_init_params_from_job_description(
-            cls, job_details, model_channel_name=None
+        cls, job_details, model_channel_name=None
     ):
         """Convert the job description to init params that can be handled by the
         class constructor
@@ -337,27 +337,39 @@ class GluonTSFramework(Framework):
 
         return [avg_epoch_loss_metric, final_loss_metric] + other_metrics
 
+    @classmethod
+    def __create_job_name(cls, base_job_name):
+        milliseconds = str(int(round(time.time() * 1000)) % 1000)
+        job_name = (
+            base_job_name
+            + "-"
+            + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+            + "-"
+            + milliseconds
+        )
+        return job_name
+
     # TODO hyperparameter override for hyper parameter optimization
     def train(
-            self,
-            dataset: str,
-            estimator: GluonEstimator,
-            num_samples: Optional[int] = 100,
-            quantiles: Optional[List[int]] = (
-                    0.1,
-                    0.2,
-                    0.3,
-                    0.4,
-                    0.5,
-                    0.6,
-                    0.7,
-                    0.8,
-                    0.9,
-            ),
-            monitored_metrics: List[str] = MONITORED_METRICS,
-            wait: bool = True,
-            logs: bool = True,
-            job_name: str = None,
+        self,
+        dataset: str,
+        estimator: GluonEstimator,
+        num_samples: Optional[int] = 100,
+        quantiles: Optional[List[int]] = (
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.7,
+            0.8,
+            0.9,
+        ),
+        monitored_metrics: List[str] = MONITORED_METRICS,
+        wait: bool = True,
+        logs: bool = True,
+        job_name: str = None,
     ) -> Tuple[dict, pd.DataFrame, str]:
         """
         Use this function to train and evaluate any GluonTS model on Sagemaker. You need to call this method before
@@ -417,14 +429,7 @@ class GluonTSFramework(Framework):
 
         # specify job_name if not set
         if not job_name:
-            milliseconds = str(int(round(time.time() * 1000)) % 1000)
-            job_name = (
-                    self.base_job_name
-                    + "-"
-                    + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
-                    + "-"
-                    + milliseconds
-            )
+            job_name = self.__create_job_name(self.base_job_name)
 
         # needed to set default output and code location properly
         if self.output_path is None:
@@ -469,7 +474,7 @@ class GluonTSFramework(Framework):
 
         # retrieve metrics
         with s3fs.S3FileSystem().open(
-                f"{self.output_path}/{job_name}/output/output.tar.gz", "rb"
+            f"{self.output_path}/{job_name}/output/output.tar.gz", "rb"
         ) as f:
             with tarfile.open(mode="r:gz", fileobj=f) as tar:
                 agg_metrics = json.load(tar.extractfile("agg_metrics.json"))
@@ -481,26 +486,26 @@ class GluonTSFramework(Framework):
 
     @classmethod
     def run(
-            cls,
-            entry_point: str,
-            inputs,
-            sagemaker_session: session.Session,
-            role: str,
-            image_name: str,
-            base_job_name: str,
-            train_instance_type: str,
-            train_instance_count: int = 1,
-            dependencies: Optional[List[str]] = [],
-            output_path: str = None,
-            code_location: str = None,
-            framework_version: str = GLUONTS_VERSION,
-            hyperparameters=None,
-            source_dir: str = None,  # ATTENTION: IF SPECIFIED ENTRY POINT HAS TO BE RELATIVE PATH: THIS BRAKES .train
-            monitored_metrics: List[str] = MONITORED_METRICS,
-            wait: bool = True,
-            logs: bool = True,
-            job_name: str = None,
-            **kwargs,
+        cls,
+        entry_point: str,
+        inputs,
+        sagemaker_session: session.Session,
+        role: str,
+        image_name: str,
+        base_job_name: str,
+        train_instance_type: str,
+        train_instance_count: int = 1,
+        dependencies: Optional[List[str]] = [],
+        output_path: str = None,
+        code_location: str = None,
+        framework_version: str = GLUONTS_VERSION,
+        hyperparameters=None,
+        source_dir: str = None,  # ATTENTION: IF SPECIFIED ENTRY POINT HAS TO BE RELATIVE PATH: THIS BRAKES .train
+        monitored_metrics: List[str] = MONITORED_METRICS,
+        wait: bool = True,
+        logs: bool = True,
+        job_name: str = None,
+        **kwargs,
     ) -> Tuple[Framework, str]:
         """
         self,
@@ -666,14 +671,7 @@ class GluonTSFramework(Framework):
 
         # specify job_name if not set
         if not job_name:
-            milliseconds = str(int(round(time.time() * 1000)) % 1000)
-            job_name = (
-                    experiment.base_job_name
-                    + "-"
-                    + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
-                    + "-"
-                    + milliseconds
-            )
+            job_name = cls.__create_job_name(experiment.base_job_name)
 
         experiment.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
