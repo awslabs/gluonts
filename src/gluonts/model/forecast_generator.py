@@ -64,6 +64,9 @@ def _extract_instances(x: Any) -> Any:
     elif isinstance(x, tuple):
         for m in zip(*[_extract_instances(y) for y in x]):
             yield tuple([r for r in m])
+    elif isinstance(x, list):
+        for m in zip(*[_extract_instances(y) for y in x]):
+            yield [r for r in m]
     elif x is None:
         while True:
             yield None
@@ -83,7 +86,7 @@ class ForecastGenerator:
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
-        num_eval_samples: Optional[int],
+        num_samples: Optional[int],
         **kwargs
     ) -> Iterator[Forecast]:
         raise NotImplementedError()
@@ -101,7 +104,7 @@ class DistributionForecastGenerator(ForecastGenerator):
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
-        num_eval_samples: Optional[int],
+        num_samples: Optional[int],
         **kwargs
     ) -> Iterator[DistributionForecast]:
         for batch in inference_data_loader:
@@ -109,9 +112,9 @@ class DistributionForecastGenerator(ForecastGenerator):
             outputs = prediction_net(*inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
-            if num_eval_samples:
+            if num_samples:
                 log_once(
-                    "Forecast is not sample based. Ignoring parameter `num_eval_samples` from predict method."
+                    "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
                 )
 
             distributions = [
@@ -145,7 +148,7 @@ class QuantileForecastGenerator(ForecastGenerator):
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
-        num_eval_samples: Optional[int],
+        num_samples: Optional[int],
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
@@ -154,9 +157,9 @@ class QuantileForecastGenerator(ForecastGenerator):
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
 
-            if num_eval_samples:
+            if num_samples:
                 log_once(
-                    "Forecast is not sample based. Ignoring parameter `num_eval_samples` from predict method."
+                    "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
                 )
 
             i = -1
@@ -186,7 +189,7 @@ class SampleForecastGenerator(ForecastGenerator):
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
-        num_eval_samples: Optional[int],
+        num_samples: Optional[int],
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
@@ -194,20 +197,20 @@ class SampleForecastGenerator(ForecastGenerator):
             outputs = prediction_net(*inputs).asnumpy()
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
-            if num_eval_samples:
+            if num_samples:
                 num_collected_samples = outputs[0].shape[0]
                 collected_samples = [outputs]
-                while num_collected_samples < num_eval_samples:
+                while num_collected_samples < num_samples:
                     outputs = prediction_net(*inputs).asnumpy()
                     if output_transform is not None:
                         outputs = output_transform(batch, outputs)
                     collected_samples.append(outputs)
                     num_collected_samples += outputs[0].shape[0]
                 outputs = [
-                    np.concatenate(s)[:num_eval_samples]
+                    np.concatenate(s)[:num_samples]
                     for s in zip(*collected_samples)
                 ]
-                assert len(outputs[0]) == num_eval_samples
+                assert len(outputs[0]) == num_samples
             i = -1
             for i, output in enumerate(outputs):
                 yield SampleForecast(

@@ -76,14 +76,14 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         value: float = 0.0,
         # since we are emitting a constant values, we just predict a single
         # line on default
-        num_eval_samples: int = 1,
+        num_samples: int = 1,
     ) -> None:
         super().__init__(prediction_length, freq)
         self.value = value
-        self.num_eval_samples = num_eval_samples
+        self.num_samples = num_samples
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
-        samples_shape = self.num_eval_samples, self.prediction_length
+        samples_shape = self.num_samples, self.prediction_length
         samples = np.full(samples_shape, self.value)
         return SampleForecast(
             samples=samples,

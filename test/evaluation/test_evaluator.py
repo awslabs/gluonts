@@ -65,33 +65,26 @@ def iterable(it):
     return list(it)
 
 
-def naive_forecaster(ts, prediction_length, num_samples=100):
+def naive_forecaster(ts, prediction_length, num_samples=100, target_dim=0):
     """
     :param ts: pandas.Series
     :param prediction_length:
     :param num_samples: number of sample paths
+    :param target_dim: number of axes of target (0: scalar, 1: array, ...)
     :return: np.array with dimension (num_samples, prediction_length)
     """
 
     # naive prediction: last observed value
     naive_pred = ts.values[-prediction_length - 1]
-    return naive_pred + np.zeros((num_samples, prediction_length))
-
-
-def naive_multivariate_forecaster(
-    ts, prediction_length, num_samples=100, target_dim=2
-):
-    """
-    :param ts: pandas.DataFrame
-    :param prediction_length:
-    :param num_samples: number of sample paths
-    :param target_dim: dimensionality of multivariate target
-    :return: np.array with dimension (num_samples, target_dim, prediction_length)
-    """
-    naive_pred = np.expand_dims(
-        ts.values.transpose()[:, -prediction_length - 1], axis=1
+    assert len(naive_pred.shape) == target_dim
+    return np.tile(
+        naive_pred,
+        (num_samples, prediction_length) + tuple(1 for _ in range(target_dim)),
     )
-    return naive_pred + np.zeros((num_samples, target_dim, prediction_length))
+
+
+def naive_multivariate_forecaster(ts, prediction_length, num_samples=100):
+    return naive_forecaster(ts, prediction_length, num_samples, target_dim=1)
 
 
 def calculate_metrics(
@@ -103,7 +96,7 @@ def calculate_metrics(
     input_type=iterator,
 ):
     num_timeseries = timeseries.shape[0]
-    num_timestamps = timeseries.shape[-1]
+    num_timestamps = timeseries.shape[1]
 
     if has_nans:
         timeseries[0, 1] = np.nan
@@ -125,9 +118,7 @@ def calculate_metrics(
             ts_start_dates[i], periods=num_timestamps, freq=freq
         )
 
-        pd_timeseries.append(
-            ts_datastructure(timeseries[i].transpose(), index=index)
-        )
+        pd_timeseries.append(ts_datastructure(timeseries[i], index=index))
         samples.append(
             forecaster(pd_timeseries[i], prediction_length, num_samples)
         )
@@ -433,35 +424,37 @@ def test_metrics(timeseries, res, has_nans, input_type):
 
 
 TIMESERIES_MULTIVARIATE = [
-    np.ones((5, 2, 10), dtype=np.float64),
-    np.ones((5, 2, 10), dtype=np.float64),
-    np.ones((5, 2, 10), dtype=np.float64),
+    np.ones((5, 10, 2), dtype=np.float64),
+    np.ones((5, 10, 2), dtype=np.float64),
+    np.ones((5, 10, 2), dtype=np.float64),
     np.stack(
         (
             np.arange(0, 50, dtype=np.float64).reshape(5, 10),
             np.arange(50, 100, dtype=np.float64).reshape(5, 10),
         ),
-        axis=1,
+        axis=2,
     ),
     np.stack(
         (
             np.arange(0, 50, dtype=np.float64).reshape(5, 10),
             np.arange(50, 100, dtype=np.float64).reshape(5, 10),
         ),
-        axis=1,
+        axis=2,
     ),
     np.stack(
         (
             np.arange(0, 50, dtype=np.float64).reshape(5, 10),
             np.arange(50, 100, dtype=np.float64).reshape(5, 10),
         ),
-        axis=1,
+        axis=2,
     ),
 ]
 
 RES_MULTIVARIATE = [
     {
         "MSE": 0.0,
+        "0_MSE": 0.0,
+        "1_MSE": 0.0,
         "abs_error": 0.0,
         "abs_target_sum": 15.0,
         "abs_target_mean": 1.0,
@@ -473,6 +466,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 0.0,
@@ -487,6 +481,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 0.0,
@@ -501,6 +496,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -515,6 +511,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.077_151_674_981_045_956,
         "ND": 0.071_428_571_428_571_42,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -529,6 +526,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.027_695_473_070_119_065,
         "ND": 0.025_641_025_641_025_64,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -543,6 +541,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.040_759_375_461_684_65,
         "ND": 0.037_735_849_056_603_77,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
 ]
 
@@ -567,7 +566,12 @@ def test_metrics_multivariate(
     timeseries, res, has_nans, eval_dims, input_type
 ):
     ts_datastructure = pd.DataFrame
-    evaluator = MultivariateEvaluator(quantiles=QUANTILES, eval_dims=eval_dims)
+    evaluator = MultivariateEvaluator(
+        quantiles=QUANTILES,
+        eval_dims=eval_dims,
+        target_agg_funcs={"sum": np.sum},
+    )
+
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
         evaluator,

@@ -101,7 +101,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         freq: str,
         prediction_length: int,
         trainer: Trainer = Trainer(),
-        num_hidden_dimensions: List[int] = list([40, 40]),
+        num_hidden_dimensions: Optional[List[int]] = None,
         context_length: Optional[int] = None,
         distr_output: DistributionOutput = StudentTOutput(),
         batch_normalization: bool = False,
@@ -119,14 +119,18 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
-        assert all(
+        assert num_hidden_dimensions is None or (
             [d > 0 for d in num_hidden_dimensions]
         ), "Elements of `num_hidden_dimensions` should be > 0"
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
 
-        self.num_hidden_dimensions = num_hidden_dimensions
+        self.num_hidden_dimensions = (
+            num_hidden_dimensions
+            if num_hidden_dimensions is not None
+            else list([40, 40])
+        )
         self.prediction_length = prediction_length
         self.context_length = (
             context_length if context_length is not None else prediction_length

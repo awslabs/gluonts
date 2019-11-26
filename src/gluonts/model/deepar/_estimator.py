@@ -12,13 +12,14 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import numpy as np
 from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
@@ -92,8 +93,8 @@ class DeepAREstimator(GluonEstimator):
         Number of values of each categorical feature.
         This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
-        Dimension of the embeddings for categorical features (the same
-        dimension is used for all embeddings, default: 5)
+        Dimension of the embeddings for categorical features
+        (default: [min(50, (cat+1)//2) for cat in cardinality])
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput())
@@ -126,14 +127,15 @@ class DeepAREstimator(GluonEstimator):
         use_feat_static_cat: bool = False,
         use_feat_static_real: bool = False,
         cardinality: Optional[List[int]] = None,
-        embedding_dimension: int = 20,
+        embedding_dimension: Optional[List[int]] = None,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        dtype: DType = np.float32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, dtype=dtype)
 
         assert (
             prediction_length > 0
@@ -147,12 +149,12 @@ class DeepAREstimator(GluonEstimator):
         assert (cardinality is not None and use_feat_static_cat) or (
             cardinality is None and not use_feat_static_cat
         ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
-        assert cardinality is None or [
-            c > 0 for c in cardinality
-        ], "Elements of `cardinality` should be > 0"
-        assert (
-            embedding_dimension > 0
-        ), "The value of `embedding_dimension` should be > 0"
+        assert cardinality is None or all(
+            [c > 0 for c in cardinality]
+        ), "Elements of `cardinality` should be > 0"
+        assert embedding_dimension is None or all(
+            [e > 0 for e in embedding_dimension]
+        ), "Elements of `embedding_dimension` should be > 0"
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
@@ -163,6 +165,7 @@ class DeepAREstimator(GluonEstimator):
         )
         self.prediction_length = prediction_length
         self.distr_output = distr_output
+        self.distr_output.dtype = dtype
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
@@ -170,8 +173,14 @@ class DeepAREstimator(GluonEstimator):
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
-        self.cardinality = cardinality if use_feat_static_cat else [1]
-        self.embedding_dimension = embedding_dimension
+        self.cardinality = (
+            cardinality if cardinality and use_feat_static_cat else [1]
+        )
+        self.embedding_dimension = (
+            embedding_dimension
+            if embedding_dimension is not None
+            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
+        )
         self.scaling = scaling
         self.lags_seq = (
             lags_seq
@@ -212,18 +221,26 @@ class DeepAREstimator(GluonEstimator):
                 else []
             )
             + [
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
                 AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
+                    field=FieldName.FEAT_STATIC_CAT,
+                    expected_ndim=1,
+                    dtype=self.dtype,
+                ),
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_REAL,
+                    expected_ndim=1,
+                    dtype=self.dtype,
                 ),
                 AsNumpyArray(
                     field=FieldName.TARGET,
                     # in the following line, we add 1 for the time dimension
                     expected_ndim=1 + len(self.distr_output.event_shape),
+                    dtype=self.dtype,
                 ),
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    dtype=self.dtype,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,
@@ -237,6 +254,7 @@ class DeepAREstimator(GluonEstimator):
                     output_field=FieldName.FEAT_AGE,
                     pred_length=self.prediction_length,
                     log_scale=True,
+                    dtype=self.dtype,
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
@@ -277,6 +295,7 @@ class DeepAREstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            dtype=self.dtype,
         )
 
     def create_predictor(
@@ -296,6 +315,7 @@ class DeepAREstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            dtype=self.dtype,
         )
 
         copy_parameters(trained_network, prediction_network)
@@ -307,4 +327,5 @@ class DeepAREstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
+            dtype=self.dtype,
         )

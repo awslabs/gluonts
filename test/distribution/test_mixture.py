@@ -48,7 +48,7 @@ BINS = np.linspace(-5, 5, 100)
 
 
 def histogram(samples: NPArrayLike) -> np.ndarray:
-    h, _ = np.histogram(samples, bins=BINS, normed=True)
+    h, _ = np.histogram(samples, bins=BINS, density=True)
     return h
 
 

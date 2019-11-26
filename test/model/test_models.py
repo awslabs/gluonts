@@ -17,6 +17,7 @@ from pathlib import Path
 
 # Third-party imports
 import pytest
+from flaky import flaky
 
 # First-party imports
 from gluonts import time_feature
@@ -25,6 +26,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.deep_factor import DeepFactorEstimator
+from gluonts.model.deepstate import DeepStateEstimator
 from gluonts.model.gp_forecaster import GaussianProcessEstimator
 from gluonts.model.npts import NPTSEstimator
 from gluonts.model.predictor import Predictor
@@ -47,7 +49,7 @@ prediction_length = dataset_info.prediction_length
 cardinality = int(dataset_info.metadata.feat_static_cat[0].cardinality)
 # FIXME: Should time features should not be needed for GP
 time_features = [time_feature.DayOfWeek(), time_feature.HourOfDay()]
-num_eval_samples = 2
+num_parallel_samples = 2
 epochs = 1
 
 
@@ -64,7 +66,7 @@ def seq2seq_base(seq2seq_model, hybridize: bool = True, batches_per_epoch=1):
             num_batches_per_epoch=batches_per_epoch,
             quantiles=[0.1, 0.5, 0.9],
             use_symbol_block_predictor=True,
-            num_parallel_samples=num_eval_samples,
+            num_parallel_samples=num_parallel_samples,
         ),
     )
 
@@ -122,7 +124,7 @@ def npts_estimator():
             kernel_type="uniform",
             use_default_features=True,
             prediction_length=prediction_length,
-            num_parallel_samples=num_eval_samples,
+            num_parallel_samples=num_parallel_samples,
         ),
     )
 
@@ -143,7 +145,7 @@ def simple_feedforward_estimator(hybridize: bool = True, batches_per_epoch=1):
             prediction_length=prediction_length,
             num_batches_per_epoch=batches_per_epoch,
             use_symbol_block_predictor=True,
-            num_parallel_samples=num_eval_samples,
+            num_parallel_samples=num_parallel_samples,
         ),
     )
 
@@ -160,7 +162,7 @@ def deep_factor_estimator(hybridize: bool = True, batches_per_epoch=1):
             cardinality=[cardinality],
             num_batches_per_epoch=batches_per_epoch,
             use_symbol_block_predictor=False,
-            num_parallel_samples=num_eval_samples,
+            num_parallel_samples=num_parallel_samples,
         ),
     )
 
@@ -178,7 +180,7 @@ def gp_estimator(hybridize: bool = True, batches_per_epoch=1):
             num_batches_per_epoch=batches_per_epoch,
             time_features=time_features,
             use_symbol_block_predictor=False,
-            num_parallel_samples=num_eval_samples,
+            num_parallel_samples=num_parallel_samples,
             # FIXME: test_shell fails with use_symbol_block_predictor=True
             # FIXME and float_type = np.float64
         ),
@@ -228,6 +230,29 @@ def seasonal_estimator():
     return SeasonalNaiveEstimator, dict(prediction_length=prediction_length)
 
 
+def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        DeepStateEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            learning_rate=1e-2,
+            hybridize=hybridize,
+            num_cells=2,
+            num_layers=1,
+            prediction_length=prediction_length,
+            context_length=2,
+            past_length=prediction_length,
+            cardinality=[1],
+            use_feat_static_cat=False,
+            num_batches_per_epoch=batches_per_epoch,
+            use_symbol_block_predictor=False,
+            num_parallel_samples=2,
+        ),
+    )
+
+
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.timeout(10)  # DeepAR occasionally fails with the 5 second timeout
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
@@ -250,7 +275,11 @@ def seasonal_estimator():
             + (0.2,),
         ]
     ]
-    + [npts_estimator() + (0.0,), seasonal_estimator() + (0.0,)],
+    + [
+        npts_estimator() + (0.0,),
+        seasonal_estimator() + (0.0,),
+        deepstate_estimator(hybridize=False, batches_per_epoch=100) + (0.5,),
+    ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
     estimator = Estimator.from_hyperparameters(freq=freq, **hyperparameters)
@@ -294,6 +323,7 @@ def test_repr(Estimator, hyperparameters):
         mqrnn_estimator(),
         gp_estimator(),
         transformer_estimator(),
+        deepstate_estimator(),
     ],
 )
 def test_serialize(Estimator, hyperparameters):

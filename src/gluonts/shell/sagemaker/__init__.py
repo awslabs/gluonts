@@ -62,7 +62,7 @@ class ServeEnv:
 
 
 def _load_inputdataconfig(
-    inputdataconfig: Path
+    inputdataconfig: Path,
 ) -> Optional[Dict[str, DataConfig]]:
     if inputdataconfig.exists():
         with inputdataconfig.open() as json_file:

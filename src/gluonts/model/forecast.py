@@ -14,7 +14,7 @@
 # Standard library imports
 import re
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Union
+from typing import Dict, List, NamedTuple, Optional, Set, Union, Callable
 
 # Third-party imports
 import mxnet as mx
@@ -141,6 +141,10 @@ class Forecast:
         """
         raise NotImplementedError()
 
+    @property
+    def median(self) -> np.ndarray:
+        return self.quantile(0.5)
+
     def plot(
         self,
         prediction_intervals=(50.0, 90.0),
@@ -258,8 +262,20 @@ class Forecast:
         Parameters
         ----------
         dim
-            The returned forecast object will only have samples of this
-            dimension.
+            The returned forecast object will only represent this dimension.
+        """
+        raise NotImplementedError()
+
+    def copy_aggregate(self, agg_fun: Callable):
+        """
+        Returns a new Forecast object with a time series aggregated over the
+        dimension axis.
+
+        Parameters
+        ----------
+        agg_fun
+            Aggregation function that defines the aggregation operation
+            (typically mean or sum).
         """
         raise NotImplementedError()
 
@@ -291,7 +307,8 @@ class SampleForecast(Forecast):
     Parameters
     ----------
     samples
-        Array of size (num_samples, prediction_length)
+        Array of size (num_samples, prediction_length) (1D case) or
+        (num_samples, prediction_length, target_dim) (multivariate case)
     start_date
         start of the forecast
     freq
@@ -381,11 +398,27 @@ class SampleForecast(Forecast):
         if len(self.samples.shape) == 2:
             samples = self.samples
         else:
-            assert (
-                dim < self.samples.shape[1]
-            ), f"dim should be target_dim - 1, but got dim={dim}, target_dim={self.samples.shape[1]}"
-            samples = self.samples[:, dim]
+            target_dim = self.samples.shape[2]
+            assert dim < target_dim, (
+                f"must set 0 <= dim < target_dim, but got dim={dim},"
+                f" target_dim={target_dim}"
+            )
+            samples = self.samples[:, :, dim]
 
+        return SampleForecast(
+            samples=samples,
+            start_date=self.start_date,
+            freq=self.freq,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
+    def copy_aggregate(self, agg_fun: Callable):
+        if len(self.samples.shape) == 2:
+            samples = self.samples
+        else:
+            # Aggregate over target dimension axis
+            samples = agg_fun(self.samples, axis=2)
         return SampleForecast(
             samples=samples,
             start_date=self.start_date,
@@ -398,14 +431,14 @@ class SampleForecast(Forecast):
         if self._dim is not None:
             return self._dim
         else:
-            if (
-                len(self.samples.shape) == 2
-            ):  # 1D target. shape: (num_samples, prediction_length)
+            if len(self.samples.shape) == 2:
+                # univariate target
+                # shape: (num_samples, prediction_length)
                 return 1
             else:
-                return self.samples.shape[
-                    1
-                ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
+                # multivariate target
+                # shape: (num_samples, prediction_length, target_dim)
+                return self.samples.shape[2]
 
     def as_json_dict(self, config: "Config") -> dict:
         result = super().as_json_dict(config)
@@ -523,15 +556,16 @@ class QuantileForecast(Forecast):
 class DistributionForecast(Forecast):
     """
     A `Forecast` object that uses a GluonTS distribution directly.
-    This can for instance be used to represent marginal probability distributions for each time
-    point -- although joint distributions are also possible, e.g. when using MultiVariateGaussian).
+    This can for instance be used to represent marginal probability
+    distributions for each time point -- although joint distributions are
+    also possible, e.g. when using MultiVariateGaussian).
 
     Parameters
     ----------
     distribution
-        GluonTS distribution or list of distributions.
-        The distribution should represent the entire prediction length, i.e., if we draw `num_samples` samples
-        from the distribution, the sample shape should be
+        Distribution object. This should represent the entire prediction
+        length, i.e., if we draw `num_samples` samples from the distribution,
+        the sample shape should be
 
            samples = trans_dist.sample(num_samples)
            samples.shape -> (num_samples, prediction_length)
@@ -569,6 +603,7 @@ class DistributionForecast(Forecast):
 
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
+        self._mean = None
 
     @property
     def mean(self):
@@ -578,7 +613,7 @@ class DistributionForecast(Forecast):
         if self._mean is not None:
             return self._mean
         else:
-            self._mean = self.distribution.mean
+            self._mean = self.distribution.mean.asnumpy()
             return self._mean
 
     @property
@@ -610,12 +645,12 @@ class OutputType(str, Enum):
 
 
 class Config(pydantic.BaseModel):
-    num_eval_samples: int = pydantic.Schema(100, alias="num_samples")
+    num_samples: int = pydantic.Field(100, alias="num_eval_samples")
     output_types: Set[OutputType] = {"quantiles", "mean"}
     # FIXME: validate list elements
     quantiles: List[str] = ["0.1", "0.5", "0.9"]
 
     class Config:
-        allow_population_by_alias = True
+        allow_population_by_field_name = True
         # store additional fields
         extra = "allow"

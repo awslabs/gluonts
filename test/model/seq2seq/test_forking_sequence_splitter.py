@@ -19,7 +19,9 @@ from gluonts import transform
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.seq2seq._transform import ForkingSequenceSplitter
-from gluonts.transform import TestSplitSampler
+
+# if we import TestSplitSampler as Test... pytest thinks it's a test
+from gluonts.transform import TestSplitSampler as TSplitSampler
 
 
 def test_forking_sequence_splitter() -> None:
@@ -47,7 +49,7 @@ def test_forking_sequence_splitter() -> None:
                 pred_length=10,
             ),
             ForkingSequenceSplitter(
-                train_sampler=TestSplitSampler(),
+                train_sampler=TSplitSampler(),
                 time_series_fields=["age"],
                 enc_len=5,
                 dec_len=3,
@@ -81,7 +83,7 @@ def test_forking_sequence_splitter() -> None:
                 pred_length=10,
             ),
             ForkingSequenceSplitter(
-                train_sampler=TestSplitSampler(),
+                train_sampler=TSplitSampler(),
                 time_series_fields=["age"],
                 enc_len=20,
                 dec_len=20,

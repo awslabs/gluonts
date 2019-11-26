@@ -168,23 +168,22 @@ class NPTS:
         # of the prediction range, and the frequency of the time series.
         samples_pred_range = samples[:, train_length:]  # prediction range only
 
+        freq = targets.index.freq.freqstr
         forecast_start = targets.index[-1] + 1 * targets.index.freq
 
         return SampleForecast(
-            samples=samples_pred_range,
-            start_date=forecast_start,
-            freq=forecast_start.freqstr,
+            samples=samples_pred_range, start_date=forecast_start, freq=freq
         )
 
     @staticmethod
     def log_distance_kernel(
-        alpha: float
+        alpha: float,
     ) -> Callable[[np.ndarray, np.ndarray], float]:
         return lambda x, y: cast(float, -alpha * np.sum(np.abs(x - y)))
 
     @staticmethod
     def log_weighted_distance_kernel(
-        kernel_weights: List[float]
+        kernel_weights: List[float],
     ) -> Callable[[np.ndarray, np.ndarray], float]:
         kernel_weights_nd = np.ndarray(kernel_weights, dtype=np.float32)
         return lambda x, y: cast(

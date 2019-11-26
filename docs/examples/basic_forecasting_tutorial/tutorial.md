@@ -52,7 +52,7 @@ In general, the datasets provided by GluonTS are objects that consists of three 
 
 - `dataset.train` is an iterable collection of data entries used for training. Each entry corresponds to one time series
 - `dataset.test` is an iterable collection of data entries used for inference. The test dataset is an extended version of the train dataset that contains a window in the end of each time series that was not seen during training. This window has length equal to the recommended prediction length.
-- `dataset.metadata` containts metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc.
+- `dataset.metadata` contains metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc.
 
 
 ```python
@@ -148,7 +148,7 @@ estimator = SimpleFeedForwardEstimator(
 )
 ```
 
-After specifing our estimator with all the necessary hyperparameters we can train it using our training dataset `dataset.train` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to construct forecasts.
+After specifying our estimator with all the necessary hyperparameters we can train it using our training dataset `dataset.train` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to construct forecasts.
 
 
 ```python
@@ -173,7 +173,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=dataset.test,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -301,7 +301,7 @@ For creating your own forecast model you need to:
 The training and prediction networks can be arbitrarily complex but they should follow some basic rules:
 
 - Both should have a `hybrid_forward` method that defines what should happen when the network is called    
-- The trainng network's `hybrid_forward` should return a **loss** based on the prediction and the true values
+- The training network's `hybrid_forward` should return a **loss** based on the prediction and the true values
 - The prediction network's `hybrid_forward` should return the predictions 
 
 For example, we can create a simple training network that defines a neural network which takes as an input the past values of the time series and outputs a future predicted window of length `prediction_length`. It uses the L1 loss in the `hybrid_forward` method to evaluate the error among the predictions and the true values of the time series. The corresponding prediction network should be identical to the training network in terms of architecture (we achieve this by inheriting the training network class), and its `hybrid_forward` method outputs directly the predictions.
@@ -436,7 +436,7 @@ predictor = estimator.train(dataset.train)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=dataset.test,
     predictor=predictor,
-    num_eval_samples=100
+    num_samples=100
 )
 ```
 

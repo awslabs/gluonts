@@ -77,7 +77,7 @@ def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
         )
 
     try:
-        return cls(**Model(**hyperparameters).__values__)  # type: ignore
+        return cls(**Model(**hyperparameters).__dict__)  # type: ignore
     except ValidationError as e:
         raise GluonTSHyperparametersError from e
 
@@ -341,9 +341,9 @@ def validated(base_model=None):
     >>> c = ComplexNumber(y=None)
     Traceback (most recent call last):
         ...
-    pydantic.error_wrappers.ValidationError: 1 validation error
+    pydantic.error_wrappers.ValidationError: 1 validation error for ComplexNumberModel
     y
-      value is not a valid float (type=type_error.float)
+      none is not an allowed value (type=type_error.none.not_allowed)
 
     Internally, the decorator delegates all validation and conversion logic to
     `a Pydantic model <https://pydantic-docs.helpmanual.io/>`_, which can be
@@ -424,7 +424,7 @@ def validated(base_model=None):
             model = PydanticModel(**{**nmargs, **kwargs})
 
             # merge nmargs, kwargs, and the model fields into a single dict
-            all_args = {**nmargs, **kwargs, **model.__values__}
+            all_args = {**nmargs, **kwargs, **model.__dict__}
 
             # save the merged dictionary for Representable use, but only of the
             # __init_args__ is not already set in order to avoid overriding a
@@ -481,27 +481,42 @@ mx.Context.validate = MXContext.validate
 mx.Context.__get_validators__ = MXContext.__get_validators__
 
 
-def get_mxnet_context() -> mx.Context:
+NUM_GPUS = None
+
+
+def num_gpus(refresh=False):
+    global NUM_GPUS
+    if NUM_GPUS is None or refresh:
+        n = 0
+        try:
+            n = mx.context.num_gpus()
+        except mx.base.MXNetError as e:
+            logger.error(f"Failure when querying GPU: {e}")
+        NUM_GPUS = n
+    return NUM_GPUS
+
+
+def get_mxnet_context(gpu_number=0) -> mx.Context:
     """
     Returns either CPU or GPU context
     """
-    n = mx.context.num_gpus()
+    n = num_gpus()
     if n == 0:
         logging.info("Using CPU")
         return mx.context.cpu()
     else:
         logging.info("Using GPU")
-        return mx.context.gpu(0)
+        return mx.context.gpu(gpu_number)
 
 
-def check_gpu_support() -> None:
+def check_gpu_support() -> bool:
     """
-    Emits a log line that indicates whether the currently installed MXNet
-    version has GPU support.
+    Emits a log line and returns a boolean that indicate whether
+    the currently installed MXNet version has GPU support.
     """
-    logger.info(
-        f'MXNet GPU support is {"ON" if mx.context.num_gpus() > 0 else "OFF"}'
-    )
+    n = num_gpus()
+    logger.info(f'MXNet GPU support is {"ON" if n > 0 else "OFF"}')
+    return False if n == 0 else True
 
 
 class DType:

@@ -55,7 +55,7 @@ The first requirement to use GluonTS is to have an appropriate dataset. GluonTS 
 - Create an artificial dataset using GluonTS
 - Convert your dataset to a GluonTS friendly format
 
-In general, a dataset should satisfy some minimum format requirements to be compatible with GluonTS. In particular, it should be an iterable collection of data entries (time series), and each entry should have at least a `target` field, which contains the actual values of the time series, and a `start` field, which denotes the starting date of the time series. There are many more optional fields that we will go throught in this tutorial.
+In general, a dataset should satisfy some minimum format requirements to be compatible with GluonTS. In particular, it should be an iterable collection of data entries (time series), and each entry should have at least a `target` field, which contains the actual values of the time series, and a `start` field, which denotes the starting date of the time series. There are many more optional fields that we will go through in this tutorial.
 
 The datasets provided by GluonTS come in the appropriate format and they can be used without any post processing. However, a custom dataset needs to be converted. Fortunately this is an easy task.
 
@@ -87,9 +87,9 @@ In general, the datasets provided by GluonTS are objects that consists of three 
 
 - `dataset.train` is an iterable collection of data entries used for training. Each entry corresponds to one time series.
 - `dataset.test` is an iterable collection of data entries used for inference. The test dataset is an extended version of the train dataset that contains a window in the end of each time series that was not seen during training. This window has length equal to the recommended prediction length.
-- `dataset.metadata` containts metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc.
+- `dataset.metadata` contains metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc.
 
-First, let's see what the first entry of the train dataset contains. We should expect at least a `target` anf a `start` field in each entry, and the target of the test entry to have an additional window equal to `prediction_length`.
+First, let's see what the first entry of the train dataset contains. We should expect at least a `target` and a `start` field in each entry, and the target of the test entry to have an additional window equal to `prediction_length`.
 
 
 ```python
@@ -264,7 +264,7 @@ Added by `Transformation`:
 - `time_feat`: time related features such as the month or the day 
 - `feat_dynamic_const`: expands a constant value feature along the time axis
 - `feat_dynamic_age`: age feature, i.e., a feature that its value is small for distant past timestamps and it monotonically increases the more we approach the current timestamp
-- `observed_values`: indicator for observed values, i.e., a feature thatequals to 1 if the value is observed and 0 if the value is missing
+- `observed_values`: indicator for observed values, i.e., a feature that equals to 1 if the value is observed and 0 if the value is missing
 - `is_pad`: indicator for each time step that shows if it is padded (if the length is not enough) 
 - `forecast_start`: forecast start date
 
@@ -497,7 +497,7 @@ The transformer has done what we asked. In particular it has added:
 - a field for the age feature (`feat_dynamic_age`)
 - some extra useful fields (`past_is_pad`, `forecast_start`)
 
-It has done one more important thing: it has splitted the window in past and future and has added the corresponding prefixes to all time dependent fields. This way we can easily use e.g., the `past_target` field as input and the `future_target` field to calculate the error of our predictions. Of course, the length of the past is equal to the `context_length` and of the future equal to the `prediction_length`.
+It has done one more important thing: it has split the window into past and future and has added the corresponding prefixes to all time dependent fields. This way we can easily use e.g., the `past_target` field as input and the `future_target` field to calculate the error of our predictions. Of course, the length of the past is equal to the `context_length` and of the future equal to the `prediction_length`.
 
 
 ```python
@@ -517,9 +517,9 @@ Just for comparison, let's see again what were the fields in the original datase
 [k for k in next(iter(train_ds)).keys()]
 ```
 
-Now, we can move on and see how the test dataset is split. As we saw, the transformation splits the windows to past and future. However, during inference (`is_train=False` in the transformation), the splitter always cuts the last window (of length `context_length`) of the dataset so it can be used to predict the subsequent unknown values of length `prediction_length`. 
+Now, we can move on and see how the test dataset is split. As we saw, the transformation splits the windows into past and future. However, during inference (`is_train=False` in the transformation), the splitter always cuts the last window (of length `context_length`) of the dataset so it can be used to predict the subsequent unknown values of length `prediction_length`. 
 
-So, how is the test dataset split in past and futere since we do not know the future target? And what about the time dependent features?
+So, how is the test dataset split in past and future since we do not know the future target? And what about the time dependent features?
 
 
 ```python
@@ -590,7 +590,7 @@ estimator = SimpleFeedForwardEstimator(
 
 ## 3.2 Getting a predictor
 
-After specifing our estimator with all the necessary hyperparameters we can train it using our training dataset `dataset.train` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to construct forecasts.
+After specifying our estimator with all the necessary hyperparameters we can train it using our training dataset `dataset.train` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to construct forecasts.
 
 We should emphasize here that a single model, as the one defined above, is trained over all the time series contained in the training dataset `train_ds`. This results in a **global** model, suitable for prediction for all the time series in `train_ds` and possibly for other unseen related time series.
 
@@ -639,7 +639,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -774,7 +774,7 @@ For creating our own forecast model we need to:
 The training and prediction networks can be arbitrarily complex but they should follow some basic rules:
 
 - Both should have a `hybrid_forward` method that defines what should happen when the network is called    
-- The trainng network's `hybrid_forward` should return a **loss** based on the prediction and the true values
+- The training network's `hybrid_forward` should return a **loss** based on the prediction and the true values
 - The prediction network's `hybrid_forward` should return the predictions 
 
 The estimator should also follow some rules:
@@ -925,7 +925,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1137,7 +1137,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1156,9 +1156,9 @@ plot_prob_forecasts(tss[0], forecasts[0])
 
 In the previous networks we used only the target and did not leverage any of the features of the dataset. Here we expand the probabilistic network by including the `feat_dynamic_real` field of the dataset that could enhance the forecasting power of our model. We achieve this by concatenating the target and the features to an enhanced vector that forms the new network input. 
 
-All the features that are available in a dataset can be potentionaly used as inputs to our model. However, for the purposes of this example we will restrict ourselves to using only one feature.
+All the features that are available in a dataset can be potentially used as inputs to our model. However, for the purposes of this example we will restrict ourselves to using only one feature.
 
-An important issue that a practicioner needs to deal with often is the different orders of magnitude in the values of the time series in a dataset. It is extremely helpful for a model to be trained and forecast values that lie roughly in the same value range. To address this issue, we add a `Scaler` to out model, that computes the scale of each time series. Then we can scale accordingly the values of the time series or any related features and use these as inputs to the network.
+An important issue that a practitioner needs to deal with often is the different orders of magnitude in the values of the time series in a dataset. It is extremely helpful for a model to be trained and forecast values that lie roughly in the same value range. To address this issue, we add a `Scaler` to out model, that computes the scale of each time series. Then we can scale accordingly the values of the time series or any related features and use these as inputs to the network.
 
 
 ```python
@@ -1395,7 +1395,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1753,7 +1753,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 

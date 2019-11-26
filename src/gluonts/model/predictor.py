@@ -21,6 +21,7 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
+import json
 from typing import (
     TYPE_CHECKING,
     Tuple,
@@ -117,6 +118,10 @@ class Predictor:
         # serialize Predictor type
         with (path / "type.txt").open("w") as fp:
             fp.write(fqname_for(self.__class__))
+        with (path / "version.json").open("w") as fp:
+            json.dump(
+                {"model": self.__version__, "gluonts": gluonts.__version__}, fp
+            )
 
     @classmethod
     def deserialize(
@@ -238,7 +243,7 @@ class GluonPredictor(Predictor):
         input_transform: Transformation,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
-        float_type: DType = np.float32,
+        dtype: DType = np.float32,
     ) -> None:
         super().__init__(prediction_length, freq)
 
@@ -249,7 +254,7 @@ class GluonPredictor(Predictor):
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.ctx = ctx
-        self.float_type = float_type
+        self.dtype = dtype
 
     def hybridize(self, batch: DataBatch) -> None:
         """
@@ -286,14 +291,14 @@ class GluonPredictor(Predictor):
         raise NotImplementedError
 
     def predict(
-        self, dataset: Dataset, num_eval_samples: Optional[int] = None
+        self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
             dataset,
             self.input_transform,
             self.batch_size,
             ctx=self.ctx,
-            float_type=self.float_type,
+            dtype=self.dtype,
         )
         yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,
@@ -301,7 +306,7 @@ class GluonPredictor(Predictor):
             input_names=self.input_names,
             freq=self.freq,
             output_transform=self.output_transform,
-            num_eval_samples=num_eval_samples,
+            num_samples=num_samples,
         )
 
     def __eq__(self, that):
@@ -338,7 +343,7 @@ class GluonPredictor(Predictor):
                 prediction_length=self.prediction_length,
                 freq=self.freq,
                 ctx=self.ctx,
-                float_type=self.float_type,
+                dtype=self.dtype,
                 forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )
@@ -364,14 +369,6 @@ class SymbolBlockPredictor(GluonPredictor):
         self, batch: DataBatch
     ) -> "SymbolBlockPredictor":
         return self
-
-    def serialize(self, path: Path) -> None:
-        logging.warning(
-            "Serializing RepresentableBlockPredictor instances does not save "
-            "the prediction network structure in a backwards-compatible "
-            "manner. Be careful not to use this method in production."
-        )
-        super().serialize(path)
 
     def serialize_prediction_net(self, path: Path) -> None:
         export_symb_block(self.prediction_net, path, "prediction_net")
@@ -437,7 +434,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
-        float_type: DType = np.float32,
+        dtype: DType = np.float32,
     ) -> None:
         super().__init__(
             input_names=get_hybrid_forward_input_names(prediction_net),
@@ -449,7 +446,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             input_transform=input_transform,
             forecast_generator=forecast_generator,
             output_transform=output_transform,
-            float_type=float_type,
+            dtype=dtype,
         )
 
     def as_symbol_block_predictor(
@@ -470,8 +467,16 @@ class RepresentableBlockPredictor(GluonPredictor):
             input_transform=self.input_transform,
             forecast_generator=self.forecast_generator,
             output_transform=self.output_transform,
-            float_type=self.float_type,
+            dtype=self.dtype,
         )
+
+    def serialize(self, path: Path) -> None:
+        logging.warning(
+            "Serializing RepresentableBlockPredictor instances does not save "
+            "the prediction network structure in a backwards-compatible "
+            "manner. Be careful not to use this method in production."
+        )
+        super().serialize(path)
 
     def serialize_prediction_net(self, path: Path) -> None:
         export_repr_block(self.prediction_net, path, "prediction_net")

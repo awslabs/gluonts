@@ -14,6 +14,9 @@
 # Standard library imports
 from typing import Dict, Optional, Tuple, cast, List
 
+# Third-party imports
+import numpy as np
+
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.distribution.bijection import AffineTransformation, Bijection
@@ -116,12 +119,15 @@ class PiecewiseLinear(Distribution):
 
         return b, knot_positions
 
-    def sample(self, num_samples: Optional[int] = None) -> Tensor:
+    def sample(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         F = self.F
 
         # if num_samples=None then u should have the same shape as gamma, i.e., (dim,)
         # else u should be (num_samples, dim)
         # Note: there is no need to extend the parameters to (num_samples, dim, ...)
+        # Thankfully samples returned by `uniform_like` have the expected datatype.
         u = F.random.uniform_like(
             data=(
                 self.gamma
