@@ -1,6 +1,6 @@
 # GluonTS - Probabilistic Time Series Modeling in Python
 
-![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square) ![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)
+[![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/) ![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)
 
 GluonTS is a Python toolkit for probabilistic time series modeling,
 built around [Apache MXNet (incubating)](https://mxnet.incubator.apache.org/).
