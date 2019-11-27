@@ -113,9 +113,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--s3_dataset",
         type=str,
-        default=os.environ.get(
-            "SM_CHANNEL_S3_DATASET"
-        ),  # str(os.environ.get("SM_CHANNEL_S3_DATASET")),
+        default=os.environ.get("SM_CHANNEL_S3_DATASET"),
     )
     parser.add_argument(
         "--dataset", type=str, default=os.environ["SM_HP_DATASET"]

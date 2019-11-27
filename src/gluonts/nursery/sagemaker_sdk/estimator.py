@@ -595,7 +595,7 @@ class GluonTSFramework(Framework):
 
             You can assign entry_point='src/train.py'.
         inputs:
-            Type is str or dict or sagemaker.session.s3_input
+            Type is str or dict or sagemaker.session.s3_input, however, cannot be empty!
             Information about the training data. This can be one of three types;
 
             * If (str) the S3 location where training data is saved.
@@ -655,7 +655,7 @@ class GluonTSFramework(Framework):
             libraries needed in the Git repo.
             Example::
 
-                GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
+                GluonTSFramework.run(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
 
             results in the following inside the container::
 
@@ -666,7 +666,7 @@ class GluonTSFramework(Framework):
 
             To use a custom GluonTS version just import your custom GluonTS version and then call::
 
-                 GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+                 GluonTSFramework.run(entry_point='train.py', dependencies=[gluonts.__path__[0]])
 
             This may brake the :meth:`GluonTSFramework.train` method though.
             If not specified, them dependencies from the Estimator will be used.

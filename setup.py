@@ -177,7 +177,9 @@ class StyleCheckCommand(distutils.cmd.Command):
 
 
 tests_require = find_requirements("requirements-test.txt")
-sagemaker_api_require = find_requirements("requirements-extras-sagemaker-sdk.txt")
+sagemaker_api_require = find_requirements(
+    "requirements-extras-sagemaker-sdk.txt"
+)
 shell_require = find_requirements("requirements-extras-shell.txt")
 setup_requires = find_requirements(
     "requirements-setup.txt"
