@@ -129,14 +129,17 @@ class GluonTSModel(FrameworkModel):
         ----------
         instance_type:
             The EC2 instance type to deploy this Model to.
-            Example;
-            >>> 'ml.c5.xlarge' # CPU,
-            >>> 'ml.p2.xlarge' # GPU.
+            Example::
+
+                'ml.c5.xlarge' # CPU,
+                'ml.p2.xlarge' # GPU.
+
         accelerator_type:
             The Elastic Inference accelerator type to
             deploy to the instance for loading and making inferences to the model.
-            Example;
-            >>> "ml.eia1.medium"
+            Example::
+
+                "ml.eia1.medium"
 
         Returns
         --------

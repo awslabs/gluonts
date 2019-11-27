@@ -92,16 +92,20 @@ class GluonTSFramework(Framework):
         The estimator will use this image for training and hosting. It must be an ECR url.
         If you use an image with MXNET with GPU support, you will have to
         use a GPU instance.
-        Example;
-        >>> '123.dkr.ecr.us-west-2.amazonaws.com/my-custom-image:1.0'
+        Example::
+
+            '123.dkr.ecr.us-west-2.amazonaws.com/my-custom-image:1.0'
+
     base_job_name:
         Prefix for training job name when the :meth:`GluonTSFramework.train` or
         :meth:`GluonTSFramework.run` method is called.
     train_instance_type:
         Type of EC2 instance to use for training.
-        Example;
-        >>> 'ml.c5.xlarge' # CPU,
-        >>> 'ml.p2.xlarge' # GPU
+        Example::
+
+            'ml.c5.xlarge' # CPU,
+            'ml.p2.xlarge' # GPU
+
     train_instance_count:
         Currently not more than one supported.
         Otherwise the number of Amazon EC2 instances to use for training.
@@ -114,17 +118,21 @@ class GluonTSFramework(Framework):
         If 'git_config' is provided, 'dependencies' should be a
         list of relative locations to directories with any additional
         libraries needed in the Git repo.
-        Example;
-        >>> GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
-        results in the following inside the container;
+        Example::
 
-        >>> opt/ml/code
-        >>>     ├---> train.py
-        >>>     ├---> common
-        >>>     └---> requirements.txt
+            GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
 
-        To use a custom GluonTS version just import your custom GluonTS version and then call;
-        >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+        results in the following inside the container::
+
+            opt/ml/code
+                 ├---> train.py
+                 ├---> common
+                 └---> requirements.txt
+
+        To use a custom GluonTS version just import your custom GluonTS version and then call::
+
+             GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+
         This may brake the :meth:`GluonTSFramework.train` method though.
         If not specified, them dependencies from the Estimator will be used.
     output_path:
@@ -251,26 +259,32 @@ class GluonTSFramework(Framework):
             If 'git_config' is provided, 'dependencies' should be a
             list of relative locations to directories with any additional
             libraries needed in the Git repo.
-            Example;
-            >>> GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
-            results in the following inside the container;
+            Example::
 
-            >>> opt/ml/code
-            >>>     ├---> train.py
-            >>>     ├---> common
-            >>>     └---> requirements.txt
+                 GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
 
-            To use a custom GluonTS version just import your custom GluonTS version and then call;
-            >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+            results in the following inside the container::
+
+                 opt/ml/code
+                     ├---> train.py
+                     ├---> common
+                     └---> requirements.txt
+
+            To use a custom GluonTS version just import your custom GluonTS version and then call::
+
+                 GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+
             This may brake the :meth:`GluonTSFramework.train` method though.
             If not specified, them dependencies from the Estimator will be used.
         image_name:
             The estimator will use this image for training and hosting. It must be an ECR url.
             If you use an image with MXNET with GPU support, you will have to
             use a GPU instance.
-            Example;
-            >>> '123.dkr.ecr.us-west-2.amazonaws.com/my-custom-image:1.0'
-            >>> 'custom-image:latest'
+            Example::
+
+                 '123.dkr.ecr.us-west-2.amazonaws.com/my-custom-image:1.0'
+                 'custom-image:latest'
+
             If not specified, them image from the Estimator will be used.
         **kwargs:
             Additional kwargs passed to the GluonTSModel constructor.
@@ -421,14 +435,14 @@ class GluonTSFramework(Framework):
         dataset:
             An s3 path-stype URL to a dataset in GluonTs format, or the name of a provided
             dataset (see gluonts.dataset.repository.datasets.dataset_recipes.keys()).
-            Required dataset structure;
+            Required dataset structure::
 
-            >>> dataset
-            >>>    ├---> train
-            >>>    |   └--> data.json
-            >>>    ├---> test
-            >>>    |   └--> data.json
-            >>>    └--> metadata.json
+                dataset
+                    ├---> train
+                    |   └--> data.json
+                    ├---> test
+                    |   └--> data.json
+                    └--> metadata.json
 
         estimator:
             The GluonTS estimator that should be trained. If you want to train a custom estimator
@@ -571,12 +585,12 @@ class GluonTSFramework(Framework):
             Path (absolute or relative) to the local Python source file which should be executed as the entry point to
             training. This should be compatible with Python 3.6. If 'git_config' is provided, 'entry_point' should be
             a relative location to the Python source file in the Git repo.
-            For example with the following GitHub repo directory structure;
+            For example with the following GitHub repo directory structure::
 
-            >>> |---> README.md
-            >>> └---> src
-            >>>   |---> train.py
-            >>>   └---> test.py
+                |---> README.md
+                └---> src
+                    |---> train.py
+                    └---> test.py
 
             You can assign entry_point='src/train.py'.
         inputs:
@@ -594,9 +608,11 @@ class GluonTSFramework(Framework):
                 a file system data source that can provide additional information as well as
                 the path to the training dataset.
 
-            Example:
-            >>> inputs = {'my_dataset': session.s3_input(my_dataset_file, content_type='application/json')} # or
-            >>> inputs = {'my_dataset': my_dataset_dir}
+            Example::
+
+                inputs = {'my_dataset': session.s3_input(my_dataset_file, content_type='application/json')} # or
+                inputs = {'my_dataset': my_dataset_dir}
+
             where 'my_dataset_file' and 'my_dataset_dir' are the relative or absolute paths as strings.
         sagemaker_session:
             Session object which manages interactions with Amazon SageMaker APIs
@@ -610,16 +626,20 @@ class GluonTSFramework(Framework):
             The estimator will use this image for training and hosting. It must be an ECR url.
             If you use an image with MXNET with GPU support, you will have to
             use a GPU instance.
-            Example;
-            >>> '123.dkr.ecr.us-west-2.amazonaws.com/my-custom-image:1.0'
+            Example::
+
+                '123.dkr.ecr.us-west-2.amazonaws.com/my-custom-image:1.0'
+
         base_job_name:
             Prefix for training job name when the :meth:`GluonTSFramework.train` or
             :meth:`GluonTSFramework.run` method is called.
         train_instance_type:
             Type of EC2 instance to use for training.
-            Example;
-            >>> 'ml.c5.xlarge' # CPU,
-            >>> 'ml.p2.xlarge' # GPU
+            Example::
+
+                'ml.c5.xlarge' # CPU,
+                'ml.p2.xlarge' # GPU
+
         train_instance_count:
             Currently not more than one supported.
             Otherwise the number of Amazon EC2 instances to use for training.
@@ -632,17 +652,21 @@ class GluonTSFramework(Framework):
             If 'git_config' is provided, 'dependencies' should be a
             list of relative locations to directories with any additional
             libraries needed in the Git repo.
-            Example;
-            >>> GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
-            results in the following inside the container;
+            Example::
 
-            >>> opt/ml/code
-            >>>     ├---> train.py
-            >>>     ├---> common
-            >>>     └---> requirements.txt
+                GluonTSFramework(entry_point='train.py', dependencies=['my/libs/common', 'requirements.txt'])
 
-            To use a custom GluonTS version just import your custom GluonTS version and then call;
-            >>> GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+            results in the following inside the container::
+
+                opt/ml/code
+                     ├---> train.py
+                     ├---> common
+                     └---> requirements.txt
+
+            To use a custom GluonTS version just import your custom GluonTS version and then call::
+
+                 GluonTSFramework(entry_point='train.py', dependencies=[gluonts.__path__[0]])
+
             This may brake the :meth:`GluonTSFramework.train` method though.
             If not specified, them dependencies from the Estimator will be used.
         output_path:
@@ -670,12 +694,12 @@ class GluonTSFramework(Framework):
             including dependencies. Structure within this directory is preserved when training on
             Amazon SageMaker. If 'git_config' is provided, 'source_dir' should be a relative
             location to a directory in the Git repo.
-            For example with the following GitHub repo directory structure;
+            For example with the following GitHub repo directory structure::
 
-            >>> |---> README.md
-            >>> └---> src
-            >>>   |---> train.py
-            >>>   └---> test.py
+                |---> README.md
+                └---> src
+                  |---> train.py
+                  └---> test.py
 
             and you need 'train.py' as entry point and 'test.py' as training source code as well,
             you must set entry_point='train.py', source_dir='src'.
