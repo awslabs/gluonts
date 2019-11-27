@@ -88,15 +88,13 @@ class DirichletMultinomial(Distribution):
 
         sum_alpha = F.sum(alpha, axis=-1)
 
-        ll = F.gammaln(sum_alpha) + F.gammaln(F.eye(1) * (n_trials + 1))
-
-        ll -= F.gammaln(sum_alpha + n_trials)
+        ll = F.gammaln(sum_alpha) + F.gammaln(F.ones_like(sum_alpha)*(n_trials + 1.)) - F.gammaln(sum_alpha + n_trials)
 
         beta_matrix = (
             F.gammaln(x + alpha) - F.gammaln(x + 1) - F.gammaln(alpha)
         )
 
-        ll += F.sum(beta_matrix, axis=-1)
+        ll = ll + F.sum(beta_matrix, axis=-1)
 
         return ll
 
