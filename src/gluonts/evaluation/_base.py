@@ -370,7 +370,7 @@ class Evaluator:
         )
 
     @staticmethod
-    def smape(target, forcecast):
+    def smape(target, forecast):
         r"""
         .. math::
 
@@ -379,11 +379,11 @@ class Evaluator:
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
 
-        denominator = np.abs(target) + np.abs(forcecast)
+        denominator = np.abs(target) + np.abs(forecast)
         flag = denominator == 0
 
         smape = 2 * np.mean(
-            (np.abs(target - forcecast) * (1 - flag)) / (denominator + flag)
+            (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
         )
         return smape
 
