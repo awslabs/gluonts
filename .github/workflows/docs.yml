@@ -20,6 +20,7 @@ jobs:
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-docs.txt
+        pip install -r requirements/requirements-extras-sdk.txt
 
     - name: Build docs
       run: |
