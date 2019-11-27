@@ -37,13 +37,19 @@ class DirichletMultinomial(Distribution):
     The Dirichlet-Multinomial distribution is a discrete multivariate probability distribution, a sample
     (or observation) x = (x_0,..., x_{dim-1}) must satisfy:
 
-    sum_k x_k = n and for all k, x_k is a non-negative integer.
+    sum_k x_k = n_trials and for all k, x_k is a non-negative integer.
 
     Such a sample can be obtained by first drawing a vector p from a Dirichlet(alpha) distribution, then x is
     drawn from a Multinomial(p) with n trials
 
     Parameters
     ----------
+    dim
+        Dimension of any sample
+
+    n_trials
+        Number of trials
+        
     alpha
         concentration vector, of shape (..., dim)
 
