@@ -300,7 +300,7 @@ def test_dirichlet(hybridize: bool) -> None:
 
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_dirichlet_multinomial(hybridize: bool) -> None:
-    num_samples = 2000
+    num_samples = 8000
     dim = 3
     n_trials = 10
 
