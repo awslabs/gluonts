@@ -37,14 +37,15 @@ class GluonTSPredictor(RealTimePredictor):
         self, endpoint_name: str, sagemaker_session: session.Session = None
     ):
         """Initialize an ``GluonTSPredictor``.
+
         Parameters
         ----------
-            endpoint_name:
-                The name of the endpoint to perform inference on.
-            sagemaker_session :
-                Session object which manages interactions with Amazon SageMaker APIs and any other
-                AWS services needed. If not specified, the estimator creates one
-                using the default AWS configuration chain.
+        endpoint_name:
+            The name of the endpoint to perform inference on.
+        sagemaker_session :
+            Session object which manages interactions with Amazon SageMaker APIs and any other
+            AWS services needed. If not specified, the estimator creates one
+            using the default AWS configuration chain.
         """
 
         # Use the default functions from MXNet (they handle more than we need
@@ -76,33 +77,34 @@ class GluonTSModel(FrameworkModel):
     ):
         """
         Initialize a GluonTSModel.
+
         Parameters
         ----------
-            model_data:
-                The S3 location of a SageMaker model data ``.tar.gz`` file.
-            role:
-                An AWS IAM role (either name or full ARN). The Amazon
-                SageMaker training jobs and APIs that create Amazon SageMaker
-                endpoints use this role to access training data and model
-                artifacts. After the endpoint is created, the inference code
-                might use the IAM role, if it needs to access an AWS resource.
-            entry_point:
-                Path (absolute or relative) to the Python source
-                file which should be executed as the entry point to model
-                hosting. This should be compatible with Python 3.6.
-            image:
-                A Docker image URI (default: None).
-            framework_version:
-                GluonTS version you want to use for executing your model training code.
-            predictor_cls:
-                A function to call to create a predictor with an endpoint name and
-                SageMaker ``Session``. If specified, ``deploy()`` returns the
-                result of invoking this function on the created endpoint name.
-            model_server_workers:
-                Optional. The number of worker processes used by the inference server. If None,
-                server will use one worker per vCPU.
-            **kwargs:
-                Keyword arguments passed to the ``FrameworkModel`` initializer.
+        model_data:
+            The S3 location of a SageMaker model data ``.tar.gz`` file.
+        role:
+            An AWS IAM role (either name or full ARN). The Amazon
+            SageMaker training jobs and APIs that create Amazon SageMaker
+            endpoints use this role to access training data and model
+            artifacts. After the endpoint is created, the inference code
+            might use the IAM role, if it needs to access an AWS resource.
+        entry_point:
+            Path (absolute or relative) to the Python source
+            file which should be executed as the entry point to model
+            hosting. This should be compatible with Python 3.6.
+        image:
+            A Docker image URI (default: None).
+        framework_version:
+            GluonTS version you want to use for executing your model training code.
+        predictor_cls:
+            A function to call to create a predictor with an endpoint name and
+            SageMaker ``Session``. If specified, ``deploy()`` returns the
+            result of invoking this function on the created endpoint name.
+        model_server_workers:
+            Optional. The number of worker processes used by the inference server. If None,
+            server will use one worker per vCPU.
+        **kwargs:
+            Keyword arguments passed to the ``FrameworkModel`` initializer.
         """
         super(GluonTSModel, self).__init__(
             model_data,
@@ -122,22 +124,24 @@ class GluonTSModel(FrameworkModel):
         """
         Return a container definition with framework configuration set in
         model environment variables.
+
         Parameters
         ----------
-            instance_type:
-                The EC2 instance type to deploy this Model to.
-                Example:
-                    "ml.c5.xlarge" # CPU,
-                    "ml.p2.xlarge" # GPU.
-            accelerator_type:
-                The Elastic Inference accelerator type to
-                deploy to the instance for loading and making inferences to the model.
-                Example:
-                    "ml.eia1.medium".
+        instance_type:
+            The EC2 instance type to deploy this Model to.
+            Example;
+            >>> 'ml.c5.xlarge' # CPU,
+            >>> 'ml.p2.xlarge' # GPU.
+        accelerator_type:
+            The Elastic Inference accelerator type to
+            deploy to the instance for loading and making inferences to the model.
+            Example;
+            >>> "ml.eia1.medium"
+
         Returns
         --------
-            Dict[str, str]:
-                A container definition object usable with the CreateModel API.
+        Dict[str, str]:
+            A container definition object usable with the CreateModel API.
         """
 
         # Code from MXNet implementation:
