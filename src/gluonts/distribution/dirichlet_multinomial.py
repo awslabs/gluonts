@@ -30,12 +30,12 @@ from gluonts.model.common import Tensor
 
 class DirichletMultinomial(Distribution):
     r"""
-    Dirichlet-Multinomial distribution, specified by the concentration vector alpha of length d, and a number of
-    trials n.
+    Dirichlet-Multinomial distribution, specified by the concentration vector alpha of length dim, and a number of
+    trials n_trials.
     https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution
 
     The Dirichlet-Multinomial distribution is a discrete multivariate probability distribution, a sample
-    (or observation) x = (x_0,..., x_{d-1}) must satisfy:
+    (or observation) x = (x_0,..., x_{dim-1}) must satisfy:
 
     sum_k x_k = n and for all k, x_k is a non-negative integer.
 
@@ -45,7 +45,7 @@ class DirichletMultinomial(Distribution):
     Parameters
     ----------
     alpha
-        concentration vector, of shape (..., d)
+        concentration vector, of shape (..., dim)
 
     F
         A module that can either refer to the Symbol API or the NDArray
@@ -56,8 +56,15 @@ class DirichletMultinomial(Distribution):
 
     @validated()
     def __init__(
-        self, alpha: Tensor, F=None, float_type: DType = np.float32
+        self,
+        dim: int,
+        n_trials: int,
+        alpha: Tensor,
+        F=None,
+        float_type: DType = np.float32,
     ) -> None:
+        self.dim = dim
+        self.n_trials = n_trials
         self.alpha = alpha
         self.F = F if F else getF(alpha)
         self.float_type = float_type
@@ -76,36 +83,46 @@ class DirichletMultinomial(Distribution):
 
     def log_prob(self, x: Tensor) -> Tensor:
         F = self.F
-
-        # Normalize observations in case of mean_scaling
-        sum_x = F.sum(x, axis=-1).expand_dims(axis=-1)
-        x = F.broadcast_div(x, sum_x)
-
+        n_trials = self.n_trials
         alpha = self.alpha
 
         sum_alpha = F.sum(alpha, axis=-1)
-        log_beta = F.sum(F.gammaln(alpha), axis=-1) - F.gammaln(sum_alpha)
 
-        l_x = F.sum((alpha - 1) * F.log(x), axis=-1)
-        ll = l_x - log_beta
+        ll = F.gammaln(sum_alpha) + F.gammaln(F.eye(1) * (n_trials + 1))
+
+        ll -= F.gammaln(sum_alpha + n_trials)
+
+        beta_matrix = (
+            F.gammaln(x + alpha) - F.gammaln(x + 1) - F.gammaln(alpha)
+        )
+
+        ll += F.sum(beta_matrix, axis=-1)
+
         return ll
 
     @property
     def mean(self) -> Tensor:
         F = self.F
         alpha = self.alpha
+        n_trials = self.n_trials
 
         sum_alpha = F.sum(alpha, axis=-1)
-        return F.broadcast_div(alpha, sum_alpha.expand_dims(axis=-1))
+        return (
+            F.broadcast_div(alpha, sum_alpha.expand_dims(axis=-1)) * n_trials
+        )
 
     @property
     def variance(self) -> Tensor:
         F = self.F
         alpha = self.alpha
-        d = int(F.ones_like(self.alpha).sum(axis=-1).max().asscalar())
+        d = self.dim
+        n_trials = self.n_trials
 
-        scale = F.sqrt(F.sum(alpha, axis=-1) + 1).expand_dims(axis=-1)
-        scaled_alpha = F.broadcast_div(self.mean, scale)
+        sum_alpha = F.sum(alpha, axis=-1)
+        scale = F.sqrt(
+            (sum_alpha + 1) / (sum_alpha + n_trials) / n_trials
+        ).expand_dims(axis=-1)
+        scaled_alpha = F.broadcast_div(self.mean / n_trials, scale)
 
         cross = F.linalg_gemm2(
             scaled_alpha.expand_dims(axis=-1),
@@ -115,11 +132,16 @@ class DirichletMultinomial(Distribution):
 
         diagonal = F.broadcast_div(scaled_alpha, scale) * F.eye(d)
 
-        return diagonal - cross
+        dir_variance = diagonal - cross
+
+        return dir_variance
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
+        dim = self.dim
+        n_trials = self.n_trials
+
         def s(alpha: Tensor) -> Tensor:
             F = getF(alpha)
             samples_gamma = F.sample_gamma(
@@ -128,7 +150,8 @@ class DirichletMultinomial(Distribution):
             sum_gamma = F.sum(samples_gamma, axis=-1, keepdims=True)
             samples_s = F.broadcast_div(samples_gamma, sum_gamma)
 
-            return samples_s
+            cat_samples = F.sample_multinomial(samples_s, shape=n_trials)
+            return F.sum(F.one_hot(cat_samples, dim), axis=-2)
 
         samples = _sample_multiple(
             s, alpha=self.alpha, num_samples=num_samples
@@ -137,18 +160,20 @@ class DirichletMultinomial(Distribution):
         return samples
 
 
-class DirichletOutput(DistributionOutput):
+class DirichletMultinomialOutput(DistributionOutput):
     @validated()
-    def __init__(self, dim: int) -> None:
-        assert dim > 1, "Dimension should be larger than one."
+    def __init__(self, dim: int, n_trials: int) -> None:
+        assert dim > 1, "Dimension must be larger than one."
+        self.dim = dim
+        self.n_trials = n_trials
         self.args_dim = {"alpha": dim}
-        self.distr_cls = Dirichlet
+        self.distr_cls = DirichletMultinomial
         self.dim = dim
         self.mask = None
 
     def distribution(self, distr_args, scale=None, **kwargs) -> Distribution:
         # todo deal with scaling
-        distr = Dirichlet(distr_args)
+        distr = DirichletMultinomial(self.dim, self.n_trials, distr_args)
         return distr
 
     def domain_map(self, F, alpha_vector):
