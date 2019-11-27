@@ -297,6 +297,7 @@ def test_dirichlet(hybridize: bool) -> None:
         cov_hat, cov, atol=0.1, rtol=0.1
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
+
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_dirichlet_multinomial(hybridize: bool) -> None:
     num_samples = 2000
@@ -305,7 +306,9 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
 
     alpha = np.random.gamma(shape=1, size=dim) + 0.5
 
-    distr = DirichletMultinomial(dim=3, n_trials=n_trials, alpha=mx.nd.array(alpha))
+    distr = DirichletMultinomial(
+        dim=3, n_trials=n_trials, alpha=mx.nd.array(alpha)
+    )
     cov = distr.variance.asnumpy()
 
     samples = distr.sample(num_samples)
@@ -319,7 +322,9 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
         num_epochs=PositiveInt(10),
     )
 
-    distr = DirichletMultinomial(dim=3, n_trials=n_trials, alpha=mx.nd.array(alpha_hat))
+    distr = DirichletMultinomial(
+        dim=3, n_trials=n_trials, alpha=mx.nd.array(alpha_hat)
+    )
 
     cov_hat = distr.variance.asnumpy()
 

@@ -134,7 +134,11 @@ test_cases_multivariate = [
         2,
     ),
     (Dirichlet, {"alpha": mx.nd.array([0.2, 0.4, 0.9])}, 3),
-    (DirichletMultinomial, {"dim": 3, "n_trials": 10, "alpha": mx.nd.array([0.2, 0.4, 0.9])}, 3),
+    (
+        DirichletMultinomial,
+        {"dim": 3, "n_trials": 10, "alpha": mx.nd.array([0.2, 0.4, 0.9])},
+        3,
+    ),
 ]
 
 
