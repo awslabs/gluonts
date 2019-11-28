@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 # Third-party imports
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 
 # First-party imports
 from gluonts.core.component import DType, validated
@@ -1287,3 +1288,271 @@ class TransformedDataset(Dataset):
 
     def __len__(self):
         return sum(1 for _ in self)
+
+
+class GaussianCopula(MapTransformation):
+    """
+    Transformation that adds CDF of the target (e.g. sorted target).
+    """
+
+    @validated()
+    def __init__(
+        self,
+        target_dim: int,
+        target_field: str,
+        observed_values_field: str,
+        cdf_suffix="_cdf",
+        max_context_length: Optional[int] = None,
+    ) -> None:
+        """
+        :param target_field:
+        :param observed_values_field:
+        :param cdf_suffix:
+        :param max_context_length: maximum length on which the cdf is computed
+        """
+        self.target_field = target_field
+        self.past_target_field = "past_" + self.target_field
+        self.future_target_field = "future_" + self.target_field
+        self.past_observed_field = f"past_{observed_values_field}"
+        self.sort_target_field = f"past_{target_field}_sorted"
+        self.slopes_field = "slopes"
+        self.intercepts_field = "intercepts"
+        self.cdf_suffix = cdf_suffix
+        self.max_context_length = max_context_length
+        self.target_dim = target_dim
+
+    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        self._preprocess_data(data, is_train=is_train)
+        self._calc_pw_linear_params(data)
+
+        for target_field in [self.past_target_field, self.future_target_field]:
+            data[target_field + self.cdf_suffix] = norm.ppf(
+                GaussianCopula._cdf_inverse_transform(
+                    data[self.sort_target_field],
+                    data[target_field],
+                    data[self.slopes_field],
+                    data[self.intercepts_field],
+                )
+            )
+        return data
+
+    def _preprocess_data(self, data: DataEntry, is_train: bool):
+        # (target_length, target_dim)
+        past_target_vec = data[self.past_target_field].copy()
+
+        # pick only observed values
+        target_length, target_dim = past_target_vec.shape
+
+        # (target_length, target_dim)
+        past_observed = (data[self.past_observed_field] > 0) * (
+            data["past_is_pad"].reshape((-1, 1)) == 0
+        )
+        assert past_observed.ndim == 2
+        assert target_dim == self.target_dim
+
+        past_target_vec = past_target_vec[past_observed.min(axis=1)]
+
+        assert past_target_vec.ndim == 2
+        assert past_target_vec.shape[1] == self.target_dim
+
+        expected_length = (
+            target_length
+            if self.max_context_length is None
+            else self.max_context_length
+        )
+
+        if target_length != expected_length:
+            # Fills values in the case where past_target_vec.shape[-1] <
+            # target_length
+            # as dataset.loader.BatchBuffer does not support varying shapes
+            past_target_vec = GaussianCopula._fill(
+                past_target_vec, expected_length
+            )
+
+        # sorts along the time dimension to compute empirical CDF of each
+        # dimension
+        if is_train:
+            scale_noise = 0.2
+            std = np.sqrt(
+                (
+                    np.square(
+                        past_target_vec
+                        - past_target_vec.mean(axis=1, keepdims=True)
+                    )
+                ).mean(axis=1, keepdims=True)
+            )
+            noise = np.random.normal(
+                loc=np.zeros_like(past_target_vec),
+                scale=np.ones_like(past_target_vec) * std * scale_noise,
+            )
+            past_target_vec = past_target_vec + noise
+
+        past_target_vec.sort(axis=0)
+
+        assert past_target_vec.shape == (expected_length, self.target_dim)
+
+        data[self.sort_target_field] = past_target_vec
+
+    def _calc_pw_linear_params(self, data: DataEntry):
+        sorted_target = data[self.sort_target_field]
+        sorted_target_length, target_dim = sorted_target.shape
+
+        quantiles = np.stack(
+            [np.arange(sorted_target_length) for _ in range(target_dim)],
+            axis=1,
+        ) / float(sorted_target_length)
+        x_diff = np.diff(sorted_target, axis=0)
+        y_diff = np.diff(quantiles, axis=0)
+
+        slopes = np.where(
+            x_diff == 0.0, np.zeros_like(x_diff), y_diff / x_diff
+        )
+
+        zeroes = np.zeros_like(np.expand_dims(slopes[0, :], axis=0))
+        slopes = np.append(slopes, zeroes, axis=0)
+        intercepts = quantiles - slopes * sorted_target
+
+        data[self.slopes_field] = slopes
+        data[self.intercepts_field] = intercepts
+
+    @staticmethod
+    def _cdf_inverse_transform(
+        sorted_values: np.ndarray,
+        values: np.ndarray,
+        slopes: np.ndarray,
+        intercepts: np.ndarray,
+    ) -> np.ndarray:
+        def search_sorted(sorted_vec, to_insert_vec):
+            indices_left = np.searchsorted(
+                sorted_vec, to_insert_vec, side="left"
+            )
+            indices_right = np.searchsorted(
+                sorted_vec, to_insert_vec, side="right"
+            )
+
+            indices = indices_left + (indices_right - indices_left) // 2
+            indices = indices - 1
+            indices = np.minimum(indices, len(sorted_vec) - 1)
+            indices[indices < 0] = 0
+            return indices
+
+        def transform(sorted_vec, target, slopes, intercepts):
+            transformed = list()
+            for sorted, t, slope, intercept in zip(
+                sorted_vec.transpose(),
+                target.transpose(),
+                slopes.transpose(),
+                intercepts.transpose(),
+            ):
+                indices = search_sorted(sorted, t)
+                transformed_value = slope[indices] * t + intercept[indices]
+                transformed.append(transformed_value)
+            return np.array(transformed).transpose()
+
+        m = sorted_values.shape[0]
+        quantiles = transform(sorted_values, values, slopes, intercepts)
+
+        quantiles = np.clip(
+            quantiles,
+            GaussianCopula.winsorized_cutoff(m),
+            1 - GaussianCopula.winsorized_cutoff(m),
+        )
+        return quantiles
+
+    @staticmethod
+    def winsorized_cutoff(m):
+        res = 1 / (4 * m ** 0.25 * np.sqrt(3.14 * np.log(m)))
+        assert 0 < res < 1
+        return res
+
+    @staticmethod
+    def _fill(target: np.ndarray, expected_length: int) -> np.ndarray:
+        """
+        Makes sure target has at least expected_length time-units by repeating
+        it or using zeros.
+
+        Parameters
+        ----------
+        target : shape (seq_len, dim)
+        expected_length
+
+        Returns
+        -------
+            array of shape (target_length, dim)
+        """
+
+        current_length, target_dim = target.shape
+        if current_length == 0:
+            # todo handle the case with no observation better,
+            # we could use dataset statistics but for now we use zeros
+            filled_target = np.zeros((expected_length, target_dim))
+        elif current_length < expected_length:
+            filled_target = np.vstack(
+                [target for _ in range(expected_length // current_length + 1)]
+            )
+            filled_target = filled_target[:expected_length]
+        elif current_length > expected_length:
+            filled_target = target[-expected_length:]
+        else:
+            filled_target = target
+
+        assert filled_target.shape == (expected_length, target_dim)
+
+        return filled_target
+
+
+def gaussian_copula_forward_transform(
+    input_batch: DataEntry, outputs: np.ndarray
+) -> np.ndarray:
+    """
+    Applies cdf inverse transformation to target transforming predicted
+    quantiles to values in the target domain.
+    :param input_batch: (batch_size, seq_len)
+    :param outputs: (batch_size, samples, target_dim, seq_len)
+    :return: tensor of shape (batch_size, samples, target_dim, seq_len)
+    """
+
+    def _empirical_cdf_forward_transform(
+        batch_target_sorted: np.ndarray,
+        batch_cdf_predictions: np.ndarray,
+        slopes: np.ndarray,
+        intercepts: np.ndarray,
+    ) -> np.ndarray:
+        """
+        :param batch_target_sorted: (batch_size, seq_len, target_dim)
+        :param batch_cdf_predictions: (batch_size, target_dim, seq_len)
+        :return: (batch_size, seq_len, target_dim)
+        """
+        batch_cdf_predictions = batch_cdf_predictions.transpose((0, 2, 1))
+        slopes = slopes.asnumpy()
+        intercepts = intercepts.asnumpy()
+
+        batch_target_sorted = batch_target_sorted.asnumpy()
+        batch_size, num_timesteps, target_dim = batch_target_sorted.shape
+        indices = np.floor(batch_cdf_predictions * num_timesteps)
+        # indices = indices - 1
+        # for now project into [0, 1]
+        indices = np.clip(indices, 0, num_timesteps - 1)
+        indices = indices.astype(np.int)
+
+        transformed = np.where(
+            np.take_along_axis(slopes, indices, axis=1) != 0.0,
+            (
+                batch_cdf_predictions
+                - np.take_along_axis(intercepts, indices, axis=1)
+            )
+            / np.take_along_axis(slopes, indices, axis=1),
+            np.take_along_axis(batch_target_sorted, indices, axis=1),
+        )
+        return transformed.swapaxes(1, 2)
+
+    # applies inverse cdf to all outputs
+    batch_size, samples, target_dim, time = outputs.shape
+    for sample_index in range(0, samples):
+        outputs[:, sample_index, :, :] = _empirical_cdf_forward_transform(
+            input_batch["past_target_sorted"],
+            norm.cdf(outputs[:, sample_index, :, :]),
+            input_batch["slopes"],
+            input_batch["intercepts"],
+        )
+    return outputs

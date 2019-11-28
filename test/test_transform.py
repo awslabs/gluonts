@@ -17,6 +17,7 @@ from typing import Tuple
 # Third-party imports
 import numpy as np
 import pandas as pd
+import mxnet as mx
 import pytest
 
 # First-party imports
@@ -24,7 +25,7 @@ import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
-from gluonts.dataset.common import ProcessStartField
+from gluonts.dataset.common import ProcessStartField, DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 
@@ -534,6 +535,104 @@ def test_BucketInstanceSampler():
         assert abs(
             expected_values[i] - found_values[i] < expected_values[i] * 0.3
         )
+
+
+def test_cdf():
+    def make_test_data():
+        target = np.array(
+            [
+                0,
+                0,
+                0,
+                0,
+                10,
+                10,
+                20,
+                20,
+                30,
+                30,
+                40,
+                50,
+                59,
+                60,
+                60,
+                70,
+                80,
+                90,
+                100,
+            ]
+        ).tolist()
+
+        np.random.shuffle(target)
+
+        multi_dim_target = np.array([target, target]).transpose()
+
+        past_is_pad = np.array([[0] * len(target)]).transpose()
+
+        past_observed_target = np.array(
+            [[1] * len(target), [1] * len(target)]
+        ).transpose()
+
+        ds = gluonts.dataset.common.ListDataset(
+            # Mimic output from InstanceSplitter
+            data_iter=[
+                {
+                    "start": "2012-01-01",
+                    "target": multi_dim_target,
+                    "past_target": multi_dim_target,
+                    "future_target": multi_dim_target,
+                    "past_is_pad": past_is_pad,
+                    f"past_{FieldName.OBSERVED_VALUES}": past_observed_target,
+                }
+            ],
+            freq="1D",
+            one_dim_target=False,
+        )
+        return ds
+
+    def make_fake_output(u: DataEntry):
+        fake_output = np.expand_dims(
+            np.expand_dims(u["past_target_cdf"], axis=0), axis=0
+        ).swapaxes(2, 3)
+        return fake_output
+
+    ds = make_test_data()
+
+    t = transform.Chain(
+        trans=[
+            transform.GaussianCopula(
+                target_field=FieldName.TARGET,
+                observed_values_field=FieldName.OBSERVED_VALUES,
+                max_context_length=20,
+                target_dim=2,
+            )
+        ]
+    )
+
+    for u in t(iter(ds), is_train=False):
+
+        fake_output = make_fake_output(u)
+
+        # Fake transformation chain output
+        u["past_target_sorted"] = mx.nd.array(
+            np.expand_dims(u["past_target_sorted"], axis=0)
+        )
+
+        u["slopes"] = mx.nd.array(np.expand_dims(u["slopes"], axis=0))
+
+        u["intercepts"] = mx.nd.array(np.expand_dims(u["intercepts"], axis=0))
+
+        back_transformed = transform.gaussian_copula_forward_transform(
+            u, fake_output
+        )
+
+        # Get any sample/batch (slopes[i][:, d]they are all the same)
+        back_transformed = np.swapaxes(back_transformed[0][0], 0, 1)
+
+        original_target = u["target"]
+
+        # Original target and back-transformed target should be the same
+        assert np.allclose(original_target, back_transformed)
 
 
 def make_dataset(N, train_length):
