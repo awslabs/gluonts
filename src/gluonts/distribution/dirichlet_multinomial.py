@@ -49,7 +49,7 @@ class DirichletMultinomial(Distribution):
 
     n_trials
         Number of trials
-        
+
     alpha
         concentration vector, of shape (..., dim)
 

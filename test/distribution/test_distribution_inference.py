@@ -270,7 +270,7 @@ def test_dirichlet(hybridize: bool) -> None:
     num_samples = 2000
     dim = 3
 
-    alpha = np.random.gamma(shape=1, size=dim) + 0.5
+    alpha = alpha = np.array([1.0, 2.0, 3.0])
 
     distr = Dirichlet(alpha=mx.nd.array(alpha))
     cov = distr.variance.asnumpy()
@@ -302,9 +302,9 @@ def test_dirichlet(hybridize: bool) -> None:
 def test_dirichlet_multinomial(hybridize: bool) -> None:
     num_samples = 8000
     dim = 3
-    n_trials = 10
+    n_trials = 500
 
-    alpha = np.random.gamma(shape=1, size=dim) + 0.5
+    alpha = np.array([1.0, 2.0, 3.0])
 
     distr = DirichletMultinomial(
         dim=3, n_trials=n_trials, alpha=mx.nd.array(alpha)
