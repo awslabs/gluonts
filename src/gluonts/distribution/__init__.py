@@ -14,7 +14,7 @@
 # Relative imports
 from . import bijection
 from .binned import Binned, BinnedOutput
-from .box_cox_tranform import (
+from .box_cox_transform import (
     BoxCoxTransformOutput,
     InverseBoxCoxTransformOutput,
 )
