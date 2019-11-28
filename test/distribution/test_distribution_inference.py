@@ -26,7 +26,7 @@ from pydantic import PositiveFloat, PositiveInt
 
 # First-party imports
 from gluonts.model.common import NPArrayLike
-from gluonts.distribution.box_cox_tranform import (
+from gluonts.distribution.box_cox_transform import (
     InverseBoxCoxTransform,
     InverseBoxCoxTransformOutput,
 )
