@@ -29,7 +29,7 @@ class Bijection:
     """
     A bijective transformation.
 
-    This is defined through the forward tranformation (computed by the
+    This is defined through the forward transformation (computed by the
     `f` method) and the inverse transformation (`f_inv`).
     """
 

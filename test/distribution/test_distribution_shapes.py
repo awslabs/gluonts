@@ -31,7 +31,7 @@ from gluonts.distribution import (
     Dirichlet,
 )
 from gluonts.distribution.bijection import AffineTransformation
-from gluonts.distribution.box_cox_tranform import BoxCoxTranform
+from gluonts.distribution.box_cox_transform import BoxCoxTransform
 
 
 @pytest.mark.parametrize(
@@ -182,7 +182,7 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
                     high=mx.nd.ones(shape=(3, 4, 5)),
                 ),
                 [
-                    BoxCoxTranform(
+                    BoxCoxTransform(
                         lambda_1=mx.nd.ones(shape=(3, 4, 5)),
                         lambda_2=mx.nd.zeros(shape=(3, 4, 5)),
                     )
