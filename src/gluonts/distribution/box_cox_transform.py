@@ -27,7 +27,7 @@ from gluonts.model.common import Tensor
 from .distribution import getF, softplus
 
 
-class BoxCoxTranform(Bijection):
+class BoxCoxTransform(Bijection):
     r"""
     Implements Box-Cox transformation of a uni-variate random variable.
     The Box-Cox transformation of an observation :math:`z` is given by
@@ -242,8 +242,8 @@ class BoxCoxTranform(Bijection):
 
 
 class BoxCoxTransformOutput(BijectionOutput):
-    bij_cls: type = BoxCoxTranform
-    args_dim: Dict[str, int] = dict(zip(BoxCoxTranform.arg_names, [1, 1]))
+    bij_cls: type = BoxCoxTransform
+    args_dim: Dict[str, int] = dict(zip(BoxCoxTransform.arg_names, [1, 1]))
 
     @validated()
     def __init__(self, lb_obs: float = 0.0, fix_lambda_2: bool = True) -> None:
@@ -284,7 +284,7 @@ class InverseBoxCoxTransform(InverseBijection):
         tol_lambda_1: float = 1e-2,
         F=None,
     ) -> None:
-        super().__init__(BoxCoxTranform(lambda_1, lambda_2, tol_lambda_1, F))
+        super().__init__(BoxCoxTransform(lambda_1, lambda_2, tol_lambda_1, F))
 
     @property
     def event_dim(self) -> int:
