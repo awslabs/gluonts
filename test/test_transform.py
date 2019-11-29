@@ -537,7 +537,7 @@ def test_BucketInstanceSampler():
         )
 
 
-def test_cdf():
+def test_cdf_to_gaussian_transformation():
     def make_test_data():
         target = np.array(
             [
@@ -633,6 +633,36 @@ def test_cdf():
 
         # Original target and back-transformed target should be the same
         assert np.allclose(original_target, back_transformed)
+
+
+def test_gaussian_cdf():
+    try:
+        from scipy.stats import norm
+    except:
+        pytest.skip("scipy not installed skipping test for erf")
+
+    x = np.array(
+        [-1000, -100, -10]
+        + np.linspace(-2, 2, 1001).tolist()
+        + [10, 100, 1000]
+    )
+    y_gluonts = transform.CDFtoGaussianTransform.standard_gaussian_cdf(x)
+    y_scipy = norm.cdf(x)
+
+    assert np.allclose(y_gluonts, y_scipy, atol=1e-7)
+
+
+def test_gaussian_ppf():
+    try:
+        from scipy.stats import norm
+    except:
+        pytest.skip("scipy not installed skipping test for erf")
+
+    x = np.array(np.linspace(0.0001, 0.9999, 1001).tolist())
+    y_gluonts = transform.CDFtoGaussianTransform.standard_gaussian_ppf(x)
+    y_scipy = norm.ppf(x)
+
+    assert np.allclose(y_gluonts, y_scipy, atol=1e-7)
 
 
 def make_dataset(N, train_length):
