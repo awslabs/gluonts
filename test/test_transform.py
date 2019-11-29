@@ -600,7 +600,7 @@ def test_cdf():
 
     t = transform.Chain(
         trans=[
-            transform.GaussianCopula(
+            transform.CDFtoGaussianTransform(
                 target_field=FieldName.TARGET,
                 observed_values_field=FieldName.OBSERVED_VALUES,
                 max_context_length=20,
@@ -622,7 +622,7 @@ def test_cdf():
 
         u["intercepts"] = mx.nd.array(np.expand_dims(u["intercepts"], axis=0))
 
-        back_transformed = transform.gaussian_copula_forward_transform(
+        back_transformed = transform.cdf_to_gaussian_forward_transform(
             u, fake_output
         )
 
