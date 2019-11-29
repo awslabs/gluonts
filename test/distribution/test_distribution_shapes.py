@@ -29,6 +29,7 @@ from gluonts.distribution import (
     Uniform,
     TransformedDistribution,
     Dirichlet,
+    DirichletMultinomial,
 )
 from gluonts.distribution.bijection import AffineTransformation
 from gluonts.distribution.box_cox_transform import BoxCoxTransform
@@ -63,6 +64,13 @@ from gluonts.distribution.box_cox_transform import BoxCoxTransform
             (5,),
         ),
         (Dirichlet(alpha=mx.nd.ones(shape=(3, 4, 5))), (3, 4), (5,)),
+        (
+            DirichletMultinomial(
+                dim=5, n_trials=9, alpha=mx.nd.ones(shape=(3, 4, 5))
+            ),
+            (3, 4),
+            (5,),
+        ),
         (
             Laplace(
                 mu=mx.nd.zeros(shape=(3, 4, 5)), b=mx.nd.ones(shape=(3, 4, 5))

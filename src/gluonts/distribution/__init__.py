@@ -19,6 +19,10 @@ from .box_cox_transform import (
     InverseBoxCoxTransformOutput,
 )
 from .dirichlet import Dirichlet, DirichletOutput
+from .dirichlet_multinomial import (
+    DirichletMultinomial,
+    DirichletMultinomialOutput,
+)
 from .distribution import Distribution
 from .distribution_output import DistributionOutput
 from .gaussian import Gaussian, GaussianOutput
@@ -73,6 +77,9 @@ __all__ = [
     "BoxCoxTransformOutput",
     "bijection",
     "Dirichlet",
+    "DirichletOutput",
+    "DirichletMultinomial",
+    "DirichletMultinomialOutput",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

@@ -40,6 +40,8 @@ from gluonts.distribution import (
     LowrankMultivariateGaussianOutput,
     Dirichlet,
     DirichletOutput,
+    DirichletMultinomial,
+    DirichletMultinomialOutput,
     NegativeBinomial,
     NegativeBinomialOutput,
     Laplace,
@@ -268,7 +270,7 @@ def test_dirichlet(hybridize: bool) -> None:
     num_samples = 2000
     dim = 3
 
-    alpha = np.random.gamma(shape=1, size=dim) + 0.5
+    alpha = alpha = np.array([1.0, 2.0, 3.0])
 
     distr = Dirichlet(alpha=mx.nd.array(alpha))
     cov = distr.variance.asnumpy()
@@ -285,6 +287,44 @@ def test_dirichlet(hybridize: bool) -> None:
     )
 
     distr = Dirichlet(alpha=mx.nd.array(alpha_hat))
+
+    cov_hat = distr.variance.asnumpy()
+
+    assert np.allclose(
+        alpha_hat, alpha, atol=0.1, rtol=0.1
+    ), f"alpha did not match: alpha = {alpha}, alpha_hat = {alpha_hat}"
+    assert np.allclose(
+        cov_hat, cov, atol=0.1, rtol=0.1
+    ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
+
+
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_dirichlet_multinomial(hybridize: bool) -> None:
+    num_samples = 8000
+    dim = 3
+    n_trials = 500
+
+    alpha = np.array([1.0, 2.0, 3.0])
+
+    distr = DirichletMultinomial(
+        dim=3, n_trials=n_trials, alpha=mx.nd.array(alpha)
+    )
+    cov = distr.variance.asnumpy()
+
+    samples = distr.sample(num_samples)
+
+    alpha_hat = maximum_likelihood_estimate_sgd(
+        DirichletMultinomialOutput(dim=dim, n_trials=n_trials),
+        samples,
+        init_biases=None,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(10),
+    )
+
+    distr = DirichletMultinomial(
+        dim=3, n_trials=n_trials, alpha=mx.nd.array(alpha_hat)
+    )
 
     cov_hat = distr.variance.asnumpy()
 
