@@ -1708,7 +1708,6 @@ def cdf_to_gaussian_forward_transform(
             Forward transformed outputs.
 
         """
-        batch_predictions = batch_predictions.transpose((0, 2, 1))
         slopes = slopes.asnumpy()
         intercepts = intercepts.asnumpy()
 
@@ -1726,7 +1725,7 @@ def cdf_to_gaussian_forward_transform(
             / take_along_axis(slopes, indices, axis=1),
             take_along_axis(batch_target_sorted, indices, axis=1),
         )
-        return transformed.swapaxes(1, 2)
+        return transformed
 
     # applies inverse cdf to all outputs
     batch_size, samples, target_dim, time = outputs.shape

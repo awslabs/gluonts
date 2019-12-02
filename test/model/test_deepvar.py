@@ -14,26 +14,27 @@ from gluonts.model.deepvar import DeepVAREstimator
 from gluonts.dataset.common import TrainDatasets
 from gluonts.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
+from gluonts.evaluation import MultivariateEvaluator
 
 
 def load_multivariate_constant_dataset():
     dataset_info, train_ds, test_ds = constant_dataset()
     grouper_train = MultivariateGrouper(max_target_dim=10)
-    grouper_test = MultivariateGrouper(
-        num_test_dates=1,
-        max_target_dim=10,
-    )
+    grouper_test = MultivariateGrouper(num_test_dates=1, max_target_dim=10)
     metadata = dataset_info.metadata
     metadata.prediction_length = dataset_info.prediction_length
-    return TrainDatasets(metadata=dataset_info.metadata,
-                         train=grouper_train(train_ds),
-                         test=grouper_test(test_ds))
+    return TrainDatasets(
+        metadata=dataset_info.metadata,
+        train=grouper_train(train_ds),
+        test=grouper_test(test_ds),
+    )
 
 
 dataset = load_multivariate_constant_dataset()
 target_dim = int(dataset.metadata.feat_static_cat[0].cardinality)
 metadata = dataset.metadata
 estimator = DeepVAREstimator
+
 
 @pytest.mark.timeout(20000)
 @pytest.mark.parametrize(
@@ -61,8 +62,20 @@ estimator = DeepVAREstimator
             False,
         ),
         # fails with nan for now
-        (MultivariateGaussianOutput(dim=target_dim), 10, estimator, False, True),
-        (MultivariateGaussianOutput(dim=target_dim), 10, estimator, True, True),
+        (
+            MultivariateGaussianOutput(dim=target_dim),
+            10,
+            estimator,
+            False,
+            True,
+        ),
+        (
+            MultivariateGaussianOutput(dim=target_dim),
+            10,
+            estimator,
+            True,
+            True,
+        ),
     ],
 )
 def test_deepvar(
@@ -93,6 +106,9 @@ def test_deepvar(
         train_dataset=dataset.train,
         test_dataset=dataset.test,
         forecaster=estimator,
+        evaluator=MultivariateEvaluator(
+            quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+        ),
     )
 
-    assert agg_metrics['ND'] < 1.5
+    assert agg_metrics["ND"] < 1.5

@@ -318,13 +318,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             begin_state=None,
         )
 
-        # import matplotlib.pyplot as plt
-        # for dim in range(4):
-        #    plt.plot(context_target_scaled.asnumpy()[0, :, dim], label='target')
-        #    plt.plot(mean_parameter.asnumpy()[0, :, dim], label='mean')
-        #    plt.legend()
-        #    plt.show()
-
         # outputs: (batch_size, seq_len, target_dim)
         # states: list of list of (batch_size, num_cells) tensors with dimensions: target_dim x num_layers x (batch_size, num_cells)
         # scale: (batch_size, 1, target_dim)
@@ -431,7 +424,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             dim=1,
         )
 
-        # mask the loss at one time step iff one or more observations is missing in the target dimensions
+        # mask the loss at one time step if one or more observations is missing in the target dimensions
         # (batch_size, subseq_length, 1)
         loss_weights = observed_values.min(axis=-1, keepdims=True)
 
@@ -540,15 +533,15 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         samples = F.concat(*future_samples, dim=1)
 
         # (batch_size * num_samples, target_dim, prediction_length)
-        samples = samples.swapaxes(dim1=1, dim2=2)
+        # samples = samples.swapaxes(dim1=1, dim2=2)
 
         # (batch_size, num_samples, target_dim, prediction_length)
         return samples.reshape(
             shape=(
                 -1,
                 self.num_sample_paths,
-                self.target_dim,
                 self.prediction_length,
+                self.target_dim,
             )
         )
 

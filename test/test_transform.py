@@ -593,7 +593,7 @@ def test_cdf_to_gaussian_transformation():
     def make_fake_output(u: DataEntry):
         fake_output = np.expand_dims(
             np.expand_dims(u["past_target_cdf"], axis=0), axis=0
-        ).swapaxes(2, 3)
+        )
         return fake_output
 
     ds = make_test_data()
@@ -627,7 +627,7 @@ def test_cdf_to_gaussian_transformation():
         )
 
         # Get any sample/batch (slopes[i][:, d]they are all the same)
-        back_transformed = np.swapaxes(back_transformed[0][0], 0, 1)
+        back_transformed = back_transformed[0][0]
 
         original_target = u["target"]
 

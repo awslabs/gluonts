@@ -39,7 +39,7 @@ from gluonts.transform import (
 from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
 
 
-class FourrierDateFeatures(TimeFeature):
+class FourierDateFeatures(TimeFeature):
     @validated()
     def __init__(self, freq: str) -> None:
         # reocurring freq
@@ -74,7 +74,7 @@ def get_granularity(freq_str: str) -> Tuple[int, str]:
     freq_str
         Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
     """
-    freq_regex = r'\s*((\d+)?)\s*([^\d]\w*)'
+    freq_regex = r"\s*((\d+)?)\s*([^\d]\w*)"
     m = re.match(freq_regex, freq_str)
     assert m is not None, "Cannot parse frequency string: %s" % freq_str
     groups = m.groups()
@@ -99,7 +99,7 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     assert granularity in features, f"freq {granularity} not supported"
 
     feature_classes: List[TimeFeature] = [
-        FourrierDateFeatures(freq=freq) for freq in features[granularity]
+        FourierDateFeatures(freq=freq) for freq in features[granularity]
     ]
     return feature_classes
 
