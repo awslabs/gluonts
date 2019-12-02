@@ -30,7 +30,7 @@ from gluonts.dataset.stat import ScaleHistogram
 from gluonts.time_feature import TimeFeature
 from gluonts.runtime_params import GLUONTS_MAX_IDLE_TRANSFORMS
 from gluonts.support.util import erf, erfinv
-from gluonts.monkey_patch.monkey_path_take_along_axis import take_along_axis
+from gluonts.monkey_patch.monkey_patch_take_along_axis import take_along_axis
 from gluonts.model.common import Tensor
 
 

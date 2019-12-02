@@ -658,7 +658,7 @@ def test_gaussian_ppf():
     except:
         pytest.skip("scipy not installed skipping test for erf")
 
-    x = np.array(np.linspace(0.0001, 0.9999, 1001).tolist())
+    x = np.linspace(0.0001, 0.9999, 1001)
     y_gluonts = transform.CDFtoGaussianTransform.standard_gaussian_ppf(x)
     y_scipy = norm.ppf(x)
 

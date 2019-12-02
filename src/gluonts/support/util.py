@@ -453,7 +453,7 @@ def _broadcast_param(param, axes, sizes):
 
 def erf(F, x: Union[Tensor, np.array]) -> Union[Tensor, np.array]:
     if F is mx.nd or F is mx.sym:
-        if MXNET_HAS_ERFINV:
+        if MXNET_HAS_ERF:
             return F.erf(x)
     # Using numerical recipes approximation for erf function
     # accurate to 1E-7
