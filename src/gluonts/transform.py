@@ -916,6 +916,21 @@ class AddAgeFeature(MapTransformation):
         return data
 
 
+class TargetDimIndicator(SimpleTransformation):
+    """
+    One-hot indicator of the target dimension.
+    """
+
+    @validated()
+    def __init__(self, field_name: str, target_field: str) -> None:
+        self.field_name = field_name
+        self.target_field = target_field
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        data[self.field_name] = np.arange(0, data[self.target_field].shape[0])
+        return data
+
+
 class InstanceSplitter(FlatMapTransformation):
     """
     Selects training instances, by slicing the target and other time series
