@@ -14,11 +14,15 @@
 # Relative imports
 from . import bijection
 from .binned import Binned, BinnedOutput
-from .box_cox_tranform import (
+from .box_cox_transform import (
     BoxCoxTransformOutput,
     InverseBoxCoxTransformOutput,
 )
 from .dirichlet import Dirichlet, DirichletOutput
+from .dirichlet_multinomial import (
+    DirichletMultinomial,
+    DirichletMultinomialOutput,
+)
 from .distribution import Distribution
 from .distribution_output import DistributionOutput
 from .gaussian import Gaussian, GaussianOutput
@@ -73,6 +77,9 @@ __all__ = [
     "BoxCoxTransformOutput",
     "bijection",
     "Dirichlet",
+    "DirichletOutput",
+    "DirichletMultinomial",
+    "DirichletMultinomialOutput",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
