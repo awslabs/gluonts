@@ -35,20 +35,20 @@ if __name__ == "__main__":
 
     # load hyperparameters via SM_HPS environment variable
     parser.add_argument(
-        "--sm_hps", type=json.loads, default=os.environ["SM_HPS"]
+        "--sm-hps", type=json.loads, default=os.environ["SM_HPS"]
     )
 
     # save your model here to deploy it to an endpoint later with deploy()
     parser.add_argument(
-        "--model_dir", type=str, default=os.environ["SM_MODEL_DIR"]
+        "--model-dir", type=str, default=os.environ["SM_MODEL_DIR"]
     )
     # specified inputs (input channels) are saved here
     parser.add_argument(
-        "--input_dir", type=str, default=os.environ["SM_INPUT_DIR"]
+        "--input-dir", type=str, default=os.environ["SM_INPUT_DIR"]
     )
     # contents of this folder will be written back to s3
     parser.add_argument(
-        "--output_data_dir", type=str, default=os.environ["SM_OUTPUT_DATA_DIR"]
+        "--output-data-dir", type=str, default=os.environ["SM_OUTPUT_DATA_DIR"]
     )
 
     # TODO: DONT FORGET TO PARSE ANY ADDITIONAL ARGUMENTS YOU SPECIFIED, FOR EXAMPLE THE INPUTS

@@ -11,10 +11,6 @@ ARG PYTHON_PIP=python3-pip
 ARG PIP=pip3
 ARG PYTHON_VERSION=3.6.8
 
-ARG REQUIREMENTS=requirements.txt
-ARG REQUIREMENTS_EXTRAS_R=requirements-extras-r.txt
-ARG REQUIREMENTS_EXTRAS_PROPHET=requirements-extras-prophet.txt
-
 RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -58,23 +54,8 @@ RUN ${PIP} install --no-cache-dir --upgrade mxnet-mkl==$MX_VERSION && \
     ${PIP} install --no-cache-dir /sagemaker_mxnet_serving_container.tar.gz && \
     rm /sagemaker_mxnet_serving_container.tar.gz
 
-# Add other GluonTS requirements
-ADD \
-    $REQUIREMENTS \
-    $REQUIREMENTS_EXTRAS_R \
-    $REQUIREMENTS_EXTRAS_PROPHET \
-    /tmp/dependencies/
-
-# Install GluonTS requirements, and current GluonTS version
-RUN ${PIP} install --no-cache-dir --upgrade -r /tmp/dependencies/requirements.txt && \
-    ${PIP} install --no-cache-dir --upgrade -r /tmp/dependencies/requirements-extras-r.txt && \
-    ${PIP} install --no-cache-dir --upgrade -r /tmp/dependencies/requirements-extras-prophet.txt && \
-    ${PIP} install --no-cache-dir --upgrade gluonts
-
-# This is here to make our installed version of OpenCV work.
-# https://stackoverflow.com/questions/29274638/opencv-libdc1394-error-failed-to-initialize-libdc1394
-# TODO: Should we be installing OpenCV in our image like this? Is there another way we can fix this?
-RUN ln -s /dev/null /dev/raw1394
+# Install MXNet and current sagemaker-mxnet-containers version
+RUN ${PIP} install --no-cache-dir --upgrade gluonts[dev,R,Prophet]
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

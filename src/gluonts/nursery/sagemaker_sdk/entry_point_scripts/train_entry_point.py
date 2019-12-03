@@ -91,19 +91,19 @@ if __name__ == "__main__":
 
     # an alternative way to load hyperparameters via SM_HPS environment variable.
     parser.add_argument(
-        "--sm_hps", type=json.loads, default=os.environ["SM_HPS"]
+        "--sm-hps", type=json.loads, default=os.environ["SM_HPS"]
     )
 
     # input data, output dir and model directories
     parser.add_argument(
-        "--model_dir", type=str, default=os.environ["SM_MODEL_DIR"]
+        "--model-dir", type=str, default=os.environ["SM_MODEL_DIR"]
     )
     parser.add_argument(
-        "--output_data_dir", type=str, default=os.environ["SM_OUTPUT_DATA_DIR"]
+        "--output-data_dir", type=str, default=os.environ["SM_OUTPUT_DATA_DIR"]
     )
 
     parser.add_argument(
-        "--input_dir", type=str, default=os.environ["SM_INPUT_DIR"]
+        "--input-dir", type=str, default=os.environ["SM_INPUT_DIR"]
     )
 
     parser.add_argument(
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     )
     # argument possibly not set
     parser.add_argument(
-        "--s3_dataset",
+        "--s3-dataset",
         type=str,
         default=os.environ.get("SM_CHANNEL_S3_DATASET"),
     )
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         "--dataset", type=str, default=os.environ["SM_HP_DATASET"]
     )
     parser.add_argument(
-        "--num_samples", type=int, default=os.environ["SM_HP_NUM_SAMPLES"]
+        "--num-samples", type=int, default=os.environ["SM_HP_NUM_SAMPLES"]
     )
     parser.add_argument(
         "--quantiles", type=str, default=os.environ["SM_HP_QUANTILES"]

@@ -6,25 +6,18 @@ TAG=<yours, e.g. with-gluonts-cpu-latest>
 ECR_IMAGE="$(ACCOUNT_ACCOUNT_ID).dkr.ecr.$(REGION).amazonaws.com/$(REPOSITORY):$(TAG)"
 
 all:
-	make dependencies
+	make sagemaker-mxnet-container_dependency
 	make build
 	make tag
 	make login
 	make push
 	make clean
 
-dependencies:
-	@echo Copying dependencies.
-	cp ../../../../../../requirements/requirements.txt .
-	cp ../../../../../../requirements/requirements-extras-r.txt .
-	cp ../../../../../../requirements/requirements-extras-prophet.txt .
-
-#sagemaker_mxnet_container:
-#	@echo Retrieving 'sagemaker-mxnet-container' dependency.
-#	git clone https://github.com/aws/sagemaker-mxnet-container.git
-#	cd sagemaker-mxnet-container
-#	python setup.py sdist
-#	cp dist/sagemaker-mxnet-container-*.tar.gz ../sagemaker_mxnet_container.tar.gz
+sagemaker-mxnet-container_dependency:
+	@echo Retrieving 'sagemaker-mxnet-container' dependency.
+	git clone https://github.com/aws/sagemaker-mxnet-container.git
+	cd sagemaker-mxnet-container; python setup.py sdist
+	cp sagemaker-mxnet-container/dist/sagemaker_mxnet_container-*.tar.gz sagemaker_mxnet_container.tar.gz
 
 build:
 	@echo Making $(REPOSITORY) image.
@@ -43,7 +36,5 @@ push:
 	docker push $(ECR_IMAGE)
 
 clean:
-	rm requirements.txt
-	rm requirements-extras-r.txt
-	rm requirements-extras-prophet.txt
-#	rm -r sagemaker-mxnet-container
+	rm -rf sagemaker-mxnet-container
+	rm sagemaker_mxnet_container.tar.gz

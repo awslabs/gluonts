@@ -184,6 +184,9 @@ shell_require = find_requirements("requirements-extras-shell.txt")
 setup_requires = find_requirements(
     "requirements-setup.txt"
 ) + find_requirements("requirements-docs.txt")
+dev_require = (
+    tests_require + shell_require + setup_requires + sagemaker_api_require
+)
 
 setup_kwargs: dict = dict(
     name="gluonts",
@@ -207,10 +210,7 @@ setup_kwargs: dict = dict(
     install_requires=find_requirements("requirements.txt"),
     tests_require=tests_require,
     extras_require={
-        "dev": tests_require
-        + shell_require
-        + setup_requires
-        + sagemaker_api_require,
+        "dev": dev_require,
         "R": find_requirements("requirements-extras-r.txt"),
         "Prophet": find_requirements("requirements-extras-prophet.txt"),
         "shell": shell_require,

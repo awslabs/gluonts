@@ -6,19 +6,12 @@ TAG=<yours, e.g. with-gluonts-cpu-latest>
 ECR_IMAGE="$(ACCOUNT_ACCOUNT_ID).dkr.ecr.$(REGION).amazonaws.com/$(REPOSITORY):$(TAG)"
 
 all:
-	make gluonts_dependencies
 	make sagemaker-mxnet-serving-container_dependency
 	make build
 	make tag
 	make login
 	make push
 	make clean
-
-gluonts_dependencies:
-	@echo Copying dependencies.
-	cp ../../../../../../requirements/requirements.txt .
-	cp ../../../../../../requirements/requirements-extras-r.txt .
-	cp ../../../../../../requirements/requirements-extras-prophet.txt .
 
 sagemaker-mxnet-serving-container_dependency:
 	@echo Retrieving 'sagemaker-mxnet-serving-container' dependency.
@@ -45,10 +38,7 @@ push:
     docker push $(ECR_IMAGE)
 
 clean:
-	rm requirements.txt
-	rm requirements-extras-r.txt
-	rm requirements-extras-prophet.txt
 	rm -rf sagemaker-mxnet-serving-container
 	rm sagemaker_mxnet_serving_container.tar.gz
 	rm config.properties
-	rm mms-entrypoint.py#	rm -r sagemaker-mxnet-container
+	rm mms-entrypoint.py

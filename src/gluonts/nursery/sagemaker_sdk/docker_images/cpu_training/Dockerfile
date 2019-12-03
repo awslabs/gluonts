@@ -10,10 +10,6 @@ ARG PYTHON_PIP=python3-pip
 ARG PIP=pip3
 ARG PYTHON_VERSION=3.6.6
 
-ARG REQUIREMENTS=requirements.txt
-ARG REQUIREMENTS_EXTRAS_R=requirements-extras-r.txt
-ARG REQUIREMENTS_EXTRAS_PROPHET=requirements-extras-prophet.txt
-
 RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -56,18 +52,8 @@ RUN ${PIP} install --no-cache --upgrade mxnet-mkl==$MX_VERSION && \
     ${PIP} install --no-cache-dir /sagemaker_mxnet_container.tar.gz && \
     rm /sagemaker_mxnet_container.tar.gz
 
-# Add other GluonTS requirements
-ADD \
-    $REQUIREMENTS \
-    $REQUIREMENTS_EXTRAS_R \
-    $REQUIREMENTS_EXTRAS_PROPHET \
-    /tmp/dependencies/
-
-# Install GluonTS requirements, and current GluonTS version
-RUN ${PIP} install --no-cache --upgrade -r /tmp/dependencies/requirements.txt && \
-    ${PIP} install --no-cache --upgrade -r /tmp/dependencies/requirements-extras-r.txt && \
-    ${PIP} install --no-cache --upgrade -r /tmp/dependencies/requirements-extras-prophet.txt && \
-    ${PIP} install --no-cache --upgrade gluonts
+# Install GluonTS with requirements
+RUN ${PIP} install --no-cache --upgrade gluonts[dev,R,Prophet]
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
