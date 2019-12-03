@@ -270,7 +270,7 @@ def test_dirichlet(hybridize: bool) -> None:
     num_samples = 2000
     dim = 3
 
-    alpha = alpha = np.array([1.0, 2.0, 3.0])
+    alpha = np.array([1.0, 2.0, 3.0])
 
     distr = Dirichlet(alpha=mx.nd.array(alpha))
     cov = distr.variance.asnumpy()
