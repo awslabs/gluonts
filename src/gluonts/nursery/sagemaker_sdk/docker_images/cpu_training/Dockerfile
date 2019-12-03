@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 
-LABEL maintainer="Amazon ML & Forecasting"
+LABEL maintainer="GluonTS Developers"
 
 LABEL com.amazonaws.sagemaker.capabilities.accept-bind-to-port=true
 
