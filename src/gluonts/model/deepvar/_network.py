@@ -7,7 +7,7 @@ import mxnet as mx
 # First-party imports
 from gluonts.block.scaler import NOPScaler, MeanScaler
 from gluonts.core.component import validated
-from gluonts.distribution import DistributionOutput
+from gluonts.distribution import DistributionOutput, Distribution
 from gluonts.model.common import Tensor
 from gluonts.support.util import weighted_average, assert_shape
 
@@ -18,7 +18,7 @@ def make_rnn_cell(
     cell_type: str,
     residual: bool,
     dropout_rate: float,
-):
+) -> mx.gluon.HybridBlock:
     RnnCell = {"lstm": mx.gluon.rnn.LSTMCell, "gru": mx.gluon.rnn.GRUCell}[
         cell_type
     ]
@@ -118,14 +118,14 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         Returns lagged subsequences of a given sequence.
         Parameters
         ----------
-        sequence : Tensor
+        sequence
             the sequence from which lagged subsequences should be extracted.
             Shape: (N, T, C).
-        sequence_length : int
+        sequence_length
             length of sequence in the T (time) dimension (axis = 1).
-        indices : List[int]
+        indices
             list of lag indices to be used.
-        subsequences_length : int
+        subsequences_length
             length of the subsequences to be extracted.
         Returns
         --------
@@ -139,8 +139,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         # that is: history_length - lag_index - sequence_length >= 0
         # hence the following assert
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag {max(indices)} "
-            f"while history length is only {sequence_length}"
+            f"lags cannot go further than history length, found lag "
+            f"{max(indices)} while history length is only {sequence_length}"
         )
         assert all(lag_index >= 0 for lag_index in indices)
 
@@ -157,17 +157,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             *lagged_values, num_args=len(indices), dim=1
         ).transpose(axes=(0, 2, 3, 1))
 
-    @staticmethod
-    def weighted_average(
-        F, tensor: Tensor, weights: Optional[Tensor] = None, axis=None
-    ):
-        if weights is not None:
-            weighted_tensor = tensor * weights
-            sum_weights = F.maximum(1.0, weights.sum(axis=axis))
-            return weighted_tensor.sum(axis=axis) / sum_weights
-        else:
-            return tensor.mean(axis=axis)
-
     def unroll(
         self,
         F,
@@ -179,22 +168,36 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         begin_state: Optional[List[Tensor]],
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
+        Prepares the input to the RNN and unrolls it the given number of time
+        steps.
 
         Parameters
         ----------
         F
-        lags : (batch_size, sub_seq_len, target_dim, num_lags)
-        scale : (batch_size, 1, target_dim)
-        time_feat :
-        target_dimensions : (batch_size, target_dim)
-        unroll_length : length to unroll
+        lags
+            Input lags (batch_size, sub_seq_len, target_dim, num_lags)
+        scale
+            Mean scale (batch_size, 1, target_dim)
+        time_feat
+            Additional time features
+        target_dimensions
+            Dimensionality of the target (batch_size, target_dim)
+        unroll_length
+            length to unroll
+        begin_state
+            State to start the unrolling of the RNN
 
         Returns
         -------
-        outputs : (batch_size, seq_len, num_cells)
-        states : list of list of (batch_size, num_cells) tensors with
-        dimensions: target_dim x num_layers x (batch_size, num_cells)
-        lags_scaled : (batch_size, sub_seq_len, target_dim, num_lags)
+        outputs
+            RNN outputs (batch_size, seq_len, num_cells)
+        states
+            RNN states. Nested list with (batch_size, num_cells) tensors with
+        dimensions target_dim x num_layers x (batch_size, num_cells)
+        lags_scaled
+            Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
+        inputs
+            inputs to the RNN
         """
         # (batch_size, sub_seq_len, target_dim, num_lags)
         lags_scaled = F.broadcast_div(lags, scale.expand_dims(axis=-1))
@@ -248,25 +251,57 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
     def unroll_encoder(
         self,
         F,
-        past_time_feat: Tensor,  # (batch_size, history_length, num_features)
-        past_target_cdf: Tensor,  # (batch_size, history_length, target_dim)
-        past_observed_values: Tensor,  # (batch_size, history_length, target_dim)
-        past_is_pad: Tensor,  # (batch_size, history_length)
-        future_time_feat: Optional[
-            Tensor
-        ],  # (batch_size, prediction_length, num_features)
-        future_target_cdf: Optional[
-            Tensor
-        ],  # (batch_size, prediction_length, target_dim)
+        past_time_feat: Tensor,
+        past_target_cdf: Tensor,
+        past_observed_values: Tensor,
+        past_is_pad: Tensor,
+        future_time_feat: Optional[Tensor],
+        future_target_cdf: Optional[Tensor],
         target_dimensions: Tensor,
-        is_train: bool,
     ) -> Tuple[Tensor, List[Tensor], Tensor, Tensor, Tensor]:
         """
         Unrolls the LSTM encoder over past and, if present, future data.
-        Returns outputs and state of the encoder, plus the scale of past_target_cdf
-        and a vector of static features that was constructed and fed as input
-        to the encoder.
-        All tensor arguments should have NTC layout.
+        Returns outputs and state of the encoder, plus the scale of
+        past_target_cdf and a vector of static features that was constructed
+        and fed as input to the encoder. All tensor arguments should have NTC
+        layout.
+
+        Parameters
+        ----------
+        F
+        past_time_feat
+            Past time features (batch_size, history_length, num_features)
+        past_target_cdf
+            Past marginal CDF transformed target values (batch_size,
+            history_length, target_dim)
+        past_observed_values
+            Indicator whether or not the values were observed (batch_size,
+            history_length, target_dim)
+        past_is_pad
+            Indicator whether the past target values have been padded
+            (batch_size, history_length)
+        future_time_feat
+            Future time features (batch_size, prediction_length, num_features)
+        future_target_cdf
+            Future marginal CDF transformed target values (batch_size,
+            prediction_length, target_dim)
+        target_dimensions
+            Dimensionality of the time series (batch_size, target_dim)
+
+        Returns
+        -------
+        outputs
+            RNN outputs (batch_size, seq_len, num_cells)
+        states
+            RNN states. Nested list with (batch_size, num_cells) tensors with
+        dimensions target_dim x num_layers x (batch_size, num_cells)
+        scale
+            Mean scales for the time series (batch_size, 1, target_dim)
+        lags_scaled
+            Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
+        inputs
+            inputs to the RNN
+
         """
 
         past_observed_values = F.broadcast_minimum(
@@ -322,32 +357,27 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             begin_state=None,
         )
 
-        # outputs: (batch_size, seq_len, target_dim)
-        # states: list of list of (batch_size, num_cells) tensors with dimensions: target_dim x num_layers x (batch_size, num_cells)
-        # scale: (batch_size, 1, target_dim)
-        # lags_scaled: (batch_size, target_dim, sub_seq_len, num_lags)
-
         return outputs, states, scale, lags_scaled, inputs
 
     def distr(
-        self,
-        rnn_outputs: Tensor,
-        scale: Tensor,
-    ):
+        self, rnn_outputs: Tensor, scale: Tensor
+    ) -> Tuple[Distribution, Tuple[Tensor]]:
         """
+        Returns the distribution of DeepVAR with respect to the RNN outputs.
 
         Parameters
         ----------
-        rnn_outputs : (batch_size, seq_len, num_cells)
-        time_features : (batch_size, seq_len, num_features)
-        scale : (batch_size, 1, target_dim)
-        lags_scaled : (batch_size, seq_len, target_dim, num_lags)
-        target_dimensions : (batch_size, target_dim)
-        seq_len: length of the sequences
+        rnn_outputs
+            Outputs of the unrolled RNN (batch_size, seq_len, num_cells)
+        scale :
+            Mean scale for each time series (batch_size, 1, target_dim)
 
         Returns
         -------
-
+        distr
+            Distribution instance
+        distr_args
+            Distribution arguments
         """
         distr_args = self.proj_dist_args(rnn_outputs)
 
@@ -367,11 +397,53 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         future_time_feat: Tensor,
         future_target_cdf: Tensor,
         future_observed_values: Tensor,
-    ) -> Tensor:
+    ) -> Tuple[Tensor, ...]:
+        """
+        Computes the loss for training DeepVAR, all inputs tensors representing
+        time series have NTC layout.
+
+        Parameters
+        ----------
+        F
+        target_dimensions
+            Indices of the target dimension (batch_size, target_dim)
+        past_time_feat
+            Dynamic features of past time series (batch_size, history_length,
+            num_features)
+        past_target_cdf
+            Past marginal CDF transformed target values (batch_size,
+            history_length, target_dim)
+        past_observed_values
+            Indicator whether or not the values were observed (batch_size,
+            history_length, target_dim)
+        past_is_pad
+            Indicator whether the past target values have been padded
+            (batch_size, history_length)
+        future_time_feat
+            Future time features (batch_size, prediction_length, num_features)
+        future_target_cdf
+            Future marginal CDF transformed target values (batch_size,
+            prediction_length, target_dim)
+        future_observed_values
+            Indicator whether or not the future values were observed
+            (batch_size, prediction_length, target_dim)
+
+        Returns
+        -------
+        distr
+            Loss with shape (batch_size, 1)
+        likelihoods
+            Likelihoods for each time step
+            (batch_size, context + prediction_length, 1)
+        distr_args
+            Distribution arguments (context + prediction_length,
+            number_of_arguments)
+        """
 
         seq_len = self.context_length + self.prediction_length
 
-        # unroll the decoder in "training mode", i.e. by providing future data as well
+        # unroll the decoder in "training mode", i.e. by providing future data
+        # as well
         rnn_outputs, _, scale, lags_scaled, inputs = self.unroll_encoder(
             F=F,
             past_time_feat=past_time_feat,
@@ -381,7 +453,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             future_time_feat=future_time_feat,
             future_target_cdf=future_target_cdf,
             target_dimensions=target_dimensions,
-            is_train=True,
         )
 
         # put together target sequence
@@ -395,11 +466,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         )
 
         # assert_shape(target, (-1, seq_len, self.target_dim))
-
-        distr, distr_args = self.distr(
-            rnn_outputs=rnn_outputs,
-            scale=scale,
-        )
+        distr, distr_args = self.distr(rnn_outputs=rnn_outputs, scale=scale)
 
         # we sum the last axis to have the same shape for all likelihoods
         # (batch_size, subseq_length, 1)
@@ -420,8 +487,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             dim=1,
         )
 
-        # mask the loss at one time step if one or more observations is missing in the target dimensions
-        # (batch_size, subseq_length, 1)
+        # mask the loss at one time step if one or more observations is missing
+        # in the target dimensions (batch_size, subseq_length, 1)
         loss_weights = observed_values.min(axis=-1, keepdims=True)
 
         assert_shape(loss_weights, (-1, seq_len, 1))
@@ -451,26 +518,47 @@ class DeepVARTrainingNetwork(DeepVARNetwork):
         future_time_feat: Tensor,
         future_target_cdf: Tensor,
         future_observed_values: Tensor,
-    ) -> Tensor:
+    ) -> Tuple[Tensor, ...]:
         """
-        Computes the loss for training DeepVAR, all inputs tensors representing time series have NTC layout.
+        Computes the loss for training DeepVAR, all inputs tensors representing
+        time series have NTC layout.
 
         Parameters
         ----------
         F
-        target_dimensions: indices of the target dimension (batch_size, num_observations)
-        feat_static_cat : (batch_size, num_features)
-        past_time_feat : (batch_size, history_length, num_features)
-        past_target_cdf : (batch_size, history_length, target_dim)
-        past_observed_values : (batch_size, history_length, target_dim, seq_len)
-        past_is_pad : (batch_size, history_length)
-        future_time_feat : (batch_size, prediction_length, num_features)
-        future_target_cdf : (batch_size, prediction_length, target_dim)
-        future_observed_values : (batch_size, prediction_length, target_dim)
+        target_dimensions
+            Indices of the target dimension (batch_size, target_dim)
+        past_time_feat
+            Dynamic features of past time series (batch_size, history_length,
+            num_features)
+        past_target_cdf
+            Past marginal CDF transformed target values (batch_size,
+            history_length, target_dim)
+        past_observed_values
+            Indicator whether or not the values were observed (batch_size,
+            history_length, target_dim)
+        past_is_pad
+            Indicator whether the past target values have been padded
+            (batch_size, history_length)
+        future_time_feat
+            Future time features (batch_size, prediction_length, num_features)
+        future_target_cdf
+            Future marginal CDF transformed target values (batch_size,
+            prediction_length, target_dim)
+        future_observed_values
+            Indicator whether or not the future values were observed
+            (batch_size, prediction_length, target_dim)
 
-        Returns loss with shape (batch_size, context + prediction_length, 1)
+        Returns
         -------
-
+        distr
+            Loss with shape (batch_size, 1)
+        likelihoods
+            Likelihoods for each time step
+            (batch_size, context + prediction_length, 1)
+        distr_args
+            Distribution arguments (context + prediction_length,
+            number_of_arguments)
         """
         return self.train_hybrid_forward(
             F,
@@ -492,46 +580,59 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         self.num_sample_paths = num_sample_paths
 
         # for decoding the lags are shifted by one,
-        # at the first time-step of the decoder a lag of one corresponds to the last target value
+        # at the first time-step of the decoder a lag of one corresponds to
+        # the last target value
         self.shifted_lags = [l - 1 for l in self.lags_seq]
-
-
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
         target_dimensions: Tensor,
-        past_time_feat: Tensor,  # (batch_size, history_length, num_features)
-        past_target_cdf: Tensor,  # (batch_size, history_length, target_dim)
-        past_observed_values: Tensor,  # (batch_size, history_length, target_dim)
+        past_time_feat: Tensor,
+        past_target_cdf: Tensor,
+        past_observed_values: Tensor,
         past_is_pad: Tensor,
-        future_time_feat: Tensor,  # (batch_size, prediction_length, num_features)
+        future_time_feat: Tensor,
     ) -> Tensor:
         """
-        Predicts samples, all tensors should have NTC layout.
+        Predicts samples given the trained DeepVAR model.
+        All tensors should have NTC layout.
         Parameters
         ----------
         F
-        past_time_feat : (batch_size, history_length, num_features)
-        past_target_cdf : (batch_size, history_length, target_dim)
-        target_dimensions : (batch_size, target_dim)
-        past_observed_values : (batch_size, history_length, target_dim)
-        past_is_pad : (batch_size, history_length)
-        future_time_feat : (batch_size, prediction_length, num_features)
+        target_dimensions
+            Indices of the target dimension (batch_size, target_dim)
+        past_time_feat
+            Dynamic features of past time series (batch_size, history_length,
+            num_features)
+        past_target_cdf
+            Past marginal CDF transformed target values (batch_size,
+            history_length, target_dim)
+        past_observed_values
+            Indicator whether or not the values were observed (batch_size,
+            history_length, target_dim)
+        past_is_pad
+            Indicator whether the past target values have been padded
+            (batch_size, history_length)
+        future_time_feat
+            Future time features (batch_size, prediction_length, num_features)
 
-        Returns predicted samples
+        Returns
         -------
+        sample_paths : Tensor
+            A tensor containing sampled paths (1, num_sample_paths,
+            prediction_length, target_dim).
 
         """
         return self.predict_hybrid_forward(
             F=F,
             target_dimensions=target_dimensions,
-            past_time_feat=past_time_feat,  # (batch_size, history_length, num_features)
-            past_target_cdf=past_target_cdf,  # (batch_size, history_length, target_dim)
-            past_observed_values=past_observed_values,  # (batch_size, history_length, target_dim)
+            past_time_feat=past_time_feat,
+            past_target_cdf=past_target_cdf,
+            past_observed_values=past_observed_values,
             past_is_pad=past_is_pad,
-            future_time_feat=future_time_feat,  # (batch_size, prediction_length, num_features)
+            future_time_feat=future_time_feat,
         )
 
     def sampling_decoder(
@@ -544,29 +645,35 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         begin_states: List[Tensor],
     ) -> Tensor:
         """
-        Computes sample paths by unrolling the LSTM starting with a initial input and state.
+        Computes sample paths by unrolling the RNN starting with a initial
+        input and state.
+
         Parameters
         ----------
-        past_target_cdf : Tensor
-            target history. Shape: (batch_size, history_length).
-        target_dimensions : (batch_size, target_dim)
-        time_feat : Tensor
-            time features. Shape: (batch_size, prediction_length, num_time_features).
-        scale : Tensor
-            tensor containing the scale of each element in the batch. Shape: (batch_size, 1, 1).
-        begin_states : List
-            list of initial states for the LSTM layers.
-            the shape of each tensor of the list should be (batch_size, num_cells)
+        past_target_cdf
+            Past marginal CDF transformed target values (batch_size,
+            history_length, target_dim)
+        target_dimensions
+            Indices of the target dimension (batch_size, target_dim)
+        time_feat
+            Dynamic features of future time series (batch_size, history_length,
+            num_features)
+        scale
+            Mean scale for each time series (batch_size, 1, target_dim)
+        begin_states
+            List of initial states for the RNN layers (batch_size, num_cells)
         Returns
         --------
         sample_paths : Tensor
-            a tensor containing sampled paths. Shape: (batch_size, num_sample_paths, prediction_length).
+            A tensor containing sampled paths. Shape: (1, num_sample_paths,
+            prediction_length, target_dim).
         """
 
         def repeat(tensor):
             return tensor.repeat(repeats=self.num_sample_paths, axis=0)
 
-        # blows-up the dimension of each tensor to batch_size * self.num_sample_paths for increasing parallelism
+        # blows-up the dimension of each tensor to
+        # batch_size * self.num_sample_paths for increasing parallelism
         repeated_past_target_cdf = repeat(past_target_cdf)
         repeated_time_feat = repeat(time_feat)
         repeated_scale = repeat(scale)
@@ -577,7 +684,8 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
 
         future_samples = []
 
-        # for each future time-units we draw new samples for this time-unit and update the state
+        # for each future time-units we draw new samples for this time-unit
+        # and update the state
         for k in range(self.prediction_length):
             lags = self.get_lagged_subsequences(
                 F=F,
@@ -600,8 +708,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             )
 
             distr, distr_args = self.distr(
-                rnn_outputs=rnn_outputs,
-                scale=repeated_scale,
+                rnn_outputs=rnn_outputs, scale=repeated_scale
             )
 
             # (batch_size, 1, target_dim)
@@ -626,7 +733,21 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             )
         )
 
-    def make_states(self, begin_states):
+    def make_states(self, begin_states: List[Tensor]) -> List[Tensor]:
+        """
+        Repeat states to match the the shape induced by the number of sample
+        paths.
+
+        Parameters
+        ----------
+        begin_states
+            List of initial states for the RNN layers (batch_size, num_cells)
+
+        Returns
+        -------
+            List of initial states
+        """
+
         def repeat(tensor):
             return tensor.repeat(repeats=self.num_sample_paths, axis=0)
 
@@ -636,12 +757,42 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         self,
         F,
         target_dimensions: Tensor,
-        past_time_feat: Tensor,  # (batch_size, history_length, num_features)
-        past_target_cdf: Tensor,  # (batch_size, history_length, target_dim)
-        past_observed_values: Tensor,  # (batch_size, history_length, target_dim)
+        past_time_feat: Tensor,
+        past_target_cdf: Tensor,
+        past_observed_values: Tensor,
         past_is_pad: Tensor,
-        future_time_feat: Tensor,  # (batch_size, prediction_length, num_features)
+        future_time_feat: Tensor,
     ) -> Tensor:
+        """
+        Predicts samples given the trained DeepVAR model.
+        All tensors should have NTC layout.
+        Parameters
+        ----------
+        F
+        target_dimensions
+            Indices of the target dimension (batch_size, target_dim)
+        past_time_feat
+            Dynamic features of past time series (batch_size, history_length,
+            num_features)
+        past_target_cdf
+            Past marginal CDF transformed target values (batch_size,
+            history_length, target_dim)
+        past_observed_values
+            Indicator whether or not the values were observed (batch_size,
+            history_length, target_dim)
+        past_is_pad
+            Indicator whether the past target values have been padded
+            (batch_size, history_length)
+        future_time_feat
+            Future time features (batch_size, prediction_length, num_features)
+
+        Returns
+        -------
+        sample_paths : Tensor
+            A tensor containing sampled paths (1, num_sample_paths,
+            prediction_length, target_dim).
+
+        """
 
         # mark padded data as unobserved
         # (batch_size, target_dim, seq_len)
@@ -659,7 +810,6 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             future_time_feat=None,
             future_target_cdf=None,
             target_dimensions=target_dimensions,
-            is_train=False,
         )
 
         return self.sampling_decoder(

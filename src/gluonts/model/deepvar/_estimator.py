@@ -42,6 +42,7 @@ from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
 class FourierDateFeatures(TimeFeature):
     @validated()
     def __init__(self, freq: str) -> None:
+        super().__init__()
         # reocurring freq
         freqs = [
             "month",
@@ -72,7 +73,8 @@ def get_granularity(freq_str: str) -> Tuple[int, str]:
     Parameters
     ----------
     freq_str
-        Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
+        Frequency string of the form [multiple][granularity] such as "12H",
+        "5min", "1D" etc.
     """
     freq_regex = r"\s*((\d+)?)\s*([^\d]\w*)"
     m = re.match(freq_regex, freq_str)
@@ -104,7 +106,9 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     return feature_classes
 
 
-def get_lags_for_frequency(freq_str, num_lags=None):
+def get_lags_for_frequency(
+    freq_str: str, num_lags: Optional[int] = None
+) -> List[int]:
     multiple, granularity = get_granularity(freq_str)
 
     if granularity == "M":
@@ -121,9 +125,9 @@ def get_lags_for_frequency(freq_str, num_lags=None):
         lags = [[1]]
 
     # use less lags
-    lags = [int(lag) for sub_list in lags for lag in sub_list]
-    lags = sorted(list(set(lags)))
-    return lags[:num_lags]
+    output_lags = list([int(lag) for sub_list in lags for lag in sub_list])
+    output_lags = sorted(list(set(output_lags)))
+    return output_lags[:num_lags]
 
 
 class DeepVAREstimator(GluonEstimator):
@@ -140,9 +144,7 @@ class DeepVAREstimator(GluonEstimator):
         cell_type: str = "lstm",
         num_eval_samples: int = 100,
         dropout_rate: float = 0.1,
-        cardinality: List[int] = [
-            1
-        ],  # TODO: we should infer this automatically somehow
+        cardinality: List[int] = [1],
         embedding_dimension: int = 5,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
@@ -153,7 +155,7 @@ class DeepVAREstimator(GluonEstimator):
         use_copula=False,
         **kwargs,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, **kwargs)
 
         assert (
             prediction_length > 0
@@ -237,7 +239,8 @@ class DeepVAREstimator(GluonEstimator):
                     field=FieldName.TARGET,
                     expected_ndim=1 + len(self.distr_output.event_shape),
                 ),
-                # maps the target to (1, T) if the target data is uni dimensional
+                # maps the target to (1, T)
+                # if the target data is uni dimensional
                 ExpandDimArray(
                     field=FieldName.TARGET,
                     axis=0 if self.distr_output.event_shape[0] == 1 else None,
@@ -327,7 +330,6 @@ class DeepVAREstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            # prediction_net=symbol_block,
             batch_size=self.trainer.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,

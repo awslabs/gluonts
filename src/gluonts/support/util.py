@@ -391,7 +391,7 @@ def cumsum(
 
 
 def weighted_average(
-    F, x: Tensor, weights: Optional[Tensor] = None, axis=None
+    F, x: Tensor, weights: Optional[Tensor] = None, axis: Optional[int] = None
 ) -> Tensor:
     """
     Computes the weighted average of a given tensor across a given axis.
