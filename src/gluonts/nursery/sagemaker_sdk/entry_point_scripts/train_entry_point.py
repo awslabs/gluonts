@@ -42,7 +42,7 @@ def train(arguments):
         estimator = serde.load_json(config_file.read())
 
     logger.info("Downloading dataset.")
-    if arguments.s3_dataset is None:  # == "None":
+    if arguments.s3_dataset is None:
         # load built in dataset
         dataset = datasets.get_dataset(arguments.dataset)
     else:
