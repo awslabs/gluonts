@@ -119,7 +119,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         Parameters
         ----------
         sequence : Tensor
-            the sequence from which lagged subsequences should be extracted. Shape: (N, T, C).
+            the sequence from which lagged subsequences should be extracted.
+            Shape: (N, T, C).
         sequence_length : int
             length of sequence in the T (time) dimension (axis = 1).
         indices : List[int]
@@ -129,8 +130,10 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         Returns
         --------
         lagged : Tensor
-            a tensor of shape (N, S, C, I), where S = subsequences_length and I = len(indices), containing lagged
-            subsequences. Specifically, lagged[i, :, j, k] = sequence[i, -indices[k]-S+j, :].
+            a tensor of shape (N, S, C, I),
+            where S = subsequences_length and I = len(indices),
+            containing lagged subsequences.
+            Specifically, lagged[i, :, j, k] = sequence[i, -indices[k]-S+j, :].
         """
         # we must have: history_length + begin_index >= 0
         # that is: history_length - lag_index - sequence_length >= 0
@@ -168,13 +171,13 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
     def unroll(
         self,
         F,
-        lags,
-        scale,
-        time_feat,
-        target_dimensions,
-        unroll_length,
-        begin_state,
-    ):
+        lags: Tensor,
+        scale: Tensor,
+        time_feat: Tensor,
+        target_dimensions: Tensor,
+        unroll_length: int,
+        begin_state: Optional[List[Tensor]],
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
 
         Parameters
@@ -189,7 +192,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         Returns
         -------
         outputs : (batch_size, seq_len, num_cells)
-        states : list of list of (batch_size, num_cells) tensors with dimensions: target_dim x num_layers x (batch_size, num_cells)
+        states : list of list of (batch_size, num_cells) tensors with
+        dimensions: target_dim x num_layers x (batch_size, num_cells)
         lags_scaled : (batch_size, sub_seq_len, target_dim, num_lags)
         """
         # (batch_size, sub_seq_len, target_dim, num_lags)
@@ -256,7 +260,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         ],  # (batch_size, prediction_length, target_dim)
         target_dimensions: Tensor,
         is_train: bool,
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, List[Tensor], Tensor, Tensor, Tensor]:
         """
         Unrolls the LSTM encoder over past and, if present, future data.
         Returns outputs and state of the encoder, plus the scale of past_target_cdf
@@ -328,11 +332,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
     def distr(
         self,
         rnn_outputs: Tensor,
-        time_features: Tensor,
         scale: Tensor,
-        lags_scaled: Tensor,
-        target_dimensions: Tensor,
-        seq_len: int,
     ):
         """
 
@@ -397,12 +397,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         # assert_shape(target, (-1, seq_len, self.target_dim))
 
         distr, distr_args = self.distr(
-            time_features=inputs,
             rnn_outputs=rnn_outputs,
             scale=scale,
-            lags_scaled=lags_scaled,
-            target_dimensions=target_dimensions,
-            seq_len=self.context_length + self.prediction_length,
         )
 
         # we sum the last axis to have the same shape for all likelihoods
@@ -439,150 +435,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         self.distribution = distr
 
         return (loss, likelihoods) + distr_args
-
-    def make_states(self, begin_states):
-        def repeat(tensor):
-            return tensor.repeat(repeats=self.num_sample_paths, axis=0)
-
-        return [repeat(s) for s in begin_states]
-
-    def sampling_decoder(
-        self,
-        F,
-        past_target_cdf: Tensor,
-        target_dimensions: Tensor,
-        time_feat: Tensor,
-        scale: Tensor,
-        begin_states: List,
-    ) -> Tensor:
-        """
-        Computes sample paths by unrolling the LSTM starting with a initial input and state.
-        Parameters
-        ----------
-        past_target_cdf : Tensor
-            target history. Shape: (batch_size, history_length).
-        target_dimensions : (batch_size, target_dim)
-        time_feat : Tensor
-            time features. Shape: (batch_size, prediction_length, num_time_features).
-        scale : Tensor
-            tensor containing the scale of each element in the batch. Shape: (batch_size, 1, 1).
-        begin_states : List
-            list of initial states for the LSTM layers.
-            the shape of each tensor of the list should be (batch_size, num_cells)
-        Returns
-        --------
-        sample_paths : Tensor
-            a tensor containing sampled paths. Shape: (batch_size, num_sample_paths, prediction_length).
-        """
-
-        def repeat(tensor):
-            return tensor.repeat(repeats=self.num_sample_paths, axis=0)
-
-        # blows-up the dimension of each tensor to batch_size * self.num_sample_paths for increasing parallelism
-        repeated_past_target_cdf = repeat(past_target_cdf)
-        repeated_time_feat = repeat(time_feat)
-        repeated_scale = repeat(scale)
-        repeated_target_dimensions = repeat(target_dimensions)
-
-        # slight difference for GPVAR and DeepVAR, in GPVAR, its a list
-        repeated_states = self.make_states(begin_states)
-
-        future_samples = []
-
-        # for each future time-units we draw new samples for this time-unit and update the state
-        for k in range(self.prediction_length):
-            lags = self.get_lagged_subsequences(
-                F=F,
-                sequence=repeated_past_target_cdf,
-                sequence_length=self.history_length + k,
-                indices=self.shifted_lags,
-                subsequences_length=1,
-            )
-
-            rnn_outputs, repeated_states, lags_scaled, inputs = self.unroll(
-                F=F,
-                begin_state=repeated_states,
-                lags=lags,
-                scale=repeated_scale,
-                time_feat=repeated_time_feat.slice_axis(
-                    axis=1, begin=k, end=k + 1
-                ),
-                target_dimensions=repeated_target_dimensions,
-                unroll_length=1,
-            )
-
-            distr, distr_args = self.distr(
-                time_features=inputs,
-                rnn_outputs=rnn_outputs,
-                scale=repeated_scale,
-                target_dimensions=repeated_target_dimensions,
-                lags_scaled=lags_scaled,
-                seq_len=1,
-            )
-
-            # (batch_size, 1, target_dim)
-            new_samples = distr.sample()
-
-            # (batch_size, seq_len, target_dim)
-            future_samples.append(new_samples)
-            repeated_past_target_cdf = F.concat(
-                repeated_past_target_cdf, new_samples, dim=1
-            )
-
-        # (batch_size * num_samples, prediction_length, target_dim)
-        samples = F.concat(*future_samples, dim=1)
-
-        # (batch_size * num_samples, target_dim, prediction_length)
-        # samples = samples.swapaxes(dim1=1, dim2=2)
-
-        # (batch_size, num_samples, target_dim, prediction_length)
-        return samples.reshape(
-            shape=(
-                -1,
-                self.num_sample_paths,
-                self.prediction_length,
-                self.target_dim,
-            )
-        )
-
-    def predict_hybrid_forward(
-        self,
-        F,
-        target_dimensions: Tensor,
-        past_time_feat: Tensor,  # (batch_size, history_length, num_features)
-        past_target_cdf: Tensor,  # (batch_size, history_length, target_dim)
-        past_observed_values: Tensor,  # (batch_size, history_length, target_dim)
-        past_is_pad: Tensor,
-        future_time_feat: Tensor,  # (batch_size, prediction_length, num_features)
-    ) -> Tensor:
-
-        # mark padded data as unobserved
-        # (batch_size, target_dim, seq_len)
-        past_observed_values = F.broadcast_minimum(
-            past_observed_values, 1 - past_is_pad.expand_dims(axis=-1)
-        )
-
-        # unroll the decoder in "prediction mode", i.e. with past data only
-        _, state, scale, _, inputs = self.unroll_encoder(
-            F=F,
-            past_time_feat=past_time_feat,
-            past_target_cdf=past_target_cdf,
-            past_observed_values=past_observed_values,
-            past_is_pad=past_is_pad,
-            future_time_feat=None,
-            future_target_cdf=None,
-            target_dimensions=target_dimensions,
-            is_train=False,
-        )
-
-        return self.sampling_decoder(
-            F=F,
-            past_target_cdf=past_target_cdf,
-            target_dimensions=target_dimensions,
-            time_feat=future_time_feat,
-            scale=scale,
-            begin_states=state,
-        )
 
 
 class DeepVARTrainingNetwork(DeepVARNetwork):
@@ -643,6 +495,8 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         # at the first time-step of the decoder a lag of one corresponds to the last target value
         self.shifted_lags = [l - 1 for l in self.lags_seq]
 
+
+
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
@@ -678,4 +532,141 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             past_observed_values=past_observed_values,  # (batch_size, history_length, target_dim)
             past_is_pad=past_is_pad,
             future_time_feat=future_time_feat,  # (batch_size, prediction_length, num_features)
+        )
+
+    def sampling_decoder(
+        self,
+        F,
+        past_target_cdf: Tensor,
+        target_dimensions: Tensor,
+        time_feat: Tensor,
+        scale: Tensor,
+        begin_states: List[Tensor],
+    ) -> Tensor:
+        """
+        Computes sample paths by unrolling the LSTM starting with a initial input and state.
+        Parameters
+        ----------
+        past_target_cdf : Tensor
+            target history. Shape: (batch_size, history_length).
+        target_dimensions : (batch_size, target_dim)
+        time_feat : Tensor
+            time features. Shape: (batch_size, prediction_length, num_time_features).
+        scale : Tensor
+            tensor containing the scale of each element in the batch. Shape: (batch_size, 1, 1).
+        begin_states : List
+            list of initial states for the LSTM layers.
+            the shape of each tensor of the list should be (batch_size, num_cells)
+        Returns
+        --------
+        sample_paths : Tensor
+            a tensor containing sampled paths. Shape: (batch_size, num_sample_paths, prediction_length).
+        """
+
+        def repeat(tensor):
+            return tensor.repeat(repeats=self.num_sample_paths, axis=0)
+
+        # blows-up the dimension of each tensor to batch_size * self.num_sample_paths for increasing parallelism
+        repeated_past_target_cdf = repeat(past_target_cdf)
+        repeated_time_feat = repeat(time_feat)
+        repeated_scale = repeat(scale)
+        repeated_target_dimensions = repeat(target_dimensions)
+
+        # slight difference for GPVAR and DeepVAR, in GPVAR, its a list
+        repeated_states = self.make_states(begin_states)
+
+        future_samples = []
+
+        # for each future time-units we draw new samples for this time-unit and update the state
+        for k in range(self.prediction_length):
+            lags = self.get_lagged_subsequences(
+                F=F,
+                sequence=repeated_past_target_cdf,
+                sequence_length=self.history_length + k,
+                indices=self.shifted_lags,
+                subsequences_length=1,
+            )
+
+            rnn_outputs, repeated_states, lags_scaled, inputs = self.unroll(
+                F=F,
+                begin_state=repeated_states,
+                lags=lags,
+                scale=repeated_scale,
+                time_feat=repeated_time_feat.slice_axis(
+                    axis=1, begin=k, end=k + 1
+                ),
+                target_dimensions=repeated_target_dimensions,
+                unroll_length=1,
+            )
+
+            distr, distr_args = self.distr(
+                rnn_outputs=rnn_outputs,
+                scale=repeated_scale,
+            )
+
+            # (batch_size, 1, target_dim)
+            new_samples = distr.sample()
+
+            # (batch_size, seq_len, target_dim)
+            future_samples.append(new_samples)
+            repeated_past_target_cdf = F.concat(
+                repeated_past_target_cdf, new_samples, dim=1
+            )
+
+        # (batch_size * num_samples, prediction_length, target_dim)
+        samples = F.concat(*future_samples, dim=1)
+
+        # (batch_size, num_samples, prediction_length, target_dim)
+        return samples.reshape(
+            shape=(
+                -1,
+                self.num_sample_paths,
+                self.prediction_length,
+                self.target_dim,
+            )
+        )
+
+    def make_states(self, begin_states):
+        def repeat(tensor):
+            return tensor.repeat(repeats=self.num_sample_paths, axis=0)
+
+        return [repeat(s) for s in begin_states]
+
+    def predict_hybrid_forward(
+        self,
+        F,
+        target_dimensions: Tensor,
+        past_time_feat: Tensor,  # (batch_size, history_length, num_features)
+        past_target_cdf: Tensor,  # (batch_size, history_length, target_dim)
+        past_observed_values: Tensor,  # (batch_size, history_length, target_dim)
+        past_is_pad: Tensor,
+        future_time_feat: Tensor,  # (batch_size, prediction_length, num_features)
+    ) -> Tensor:
+
+        # mark padded data as unobserved
+        # (batch_size, target_dim, seq_len)
+        past_observed_values = F.broadcast_minimum(
+            past_observed_values, 1 - past_is_pad.expand_dims(axis=-1)
+        )
+
+        # unroll the decoder in "prediction mode", i.e. with past data only
+        _, state, scale, _, inputs = self.unroll_encoder(
+            F=F,
+            past_time_feat=past_time_feat,
+            past_target_cdf=past_target_cdf,
+            past_observed_values=past_observed_values,
+            past_is_pad=past_is_pad,
+            future_time_feat=None,
+            future_target_cdf=None,
+            target_dimensions=target_dimensions,
+            is_train=False,
+        )
+
+        return self.sampling_decoder(
+            F=F,
+            past_target_cdf=past_target_cdf,
+            target_dimensions=target_dimensions,
+            time_feat=future_time_feat,
+            scale=scale,
+            begin_states=state,
         )
