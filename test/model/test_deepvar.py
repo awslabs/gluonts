@@ -46,7 +46,7 @@ metadata = dataset.metadata
 estimator = DeepVAREstimator
 
 
-@pytest.mark.timeout(20000)
+@pytest.mark.timeout(10)
 @pytest.mark.parametrize(
     "distr_output, num_batches_per_epoch, Estimator, hybridize, use_copula",
     [
@@ -71,7 +71,7 @@ estimator = DeepVAREstimator
             True,
             False,
         ),
-        # fails with nan for now
+        (None, 10, estimator, True, True),
         (
             MultivariateGaussianOutput(dim=target_dim),
             10,
@@ -104,7 +104,7 @@ def test_deepvar(
         scaling=False,
         use_marginal_transformation=use_copula,
         trainer=Trainer(
-            epochs=2,
+            epochs=1,
             batch_size=8,
             learning_rate=1e-10,
             num_batches_per_epoch=num_batches_per_epoch,
