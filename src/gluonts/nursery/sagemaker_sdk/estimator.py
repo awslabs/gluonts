@@ -31,24 +31,28 @@ import tarfile
 import tempfile
 
 # First-party imports
-from gluonts.nursery.sagemaker_sdk.defaults import GLUONTS_VERSION
+from gluonts.nursery.sagemaker_sdk.defaults import (
+    GLUONTS_VERSION,
+    ENTRY_POINTS_FOLDER,
+    TRAIN_SCRIPT,
+    MONITORED_METRICS,
+    FRAMEWORK_NAME,
+    LOWEST_SCRIPT_MODE_VERSION,
+    LATEST_GLUONTS_VERSION,
+    PYTHON_VERSION,
+    NUM_SAMPLES,
+    QUANTILES,
+)
 from gluonts.nursery.sagemaker_sdk.model import GluonTSModel
+from gluonts.nursery.sagemaker_sdk.sdk_utils import sagemaker_log
 from gluonts.core import serde
 from gluonts.model.estimator import GluonEstimator
 from gluonts.dataset.repository import datasets
 from gluonts.model.predictor import Predictor
 
-# Defaults
-ENTRY_POINTS_FOLDER = Path(__file__).parent.resolve() / "entry_point_scripts"
-MONITORED_METRICS = "mean_wQuantileLoss", "ND", "RMSE"
 
 # Logging: print log statements analogously to Sagemaker.
 logger = logging.getLogger("sagemaker")
-
-
-# Logging: print log statements analogously to Sagemaker.
-def sagemaker_log(message):
-    print(time.strftime("%Y-%m-%d %H:%M:%S ", time.gmtime()), message)
 
 
 # OVERALL TODOS:
@@ -170,10 +174,9 @@ class GluonTSFramework(Framework):
         Additional kwargs passed to the :class:`~sagemaker.estimator.Framework` constructor.
     """
 
-    __framework_name__ = "gluonts"
-    _LOWEST_SCRIPT_MODE_VERSION = ["0", "4", "1"]
-
-    LATEST_VERSION = "0.4.1"
+    __framework_name__ = FRAMEWORK_NAME
+    _LOWEST_SCRIPT_MODE_VERSION = LOWEST_SCRIPT_MODE_VERSION
+    LATEST_VERSION = LATEST_GLUONTS_VERSION
 
     def __init__(
         self,
@@ -188,7 +191,7 @@ class GluonTSFramework(Framework):
         code_location: str = None,
         framework_version: str = GLUONTS_VERSION,
         hyperparameters: Dict = None,
-        entry_point: str = str(ENTRY_POINTS_FOLDER / "train_entry_point.py"),
+        entry_point: str = str(ENTRY_POINTS_FOLDER / TRAIN_SCRIPT),
         **kwargs,
     ):
         # framework_version currently serves no purpose, except for compatibility with the sagemaker framework.
@@ -216,7 +219,7 @@ class GluonTSFramework(Framework):
         )
 
         # must be set
-        self.py_version = "py3"
+        self.py_version = PYTHON_VERSION
 
     def create_model(
         self,
@@ -401,18 +404,8 @@ class GluonTSFramework(Framework):
         self,
         dataset: str,
         estimator: GluonEstimator,
-        num_samples: Optional[int] = 100,
-        quantiles: Optional[List[int]] = (
-            0.1,
-            0.2,
-            0.3,
-            0.4,
-            0.5,
-            0.6,
-            0.7,
-            0.8,
-            0.9,
-        ),
+        num_samples: Optional[int] = NUM_SAMPLES,
+        quantiles: Optional[List[int]] = QUANTILES,
         monitored_metrics: List[str] = MONITORED_METRICS,
         wait: bool = True,
         logs: bool = True,

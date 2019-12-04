@@ -14,7 +14,6 @@
 
 # Standard library imports
 from typing import Dict
-import time
 
 # Third-party imports
 import sagemaker
@@ -29,12 +28,12 @@ from sagemaker.fw_utils import model_code_key_prefix
 from pkg_resources import parse_version
 
 # First-party imports
-from gluonts.nursery.sagemaker_sdk.defaults import GLUONTS_VERSION
-
-
-# Logging: print log statements analogously to Sagemaker.
-def sagemaker_log(message):
-    print(time.strftime("%Y-%m-%d %H:%M:%S ", time.gmtime()), message)
+from gluonts.nursery.sagemaker_sdk.defaults import (
+    GLUONTS_VERSION,
+    LOWEST_MMS_VERSION,
+    FRAMEWORK_NAME,
+)
+from gluonts.nursery.sagemaker_sdk.sdk_utils import sagemaker_log
 
 
 class GluonTSPredictor(RealTimePredictor):
@@ -58,24 +57,22 @@ class GluonTSPredictor(RealTimePredictor):
             using the default AWS configuration chain.
         """
 
+        # TODO: implement custom data serializer and deserializer: convert between gluonts dataset and bytes
         # Use the default functions from MXNet (they handle more than we need
         # (e.g: np.ndarrays), but that should be fine)
         super(GluonTSPredictor, self).__init__(
             endpoint_name,
             sagemaker_session,
-            json_serializer,
-            json_deserializer,
+            json_serializer,  # change this
+            json_deserializer,  # change this
         )
-
-        # TODO: implement/override predict function
-        # Each Predictor provides a predict method which can do inference with numpy arrays or Python lists.
 
 
 class GluonTSModel(FrameworkModel):
     """An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker ``Endpoint``."""
 
-    __framework_name__ = "gluonts"
-    _LOWEST_MMS_VERSION = "1.4"
+    __framework_name__ = FRAMEWORK_NAME
+    _LOWEST_MMS_VERSION = LOWEST_MMS_VERSION
 
     def __init__(
         self,
