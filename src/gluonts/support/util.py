@@ -18,10 +18,11 @@ import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, cast, Union
 
 # Third-party imports
 import mxnet as mx
+import numpy as np
 
 # First-party imports
 from gluonts.core.serde import dump_json, load_json
@@ -450,15 +451,17 @@ def _broadcast_param(param, axes, sizes):
     return param
 
 
-def erf(F, x: Tensor):
-    if MXNET_HAS_ERF:
-        return F.erf(x)
+def erf(F, x: Union[Tensor, np.array]) -> Union[Tensor, np.array]:
+    if F is mx.nd or F is mx.sym:
+        if MXNET_HAS_ERF:
+            return F.erf(x)
     # Using numerical recipes approximation for erf function
     # accurate to 1E-7
 
-    ones = x.ones_like()
-    zeros = x.zeros_like()
-    t = ones / (ones + 0.5 * x.abs())
+    ones = F.ones_like(x)
+    zeros = F.zeros_like(x)
+
+    t = ones / (ones + 0.5 * F.abs(x))
 
     coefficients = [
         1.00002368,
@@ -476,18 +479,19 @@ def erf(F, x: Tensor):
     for c in coefficients[::-1]:
         inner = t * (c + inner)
 
-    res = ones - t * (inner - 1.26551223 - x.square()).exp()
-    return F.where(F.broadcast_greater_equal(x, zeros), res, -1.0 * res)
+    res = ones - t * F.exp((inner - 1.26551223 - F.square(x)))
+    return F.where(x >= zeros, res, -1.0 * res)
 
 
-def erfinv(F, x: Tensor) -> Tensor:
-    if MXNET_HAS_ERFINV:
-        return F.erfinv(x)
+def erfinv(F, x: Union[Tensor, np.array]) -> Union[Tensor, np.array]:
+    if F is mx.nd or F is mx.sym:
+        if MXNET_HAS_ERFINV:
+            return F.erfinv(x)
 
-    zeros = x.zeros_like()
+    zeros = F.zeros_like(x)
 
-    w = -F.log(F.broadcast_mul((1.0 - x), (1.0 + x)))
-    mask_lesser = F.broadcast_lesser(w, zeros + 5.0)
+    w = -F.log((1.0 - x) * (1.0 + x))
+    mask_lesser = w < (zeros + 5.0)
 
     w = F.where(mask_lesser, w - 2.5, F.sqrt(w) - 3.0)
 
@@ -525,9 +529,9 @@ def erfinv(F, x: Tensor) -> Tensor:
         coefficients_lesser[1:], coefficients_greater_equal[1:]
     ):
         c = F.where(mask_lesser, c_l + zeros, c_ge + zeros)
-        p = c + F.broadcast_mul(p, w)
+        p = c + p * w
 
-    return F.broadcast_mul(p, x)
+    return p * x
 
 
 def get_download_path() -> Path:

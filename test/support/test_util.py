@@ -75,9 +75,23 @@ def test_erf() -> None:
         + np.linspace(-5, 5, 1001).tolist()
         + [10, 100, 1000]
     )
-    y_mxnet = util.erf(mx.nd, mx.nd.array(x)).asnumpy()
     y_scipy = scipy_erf(x)
-    assert np.allclose(y_mxnet, y_scipy)
+
+    # Test mx.nd
+    y_mxnet = util.erf(mx.nd, mx.nd.array(x)).asnumpy()
+    assert np.allclose(y_mxnet, y_scipy, rtol=1e-3)
+
+    # Test mx.sym
+    X = mx.symbol.Variable("x")
+    func = util.erf(mx.sym, X)
+    func_exec = func.bind(ctx=mx.cpu(), args={"x": mx.nd.array(x)})
+    func_exec.forward()
+    y_mxnet_sym = func_exec.outputs[0].asnumpy()
+    assert np.allclose(y_mxnet_sym, y_scipy, rtol=1e-3)
+
+    # Text np
+    y_np = util.erf(np, x)
+    assert np.allclose(y_np, y_scipy, atol=1e-7)
 
 
 def test_erfinv() -> None:
@@ -87,6 +101,20 @@ def test_erfinv() -> None:
         pytest.skip("scipy not installed skipping test for erf")
 
     x = np.linspace(-1.0 + 1.0e-4, 1 - 1.0e-4, 11)
-    y_mxnet = util.erfinv(mx.nd, mx.nd.array(x)).asnumpy()
     y_scipy = scipy_erfinv(x)
+
+    # Test mx.nd
+    y_mxnet = util.erfinv(mx.nd, mx.nd.array(x)).asnumpy()
     assert np.allclose(y_mxnet, y_scipy, rtol=1e-3)
+
+    # Test mx.sym
+    X = mx.symbol.Variable("x")
+    func = util.erfinv(mx.sym, X)
+    func_exec = func.bind(ctx=mx.cpu(), args={"x": mx.nd.array(x)})
+    func_exec.forward()
+    y_mxnet_sym = func_exec.outputs[0].asnumpy()
+    assert np.allclose(y_mxnet_sym, y_scipy, rtol=1e-3)
+
+    # Text np
+    y_np = util.erfinv(np, x)
+    assert np.allclose(y_np, y_scipy, rtol=1e-3)

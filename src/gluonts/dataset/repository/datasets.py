@@ -21,6 +21,9 @@ from gluonts.dataset.common import TrainDatasets, load_datasets
 from gluonts.dataset.repository._artificial import generate_artificial_dataset
 from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
+from gluonts.dataset.repository._gp_copula_2019 import (
+    generate_gp_copula_dataset,
+)
 from gluonts.support.util import get_download_path
 
 m4_freq = "Hourly"
@@ -44,6 +47,24 @@ dataset_recipes = OrderedDict(
             generate_lstnet_dataset, dataset_name="electricity"
         ),
         "traffic": partial(generate_lstnet_dataset, dataset_name="traffic"),
+        "exchange_rate_nips": partial(
+            generate_gp_copula_dataset, dataset_name="exchange_rate_nips"
+        ),
+        "electricity_nips": partial(
+            generate_gp_copula_dataset, dataset_name="electricity_nips"
+        ),
+        "traffic_nips": partial(
+            generate_gp_copula_dataset, dataset_name="traffic_nips"
+        ),
+        "solar_nips": partial(
+            generate_gp_copula_dataset, dataset_name="solar_nips"
+        ),
+        "wiki-rolling_nips": partial(
+            generate_gp_copula_dataset, dataset_name="wiki-rolling_nips"
+        ),
+        "taxi_30min": partial(
+            generate_gp_copula_dataset, dataset_name="taxi_30min"
+        ),
         "m4_hourly": partial(
             generate_m4_dataset,
             m4_freq="Hourly",

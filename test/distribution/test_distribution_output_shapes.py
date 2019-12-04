@@ -29,6 +29,7 @@ from gluonts.distribution import (
     StudentTOutput,
     UniformOutput,
     DirichletOutput,
+    DirichletMultinomialOutput,
 )
 
 
@@ -65,6 +66,13 @@ from gluonts.distribution import (
         ),
         (
             DirichletOutput(dim=5),
+            mx.nd.random.gamma(shape=(3, 4, 5)),
+            [None],
+            (3, 4),
+            (5,),
+        ),
+        (
+            DirichletMultinomialOutput(dim=5, n_trials=10),
             mx.nd.random.gamma(shape=(3, 4, 5)),
             [None],
             (3, 4),
