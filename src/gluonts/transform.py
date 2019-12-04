@@ -916,6 +916,21 @@ class AddAgeFeature(MapTransformation):
         return data
 
 
+class TargetDimIndicator(SimpleTransformation):
+    """
+    Label-encoding of the target dimensions.
+    """
+
+    @validated()
+    def __init__(self, field_name: str, target_field: str) -> None:
+        self.field_name = field_name
+        self.target_field = target_field
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        data[self.field_name] = np.arange(0, data[self.target_field].shape[0])
+        return data
+
+
 class InstanceSplitter(FlatMapTransformation):
     """
     Selects training instances, by slicing the target and other time series
@@ -1693,7 +1708,6 @@ def cdf_to_gaussian_forward_transform(
             Forward transformed outputs.
 
         """
-        batch_predictions = batch_predictions.transpose((0, 2, 1))
         slopes = slopes.asnumpy()
         intercepts = intercepts.asnumpy()
 
@@ -1711,7 +1725,7 @@ def cdf_to_gaussian_forward_transform(
             / take_along_axis(slopes, indices, axis=1),
             take_along_axis(batch_target_sorted, indices, axis=1),
         )
-        return transformed.swapaxes(1, 2)
+        return transformed
 
     # applies inverse cdf to all outputs
     batch_size, samples, target_dim, time = outputs.shape

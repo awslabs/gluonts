@@ -18,7 +18,7 @@ import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, cast, Union
+from typing import Any, Callable, Dict, List, Optional, cast, Union, Tuple
 
 # Third-party imports
 import mxnet as mx
@@ -391,7 +391,7 @@ def cumsum(
 
 
 def weighted_average(
-    F, x: Tensor, weights: Optional[Tensor] = None, axis=None
+    F, x: Tensor, weights: Optional[Tensor] = None, axis: Optional[int] = None
 ) -> Tensor:
     """
     Computes the weighted average of a given tensor across a given axis.
@@ -552,3 +552,25 @@ def get_download_path() -> Path:
 def map_dct_values(fn: Callable, dct: dict) -> dict:
     """Maps `fn` over a dicts values."""
     return {key: fn(value) for key, value in dct.items()}
+
+
+def assert_shape(x: Tensor, expected_shape: Tuple[int, ...]):
+    """
+    Assert expected shape if mode is mx.nd.
+
+    Parameters
+    ----------
+    x
+        Input Tensor
+    expected_shape
+        Expected shape
+    Returns
+    -------
+
+    """
+    if isinstance(x, mx.nd.NDArray):
+        for i, j in zip(x.shape, expected_shape):
+            if j != -1:
+                assert (
+                    i == j
+                ), f"shape mismatch got {x.shape} expected {expected_shape}"

@@ -593,7 +593,7 @@ def test_cdf_to_gaussian_transformation():
     def make_fake_output(u: DataEntry):
         fake_output = np.expand_dims(
             np.expand_dims(u["past_target_cdf"], axis=0), axis=0
-        ).swapaxes(2, 3)
+        )
         return fake_output
 
     ds = make_test_data()
@@ -627,7 +627,7 @@ def test_cdf_to_gaussian_transformation():
         )
 
         # Get any sample/batch (slopes[i][:, d]they are all the same)
-        back_transformed = np.swapaxes(back_transformed[0][0], 0, 1)
+        back_transformed = back_transformed[0][0]
 
         original_target = u["target"]
 
@@ -663,6 +663,30 @@ def test_gaussian_ppf():
     y_scipy = norm.ppf(x)
 
     assert np.allclose(y_gluonts, y_scipy, atol=1e-7)
+
+
+def test_target_dim_indicator():
+    target = np.array([0, 2, 3, 10]).tolist()
+
+    multi_dim_target = np.array([target, target, target, target])
+    dataset = gluonts.dataset.common.ListDataset(
+        data_iter=[{"start": "2012-01-01", "target": multi_dim_target}],
+        freq="1D",
+        one_dim_target=False,
+    )
+
+    t = transform.Chain(
+        trans=[
+            transform.TargetDimIndicator(
+                target_field=FieldName.TARGET, field_name="target_dimensions"
+            )
+        ]
+    )
+
+    for data_entry in t(dataset, is_train=True):
+        assert (
+            data_entry["target_dimensions"] == np.array([0, 1, 2, 3])
+        ).all()
 
 
 def make_dataset(N, train_length):
