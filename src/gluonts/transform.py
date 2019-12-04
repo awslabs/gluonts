@@ -918,7 +918,7 @@ class AddAgeFeature(MapTransformation):
 
 class TargetDimIndicator(SimpleTransformation):
     """
-    One-hot indicator of the target dimension.
+    Label-encoding of the target dimensions.
     """
 
     @validated()

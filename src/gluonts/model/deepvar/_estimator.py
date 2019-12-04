@@ -131,6 +131,74 @@ def get_lags_for_frequency(
 
 
 class DeepVAREstimator(GluonEstimator):
+    """
+    Constructs a DeepVAR estimator, which is a multivariate variant of DeepAR.
+
+    These models have been described as VEC-LSTM in this paper:
+    https://arxiv.org/abs/1910.03002
+
+    Note that this implementation will change over time and we further work on
+    this method. To replicate the results of the paper, please refer to our
+    (frozen) implementation here:
+    https://github.com/mbohlkeschneider/gluon-ts/tree/mv_release
+
+
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict
+    prediction_length
+        Length of the prediction horizon
+    target_dim
+        Dimensionality of the input dataset
+    trainer
+        Trainer object to be used (default: Trainer())
+    context_length
+        Number of steps to unroll the RNN for before computing predictions
+        (default: None, in which case context_length = prediction_length)
+    num_layers
+        Number of RNN layers (default: 2)
+    num_cells
+        Number of RNN cells for each layer (default: 40)
+    cell_type
+        Type of recurrent cells to use (available: 'lstm' or 'gru';
+        default: 'lstm')
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect
+        the accuracy (default: 100)
+    dropout_rate
+        Dropout regularization parameter (default: 0.1)
+    use_feat_dynamic_real
+        Whether to use the ``feat_dynamic_real`` field from the data
+        (default: False)
+    use_feat_static_cat
+        Whether to use the ``feat_static_cat`` field from the data
+        (default: False)
+    use_feat_static_real
+        Whether to use the ``feat_static_real`` field from the data
+        (default: False)
+    cardinality
+        Number of values of each categorical feature.
+        This must be set if ``use_feat_static_cat == True`` (default: None)
+    embedding_dimension
+        Dimension of the embeddings for categorical features
+        (default: [min(50, (cat+1)//2) for cat in cardinality])
+    distr_output
+        Distribution to use to evaluate observations and sample predictions
+        (default: StudentTOutput())
+    scaling
+        Whether to automatically scale the target values (default: true)
+    lags_seq
+        Indices of the lagged target values to use as inputs of the RNN
+        (default: None, in which case these are automatically determined
+        based on freq)
+    time_features
+        Time features to use as inputs of the RNN (default: None, in which
+        case these are automatically determined based on freq)
+
+    """
+
     @validated()
     def __init__(
         self,
@@ -142,7 +210,7 @@ class DeepVAREstimator(GluonEstimator):
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
@@ -166,7 +234,7 @@ class DeepVAREstimator(GluonEstimator):
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
         assert (
-            num_eval_samples > 0
+            num_parallel_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert all(
@@ -186,7 +254,7 @@ class DeepVAREstimator(GluonEstimator):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
-        self.num_sample_paths = num_eval_samples
+        self.num_parallel_samples = num_parallel_samples
         self.dropout_rate = dropout_rate
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
@@ -264,7 +332,7 @@ class DeepVAREstimator(GluonEstimator):
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
                 TargetDimIndicator(
-                    field_name="target_dimensions",
+                    field_name="target_dimension_indicator",
                     target_field=FieldName.TARGET,
                 ),
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
@@ -309,7 +377,7 @@ class DeepVAREstimator(GluonEstimator):
     ) -> Predictor:
         prediction_network = DeepVARPredictionNetwork(
             target_dim=self.target_dim,
-            num_sample_paths=self.num_sample_paths,
+            num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,

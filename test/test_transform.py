@@ -665,6 +665,30 @@ def test_gaussian_ppf():
     assert np.allclose(y_gluonts, y_scipy, atol=1e-7)
 
 
+def test_target_dim_indicator():
+    target = np.array([0, 2, 3, 10]).tolist()
+
+    multi_dim_target = np.array([target, target, target, target])
+    dataset = gluonts.dataset.common.ListDataset(
+        data_iter=[{"start": "2012-01-01", "target": multi_dim_target}],
+        freq="1D",
+        one_dim_target=False,
+    )
+
+    t = transform.Chain(
+        trans=[
+            transform.TargetDimIndicator(
+                target_field=FieldName.TARGET, field_name="target_dimensions"
+            )
+        ]
+    )
+
+    for data_entry in t(dataset, is_train=True):
+        assert (
+            data_entry["target_dimensions"] == np.array([0, 1, 2, 3])
+        ).all()
+
+
 def make_dataset(N, train_length):
     # generates 2 ** N - 1 timeseries with constant increasing values
     n = 2 ** N - 1

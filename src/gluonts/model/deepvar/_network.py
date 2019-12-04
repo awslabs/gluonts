@@ -163,7 +163,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         lags: Tensor,
         scale: Tensor,
         time_feat: Tensor,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         unroll_length: int,
         begin_state: Optional[List[Tensor]],
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
@@ -180,8 +180,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             Mean scale (batch_size, 1, target_dim)
         time_feat
             Additional time features
-        target_dimensions
-            Dimensionality of the target (batch_size, target_dim)
+        target_dimension_indicator
+            Indices of the target dimension (batch_size, target_dim)
         unroll_length
             length to unroll
         begin_state
@@ -213,7 +213,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         )
 
         # (batch_size, target_dim, embed_dim)
-        index_embeddings = self.embed(target_dimensions)
+        index_embeddings = self.embed(target_dimension_indicator)
         assert_shape(index_embeddings, (-1, self.target_dim, self.embed_dim))
 
         # (batch_size, seq_len, target_dim * embed_dim)
@@ -257,10 +257,10 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         past_is_pad: Tensor,
         future_time_feat: Optional[Tensor],
         future_target_cdf: Optional[Tensor],
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
     ) -> Tuple[Tensor, List[Tensor], Tensor, Tensor, Tensor]:
         """
-        Unrolls the LSTM encoder over past and, if present, future data.
+        Unrolls the RNN encoder over past and, if present, future data.
         Returns outputs and state of the encoder, plus the scale of
         past_target_cdf and a vector of static features that was constructed
         and fed as input to the encoder. All tensor arguments should have NTC
@@ -285,7 +285,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         future_target_cdf
             Future marginal CDF transformed target values (batch_size,
             prediction_length, target_dim)
-        target_dimensions
+        target_dimension_indicator
             Dimensionality of the time series (batch_size, target_dim)
 
         Returns
@@ -352,7 +352,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             lags=lags,
             scale=scale,
             time_feat=time_feat,
-            target_dimensions=target_dimensions,
+            target_dimension_indicator=target_dimension_indicator,
             unroll_length=subsequences_length,
             begin_state=None,
         )
@@ -389,7 +389,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
     def train_hybrid_forward(
         self,
         F,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         past_time_feat: Tensor,
         past_target_cdf: Tensor,
         past_observed_values: Tensor,
@@ -405,7 +405,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         Parameters
         ----------
         F
-        target_dimensions
+        target_dimension_indicator
             Indices of the target dimension (batch_size, target_dim)
         past_time_feat
             Dynamic features of past time series (batch_size, history_length,
@@ -452,7 +452,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             past_is_pad=past_is_pad,
             future_time_feat=future_time_feat,
             future_target_cdf=future_target_cdf,
-            target_dimensions=target_dimensions,
+            target_dimension_indicator=target_dimension_indicator,
         )
 
         # put together target sequence
@@ -510,7 +510,7 @@ class DeepVARTrainingNetwork(DeepVARNetwork):
     def hybrid_forward(
         self,
         F,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         past_time_feat: Tensor,
         past_target_cdf: Tensor,
         past_observed_values: Tensor,
@@ -526,7 +526,7 @@ class DeepVARTrainingNetwork(DeepVARNetwork):
         Parameters
         ----------
         F
-        target_dimensions
+        target_dimension_indicator
             Indices of the target dimension (batch_size, target_dim)
         past_time_feat
             Dynamic features of past time series (batch_size, history_length,
@@ -562,7 +562,7 @@ class DeepVARTrainingNetwork(DeepVARNetwork):
         """
         return self.train_hybrid_forward(
             F,
-            target_dimensions,
+            target_dimension_indicator,
             past_time_feat,
             past_target_cdf,
             past_observed_values,
@@ -575,9 +575,9 @@ class DeepVARTrainingNetwork(DeepVARNetwork):
 
 class DeepVARPredictionNetwork(DeepVARNetwork):
     @validated()
-    def __init__(self, num_sample_paths: int, **kwargs) -> None:
+    def __init__(self, num_parallel_samples: int, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.num_sample_paths = num_sample_paths
+        self.num_parallel_samples = num_parallel_samples
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to
@@ -588,7 +588,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
     def hybrid_forward(
         self,
         F,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         past_time_feat: Tensor,
         past_target_cdf: Tensor,
         past_observed_values: Tensor,
@@ -601,7 +601,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         Parameters
         ----------
         F
-        target_dimensions
+        target_dimension_indicator
             Indices of the target dimension (batch_size, target_dim)
         past_time_feat
             Dynamic features of past time series (batch_size, history_length,
@@ -627,7 +627,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         """
         return self.predict_hybrid_forward(
             F=F,
-            target_dimensions=target_dimensions,
+            target_dimension_indicator=target_dimension_indicator,
             past_time_feat=past_time_feat,
             past_target_cdf=past_target_cdf,
             past_observed_values=past_observed_values,
@@ -639,7 +639,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         self,
         F,
         past_target_cdf: Tensor,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         time_feat: Tensor,
         scale: Tensor,
         begin_states: List[Tensor],
@@ -653,7 +653,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         past_target_cdf
             Past marginal CDF transformed target values (batch_size,
             history_length, target_dim)
-        target_dimensions
+        target_dimension_indicator
             Indices of the target dimension (batch_size, target_dim)
         time_feat
             Dynamic features of future time series (batch_size, history_length,
@@ -670,14 +670,16 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         """
 
         def repeat(tensor):
-            return tensor.repeat(repeats=self.num_sample_paths, axis=0)
+            return tensor.repeat(repeats=self.num_parallel_samples, axis=0)
 
         # blows-up the dimension of each tensor to
         # batch_size * self.num_sample_paths for increasing parallelism
         repeated_past_target_cdf = repeat(past_target_cdf)
         repeated_time_feat = repeat(time_feat)
         repeated_scale = repeat(scale)
-        repeated_target_dimensions = repeat(target_dimensions)
+        repeated_target_dimension_indicator = repeat(
+            target_dimension_indicator
+        )
 
         # slight difference for GPVAR and DeepVAR, in GPVAR, its a list
         repeated_states = self.make_states(begin_states)
@@ -703,7 +705,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
                 time_feat=repeated_time_feat.slice_axis(
                     axis=1, begin=k, end=k + 1
                 ),
-                target_dimensions=repeated_target_dimensions,
+                target_dimension_indicator=repeated_target_dimension_indicator,
                 unroll_length=1,
             )
 
@@ -727,7 +729,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         return samples.reshape(
             shape=(
                 -1,
-                self.num_sample_paths,
+                self.num_parallel_samples,
                 self.prediction_length,
                 self.target_dim,
             )
@@ -749,14 +751,14 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         """
 
         def repeat(tensor):
-            return tensor.repeat(repeats=self.num_sample_paths, axis=0)
+            return tensor.repeat(repeats=self.num_parallel_samples, axis=0)
 
         return [repeat(s) for s in begin_states]
 
     def predict_hybrid_forward(
         self,
         F,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         past_time_feat: Tensor,
         past_target_cdf: Tensor,
         past_observed_values: Tensor,
@@ -769,7 +771,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         Parameters
         ----------
         F
-        target_dimensions
+        target_dimension_indicator
             Indices of the target dimension (batch_size, target_dim)
         past_time_feat
             Dynamic features of past time series (batch_size, history_length,
@@ -809,13 +811,13 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             past_is_pad=past_is_pad,
             future_time_feat=None,
             future_target_cdf=None,
-            target_dimensions=target_dimensions,
+            target_dimension_indicator=target_dimension_indicator,
         )
 
         return self.sampling_decoder(
             F=F,
             past_target_cdf=past_target_cdf,
-            target_dimensions=target_dimensions,
+            target_dimension_indicator=target_dimension_indicator,
             time_feat=future_time_feat,
             scale=scale,
             begin_states=state,
