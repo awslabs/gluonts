@@ -177,9 +177,13 @@ class DeepVAREstimator(GluonEstimator):
         (default: 5])
     distr_output
         Distribution to use to evaluate observations and sample predictions
-        (default: StudentTOutput()). For multivariate forecasts, the user
-        needs create a LowrankMultivariateGaussianOutput instance and pass it
-        to the estimator.
+        (default: LowrankMultivariateGaussianOutput with dim=target_dim and
+        rank=5). Note that target dim of the DistributionOutput and the
+        estimator constructor call need to match. Also note that the rank in
+        this constructor is meaningless if the DistributionOutput is
+        constructed outside of this class.
+    rank
+        Rank for the LowrankMultivariateGaussianOutput. (default: 5)
     scaling
         Whether to automatically scale the target values (default: true)
     pick_incomplete
@@ -212,7 +216,8 @@ class DeepVAREstimator(GluonEstimator):
         dropout_rate: float = 0.1,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
-        distr_output: DistributionOutput = StudentTOutput(),
+        distr_output: Optional[DistributionOutput] = None,
+        rank: Optional[int] = 5,
         scaling: bool = True,
         pick_incomplete: bool = False,
         lags_seq: Optional[List[int]] = None,
@@ -246,9 +251,16 @@ class DeepVAREstimator(GluonEstimator):
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
+
+        if distr_output is not None:
+            self.distr_output = distr_output
+        else:
+            self.distr_output = LowrankMultivariateGaussianOutput(
+                dim=target_dim, rank=rank
+            )
+
         self.prediction_length = prediction_length
         self.target_dim = target_dim
-        self.distr_output = distr_output
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
