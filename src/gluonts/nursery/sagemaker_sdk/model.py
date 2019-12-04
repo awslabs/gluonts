@@ -13,19 +13,28 @@
 
 
 # Standard library imports
+from typing import Dict
+import time
 
 # Third-party imports
-from sagemaker.model import FrameworkModel
+import sagemaker
+from sagemaker.model import FrameworkModel, MODEL_SERVER_WORKERS_PARAM_NAME
 from sagemaker.predictor import (
     RealTimePredictor,
     json_serializer,
     json_deserializer,
 )
 from sagemaker import session
-from typing import List, Optional, Tuple, Dict
+from sagemaker.fw_utils import model_code_key_prefix
+from pkg_resources import parse_version
 
 # First-party imports
 from gluonts.nursery.sagemaker_sdk.defaults import GLUONTS_VERSION
+
+
+# Logging: print log statements analogously to Sagemaker.
+def sagemaker_log(message):
+    print(time.strftime("%Y-%m-%d %H:%M:%S ", time.gmtime()), message)
 
 
 class GluonTSPredictor(RealTimePredictor):
@@ -58,12 +67,15 @@ class GluonTSPredictor(RealTimePredictor):
             json_deserializer,
         )
 
+        # TODO: implement/override predict function
+        # Each Predictor provides a predict method which can do inference with numpy arrays or Python lists.
+
 
 class GluonTSModel(FrameworkModel):
     """An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker ``Endpoint``."""
 
     __framework_name__ = "gluonts"
-    _LOWEST_MMS_VERSION = "1.4"  # TODO: figure out the meaning of this...
+    _LOWEST_MMS_VERSION = "1.4"
 
     def __init__(
         self,
@@ -74,7 +86,7 @@ class GluonTSModel(FrameworkModel):
         framework_version: str = GLUONTS_VERSION,
         predictor_cls=GluonTSPredictor,  # (callable[str, session.Session])
         model_server_workers: int = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize a GluonTSModel.
@@ -107,13 +119,14 @@ class GluonTSModel(FrameworkModel):
         **kwargs:
             Keyword arguments passed to the ``FrameworkModel`` initializer.
         """
+
         super(GluonTSModel, self).__init__(
             model_data,
             image,
             role,
             entry_point,
             predictor_cls=predictor_cls,
-            **kwargs
+            **kwargs,
         )
 
         self.framework_version = framework_version
@@ -148,46 +161,31 @@ class GluonTSModel(FrameworkModel):
             A container definition object usable with the CreateModel API.
         """
 
-        # Code from MXNet implementation:
-        """
-        is_mms_version = parse_version(self.framework_version) >= parse_version(
-            self._LOWEST_MMS_VERSION
-        )
+        is_mms_version = parse_version(
+            self.framework_version
+        ) >= parse_version(self._LOWEST_MMS_VERSION)
 
         deploy_image = self.image
-        if not deploy_image:
-            region_name = self.sagemaker_session.boto_session.region_name
 
-            framework_name = self.__framework_name__
-            if is_mms_version:
-                framework_name += "-serving"
+        # TODO implement proper logic handling images when none are provided by user
+        # Example implementation:
+        #   https://github.com/aws/sagemaker-python-sdk/blob/master/src/sagemaker/mxnet/model.py
 
-            deploy_image = create_image_uri(
-                region_name,
-                framework_name,
-                instance_type,
-                self.framework_version,
-                accelerator_type=accelerator_type,
-            )
+        sagemaker_log(f"Using image: {deploy_image}")
 
-        deploy_key_prefix = model_code_key_prefix(self.key_prefix, self.name, deploy_image)
+        deploy_key_prefix = model_code_key_prefix(
+            self.key_prefix, self.name, deploy_image
+        )
         self._upload_code(deploy_key_prefix, is_mms_version)
         deploy_env = dict(self.env)
         deploy_env.update(self._framework_env_vars())
 
         if self.model_server_workers:
-            deploy_env[MODEL_SERVER_WORKERS_PARAM_NAME.upper()] = str(self.model_server_workers)
+            deploy_env[MODEL_SERVER_WORKERS_PARAM_NAME.upper()] = str(
+                self.model_server_workers
+            )
         return sagemaker.container_def(
-            deploy_image, self.repacked_model_data or self.model_data, deploy_env
+            deploy_image,
+            self.repacked_model_data or self.model_data,
+            deploy_env,
         )
-        """
-
-        # TODO implement the proper logic for handling images
-        # Example implementation:
-        #   https://github.com/aws/sagemaker-python-sdk/blob/master/src/sagemaker/mxnet/model.py
-
-        container_def = super().prepare_container_def(
-            instance_type, accelerator_type
-        )
-
-        return container_def

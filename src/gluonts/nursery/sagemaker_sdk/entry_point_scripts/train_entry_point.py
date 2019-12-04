@@ -30,6 +30,9 @@ from gluonts.evaluation import Evaluator, backtest
 # Logging: print logs analogously to Sagemaker.
 logger = logging.getLogger(__name__)
 
+# TODO: implement model_fn, input_fn, predict_fn, and output_fn !!
+# TODO: segment script for readability
+
 
 def train(arguments):
     """

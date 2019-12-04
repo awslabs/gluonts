@@ -59,9 +59,15 @@ def sagemaker_log(message):
 #    > Add local mode support
 #    > Add officially provided images //images work now
 #    > Add support for multiple instances
-#    > Add support methods to easily retrieve training artifacts like the model
-#    > Implement: given a hash, install that gluonts version: DONE //specify in requirements.txt
-#    > Figure out dynamic install of python libraries: DONE //specify in requirements.txt
+#    > GluonTSPredictor: implement/override predict function
+#    > GluonTSModel: implement correct deserialization
+
+# HPO implementation sketch:
+#    > Example HPO of model: MODEL_HPM:Trainer:batch_size:64
+#    > Now construct nested dict from MODEL_HPM hyperparameters
+#    > Load the serialized model as a dict
+#    > Update the model dict with the nested dict from the MODEL_HPMs with dict.update(...)
+#    > Write this new dict back to a s3 as a .json file like before
 
 
 class GluonTSFramework(Framework):
@@ -147,6 +153,7 @@ class GluonTSFramework(Framework):
     framework_version:
         GluonTS version. If not specified, this will default to 0.4.1. Currently has no effect.
     hyperparameters:
+        # TODO add support for HPO
         Not the Estimator hyperparameters, those are provided through the GluonEstimator in
         the :meth:`GluonTSFramework.train` method. If you use the :meth:`GluonTSFramework.run`
         method its up to you what you do with this parameter and you could use it to define the
@@ -156,7 +163,6 @@ class GluonTSFramework(Framework):
         accessible as a dict[str, str] to the training code on
         SageMaker. For convenience, this accepts other types for keys
         and values, but ``str()`` will be called to convert them before training.
-        # TODO add support for HPO
     entry_point:
         Should not be overwritten if you intend to use the :meth:`GluonTSFramework.train` method,
         and only be specified through the :meth:`GluonTSFramework.run` method.
@@ -247,9 +253,22 @@ class GluonTSFramework(Framework):
             Should not be overwritten if you intend to use the :meth:`GluonTSFramework.train` method,
             and only be specified through the :meth:`GluonTSFramework.run` method.
         source_dir:
-            # TODO fix later
-            Path (absolute or relative) to a directory with any other serving
-            source code dependencies aside from the entry point file.
+            If you set this, your training script will have to be located within the
+            specified source_dir and you will have to set entry_point to the relative path within
+            your source_dir.
+            Path (absolute, relative, or an S3 URI) to a directory with all training source code
+            including dependencies. Structure within this directory is preserved when training on
+            Amazon SageMaker. If 'git_config' is provided, 'source_dir' should be a relative
+            location to a directory in the Git repo.
+            For example with the following GitHub repo directory structure::
+
+                |---> README.md
+                └---> src
+                  |---> train.py
+                  └---> test.py
+
+            and you need 'train.py' as entry point and 'test.py' as training source code as well,
+            you must set entry_point='train.py', source_dir='src'.
             If not specified, the model source directory from training is used.
         dependencies:
             A list of paths to files or directories (absolute or relative) with any additional libraries that
@@ -334,40 +353,12 @@ class GluonTSFramework(Framework):
         Dict:
             The transformed init_params
         """
+
         init_params = super()._prepare_init_params_from_job_description(
             job_details, model_channel_name
         )
 
-        """
-        image_name = init_params.pop("image")
-        framework, py_version, tag, _ = framework_name_from_image(image_name)
-
-        if not framework:
-            # If we were unable to parse the framework name from the image it is not one of our
-            # officially supported images, in this case just add the image to the init params.
-            init_params["image_name"] = image_name
-            return init_params
-
-        init_params["py_version"] = py_version
-
-        # We switched image tagging scheme from regular image version (e.g. '1.0') to more
-        # expressive containing framework version, device type and python version
-        # (e.g. '0.12-gpu-py2'). For backward compatibility map deprecated image tag '1.0' to a
-        # '0.12' framework version otherwise extract framework version from the tag itself.
-        init_params["framework_version"] = (
-            "0.12" if tag == "1.0" else framework_version_from_tag(tag)
-        )
-
-        training_job_name = init_params["base_job_name"]
-
-        if framework != cls.__framework_name__:
-            raise ValueError(
-                "Training job: {} didn't use image for requested framework".format(
-                    training_job_name
-                )
-        """
-
-        # TODO: handle conversion from image name to params, when necessary
+        # TODO: handle conversion from image name to params, once default images are provided
         # Example implementation:
         #   https://github.com/aws/sagemaker-python-sdk/blob/master/src/sagemaker/mxnet/estimator.py
 
@@ -471,7 +462,7 @@ class GluonTSFramework(Framework):
             The job name used during training.
         """
 
-        # TODO no local mode support so far...
+        # TODO implement local mode support
         if self.sagemaker_session.local_mode:
             raise NotImplementedError()
 
