@@ -9,7 +9,11 @@ from mxnet.gluon import HybridBlock
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.distribution import DistributionOutput, StudentTOutput
+from gluonts.distribution import (
+    DistributionOutput,
+    StudentTOutput,
+    LowrankMultivariateGaussianOutput,
+)
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
@@ -169,26 +173,21 @@ class DeepVAREstimator(GluonEstimator):
         the accuracy (default: 100)
     dropout_rate
         Dropout regularization parameter (default: 0.1)
-    use_feat_dynamic_real
-        Whether to use the ``feat_dynamic_real`` field from the data
-        (default: False)
-    use_feat_static_cat
-        Whether to use the ``feat_static_cat`` field from the data
-        (default: False)
-    use_feat_static_real
-        Whether to use the ``feat_static_real`` field from the data
-        (default: False)
     cardinality
-        Number of values of each categorical feature.
-        This must be set if ``use_feat_static_cat == True`` (default: None)
+        Number of values of each categorical feature (default: [1])
     embedding_dimension
         Dimension of the embeddings for categorical features
-        (default: [min(50, (cat+1)//2) for cat in cardinality])
+        (default: 5])
     distr_output
         Distribution to use to evaluate observations and sample predictions
-        (default: StudentTOutput())
+        (default: StudentTOutput()). For multivariate forecasts, the user
+        needs create a LowrankMultivariateGaussianOutput instance and pass it
+        to the estimator.
     scaling
         Whether to automatically scale the target values (default: true)
+    pick_incomplete
+        whether training examples can be sampled with only a part of
+        past_length time-units
     lags_seq
         Indices of the lagged target values to use as inputs of the RNN
         (default: None, in which case these are automatically determined
@@ -196,6 +195,8 @@ class DeepVAREstimator(GluonEstimator):
     time_features
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
+    conditioning_length
+        Set maximum length for conditioning the marginal transformation
 
     """
 
@@ -216,11 +217,11 @@ class DeepVAREstimator(GluonEstimator):
         embedding_dimension: int = 5,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
-        conditioning_length: int = 200,
         pick_incomplete: bool = False,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
-        use_copula=False,
+        conditioning_length: int = 200,
+        use_marginal_transformation=False,
         **kwargs,
     ) -> None:
         super().__init__(trainer=trainer, **kwargs)
@@ -259,7 +260,7 @@ class DeepVAREstimator(GluonEstimator):
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
         self.conditioning_length = conditioning_length
-        self.use_copula = use_copula
+        self.use_marginal_transformation = use_marginal_transformation
 
         self.lags_seq = (
             lags_seq
@@ -277,7 +278,7 @@ class DeepVAREstimator(GluonEstimator):
         self.pick_incomplete = pick_incomplete
         self.scaling = scaling
 
-        if self.use_copula:
+        if self.use_marginal_transformation:
             self.output_transform: Optional[
                 Callable
             ] = cdf_to_gaussian_forward_transform
@@ -285,8 +286,10 @@ class DeepVAREstimator(GluonEstimator):
             self.output_transform = None
 
     def create_transformation(self) -> Transformation:
-        def copula_transformation(use_copula: bool) -> Transformation:
-            if use_copula:
+        def use_marginal_transformation(
+            marginal_transformation: bool
+        ) -> Transformation:
+            if marginal_transformation:
                 return CDFtoGaussianTransform(
                     target_field=FieldName.TARGET,
                     observed_values_field=FieldName.OBSERVED_VALUES,
@@ -350,7 +353,7 @@ class DeepVAREstimator(GluonEstimator):
                     ],
                     pick_incomplete=self.pick_incomplete,
                 ),
-                copula_transformation(self.use_copula),
+                use_marginal_transformation(self.use_marginal_transformation),
             ]
         )
 

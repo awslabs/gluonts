@@ -102,7 +102,7 @@ def test_deepvar(
         freq=metadata.freq,
         distr_output=distr_output,
         scaling=False,
-        use_copula=use_copula,
+        use_marginal_transformation=use_copula,
         trainer=Trainer(
             epochs=2,
             batch_size=8,
