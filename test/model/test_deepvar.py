@@ -48,7 +48,8 @@ estimator = DeepVAREstimator
 
 @pytest.mark.timeout(10)
 @pytest.mark.parametrize(
-    "distr_output, num_batches_per_epoch, Estimator, hybridize, use_copula",
+    "distr_output, num_batches_per_epoch, Estimator, hybridize, "
+    "use_marginal_transformation",
     [
         (
             LowrankMultivariateGaussianOutput(dim=target_dim, rank=2),
@@ -89,7 +90,11 @@ estimator = DeepVAREstimator
     ],
 )
 def test_deepvar(
-    distr_output, num_batches_per_epoch, Estimator, hybridize, use_copula
+    distr_output,
+    num_batches_per_epoch,
+    Estimator,
+    hybridize,
+    use_marginal_transformation,
 ):
 
     estimator = Estimator(
@@ -102,7 +107,7 @@ def test_deepvar(
         freq=metadata.freq,
         distr_output=distr_output,
         scaling=False,
-        use_marginal_transformation=use_copula,
+        use_marginal_transformation=use_marginal_transformation,
         trainer=Trainer(
             epochs=1,
             batch_size=8,
