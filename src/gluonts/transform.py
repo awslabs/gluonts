@@ -20,7 +20,6 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 # Third-party imports
 import numpy as np
 import pandas as pd
-import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import DType, validated
