@@ -1,12 +1,25 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 # Standard library imports
 from typing import List, Optional
 
 # Third-party imports
-from gluonts.distribution import DistributionOutput
-from gluonts.distribution.lowrank_gp import LowrankGPOutput
 from mxnet.gluon import HybridBlock
 
 # First-party imports
+from gluonts.distribution import DistributionOutput
+from gluonts.distribution.lowrank_gp import LowrankGPOutput
 from gluonts.core.component import validated
 from gluonts.model.deepvar._estimator import (
     get_lags_for_frequency,
@@ -28,15 +41,15 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
     ExpandDimArray,
-    OneHotIndicator,
+    TargetDimIndicator,
     SampleTargetDim,
-    GaussianCopula,
+    CDFtoGaussianTransform,
     RenameFields,
-    gaussian_copula_forward_transform,
+    cdf_to_gaussian_forward_transform,
 )
 
 # Relative imports
-from gluonts.transform import FieldName
+from gluonts.dataset.field_names import FieldName
 from ._network import GPVARPredictionNetwork, GPVARTrainingNetwork
 
 
@@ -119,14 +132,14 @@ class GPVAREstimator(GluonEstimator):
         self.conditioning_length = conditioning_length
         self.use_copula = use_copula
         if self.use_copula:
-            self.output_transform = gaussian_copula_forward_transform
+            self.output_transform = cdf_to_gaussian_forward_transform
         else:
             self.output_transform = None
 
     def create_transformation(self) -> Transformation:
         def copula_transformation(use_copula: bool) -> Transformation:
             if use_copula:
-                return GaussianCopula(
+                return CDFtoGaussianTransform(
                     target_field=FieldName.TARGET,
                     observed_values_field=FieldName.OBSERVED_VALUES,
                     max_context_length=self.conditioning_length,
@@ -146,7 +159,8 @@ class GPVAREstimator(GluonEstimator):
                     field=FieldName.TARGET,
                     expected_ndim=1 + len(self.distr_output.event_shape),
                 ),
-                # maps the target to (1, T) if the target data is uni dimensional
+                # maps the target to (1, T) if the target data is uni
+                # dimensional
                 ExpandDimArray(
                     field=FieldName.TARGET,
                     axis=0 if self.distr_output.event_shape[0] == 1 else None,
@@ -169,8 +183,8 @@ class GPVAREstimator(GluonEstimator):
                 SetFieldIfNotPresent(
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
-                OneHotIndicator(
-                    field_name="target_dimensions",
+                TargetDimIndicator(
+                    field_name=FieldName.TARGET_DIM_INDICATOR,
                     target_field=FieldName.TARGET,
                 ),
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
@@ -190,8 +204,9 @@ class GPVAREstimator(GluonEstimator):
                 ),
                 copula_transformation(self.use_copula),
                 SampleTargetDim(
-                    field_name="target_dimensions",
+                    field_name=FieldName.TARGET_DIM_INDICATOR,
                     target_field=FieldName.TARGET + "_cdf",
+                    observed_values_field=FieldName.OBSERVED_VALUES,
                     num_samples=self.target_dim_sample,
                     shuffle=self.shuffle_target_dim,
                 ),

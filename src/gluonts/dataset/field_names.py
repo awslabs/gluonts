@@ -35,3 +35,5 @@ class FieldName:
     OBSERVED_VALUES = "observed_values"
     IS_PAD = "is_pad"
     FORECAST_START = "forecast_start"
+
+    TARGET_DIM_INDICATOR = "target_dimension_indicator"
