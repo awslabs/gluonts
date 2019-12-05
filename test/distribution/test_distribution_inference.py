@@ -336,7 +336,7 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(15)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
     num_samples = 2000
