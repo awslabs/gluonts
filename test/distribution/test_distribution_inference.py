@@ -363,7 +363,9 @@ def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
     samples = distr.sample(num_samples).squeeze().asnumpy()
 
     mu_hat, D_hat, W_hat = maximum_likelihood_estimate_sgd(
-        LowrankMultivariateGaussianOutput(dim=dim, rank=rank, sigma_init=0.2),
+        LowrankMultivariateGaussianOutput(
+            dim=dim, rank=rank, sigma_init=0.2, sigma_minimum=0.0
+        ),
         samples,
         learning_rate=PositiveFloat(0.01),
         num_epochs=PositiveInt(25),
