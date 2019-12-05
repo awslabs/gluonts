@@ -367,7 +367,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
 
         # sigma_minimum helps avoiding cholesky problems, we could also jitter
         # However, this seems to cause the maximum likelihood estimation to
-        # take longer to converge. THis needs to be re-
+        # take longer to converge. This needs to be re-evaluated.
         D_diag = (
             F.Activation(D_vector + d_bias, act_type="softrelu")
             + self.sigma_minimum ** 2
