@@ -54,7 +54,7 @@ class GPVAREstimator(GluonEstimator):
         context_length: Optional[int] = None,
         num_layers: int = 2,
         num_cells: int = 40,
-        cell_type: str = 'lstm',
+        cell_type: str = "lstm",
         num_eval_samples: int = 100,
         dropout_rate: float = 0.1,
         scaling: bool = True,
@@ -135,8 +135,8 @@ class GPVAREstimator(GluonEstimator):
             else:
                 return RenameFields(
                     {
-                        f'past_{FieldName.TARGET}': f'past_{FieldName.TARGET}_cdf',
-                        f'future_{FieldName.TARGET}': f'future_{FieldName.TARGET}_cdf',
+                        f"past_{FieldName.TARGET}": f"past_{FieldName.TARGET}_cdf",
+                        f"future_{FieldName.TARGET}": f"future_{FieldName.TARGET}_cdf",
                     }
                 )
 
