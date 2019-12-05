@@ -34,6 +34,8 @@ from gluonts.distribution.distribution_output import (
 )
 from gluonts.model.common import Tensor
 
+sigma_minimum = 1e-3
+
 
 def capacitance_tril(F, rank: Tensor, W: Tensor, D: Tensor) -> Tensor:
     r"""
@@ -300,9 +302,6 @@ def inv_softplus(y):
         return y
 
 
-sigma_minimum = 1e-3
-
-
 class LowrankMultivariateGaussianOutput(DistributionOutput):
     @validated()
     def __init__(
@@ -317,7 +316,6 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         self.rank = rank
         self.args_dim = {"mu": dim, "D": dim, "W": dim * rank}
         self.mu_bias = 0.0
-        self.mu_ratio = 1.0
         self.sigma_init = sigma_init
         self.sigma_minimum = sigma_minimum
 
@@ -368,6 +366,8 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         )
 
         # sigma_minimum helps avoiding cholesky problems, we could also jitter
+        # However, this seems to cause the maximum likelihood estimation to
+        # take longer to converge. THis needs to be re-
         D_diag = (
             F.Activation(D_vector + d_bias, act_type="softrelu")
             + self.sigma_minimum ** 2

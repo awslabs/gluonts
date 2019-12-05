@@ -187,7 +187,7 @@ class DeepVAREstimator(GluonEstimator):
     scaling
         Whether to automatically scale the target values (default: true)
     pick_incomplete
-        whether training examples can be sampled with only a part of
+        Whether training examples can be sampled with only a part of
         past_length time-units
     lags_seq
         Indices of the lagged target values to use as inputs of the RNN
@@ -198,6 +198,8 @@ class DeepVAREstimator(GluonEstimator):
         case these are automatically determined based on freq)
     conditioning_length
         Set maximum length for conditioning the marginal transformation
+    use_marginal_transformation
+        Whether marginal (empirical cdf, gaussian ppf) transformation is used.
 
     """
 

@@ -11,6 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# Standard library imports
+from typing import List, Optional, Tuple
+
 # Third-party imports
 import mxnet as mx
 
@@ -36,42 +39,50 @@ class GPVARNetwork(DeepVARNetwork):
     def unroll(
         self,
         F,
-        lags,
-        scale,
-        time_feat,
-        begin_state,
-        target_dimension_indicator,
-        unroll_length,
-    ):
+        lags: Tensor,
+        scale: Tensor,
+        time_feat: Tensor,
+        target_dimension_indicator: Tensor,
+        unroll_length: int,
+        begin_state: Optional[List[Tensor]],
+    ) -> Tuple[Tensor, List[Tensor], Tensor, Tensor]:
         """
+        Prepares the input to the RNN and unrolls it the given number of time
+        steps.
 
         Parameters
         ----------
         F
-        lags : (batch_size, sub_seq_len, target_dim, num_lags)
-        scale : (batch_size, 1, target_dim)
-        time_feat : (batch_size, sub_seq_len, num_features)
-        begin_state : list of state for each dimension
-        target_dimension_indicator : (batch_size, target_dim)
-        unroll_length : length to unroll
+        lags
+            Input lags (batch_size, sub_seq_len, target_dim, num_lags)
+        scale
+            Mean scale (batch_size, 1, target_dim)
+        time_feat
+            Additional time features
+        target_dimension_indicator
+            Indices of the target dimension (batch_size, target_dim)
+        unroll_length
+            length to unroll
+        begin_state
+            State to start the unrolling of the RNN
 
         Returns
         -------
-        outputs : (batch_size, seq_len, target_dim, num_cells)
-        states : list of list of (batch_size, num_cells) tensors with dimensions: target_dim x num_layers x (batch_size, num_cells)
-        lags_scaled : (batch_size, sub_seq_len, target_dim, num_lags)
+        outputs
+            RNN outputs (batch_size, seq_len, num_cells)
+        states
+            RNN states. Nested list with (batch_size, num_cells) tensors with
+        dimensions target_dim x num_layers x (batch_size, num_cells)
+        lags_scaled
+            Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
+        inputs
+            inputs to the RNN
         """
         # (batch_size, sub_seq_len, target_dim, num_lags)
         lags_scaled = F.broadcast_div(lags, scale.expand_dims(axis=-1))
 
         outputs = []
         states = []
-
-        # from (batch_size, sub_seq_len, target_dim, num_lags) to # (batch_size, seq_len, target_dim * num_lags)
-        # all_input_lags = F.reshape(
-        #    data=lags_scaled,
-        #    shape=(-1, unroll_length, self.target_dim * len(self.lags_seq)),
-        # )
 
         # (batch_size, target_dim, embed_dim)
         index_embeddings = self.embed(target_dimension_indicator)
@@ -89,7 +100,6 @@ class GPVARNetwork(DeepVARNetwork):
                 lags_scaled.slice_axis(axis=2, begin=i, end=i + 1).squeeze(
                     axis=2
                 ),
-                # lags_std.slice_axis(axis=2, begin=i, end=i + 1).squeeze(axis=2),
                 repeated_index_embeddings.slice_axis(
                     axis=2, begin=i, end=i + 1
                 ).squeeze(axis=2),
@@ -129,18 +139,30 @@ class GPVARNetwork(DeepVARNetwork):
         seq_len: int,
     ):
         """
+        Returns the distribution of GPVAR with respect to the RNN outputs.
 
         Parameters
         ----------
-        rnn_outputs : (batch_size, seq_len, num_cells)
-        time_features : (batch_size, seq_len, num_features)
-        scale : (batch_size, 1, target_dim)
-        lags_scaled : (batch_size, seq_len, target_dim, num_lags)
-        target_dimensions : (batch_size, target_dim)
+        rnn_outputs
+            Outputs of the unrolled RNN (batch_size, seq_len, num_cells)
+        time_features
+            Dynamic time features (batch_size, seq_len, num_features)
+        scale
+            Mean scale for each time series (batch_size, 1, target_dim)
+        lags_scaled
+            Scaled lags used for RNN input
+            (batch_size, seq_len, target_dim, num_lags)
+        target_dimension_indicator
+            Indices of the target dimension (batch_size, target_dim)
+        seq_len
+            Length of the sequences
 
         Returns
         -------
-
+        distr
+            Distribution instance
+        distr_args
+            Distribution arguments
         """
         F = getF(rnn_outputs)
 
@@ -187,25 +209,47 @@ class GPVARTrainingNetwork(GPVARNetwork):
         future_time_feat: Tensor,
         future_target_cdf: Tensor,
         future_observed_values: Tensor,
-    ) -> Tensor:
+    ) -> Tuple[Tensor, ...]:
         """
-        Computes the loss for training GPVAR, all inputs tensors representing time series have NTC layout.
+        Computes the loss for training DeepVAR, all inputs tensors representing
+        time series have NTC layout.
 
         Parameters
         ----------
         F
-        target_dimension_indicator: indices of the target dimension (batch_size, num_observations)
-        past_time_feat : (batch_size, history_length, num_features)
-        past_target : (batch_size, history_length, target_dim)
-        past_observed_values : (batch_size, history_length, target_dim, seq_len)
-        past_is_pad : (batch_size, history_length)
-        future_time_feat : (batch_size, prediction_length, num_features)
-        future_target : (batch_size, prediction_length, target_dim)
-        future_observed_values : (batch_size, prediction_length, target_dim)
+        target_dimension_indicator
+            Indices of the target dimension (batch_size, target_dim)
+        past_time_feat
+            Dynamic features of past time series (batch_size, history_length,
+            num_features)
+        past_target_cdf
+            Past marginal CDF transformed target values (batch_size,
+            history_length, target_dim)
+        past_observed_values
+            Indicator whether or not the values were observed (batch_size,
+            history_length, target_dim)
+        past_is_pad
+            Indicator whether the past target values have been padded
+            (batch_size, history_length)
+        future_time_feat
+            Future time features (batch_size, prediction_length, num_features)
+        future_target_cdf
+            Future marginal CDF transformed target values (batch_size,
+            prediction_length, target_dim)
+        future_observed_values
+            Indicator whether or not the future values were observed
+            (batch_size, prediction_length, target_dim)
 
-        Returns loss with shape (batch_size, context + prediction_length, 1)
+        Returns
         -------
-
+        distr
+            Loss with shape (batch_size, 1)
+        likelihoods
+            Likelihoods for each time step
+            (batch_size, context + prediction_length, 1)
+        distr_args
+            Distribution arguments (context + prediction_length,
+            number_of_arguments)
         """
 
         return self.train_hybrid_forward(
@@ -228,10 +272,25 @@ class GPVARPredictionNetwork(GPVARNetwork):
         self.num_parallel_samples = num_parallel_samples
 
         # for decoding the lags are shifted by one,
-        # at the first time-step of the decoder a lag of one corresponds to the last target value
+        # at the first time-step of the decoder a lag of one corresponds to the
+        # last target value
         self.shifted_lags = [l - 1 for l in self.lags_seq]
 
-    def make_states(self, begin_states):
+    def make_states(self, begin_states: List[Tensor]) -> List[List[Tensor]]:
+        """
+        Repeat states to match the the shape induced by the number of sample
+        paths.
+
+        Parameters
+        ----------
+        begin_states
+            List of initial states for the RNN layers (batch_size, num_cells)
+
+        Returns
+        -------
+            List of list of initial states
+        """
+
         def repeat(tensor):
             return tensor.repeat(repeats=self.num_parallel_samples, axis=0)
 
@@ -249,19 +308,33 @@ class GPVARPredictionNetwork(GPVARNetwork):
         future_time_feat: Tensor,  # (batch_size, prediction_length, num_features)
     ) -> Tensor:
         """
-        Predicts samples, all tensors should have NTC layout.
+        Predicts samples given the trained DeepVAR model.
+        All tensors should have NTC layout.
         Parameters
         ----------
         F
-        past_time_feat : (batch_size, history_length, num_features)
-        past_target : (batch_size, history_length, target_dim)
-        target_dimension_indicator : (batch_size, target_dim)
-        past_observed_values : (batch_size, history_length, target_dim)
-        past_is_pad : (batch_size, history_length)
-        future_time_feat : (batch_size, prediction_length, num_features)
+        target_dimension_indicator
+            Indices of the target dimension (batch_size, target_dim)
+        past_time_feat
+            Dynamic features of past time series (batch_size, history_length,
+            num_features)
+        past_target_cdf
+            Past marginal CDF transformed target values (batch_size,
+            history_length, target_dim)
+        past_observed_values
+            Indicator whether or not the values were observed (batch_size,
+            history_length, target_dim)
+        past_is_pad
+            Indicator whether the past target values have been padded
+            (batch_size, history_length)
+        future_time_feat
+            Future time features (batch_size, prediction_length, num_features)
 
-        Returns predicted samples
+        Returns
         -------
+        sample_paths : Tensor
+            A tensor containing sampled paths (1, num_sample_paths,
+            prediction_length, target_dim).
 
         """
 

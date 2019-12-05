@@ -54,29 +54,101 @@ from ._network import GPVARPredictionNetwork, GPVARTrainingNetwork
 
 
 class GPVAREstimator(GluonEstimator):
+
+    """
+    Constructs a GPVAR estimator.
+
+    These models have been described as GP-Copula in this paper:
+    https://arxiv.org/abs/1910.03002
+
+    Note that this implementation will change over time and we further work on
+    this method. To replicate the results of the paper, please refer to our
+    (frozen) implementation here:
+    https://github.com/mbohlkeschneider/gluon-ts/tree/mv_release
+
+
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict
+    prediction_length
+        Length of the prediction horizon
+    target_dim
+        Dimensionality of the input dataset
+    trainer
+        Trainer object to be used (default: Trainer())
+    context_length
+        Number of steps to unroll the RNN for before computing predictions
+        (default: None, in which case context_length = prediction_length)
+    num_layers
+        Number of RNN layers (default: 2)
+    num_cells
+        Number of RNN cells for each layer (default: 40)
+    cell_type
+        Type of recurrent cells to use (available: 'lstm' or 'gru';
+        default: 'lstm')
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect
+        the accuracy (default: 100)
+    dropout_rate
+        Dropout regularization parameter (default: 0.1)
+    target_dim_sample
+        Number of dimensions to sample for the GP model
+    distr_output
+        Distribution to use to evaluate observations and sample predictions
+        (default: LowrankGPOutput with dim=target_dim and
+        rank=5). Note that target dim of the DistributionOutput and the
+        estimator constructor call need to match. Also note that the rank in
+        this constructor is meaningless if the DistributionOutput is
+        constructed outside of this class.
+    rank
+        Rank for the LowrankGPOutput. (default: 2)
+    scaling
+        Whether to automatically scale the target values (default: true)
+    pick_incomplete
+        Whether training examples can be sampled with only a part of
+        past_length time-units
+    lags_seq
+        Indices of the lagged target values to use as inputs of the RNN
+        (default: None, in which case these are automatically determined
+        based on freq)
+    shuffle_target_dim
+        Shuffle the dimensions before sampling.
+    time_features
+        Time features to use as inputs of the RNN (default: None, in which
+        case these are automatically determined based on freq)
+    conditioning_length
+        Set maximum length for conditioning the marginal transformation
+    use_marginal_transformation
+        Whether marginal (CDFtoGaussianTransform) transformation is used by the
+        model
+    """
+
     @validated()
     def __init__(
         self,
         freq: str,
         prediction_length: int,
         target_dim: int,
-        # number of dimension to sample at training time
-        target_dim_sample: Optional[int] = None,
-        distr_output: Optional[DistributionOutput] = None,
         trainer: Trainer = Trainer(),
+        # number of dimension to sample at training time
         context_length: Optional[int] = None,
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
+        target_dim_sample: Optional[int] = None,
+        distr_output: Optional[DistributionOutput] = None,
+        rank: Optional[int] = 2,
         scaling: bool = True,
         pick_incomplete: bool = False,
         lags_seq: Optional[List[int]] = None,
         shuffle_target_dim: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 100,
-        use_copula: bool = False,
+        use_marginal_transformation: bool = False,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -89,14 +161,14 @@ class GPVAREstimator(GluonEstimator):
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
         assert (
-            num_eval_samples > 0
+            num_parallel_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
 
         if distr_output is not None:
             self.distr_output = distr_output
         else:
-            self.distr_output = LowrankGPOutput(rank=2)
+            self.distr_output = LowrankGPOutput(rank=rank)
         self.freq = freq
         self.context_length = (
             context_length if context_length is not None else prediction_length
@@ -112,7 +184,7 @@ class GPVAREstimator(GluonEstimator):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
-        self.num_sample_paths = num_eval_samples
+        self.num_parallel_samples = num_parallel_samples
         self.dropout_rate = dropout_rate
 
         self.lags_seq = (
@@ -130,15 +202,17 @@ class GPVAREstimator(GluonEstimator):
         self.pick_incomplete = pick_incomplete
         self.scaling = scaling
         self.conditioning_length = conditioning_length
-        self.use_copula = use_copula
-        if self.use_copula:
+        self.use_marginal_transformation = use_marginal_transformation
+        if self.use_marginal_transformation:
             self.output_transform = cdf_to_gaussian_forward_transform
         else:
             self.output_transform = None
 
     def create_transformation(self) -> Transformation:
-        def copula_transformation(use_copula: bool) -> Transformation:
-            if use_copula:
+        def use_marginal_transformation(
+            marginal_transformation: bool
+        ) -> Transformation:
+            if marginal_transformation:
                 return CDFtoGaussianTransform(
                     target_field=FieldName.TARGET,
                     observed_values_field=FieldName.OBSERVED_VALUES,
@@ -202,7 +276,7 @@ class GPVAREstimator(GluonEstimator):
                     ],
                     pick_incomplete=self.pick_incomplete,
                 ),
-                copula_transformation(self.use_copula),
+                use_marginal_transformation(self.use_marginal_transformation),
                 SampleTargetDim(
                     field_name=FieldName.TARGET_DIM_INDICATOR,
                     target_field=FieldName.TARGET + "_cdf",
@@ -236,7 +310,7 @@ class GPVAREstimator(GluonEstimator):
         prediction_network = GPVARPredictionNetwork(
             target_dim=self.target_dim,
             target_dim_sample=self.target_dim,
-            num_parallel_samples=self.num_sample_paths,
+            num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,

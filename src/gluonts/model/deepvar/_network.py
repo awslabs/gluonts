@@ -382,19 +382,30 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         seq_len: int,
     ):
         """
+        Returns the distribution of DeepVAR with respect to the RNN outputs.
 
         Parameters
         ----------
-        rnn_outputs : (batch_size, seq_len, num_cells)
-        time_features : (batch_size, seq_len, num_features)
-        scale : (batch_size, 1, target_dim)
-        lags_scaled : (batch_size, seq_len, target_dim, num_lags)
-        target_dimensions : (batch_size, target_dim)
-        seq_len: length of the sequences
+        rnn_outputs
+            Outputs of the unrolled RNN (batch_size, seq_len, num_cells)
+        time_features
+            Dynamic time features (batch_size, seq_len, num_features)
+        scale
+            Mean scale for each time series (batch_size, 1, target_dim)
+        lags_scaled
+            Scaled lags used for RNN input
+            (batch_size, seq_len, target_dim, num_lags)
+        target_dimension_indicator
+            Indices of the target dimension (batch_size, target_dim)
+        seq_len
+            Length of the sequences
 
         Returns
         -------
-
+        distr
+            Distribution instance
+        distr_args
+            Distribution arguments
         """
         distr_args = self.proj_dist_args(rnn_outputs)
 

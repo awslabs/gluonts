@@ -81,8 +81,10 @@ def test_gpvar_proj():
 
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("target_dim_sample", [None, 2])
-@pytest.mark.parametrize("use_copula", [True, False])
-def test_smoke(hybridize: bool, target_dim_sample: int, use_copula: bool):
+@pytest.mark.parametrize("use_marginal_transformation", [True, False])
+def test_smoke(
+    hybridize: bool, target_dim_sample: int, use_marginal_transformation: bool
+):
     num_batches_per_epoch = 1
     estimator = GPVAREstimator(
         distr_output=LowrankGPOutput(rank=2),
@@ -93,10 +95,10 @@ def test_smoke(hybridize: bool, target_dim_sample: int, use_copula: bool):
         target_dim=target_dim,
         target_dim_sample=target_dim_sample,
         freq=metadata.freq,
-        use_copula=use_copula,
+        use_marginal_transformation=use_marginal_transformation,
         trainer=Trainer(
             epochs=2,
-            batch_size=8,
+            batch_size=10,
             learning_rate=1e-4,
             num_batches_per_epoch=num_batches_per_epoch,
             hybridize=hybridize,
