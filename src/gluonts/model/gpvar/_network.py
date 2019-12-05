@@ -40,7 +40,7 @@ class GPVARNetwork(DeepVARNetwork):
         scale,
         time_feat,
         begin_state,
-        target_dimensions,
+        target_dimension_indicator,
         unroll_length,
     ):
         """
@@ -52,7 +52,7 @@ class GPVARNetwork(DeepVARNetwork):
         scale : (batch_size, 1, target_dim)
         time_feat : (batch_size, sub_seq_len, num_features)
         begin_state : list of state for each dimension
-        target_dimensions : (batch_size, target_dim)
+        target_dimension_indicator : (batch_size, target_dim)
         unroll_length : length to unroll
 
         Returns
@@ -74,7 +74,7 @@ class GPVARNetwork(DeepVARNetwork):
         # )
 
         # (batch_size, target_dim, embed_dim)
-        index_embeddings = self.embed(target_dimensions)
+        index_embeddings = self.embed(target_dimension_indicator)
 
         # (batch_size, seq_len, target_dim, embed_dim)
         repeated_index_embeddings = index_embeddings.expand_dims(
@@ -125,7 +125,7 @@ class GPVARNetwork(DeepVARNetwork):
         time_features: Tensor,
         scale: Tensor,
         lags_scaled: Tensor,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         seq_len: int,
     ):
         """
@@ -145,7 +145,7 @@ class GPVARNetwork(DeepVARNetwork):
         F = getF(rnn_outputs)
 
         # (batch_size, target_dim, embed_dim)
-        index_embeddings = self.embed(target_dimensions)
+        index_embeddings = self.embed(target_dimension_indicator)
 
         # broadcast to (batch_size, seq_len, target_dim, embed_dim)
         repeated_index_embeddings = index_embeddings.expand_dims(
@@ -179,7 +179,7 @@ class GPVARTrainingNetwork(GPVARNetwork):
     def hybrid_forward(
         self,
         F,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         past_time_feat: Tensor,
         past_target_cdf: Tensor,
         past_observed_values: Tensor,
@@ -194,7 +194,7 @@ class GPVARTrainingNetwork(GPVARNetwork):
         Parameters
         ----------
         F
-        target_dimensions: indices of the target dimension (batch_size, num_observations)
+        target_dimension_indicator: indices of the target dimension (batch_size, num_observations)
         past_time_feat : (batch_size, history_length, num_features)
         past_target : (batch_size, history_length, target_dim)
         past_observed_values : (batch_size, history_length, target_dim, seq_len)
@@ -210,7 +210,7 @@ class GPVARTrainingNetwork(GPVARNetwork):
 
         return self.train_hybrid_forward(
             F,
-            target_dimensions,
+            target_dimension_indicator,
             past_time_feat,
             past_target_cdf,
             past_observed_values,
@@ -223,9 +223,9 @@ class GPVARTrainingNetwork(GPVARNetwork):
 
 class GPVARPredictionNetwork(GPVARNetwork):
     @validated()
-    def __init__(self, num_sample_paths: int, **kwargs) -> None:
+    def __init__(self, num_parallel_samples: int, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.num_sample_paths = num_sample_paths
+        self.num_parallel_samples = num_parallel_samples
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to the last target value
@@ -233,7 +233,7 @@ class GPVARPredictionNetwork(GPVARNetwork):
 
     def make_states(self, begin_states):
         def repeat(tensor):
-            return tensor.repeat(repeats=self.num_sample_paths, axis=0)
+            return tensor.repeat(repeats=self.num_parallel_samples, axis=0)
 
         return [[repeat(s) for s in states] for states in begin_states]
 
@@ -241,7 +241,7 @@ class GPVARPredictionNetwork(GPVARNetwork):
     def hybrid_forward(
         self,
         F,
-        target_dimensions: Tensor,
+        target_dimension_indicator: Tensor,
         past_time_feat: Tensor,  # (batch_size, history_length, num_features)
         past_target_cdf: Tensor,  # (batch_size, history_length, target_dim)
         past_observed_values: Tensor,  # (batch_size, history_length, target_dim)
@@ -255,7 +255,7 @@ class GPVARPredictionNetwork(GPVARNetwork):
         F
         past_time_feat : (batch_size, history_length, num_features)
         past_target : (batch_size, history_length, target_dim)
-        target_dimensions : (batch_size, target_dim)
+        target_dimension_indicator : (batch_size, target_dim)
         past_observed_values : (batch_size, history_length, target_dim)
         past_is_pad : (batch_size, history_length)
         future_time_feat : (batch_size, prediction_length, num_features)
@@ -267,7 +267,7 @@ class GPVARPredictionNetwork(GPVARNetwork):
 
         return self.predict_hybrid_forward(
             F=F,
-            target_dimensions=target_dimensions,
+            target_dimension_indicator=target_dimension_indicator,
             past_time_feat=past_time_feat,  # (batch_size, history_length, num_features)
             past_target_cdf=past_target_cdf,  # (batch_size, history_length, target_dim)
             past_observed_values=past_observed_values,  # (batch_size, history_length, target_dim)

@@ -28,8 +28,9 @@ class GPArgProj(gluon.HybridBlock):
         sigma_minimum: float = sigma_minimum,
         mu_ratio: float = 1.0,
         dropout_rate: float = 0.0,
+        prefix: Optional[str] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(prefix=prefix)
         self.param_dim_args = OrderedDict({"mu": 1, "sigma": 1, "w": rank})
         self.mu_ratio = mu_ratio
         self.sigma_init = sigma_init
@@ -133,7 +134,7 @@ class LowrankGPOutput(DistributionOutput):
         )
 
     def distribution(self, distr_args, scale=None, dim=None):
-        dist = LowrankMultivariateGaussian(self.rank, *distr_args, dim)
+        dist = LowrankMultivariateGaussian(dim, self.rank, *distr_args)
         if scale is None:
             return dist
         else:

@@ -236,7 +236,7 @@ class GPVAREstimator(GluonEstimator):
         prediction_network = GPVARPredictionNetwork(
             target_dim=self.target_dim,
             target_dim_sample=self.target_dim,
-            num_sample_paths=self.num_sample_paths,
+            num_parallel_samples=self.num_sample_paths,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
