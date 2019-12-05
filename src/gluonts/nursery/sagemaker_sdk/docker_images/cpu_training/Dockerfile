@@ -48,12 +48,12 @@ WORKDIR /
 COPY sagemaker_mxnet_container.tar.gz /sagemaker_mxnet_container.tar.gz
 
 # Install MXNet and current sagemaker-mxnet-containers version
-RUN ${PIP} install --no-cache --upgrade mxnet-mkl==$MX_VERSION && \
+RUN ${PIP} install --no-cache-dir  --upgrade mxnet-mkl==$MX_VERSION && \
     ${PIP} install --no-cache-dir /sagemaker_mxnet_container.tar.gz && \
     rm /sagemaker_mxnet_container.tar.gz
 
 # Install GluonTS with requirements
-RUN ${PIP} install --no-cache --upgrade gluonts[dev,R,Prophet]
+RUN ${PIP} install --no-cache-dir  --upgrade gluonts[dev,R,Prophet]
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
