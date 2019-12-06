@@ -232,10 +232,10 @@ class FileDataset(Dataset):
         List[Path]
             List of the paths of all files composing the dataset.
         """
-        return util.find_files(self.path, FileDataset.is_valid)
+        return util.find_files(self.path, self.is_valid)
 
-    @staticmethod
-    def is_valid(path: Path) -> bool:
+    @classmethod
+    def is_valid(cls, path: Path) -> bool:
         # TODO: given that we only support json, should we also filter json
         # TODO: in the extension?
         return not (path.name.startswith(".") or path.name == "_SUCCESS")
