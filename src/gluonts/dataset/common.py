@@ -13,6 +13,7 @@
 
 # Standard library imports
 import shutil
+from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from typing import (
@@ -26,6 +27,7 @@ from typing import (
     Optional,
     Sized,
     cast,
+    Union
 )
 
 # Third-party imports
@@ -275,7 +277,13 @@ class ListDataset(Dataset):
         return len(self.list_data)
 
 
-class ProcessStartField:
+class TimeZoneStrategy(Enum):
+    ignore = "ignore"
+    utc = "utc"
+    error = "error"
+
+
+class ProcessStartField(pydantic.BaseModel):
     """
     Transform the start field into a Timestamp with the given frequency.
 
@@ -286,25 +294,35 @@ class ProcessStartField:
     freq
         Frequency to use. This must be a valid Pandas frequency string.
     """
+    class Config:
+        arbitrary_types_allowed = True
 
-    def __init__(self, name: str, freq: str) -> None:
-        self.name = name
-        self.freq = freq
+    freq: Union[str, pd.DateOffset]
+    name: str = "start"
+    tz_strategy: TimeZoneStrategy = TimeZoneStrategy.error
 
     def __call__(self, data: DataEntry) -> DataEntry:
         try:
-            value = ProcessStartField.process(data[self.name], self.freq)
+            timestamp = ProcessStartField.process(data[self.name], self.freq)
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
             )
 
-        if value.tz is not None:
-            raise GluonTSDataError(
-                f'Timezone information is not supported, but provided in the "{self.name}" field'
-            )
+        if timestamp.tz is not None:
+            if self.tz_strategy == TimeZoneStrategy.error:
+                raise GluonTSDataError(
+                    'Timezone information is not supported, '
+                    f'but provided in the "{self.name}" field.'
+                )
+            elif tz_strategy == TimeZoneStrategy.utc:
+                # align timestamp to utc timezone
+                timestamp = timestamp.tz_convert("UTC")
 
-        data[self.name] = value
+            # removes timezone information
+            timestamp = timestamp.tz_localize(None)
+
+        data[self.name] = timestamp
 
         return data
 
@@ -413,7 +431,7 @@ class ProcessDataEntry:
         self.trans = cast(
             List[Callable[[DataEntry], DataEntry]],
             [
-                ProcessStartField("start", freq=freq),
+                ProcessStartField(freq=freq),
                 # The next line abuses is_static=True in case of 1D targets.
                 ProcessTimeSeriesField(
                     "target",
