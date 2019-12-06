@@ -20,7 +20,6 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 # Third-party imports
 import numpy as np
 import pandas as pd
-import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import DType, validated
@@ -870,7 +869,8 @@ class AddAgeFeature(MapTransformation):
     The age feature starts with a small value at the start of the time series
     and grows over time.
 
-    If `is_train=True` the age feature has the same length as the `target` field.
+    If `is_train=True` the age feature has the same length as the `target`
+    field.
     If `is_train=False` the age feature has length len(target) + pred_length
 
     Parameters
@@ -882,7 +882,8 @@ class AddAgeFeature(MapTransformation):
     pred_length
         Prediction length
     log_scale
-        If set to true the age feature grows logarithmically otherwise linearly over time.
+        If set to true the age feature grows logarithmically otherwise linearly
+        over time.
     """
 
     @validated()
@@ -929,6 +930,54 @@ class TargetDimIndicator(SimpleTransformation):
     def transform(self, data: DataEntry) -> DataEntry:
         data[self.field_name] = np.arange(0, data[self.target_field].shape[0])
         return data
+
+
+class SampleTargetDim(FlatMapTransformation):
+    """
+    Samples random dimensions from the target at training time.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        field_name: str,
+        target_field: str,
+        observed_values_field: str,
+        num_samples: int,
+        shuffle: bool = True,
+    ) -> None:
+        self.field_name = field_name
+        self.target_field = target_field
+        self.observed_values_field = observed_values_field
+        self.num_samples = num_samples
+        self.shuffle = shuffle
+
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool, slice_future_target: bool = True
+    ) -> Iterator[DataEntry]:
+        if not is_train:
+            yield data
+        else:
+            # (target_dim,)
+            target_dimensions = data[self.field_name]
+
+            if self.shuffle:
+                np.random.shuffle(target_dimensions)
+
+            target_dimensions = target_dimensions[: self.num_samples]
+
+            data[self.field_name] = target_dimensions
+            # (seq_len, target_dim) -> (seq_len, num_samples)
+
+            for field in [
+                f"past_{self.target_field}",
+                f"future_{self.target_field}",
+                f"past_{self.observed_values_field}",
+                f"future_{self.observed_values_field}",
+            ]:
+                data[field] = data[field][:, target_dimensions]
+
+            yield data
 
 
 class InstanceSplitter(FlatMapTransformation):

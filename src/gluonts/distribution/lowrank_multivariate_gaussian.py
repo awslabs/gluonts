@@ -34,6 +34,8 @@ from gluonts.distribution.distribution_output import (
 )
 from gluonts.model.common import Tensor
 
+sigma_minimum = 1e-3
+
 
 def capacitance_tril(F, rank: Tensor, W: Tensor, D: Tensor) -> Tensor:
     r"""
@@ -132,12 +134,16 @@ def mahalanobis_distance(
 
     maholanobis_L = L_inv_Wt_Dinv_x.square().sum(axis=-1).squeeze()
 
-    return maholanobis_D_inv - maholanobis_L
+    return F.broadcast_minus(maholanobis_D_inv, maholanobis_L)
 
 
 def lowrank_log_likelihood(
-    F, dim: int, rank: int, mu: Tensor, D: Tensor, W: Tensor, x: Tensor
+    rank: int, mu: Tensor, D: Tensor, W: Tensor, x: Tensor
 ) -> Tensor:
+
+    F = getF(mu)
+
+    dim = F.ones_like(mu).sum(axis=-1).max()
 
     dim_factor = dim * math.log(2 * math.pi)
 
@@ -151,7 +157,9 @@ def lowrank_log_likelihood(
         F=F, W=W, D=D, capacitance_tril=batch_capacitance_tril, x=x - mu
     )
 
-    ll: Tensor = -0.5 * (dim_factor + log_det_factor + mahalanobis_factor)
+    ll: Tensor = -0.5 * (
+        F.broadcast_add(dim_factor, log_det_factor) + mahalanobis_factor
+    )
 
     return ll
 
@@ -211,13 +219,7 @@ class LowrankMultivariateGaussian(Distribution):
 
     def log_prob(self, x: Tensor) -> Tensor:
         return lowrank_log_likelihood(
-            F=self.F,
-            dim=self.dim,
-            rank=self.rank,
-            mu=self.mu,
-            D=self.D,
-            W=self.W,
-            x=x,
+            rank=self.rank, mu=self.mu, D=self.D, W=self.W, x=x
         )
 
     @property
@@ -226,6 +228,8 @@ class LowrankMultivariateGaussian(Distribution):
 
     @property
     def variance(self) -> Tensor:
+        assert self.dim is not None
+
         if self.Cov is not None:
             return self.Cov
         # reshape to a matrix form (..., d, d)
@@ -290,15 +294,30 @@ class LowrankMultivariateGaussian(Distribution):
         )
 
 
+def inv_softplus(y):
+    if y < 20.0:
+        # y = log(1 + exp(x))  ==>  x = log(exp(y) - 1)
+        return np.log(np.exp(y) - 1)
+    else:
+        return y
+
+
 class LowrankMultivariateGaussianOutput(DistributionOutput):
     @validated()
-    def __init__(self, dim: int, rank: int) -> None:
+    def __init__(
+        self,
+        dim: int,
+        rank: int,
+        sigma_init: float = 1.0,
+        sigma_minimum: float = sigma_minimum,
+    ) -> None:
         self.distr_cls = LowrankMultivariateGaussian
         self.dim = dim
         self.rank = rank
         self.args_dim = {"mu": dim, "D": dim, "W": dim * rank}
         self.mu_bias = 0.0
-        self.sigma_bias = 0.01
+        self.sigma_init = sigma_init
+        self.sigma_minimum = sigma_minimum
 
     def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
         return ArgProj(
@@ -308,7 +327,6 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         )
 
     def distribution(self, distr_args, scale=None, **kwargs) -> Distribution:
-        # todo dirty way of calling for now, this can be cleaned
         distr = LowrankMultivariateGaussian(self.dim, self.rank, *distr_args)
         if scale is None:
             return distr
@@ -338,19 +356,21 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
 
         """
 
-        def inv_softplus(y):
-            if y < 20.0:
-                # y = log(1 + exp(x))  ==>  x = log(exp(y) - 1)
-                return np.log(np.exp(y) - 1)
-            else:
-                return y
-
         # reshape from vector form (..., d * rank) to matrix form (..., d, rank)
         W_matrix = W_vector.reshape((-2, self.dim, self.rank, -4), reverse=1)
 
-        # apply softplus to D_vector and reshape coefficient of W_vector to a matrix
-        D_diag = F.Activation(
-            D_vector + inv_softplus(self.sigma_bias ** 2), act_type="softrelu"
+        d_bias = (
+            inv_softplus(self.sigma_init ** 2)
+            if self.sigma_init > 0.0
+            else 0.0
+        )
+
+        # sigma_minimum helps avoiding cholesky problems, we could also jitter
+        # However, this seems to cause the maximum likelihood estimation to
+        # take longer to converge. This needs to be re-evaluated.
+        D_diag = (
+            F.Activation(D_vector + d_bias, act_type="softrelu")
+            + self.sigma_minimum ** 2
         )
 
         return mu_vector + self.mu_bias, D_diag, W_matrix

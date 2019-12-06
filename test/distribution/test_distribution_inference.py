@@ -336,7 +336,7 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(15)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
     num_samples = 2000
@@ -363,10 +363,12 @@ def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
     samples = distr.sample(num_samples).squeeze().asnumpy()
 
     mu_hat, D_hat, W_hat = maximum_likelihood_estimate_sgd(
-        LowrankMultivariateGaussianOutput(dim=dim, rank=rank),
+        LowrankMultivariateGaussianOutput(
+            dim=dim, rank=rank, sigma_init=0.2, sigma_minimum=0.0
+        ),
         samples,
         learning_rate=PositiveFloat(0.01),
-        num_epochs=PositiveInt(10),
+        num_epochs=PositiveInt(25),
         init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
         hybridize=hybridize,
     )
@@ -387,7 +389,7 @@ def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
 
     assert np.allclose(
         Sigma_hat, Sigma, atol=0.1, rtol=0.1
-    ), f"alpha did not match: sigma = {Sigma}, sigma_hat = {Sigma_hat}"
+    ), f"sigma did not match: sigma = {Sigma}, sigma_hat = {Sigma_hat}"
 
 
 @pytest.mark.parametrize("mu", [6.0])

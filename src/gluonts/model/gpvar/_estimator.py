@@ -12,29 +12,23 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Callable, Tuple
+from typing import List, Optional
 
 # Third-party imports
-import re
-import pandas as pd
-import numpy as np
 from mxnet.gluon import HybridBlock
-from pandas.tseries.frequencies import to_offset
 
 # First-party imports
+from gluonts.distribution import DistributionOutput
+from gluonts.distribution.lowrank_gp import LowrankGPOutput
 from gluonts.core.component import validated
-from gluonts.distribution import (
-    DistributionOutput,
-    StudentTOutput,
-    LowrankMultivariateGaussianOutput,
+from gluonts.model.deepvar._estimator import (
+    get_lags_for_frequency,
+    time_features_from_frequency_str,
 )
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
-
 from gluonts.time_feature import TimeFeature
-from gluonts.dataset.field_names import FieldName
-
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -48,94 +42,23 @@ from gluonts.transform import (
     VstackFeatures,
     ExpandDimArray,
     TargetDimIndicator,
+    SampleTargetDim,
     CDFtoGaussianTransform,
-    cdf_to_gaussian_forward_transform,
     RenameFields,
+    cdf_to_gaussian_forward_transform,
 )
 
 # Relative imports
-from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
+from gluonts.dataset.field_names import FieldName
+from ._network import GPVARPredictionNetwork, GPVARTrainingNetwork
 
 
-class FourierDateFeatures(TimeFeature):
-    @validated()
-    def __init__(self, freq: str) -> None:
-        super().__init__()
-        # reocurring freq
-        freqs = [
-            "month",
-            "day",
-            "hour",
-            "minute",
-            "weekofyear",
-            "weekday",
-            "dayofweek",
-            "dayofyear",
-            "daysinmonth",
-        ]
+class GPVAREstimator(GluonEstimator):
 
-        assert freq in freqs
-        self.freq = freq
-
-    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        values = getattr(index, self.freq)
-        num_values = max(values) + 1
-        steps = [x * 2.0 * np.pi / num_values for x in values]
-        return np.vstack([np.cos(steps), np.sin(steps)])
-
-
-def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
-    offset = to_offset(freq_str)
-    multiple, granularity = offset.n, offset.name
-
-    features = {
-        "M": ["weekofyear"],
-        "W": ["daysinmonth", "weekofyear"],
-        "D": ["dayofweek"],
-        "B": ["dayofweek", "dayofyear"],
-        "H": ["hour", "dayofweek"],
-        "min": ["minute", "hour", "dayofweek"],
-        "T": ["minute", "hour", "dayofweek"],
-    }
-
-    assert granularity in features, f"freq {granularity} not supported"
-
-    feature_classes: List[TimeFeature] = [
-        FourierDateFeatures(freq=freq) for freq in features[granularity]
-    ]
-    return feature_classes
-
-
-def get_lags_for_frequency(
-    freq_str: str, num_lags: Optional[int] = None
-) -> List[int]:
-    offset = to_offset(freq_str)
-    multiple, granularity = offset.n, offset.name
-
-    if granularity == "M":
-        lags = [[1, 12]]
-    elif granularity == "D":
-        lags = [[1, 7, 14]]
-    elif granularity == "B":
-        lags = [[1, 2]]
-    elif granularity == "H":
-        lags = [[1, 24, 168]]
-    elif granularity == "min":
-        lags = [[1, 4, 12, 24, 48]]
-    else:
-        lags = [[1]]
-
-    # use less lags
-    output_lags = list([int(lag) for sub_list in lags for lag in sub_list])
-    output_lags = sorted(list(set(output_lags)))
-    return output_lags[:num_lags]
-
-
-class DeepVAREstimator(GluonEstimator):
     """
-    Constructs a DeepVAR estimator, which is a multivariate variant of DeepAR.
+    Constructs a GPVAR estimator.
 
-    These models have been described as VEC-LSTM in this paper:
+    These models have been described as GP-Copula in this paper:
     https://arxiv.org/abs/1910.03002
 
     Note that this implementation will change over time and we further work on
@@ -170,20 +93,17 @@ class DeepVAREstimator(GluonEstimator):
         the accuracy (default: 100)
     dropout_rate
         Dropout regularization parameter (default: 0.1)
-    cardinality
-        Number of values of each categorical feature (default: [1])
-    embedding_dimension
-        Dimension of the embeddings for categorical features
-        (default: 5])
+    target_dim_sample
+        Number of dimensions to sample for the GP model
     distr_output
         Distribution to use to evaluate observations and sample predictions
-        (default: LowrankMultivariateGaussianOutput with dim=target_dim and
+        (default: LowrankGPOutput with dim=target_dim and
         rank=5). Note that target dim of the DistributionOutput and the
         estimator constructor call need to match. Also note that the rank in
         this constructor is meaningless if the DistributionOutput is
         constructed outside of this class.
     rank
-        Rank for the LowrankMultivariateGaussianOutput. (default: 5)
+        Rank for the LowrankGPOutput. (default: 2)
     scaling
         Whether to automatically scale the target values (default: true)
     pick_incomplete
@@ -193,14 +113,16 @@ class DeepVAREstimator(GluonEstimator):
         Indices of the lagged target values to use as inputs of the RNN
         (default: None, in which case these are automatically determined
         based on freq)
+    shuffle_target_dim
+        Shuffle the dimensions before sampling.
     time_features
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
     conditioning_length
         Set maximum length for conditioning the marginal transformation
     use_marginal_transformation
-        Whether marginal (empirical cdf, gaussian ppf) transformation is used.
-
+        Whether marginal (CDFtoGaussianTransform) transformation is used by the
+        model
     """
 
     @validated()
@@ -210,25 +132,25 @@ class DeepVAREstimator(GluonEstimator):
         prediction_length: int,
         target_dim: int,
         trainer: Trainer = Trainer(),
+        # number of dimension to sample at training time
         context_length: Optional[int] = None,
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
         num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
-        cardinality: List[int] = [1],
-        embedding_dimension: int = 5,
+        target_dim_sample: Optional[int] = None,
         distr_output: Optional[DistributionOutput] = None,
-        rank: Optional[int] = 5,
+        rank: Optional[int] = 2,
         scaling: bool = True,
         pick_incomplete: bool = False,
         lags_seq: Optional[List[int]] = None,
+        shuffle_target_dim: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
-        conditioning_length: int = 200,
-        use_marginal_transformation=False,
-        **kwargs,
+        conditioning_length: int = 100,
+        use_marginal_transformation: bool = False,
     ) -> None:
-        super().__init__(trainer=trainer, **kwargs)
+        super().__init__(trainer=trainer)
 
         assert (
             prediction_length > 0
@@ -242,43 +164,34 @@ class DeepVAREstimator(GluonEstimator):
             num_parallel_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert all(
-            [c > 0 for c in cardinality]
-        ), "Elements of `cardinality` should be > 0"
-        assert (
-            embedding_dimension > 0
-        ), "The value of `embedding_dimension` should be > 0"
-
-        self.freq = freq
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
 
         if distr_output is not None:
             self.distr_output = distr_output
         else:
-            self.distr_output = LowrankMultivariateGaussianOutput(
-                dim=target_dim, rank=rank
-            )
-
+            self.distr_output = LowrankGPOutput(rank=rank)
+        self.freq = freq
+        self.context_length = (
+            context_length if context_length is not None else prediction_length
+        )
         self.prediction_length = prediction_length
         self.target_dim = target_dim
+        self.target_dim_sample = (
+            target_dim
+            if target_dim_sample is None
+            else min(target_dim_sample, target_dim)
+        )
+        self.shuffle_target_dim = shuffle_target_dim
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
         self.num_parallel_samples = num_parallel_samples
         self.dropout_rate = dropout_rate
-        self.cardinality = cardinality
-        self.embedding_dimension = embedding_dimension
-        self.conditioning_length = conditioning_length
-        self.use_marginal_transformation = use_marginal_transformation
 
         self.lags_seq = (
             lags_seq
             if lags_seq is not None
             else get_lags_for_frequency(freq_str=freq)
         )
-
         self.time_features = (
             time_features
             if time_features is not None
@@ -288,11 +201,10 @@ class DeepVAREstimator(GluonEstimator):
         self.history_length = self.context_length + max(self.lags_seq)
         self.pick_incomplete = pick_incomplete
         self.scaling = scaling
-
+        self.conditioning_length = conditioning_length
+        self.use_marginal_transformation = use_marginal_transformation
         if self.use_marginal_transformation:
-            self.output_transform: Optional[
-                Callable
-            ] = cdf_to_gaussian_forward_transform
+            self.output_transform = cdf_to_gaussian_forward_transform
         else:
             self.output_transform = None
 
@@ -321,8 +233,8 @@ class DeepVAREstimator(GluonEstimator):
                     field=FieldName.TARGET,
                     expected_ndim=1 + len(self.distr_output.event_shape),
                 ),
-                # maps the target to (1, T)
-                # if the target data is uni dimensional
+                # maps the target to (1, T) if the target data is uni
+                # dimensional
                 ExpandDimArray(
                     field=FieldName.TARGET,
                     axis=0 if self.distr_output.event_shape[0] == 1 else None,
@@ -346,7 +258,7 @@ class DeepVAREstimator(GluonEstimator):
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
                 TargetDimIndicator(
-                    field_name="target_dimension_indicator",
+                    field_name=FieldName.TARGET_DIM_INDICATOR,
                     target_field=FieldName.TARGET,
                 ),
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
@@ -365,32 +277,39 @@ class DeepVAREstimator(GluonEstimator):
                     pick_incomplete=self.pick_incomplete,
                 ),
                 use_marginal_transformation(self.use_marginal_transformation),
+                SampleTargetDim(
+                    field_name=FieldName.TARGET_DIM_INDICATOR,
+                    target_field=FieldName.TARGET + "_cdf",
+                    observed_values_field=FieldName.OBSERVED_VALUES,
+                    num_samples=self.target_dim_sample,
+                    shuffle=self.shuffle_target_dim,
+                ),
             ]
         )
 
-    def create_training_network(self) -> DeepVARTrainingNetwork:
-        return DeepVARTrainingNetwork(
+    def create_training_network(self) -> GPVARTrainingNetwork:
+        return GPVARTrainingNetwork(
             target_dim=self.target_dim,
+            target_dim_sample=self.target_dim_sample,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
             history_length=self.history_length,
             context_length=self.context_length,
             prediction_length=self.prediction_length,
-            distr_output=self.distr_output,
             dropout_rate=self.dropout_rate,
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            distr_output=self.distr_output,
             conditioning_length=self.conditioning_length,
         )
 
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
-        prediction_network = DeepVARPredictionNetwork(
+        prediction_network = GPVARPredictionNetwork(
             target_dim=self.target_dim,
+            target_dim_sample=self.target_dim,
             num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
@@ -398,12 +317,10 @@ class DeepVAREstimator(GluonEstimator):
             history_length=self.history_length,
             context_length=self.context_length,
             prediction_length=self.prediction_length,
-            distr_output=self.distr_output,
             dropout_rate=self.dropout_rate,
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            distr_output=self.distr_output,
             conditioning_length=self.conditioning_length,
         )
 
