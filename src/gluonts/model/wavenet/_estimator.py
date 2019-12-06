@@ -23,7 +23,7 @@ import numpy as np
 # First-party imports
 from gluonts import transform
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.estimator import GluonEstimator
@@ -41,7 +41,6 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    DataEntry,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     SetFieldIfNotPresent,
