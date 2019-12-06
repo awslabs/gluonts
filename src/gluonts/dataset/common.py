@@ -27,7 +27,7 @@ from typing import (
     Optional,
     Sized,
     cast,
-    Union
+    Union,
 )
 
 # Third-party imports
@@ -294,6 +294,7 @@ class ProcessStartField(pydantic.BaseModel):
     freq
         Frequency to use. This must be a valid Pandas frequency string.
     """
+
     class Config:
         arbitrary_types_allowed = True
 
@@ -312,7 +313,7 @@ class ProcessStartField(pydantic.BaseModel):
         if timestamp.tz is not None:
             if self.tz_strategy == TimeZoneStrategy.error:
                 raise GluonTSDataError(
-                    'Timezone information is not supported, '
+                    "Timezone information is not supported, "
                     f'but provided in the "{self.name}" field.'
                 )
             elif tz_strategy == TimeZoneStrategy.utc:
