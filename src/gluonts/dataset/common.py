@@ -316,7 +316,7 @@ class ProcessStartField(pydantic.BaseModel):
                     "Timezone information is not supported, "
                     f'but provided in the "{self.name}" field.'
                 )
-            elif tz_strategy == TimeZoneStrategy.utc:
+            elif self.tz_strategy == TimeZoneStrategy.utc:
                 # align timestamp to utc timezone
                 timestamp = timestamp.tz_convert("UTC")
 
