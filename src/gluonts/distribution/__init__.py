@@ -47,11 +47,15 @@ from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
 
+from .gamma import Gamma, GammaOutput
+
 __all__ = [
     "Distribution",
     "DistributionOutput",
     "StudentTOutput",
     "StudentT",
+    "GammaOutput",
+    "Gamma",
     "GaussianOutput",
     "Gaussian",
     "LaplaceOutput",
