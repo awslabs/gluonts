@@ -60,7 +60,9 @@ class UniformSplitSampler(InstanceSampler):
         self.lookup = np.arange(2 ** 13)
 
     def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        assert a <= b
+        assert (
+            a <= b
+        ), "First index must be less than or equal to the last index."
         while ts.shape[-1] >= len(self.lookup):
             self.lookup = np.arange(2 * len(self.lookup))
         mask = np.random.uniform(low=0.0, high=1.0, size=b - a + 1) < self.p
@@ -143,3 +145,39 @@ class BucketInstanceSampler(InstanceSampler):
         mask = np.random.uniform(low=0.0, high=1.0, size=b - a + 1) < p
         indices = self.lookup[a : a + len(mask)][mask]
         return indices
+
+
+class ContinuousTimePointSampler:
+    """
+    Abstract class for "continuous time" samplers, which, given a lower bound
+    and upper bound, sample "points" (events) in continuous time from a
+    specified interval.
+    """
+
+    def __init__(self, num_instances: int) -> None:
+        self.num_instances = num_instances
+
+    def __call__(self, a: float, b: float) -> np.ndarray:
+        """
+        Returns random points in the real interval between :code:`a` and
+        :code:`b`.
+
+        Parameters
+        ----------
+        a
+            The lower bound (minimum time value that a sampled point can take)
+        b
+            Upper bound. Must be greater than a.
+        """
+        raise NotImplementedError()
+
+
+class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
+    """
+    Implements a simple random sampler to sample points in the continuous
+    interval between :code:`a` and :code:`b`.
+    """
+
+    def __call__(self, a: float, b: float) -> np.ndarray:
+        assert a <= b, "Interval start time must be before interval end time."
+        return np.random.rand(self.num_instances) * (b - a) + a

@@ -60,9 +60,16 @@ from .sampler import (
     TestSplitSampler,
     ExpectedNumInstanceSampler,
     BucketInstanceSampler,
+    ContinuousTimePointSampler,
+    ContinuousTimeUniformSampler,
 )
 
-from .split import shift_timestamp, InstanceSplitter, CanonicalInstanceSplitter
+from .split import (
+    shift_timestamp,
+    InstanceSplitter,
+    CanonicalInstanceSplitter,
+    ContinuousTimeInstanceSplitter,
+)
 
 __all__ = [
     "AddAgeFeature",
