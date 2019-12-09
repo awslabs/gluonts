@@ -38,6 +38,9 @@ class Transformation(metaclass=abc.ABCMeta):
     def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
         return data_it  # default is to pass through without estimation
 
+    def chain(self, other: "Transformation") -> "Chain":
+        return Chain(self, other)
+
 
 class Chain(Transformation):
     """
@@ -46,13 +49,19 @@ class Chain(Transformation):
 
     @validated()
     def __init__(self, trans: List[Transformation]) -> None:
-        self.trans = trans
+        self.transformations = []
+        for transformation in trans:
+            # flatten chains
+            if isinstance(transformation, Chain):
+                self.transformations.extend(transformation.transformations)
+            else:
+                self.transformations.append(transformation)
 
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
     ) -> Iterator[DataEntry]:
         tmp = data_it
-        for t in self.trans:
+        for t in self.transformations:
             tmp = t(tmp, is_train)
         return tmp
 
