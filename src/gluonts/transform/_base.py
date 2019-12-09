@@ -66,7 +66,7 @@ class Chain(Transformation):
         return tmp
 
     def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
-        return reduce(lambda x, y: y.estimate(x), self.trans, data_it)
+        return reduce(lambda x, y: y.estimate(x), self.transformations, data_it)
 
 
 class Identity(Transformation):
