@@ -350,15 +350,6 @@ class ProcessStartField(pydantic.BaseModel):
         return timestamp.freq.rollforward(timestamp)
 
 
-def rollback(timestamp):
-    offset = timestamp.freq
-    # if not offset.onOffset(timestamp):
-    return timestamp - offset.__class__(
-        offset.n, normalize=True, **offset.kwds
-    )
-    # return timestamp
-
-
 class ProcessTimeSeriesField:
     """
     Converts a time series field identified by `name` from a list of numbers
