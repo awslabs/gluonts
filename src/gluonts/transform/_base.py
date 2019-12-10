@@ -14,7 +14,7 @@
 # Standard library imports
 import abc
 from functools import reduce
-from typing import Callable, Iterator, List
+from typing import Callable, Iterable, Iterator, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -39,10 +39,45 @@ class Transformation(metaclass=abc.ABCMeta):
         return data_it  # default is to pass through without estimation
 
     def chain(self, other: "Transformation") -> "Chain":
-        return Chain(self, other)
+        return Chain([self, other])
 
     def __add__(self, other: "Transformation") -> "Chain":
         return self.chain(other)
+
+    def __lshift__(self, dataset: Iterator[DataEntry]) -> Iterator[DataEntry]:
+        return TransformedDataset(dataset, self)
+
+    def __rrshift__(self, dataset: Iterator[DataEntry]) -> Iterator[DataEntry]:
+        return self << dataset
+
+
+class TransformedDataset(Iterable[DataEntry]):
+    """
+    A dataset that corresponds to applying a list of transformations to each
+    element in the base_dataset.
+    This only supports SimpleTransformations, which do the same thing at
+    prediction and training time.
+
+
+    Parameters
+    ----------
+    base_dataset
+        Dataset to transform
+    transformations
+        List of transformations to apply
+    """
+
+    def __init__(
+        self, dataset: Iterator[DataEntry], transformation: Transformation
+    ) -> None:
+        self.dataset = dataset
+        self.transformation = transformation
+
+    def __iter__(self) -> Iterator[DataEntry]:
+        yield from self.transformation(self.dataset, is_train=True)
+
+    def __len__(self):
+        return sum(1 for _ in self)
 
 
 class Chain(Transformation):
@@ -111,6 +146,25 @@ class SimpleTransformation(MapTransformation):
     @abc.abstractmethod
     def transform(self, data: DataEntry) -> DataEntry:
         pass
+
+    def chain(self, other: Transformation) -> Chain:
+        if isinstance(other, SimpleTransformation):
+            return SimpleChain([self, other])
+        else:
+            return Chain([self, other])
+
+    def __lt__(self, data: DataEntry) -> DataEntry:
+        # `self < {"foo": "bar"}`
+        return self.transform(data)
+
+
+class SimpleChain(Chain, SimpleTransformation):
+    """Like chain, but where all elements are of type SimpleTransformation."""
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        for transformation in self.transformations:
+            data = transformation.transform(data)
+        return data
 
 
 class AdhocTransform(SimpleTransformation):

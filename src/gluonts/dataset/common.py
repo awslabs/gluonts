@@ -46,6 +46,7 @@ from gluonts.dataset.stat import (
     calculate_dataset_statistics,
 )
 
+
 # Dictionary used for data flowing through the transformations.
 # A Dataset is an iterable over such dictionaries.
 DataEntry = Dict[str, Any]
