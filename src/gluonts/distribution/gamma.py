@@ -89,7 +89,7 @@ class Gamma(Distribution):
         return _sample_multiple(
             partial(self.F.sample_gamma, dtype=dtype),
             alpha=self.alpha,
-            beta=1.0 / self.beta,  # because MXNet doesnt make sense
+            beta=1.0 / self.beta,
             num_samples=num_samples,
         )
 
