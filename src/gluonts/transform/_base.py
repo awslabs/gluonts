@@ -13,6 +13,7 @@
 
 # Standard library imports
 import abc
+from copy import copy
 from functools import reduce
 from typing import Callable, Iterator, List
 
@@ -44,6 +45,18 @@ class Transformation(metaclass=abc.ABCMeta):
     def __add__(self, other: "Transformation") -> "Chain":
         return self.chain(other)
 
+    @property
+    def ctx(self):
+        if not hasattr(self, "_ctx"):
+            raise Exception("Use of `.ctx` of uncontextualized Transformation.")
+
+        return self._ctx
+
+    def contextualize(self, **ctx) -> "Transformation":
+        copy_ = copy(self)
+        copy_._ctx = ctx
+        return copy_
+
 
 class Chain(Transformation):
     """
@@ -72,6 +85,14 @@ class Chain(Transformation):
         return reduce(
             lambda x, y: y.estimate(x), self.transformations, data_it
         )
+
+    def contextualize(self, **ctx) -> Transformation:
+        copy_ = super().contextualize(**ctx)
+        copy_.transformations = [
+            transformation.contextualize(**ctx)
+            for transformation in self.transformations
+        ]
+        return copy_
 
 
 class Identity(Transformation):
