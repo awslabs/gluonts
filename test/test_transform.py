@@ -25,7 +25,7 @@ import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
-from gluonts.dataset.common import ProcessStartField, DataEntry
+from gluonts.dataset.common import ProcessStartField, DataEntry, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 
@@ -593,7 +593,7 @@ def test_cdf_to_gaussian_transformation():
     def make_fake_output(u: DataEntry):
         fake_output = np.expand_dims(
             np.expand_dims(u["past_target_cdf"], axis=0), axis=0
-        ).swapaxes(2, 3)
+        )
         return fake_output
 
     ds = make_test_data()
@@ -627,7 +627,7 @@ def test_cdf_to_gaussian_transformation():
         )
 
         # Get any sample/batch (slopes[i][:, d]they are all the same)
-        back_transformed = np.swapaxes(back_transformed[0][0], 0, 1)
+        back_transformed = back_transformed[0][0]
 
         original_target = u["target"]
 
@@ -663,6 +663,196 @@ def test_gaussian_ppf():
     y_scipy = norm.ppf(x)
 
     assert np.allclose(y_gluonts, y_scipy, atol=1e-7)
+
+
+def test_target_dim_indicator():
+    target = np.array([0, 2, 3, 10]).tolist()
+
+    multi_dim_target = np.array([target, target, target, target])
+    dataset = gluonts.dataset.common.ListDataset(
+        data_iter=[{"start": "2012-01-01", "target": multi_dim_target}],
+        freq="1D",
+        one_dim_target=False,
+    )
+
+    t = transform.Chain(
+        trans=[
+            transform.TargetDimIndicator(
+                target_field=FieldName.TARGET, field_name="target_dimensions"
+            )
+        ]
+    )
+
+    for data_entry in t(dataset, is_train=True):
+        assert (
+            data_entry["target_dimensions"] == np.array([0, 1, 2, 3])
+        ).all()
+
+
+@pytest.fixture
+def point_process_dataset():
+
+    ia_times = np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1])
+    marks = np.array([0, 1, 2, 0, 1, 2, 2, 2])
+
+    lds = ListDataset(
+        [
+            {
+                "target": np.c_[ia_times, marks].T,
+                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
+                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+            }
+        ],
+        freq="H",
+        one_dim_target=False,
+    )
+
+    return lds
+
+
+class MockContinuousTimeSampler(transform.ContinuousTimePointSampler):
+    # noinspection PyMissingConstructor,PyUnusedLocal
+    def __init__(self, ret_values, *args, **kwargs):
+        self._ret_values = ret_values
+
+    def __call__(self, *args, **kwargs):
+        return np.array(self._ret_values)
+
+
+def test_ctsplitter_mask_sorted(point_process_dataset):
+    d = next(iter(point_process_dataset))
+
+    ia_times = d["target"][0, :]
+
+    ts = np.cumsum(ia_times)
+
+    splitter = transform.ContinuousTimeInstanceSplitter(
+        2,
+        1,
+        train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
+    )
+
+    # no boundary conditions
+    res = splitter._mask_sorted(ts, 1, 2)
+    assert all([a == b for a, b in zip([2, 3, 4], res)])
+
+    # lower bound equal, exclusive of upper bound
+    res = splitter._mask_sorted(np.array([1, 2, 3, 4, 5, 6]), 1, 2)
+    assert all([a == b for a, b in zip([0], res)])
+
+
+def test_ctsplitter_no_train_last_point(point_process_dataset):
+    splitter = transform.ContinuousTimeInstanceSplitter(
+        2,
+        1,
+        train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
+    )
+
+    iter_de = splitter(point_process_dataset, is_train=False)
+
+    d_out = next(iter(iter_de))
+
+    assert "future_target" not in d_out
+    assert "future_valid_length" not in d_out
+    assert "past_target" in d_out
+    assert "past_valid_length" in d_out
+
+    assert d_out["past_valid_length"] == 6
+    assert np.allclose(
+        [0.1, 0.5, 0.3, 0.3, 0.2, 0.1], d_out["past_target"][..., 0], atol=0.01
+    )
+
+
+def test_ctsplitter_train_correct(point_process_dataset):
+    splitter = transform.ContinuousTimeInstanceSplitter(
+        1,
+        1,
+        train_sampler=MockContinuousTimeSampler(
+            ret_values=[1.01, 1.5, 1.99], num_instances=3
+        ),
+    )
+
+    iter_de = splitter(point_process_dataset, is_train=True)
+
+    outputs = list(iter_de)
+
+    assert outputs[0]["past_valid_length"] == 2
+    assert outputs[0]["future_valid_length"] == 3
+
+    assert np.allclose(
+        outputs[0]["past_target"], np.array([[0.19, 0.7], [0, 1]]).T
+    )
+    assert np.allclose(
+        outputs[0]["future_target"], np.array([[0.09, 0.5, 0.3], [2, 0, 1]]).T
+    )
+
+    assert outputs[1]["past_valid_length"] == 2
+    assert outputs[1]["future_valid_length"] == 4
+
+    assert outputs[2]["past_valid_length"] == 3
+    assert outputs[2]["future_valid_length"] == 3
+
+
+def test_ctsplitter_train_correct_out_count(point_process_dataset):
+
+    # produce new TPP data by shuffling existing TS instance
+    def shuffle_iterator(num_duplications=5):
+        for entry in point_process_dataset:
+            for i in range(num_duplications):
+                d = dict.copy(entry)
+                d["target"] = np.random.permutation(d["target"].T).T
+                yield d
+
+    splitter = transform.ContinuousTimeInstanceSplitter(
+        1,
+        1,
+        train_sampler=MockContinuousTimeSampler(
+            ret_values=[1.01, 1.5, 1.99], num_instances=3
+        ),
+    )
+
+    iter_de = splitter(shuffle_iterator(), is_train=True)
+
+    outputs = list(iter_de)
+
+    assert len(outputs) == 5 * 3
+
+
+def test_ctsplitter_train_samples_correct_times(point_process_dataset):
+
+    splitter = transform.ContinuousTimeInstanceSplitter(
+        1.25, 1.25, train_sampler=transform.ContinuousTimeUniformSampler(20)
+    )
+
+    iter_de = splitter(point_process_dataset, is_train=True)
+
+    assert all(
+        [
+            (
+                pd.Timestamp("2011-01-01 01:15:00")
+                <= d["forecast_start"]
+                <= pd.Timestamp("2011-01-01 01:45:00")
+            )
+            for d in iter_de
+        ]
+    )
+
+
+def test_ctsplitter_train_short_intervals(point_process_dataset):
+    splitter = transform.ContinuousTimeInstanceSplitter(
+        0.01,
+        0.01,
+        train_sampler=MockContinuousTimeSampler(
+            ret_values=[1.01, 1.5, 1.99], num_instances=3
+        ),
+    )
+
+    iter_de = splitter(point_process_dataset, is_train=True)
+
+    for d in iter_de:
+        assert d["future_valid_length"] == d["past_valid_length"] == 0
+        assert np.prod(np.shape(d["past_target"])) == 0
+        assert np.prod(np.shape(d["future_target"])) == 0
 
 
 def make_dataset(N, train_length):

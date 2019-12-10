@@ -21,9 +21,10 @@ from gluonts.core import fqname_for, log
 from gluonts.core.component import check_gpu_support
 from gluonts.core.serde import dump_code
 from gluonts.evaluation import Evaluator, backtest
+from gluonts.dataset.common import Dataset
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.transform import Dataset, FilterTransformation, TransformedDataset
+from gluonts.transform import FilterTransformation, TransformedDataset
 
 # Relative imports
 from .sagemaker import TrainEnv

@@ -19,7 +19,8 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.transform import DataEntry, FlatMapTransformation, shift_timestamp
+from gluonts.dataset.common import DataEntry
+from gluonts.transform import FlatMapTransformation, shift_timestamp
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
