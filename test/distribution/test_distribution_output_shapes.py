@@ -20,6 +20,7 @@ from gluonts.model.common import Tensor
 from gluonts.distribution import (
     DistributionOutput,
     GaussianOutput,
+    GammaOutput,
     LaplaceOutput,
     MixtureDistributionOutput,
     MultivariateGaussianOutput,
@@ -46,6 +47,13 @@ from gluonts.distribution import (
         (
             StudentTOutput(),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4, 5),
+            (),
+        ),
+        (
+            GammaOutput(),
+            mx.nd.random.gamma(shape=(3, 4, 5, 6)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),
