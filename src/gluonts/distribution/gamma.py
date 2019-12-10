@@ -42,7 +42,7 @@ class Gamma(Distribution):
     F
     """
 
-    is_reparameterizable = True
+    is_reparameterizable = False
 
     @validated()
     def __init__(self, alpha: Tensor, beta: Tensor, F=None) -> None:
@@ -93,19 +93,6 @@ class Gamma(Distribution):
             num_samples=num_samples,
         )
 
-    def sample_rep(
-        self, num_samples: Optional[int] = None, dtype=np.float32
-    ) -> Tensor:
-        def s(alpha: Tensor, beta: Tensor) -> Tensor:
-            return self.F.sample_gamma(alpha=alpha, beta=beta, dtype=dtype)
-
-        return _sample_multiple(
-            s,
-            alpha=self.alpha,
-            beta=1.0 / self.beta,
-            num_samples=num_samples,  # because MXNet doesnt make sense
-        )
-
     @property
     def args(self) -> List:
         return [self.alpha, self.beta]
@@ -135,8 +122,8 @@ class GammaOutput(DistributionOutput):
             Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
             positive orthant.
         """
-        alpha = softplus(F, alpha)
-        beta = softplus(F, beta)
+        alpha = softplus(F, alpha) + 1e-8
+        beta = softplus(F, beta) + 1e-8
         return alpha.squeeze(axis=-1), beta.squeeze(axis=-1)
 
     @property

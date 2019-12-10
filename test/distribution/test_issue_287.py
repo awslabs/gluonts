@@ -13,12 +13,18 @@
 
 import mxnet as mx
 import numpy as np
+import pytest
+from gluonts.distribution import DistributionOutput
 from gluonts.distribution.neg_binomial import NegativeBinomialOutput
+from gluonts.distribution.gamma import GammaOutput
+
+test_cases = [(NegativeBinomialOutput), (GammaOutput)]
 
 
-def test_issue_287():
+@pytest.mark.parametrize("distr_out_class", test_cases)
+def test_issue_287(distr_out_class: DistributionOutput):
     network_output = mx.nd.ones(shape=(10,))
-    distr_output = NegativeBinomialOutput()
+    distr_output = distr_out_class()
     args_proj = distr_output.get_args_proj()
     args_proj.initialize(init=mx.init.Constant(-1e2))
     distr_args = args_proj(network_output)
