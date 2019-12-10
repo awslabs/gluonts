@@ -48,7 +48,9 @@ class Transformation(metaclass=abc.ABCMeta):
     @property
     def ctx(self):
         if not hasattr(self, "_ctx"):
-            raise Exception("Use of `.ctx` of uncontextualized Transformation.")
+            raise Exception(
+                "Use of `.ctx` of uncontextualized Transformation."
+            )
 
         return self._ctx
 
