@@ -13,25 +13,27 @@
 
 
 # Standard library imports
-import logging
 from pathlib import Path
-import time
 from typing import List, Optional, Tuple, Dict
 import json
-import re
 
 # Third-party imports
+import sagemaker
 from sagemaker.estimator import Framework
 from sagemaker.fw_utils import empty_framework_version_warning, parse_s3_url
 from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
-from sagemaker import session
 import s3fs
 import pandas as pd
 import tarfile
 import tempfile
 
 # First-party imports
-from gluonts.nursery.sagemaker_sdk.defaults import (
+from gluonts.core import serde
+from gluonts.model.estimator import Estimator
+from gluonts.dataset.repository import datasets
+from gluonts.model.predictor import Predictor
+
+from .defaults import (
     GLUONTS_VERSION,
     ENTRY_POINTS_FOLDER,
     TRAIN_SCRIPT,
@@ -43,17 +45,9 @@ from gluonts.nursery.sagemaker_sdk.defaults import (
     NUM_SAMPLES,
     QUANTILES,
 )
-from gluonts.nursery.sagemaker_sdk.model import GluonTSModel
-from gluonts.nursery.sagemaker_sdk.sdk_utils import sagemaker_log
-from gluonts.core import serde
-from gluonts.model.estimator import GluonEstimator
-from gluonts.dataset.repository import datasets
-from gluonts.model.predictor import Predictor
-
-
-# Logging: print log statements analogously to Sagemaker.
-logger = logging.getLogger("sagemaker")
-
+from .log import logger
+from .model import GluonTSModel
+from .utils import make_metrics, make_job_name
 
 # OVERALL TODOS:
 #    > TEST EVERYTHING
@@ -158,7 +152,7 @@ class GluonTSFramework(Framework):
         GluonTS version. If not specified, this will default to 0.4.1. Currently has no effect.
     hyperparameters:
         # TODO add support for HPO
-        Not the Estimator hyperparameters, those are provided through the GluonEstimator in
+        Not the Estimator hyperparameters, those are provided through the Estimator in
         the :meth:`GluonTSFramework.train` method. If you use the :meth:`GluonTSFramework.run`
         method its up to you what you do with this parameter and you could use it to define the
         hyperparameters of your models.
@@ -180,13 +174,13 @@ class GluonTSFramework(Framework):
 
     def __init__(
         self,
-        sagemaker_session: session.Session,
+        sagemaker_session: sagemaker.Session,
         role: str,
         image_name: str,
         base_job_name: str,
-        train_instance_type: str,
+        train_instance_type: str = "ml.c5.xlarge",
         train_instance_count: int = 1,
-        dependencies: Optional[List[str]] = (),
+        dependencies: Optional[List[str]] = None,
         output_path: str = None,
         code_location: str = None,
         framework_version: str = GLUONTS_VERSION,
@@ -194,7 +188,8 @@ class GluonTSFramework(Framework):
         entry_point: str = str(ENTRY_POINTS_FOLDER / TRAIN_SCRIPT),
         **kwargs,
     ):
-        # framework_version currently serves no purpose, except for compatibility with the sagemaker framework.
+        # Framework_version currently serves no purpose,
+        # except for compatibility with the sagemaker framework.
         if framework_version is None:
             logger.warning(
                 empty_framework_version_warning(
@@ -220,6 +215,10 @@ class GluonTSFramework(Framework):
 
         # must be set
         self.py_version = PYTHON_VERSION
+
+        self._s3fs = s3fs.S3FileSystem(
+            session=self.sagemaker_session.boto_session
+        )
 
     def create_model(
         self,
@@ -367,43 +366,11 @@ class GluonTSFramework(Framework):
 
         return init_params
 
-    @classmethod
-    def _get_metrics(cls, metrics_names):
-        avg_epoch_loss_metric = {
-            "Name": "training_loss",
-            "Regex": r"'avg_epoch_loss'=(\S+)",
-        }
-        final_loss_metric = {
-            "Name": "final_loss",
-            "Regex": r"Final loss: (\S+)",
-        }
-        other_metrics = [
-            {
-                "Name": metric,
-                "Regex": rf"gluonts\[metric-{re.escape(metric)}\]: (\S+)",
-            }
-            for metric in metrics_names
-        ]
-
-        return [avg_epoch_loss_metric, final_loss_metric] + other_metrics
-
-    @classmethod
-    def __create_job_name(cls, base_job_name):
-        milliseconds = str(int(round(time.time() * 1000)) % 1000)
-        job_name = (
-            base_job_name
-            + "-"
-            + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
-            + "-"
-            + milliseconds
-        )
-        return job_name
-
     # TODO hyperparameter override for hyper parameter optimization
     def train(
         self,
         dataset: str,
-        estimator: GluonEstimator,
+        estimator: Estimator,
         num_samples: Optional[int] = NUM_SAMPLES,
         quantiles: Optional[List[int]] = QUANTILES,
         monitored_metrics: List[str] = MONITORED_METRICS,
@@ -455,14 +422,14 @@ class GluonTSFramework(Framework):
             The job name used during training.
         """
 
-        # TODO implement local mode support
         if self.sagemaker_session.local_mode:
-            raise NotImplementedError()
+            # TODO implement local mode support
+            raise NotImplementedError(
+                "Local mode has not yet been implemented."
+            )
 
         # set metrics to be monitored
-        self.metric_definitions = GluonTSFramework._get_metrics(
-            monitored_metrics
-        )
+        self.metric_definitions = make_metrics(monitored_metrics)
 
         # Sagemaker cant handle PosixPaths
         dataset = str(dataset)
@@ -474,51 +441,50 @@ class GluonTSFramework(Framework):
 
         # specify job_name if not set
         if not job_name:
-            job_name = self.__create_job_name(self.base_job_name)
+            job_name = make_job_name(self.base_job_name)
 
+        default_bucket = self.sagemaker_session.default_bucket()
         # needed to set default output and code location properly
         if self.output_path is None:
-            self.output_path = (
-                f"s3://{self.sagemaker_session.default_bucket()}"
-            )
-        sagemaker_log(f"OUTPUT_PATH: {self.output_path}/{job_name}/output")
+            self.output_path = f"s3://{default_bucket}"
+
+        # logger.info(f"OUTPUT_PATH: {self.output_path}/{job_name}/output")
+
         if self.code_location is None:
             code_bucket, _ = parse_s3_url(self.output_path)
             self.code_location = (
-                f"s3://{code_bucket}"  # for consistency with sagemaker API
+                f"s3://{default_bucket}"  # for consistency with sagemaker API
             )
-        sagemaker_log(f"CODE_LOCATION: {self.code_location}/{job_name}/source")
+        logger.info(f"CODE_LOCATION: {self.code_location}/{job_name}/source")
 
         # serialize estimator to s3
-        sagemaker_log("Uploading - Uploading estimator config to s3.")
+        logger.info("Uploading estimator config to s3.")
         s3_estimator = f"{self.code_location}/{job_name}/source/estimator.json"
-        with s3fs.S3FileSystem().open(s3_estimator, "w") as f:
+        with self._s3fs.open(s3_estimator, "w") as f:
             f.write(serde.dump_json(estimator))
+
         inputs = {
-            "estimator": session.s3_input(
+            "estimator": sagemaker.s3_input(
                 s3_estimator, content_type="application/json"
             )
         }
 
         # handle different dataset sources
-        if dataset[:5] == "s3://":
-            inputs.update(
-                {
-                    "s3_dataset": session.s3_input(
-                        dataset, content_type="application/json"
-                    )
-                }
+        if dataset.startswith("s3://"):
+            inputs["s3_dataset"] = sagemaker.s3_input(
+                dataset, content_type="application/json"
             )
         else:
             assert dataset in datasets.dataset_recipes.keys(), (
                 f"{dataset} is not present, please choose one from "
                 f"{datasets.dataset_recipes.keys()}."
             )
+        print("XXX", self.uploaded_code)
 
         self.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
-        # retrieve metrics
-        with s3fs.S3FileSystem().open(
+        # def retrieve_metrics(self):
+        with self._s3fs.open(
             f"{self.output_path}/{job_name}/output/output.tar.gz", "rb"
         ) as model_metrics:
             with tarfile.open(mode="r:gz", fileobj=model_metrics) as tar:
@@ -527,7 +493,7 @@ class GluonTSFramework(Framework):
 
         # retrieve the model itself
         temp_dir = tempfile.mkdtemp()
-        with s3fs.S3FileSystem().open(
+        with self._s3fs.open(
             f"{self.output_path}/{job_name}/output/model.tar.gz", "rb"
         ) as model_artifacts:
             with tarfile.open(mode="r:gz", fileobj=model_artifacts) as tar:
@@ -541,7 +507,7 @@ class GluonTSFramework(Framework):
         cls,
         entry_point: str,
         inputs,
-        sagemaker_session: session.Session,
+        sagemaker_session: sagemaker.Session,
         role: str,
         image_name: str,
         base_job_name: str,
@@ -579,23 +545,23 @@ class GluonTSFramework(Framework):
 
             You can assign entry_point='src/train.py'.
         inputs:
-            Type is str or dict or sagemaker.session.s3_input, however, cannot be empty!
+            Type is str or dict or sagemaker.s3_input, however, cannot be empty!
             Information about the training data. This can be one of three types;
 
             * If (str) the S3 location where training data is saved.
-            * If (dict[str, str] or dict[str, sagemaker.session.s3_input]) If using multiple
+            * If (dict[str, str] or dict[str, sagemaker.s3_input]) If using multiple
                 channels for training data, you can specify a dict mapping channel names to
-                strings or :func:`~sagemaker.session.s3_input` objects.
-            * If (sagemaker.session.s3_input) - channel configuration for S3 data sources that can
+                strings or :func:`~sagemaker.s3_input` objects.
+            * If (sagemaker.s3_input) - channel configuration for S3 data sources that can
                 provide additional information as well as the path to the training dataset.
-                See :func:`sagemaker.session.s3_input` for full details.
+                See :func:`sagemaker.s3_input` for full details.
             * If (sagemaker.session.FileSystemInput) - channel configuration for
                 a file system data source that can provide additional information as well as
                 the path to the training dataset.
 
             Example::
 
-                inputs = {'my_dataset': session.s3_input(my_dataset_file, content_type='application/json')} # or
+                inputs = {'my_dataset': sagemaker.s3_input(my_dataset_file, content_type='application/json')} # or
                 inputs = {'my_dataset': my_dataset_dir}
 
             where 'my_dataset_file' and 'my_dataset_dir' are the relative or absolute paths as strings.

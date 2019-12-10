@@ -28,12 +28,8 @@ from sagemaker.fw_utils import model_code_key_prefix
 from pkg_resources import parse_version
 
 # First-party imports
-from gluonts.nursery.sagemaker_sdk.defaults import (
-    GLUONTS_VERSION,
-    LOWEST_MMS_VERSION,
-    FRAMEWORK_NAME,
-)
-from gluonts.nursery.sagemaker_sdk.sdk_utils import sagemaker_log
+from .defaults import GLUONTS_VERSION, LOWEST_MMS_VERSION, FRAMEWORK_NAME
+from .log import logger
 
 
 class GluonTSPredictor(RealTimePredictor):
@@ -168,7 +164,7 @@ class GluonTSModel(FrameworkModel):
         # Example implementation:
         #   https://github.com/aws/sagemaker-python-sdk/blob/master/src/sagemaker/mxnet/model.py
 
-        sagemaker_log(f"Using image: {deploy_image}")
+        logger.info(f"Using image: {deploy_image}")
 
         deploy_key_prefix = model_code_key_prefix(
             self.key_prefix, self.name, deploy_image
