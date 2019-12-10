@@ -56,6 +56,7 @@ RUN ${PIP} install --no-cache-dir --upgrade mxnet-mkl==$MX_VERSION && \
 
 # Install MXNet and current sagemaker-mxnet-containers version
 RUN ${PIP} install --no-cache-dir --upgrade gluonts[dev,R,Prophet]
+RUN ${PIP} install --no-cache-dir requests
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
