@@ -479,7 +479,6 @@ class GluonTSFramework(Framework):
                 f"{dataset} is not present, please choose one from "
                 f"{datasets.dataset_recipes.keys()}."
             )
-        print("XXX", self.uploaded_code)
 
         self.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
