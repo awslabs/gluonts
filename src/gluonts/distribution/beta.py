@@ -53,7 +53,6 @@ class Beta(Distribution):
             F if F else getF(alpha)
         )  # assuming alpha and beta of same type
 
-
     @property
     def batch_shape(self) -> Tuple:
         return self.alpha.shape

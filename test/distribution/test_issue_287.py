@@ -23,7 +23,7 @@ test_cases = [NegativeBinomialOutput, GammaOutput, BetaOutput]
 
 
 @pytest.mark.parametrize("distr_out_class", test_cases)
-def test_issue_287(distr_out_class: DistributionOutput):
+def test_issue_287(distr_out_class):
     network_output = mx.nd.ones(shape=(10,))
     distr_output = distr_out_class()
     args_proj = distr_output.get_args_proj()
