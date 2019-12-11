@@ -53,7 +53,6 @@ class Beta(Distribution):
             F if F else getF(alpha)
         )  # assuming alpha and beta of same type
 
-        # self._dirichlet = Dirichlet(F.stack(alpha, beta))
 
     @property
     def batch_shape(self) -> Tuple:
