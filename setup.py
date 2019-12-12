@@ -177,10 +177,16 @@ class StyleCheckCommand(distutils.cmd.Command):
 
 
 tests_require = find_requirements("requirements-test.txt")
+sagemaker_api_require = find_requirements(
+    "requirements-extras-sagemaker-sdk.txt"
+)
 shell_require = find_requirements("requirements-extras-shell.txt")
 setup_requires = find_requirements(
     "requirements-setup.txt"
 ) + find_requirements("requirements-docs.txt")
+dev_require = (
+    tests_require + shell_require + setup_requires + sagemaker_api_require
+)
 
 setup_kwargs: dict = dict(
     name="gluonts",
@@ -204,7 +210,7 @@ setup_kwargs: dict = dict(
     install_requires=find_requirements("requirements.txt"),
     tests_require=tests_require,
     extras_require={
-        "dev": tests_require + shell_require + setup_requires,
+        "dev": dev_require,
         "R": find_requirements("requirements-extras-r.txt"),
         "Prophet": find_requirements("requirements-extras-prophet.txt"),
         "shell": shell_require,
@@ -214,7 +220,7 @@ setup_kwargs: dict = dict(
             "deepar=gluonts.model.deepar:DeepAREstimator",
             "r=gluonts.model.r_forecast:RForecastPredictor [R]",
             "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
-        ],
+        ]
     ),
     cmdclass={
         "type_check": TypeCheckCommand,
