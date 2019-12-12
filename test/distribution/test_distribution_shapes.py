@@ -20,6 +20,8 @@ from gluonts.support.util import make_nd_diag
 from gluonts.distribution import (
     Distribution,
     Gaussian,
+    Gamma,
+    Beta,
     Laplace,
     MixtureDistribution,
     MultivariateGaussian,
@@ -42,6 +44,22 @@ from gluonts.distribution.box_cox_transform import BoxCoxTransform
             Gaussian(
                 mu=mx.nd.zeros(shape=(3, 4, 5)),
                 sigma=mx.nd.ones(shape=(3, 4, 5)),
+            ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            Gamma(
+                alpha=mx.nd.ones(shape=(3, 4, 5)),
+                beta=mx.nd.ones(shape=(3, 4, 5)),
+            ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            Beta(
+                alpha=mx.nd.ones(shape=(3, 4, 5)),
+                beta=mx.nd.ones(shape=(3, 4, 5)),
             ),
             (3, 4, 5),
             (),

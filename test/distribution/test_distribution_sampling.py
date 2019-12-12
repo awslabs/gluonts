@@ -24,6 +24,8 @@ from gluonts.distribution import (
     NegativeBinomial,
     Laplace,
     Gaussian,
+    Gamma,
+    Beta,
     MultivariateGaussian,
     PiecewiseLinear,
     Binned,
@@ -43,6 +45,14 @@ test_cases = [
             "mu": mx.nd.array([1000.0, -1000.0]),
             "sigma": mx.nd.array([0.1, 1.0]),
         },
+    ),
+    (
+        Gamma,
+        {"alpha": mx.nd.array([2.5, 7.0]), "beta": mx.nd.array([1.5, 2.1])},
+    ),
+    (
+        Beta,
+        {"alpha": mx.nd.array([2.5, 7.0]), "beta": mx.nd.array([1.5, 2.1])},
     ),
     (
         Laplace,
