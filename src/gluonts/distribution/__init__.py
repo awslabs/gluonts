@@ -26,6 +26,7 @@ from .dirichlet_multinomial import (
 from .distribution import Distribution
 from .distribution_output import DistributionOutput
 from .gaussian import Gaussian, GaussianOutput
+from .beta import Beta, BetaOutput
 from .laplace import Laplace, LaplaceOutput
 from .lowrank_multivariate_gaussian import (
     LowrankMultivariateGaussian,
@@ -56,6 +57,8 @@ __all__ = [
     "StudentT",
     "GammaOutput",
     "Gamma",
+    "BetaOutput",
+    "Beta",
     "GaussianOutput",
     "Gaussian",
     "LaplaceOutput",

@@ -36,6 +36,8 @@ from gluonts.distribution import (
     StudentTOutput,
     Gamma,
     GammaOutput,
+    Beta,
+    BetaOutput,
     MultivariateGaussian,
     MultivariateGaussianOutput,
     LowrankMultivariateGaussian,
@@ -144,6 +146,43 @@ def maximum_likelihood_estimate_sgd(
     return [
         param[0].asnumpy() for param in arg_proj(mx.nd.array(np.ones((1, 1))))
     ]
+
+
+@pytest.mark.parametrize("alpha, beta", [(3.75, 1.25)])
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_beta_likelihood(alpha: float, beta: float, hybridize: bool) -> None:
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+
+    # generate samples
+    alphas = mx.nd.zeros((NUM_SAMPLES,)) + alpha
+    betas = mx.nd.zeros((NUM_SAMPLES,)) + beta
+
+    distr = Beta(alphas, betas)
+    samples = distr.sample()
+
+    init_biases = [
+        inv_softplus(alpha - START_TOL_MULTIPLE * TOL * alpha),
+        inv_softplus(beta - START_TOL_MULTIPLE * TOL * beta),
+    ]
+
+    alpha_hat, beta_hat = maximum_likelihood_estimate_sgd(
+        BetaOutput(),
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(10),
+    )
+
+    print("ALPHA:", alpha_hat, "BETA:", beta_hat)
+    assert (
+        np.abs(alpha_hat - alpha) < TOL * alpha
+    ), f"alpha did not match: alpha = {alpha}, alpha = {alpha_hat}"
+    assert (
+        np.abs(beta_hat - beta) < TOL * beta
+    ), f"beta did not match: beta = {beta}, beta_hat = {beta_hat}"
 
 
 @pytest.mark.parametrize("mu, sigma, nu", [(2.3, 0.7, 6.0)])
