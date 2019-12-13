@@ -842,7 +842,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     info = DatasetInfo(
         name="constant_dataset",
         metadata=metadata,
-        prediction_length=2,
+        prediction_length=6,
         train_statistics=calculate_dataset_statistics(train_ds),
         test_statistics=calculate_dataset_statistics(test_ds),
     )
