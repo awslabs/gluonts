@@ -209,11 +209,7 @@ def test_InstanceSplitter(
         "some_other_col": "ABC",
     }
 
-    if (
-        not is_train
-        and not pick_incomplete
-        and len(target) < train_length + pred_length
-    ):
+    if not is_train and not pick_incomplete and len(target) < train_length:
         with pytest.raises(AssertionError):
             out = list(t.flatmap_transform(data, is_train=is_train))
         return

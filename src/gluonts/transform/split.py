@@ -179,7 +179,7 @@ class InstanceSplitter(FlatMapTransformation):
                 else self.train_sampler(target, *sampling_bounds)
             )
         else:
-            assert self.pick_incomplete or len_target >= minimum_length
+            assert self.pick_incomplete or len_target >= self.past_length
             sampled_indices = np.array([len_target], dtype=int)
         for i in sampled_indices:
             pad_length = max(self.past_length - i, 0)
