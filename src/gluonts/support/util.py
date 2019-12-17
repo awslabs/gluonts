@@ -390,11 +390,12 @@ def cumsum(
     return cumulative_sum.squeeze(axis=exp_dim)
 
 
-def weighted_average(
+def masked_weighted_average(
     F, x: Tensor, weights: Optional[Tensor] = None, axis: Optional[int] = None
 ) -> Tensor:
     """
-    Computes the weighted average of a given tensor across a given axis.
+    Computes the weighted average of a given tensor across a given axis, masking values associated with weight zero,
+    meaning instead of `nan * 0 = nan` you will get `0 * 0 = 0`.
 
     Parameters
     ----------
@@ -413,7 +414,7 @@ def weighted_average(
         The tensor with values averaged along the specified `axis`.
     """
     if weights is not None:
-        weighted_tensor = x * weights
+        weighted_tensor = F.where(condition=weights, x=x * weights, y=F.zeros_like(x))
         sum_weights = F.maximum(1.0, weights.sum(axis=axis))
         return weighted_tensor.sum(axis=axis) / sum_weights
     else:

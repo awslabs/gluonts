@@ -24,7 +24,7 @@ from gluonts.core.component import validated
 from gluonts.distribution.lds import ParameterBounds, LDS, LDSArgsProj
 from gluonts.model.deepstate.issm import ISSM
 from gluonts.model.common import Tensor
-from gluonts.support.util import weighted_average, make_nd_diag
+from gluonts.support.util import masked_weighted_average, make_nd_diag
 
 
 class DeepStateNetwork(mx.gluon.HybridBlock):
@@ -202,7 +202,7 @@ class DeepStateTrainingNetwork(DeepStateNetwork):
             scale=scale,
         )
 
-        return weighted_average(
+        return masked_weighted_average(
             F=F, x=-ll, axis=1, weights=observed_context.squeeze(axis=-1)
         )
 

@@ -22,7 +22,7 @@ from gluonts.block.scaler import NOPScaler, MeanScaler
 from gluonts.core.component import validated
 from gluonts.distribution import DistributionOutput, Distribution
 from gluonts.model.common import Tensor
-from gluonts.support.util import weighted_average, assert_shape
+from gluonts.support.util import masked_weighted_average, assert_shape
 
 
 def make_rnn_cell(
@@ -529,7 +529,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
         assert_shape(loss_weights, (-1, seq_len, 1))
 
-        loss = weighted_average(
+        loss = masked_weighted_average(
             F=F, x=likelihoods, weights=loss_weights, axis=1
         )
 
