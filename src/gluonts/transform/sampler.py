@@ -104,6 +104,9 @@ class ExpectedNumInstanceSampler(InstanceSampler):
         self.lookup = np.arange(2 ** 13)
 
     def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+        assert (
+            a <= b
+        ), "First index must be less than or equal to the last index."
         while ts.shape[-1] >= len(self.lookup):
             self.lookup = np.arange(2 * len(self.lookup))
 
