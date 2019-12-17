@@ -414,7 +414,9 @@ def masked_weighted_average(
         The tensor with values averaged along the specified `axis`.
     """
     if weights is not None:
-        weighted_tensor = F.where(condition=weights, x=x * weights, y=F.zeros_like(x))
+        weighted_tensor = F.where(
+            condition=weights, x=x * weights, y=F.zeros_like(x)
+        )
         sum_weights = F.maximum(1.0, weights.sum(axis=axis))
         return weighted_tensor.sum(axis=axis) / sum_weights
     else:
