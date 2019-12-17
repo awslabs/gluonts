@@ -157,17 +157,20 @@ class InstanceSplitter(FlatMapTransformation):
         len_target = target.shape[-1]
 
         if is_train:
-            if len_target < self.future_length:
-                # We currently cannot handle time series that are shorter than
-                # the prediction length during training, so we just skip these.
-                # If we want to include them we would need to pad and to mask
-                # the loss.
-                sampling_indices: List[int] = []
-            else:
-                if self.pick_incomplete:
+            if self.pick_incomplete:
+                if len_target < self.future_length:
+                    # We currently cannot handle time series that are
+                    # shorter than the prediction length during training,
+                    # so we just skip these. If we want to include them we
+                    # would need to pad and to mask the loss.
+                    sampling_indices = np.array([], dtype=int)
+                else:
                     sampling_indices = self.train_sampler(
                         target, 0, len_target - self.future_length
                     )
+            else:
+                if len_target < self.past_length + self.future_length:
+                    sampling_indices = np.array([], dtype=int)
                 else:
                     sampling_indices = self.train_sampler(
                         target,
@@ -175,7 +178,7 @@ class InstanceSplitter(FlatMapTransformation):
                         len_target - self.future_length,
                     )
         else:
-            sampling_indices = [len_target]
+            sampling_indices = np.array([len_target], dtype=int)
         for i in sampling_indices:
             pad_length = max(self.past_length - i, 0)
             if not self.pick_incomplete:
