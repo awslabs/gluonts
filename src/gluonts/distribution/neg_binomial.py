@@ -109,7 +109,7 @@ class NegativeBinomialOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, alpha):
-        epsilon = np.finfo(np.float32).eps  # machine epsilon
+        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
 
         mu = softplus(F, mu) + epsilon
         alpha = softplus(F, alpha) + epsilon

@@ -127,7 +127,7 @@ class GammaOutput(DistributionOutput):
             Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
             positive orthant.
         """
-        epsilon = np.finfo(np.float32).eps  # machine epsilon
+        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
 
         alpha = softplus(F, alpha) + epsilon
         beta = softplus(F, beta) + epsilon
