@@ -28,6 +28,7 @@ from gluonts.distribution import (
     LowrankMultivariateGaussianOutput,
     NegativeBinomialOutput,
     PiecewiseLinearOutput,
+    PoissonOutput,
     StudentTOutput,
     UniformOutput,
     DirichletOutput,
@@ -140,6 +141,14 @@ from gluonts.distribution import (
             [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4),
             (5,),
+        ),
+        (
+            PoissonOutput(),
+            mx.nd.random.normal(shape=(3, 4, 5, 6)),
+            [None],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4, 5),
+            (),
         ),
     ],
 )

@@ -52,6 +52,8 @@ from gluonts.distribution import (
     LaplaceOutput,
     Gaussian,
     GaussianOutput,
+    Poisson,
+    PoissonOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
     Binned,
@@ -805,3 +807,33 @@ def test_binned_likelihood(
     assert all(
         mx.nd.abs(mx.nd.array(bin_prob_hat) - bin_prob) < TOL * bin_prob
     ), f"bin_prob did not match: bin_prob = {bin_prob}, bin_prob_hat = {bin_prob_hat}"
+
+
+@pytest.mark.parametrize("rate", [1.0])
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_poisson_likelihood(rate: float, hybridize: bool) -> None:
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+
+    # generate samples
+    rates = mx.nd.zeros(NUM_SAMPLES) + rate
+
+    distr = Poisson(rates)
+    samples = distr.sample()
+
+    init_biases = [inv_softplus(rate - START_TOL_MULTIPLE * TOL * rate)]
+
+    rate_hat = maximum_likelihood_estimate_sgd(
+        PoissonOutput(),
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(20),
+    )
+
+    print("rate:", rate_hat)
+    assert (
+        np.abs(rate_hat[0] - rate) < TOL * rate
+    ), f"mu did not match: rate = {rate}, rate_hat = {rate_hat}"
