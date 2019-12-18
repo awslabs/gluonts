@@ -25,7 +25,7 @@ from gluonts.core.component import DType, validated
 from gluonts.distribution import DistributionOutput, Distribution
 from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
-from gluonts.support.util import masked_weighted_average
+from gluonts.support.util import weighted_average
 
 
 def prod(xs):
@@ -416,7 +416,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
             else observed_values.min(axis=-1, keepdims=False)
         )
 
-        weighted_loss = masked_weighted_average(
+        weighted_loss = weighted_average(
             F=F, x=loss, weights=loss_weights, axis=1
         )
 

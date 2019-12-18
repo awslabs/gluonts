@@ -390,7 +390,7 @@ def cumsum(
     return cumulative_sum.squeeze(axis=exp_dim)
 
 
-def masked_weighted_average(
+def weighted_average(
     F, x: Tensor, weights: Optional[Tensor] = None, axis: Optional[int] = None
 ) -> Tensor:
     """

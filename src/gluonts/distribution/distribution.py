@@ -21,7 +21,6 @@ import numpy as np
 
 # First-party imports
 from gluonts.model.common import Tensor
-from gluonts.core.component import DType
 
 
 def nans_like(x: Tensor) -> Tensor:
@@ -48,16 +47,6 @@ class Distribution:
 
     arg_names: Tuple
     is_reparameterizable = False
-
-    _dtype: DType = np.float32
-
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @dtype.setter
-    def dtype(self, dtype: DType):
-        self._dtype = dtype
 
     def log_prob(self, x: Tensor) -> Tensor:
         r"""

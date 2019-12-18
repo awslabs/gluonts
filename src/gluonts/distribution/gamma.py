@@ -68,14 +68,10 @@ class Gamma(Distribution):
         F = self.F
         alpha, beta = self.alpha, self.beta
 
-        # add machine epsilon to avoid infinities due to 0 padding which is masked,
-        # however, causes issues in backpropagation
-        epsilon = np.finfo(self._dtype).eps
-
         ll = (
             alpha * F.log(beta)
             - F.gammaln(alpha)
-            + (alpha - 1) * F.log(x + epsilon)
+            + (alpha - 1) * F.log(x)
             - beta * x
         )
 
