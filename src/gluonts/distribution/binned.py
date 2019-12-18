@@ -52,6 +52,10 @@ class Binned(Distribution):
 
         self.bin_edges = Binned._compute_edges(self.F, bin_centers)
 
+    @property
+    def point_in_support(self) -> float:
+        return self.F.ones(self.bin_centers)
+
     @staticmethod
     def _compute_edges(F, bin_centers: Tensor) -> Tensor:
         r"""

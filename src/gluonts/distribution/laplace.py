@@ -49,6 +49,10 @@ class Laplace(Distribution):
         self.F = F if F else getF(mu)
 
     @property
+    def point_in_support(self) -> Tensor:
+        return self.F.zeros_like(self.mu)
+
+    @property
     def batch_shape(self) -> Tuple:
         return self.mu.shape
 

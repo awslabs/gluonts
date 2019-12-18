@@ -394,9 +394,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
             dim=1,
         )
 
-        # (batch_size, seq_len)
-        loss = distr.loss(target)
-
         # (batch_size, seq_len, *target_shape)
         observed_values = F.concat(
             past_observed_values.slice_axis(
@@ -416,12 +413,12 @@ class DeepARTrainingNetwork(DeepARNetwork):
             else observed_values.min(axis=-1, keepdims=False)
         )
 
+        # (batch_size, seq_len)
+        loss = distr.loss(x=target, mask=loss_weights)
+
         weighted_loss = weighted_average(
             F=F, x=loss, weights=loss_weights, axis=1
         )
-
-        # need to mask possible nans and -inf
-        loss = F.where(condition=loss_weights, x=loss, y=F.zeros_like(loss))
 
         return weighted_loss, loss
 

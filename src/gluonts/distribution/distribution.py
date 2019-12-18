@@ -48,6 +48,16 @@ class Distribution:
     arg_names: Tuple
     is_reparameterizable = False
 
+    @property
+    def point_in_support(self) -> Tensor:
+        """
+        Returns
+        -------
+        float:
+            A point in the support of the Distribution.
+        """
+        raise NotImplementedError()
+
     def log_prob(self, x: Tensor) -> Tensor:
         r"""
         Compute the log-density of the distribution at `x`.
@@ -83,7 +93,10 @@ class Distribution:
         """
         raise NotImplementedError()
 
-    def loss(self, x: Tensor) -> Tensor:
+    def _loss(self, x: Tensor) -> Tensor:
+        return -self.log_prob(x)
+
+    def loss(self, x: Tensor, mask: Tensor = None) -> Tensor:
         r"""
         Compute the loss at `x` according to the distribution.
 
@@ -91,10 +104,16 @@ class Distribution:
         distributions, however, the log-density is not easily computable
         and therefore other loss functions are computed.
 
+        Additionally an optional Mask can be specified to mask the loss.
+
         Parameters
         ----------
-        x
+        x:
             Tensor of shape `(*batch_shape, *event_shape)`.
+        mask:
+            Tensor of shape `(*batch_shape, *event_shape)` that defines the mask.
+            Values in the loss corresponding to a `0` in the mask will be set to `0`,
+            other values are left unchanged.
 
         Returns
         -------
@@ -102,7 +121,14 @@ class Distribution:
             Tensor of shape `batch_shape` containing the value of the loss
             for each event in `x`.
         """
-        return -self.log_prob(x)
+        F = getF(x)
+        if mask is not None:
+            x = F.where(condition=mask, x=x, y=self.point_in_support)
+            loss = self._loss(x)
+            loss = F.where(condition=mask, x=loss, y=F.zeros_like(x))
+            return loss
+        else:
+            return self._loss(x)
 
     def prob(self, x: Tensor) -> Tensor:
         r"""

@@ -53,6 +53,10 @@ class Gamma(Distribution):
         )  # assuming alpha and beta of same type
 
     @property
+    def point_in_support(self) -> Tensor:
+        return self.F.ones_like(self.alpha) * 0.5
+
+    @property
     def batch_shape(self) -> Tuple:
         return self.alpha.shape
 

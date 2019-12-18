@@ -63,6 +63,12 @@ class MixtureDistribution(Distribution):
         self.components = components
 
     @property
+    def point_in_support(self) -> Tensor:
+        return self.components[
+            0
+        ].point_in_support  # could be any of the components support
+
+    @property
     def batch_shape(self) -> Tuple:
         return self.components[0].batch_shape
 

@@ -76,6 +76,12 @@ class DirichletMultinomial(Distribution):
         self.float_type = float_type
 
     @property
+    def point_in_support(self) -> Tensor:
+        point = self.F.ones_like(self.alpha)
+        sum_point = self.F.sum(point, axis=-1).expand_dims(axis=-1)
+        return self.F.broadcast_div(point, sum_point)
+
+    @property
     def batch_shape(self) -> Tuple:
         return self.alpha.shape[:-1]
 

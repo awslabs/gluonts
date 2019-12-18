@@ -504,12 +504,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             seq_len=self.context_length + self.prediction_length,
         )
 
-        # we sum the last axis to have the same shape for all likelihoods
-        # (batch_size, subseq_length, 1)
-        likelihoods = -distr.log_prob(target).expand_dims(axis=-1)
-
-        assert_shape(likelihoods, (-1, seq_len, 1))
-
         past_observed_values = F.broadcast_minimum(
             past_observed_values, 1 - past_is_pad.expand_dims(axis=-1)
         )
@@ -528,6 +522,27 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         loss_weights = observed_values.min(axis=-1, keepdims=True)
 
         assert_shape(loss_weights, (-1, seq_len, 1))
+
+        print("TARGET")
+        print(target)
+        print("observed_values")
+        print(observed_values)
+        print("LOSS_WEIGTH")
+        print(loss_weights)
+        print("observed_values*loss_weights")
+        print(observed_values * loss_weights)
+
+        # we sum the last axis to have the same shape for all likelihoods
+        # (batch_size, subseq_length, 1)
+
+        # TODO: figure out masking
+        # likelihoods = distr.loss(
+        #    x=target, mask=loss_weights  # F.squeeze(loss_weights, axis=-1) # observed_values*loss_weights
+        # ).expand_dims(axis=-1)
+
+        likelihoods = distr.loss(target).expand_dims(axis=-1)
+
+        assert_shape(likelihoods, (-1, seq_len, 1))
 
         loss = weighted_average(
             F=F, x=likelihoods, weights=loss_weights, axis=1
