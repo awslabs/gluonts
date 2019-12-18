@@ -129,9 +129,10 @@ class Binned(Distribution):
         F = self.F
 
         probs = self.bin_probs.swapaxes(0, 1)  # (num_bins, batch)
-        zeros_batch_size = F.slice_axis(probs, axis=0, begin=0, end=1).squeeze(
-            axis=0
-        )  # (batch_size,)
+        # (batch_size,)
+        zeros_batch_size = F.zeros_like(
+            F.slice_axis(probs, axis=0, begin=0, end=1).squeeze(axis=0)
+        )
 
         level = level.expand_dims(axis=0)
         # cdf shape (batch_size, levels)
