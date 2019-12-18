@@ -95,6 +95,8 @@ class Beta(Distribution):
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
+        epsilon = np.finfo(dtype).eps  # machine epsilon
+
         def s(alpha: Tensor, beta: Tensor) -> Tensor:
             F = getF(alpha)
             samples_X = F.sample_gamma(
@@ -105,9 +107,11 @@ class Beta(Distribution):
             )
             return samples_X / (samples_X + samples_Y)
 
-        return _sample_multiple(
+        samples = _sample_multiple(
             s, alpha=self.alpha, beta=self.beta, num_samples=num_samples
         )
+
+        return self.F.clip(data=samples, a_min=epsilon, a_max=1 - epsilon)
 
     @property
     def args(self) -> List:
@@ -138,8 +142,10 @@ class BetaOutput(DistributionOutput):
             Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
             positive orthant.
         """
-        alpha = softplus(F, alpha) + 1e-8
-        beta = softplus(F, beta) + 1e-8
+        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
+
+        alpha = softplus(F, alpha) + epsilon
+        beta = softplus(F, beta) + epsilon
         return alpha.squeeze(axis=-1), beta.squeeze(axis=-1)
 
     @property

@@ -86,11 +86,16 @@ class Gamma(Distribution):
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
-        return _sample_multiple(
+        epsilon = np.finfo(dtype).eps  # machine epsilon
+
+        samples = _sample_multiple(
             partial(self.F.sample_gamma, dtype=dtype),
             alpha=self.alpha,
             beta=1.0 / self.beta,
             num_samples=num_samples,
+        )
+        return self.F.clip(
+            data=samples, a_min=epsilon, a_max=np.finfo(dtype).max
         )
 
     @property
@@ -122,8 +127,10 @@ class GammaOutput(DistributionOutput):
             Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
             positive orthant.
         """
-        alpha = softplus(F, alpha) + 1e-8
-        beta = softplus(F, beta) + 1e-8
+        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
+
+        alpha = softplus(F, alpha) + epsilon
+        beta = softplus(F, beta) + epsilon
         return alpha.squeeze(axis=-1), beta.squeeze(axis=-1)
 
     @property
