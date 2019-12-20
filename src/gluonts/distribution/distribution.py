@@ -122,6 +122,10 @@ class Distribution:
             for each event in `x`.
         """
         F = getF(x)
+
+        # We need to implement distribution dependent masking, because otherwise we would
+        # get nans in upon back-propagation.
+        # See: https://github.com/pytorch/pytorch/issues/23156
         if mask is not None:
             x = F.where(condition=mask, x=x, y=self.point_in_support)
             loss = self._loss(x)
