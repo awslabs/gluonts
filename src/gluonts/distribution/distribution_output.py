@@ -117,7 +117,10 @@ class DistributionOutput(Output):
         pass
 
     def distribution(
-        self, distr_args, scale: Optional[Tensor] = None
+        self,
+        distr_args,
+        loc: Optional[Tensor] = None,
+        scale: Optional[Tensor] = None,
     ) -> Distribution:
         r"""
         Construct the associated distribution, given the collection of
@@ -127,16 +130,19 @@ class DistributionOutput(Output):
         ----------
         distr_args
             Constructor arguments for the underlying Distribution type.
+        loc
+            Optional tensor, of the same shape as the
+            batch_shape+event_shape of the resulting distribution.
         scale
             Optional tensor, of the same shape as the
             batch_shape+event_shape of the resulting distribution.
         """
-        if scale is None:
+        if loc is None and scale is None:
             return self.distr_cls(*distr_args)
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedDistribution(
-                distr, [AffineTransformation(scale=scale)]
+                distr, [AffineTransformation(loc=loc, scale=scale)]
             )
 
     @property

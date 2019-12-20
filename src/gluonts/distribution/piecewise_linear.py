@@ -321,6 +321,8 @@ class PiecewiseLinearOutput(DistributionOutput):
 
     @validated()
     def __init__(self, num_pieces: int) -> None:
+        super().__init__(self)
+
         assert (
             isinstance(num_pieces, int) and num_pieces > 1
         ), "num_pieces should be an integer larger than 1"
@@ -350,14 +352,17 @@ class PiecewiseLinearOutput(DistributionOutput):
         return gamma.squeeze(axis=-1), slopes_proj, knot_spacings_proj
 
     def distribution(
-        self, distr_args, scale: Optional[Tensor] = None, **kwargs
+        self,
+        distr_args,
+        loc: Optional[Tensor] = None,
+        scale: Optional[Tensor] = None,
     ) -> PiecewiseLinear:
         if scale is None:
             return self.distr_cls(*distr_args)
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedPiecewiseLinear(
-                distr, [AffineTransformation(scale=scale)]
+                distr, [AffineTransformation(loc=loc, scale=scale)]
             )
 
     @property
@@ -376,19 +381,13 @@ class TransformedPiecewiseLinear(TransformedDistribution, PiecewiseLinear):
     def crps(self, y: Tensor) -> Tensor:
         # TODO: use event_shape
         F = getF(y)
-
+        x = y
+        scale = 1.0
         for t in self.transforms[::-1]:
             assert isinstance(
                 t, AffineTransformation
             ), "Not an AffineTransformation"
-            assert (
-                t.scale is not None and t.loc is None
-            ), "Not a scaling transformation"
-
-            scale = t.scale
-            x = t.f_inv(y)
-
-        # (..., 1)
+            x = t.f_inv(x)
+            scale *= t.scale
         p = self.base_distribution.crps(x)
-
         return F.broadcast_mul(p, scale)

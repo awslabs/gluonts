@@ -171,6 +171,7 @@ class DirichletMultinomial(Distribution):
 class DirichletMultinomialOutput(DistributionOutput):
     @validated()
     def __init__(self, dim: int, n_trials: int) -> None:
+        super().__init__(self)
         assert dim > 1, "Dimension must be larger than one."
         self.dim = dim
         self.n_trials = n_trials
@@ -179,8 +180,8 @@ class DirichletMultinomialOutput(DistributionOutput):
         self.dim = dim
         self.mask = None
 
-    def distribution(self, distr_args, scale=None, **kwargs) -> Distribution:
-        # todo deal with scaling
+    def distribution(self, distr_args, loc=None, scale=None) -> Distribution:
+        assert loc is None and scale is None
         distr = DirichletMultinomial(self.dim, self.n_trials, distr_args)
         return distr
 
