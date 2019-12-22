@@ -30,16 +30,16 @@ from pandas.tseries.holiday import (
 )
 from pandas.tseries.offsets import DateOffset, Day, Easter
 
-MAX_WINDOW = (
-    183
-)  # This is 183 to cover half a year (in both directions), also for leap years
+# This is 183 to cover half a year (in both directions), also for leap years
+# and half a week to cover holidays offset by a week
+MAX_WINDOW = 183 + 4
 
 
 def distance_to_holiday(holiday):
     def distance_to_day(index):
         holiday_date = holiday.dates(
             index - pd.Timedelta(days=MAX_WINDOW),
-            index + pd.Timedelta(days=MAX_WINDOW + 4), # could be a week after so adding 4
+            index + pd.Timedelta(days=MAX_WINDOW),
         )
         assert (
             len(holiday_date) != 0
@@ -66,7 +66,10 @@ ChristmasEve = Holiday("Christmas", month=12, day=24)
 ChristmasDay = Holiday("Christmas", month=12, day=25)
 NewYearsEve = Holiday("New Years Eve", month=12, day=31)
 BlackFriday = Holiday(
-    "Black Friday", month=11, day=1, offset=[pd.DateOffset(weekday=TH(4)), Day(1)]
+    "Black Friday",
+    month=11,
+    day=1,
+    offset=[pd.DateOffset(weekday=TH(4)), Day(1)],
 )
 CyberMonday = Holiday(
     "Cyber Monday",
