@@ -75,7 +75,7 @@ CyberMonday = Holiday(
     "Cyber Monday",
     month=11,
     day=1,
-    offset=[pd.DateOffset(weekday=TH(4)), pd.DateOffset(4)],
+    offset=[pd.DateOffset(weekday=TH(4)), Day(4)],
 )
 
 NEW_YEARS_DAY = "new_years_day"
