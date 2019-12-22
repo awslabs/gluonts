@@ -39,7 +39,7 @@ def distance_to_holiday(holiday):
     def distance_to_day(index):
         holiday_date = holiday.dates(
             index - pd.Timedelta(days=MAX_WINDOW),
-            index + pd.Timedelta(days=MAX_WINDOW),
+            index + pd.Timedelta(days=MAX_WINDOW + 4), # could be a week after so adding 4
         )
         assert (
             len(holiday_date) != 0
