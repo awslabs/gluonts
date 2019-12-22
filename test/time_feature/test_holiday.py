@@ -35,6 +35,8 @@ from gluonts.time_feature.holiday import (
     SPECIAL_DATE_FEATURES,
     SUPERBOWL,
     THANKSGIVING,
+    BLACK_FRIDAY,
+    CYBER_MONDAY,
     SpecialDateFeatureSet,
     squared_exponential_kernel,
 )
@@ -98,6 +100,8 @@ test_dates = {
     CHRISTMAS_EVE: ["2016-12-24", "2017-12-24", "2018-12-24", "2019-12-24"],
     CHRISTMAS_DAY: ["2016-12-25", "2017-12-25", "2018-12-25", "2019-12-25"],
     NEW_YEARS_EVE: ["2016-12-31", "2017-12-31", "2018-12-31", "2019-12-31"],
+    BLACK_FRIDAY: ["2016-11-25", "2017-11-24", "2018-11-23", "2019-11-29", "2020-11-27"],
+    CYBER_MONDAY: ["2016-11-28", "2017-11-27", "2018-11-26", "2019-12-2", "2020-11-30"],
 }
 
 
