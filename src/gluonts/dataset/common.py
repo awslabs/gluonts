@@ -218,7 +218,7 @@ class FileDataset(Dataset):
             for line in jsonl.JsonLinesFile(path):
                 data = self.process(line.content)
                 data["source"] = SourceContext(
-                    source=line.span, row=line.span.line
+                    source=line.span.path, row=line.span.line
                 )
                 yield data
 

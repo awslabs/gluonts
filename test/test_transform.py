@@ -106,7 +106,7 @@ def test_align_timestamp():
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
-def test_AddTimeFeatures(start, target, is_train):
+def test_AddTimeFeatures(start, target, is_train: bool):
     pred_length = 13
     t = transform.AddTimeFeatures(
         start_field=FieldName.START,
@@ -133,7 +133,7 @@ def test_AddTimeFeatures(start, target, is_train):
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
-def test_AddTimeFeatures_empty_time_features(start, target, is_train):
+def test_AddTimeFeatures_empty_time_features(start, target, is_train: bool):
     pred_length = 13
     t = transform.AddTimeFeatures(
         start_field=FieldName.START,
@@ -153,7 +153,7 @@ def test_AddTimeFeatures_empty_time_features(start, target, is_train):
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
-def test_AddAgeFeatures(start, target, is_train):
+def test_AddAgeFeatures(start, target, is_train: bool):
     pred_length = 13
     t = transform.AddAgeFeature(
         pred_length=pred_length,
@@ -176,10 +176,15 @@ def test_AddAgeFeatures(start, target, is_train):
     )
 
 
+@pytest.mark.parametrize(
+    "pick_incomplete", TEST_VALUES["allow_target_padding"]
+)
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
-def test_InstanceSplitter(start, target, is_train):
+def test_InstanceSplitter(
+    start, target, is_train: bool, pick_incomplete: bool
+):
     train_length = 100
     pred_length = 13
     t = transform.InstanceSplitter(
@@ -191,7 +196,7 @@ def test_InstanceSplitter(start, target, is_train):
         past_length=train_length,
         future_length=pred_length,
         time_series_fields=["some_time_feature"],
-        pick_incomplete=True,
+        pick_incomplete=pick_incomplete,
     )
 
     assert_serializable(t)
@@ -204,10 +209,21 @@ def test_InstanceSplitter(start, target, is_train):
         "some_other_col": "ABC",
     }
 
-    out = list(t.flatmap_transform(data, is_train=is_train))
+    if not is_train and not pick_incomplete and len(target) < train_length:
+        with pytest.raises(AssertionError):
+            out = list(t.flatmap_transform(data, is_train=is_train))
+        return
+    else:
+        out = list(t.flatmap_transform(data, is_train=is_train))
 
     if is_train:
-        assert len(out) == max(0, len(target) - pred_length + 1)
+        assert len(out) == max(
+            0,
+            len(target)
+            - pred_length
+            + 1
+            - (0 if pick_incomplete else train_length),
+        )
     else:
         assert len(out) == 1
 
@@ -241,7 +257,11 @@ def test_InstanceSplitter(start, target, is_train):
     "allow_target_padding", TEST_VALUES["allow_target_padding"]
 )
 def test_CanonicalInstanceSplitter(
-    start, target, is_train, use_prediction_features, allow_target_padding
+    start,
+    target,
+    is_train: bool,
+    use_prediction_features: bool,
+    allow_target_padding: bool,
 ):
     train_length = 100
     pred_length = 13
@@ -351,10 +371,10 @@ def test_Transformation():
 def test_multi_dim_transformation(is_train):
     train_length = 10
 
-    first_dim = np.arange(1, 11, 1).tolist()
+    first_dim: list = list(np.arange(1, 11, 1))
     first_dim[-1] = "NaN"
 
-    second_dim = np.arange(11, 21, 1).tolist()
+    second_dim: list = list(np.arange(11, 21, 1))
     second_dim[0] = "NaN"
 
     ds = gluonts.dataset.common.ListDataset(
