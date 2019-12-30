@@ -53,10 +53,6 @@ class Gamma(Distribution):
         )  # assuming alpha and beta of same type
 
     @property
-    def point_in_support(self) -> Tensor:
-        return self.F.ones_like(self.alpha) * 0.5
-
-    @property
     def batch_shape(self) -> Tuple:
         return self.alpha.shape
 
@@ -72,14 +68,12 @@ class Gamma(Distribution):
         F = self.F
         alpha, beta = self.alpha, self.beta
 
-        ll = (
+        return (
             alpha * F.log(beta)
             - F.gammaln(alpha)
             + (alpha - 1) * F.log(x)
             - beta * x
         )
-
-        return ll
 
     @property
     def mean(self) -> Tensor:
@@ -142,3 +136,7 @@ class GammaOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return ()
+
+    @property
+    def value_in_support(self) -> float:
+        return 0.5

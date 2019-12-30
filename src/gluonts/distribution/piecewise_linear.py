@@ -76,10 +76,6 @@ class PiecewiseLinear(Distribution):
             self.F, slopes, knot_spacings
         )
 
-    @property
-    def point_in_support(self) -> Tensor:
-        return self.F.zeros_like(self.gamma)
-
     @staticmethod
     def _to_orig_params(
         F, slopes: Tensor, knot_spacings: Tensor
@@ -150,7 +146,7 @@ class PiecewiseLinear(Distribution):
         return sample
 
     # overwrites the loss method of the Distribution class
-    def _loss(self, x: Tensor) -> Tensor:
+    def loss(self, x: Tensor) -> Tensor:
         return self.crps(x)
 
     def crps(self, x: Tensor) -> Tensor:

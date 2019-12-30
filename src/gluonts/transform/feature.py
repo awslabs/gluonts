@@ -56,7 +56,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         self,
         target_field: str,
         output_field: str,
-        dummy_value: int = 0,
+        dummy_value: float = 0.0,
         convert_nans: bool = True,
         dtype: DType = np.float32,
     ) -> None:

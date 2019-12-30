@@ -49,10 +49,6 @@ class Uniform(Distribution):
         self.F = F if F else getF(low)
 
     @property
-    def point_in_support(self) -> float:
-        return self.low  # could be any in the range low to high
-
-    @property
     def batch_shape(self) -> Tuple:
         return self.low.shape
 

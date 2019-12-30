@@ -56,10 +56,6 @@ class MultivariateGaussian(Distribution):
         self.L = L
 
     @property
-    def point_in_support(self) -> Tensor:
-        return self.F.zeros_like(self.mu)
-
-    @property
     def batch_shape(self) -> Tuple:
         return self.mu.shape[:-1]
 

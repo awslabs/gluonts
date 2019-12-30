@@ -50,10 +50,6 @@ class TransformedDistribution(Distribution):
         self._batch_shape: Optional[Tuple] = None
 
     @property
-    def point_in_support(self) -> Tensor:
-        return self.base_distribution.point_in_support
-
-    @property
     def event_dim(self):
         if self._event_dim is None:
             self._event_dim = max(
