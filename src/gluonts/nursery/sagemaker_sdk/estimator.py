@@ -773,9 +773,7 @@ class GluonTSFramework(Framework):
             image_name=image_name,
             framework_version=framework_version,
             source_dir=source_dir,
-            metric_definitions=GluonTSFramework._get_metrics(
-                monitored_metrics
-            ),
+            metric_definitions=make_metrics(monitored_metrics),
             hyperparameters=hyperparameters,
             **kwargs,
         )
