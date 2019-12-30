@@ -109,6 +109,8 @@ class InstanceSplitter(FlatMapTransformation):
         present for the time series. This is useful to train models for
         cold-start. In such case, is_pad_out contains an indicator whether
         data is padded or not.
+    dummy_value
+        Value to use for padding.
     """
 
     @validated()
