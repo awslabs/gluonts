@@ -215,11 +215,12 @@ class FileDataset(Dataset):
 
     def __iter__(self) -> Iterator[DataEntry]:
         for path in self.files():
-            for line in jsonl.JsonLinesFile(path):
+            for i, line in enumerate(jsonl.JsonLinesFile(path)):
                 data = self.process(line.content)
                 data["source"] = SourceContext(
-                    source=line.span, row=line.span.line
+                    source=line.span.path, row=line.span.line
                 )
+                data["item_id"] = i
                 yield data
 
     def __len__(self):
