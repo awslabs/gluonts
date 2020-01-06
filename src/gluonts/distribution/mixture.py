@@ -179,14 +179,18 @@ class MixtureDistributionOutput(DistributionOutput):
 
     # Overwrites the parent class method.
     def distribution(
-        self, distr_args, scale: Optional[Tensor] = None, **kwargs
+        self,
+        distr_args,
+        loc: Optional[Tensor] = None,
+        scale: Optional[Tensor] = None,
+        **kwargs,
     ) -> MixtureDistribution:
         mixture_probs = distr_args[0]
         component_args = distr_args[1:]
         return MixtureDistribution(
             mixture_probs=mixture_probs,
             components=[
-                do.distribution(args, scale=scale)
+                do.distribution(args, loc=loc, scale=scale)
                 for do, args in zip(self.distr_outputs, component_args)
             ],
         )
