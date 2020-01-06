@@ -129,14 +129,18 @@ class TransformedDistribution(Distribution):
             sign = sign * t.sign
 
         if not isinstance(sign, (mx.nd.NDArray, mx.sym.Symbol)):
-            sign = sign + level.zeros_like()
+            level = level if sign > 0 else (1.0 - level)
+            q = self.base_distribution.quantile(level)
+        else:
+            # level.shape = (#levels,)
+            # q_pos.shape = (#levels, batch_size, ...)
+            # sign.shape = (batch_size, ...)
+            q_pos = self.base_distribution.quantile(level)
+            q_neg = self.base_distribution.quantile(1.0 - level)
+            cond = F.broadcast_greater(sign, sign.zeros_like())
+            cond = F.broadcast_add(cond, q_pos.zeros_like())
+            q = F.where(cond, q_pos, q_neg)
 
-        cond = F.broadcast_greater(sign, sign.zeros_like())
-        level = F.broadcast_mul(cond, level) + F.broadcast_mul(
-            1.0 - cond, 1.0 - level
-        )
-
-        q = self.base_distribution.quantile(level)
         for t in self.transforms:
             q = t.f(q)
         return q
