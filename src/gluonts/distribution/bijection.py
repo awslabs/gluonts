@@ -198,9 +198,9 @@ class AffineTransformation(Bijection):
     Parameters
     ----------
     loc
-        Translation parameter.
+        Translation parameter. If unspecified or `None`, this will be zero.
     scale
-        Scaling parameter.
+        Scaling parameter. If unspecified or `None`, this will be one.
     """
 
     @validated()
