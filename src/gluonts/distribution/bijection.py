@@ -198,9 +198,9 @@ class AffineTransformation(Bijection):
     Parameters
     ----------
     loc
-        Translation parameter.
+        Translation parameter. If unspecified or `None`, this will be zero.
     scale
-        Scaling parameter.
+        Scaling parameter. If unspecified or `None`, this will be one.
     """
 
     @validated()
@@ -229,8 +229,8 @@ class AffineTransformation(Bijection):
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
         if self.scale is not None:
             return self.scale.broadcast_like(x).abs().log()
-        else:
-            raise RuntimeError("scale is of type None in log_abs_det_jac")
+        F = getF(x)
+        return F.zeros_like(x)
 
     @property
     def sign(self):

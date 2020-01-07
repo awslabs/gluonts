@@ -118,7 +118,13 @@ class NegativeBinomialOutput(DistributionOutput):
     # Overwrites the parent class method.
     # We cannot scale using the affine transformation since negative binomial should return integers.
     # Instead we scale the parameters.
-    def distribution(self, distr_args, scale=None) -> NegativeBinomial:
+    def distribution(
+        self,
+        distr_args,
+        loc: Optional[Tensor] = None,
+        scale: Optional[Tensor] = None,
+    ) -> NegativeBinomial:
+        assert loc is None
         mu, alpha = distr_args
         if scale is None:
             return NegativeBinomial(mu, alpha)

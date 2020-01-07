@@ -115,7 +115,10 @@ class TransformedDistributionOutput(DistributionOutput):
         return sum(tuple([distr_params] + transforms_params), ())
 
     def distribution(
-        self, distr_args, scale: Optional[Tensor] = None, **kwargs
+        self,
+        distr_args,
+        loc: Optional[Tensor] = None,
+        scale: Optional[Tensor] = None,
     ) -> Distribution:
         distr_args, transforms_args = self._split_args(distr_args)
         distr = self.base_distr_output.distr_cls(*distr_args)
@@ -129,11 +132,11 @@ class TransformedDistributionOutput(DistributionOutput):
         trans_distr = TransformedDistribution(distr, transforms)
 
         # Apply scaling as well at the end if scale is not None!
-        if scale is None:
+        if loc is None and scale is None:
             return trans_distr
         else:
             return TransformedDistribution(
-                trans_distr, [AffineTransformation(scale=scale)]
+                trans_distr, [AffineTransformation(loc=loc, scale=scale)]
             )
 
     @property
