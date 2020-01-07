@@ -109,6 +109,8 @@ class InstanceSplitter(FlatMapTransformation):
         present for the time series. This is useful to train models for
         cold-start. In such case, is_pad_out contains an indicator whether
         data is padded or not.
+    dummy_value
+        Value to use for padding.
     """
 
     @validated()
@@ -124,6 +126,7 @@ class InstanceSplitter(FlatMapTransformation):
         output_NTC: bool = True,
         time_series_fields: Optional[List[str]] = None,
         pick_incomplete: bool = True,
+        dummy_value: float = 0.0,
     ) -> None:
 
         assert future_length > 0
@@ -140,6 +143,7 @@ class InstanceSplitter(FlatMapTransformation):
         self.start_field = start_field
         self.forecast_start_field = forecast_start_field
         self.pick_incomplete = pick_incomplete
+        self.dummy_value = dummy_value
 
     def _past(self, col_name):
         return f"past_{col_name}"
@@ -193,9 +197,12 @@ class InstanceSplitter(FlatMapTransformation):
                     # truncate to past_length
                     past_piece = d[ts_field][..., i - self.past_length : i]
                 elif i < self.past_length:
-                    pad_block = np.zeros(
-                        d[ts_field].shape[:-1] + (pad_length,),
-                        dtype=d[ts_field].dtype,
+                    pad_block = (
+                        np.ones(
+                            d[ts_field].shape[:-1] + (pad_length,),
+                            dtype=d[ts_field].dtype,
+                        )
+                        * self.dummy_value
                     )
                     past_piece = np.concatenate(
                         [pad_block, d[ts_field][..., :i]], axis=-1

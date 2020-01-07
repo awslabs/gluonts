@@ -151,3 +151,7 @@ class BetaOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return ()
+
+    @property
+    def value_in_support(self) -> float:
+        return 0.5

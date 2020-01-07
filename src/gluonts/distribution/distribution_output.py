@@ -161,6 +161,15 @@ class DistributionOutput(Output):
         """
         return len(self.event_shape)
 
+    @property
+    def value_in_support(self) -> float:
+        r"""
+        A float that will have a valid numeric value when computing the
+        log-loss of the corresponding distribution. By default 0.0.
+        This value will be used when padding data series.
+        """
+        return 0.0
+
     def domain_map(self, F, *args: Tensor):
         r"""
         Converts arguments to the right shape and domain. The domain depends
