@@ -129,9 +129,10 @@ class Binned(Distribution):
         F = self.F
 
         probs = self.bin_probs.swapaxes(0, 1)  # (num_bins, batch)
-        zeros_batch_size = F.slice_axis(probs, axis=0, begin=0, end=1).squeeze(
-            axis=0
-        )  # (batch_size,)
+        # (batch_size,)
+        zeros_batch_size = F.zeros_like(
+            F.slice_axis(probs, axis=0, begin=0, end=1).squeeze(axis=0)
+        )
 
         level = level.expand_dims(axis=0)
         # cdf shape (batch_size, levels)
@@ -218,6 +219,7 @@ class BinnedOutput(DistributionOutput):
 
     @validated()
     def __init__(self, bin_centers: mx.nd.NDArray) -> None:
+        super().__init__(self)
         self.bin_centers = bin_centers
         self.num_bins = self.bin_centers.shape[0]
         assert len(self.bin_centers.shape) == 1
@@ -225,7 +227,7 @@ class BinnedOutput(DistributionOutput):
     def get_args_proj(self, *args, **kwargs) -> gluon.nn.HybridBlock:
         return BinnedArgs(self.num_bins, self.bin_centers)
 
-    def distribution(self, args, scale=None) -> Binned:
+    def distribution(self, args, loc=None, scale=None) -> Binned:
         probs = args[0]
         bin_centers = args[1]
         F = getF(probs)
@@ -235,6 +237,10 @@ class BinnedOutput(DistributionOutput):
         if scale is not None:
             bin_centers = F.broadcast_mul(
                 bin_centers, scale.expand_dims(axis=-1)
+            )
+        if loc is not None:
+            bin_centers = F.broadcast_add(
+                bin_centers, loc.expand_dims(axis=-1)
             )
 
         return Binned(probs, bin_centers)

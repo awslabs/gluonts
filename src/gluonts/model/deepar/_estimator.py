@@ -240,6 +240,7 @@ class DeepAREstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    dummy_value=self.distr_output.value_in_support,
                     dtype=self.dtype,
                 ),
                 AddTimeFeatures(
@@ -277,6 +278,7 @@ class DeepAREstimator(GluonEstimator):
                         FieldName.FEAT_TIME,
                         FieldName.OBSERVED_VALUES,
                     ],
+                    dummy_value=self.distr_output.value_in_support,
                 ),
             ]
         )

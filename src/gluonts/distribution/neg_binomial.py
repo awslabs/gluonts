@@ -109,14 +109,22 @@ class NegativeBinomialOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, alpha):
-        mu = softplus(F, mu) + 1e-8
-        alpha = softplus(F, alpha) + 1e-8
+        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
+
+        mu = softplus(F, mu) + epsilon
+        alpha = softplus(F, alpha) + epsilon
         return mu.squeeze(axis=-1), alpha.squeeze(axis=-1)
 
     # Overwrites the parent class method.
     # We cannot scale using the affine transformation since negative binomial should return integers.
     # Instead we scale the parameters.
-    def distribution(self, distr_args, scale=None) -> NegativeBinomial:
+    def distribution(
+        self,
+        distr_args,
+        loc: Optional[Tensor] = None,
+        scale: Optional[Tensor] = None,
+    ) -> NegativeBinomial:
+        assert loc is None
         mu, alpha = distr_args
         if scale is None:
             return NegativeBinomial(mu, alpha)

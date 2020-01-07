@@ -109,6 +109,8 @@ class InstanceSplitter(FlatMapTransformation):
         present for the time series. This is useful to train models for
         cold-start. In such case, is_pad_out contains an indicator whether
         data is padded or not.
+    dummy_value
+        Value to use for padding.
     """
 
     @validated()
@@ -124,6 +126,7 @@ class InstanceSplitter(FlatMapTransformation):
         output_NTC: bool = True,
         time_series_fields: Optional[List[str]] = None,
         pick_incomplete: bool = True,
+        dummy_value: float = 0.0,
     ) -> None:
 
         assert future_length > 0
@@ -140,6 +143,7 @@ class InstanceSplitter(FlatMapTransformation):
         self.start_field = start_field
         self.forecast_start_field = forecast_start_field
         self.pick_incomplete = pick_incomplete
+        self.dummy_value = dummy_value
 
     def _past(self, col_name):
         return f"past_{col_name}"
@@ -156,39 +160,49 @@ class InstanceSplitter(FlatMapTransformation):
 
         len_target = target.shape[-1]
 
+        minimum_length = (
+            self.future_length
+            if self.pick_incomplete
+            else self.past_length + self.future_length
+        )
+
         if is_train:
-            if len_target < self.future_length:
-                # We currently cannot handle time series that are shorter than
-                # the prediction length during training, so we just skip these.
-                # If we want to include them we would need to pad and to mask
-                # the loss.
-                sampling_indices: List[int] = []
-            else:
-                if self.pick_incomplete:
-                    sampling_indices = self.train_sampler(
-                        target, 0, len_target - self.future_length
-                    )
-                else:
-                    sampling_indices = self.train_sampler(
-                        target,
-                        self.past_length,
-                        len_target - self.future_length,
-                    )
+            sampling_bounds = (
+                (0, len_target - self.future_length)
+                if self.pick_incomplete
+                else (self.past_length, len_target - self.future_length)
+            )
+
+            # We currently cannot handle time series that are
+            # too short during training, so we just skip these.
+            # If we want to include them we would need to pad and to
+            # mask the loss.
+            sampled_indices = (
+                np.array([], dtype=int)
+                if len_target < minimum_length
+                else self.train_sampler(target, *sampling_bounds)
+            )
         else:
-            sampling_indices = [len_target]
-        for i in sampling_indices:
+            assert self.pick_incomplete or len_target >= self.past_length
+            sampled_indices = np.array([len_target], dtype=int)
+        for i in sampled_indices:
             pad_length = max(self.past_length - i, 0)
             if not self.pick_incomplete:
-                assert pad_length == 0
+                assert (
+                    pad_length == 0
+                ), f"pad_length should be zero, got {pad_length}"
             d = data.copy()
             for ts_field in slice_cols:
                 if i > self.past_length:
                     # truncate to past_length
                     past_piece = d[ts_field][..., i - self.past_length : i]
                 elif i < self.past_length:
-                    pad_block = np.zeros(
-                        d[ts_field].shape[:-1] + (pad_length,),
-                        dtype=d[ts_field].dtype,
+                    pad_block = (
+                        np.ones(
+                            d[ts_field].shape[:-1] + (pad_length,),
+                            dtype=d[ts_field].dtype,
+                        )
+                        * self.dummy_value
                     )
                     past_piece = np.concatenate(
                         [pad_block, d[ts_field][..., :i]], axis=-1

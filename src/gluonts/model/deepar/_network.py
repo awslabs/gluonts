@@ -420,6 +420,9 @@ class DeepARTrainingNetwork(DeepARNetwork):
             F=F, x=loss, weights=loss_weights, axis=1
         )
 
+        # need to mask possible nans and -inf
+        loss = F.where(condition=loss_weights, x=loss, y=F.zeros_like(loss))
+
         return weighted_loss, loss
 
 

@@ -311,6 +311,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         sigma_init: float = 1.0,
         sigma_minimum: float = sigma_minimum,
     ) -> None:
+        super().__init__(self)
         self.distr_cls = LowrankMultivariateGaussian
         self.dim = dim
         self.rank = rank
@@ -326,13 +327,15 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
             prefix=prefix,
         )
 
-    def distribution(self, distr_args, scale=None, **kwargs) -> Distribution:
+    def distribution(
+        self, distr_args, loc=None, scale=None, **kwargs
+    ) -> Distribution:
         distr = LowrankMultivariateGaussian(self.dim, self.rank, *distr_args)
-        if scale is None:
+        if loc is None and scale is None:
             return distr
         else:
             return TransformedDistribution(
-                distr, [bijection.AffineTransformation(scale=scale)]
+                distr, [bijection.AffineTransformation(loc=loc, scale=scale)]
             )
 
     def domain_map(self, F, mu_vector, D_vector, W_vector):
