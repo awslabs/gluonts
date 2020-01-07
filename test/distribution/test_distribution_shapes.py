@@ -27,6 +27,7 @@ from gluonts.distribution import (
     MultivariateGaussian,
     NegativeBinomial,
     PiecewiseLinear,
+    Poisson,
     StudentT,
     Uniform,
     TransformedDistribution,
@@ -104,6 +105,7 @@ from gluonts.distribution.box_cox_transform import BoxCoxTransform
             (3, 4, 5),
             (),
         ),
+        (Poisson(rate=mx.nd.ones(shape=(3, 4, 5))), (3, 4, 5), ()),
         (
             Uniform(
                 low=-mx.nd.ones(shape=(3, 4, 5)),

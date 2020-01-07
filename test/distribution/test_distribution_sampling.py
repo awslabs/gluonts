@@ -27,6 +27,7 @@ from gluonts.distribution import (
     Gamma,
     Beta,
     MultivariateGaussian,
+    Poisson,
     PiecewiseLinear,
     Binned,
     TransformedDistribution,
@@ -88,6 +89,7 @@ test_cases = [
             ).repeat(axis=0, repeats=2),
         },
     ),
+    (Poisson, {"rate": mx.nd.array([1000.0, 0])}),
 ]
 
 
