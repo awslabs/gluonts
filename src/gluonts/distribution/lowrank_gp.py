@@ -129,6 +129,7 @@ class LowrankGPOutput(DistributionOutput):
         mu_ratio: float = 1.0,
         dropout_rate: float = 0.0,
     ) -> None:
+        super().__init__(self)
         self.dist_cls = LowrankMultivariateGaussian
         self.dim = dim
         self.rank = rank
@@ -148,13 +149,13 @@ class LowrankGPOutput(DistributionOutput):
             prefix=prefix,
         )
 
-    def distribution(self, distr_args, scale=None, dim=None):
+    def distribution(self, distr_args, loc=None, scale=None, dim=None):
         dist = LowrankMultivariateGaussian(dim, self.rank, *distr_args)
-        if scale is None:
+        if loc is None and scale is None:
             return dist
         else:
             return TransformedDistribution(
-                dist, [bijection.AffineTransformation(scale=scale)]
+                dist, [bijection.AffineTransformation(loc=loc, scale=scale)]
             )
 
     @property

@@ -136,14 +136,15 @@ class Dirichlet(Distribution):
 class DirichletOutput(DistributionOutput):
     @validated()
     def __init__(self, dim: int) -> None:
+        super().__init__(self)
         assert dim > 1, "Dimension should be larger than one."
         self.args_dim = {"alpha": dim}
         self.distr_cls = Dirichlet
         self.dim = dim
         self.mask = None
 
-    def distribution(self, distr_args, scale=None, **kwargs) -> Distribution:
-        # todo deal with scaling
+    def distribution(self, distr_args, loc=None, scale=None) -> Distribution:
+        assert loc is None and scale is None
         distr = Dirichlet(distr_args)
         return distr
 
