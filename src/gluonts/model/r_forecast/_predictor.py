@@ -91,6 +91,7 @@ class RForecastPredictor(RepresentablePredictor):
         self._rpackages = rpackages
 
         this_dir = os.path.dirname(os.path.realpath(__file__))
+        this_dir = this_dir.replace("\\", "/") #for windows
         r_files = [
             n[:-2] for n in os.listdir(f"{this_dir}/R/") if n[-2:] == ".R"
         ]
