@@ -94,7 +94,7 @@ datasets_info = {
     "taxi_30min": GPCopulaDataset(
         name="taxi_30min",
         url=root + "taxi_30min.tar.gz",
-        num_series=130,
+        num_series=1214,
         prediction_length=24,
         freq="30min",
         rolling_evaluations=57,
