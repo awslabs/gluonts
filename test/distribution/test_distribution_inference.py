@@ -88,7 +88,7 @@ def maximum_likelihood_estimate_sgd(
     num_epochs: PositiveInt = PositiveInt(5),
     learning_rate: PositiveFloat = PositiveFloat(1e-2),
     hybridize: bool = True,
-) -> Iterable[float]:
+) -> List[np.ndarray]:
     model_ctx = mx.cpu()
 
     arg_proj = distr_output.get_args_proj()
@@ -786,7 +786,7 @@ def test_binned_likelihood(
     bin_probs = mx.nd.zeros((NUM_SAMPLES, num_bins)) + bin_prob
     bin_centers = mx.nd.zeros((NUM_SAMPLES, num_bins)) + bin_center
 
-    distr = Binned(bin_probs, bin_centers)
+    distr = Binned(bin_probs.log(), bin_centers)
     samples = distr.sample()
 
     # add some jitter to the uniform initialization and normalize
@@ -795,7 +795,7 @@ def test_binned_likelihood(
 
     init_biases = [bin_prob_init]
 
-    bin_prob_hat, _ = maximum_likelihood_estimate_sgd(
+    bin_log_prob_hat, _ = maximum_likelihood_estimate_sgd(
         BinnedOutput(bin_center),
         samples,
         init_biases=init_biases,
@@ -803,6 +803,8 @@ def test_binned_likelihood(
         learning_rate=PositiveFloat(0.05),
         num_epochs=PositiveInt(25),
     )
+
+    bin_prob_hat = np.exp(bin_log_prob_hat)
 
     assert all(
         mx.nd.abs(mx.nd.array(bin_prob_hat) - bin_prob) < TOL * bin_prob
