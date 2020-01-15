@@ -80,11 +80,12 @@ class NBEATSNetworkEstimator(GluonEstimator):
         Default and recommended value for generic mode: [False]
         Recommended value for interpretable mode: [True]
     expansion_coefficient_lengths:
-        The number of the expansion coefficients.
+        If the type is "G" (generic), then the length of the expansion coefficient.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
+        If the type is "S" (seasonal) then its not used.
         A list of ints of length 1 or 'num_stacks'.
-        Default and recommended value for generic mode: [3]
-        Recommended value for interpretable mode: [2,8]
+        Default and recommended value for generic mode: [2]
+        Recommended value for interpretable mode: [2]
     stack_types:
         One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
         A list of strings of length 1 or 'num_stacks'.
@@ -173,7 +174,7 @@ class NBEATSNetworkEstimator(GluonEstimator):
         self.expansion_coefficient_lengths = self._validate_nbeats_argument(
             argument_value=expansion_coefficient_lengths,
             argument_name="expansion_coefficient_lengths",
-            default_value=[3],
+            default_value=[2],
             validation_condition=lambda val: val > 0,
             invalidation_message="Values of 'expansion_coefficient_lengths' should be > 0",
         )
@@ -194,11 +195,13 @@ class NBEATSNetworkEstimator(GluonEstimator):
         invalidation_message,
     ):
         # set default value if applicable
-        new_value = default_value if argument_value is None else argument_name
+        new_value = (
+            argument_value if argument_value is not None else default_value
+        )
 
         # check whether dimension of argument matches num_stack dimension
         assert len(new_value) == 1 or len(new_value) == self.num_stacks, (
-            f"Invalid lengths of argument {new_value}: {len(new_value)}. Argument must have "
+            f"Invalid lengths of argument {argument_name}: {len(new_value)}. Argument must have "
             f"length 1 or {self.num_stacks} "
         )
 

@@ -26,56 +26,45 @@ from typing import List
 
 VALID_N_BEATS_STACK_TYPES = "G", "S", "T"
 
-# TODO: rework seasonality and trend model
-
 
 def linear_space(F, backcast_length, forecast_length, fwd_looking=True):
-    ls = (
-        F.arange(-float(backcast_length), float(forecast_length), 1)
-        / backcast_length
-    )
     if fwd_looking:
-        ls = ls[backcast_length:]
+        return F.arange(0, forecast_length) / forecast_length
     else:
-        ls = ls[:backcast_length]
-    return ls
+        return F.arange(-backcast_length, 0) / backcast_length  # Option 01
+        # return F.arange(backcast_length, 0, -1) / backcast_length # Option 02
+        # return F.arange(0, backcast_length) / backcast_length # Option 03
 
 
 def seasonality_model(
-    F,
-    thetas,
-    expansion_coefficient_length,
-    context_length,
-    prediction_length,
-    is_forecast,
+    F, thetas, num_coefficients, context_length, prediction_length, is_forecast
 ):
-    p = expansion_coefficient_length
-    p1, p2 = (p // 2, p // 2) if p % 2 == 0 else (p // 2, p // 2 + 1)
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
-    s1 = F.stack(*[F.cos(2 * np.pi * i * t) for i in range(p1)], axis=0)
-    s2 = F.stack(*[F.sin(2 * np.pi * i * t) for i in range(p2)], axis=0)
-    S = F.concat(s1, s2, dim=0)
-    S = F.cast(S, np.float32)
+    cosines = F.stack(
+        *[F.cos(2 * np.pi * i * t) for i in range(int(num_coefficients / 2))]
+    )
+    sines = F.stack(
+        *[F.sin(2 * np.pi * i * t) for i in range(int(num_coefficients / 2))]
+    )
+    S = F.concat(cosines, sines, dim=0)
     return F.dot(thetas, S)
 
 
 def trend_model(
     F,
     thetas,
-    expansion_coefficient_length,
+    polynomial_degree,
     context_length,
     prediction_length,
     is_forecast,
 ):
-    p = expansion_coefficient_length
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
-    T = F.transpose(F.stack(*[t ** i for i in range(p)], axis=0))
-    T = F.cast(T, np.float32)
-    return F.dot(thetas, F.transpose(T))
+    T = F.stack(*[t ** i for i in range(polynomial_degree)])
+    return F.dot(thetas, T)
 
 
 class NBEATSBlock(mx.gluon.HybridBlock):
@@ -91,8 +80,9 @@ class NBEATSBlock(mx.gluon.HybridBlock):
     block_layers:
         Number of fully connected layers with ReLu activation.
     expansion_coefficient_length:
-        The length of the expansion coefficient.
+        If the type is "G" (generic), then the length of the expansion coefficient.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
+        If the type is "S" (seasonal) then its not used.
     block_type:
         Either "G" (generic), "S" (seasonal) or "T" (trend).
     prediction_length:
@@ -133,65 +123,79 @@ class NBEATSBlock(mx.gluon.HybridBlock):
             self.fc_stack = mx.gluon.nn.HybridSequential()
             for i in range(block_layers):
                 self.fc_stack.add(
-                    mx.gluon.nn.Dense(units=width, activation="relu")
+                    mx.gluon.nn.Dense(units=self.width, activation="relu")
                 )
-            if has_backcast:
-                self.theta_backcast = mx.gluon.nn.Dense(
-                    units=expansion_coefficient_length  # linear activation:
-                )
-            self.theta_forecast = mx.gluon.nn.Dense(
-                units=expansion_coefficient_length  # linear activation:
-            )
             if block_type == "G":
                 if has_backcast:
+                    self.theta_backcast = mx.gluon.nn.Dense(
+                        units=expansion_coefficient_length  # linear activation:
+                    )
                     self.backcast = mx.gluon.nn.Dense(
                         units=context_length  # linear activation:
                     )
+                self.theta_forecast = mx.gluon.nn.Dense(
+                    units=expansion_coefficient_length  # linear activation:
+                )
                 self.forecast = mx.gluon.nn.Dense(
                     units=prediction_length  # linear activation:
                 )
             elif block_type == "S":
+                num_coefficients = 2 * int(
+                    (prediction_length / 2) - 1
+                )  # according to paper
                 if has_backcast:
+                    self.theta_backcast = mx.gluon.nn.Dense(
+                        units=num_coefficients  # linear activation:
+                    )
                     self.backcast = mx.gluon.nn.HybridLambda(
                         lambda F, thetas: seasonality_model(
                             F,
                             thetas,
-                            expansion_coefficient_length,
-                            context_length,
-                            prediction_length,
-                            is_forecast=True,
+                            num_coefficients=num_coefficients,
+                            context_length=context_length,
+                            prediction_length=prediction_length,
+                            is_forecast=False,
                         )
                     )
+                self.theta_forecast = mx.gluon.nn.Dense(
+                    units=num_coefficients  # linear activation:
+                )
                 self.forecast = mx.gluon.nn.HybridLambda(
                     lambda F, thetas: seasonality_model(
                         F,
                         thetas,
-                        expansion_coefficient_length,
-                        context_length,
-                        prediction_length,
-                        is_forecast=False,
+                        num_coefficients=num_coefficients,
+                        context_length=context_length,
+                        prediction_length=prediction_length,
+                        is_forecast=True,
                     )
                 )
             else:  # "T"
-                if has_backcast:
+                if self.has_backcast:
+                    self.theta_backcast = mx.gluon.nn.Dense(
+                        units=expansion_coefficient_length  # linear activation:
+                    )
                     self.backcast = mx.gluon.nn.HybridLambda(
-                        lambda F, thetas: seasonality_model(
+                        lambda F, thetas: trend_model(
                             F,
                             thetas,
-                            expansion_coefficient_length,
-                            context_length,
-                            prediction_length,
-                            is_forecast=True,
+                            polynomial_degree=expansion_coefficient_length,
+                            context_length=context_length,
+                            prediction_length=prediction_length,
+                            is_forecast=False,
                         )
                     )
+                self.theta_forecast = mx.gluon.nn.Dense(
+                    units=expansion_coefficient_length  # linear activation:
+                )
                 self.forecast = mx.gluon.nn.HybridLambda(
-                    lambda F, thetas: seasonality_model(
+                    lambda F, thetas: trend_model(
                         F,
                         thetas,
-                        expansion_coefficient_length,
-                        context_length,
-                        prediction_length,
-                        is_forecast=False,
+                        polynomial_degree=expansion_coefficient_length,
+                        context_length=context_length,
+                        prediction_length=prediction_length,
+                        is_forecast=True,
                     )
                 )
 
@@ -246,11 +250,12 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         Default and recommended value for generic mode: [False]
         Recommended value for interpretable mode: [True]
     expansion_coefficient_lengths:
-        The number of the expansion coefficients.
+        If the type is "G" (generic), then the length of the expansion coefficient.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
+        If the type is "S" (seasonal) then its not used.
         A list of ints of length 1 or 'num_stacks'.
-        Default and recommended value for generic mode: [3]
-        Recommended value for interpretable mode: [2,8]
+        Default and recommended value for generic mode: [2]
+        Recommended value for interpretable mode: [2]
     stack_types:
         One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
         A list of strings of length 1 or 'num_stacks'.
