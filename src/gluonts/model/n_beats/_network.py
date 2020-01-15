@@ -21,11 +21,12 @@ import numpy as np
 # First-party imports
 from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
-from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.model.common import Tensor
-from typing import List, Optional, Tuple
+from typing import List
 
 VALID_N_BEATS_STACK_TYPES = "G", "S", "T"
+
+# TODO: rework seasonality and trend model
 
 
 def linear_space(F, backcast_length, forecast_length, fwd_looking=True):
@@ -79,6 +80,9 @@ def trend_model(
 
 class NBEATSBlock(mx.gluon.HybridBlock):
     """
+    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
+    Its configurable to any of the specific block
+    types through the block_type parameter.
 
     Parameters
     ----------
@@ -95,6 +99,8 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         Also known as the 'prediction_length'.
     context_length:
         Also known as the 'context_length'.
+    has_backcast:
+        Only the last block of the network doesnt.
     kwargs:
         Arguments passed to 'HybridBlock'.
     """
@@ -110,13 +116,10 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         prediction_length: int,
         context_length: int,
         block_type: str,
+        has_backcast: bool,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-
-        assert (
-            block_type in VALID_N_BEATS_STACK_TYPES
-        ), f"Invalid N-Beats stack type: {block_type}. Valid stack types: {VALID_N_BEATS_STACK_TYPES}."
 
         self.width = width
         self.block_layers = block_layers
@@ -124,6 +127,7 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         self.block_type = block_type
         self.prediction_length = prediction_length
         self.context_length = context_length
+        self.has_backcast = has_backcast
 
         with self.name_scope():
             self.fc_stack = mx.gluon.nn.HybridSequential()
@@ -131,30 +135,33 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                 self.fc_stack.add(
                     mx.gluon.nn.Dense(units=width, activation="relu")
                 )
-            self.theta_backcast = mx.gluon.nn.Dense(
-                units=expansion_coefficient_length, activation="linear"
-            )
+            if has_backcast:
+                self.theta_backcast = mx.gluon.nn.Dense(
+                    units=expansion_coefficient_length  # linear activation:
+                )
             self.theta_forecast = mx.gluon.nn.Dense(
-                units=expansion_coefficient_length, activation="linear"
+                units=expansion_coefficient_length  # linear activation:
             )
             if block_type == "G":
-                self.backcast = mx.gluon.nn.Dense(
-                    units=context_length, activation="linear"
-                )
-                self.forecast = mx.gluon.nn.Dense(
-                    units=prediction_length, activation="linear"
-                )
-            if block_type == "S":
-                self.backcast = mx.gluon.nn.HybridLambda(
-                    lambda F, thetas: seasonality_model(
-                        F,
-                        thetas,
-                        expansion_coefficient_length,
-                        context_length,
-                        prediction_length,
-                        is_forecast=True,
+                if has_backcast:
+                    self.backcast = mx.gluon.nn.Dense(
+                        units=context_length  # linear activation:
                     )
+                self.forecast = mx.gluon.nn.Dense(
+                    units=prediction_length  # linear activation:
                 )
+            elif block_type == "S":
+                if has_backcast:
+                    self.backcast = mx.gluon.nn.HybridLambda(
+                        lambda F, thetas: seasonality_model(
+                            F,
+                            thetas,
+                            expansion_coefficient_length,
+                            context_length,
+                            prediction_length,
+                            is_forecast=True,
+                        )
+                    )
                 self.forecast = mx.gluon.nn.HybridLambda(
                     lambda F, thetas: seasonality_model(
                         F,
@@ -166,16 +173,17 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                     )
                 )
             else:  # "T"
-                self.backcast = mx.gluon.nn.HybridLambda(
-                    lambda F, thetas: seasonality_model(
-                        F,
-                        thetas,
-                        expansion_coefficient_length,
-                        context_length,
-                        prediction_length,
-                        is_forecast=True,
+                if has_backcast:
+                    self.backcast = mx.gluon.nn.HybridLambda(
+                        lambda F, thetas: seasonality_model(
+                            F,
+                            thetas,
+                            expansion_coefficient_length,
+                            context_length,
+                            prediction_length,
+                            is_forecast=True,
+                        )
                     )
-                )
                 self.forecast = mx.gluon.nn.HybridLambda(
                     lambda F, thetas: seasonality_model(
                         F,
@@ -189,56 +197,65 @@ class NBEATSBlock(mx.gluon.HybridBlock):
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         x = self.fc_stack(x)
-        theta_b = self.theta_backcast(x)
         theta_f = self.theta_forecast(x)
-        backcast = self.backcast(theta_b)
         forecast = self.forecast(theta_f)
-        return backcast, forecast
 
+        if self.has_backcast:
+            theta_b = self.theta_backcast(x)
+            backcast = self.backcast(theta_b)
+            return backcast, forecast
 
-def _reformat_nbeats_network_argument(
-    num_stacks: int, argument, argument_name: str
-):
-    assert len(argument) == 1 or len(argument) == num_stacks, (
-        f"Invalid lengths of argument {argument_name}: {len(argument)}. Argument must have "
-        f"length 1 or {num_stacks} "
-    )
-    if len(argument) == 1:
-        return argument * num_stacks
-    else:
-        return argument
+        return forecast
 
 
 class NBEATSNetwork(mx.gluon.HybridBlock):
     """
+    The NBEATS Network as described in the paper: https://arxiv.org/abs/1905.10437.
+    This does not constitute the whole NBEATS model, which is en ensemble model
+    comprised of a multitude of NBEATS Networks.
 
     Parameters
     ----------
-    prediction_length:
-        Also known as the 'prediction_length'.
-    context_length:
-        Also known as the 'context_length'.
+    prediction_length
+        Length of the prediction horizon
+    context_length
+        Number of time units that condition the predictions
+        (default: None, in which case context_length = prediction_length)
     num_stacks:
         The number of stacks the network should contain.
+        Default and recommended value for generic mode: 30
+        Recommended value for interpretable mode: 2
     widths:
         Widths of the fully connected layers with ReLu activation.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [512]
+        Recommended value for interpretable mode: [256, 2048]
     blocks:
         The number of blocks blocks per stack.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [1]
+        Recommended value for interpretable mode: [3]
     block_layers:
         Number of fully connected layers with ReLu activation per block.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [4]
+        Recommended value for interpretable mode: [4]
     sharing:
         Whether the weights are shared with the other blocks per stack.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [False]
+        Recommended value for interpretable mode: [True]
     expansion_coefficient_lengths:
         The number of the expansion coefficients.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [3]
+        Recommended value for interpretable mode: [2,8]
     stack_types:
         One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
         A list of strings of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: ["G"]
+        Recommended value for interpretable mode: ["T","S"]
     kwargs:
         Arguments passed to 'HybridBlock'.
     """
@@ -250,44 +267,31 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         self,
         prediction_length: int,
         context_length: int,
-        num_stacks: int = 2,
-        widths: List[int] = [256, 2048],
-        blocks: List[int] = [3],
-        block_layers: List[int] = [4],
-        expansion_coefficient_lengths: List[int] = [2, 8],
-        sharing: List[bool] = [True],
-        stack_types: List[str] = ["T", "S"],
+        num_stacks: int,
+        widths: List[int],
+        blocks: List[int],
+        block_layers: List[int],
+        expansion_coefficient_lengths: List[int],
+        sharing: List[bool],
+        stack_types: List[str],
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
         self.num_stacks = num_stacks
-        self.widths = _reformat_nbeats_network_argument(
-            num_stacks, widths, "num_stacks"
-        )
-        self.blocks = _reformat_nbeats_network_argument(
-            num_stacks, blocks, "blocks"
-        )
-        self.block_layers = _reformat_nbeats_network_argument(
-            num_stacks, block_layers, "block_layers"
-        )
-        self.sharing = _reformat_nbeats_network_argument(
-            num_stacks, sharing, "sharing"
-        )
-        self.expansion_coefficient_lengths = _reformat_nbeats_network_argument(
-            num_stacks,
-            expansion_coefficient_lengths,
-            "expansion_coefficient_lengths",
-        )
-        self.stack_types = _reformat_nbeats_network_argument(
-            num_stacks, stack_types, "stack_types"
-        )
+        self.widths = widths
+        self.blocks = blocks
+        self.block_layers = block_layers
+        self.sharing = sharing
+        self.expansion_coefficient_lengths = expansion_coefficient_lengths
+        self.stack_types = stack_types
         self.prediction_length = prediction_length
         self.context_length = context_length
 
         with self.name_scope():
             self.net_blocks: List[NBEATSBlock] = []
 
+            # connect all the blocks correctly
             for stack_id in range(num_stacks):
                 for block_id in range(blocks[stack_id]):
                     # in case sharing is enabled for the stack
@@ -296,25 +300,119 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         if (block_id > 0 and sharing[stack_id])
                         else None
                     )
-                    self.net_blocks.append(
-                        NBEATSBlock(
-                            width=self.widths[stack_id],
-                            block_layers=self.block_layers[stack_id],
-                            expansion_coefficient_length=self.expansion_coefficient_lengths[
-                                stack_id
-                            ],
-                            prediction_length=prediction_length,
-                            context_length=context_length,
-                            block_type=self.stack_types[stack_id],
-                            params=params,
-                        )
+                    # only last one does not have backcast
+                    has_backcast = not (
+                        stack_id == num_stacks - 1
+                        and block_id == blocks[num_stacks - 1] - 1
+                    )
+                    net_block = NBEATSBlock(
+                        width=self.widths[stack_id],
+                        block_layers=self.block_layers[stack_id],
+                        expansion_coefficient_length=self.expansion_coefficient_lengths[
+                            stack_id
+                        ],
+                        prediction_length=prediction_length,
+                        context_length=context_length,
+                        block_type=self.stack_types[stack_id],
+                        has_backcast=has_backcast,
+                        params=params,
+                    )
+                    self.net_blocks.append(net_block)
+                    self.register_child(
+                        net_block, f"block_{stack_id}_{block_id}"
                     )
 
-        def hybrid_forward(self, F, x, *args, **kwargs):
-            backcast = x
-            forecast = F.zeros_like(x)
-            for i in range(len(self.net_blocks)):
+    # noinspection PyMethodOverriding,PyPep8Naming
+    def hybrid_forward(self, F, past_target: Tensor, future_target: Tensor):
+        if len(self.net_blocks) == 1:  # if first block is also last block
+            return self.net_blocks[0](past_target)
+        else:
+            backcast, forecast = self.net_blocks[0](past_target)
+            backcast = past_target - backcast
+            # connect regular blocks (all except last)
+            for i in range(1, len(self.net_blocks) - 1):
                 b, f = self.net_blocks[i](backcast)
-                backcast -= b
-                forecast += f
-            return forecast
+                backcast = backcast - b
+                forecast = forecast + f
+            # connect last block
+            return forecast + self.net_blocks[-1](backcast)
+
+
+class NBEATSTrainingNetwork(NBEATSNetwork):
+    @validated()
+    def __init__(
+        self,
+        loss_function: mx.gluon.loss.Loss,
+        *args,
+        **kwargs,  # TODO: make loss_function serializable somehow
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.loss_function = loss_function
+
+    # noinspection PyMethodOverriding,PyPep8Naming
+    def hybrid_forward(
+        self, F, past_target: Tensor, future_target: Tensor
+    ) -> Tensor:
+        """
+
+        Parameters
+        ----------
+        F
+        past_target
+            Tensor with past observations.
+            Shape: (batch_size, context_length, target_dim).
+        future_target
+            Tensor with future observations.
+            Shape: (batch_size, prediction_length, target_dim).
+
+        Returns
+        -------
+        Tensor
+            Loss tensor. Shape: (batch_size, ).
+        """
+        # future_target never used
+        forecast = super().hybrid_forward(
+            F, past_target=past_target, future_target=future_target
+        )
+
+        # (batch_size, context_length, target_dim)
+        loss = self.loss_function(forecast, future_target)
+
+        # (batch_size, )
+        return loss
+
+
+class NBEATSPredictionNetwork(NBEATSNetwork):
+    @validated()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    # noinspection PyMethodOverriding,PyPep8Naming
+    def hybrid_forward(
+        self, F, past_target: Tensor, future_target: Tensor = None
+    ) -> Tensor:
+        """
+
+        Parameters
+        ----------
+        F
+        past_target
+            Tensor with past observations.
+            Shape: (batch_size, context_length, target_dim).
+        future_target
+            Not used.
+
+        Returns
+        -------
+        Tensor
+            Prediction sample. Shape: (samples, batch_size, prediction_length).
+        """
+        # future_target never used
+        forecasts = super().hybrid_forward(
+            F, past_target=past_target, future_target=past_target
+        )
+        # dimension collapsed previously because we only have one sample each:
+        forecasts = F.expand_dims(forecasts, axis=1)
+
+        # (batch_size, num_samples, prediction_length)
+        return forecasts

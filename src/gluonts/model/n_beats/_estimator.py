@@ -16,11 +16,11 @@ from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
+import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.trainer import Trainer
@@ -35,14 +35,14 @@ from gluonts.transform import (
 from ._network import (
     NBEATSPredictionNetwork,
     NBEATSTrainingNetwork,
-    VALID_N_BEATS_STACK_TYPES
+    VALID_N_BEATS_STACK_TYPES,
 )
 
 
 class NBEATSNetworkEstimator(GluonEstimator):
     """
-    An Estimator based on a single NBEATS network. The actual NBEATS model
-    is an ensemble of NBEATS networks.
+    An Estimator based on a single NBEATS Network. The actual NBEATS model
+    is an ensemble of NBEATS Networks.
 
     Parameters
     ----------
@@ -57,25 +57,42 @@ class NBEATSNetworkEstimator(GluonEstimator):
         Trainer object to be used (default: Trainer())
     num_stacks:
         The number of stacks the network should contain.
+        Default and recommended value for generic mode: 30
+        Recommended value for interpretable mode: 2
     widths:
         Widths of the fully connected layers with ReLu activation.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [512]
+        Recommended value for interpretable mode: [256, 2048]
     blocks:
         The number of blocks blocks per stack.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [1]
+        Recommended value for interpretable mode: [3]
     block_layers:
         Number of fully connected layers with ReLu activation per block.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [4]
+        Recommended value for interpretable mode: [4]
     sharing:
         Whether the weights are shared with the other blocks per stack.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [False]
+        Recommended value for interpretable mode: [True]
     expansion_coefficient_lengths:
         The number of the expansion coefficients.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
         A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [3]
+        Recommended value for interpretable mode: [2,8]
     stack_types:
         One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
         A list of strings of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: ["G"]
+        Recommended value for interpretable mode: ["T","S"]
+    loss_function:
+        The loss funtion (also known as metric) to use for training the network.
+        Unlike other models in GluonTS this network does not use a distribution.
     kwargs:
         Arguments passed to 'GluonEstimator'.
     """
@@ -86,33 +103,34 @@ class NBEATSNetworkEstimator(GluonEstimator):
     # recommended in GluonTS to allow to compare models easily.
     @validated()
     def __init__(
-            self,
-            freq: str,
-            prediction_length: int,
-            context_length: Optional[int] = None,
-            trainer: Trainer = Trainer(),
-            num_stacks: Optional[int] = 30,  # 2
-            widths: List[int] = None,  # [512] or [256, 2048]
-            blocks: List[int] = None,  # [1] or [3]
-            block_layers: List[int] = None,  # [4]
-            expansion_coefficient_lengths: List[int] = None,  # [3] or [2, 8]
-            sharing: List[bool] = None,  # [False] or [True]
-            stack_types: List[str] = None,  # ["G"] or ["T", "S"]
-            **kwargs
+        self,
+        freq: str,
+        prediction_length: int,
+        context_length: Optional[int] = None,
+        trainer: Trainer = Trainer(),
+        num_stacks: int = 30,
+        widths: Optional[List[int]] = None,
+        blocks: Optional[List[int]] = None,
+        block_layers: Optional[List[int]] = None,
+        expansion_coefficient_lengths: Optional[List[int]] = None,
+        sharing: Optional[List[bool]] = None,
+        stack_types: Optional[List[str]] = None,
+        loss_function: Optional[mx.gluon.loss.Loss] = mx.gluon.loss.L2Loss(),
+        **kwargs,
     ) -> None:
-        """
+        """ # TODO: make loss serializable!!!
         Defines an estimator. All parameters should be serializable.
         """
         super().__init__(trainer=trainer, **kwargs)
 
         assert (
-                prediction_length > 0
+            prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
         assert (
-                context_length is None or context_length > 0
+            context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert (
-                num_stacks is None or num_stacks > 0
+            num_stacks is None or num_stacks > 0
         ), "The value of `num_stacks` should be > 0"
 
         self.freq = freq
@@ -122,36 +140,59 @@ class NBEATSNetworkEstimator(GluonEstimator):
         )
         # num_stacks has to be handles separately because other arguments have to match its lengths
         self.num_stacks = num_stacks
+        self.loss_function = loss_function
 
         self.widths = self._validate_nbeats_argument(
-            argument_value=widths, argument_name="widths", default_value=[512],
-            validation_condition=lambda val: val > 0, invalidation_message="Values of 'widths' should be > 0"
+            argument_value=widths,
+            argument_name="widths",
+            default_value=[512],
+            validation_condition=lambda val: val > 0,
+            invalidation_message="Values of 'widths' should be > 0",
         )
         self.blocks = self._validate_nbeats_argument(
-            argument_value=blocks, argument_name="blocks", default_value=[1], validation_condition=lambda val: val > 0,
-            invalidation_message="Values of 'blocks' should be > 0"
+            argument_value=blocks,
+            argument_name="blocks",
+            default_value=[1],
+            validation_condition=lambda val: val > 0,
+            invalidation_message="Values of 'blocks' should be > 0",
         )
         self.block_layers = self._validate_nbeats_argument(
-            argument_value=block_layers, argument_name="block_layers", default_value=[4], validation_condition=lambda val: val > 0,
-            invalidation_message="Values of 'block_layers' should be > 0"
+            argument_value=block_layers,
+            argument_name="block_layers",
+            default_value=[4],
+            validation_condition=lambda val: val > 0,
+            invalidation_message="Values of 'block_layers' should be > 0",
         )
         self.sharing = self._validate_nbeats_argument(
-            argument_value=sharing, argument_name="sharing", default_value=[False], validation_condition=lambda val: True,
-            invalidation_message=""
+            argument_value=sharing,
+            argument_name="sharing",
+            default_value=[False],
+            validation_condition=lambda val: True,
+            invalidation_message="",
         )
         self.expansion_coefficient_lengths = self._validate_nbeats_argument(
-            argument_value=expansion_coefficient_lengths, argument_name="expansion_coefficient_lengths", default_value=[3], validation_condition=lambda val: val > 0,
-            invalidation_message="Values of 'expansion_coefficient_lengths' should be > 0"
+            argument_value=expansion_coefficient_lengths,
+            argument_name="expansion_coefficient_lengths",
+            default_value=[3],
+            validation_condition=lambda val: val > 0,
+            invalidation_message="Values of 'expansion_coefficient_lengths' should be > 0",
         )
         self.stack_types = self._validate_nbeats_argument(
-            argument_value=stack_types, argument_name="stack_types", default_value=["G"], validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
-            invalidation_message=f"Values of 'stack_types' should be one of {VALID_N_BEATS_STACK_TYPES}"
+            argument_value=stack_types,
+            argument_name="stack_types",
+            default_value=["G"],
+            validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
+            invalidation_message=f"Values of 'stack_types' should be one of {VALID_N_BEATS_STACK_TYPES}",
         )
-        self.prediction_length = prediction_length
-        self.context_length = context_length
 
-    def _validate_nbeats_argument(self, argument_value, argument_name, default_value, validation_condition,
-                                  invalidation_message):
+    def _validate_nbeats_argument(
+        self,
+        argument_value,
+        argument_name,
+        default_value,
+        validation_condition,
+        invalidation_message,
+    ):
         # set default value if applicable
         new_value = default_value if argument_value is None else argument_name
 
@@ -162,7 +203,9 @@ class NBEATSNetworkEstimator(GluonEstimator):
         )
 
         # check validity of actual values
-        assert all([validation_condition(val) for val in new_value]), invalidation_message
+        assert all(
+            [validation_condition(val) for val in new_value]
+        ), invalidation_message
 
         # make length of arguments consistent
         if len(new_value) == 1:
@@ -197,17 +240,34 @@ class NBEATSNetworkEstimator(GluonEstimator):
     # several tensors can be returned for instance for analysis, see DeepARTrainingNetwork for an example.
     def create_training_network(self) -> HybridBlock:
         return NBEATSTrainingNetwork(
-
+            prediction_length=self.prediction_length,
+            context_length=self.context_length,
+            num_stacks=self.num_stacks,
+            widths=self.widths,
+            blocks=self.blocks,
+            block_layers=self.block_layers,
+            expansion_coefficient_lengths=self.expansion_coefficient_lengths,
+            sharing=self.sharing,
+            stack_types=self.stack_types,
+            loss_function=self.loss_function,
         )
 
     # we now define how the prediction happens given that we are provided a
     # training network.
     def create_predictor(
-            self, transformation: Transformation, trained_network: HybridBlock
+        self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
         prediction_network = NBEATSPredictionNetwork(
-
-            params=trained_network.collect_params()
+            prediction_length=self.prediction_length,
+            context_length=self.context_length,
+            num_stacks=self.num_stacks,
+            widths=self.widths,
+            blocks=self.blocks,
+            block_layers=self.block_layers,
+            expansion_coefficient_lengths=self.expansion_coefficient_lengths,
+            sharing=self.sharing,
+            stack_types=self.stack_types,
+            params=trained_network.collect_params(),
         )
 
         return RepresentableBlockPredictor(
