@@ -304,7 +304,6 @@ def test_gaussian_likelihood(mu: float, sigma: float, hybridize: bool):
     ), f"alpha did not match: sigma = {sigma}, sigma_hat = {sigma_hat}"
 
 
-@pytest.mark.timeout(10)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_multivariate_gaussian(hybridize: bool) -> None:
     num_samples = 2000
@@ -415,7 +414,6 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
-@pytest.mark.timeout(15)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
     num_samples = 2000
@@ -576,7 +574,6 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
     ), f"alpha did not match: alpha = {alpha}, alpha_hat = {alpha_hat}"
 
 
-@pytest.mark.timeout(10)
 @pytest.mark.parametrize("mu_b", [(3.3, 0.7)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_laplace(mu_b: Tuple[float, float], hybridize: bool) -> None:
