@@ -17,6 +17,7 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from typing import (
+    cast,
     Any,
     Callable,
     Dict,
@@ -25,8 +26,6 @@ from typing import (
     List,
     NamedTuple,
     Optional,
-    Sized,
-    cast,
     Union,
 )
 
@@ -35,20 +34,17 @@ import numpy as np
 import pandas as pd
 import pydantic
 import ujson as json
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
-from gluonts.dataset.stat import (
-    DatasetStatistics,
-    calculate_dataset_statistics,
-)
 
 # Dictionary used for data flowing through the transformations.
-# A Dataset is an iterable over such dictionaries.
 DataEntry = Dict[str, Any]
+
+# A Dataset is an iterable of DataEntry.
+Dataset = Iterable[DataEntry]
 
 
 class Timestamp(pd.Timestamp):
@@ -150,21 +146,6 @@ class MetaData(pydantic.BaseModel):
 class SourceContext(NamedTuple):
     source: str
     row: int
-
-
-class Dataset(Sized, Iterable[DataEntry]):
-    """
-    An abstract class for datasets, i.e., iterable collection of DataEntry.
-    """
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        raise NotImplementedError
-
-    def __len__(self):
-        raise NotImplementedError
-
-    def calc_stats(self) -> DatasetStatistics:
-        return calculate_dataset_statistics(self)
 
 
 class Channel(pydantic.BaseModel):
