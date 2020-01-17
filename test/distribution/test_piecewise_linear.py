@@ -150,7 +150,10 @@ def test_simple_symmetric():
     assert distr.cdf(mx.nd.array([-2.0])).asnumpy().item() == 0.0
     assert distr.cdf(mx.nd.array([+2.0])).asnumpy().item() == 1.0
 
-    assert np.all(
-        distr.crps(mx.nd.array([-2.0])).asnumpy()
-        == distr.crps(mx.nd.array([+2.0])).asnumpy()
+    expected_crps = np.array([1.0 + 2.0 / 3.0])
+
+    assert np.allclose(
+        distr.crps(mx.nd.array([-2.0])).asnumpy(), expected_crps
     )
+
+    assert np.allclose(distr.crps(mx.nd.array([2.0])).asnumpy(), expected_crps)
