@@ -236,7 +236,7 @@ class PiecewiseLinear(Distribution):
             / slope_l0_nz,
         )
 
-        return a_tilde
+        return F.broadcast_minimum(F.ones_like(a_tilde), a_tilde)
 
     def quantile(self, level: Tensor) -> Tensor:
         return self.quantile_internal(level, axis=0)

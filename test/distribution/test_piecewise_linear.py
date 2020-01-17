@@ -136,3 +136,21 @@ def test_shapes(
         num_samples,
         *batch_shape,
     )
+
+
+def test_simple_symmetric():
+    gamma = mx.nd.array([-1.0])
+    slopes = mx.nd.array([[2.0, 2.0]])
+    knot_spacings = mx.nd.array([[0.5, 0.5]])
+
+    distr = PiecewiseLinear(
+        gamma=gamma, slopes=slopes, knot_spacings=knot_spacings
+    )
+
+    assert distr.cdf(mx.nd.array([-2.0])).asnumpy().item() == 0.0
+    assert distr.cdf(mx.nd.array([+2.0])).asnumpy().item() == 1.0
+
+    assert np.all(
+        distr.crps(mx.nd.array([-2.0])).asnumpy()
+        == distr.crps(mx.nd.array([+2.0])).asnumpy()
+    )
