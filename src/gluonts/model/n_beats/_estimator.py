@@ -40,7 +40,7 @@ from ._network import (
 )
 
 
-class NBEATSNetworkEstimator(GluonEstimator):
+class NBEATSEstimator(GluonEstimator):
     """
     An Estimator based on a single NBEATS Network. The actual NBEATS model
     is an ensemble of NBEATS Networks.

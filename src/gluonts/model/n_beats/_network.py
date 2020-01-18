@@ -19,7 +19,6 @@ import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 from gluonts.evaluation._base import get_seasonality
@@ -28,7 +27,9 @@ VALID_N_BEATS_STACK_TYPES = "G", "S", "T"
 VALID_LOSS_FUNCTIONS = "sMAPE", "MASE", "MAPE"
 
 
-def linear_space(F, backcast_length, forecast_length, fwd_looking=True):
+def linear_space(
+    F, backcast_length: int, forecast_length: int, fwd_looking: bool
+):
     if fwd_looking:
         return F.arange(0, forecast_length) / forecast_length
     else:
@@ -38,19 +39,25 @@ def linear_space(F, backcast_length, forecast_length, fwd_looking=True):
 
 
 def seasonality_model(
-    F, thetas, num_coefficients, context_length, prediction_length, is_forecast
-):
+    F,
+    thetas: Tensor,
+    num_coefficients: int,
+    context_length: int,
+    prediction_length: int,
+    is_forecast: bool,
+) -> Tensor:
     """
-    Creates a fourier series basis with num_coefficients/2 coefficients for sine and cosine each.
+    Creates a fourier series basis with num_coefficients coefficients for sine and cosine each.
+    So the total number of learned coefficients amounts to 2*num_coefficients.
     """
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
     cosines = F.stack(
-        *[F.cos(2 * np.pi * i * t) for i in range(int(num_coefficients / 2))]
+        *[F.cos(2 * np.pi * i * t) for i in range(num_coefficients)]
     )
     sines = F.stack(
-        *[F.sin(2 * np.pi * i * t) for i in range(int(num_coefficients / 2))]
+        *[F.sin(2 * np.pi * i * t) for i in range(num_coefficients)]
     )
     S = F.concat(cosines, sines, dim=0)
     return F.dot(thetas, S)
@@ -58,19 +65,19 @@ def seasonality_model(
 
 def trend_model(
     F,
-    thetas,
-    polynomial_degree,
-    context_length,
-    prediction_length,
-    is_forecast,
-):
+    thetas: Tensor,
+    num_coefficients: int,
+    context_length: int,
+    prediction_length: int,
+    is_forecast: bool,
+) -> Tensor:
     """
-    Creates a polynomial basis of degree polynomial_degree-1.
+    Creates a polynomial basis of degree num_coefficients-1.
     """
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
-    T = F.stack(*[t ** i for i in range(polynomial_degree)])
+    T = F.stack(*[t ** i for i in range(num_coefficients)])
     return F.dot(thetas, T)
 
 
@@ -147,12 +154,12 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                     units=prediction_length  # linear activation:
                 )
             elif block_type == "S":
-                num_coefficients = 2 * int(
+                num_coefficients = int(
                     (prediction_length / 2) - 1
                 )  # according to paper
                 if has_backcast:
                     self.theta_backcast = mx.gluon.nn.Dense(
-                        units=num_coefficients  # linear activation:
+                        units=2 * num_coefficients  # linear activation:
                     )
                     self.backcast = mx.gluon.nn.HybridLambda(
                         lambda F, thetas: seasonality_model(
@@ -165,7 +172,7 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                         )
                     )
                 self.theta_forecast = mx.gluon.nn.Dense(
-                    units=num_coefficients  # linear activation:
+                    units=2 * num_coefficients  # linear activation:
                 )
                 self.forecast = mx.gluon.nn.HybridLambda(
                     lambda F, thetas: seasonality_model(
@@ -186,7 +193,7 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                         lambda F, thetas: trend_model(
                             F,
                             thetas,
-                            polynomial_degree=expansion_coefficient_length,
+                            num_coefficients=expansion_coefficient_length,
                             context_length=context_length,
                             prediction_length=prediction_length,
                             is_forecast=False,
@@ -199,7 +206,7 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                     lambda F, thetas: trend_model(
                         F,
                         thetas,
-                        polynomial_degree=expansion_coefficient_length,
+                        num_coefficients=expansion_coefficient_length,
                         context_length=context_length,
                         prediction_length=prediction_length,
                         is_forecast=True,

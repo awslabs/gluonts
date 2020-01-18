@@ -12,9 +12,9 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from ._estimator import NBEATSNetworkEstimator
+from ._estimator import NBEATSEstimator
 
-__all__ = ["NBEATSNetworkEstimator"]
+__all__ = ["NBEATSEstimator"]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:
