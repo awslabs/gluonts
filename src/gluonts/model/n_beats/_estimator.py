@@ -36,6 +36,7 @@ from ._network import (
     NBEATSPredictionNetwork,
     NBEATSTrainingNetwork,
     VALID_N_BEATS_STACK_TYPES,
+    VALID_LOSS_FUNCTIONS,
 )
 
 
@@ -94,6 +95,7 @@ class NBEATSNetworkEstimator(GluonEstimator):
     loss_function:
         The loss funtion (also known as metric) to use for training the network.
         Unlike other models in GluonTS this network does not use a distribution.
+        One of the following: "sMAPE", "MASE" or "MAPE".
     kwargs:
         Arguments passed to 'GluonEstimator'.
     """
@@ -116,10 +118,10 @@ class NBEATSNetworkEstimator(GluonEstimator):
         expansion_coefficient_lengths: Optional[List[int]] = None,
         sharing: Optional[List[bool]] = None,
         stack_types: Optional[List[str]] = None,
-        loss_function: Optional[mx.gluon.loss.Loss] = mx.gluon.loss.L2Loss(),
+        loss_function: Optional[str] = "sMAPE",
         **kwargs,
     ) -> None:
-        """ # TODO: make loss serializable!!!
+        """
         Defines an estimator. All parameters should be serializable.
         """
         super().__init__(trainer=trainer, **kwargs)
@@ -133,13 +135,14 @@ class NBEATSNetworkEstimator(GluonEstimator):
         assert (
             num_stacks is None or num_stacks > 0
         ), "The value of `num_stacks` should be > 0"
+        assert loss_function is None or loss_function in VALID_LOSS_FUNCTIONS
 
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
-        # num_stacks has to be handles separately because other arguments have to match its lengths
+        # num_stacks has to be handled separately because other arguments have to match its length
         self.num_stacks = num_stacks
         self.loss_function = loss_function
 
@@ -253,6 +256,7 @@ class NBEATSNetworkEstimator(GluonEstimator):
             sharing=self.sharing,
             stack_types=self.stack_types,
             loss_function=self.loss_function,
+            freq=self.freq,
         )
 
     # we now define how the prediction happens given that we are provided a

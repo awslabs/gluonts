@@ -22,9 +22,10 @@ import numpy as np
 from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
-from typing import List
+from gluonts.evaluation._base import get_seasonality
 
 VALID_N_BEATS_STACK_TYPES = "G", "S", "T"
+VALID_LOSS_FUNCTIONS = "sMAPE", "MASE", "MAPE"
 
 
 def linear_space(F, backcast_length, forecast_length, fwd_looking=True):
@@ -39,6 +40,9 @@ def linear_space(F, backcast_length, forecast_length, fwd_looking=True):
 def seasonality_model(
     F, thetas, num_coefficients, context_length, prediction_length, is_forecast
 ):
+    """
+    Creates a fourier series basis with num_coefficients/2 coefficients for sine and cosine each.
+    """
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
@@ -60,6 +64,9 @@ def trend_model(
     prediction_length,
     is_forecast,
 ):
+    """
+    Creates a polynomial basis of degree polynomial_degree-1.
+    """
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
@@ -342,17 +349,92 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
             # connect last block
             return forecast + self.net_blocks[-1](backcast)
 
+    # TODO: somehow interpretable mode not learning?
+    def smape_loss(self, F, forecast: Tensor, future_target: Tensor) -> Tensor:
+        r"""
+        .. math::
+
+            smape = (200/H)*mean(|Y - Y_hat| / (|Y| + |Y_hat|))
+
+        According to paper: https://arxiv.org/abs/1905.10437.
+        """
+
+        denominator = F.abs(future_target) + F.abs(forecast)
+        flag = denominator == 0
+
+        smape = (200 / self.prediction_length) * F.mean(
+            (F.abs(future_target - forecast) * (1 - flag))
+            / (denominator + flag),
+            axis=1,
+        )
+
+        return smape
+
+    def mape_loss(self, F, forecast: Tensor, future_target: Tensor) -> Tensor:
+        r"""
+        .. math::
+
+            mape = (100/H)*mean(|Y - Y_hat| / |Y|)
+
+        According to paper: https://arxiv.org/abs/1905.10437.
+        """
+
+        denominator = F.abs(future_target)
+        flag = denominator == 0
+
+        mape = (100 / self.prediction_length) * F.mean(
+            (F.abs(future_target - forecast) * (1 - flag))
+            / (denominator + flag),
+            axis=1,
+        )
+
+        return mape
+
+    def mase_loss(
+        self,
+        F,
+        forecast: Tensor,
+        future_target: Tensor,
+        past_target: Tensor,
+        periodicity: int,
+    ) -> Tensor:
+        r"""
+        .. math::
+
+            mase = (1/H)*(mean(|Y - Y_hat|) / seasonal_error)
+
+        According to paper: https://arxiv.org/abs/1905.10437.
+        """
+        factor = 1 / (
+            self.context_length + self.prediction_length - periodicity
+        )
+        whole_target = F.concat(past_target, future_target, dim=1)
+        seasonal_error = factor * F.mean(
+            F.abs(
+                F.slice_axis(whole_target, axis=1, begin=periodicity, end=None)
+                - F.slice_axis(whole_target, axis=1, begin=0, end=-periodicity)
+            ),
+            axis=1,
+        )
+        flag = seasonal_error == 0
+
+        mase = (
+            F.mean(F.abs(future_target - forecast), axis=1) * (1 - flag)
+        ) / (seasonal_error + flag)
+
+        return mase
+
 
 class NBEATSTrainingNetwork(NBEATSNetwork):
     @validated()
-    def __init__(
-        self,
-        loss_function: mx.gluon.loss.Loss,
-        *args,
-        **kwargs,  # TODO: make loss_function serializable somehow
-    ) -> None:
+    def __init__(self, loss_function: str, freq: str, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.loss_function = loss_function
+        self.freq = freq
+
+        # Covert frequency string like "2H" to whats called the periodicity m.
+        # E.g. 12 in case of "2H" because of 12 times two hours in a day.
+        self.periodicity = get_seasonality(self.freq)
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
@@ -380,10 +462,19 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             F, past_target=past_target, future_target=future_target
         )
 
-        # (batch_size, context_length, target_dim)
-        loss = self.loss_function(forecast, future_target)
+        if self.loss_function == "sMAPE":
+            loss = self.smape_loss(F, forecast, future_target)
+        elif self.loss_function == "MAPE":
+            loss = self.mape_loss(F, forecast, future_target)
+        elif self.loss_function == "MASE":
+            loss = self.mase_loss(
+                F, forecast, future_target, past_target, self.periodicity
+            )
+        else:
+            raise ValueError(
+                f"Invalid value {self.loss_function} for argument loss_function."
+            )
 
-        # (batch_size, )
         return loss
 
 
