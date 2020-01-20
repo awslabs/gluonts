@@ -236,7 +236,7 @@ class PiecewiseLinear(Distribution):
             / slope_l0_nz,
         )
 
-        return a_tilde
+        return F.broadcast_minimum(F.ones_like(a_tilde), a_tilde)
 
     def quantile(self, level: Tensor) -> Tensor:
         return self.quantile_internal(level, axis=0)
@@ -336,15 +336,7 @@ class PiecewiseLinearOutput(DistributionOutput):
     @classmethod
     def domain_map(cls, F, gamma, slopes, knot_spacings):
         # slopes of the pieces are non-negative
-        thresh = F.zeros_like(slopes) + 20.0
-        I_grt_thresh = F.broadcast_greater_equal(slopes, thresh)
-        I_sml_thresh = F.broadcast_lesser(slopes, thresh)
-        slopes_proj = (
-            I_sml_thresh
-            * F.Activation(data=(I_sml_thresh * slopes), act_type="softrelu")
-            + I_grt_thresh * slopes
-        )
-        # slopes = F.Activation(slopes, 'softrelu')
+        slopes_proj = F.Activation(data=slopes, act_type="softrelu") + 1e-4
 
         # the spacing between the knots should be in [0, 1] and sum to 1
         knot_spacings_proj = F.softmax(knot_spacings)

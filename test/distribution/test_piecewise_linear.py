@@ -17,7 +17,7 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.distribution import PiecewiseLinear
+from gluonts.distribution import PiecewiseLinear, PiecewiseLinearOutput
 from gluonts.testutil import empirical_cdf
 from gluonts.core.serde import dump_json, load_json
 
@@ -136,3 +136,53 @@ def test_shapes(
         num_samples,
         *batch_shape,
     )
+
+
+def test_simple_symmetric():
+    gamma = mx.nd.array([-1.0])
+    slopes = mx.nd.array([[2.0, 2.0]])
+    knot_spacings = mx.nd.array([[0.5, 0.5]])
+
+    distr = PiecewiseLinear(
+        gamma=gamma, slopes=slopes, knot_spacings=knot_spacings
+    )
+
+    assert distr.cdf(mx.nd.array([-2.0])).asnumpy().item() == 0.0
+    assert distr.cdf(mx.nd.array([+2.0])).asnumpy().item() == 1.0
+
+    expected_crps = np.array([1.0 + 2.0 / 3.0])
+
+    assert np.allclose(
+        distr.crps(mx.nd.array([-2.0])).asnumpy(), expected_crps
+    )
+
+    assert np.allclose(distr.crps(mx.nd.array([2.0])).asnumpy(), expected_crps)
+
+
+def test_robustness():
+    distr_out = PiecewiseLinearOutput(num_pieces=10)
+    args_proj = distr_out.get_args_proj()
+    args_proj.initialize()
+
+    net_out = mx.nd.random.normal(shape=(1000, 30), scale=1e2)
+    gamma, slopes, knot_spacings = args_proj(net_out)
+    distr = distr_out.distribution((gamma, slopes, knot_spacings))
+
+    # compute the 1-quantile (the 0-quantile is gamma)
+    sup_support = gamma + mx.nd.sum(slopes * knot_spacings, axis=-1)
+
+    assert mx.nd.broadcast_lesser_equal(gamma, sup_support).asnumpy().all()
+
+    width = sup_support - gamma
+    x = mx.random.uniform(low=gamma - width, high=sup_support + width)
+
+    # check that 0 < cdf < 1
+    cdf_x = distr.cdf(x)
+    assert (
+        mx.nd.min(cdf_x).asscalar() >= 0.0
+        and mx.nd.max(cdf_x).asscalar() <= 1.0
+    )
+
+    # check that 0 <= crps
+    crps_x = distr.crps(x)
+    assert mx.nd.min(crps_x).asscalar() >= 0.0
