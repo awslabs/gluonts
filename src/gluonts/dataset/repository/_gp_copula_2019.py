@@ -92,11 +92,6 @@ datasets_info = {
         max_target_dim=2000,
     ),
     "taxi_30min": GPCopulaDataset(
-        # The dataset corresponds to the taxi dataset used in this reference:
-        # https://arxiv.org/abs/1910.03002 but only contains 56 evaluation
-        # windows. The last evaluation window was removed because there was an
-        # overlap of five time steps in the last and the penultimate 
-        # evaluation window.
         name="taxi_30min",
         url=root + "taxi_30min.tar.gz",
         num_series=1214,
