@@ -16,7 +16,6 @@ from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
-import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
@@ -50,10 +49,11 @@ class NBEATSEstimator(GluonEstimator):
     freq
         Time time granularity of the data
     prediction_length
-        Length of the prediction horizon
+        Length of the prediction. Also known as 'horizon'.
     context_length
         Number of time units that condition the predictions
-        (default: None, in which case context_length = prediction_length)
+        Also known as 'lookback period'.
+        Default is None, in which case context_length = 2 * prediction_length.
     trainer
         Trainer object to be used (default: Trainer())
     num_stacks:
@@ -140,7 +140,9 @@ class NBEATSEstimator(GluonEstimator):
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = (
-            context_length if context_length is not None else prediction_length
+            context_length
+            if context_length is not None
+            else 2 * prediction_length
         )
         # num_stacks has to be handled separately because other arguments have to match its length
         self.num_stacks = num_stacks

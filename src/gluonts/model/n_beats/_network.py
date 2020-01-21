@@ -100,9 +100,10 @@ class NBEATSBlock(mx.gluon.HybridBlock):
     block_type
         Either "G" (generic), "S" (seasonal) or "T" (trend).
     prediction_length
-        Also known as the 'prediction_length'.
+        Length of the prediction. Also known as 'horizon'.
     context_length
-        Also known as the 'context_length'.
+        Number of time units that condition the predictions
+        Also known as 'lookback period'.
     has_backcast
         Only the last block of the network doesnt.
     kwargs
@@ -235,10 +236,10 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
     Parameters
     ----------
     prediction_length
-        Length of the prediction horizon
+        Length of the prediction. Also known as 'horizon'.
     context_length
         Number of time units that condition the predictions
-        (default: None, in which case context_length = prediction_length)
+        Also known as 'lookback period'.
     num_stacks
         The number of stacks the network should contain.
         Default and recommended value for generic mode: 30
