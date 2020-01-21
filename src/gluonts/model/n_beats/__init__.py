@@ -13,8 +13,13 @@
 
 # Relative imports
 from ._estimator import NBEATSEstimator
+from ._ensemble import NBEATSEnsembleEstimator, NBEATSEnsemblePredictor
 
-__all__ = ["NBEATSEstimator"]
+__all__ = [
+    "NBEATSEstimator",
+    "NBEATSEnsembleEstimator",
+    "NBEATSEnsemblePredictor",
+]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:

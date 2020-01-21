@@ -10,3 +10,357 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+
+# Standard library imports
+from itertools import product
+from pathlib import Path
+from typing import List, Optional, Iterator, Callable
+import copy
+import os
+import logging
+
+# Third-party imports
+import mxnet as mx
+import numpy as np
+
+# First-party imports
+from gluonts.core.component import validated
+from gluonts.core.serde import dump_json, load_json
+from gluonts.dataset.common import Dataset
+from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.loader import DataBatch
+from gluonts.model.estimator import Estimator
+from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.trainer import Trainer
+
+# Relative imports
+from ._network import VALID_LOSS_FUNCTIONS
+from ._estimator import NBEATSEstimator
+
+# None is also a valid parameter
+AGGREGATION_METHODS = "median", "mean", "none"
+
+
+class NBEATSEnsembleEstimator(Estimator):
+    """
+    An ensemble N-BEATS Estimator (approximately) as described
+    in the paper:  https://arxiv.org/abs/1905.10437.
+
+    The three meta parameters 'meta_context_length', 'meta_loss_function' and 'meta_bagging_size'
+    together define the way the sub-models are assembled together.
+    The total number of models used for the ensemble is:
+        |meta_context_length| x |meta_loss_function| x meta_bagging_size
+
+    Noteworthy differences in this implementation compared to the paper:
+    * The parameter L_H is not implemented; we sample training sequences
+    using the default method in GluonTS using the "InstanceSplitter".
+
+    Parameters
+    ----------
+    freq
+        Time time granularity of the data
+    prediction_length
+        Length of the prediction. Also known as 'horizon'.
+    meta_context_length
+        The different 'context_length' (aslso known as 'lookback period')
+        to use for training the models.
+        The 'context_length' is the number of time units that condition the predictions.
+        Default and recommended value: [multiplier * prediction_length for multiplier in range(2, 7)]
+    meta_loss_function
+        The different 'loss_function' (also known as metric) to use for training the models.
+        Unlike other models in GluonTS this network does not use a distribution.
+        Default and recommended value: ["sMAPE", "MASE", "MAPE"]
+    meta_bagging_size
+        The number of models that share the parameter combination of 'context_length'
+        and 'loss_function'. Each of these models gets a different initialization random initialization.
+        Default and recommended value: 10
+    trainer
+        Trainer object to be used (default: Trainer())
+    num_stacks:
+        The number of stacks the network should contain.
+        Default and recommended value for generic mode: 30
+        Recommended value for interpretable mode: 2
+    num_blocks
+        The number of blocks per stack.
+        A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [1]
+        Recommended value for interpretable mode: [3]
+    block_layers
+        Number of fully connected layers with ReLu activation per block.
+        A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [4]
+        Recommended value for interpretable mode: [4]
+    widths
+        Widths of the fully connected layers with ReLu activation in the blocks.
+        A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [512]
+        Recommended value for interpretable mode: [256, 2048]
+    sharing
+        Whether the weights are shared with the other blocks per stack.
+        A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [False]
+        Recommended value for interpretable mode: [True]
+    expansion_coefficient_lengths
+        If the type is "G" (generic), then the length of the expansion coefficient.
+        If type is "T" (trend), then it corresponds to the degree of the polynomial.
+        If the type is "S" (seasonal) then its not used.
+        A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [2]
+        Recommended value for interpretable mode: [2]
+    stack_types
+        One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
+        A list of strings of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: ["G"]
+        Recommended value for interpretable mode: ["T","S"]
+    """
+
+    # The validated() decorator makes sure that parameters are checked by
+    # Pydantic and allows to serialize/print models. Note that all parameters
+    # have defaults except for `freq` and `prediction_length`. which is
+    # recommended in GluonTS to allow to compare models easily.
+    @validated()
+    def __init__(
+        self,
+        freq: str,
+        prediction_length: int,
+        meta_context_length: Optional[List[int]] = None,
+        meta_loss_function: Optional[List[str]] = None,
+        meta_bagging_size: int = 10,
+        trainer: Trainer = Trainer(),
+        num_stacks: int = 30,
+        widths: Optional[List[int]] = None,
+        num_blocks: Optional[List[int]] = None,
+        num_block_layers: Optional[List[int]] = None,
+        expansion_coefficient_lengths: Optional[List[int]] = None,
+        sharing: Optional[List[bool]] = None,
+        stack_types: Optional[List[str]] = None,
+    ) -> None:
+        super().__init__()
+
+        assert (
+            prediction_length > 0
+        ), "The value of `prediction_length` should be > 0"
+
+        self.freq = freq
+        self.prediction_length = prediction_length
+
+        assert meta_loss_function is None or all(
+            [
+                loss_function in VALID_LOSS_FUNCTIONS
+                for loss_function in meta_loss_function
+            ]
+        ), f"Each loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
+        assert meta_context_length is None or all(
+            [context_length > 0 for context_length in meta_context_length]
+        ), "The value of each `context_length` should be > 0"
+        assert (
+            meta_bagging_size is None or meta_bagging_size > 0
+        ), "The value of each `context_length` should be > 0"
+
+        self.meta_context_length = (
+            meta_context_length
+            if meta_context_length is not None
+            else [multiplier * prediction_length for multiplier in range(2, 7)]
+        )
+        self.meta_loss_function = (
+            meta_loss_function
+            if meta_loss_function is not None
+            else VALID_LOSS_FUNCTIONS
+        )
+        self.meta_bagging_size = meta_bagging_size
+
+        # The following arguments are validated in the NBEATSEstimator:
+        self.trainer = trainer
+        self.num_stacks = num_stacks
+        self.widths = widths
+        self.num_blocks = num_blocks
+        self.num_block_layers = num_block_layers
+        self.expansion_coefficient_lengths = expansion_coefficient_lengths
+        self.sharing = sharing
+        self.stack_types = stack_types
+
+        # Actually instantiate the different models
+        self.estimators = self._estimator_factory()
+
+    def _estimator_factory(self):
+        estimators = []
+        for context_length, loss_function, init_id in product(
+            self.meta_context_length,
+            self.meta_loss_function,
+            list(range(self.meta_bagging_size)),
+        ):
+            # So far no use for the init_id, models are by default always randomly initialized
+            estimators.append(
+                NBEATSEstimator(
+                    freq=self.freq,
+                    prediction_length=self.prediction_length,
+                    context_length=context_length,
+                    trainer=copy.deepcopy(self.trainer),
+                    num_stacks=self.num_stacks,
+                    widths=self.widths,
+                    num_blocks=self.num_blocks,
+                    num_block_layers=self.num_block_layers,
+                    expansion_coefficient_lengths=self.expansion_coefficient_lengths,
+                    sharing=self.sharing,
+                    stack_types=self.stack_types,
+                    loss_function=loss_function,
+                )
+            )
+        return estimators
+
+    def train(
+        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+    ) -> Predictor:
+        predictors = []
+
+        for index, estimator in enumerate(self.estimators):
+            logging.info(
+                f"Training estimator {index + 1}/{len(self.estimators)}."
+            )
+            predictors.append(estimator.train(training_data, validation_data))
+
+        return NBEATSEnsemblePredictor(
+            self.prediction_length, self.freq, predictors
+        )
+
+
+class NBEATSEnsemblePredictor(Predictor):
+    """"
+    An ensemble predictor for N-BEATS.
+    Calling '.predict' will result in |predictors|x|dataset| predictions.
+
+    Parameters
+    ----------
+    prediction_length
+        Prediction horizon.
+    freq
+        Frequency of the predicted data.
+    predictors
+        The list of 'RepresentableBlockPredictor' that the ensemble consists of.
+    aggregation_method
+        The method by which to aggregate the individual predictions of the models.
+        Either 'median', 'mean' or 'none', in which case no aggregation happens.
+        Default is 'median'.
+    """
+
+    def __init__(
+        self,
+        prediction_length: int,
+        freq: str,
+        predictors: List[RepresentableBlockPredictor],
+        aggregation_method: Optional[str] = "median",
+    ) -> None:
+        super().__init__(prediction_length, freq)
+
+        assert aggregation_method in AGGREGATION_METHODS
+
+        self.predictors = predictors
+        self.aggregation_method = aggregation_method
+
+    def set_aggregation_method(self, aggregation_method: str):
+        assert aggregation_method in AGGREGATION_METHODS
+        self.aggregation_method = aggregation_method
+
+    def serialize(self, path: Path) -> None:
+        # basically save each predictor in its own sub-folder
+        num_digits = len(str(len(self.predictors)))
+        for index, predictor in enumerate(self.predictors):
+            composite_path = path / f"predictor_{str(index).zfill(num_digits)}"
+            os.makedirs(composite_path)
+            predictor.serialize(composite_path)
+
+        # serialize all remaining constructor parameters
+        with (path / "parameters.json").open("w") as fp:
+            parameters = dict(
+                prediction_length=self.prediction_length,
+                freq=self.freq,
+                aggregation_method=self.aggregation_method,
+            )
+            print(dump_json(parameters), file=fp)
+
+    @classmethod
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "NBEATSEnsemblePredictor":
+        predictors = []
+        # load all the predictors individually and also make sure not to load anything else by mistake
+        predictor_locations = [
+            sub_dir
+            for sub_dir in next(os.walk(str(path)))[1]
+            if sub_dir.startswith("predictor_")
+        ]
+
+        # deserialize predictors
+        for sub_dir in predictor_locations:
+            predictors.append(
+                RepresentableBlockPredictor.deserialize(path / sub_dir, ctx)
+            )
+
+        # deserialize constructor parameters
+        with (path / "parameters.json").open("r") as fp:
+            parameters = load_json(fp.read())
+
+        return NBEATSEnsemblePredictor(
+            prediction_length=parameters["prediction_length"],
+            freq=parameters["freq"],
+            predictors=predictors,
+            aggregation_method=parameters["aggregation_method"],
+        )
+
+    # Additionally implemented since we are dealing with RepresentableBlockPredictor
+    def hybridize(self, batch: DataBatch) -> None:
+        for predictor in self.predictors:
+            predictor.hybridize(batch)
+
+    def predict(
+        self, dataset: Dataset, num_samples: Optional[int] = 1, **kwargs
+    ) -> Iterator[Forecast]:
+        if num_samples != 1:
+            logging.warning(
+                "NBEATSEnsemblePredictor does not support sampling. "
+                "Therefore 'num_samples' will be ignored and set to 1."
+            )
+        iterators = []
+
+        # create the iterators from the predictors
+        for predictor in self.predictors:
+            iterators.append(predictor.predict(dataset, num_samples=1))
+
+        # we always have to predict for one series in the dataset with
+        # all models and return it as a 'SampleForecast' so that it is
+        # clear that all these prediction concern the same series
+        for item in dataset:
+            output = []
+            start_date = None
+
+            for iterator in iterators:
+                prediction = next(iterator)
+                output.append(prediction.samples)
+
+                # some weird transformation is going on with the start date,
+                # so I just take the already transformed one, otherwise
+                # evaluator will give Nans for the seasonal_error
+                if start_date is None:
+                    start_date = prediction.start_date
+            output = np.stack(output, axis=0)
+
+            # aggregating output of different models
+            # default according to paper is median,
+            # but we can also make use of not aggregating
+            if self.aggregation_method == "median":
+                output = np.median(output, axis=0)
+            elif self.aggregation_method == "mean":
+                output = np.mean(output, axis=0)
+            else:  # do not aggregate
+                pass
+
+            yield SampleForecast(
+                output,
+                start_date=start_date,
+                freq=start_date.freqstr,
+                item_id=item[FieldName.ITEM_ID]
+                if FieldName.ITEM_ID in item
+                else None,
+                info=item["info"] if "info" in item else None,
+            )

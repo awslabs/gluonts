@@ -41,8 +41,14 @@ from ._network import (
 
 class NBEATSEstimator(GluonEstimator):
     """
-    An Estimator based on a single NBEATS Network. The actual NBEATS model
-    is an ensemble of NBEATS Networks.
+    An Estimator based on a single (!) NBEATS Network (approximately) as described
+    in the paper:  https://arxiv.org/abs/1905.10437.
+    The actual NBEATS model is an ensemble of NBEATS Networks, and is implemented by
+    the "NBEATSEnsembleEstimator".
+
+    Noteworthy differences in this implementation compared to the paper:
+    * The parameter L_H is not implemented; we sample training sequences
+    using the default method in GluonTS using the "InstanceSplitter".
 
     Parameters
     ----------
@@ -53,7 +59,7 @@ class NBEATSEstimator(GluonEstimator):
     context_length
         Number of time units that condition the predictions
         Also known as 'lookback period'.
-        Default is None, in which case context_length = 2 * prediction_length.
+        Default is 2 * prediction_length.
     trainer
         Trainer object to be used (default: Trainer())
     num_stacks:
@@ -135,7 +141,9 @@ class NBEATSEstimator(GluonEstimator):
         assert (
             num_stacks is None or num_stacks > 0
         ), "The value of `num_stacks` should be > 0"
-        assert loss_function is None or loss_function in VALID_LOSS_FUNCTIONS
+        assert (
+            loss_function is None or loss_function in VALID_LOSS_FUNCTIONS
+        ), f"The loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
 
         self.freq = freq
         self.prediction_length = prediction_length
