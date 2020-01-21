@@ -147,6 +147,7 @@ def save_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
                 # Handles adding categorical features of rolling
                 # evaluation dates
                 cat=[cat - ds_info.num_series * (cat // ds_info.num_series)],
+                item_id=cat,
             )
             for cat, data_entry in enumerate(dataset)
         ],
