@@ -89,23 +89,23 @@ class NBEATSBlock(mx.gluon.HybridBlock):
 
     Parameters
     ----------
-    width:
+    width
         Width of the fully connected layers with ReLu activation.
-    block_layers:
+    num_block_layers
         Number of fully connected layers with ReLu activation.
-    expansion_coefficient_length:
+    expansion_coefficient_length
         If the type is "G" (generic), then the length of the expansion coefficient.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
         If the type is "S" (seasonal) then its not used.
-    block_type:
+    block_type
         Either "G" (generic), "S" (seasonal) or "T" (trend).
-    prediction_length:
+    prediction_length
         Also known as the 'prediction_length'.
-    context_length:
+    context_length
         Also known as the 'context_length'.
-    has_backcast:
+    has_backcast
         Only the last block of the network doesnt.
-    kwargs:
+    kwargs
         Arguments passed to 'HybridBlock'.
     """
 
@@ -115,7 +115,7 @@ class NBEATSBlock(mx.gluon.HybridBlock):
     def __init__(
         self,
         width: int,
-        block_layers: int,
+        num_block_layers: int,
         expansion_coefficient_length: int,
         prediction_length: int,
         context_length: int,
@@ -126,7 +126,7 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         super().__init__(**kwargs)
 
         self.width = width
-        self.block_layers = block_layers
+        self.num_block_layers = num_block_layers
         self.expansion_coefficient_length = expansion_coefficient_length
         self.block_type = block_type
         self.prediction_length = prediction_length
@@ -135,7 +135,7 @@ class NBEATSBlock(mx.gluon.HybridBlock):
 
         with self.name_scope():
             self.fc_stack = mx.gluon.nn.HybridSequential()
-            for i in range(block_layers):
+            for i in range(num_block_layers):
                 self.fc_stack.add(
                     mx.gluon.nn.Dense(units=self.width, activation="relu")
                 )
@@ -239,43 +239,43 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
     context_length
         Number of time units that condition the predictions
         (default: None, in which case context_length = prediction_length)
-    num_stacks:
+    num_stacks
         The number of stacks the network should contain.
         Default and recommended value for generic mode: 30
         Recommended value for interpretable mode: 2
-    widths:
-        Widths of the fully connected layers with ReLu activation.
-        A list of ints of length 1 or 'num_stacks'.
-        Default and recommended value for generic mode: [512]
-        Recommended value for interpretable mode: [256, 2048]
-    blocks:
-        The number of blocks blocks per stack.
+    num_blocks
+        The number of blocks per stack.
         A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [1]
         Recommended value for interpretable mode: [3]
-    block_layers:
+    num_block_layers
         Number of fully connected layers with ReLu activation per block.
         A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [4]
         Recommended value for interpretable mode: [4]
-    sharing:
+    widths
+        Widths of the fully connected layers with ReLu activation in the blocks.
+        A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [512]
+        Recommended value for interpretable mode: [256, 2048]
+    sharing
         Whether the weights are shared with the other blocks per stack.
         A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [False]
         Recommended value for interpretable mode: [True]
-    expansion_coefficient_lengths:
+    expansion_coefficient_lengths
         If the type is "G" (generic), then the length of the expansion coefficient.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
         If the type is "S" (seasonal) then its not used.
         A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [2]
         Recommended value for interpretable mode: [2]
-    stack_types:
+    stack_types
         One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
         A list of strings of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
-    kwargs:
+    kwargs
         Arguments passed to 'HybridBlock'.
     """
 
@@ -288,8 +288,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         context_length: int,
         num_stacks: int,
         widths: List[int],
-        blocks: List[int],
-        block_layers: List[int],
+        num_blocks: List[int],
+        num_block_layers: List[int],
         expansion_coefficient_lengths: List[int],
         sharing: List[bool],
         stack_types: List[str],
@@ -299,8 +299,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
 
         self.num_stacks = num_stacks
         self.widths = widths
-        self.blocks = blocks
-        self.block_layers = block_layers
+        self.num_blocks = num_blocks
+        self.num_block_layers = num_block_layers
         self.sharing = sharing
         self.expansion_coefficient_lengths = expansion_coefficient_lengths
         self.stack_types = stack_types
@@ -312,7 +312,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
 
             # connect all the blocks correctly
             for stack_id in range(num_stacks):
-                for block_id in range(blocks[stack_id]):
+                for block_id in range(num_blocks[stack_id]):
                     # in case sharing is enabled for the stack
                     params = (
                         self.net_blocks[-1].collect_params()
@@ -322,11 +322,11 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                     # only last one does not have backcast
                     has_backcast = not (
                         stack_id == num_stacks - 1
-                        and block_id == blocks[num_stacks - 1] - 1
+                        and block_id == num_blocks[num_stacks - 1] - 1
                     )
                     net_block = NBEATSBlock(
                         width=self.widths[stack_id],
-                        block_layers=self.block_layers[stack_id],
+                        num_block_layers=self.num_block_layers[stack_id],
                         expansion_coefficient_length=self.expansion_coefficient_lengths[
                             stack_id
                         ],
@@ -508,14 +508,15 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
         Returns
         -------
         Tensor
-            Prediction sample. Shape: (samples, batch_size, prediction_length).
+            Prediction sample. Shape: (batch_size, 1, prediction_length).
         """
         # future_target never used
         forecasts = super().hybrid_forward(
             F, past_target=past_target, future_target=past_target
         )
+
         # dimension collapsed previously because we only have one sample each:
         forecasts = F.expand_dims(forecasts, axis=1)
 
-        # (batch_size, num_samples, prediction_length)
+        # (batch_size, 1, prediction_length)
         return forecasts

@@ -60,43 +60,43 @@ class NBEATSEstimator(GluonEstimator):
         The number of stacks the network should contain.
         Default and recommended value for generic mode: 30
         Recommended value for interpretable mode: 2
-    widths:
-        Widths of the fully connected layers with ReLu activation.
-        A list of ints of length 1 or 'num_stacks'.
-        Default and recommended value for generic mode: [512]
-        Recommended value for interpretable mode: [256, 2048]
-    blocks:
-        The number of blocks blocks per stack.
+    num_blocks
+        The number of blocks per stack.
         A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [1]
         Recommended value for interpretable mode: [3]
-    block_layers:
+    block_layers
         Number of fully connected layers with ReLu activation per block.
         A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [4]
         Recommended value for interpretable mode: [4]
-    sharing:
+    widths
+        Widths of the fully connected layers with ReLu activation in the blocks.
+        A list of ints of length 1 or 'num_stacks'.
+        Default and recommended value for generic mode: [512]
+        Recommended value for interpretable mode: [256, 2048]
+    sharing
         Whether the weights are shared with the other blocks per stack.
         A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [False]
         Recommended value for interpretable mode: [True]
-    expansion_coefficient_lengths:
+    expansion_coefficient_lengths
         If the type is "G" (generic), then the length of the expansion coefficient.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
         If the type is "S" (seasonal) then its not used.
         A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [2]
         Recommended value for interpretable mode: [2]
-    stack_types:
+    stack_types
         One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
         A list of strings of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
-    loss_function:
+    loss_function
         The loss funtion (also known as metric) to use for training the network.
         Unlike other models in GluonTS this network does not use a distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".
-    kwargs:
+    kwargs
         Arguments passed to 'GluonEstimator'.
     """
 
@@ -113,8 +113,8 @@ class NBEATSEstimator(GluonEstimator):
         trainer: Trainer = Trainer(),
         num_stacks: int = 30,
         widths: Optional[List[int]] = None,
-        blocks: Optional[List[int]] = None,
-        block_layers: Optional[List[int]] = None,
+        num_blocks: Optional[List[int]] = None,
+        num_block_layers: Optional[List[int]] = None,
         expansion_coefficient_lengths: Optional[List[int]] = None,
         sharing: Optional[List[bool]] = None,
         stack_types: Optional[List[str]] = None,
@@ -153,16 +153,16 @@ class NBEATSEstimator(GluonEstimator):
             validation_condition=lambda val: val > 0,
             invalidation_message="Values of 'widths' should be > 0",
         )
-        self.blocks = self._validate_nbeats_argument(
-            argument_value=blocks,
-            argument_name="blocks",
+        self.num_blocks = self._validate_nbeats_argument(
+            argument_value=num_blocks,
+            argument_name="num_blocks",
             default_value=[1],
             validation_condition=lambda val: val > 0,
-            invalidation_message="Values of 'blocks' should be > 0",
+            invalidation_message="Values of 'num_blocks' should be > 0",
         )
-        self.block_layers = self._validate_nbeats_argument(
-            argument_value=block_layers,
-            argument_name="block_layers",
+        self.num_block_layers = self._validate_nbeats_argument(
+            argument_value=num_block_layers,
+            argument_name="num_block_layers",
             default_value=[4],
             validation_condition=lambda val: val > 0,
             invalidation_message="Values of 'block_layers' should be > 0",
@@ -250,8 +250,8 @@ class NBEATSEstimator(GluonEstimator):
             context_length=self.context_length,
             num_stacks=self.num_stacks,
             widths=self.widths,
-            blocks=self.blocks,
-            block_layers=self.block_layers,
+            num_blocks=self.num_blocks,
+            num_block_layers=self.num_block_layers,
             expansion_coefficient_lengths=self.expansion_coefficient_lengths,
             sharing=self.sharing,
             stack_types=self.stack_types,
@@ -269,8 +269,8 @@ class NBEATSEstimator(GluonEstimator):
             context_length=self.context_length,
             num_stacks=self.num_stacks,
             widths=self.widths,
-            blocks=self.blocks,
-            block_layers=self.block_layers,
+            num_blocks=self.num_blocks,
+            num_block_layers=self.num_block_layers,
             expansion_coefficient_lengths=self.expansion_coefficient_lengths,
             sharing=self.sharing,
             stack_types=self.stack_types,
