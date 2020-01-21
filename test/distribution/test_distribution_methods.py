@@ -27,6 +27,7 @@ from gluonts.distribution import (
     Beta,
     MultivariateGaussian,
     PiecewiseLinear,
+    Poisson,
     Binned,
     TransformedDistribution,
 )
@@ -75,14 +76,17 @@ test_cases = [
     (
         Binned,
         {
-            "bin_probs": mx.nd.array(
-                [[0, 0.3, 0.1, 0.05, 0.2, 0.1, 0.25]]
-            ).repeat(axis=0, repeats=2),
+            "bin_log_probs": mx.nd.array(
+                [[1e-300, 0.3, 0.1, 0.05, 0.2, 0.1, 0.25]]
+            )
+            .log()
+            .repeat(axis=0, repeats=2),
             "bin_centers": mx.nd.array(
                 [[-5, -3, -1.2, -0.5, 0, 0.1, 0.2]]
             ).repeat(axis=0, repeats=2),
         },
     ),
+    (Poisson, {"rate": mx.nd.array([1000.0, 1.0])}),
 ]
 
 test_output = {
@@ -126,6 +130,11 @@ test_output = {
         "stddev": mx.nd.array([1.377416, 1.377416]),
         "variance": mx.nd.array([1.8972749, 1.8972749]),
     },
+    "Poisson": {
+        "mean": mx.nd.array([1000.0, 1.0]),
+        "stddev": mx.nd.array([31.622776, 1.0]),
+        "variance": mx.nd.array([1000.0, 1.0]),
+    },
 }
 
 # TODO: implement stddev methods for MultivariateGaussian and LowrankMultivariateGaussian
@@ -137,6 +146,7 @@ DISTRIBUTIONS = [
     NegativeBinomial,
     Uniform,
     Binned,
+    Poisson,
 ]
 
 

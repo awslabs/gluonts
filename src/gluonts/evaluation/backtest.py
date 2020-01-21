@@ -33,6 +33,7 @@ from gluonts.evaluation import Evaluator
 from gluonts.model.estimator import Estimator, GluonEstimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import GluonPredictor, Predictor
+from gluonts.support.util import maybe_len
 from gluonts.transform import TransformedDataset
 
 
@@ -201,7 +202,7 @@ def backtest_metrics(
     )
 
     agg_metrics, item_metrics = evaluator(
-        ts_it, forecast_it, num_series=len(test_dataset)
+        ts_it, forecast_it, num_series=maybe_len(test_dataset)
     )
 
     # we only log aggregate metrics for now as item metrics may be very large

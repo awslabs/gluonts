@@ -72,7 +72,12 @@ def generate_m4_dataset(
     save_to_file(
         train_file,
         [
-            to_dict(target_values=target, start=mock_start_dataset, cat=[cat])
+            to_dict(
+                target_values=target,
+                start=mock_start_dataset,
+                cat=[cat],
+                item_id=cat,
+            )
             for cat, target in enumerate(train_target_values)
         ],
     )
@@ -80,7 +85,12 @@ def generate_m4_dataset(
     save_to_file(
         test_file,
         [
-            to_dict(target_values=target, start=mock_start_dataset, cat=[cat])
+            to_dict(
+                target_values=target,
+                start=mock_start_dataset,
+                cat=[cat],
+                item_id=cat,
+            )
             for cat, target in enumerate(test_target_values)
         ],
     )

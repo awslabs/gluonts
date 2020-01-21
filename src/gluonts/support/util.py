@@ -18,7 +18,17 @@ import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, cast, Union, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    cast,
+    Union,
+    Tuple,
+    Iterable,
+)
 
 # Third-party imports
 import mxnet as mx
@@ -112,6 +122,13 @@ class HybridContext:
 
     def __exit__(self, *args):
         self.net.hybridize(active=self.original_mode, **self.kwargs)
+
+
+def maybe_len(obj) -> Optional[int]:
+    try:
+        return len(obj)
+    except NotImplementedError:
+        return None
 
 
 def copy_parameters(

@@ -46,7 +46,6 @@ metadata = dataset.metadata
 estimator = DeepVAREstimator
 
 
-@pytest.mark.timeout(10)
 @pytest.mark.parametrize(
     "distr_output, num_batches_per_epoch, Estimator, hybridize, "
     "use_marginal_transformation",

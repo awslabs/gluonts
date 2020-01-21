@@ -49,6 +49,7 @@ from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
 
 from .gamma import Gamma, GammaOutput
+from .poisson import Poisson, PoissonOutput
 
 __all__ = [
     "Distribution",
@@ -77,6 +78,8 @@ __all__ = [
     "BinnedOutput",
     "PiecewiseLinear",
     "PiecewiseLinearOutput",
+    "Poisson",
+    "PoissonOutput",
     "TransformedPiecewiseLinear",
     "TransformedDistribution",
     "TransformedDistributionOutput",
