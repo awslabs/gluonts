@@ -19,6 +19,7 @@ from gluonts.dataset.artificial import default_synthetic
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.deep_factor import DeepFactorEstimator
+from gluonts.model.n_beats import NBEATSEstimator, NBEATSEnsembleEstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.model.gp_forecaster import GaussianProcessEstimator
 from gluonts.model.wavenet import WaveNetEstimator
@@ -146,6 +147,69 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
     )
 
 
+def n_beats_generic_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        NBEATSEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            batch_size=batch_size,
+            hybridize=hybridize,
+            prediction_length=prediction_length,
+            context_length=context_length,
+            freq=freq,
+            num_batches_per_epoch=batches_per_epoch,
+            num_parallel_samples=2,
+        ),
+    )
+
+
+def n_beats_generic_ensemble_estimator(
+    hybridize: bool = True, batches_per_epoch=1
+):
+    return (
+        NBEATSEnsembleEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            batch_size=batch_size,
+            hybridize=hybridize,
+            prediction_length=prediction_length,
+            freq=freq,
+            num_batches_per_epoch=batches_per_epoch,
+            num_parallel_samples=2,
+            meta_context_length=[2 * prediction_length],
+            meta_loss_function=["MAPE"],
+            meta_bagging_size=2,
+            num_stacks=3,
+        ),
+    )
+
+
+def n_beats_interpretable_estimator(
+    hybridize: bool = True, batches_per_epoch=1
+):
+    return (
+        NBEATSEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            batch_size=batch_size,
+            hybridize=hybridize,
+            prediction_length=prediction_length,
+            context_length=context_length,
+            freq=freq,
+            num_batches_per_epoch=batches_per_epoch,
+            num_parallel_samples=2,
+            num_stacks=2,
+            num_blocks=[3],
+            widths=[256, 2048],
+            sharing=[True],
+            stack_types=["T", "S"],
+        ),
+    )
+
+
 @pytest.mark.timeout(10)
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
@@ -155,6 +219,9 @@ def transformer_estimator(hybridize: bool = False, batches_per_epoch=1):
         gp_estimator(batches_per_epoch=1) + (10.0,),
         deep_factor_estimator(batches_per_epoch=1) + (10.0,),
         wavenet_estimator(batches_per_epoch=10) + (10.0,),
+        n_beats_generic_estimator(batches_per_epoch=1) + (10.0,),
+        n_beats_generic_ensemble_estimator(batches_per_epoch=1) + (10.0,),
+        n_beats_interpretable_estimator(batches_per_epoch=1) + (10.0,),
         # transformer_estimator(batches_per_epoch=1) + (10.0,), # usually fails the 5 second timeout
     ],
 )

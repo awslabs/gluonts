@@ -155,9 +155,9 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                     units=prediction_length  # linear activation:
                 )
             elif block_type == "S":
-                num_coefficients = int(
-                    (prediction_length / 2) - 1
-                )  # according to paper
+                num_coefficients = (
+                    int((prediction_length / 2) - 1) + 1
+                )  # according to paper, dont use floor because prediction_length=1 should be mapped to 0
                 if has_backcast:
                     self.theta_backcast = mx.gluon.nn.Dense(
                         units=2 * num_coefficients  # linear activation:
@@ -443,6 +443,14 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
         # Covert frequency string like "2H" to whats called the periodicity m.
         # E.g. 12 in case of "2H" because of 12 times two hours in a day.
         self.periodicity = get_seasonality(self.freq)
+
+        if self.loss_function == "MASE":
+            assert (
+                self.periodicity < self.context_length + self.prediction_length
+            ), (
+                "If the 'periodicity' of your data is less than 'context_length' + 'prediction_length' "
+                "the seasonal_error cannot be calculated and thus 'MASE' cannot be used for optimization."
+            )
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(

@@ -22,9 +22,11 @@ import logging
 # Third-party imports
 import mxnet as mx
 import numpy as np
+from pydantic import ValidationError
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, from_hyperparameters
+from gluonts.core import fqname_for
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
@@ -32,6 +34,7 @@ from gluonts.dataset.loader import DataBatch
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.trainer import Trainer
 
 # Relative imports
@@ -40,6 +43,179 @@ from ._estimator import NBEATSEstimator
 
 # None is also a valid parameter
 AGGREGATION_METHODS = "median", "mean", "none"
+
+
+class NBEATSEnsemblePredictor(Predictor):
+    """"
+    An ensemble predictor for N-BEATS.
+    Calling '.predict' will result in |predictors|x|dataset| predictions.
+
+    Parameters
+    ----------
+    prediction_length
+        Prediction horizon.
+    freq
+        Frequency of the predicted data.
+    predictors
+        The list of 'RepresentableBlockPredictor' that the ensemble consists of.
+    aggregation_method
+        The method by which to aggregate the individual predictions of the models.
+        Either 'median', 'mean' or 'none', in which case no aggregation happens.
+        Default is 'median'.
+    """
+
+    def __init__(
+        self,
+        prediction_length: int,
+        freq: str,
+        predictors: List[RepresentableBlockPredictor],
+        aggregation_method: Optional[str] = "median",
+    ) -> None:
+        super().__init__(prediction_length, freq)
+
+        assert aggregation_method in AGGREGATION_METHODS
+
+        self.predictors = predictors
+        self.aggregation_method = aggregation_method
+
+    def set_aggregation_method(self, aggregation_method: str):
+        assert aggregation_method in AGGREGATION_METHODS
+        self.aggregation_method = aggregation_method
+
+    def serialize(self, path: Path) -> None:
+        # serialize some metadata
+        super().serialize(path)
+
+        # basically save each predictor in its own sub-folder
+        num_digits = len(str(len(self.predictors)))
+        for index, predictor in enumerate(self.predictors):
+            composite_path = path / f"predictor_{str(index).zfill(num_digits)}"
+            os.makedirs(composite_path)
+            predictor.serialize(composite_path)
+
+        # serialize all remaining constructor parameters
+        with (path / "parameters.json").open("w") as fp:
+            parameters = dict(
+                prediction_length=self.prediction_length,
+                freq=self.freq,
+                aggregation_method=self.aggregation_method,
+                num_predictors=len(self.predictors),
+            )
+            print(dump_json(parameters), file=fp)
+
+    @classmethod
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "NBEATSEnsemblePredictor":
+        # deserialize constructor parameters
+        with (path / "parameters.json").open("r") as fp:
+            parameters = load_json(fp.read())
+
+        # basically save each predictor in its own sub-folder
+        num_predictors = parameters["num_predictors"]
+        num_digits = len(str(num_predictors))
+
+        predictors = []
+        # load all the predictors individually and also make sure not to load anything else by mistake
+        predictor_locations = [
+            f"predictor_{str(index).zfill(num_digits)}"
+            for index in range(num_predictors)
+        ]
+
+        # deserialize predictors
+        for sub_dir in predictor_locations:
+            predictors.append(
+                RepresentableBlockPredictor.deserialize(path / sub_dir, ctx)
+            )
+
+        return NBEATSEnsemblePredictor(
+            prediction_length=parameters["prediction_length"],
+            freq=parameters["freq"],
+            predictors=predictors,
+            aggregation_method=parameters["aggregation_method"],
+        )
+
+    # Additionally implemented since we are dealing with RepresentableBlockPredictor
+    def hybridize(self, batch: DataBatch) -> None:
+        for predictor in self.predictors:
+            predictor.hybridize(batch)
+
+    def predict(
+        self, dataset: Dataset, num_samples: Optional[int] = 1, **kwargs
+    ) -> Iterator[Forecast]:
+        if num_samples != 1:
+            logging.warning(
+                "NBEATSEnsemblePredictor does not support sampling. "
+                "Therefore 'num_samples' will be ignored and set to 1."
+            )
+        iterators = []
+
+        # create the iterators from the predictors
+        for predictor in self.predictors:
+            iterators.append(predictor.predict(dataset, num_samples=1))
+
+        # we always have to predict for one series in the dataset with
+        # all models and return it as a 'SampleForecast' so that it is
+        # clear that all these prediction concern the same series
+        for item in dataset:
+            output = []
+            start_date = None
+
+            for iterator in iterators:
+                prediction = next(iterator)
+                output.append(prediction.samples)
+
+                # get the forecast start date
+                if start_date is None:
+                    start_date = prediction.start_date
+            output = np.stack(output, axis=0)
+
+            # aggregating output of different models
+            # default according to paper is median,
+            # but we can also make use of not aggregating
+            if self.aggregation_method == "median":
+                output = np.median(output, axis=0)
+            elif self.aggregation_method == "mean":
+                output = np.mean(output, axis=0)
+            else:  # "none": do not aggregate
+                pass
+
+            yield SampleForecast(
+                output,
+                start_date=start_date,
+                freq=start_date.freqstr,
+                item_id=item[FieldName.ITEM_ID]
+                if FieldName.ITEM_ID in item
+                else None,
+                info=item["info"] if "info" in item else None,
+            )
+
+    def __eq__(self, that):
+        """
+        Unfortunately it cannot be guaranteed that two predictors are not equal if this returns false
+        if for some reason the order of the predictors list has been altered.
+        """
+        if type(self) != type(that):
+            return False
+
+        try:
+            if not (
+                self.prediction_length == that.prediction_length
+                and self.freq == that.freq
+                and self.aggregation_method == that.aggregation_method
+            ):
+                return False
+        except ValueError:
+            # For example if the order of the predictors is changed we get this error
+            return False
+
+        for own_predictor, that_predictor in zip(
+            self.predictors, that.predictors
+        ):
+            if not own_predictor == that_predictor:
+                return False
+
+        return True
 
 
 class NBEATSEnsembleEstimator(Estimator):
@@ -113,6 +289,8 @@ class NBEATSEnsembleEstimator(Estimator):
         A list of strings of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
+    **kwargs
+        Arguments passed down to the individual estimators.
     """
 
     # The validated() decorator makes sure that parameters are checked by
@@ -135,6 +313,7 @@ class NBEATSEnsembleEstimator(Estimator):
         expansion_coefficient_lengths: Optional[List[int]] = None,
         sharing: Optional[List[bool]] = None,
         stack_types: Optional[List[str]] = None,
+        **kwargs,
     ) -> None:
         super().__init__()
 
@@ -172,6 +351,7 @@ class NBEATSEnsembleEstimator(Estimator):
 
         # The following arguments are validated in the NBEATSEstimator:
         self.trainer = trainer
+        print(f"TRAINER:{str(trainer)}")
         self.num_stacks = num_stacks
         self.widths = widths
         self.num_blocks = num_blocks
@@ -181,9 +361,9 @@ class NBEATSEnsembleEstimator(Estimator):
         self.stack_types = stack_types
 
         # Actually instantiate the different models
-        self.estimators = self._estimator_factory()
+        self.estimators = self._estimator_factory(**kwargs)
 
-    def _estimator_factory(self):
+    def _estimator_factory(self, **kwargs):
         estimators = []
         for context_length, loss_function, init_id in product(
             self.meta_context_length,
@@ -205,13 +385,35 @@ class NBEATSEnsembleEstimator(Estimator):
                     sharing=self.sharing,
                     stack_types=self.stack_types,
                     loss_function=loss_function,
+                    **kwargs,
                 )
             )
         return estimators
 
+    @classmethod
+    def from_hyperparameters(
+        cls, **hyperparameters
+    ) -> "NBEATSEnsembleEstimator":
+        Model = getattr(cls.__init__, "Model", None)
+
+        if not Model:
+            raise AttributeError(
+                f"Cannot find attribute Model attached to the "
+                f"{fqname_for(cls)}. Most probably you have forgotten to mark "
+                f"the class constructor as @validated()."
+            )
+
+        try:
+            trainer = from_hyperparameters(Trainer, **hyperparameters)
+            return cls(
+                **Model(**{**hyperparameters, "trainer": trainer}).__dict__
+            )
+        except ValidationError as e:
+            raise GluonTSHyperparametersError from e
+
     def train(
         self, training_data: Dataset, validation_data: Optional[Dataset] = None
-    ) -> Predictor:
+    ) -> NBEATSEnsemblePredictor:
         predictors = []
 
         for index, estimator in enumerate(self.estimators):
@@ -223,144 +425,3 @@ class NBEATSEnsembleEstimator(Estimator):
         return NBEATSEnsemblePredictor(
             self.prediction_length, self.freq, predictors
         )
-
-
-class NBEATSEnsemblePredictor(Predictor):
-    """"
-    An ensemble predictor for N-BEATS.
-    Calling '.predict' will result in |predictors|x|dataset| predictions.
-
-    Parameters
-    ----------
-    prediction_length
-        Prediction horizon.
-    freq
-        Frequency of the predicted data.
-    predictors
-        The list of 'RepresentableBlockPredictor' that the ensemble consists of.
-    aggregation_method
-        The method by which to aggregate the individual predictions of the models.
-        Either 'median', 'mean' or 'none', in which case no aggregation happens.
-        Default is 'median'.
-    """
-
-    def __init__(
-        self,
-        prediction_length: int,
-        freq: str,
-        predictors: List[RepresentableBlockPredictor],
-        aggregation_method: Optional[str] = "median",
-    ) -> None:
-        super().__init__(prediction_length, freq)
-
-        assert aggregation_method in AGGREGATION_METHODS
-
-        self.predictors = predictors
-        self.aggregation_method = aggregation_method
-
-    def set_aggregation_method(self, aggregation_method: str):
-        assert aggregation_method in AGGREGATION_METHODS
-        self.aggregation_method = aggregation_method
-
-    def serialize(self, path: Path) -> None:
-        # basically save each predictor in its own sub-folder
-        num_digits = len(str(len(self.predictors)))
-        for index, predictor in enumerate(self.predictors):
-            composite_path = path / f"predictor_{str(index).zfill(num_digits)}"
-            os.makedirs(composite_path)
-            predictor.serialize(composite_path)
-
-        # serialize all remaining constructor parameters
-        with (path / "parameters.json").open("w") as fp:
-            parameters = dict(
-                prediction_length=self.prediction_length,
-                freq=self.freq,
-                aggregation_method=self.aggregation_method,
-            )
-            print(dump_json(parameters), file=fp)
-
-    @classmethod
-    def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
-    ) -> "NBEATSEnsemblePredictor":
-        predictors = []
-        # load all the predictors individually and also make sure not to load anything else by mistake
-        predictor_locations = [
-            sub_dir
-            for sub_dir in next(os.walk(str(path)))[1]
-            if sub_dir.startswith("predictor_")
-        ]
-
-        # deserialize predictors
-        for sub_dir in predictor_locations:
-            predictors.append(
-                RepresentableBlockPredictor.deserialize(path / sub_dir, ctx)
-            )
-
-        # deserialize constructor parameters
-        with (path / "parameters.json").open("r") as fp:
-            parameters = load_json(fp.read())
-
-        return NBEATSEnsemblePredictor(
-            prediction_length=parameters["prediction_length"],
-            freq=parameters["freq"],
-            predictors=predictors,
-            aggregation_method=parameters["aggregation_method"],
-        )
-
-    # Additionally implemented since we are dealing with RepresentableBlockPredictor
-    def hybridize(self, batch: DataBatch) -> None:
-        for predictor in self.predictors:
-            predictor.hybridize(batch)
-
-    def predict(
-        self, dataset: Dataset, num_samples: Optional[int] = 1, **kwargs
-    ) -> Iterator[Forecast]:
-        if num_samples != 1:
-            logging.warning(
-                "NBEATSEnsemblePredictor does not support sampling. "
-                "Therefore 'num_samples' will be ignored and set to 1."
-            )
-        iterators = []
-
-        # create the iterators from the predictors
-        for predictor in self.predictors:
-            iterators.append(predictor.predict(dataset, num_samples=1))
-
-        # we always have to predict for one series in the dataset with
-        # all models and return it as a 'SampleForecast' so that it is
-        # clear that all these prediction concern the same series
-        for item in dataset:
-            output = []
-            start_date = None
-
-            for iterator in iterators:
-                prediction = next(iterator)
-                output.append(prediction.samples)
-
-                # some weird transformation is going on with the start date,
-                # so I just take the already transformed one, otherwise
-                # evaluator will give Nans for the seasonal_error
-                if start_date is None:
-                    start_date = prediction.start_date
-            output = np.stack(output, axis=0)
-
-            # aggregating output of different models
-            # default according to paper is median,
-            # but we can also make use of not aggregating
-            if self.aggregation_method == "median":
-                output = np.median(output, axis=0)
-            elif self.aggregation_method == "mean":
-                output = np.mean(output, axis=0)
-            else:  # do not aggregate
-                pass
-
-            yield SampleForecast(
-                output,
-                start_date=start_date,
-                freq=start_date.freqstr,
-                item_id=item[FieldName.ITEM_ID]
-                if FieldName.ITEM_ID in item
-                else None,
-                info=item["info"] if "info" in item else None,
-            )

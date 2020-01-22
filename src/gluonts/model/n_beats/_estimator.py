@@ -102,6 +102,7 @@ class NBEATSEstimator(GluonEstimator):
         The loss funtion (also known as metric) to use for training the network.
         Unlike other models in GluonTS this network does not use a distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".
+        The default value is "MAPE".
     kwargs
         Arguments passed to 'GluonEstimator'.
     """
@@ -124,7 +125,7 @@ class NBEATSEstimator(GluonEstimator):
         expansion_coefficient_lengths: Optional[List[int]] = None,
         sharing: Optional[List[bool]] = None,
         stack_types: Optional[List[str]] = None,
-        loss_function: Optional[str] = "sMAPE",
+        loss_function: Optional[str] = "MAPE",
         **kwargs,
     ) -> None:
         """
