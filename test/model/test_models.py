@@ -310,7 +310,6 @@ def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
 
 
 @flaky(max_runs=3, min_passes=1)
-@pytest.mark.timeout(10)  # DeepAR occasionally fails with the 5 second timeout
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
     [

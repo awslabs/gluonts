@@ -210,7 +210,6 @@ def n_beats_interpretable_estimator(
     )
 
 
-@pytest.mark.timeout(10)
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
     [
