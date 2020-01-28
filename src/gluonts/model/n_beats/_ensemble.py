@@ -44,7 +44,7 @@ from ._estimator import NBEATSEstimator
 # None is also a valid parameter
 AGGREGATION_METHODS = "median", "mean", "none"
 
-
+# TODO: change parent class to RepresentablePredictor
 class NBEATSEnsemblePredictor(Predictor):
     """"
     An ensemble predictor for N-BEATS.
@@ -163,6 +163,10 @@ class NBEATSEnsemblePredictor(Predictor):
 
             for iterator in iterators:
                 prediction = next(iterator)
+
+                # on order to avoid mypys complaints
+                assert isinstance(prediction, SampleForecast)
+
                 output.append(prediction.samples)
 
                 # get the forecast start date
@@ -179,6 +183,9 @@ class NBEATSEnsemblePredictor(Predictor):
                 output = np.mean(output, axis=0)
             else:  # "none": do not aggregate
                 pass
+
+            # on order to avoid mypys complaints
+            assert start_date is not None
 
             yield SampleForecast(
                 output,
