@@ -310,6 +310,7 @@ def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
 
 
 @flaky(max_runs=3, min_passes=1)
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
     [
