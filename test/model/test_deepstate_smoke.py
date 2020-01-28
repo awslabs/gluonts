@@ -28,6 +28,7 @@ common_estimator_hps = dict(
     prediction_length=3,
     trainer=Trainer(epochs=3, num_batches_per_epoch=2, batch_size=1),
     past_length=10,
+    add_trend=True,
 )
 
 
