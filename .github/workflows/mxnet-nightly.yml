@@ -32,4 +32,4 @@ jobs:
         pip install -r requirements/requirements-test.txt
     - name: Test with pytest
       run: |
-        pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test
+        pytest --timeout=60 -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test
