@@ -1,6 +1,9 @@
 # GluonTS - Probabilistic Time Series Modeling in Python
 
-[![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/) ![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)
+[![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/)
+[![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)](./LICENSE)
+[![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=blue&style=flat-square)][stable docs url]
+[![Static](https://img.shields.io/static/v1?label=docs&message=latest&color=blue&style=flat-square)][latest docs url]
 
 GluonTS is a Python toolkit for probabilistic time series modeling,
 built around [Apache MXNet (incubating)](https://mxnet.incubator.apache.org/).
@@ -9,8 +12,12 @@ GluonTS provides utilities for loading and iterating over time series datasets,
 state of the art models ready to be trained, and building blocks to define
 your own models and quickly experiment with different solutions.
 
-* [Documentation](https://gluon-ts.mxnet.io/)
+* [Documentation (stable version)][stable docs url]
+* [Documentation (latest)][latest docs url]
 * [Paper](https://arxiv.org/abs/1906.05264)
+
+[stable docs url]: https://gluon-ts.mxnet.io/
+[latest docs url]: https://gluon-ts.s3-accelerate.dualstack.amazonaws.com/master/index.html
 
 ## Installation
 

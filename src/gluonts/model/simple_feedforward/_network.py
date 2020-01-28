@@ -179,7 +179,7 @@ class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
         Returns
         -------
         Tensor
-            Prediction sample. Shape: (samples, batch_size, prediction_length).
+            Prediction sample. Shape: (batch_size, samples, prediction_length).
         """
         distr = self.get_distr(F, past_target)
 
