@@ -40,7 +40,6 @@ def linear_space(
 
 def seasonality_model(
     F,
-    thetas: Tensor,
     num_coefficients: int,
     context_length: int,
     prediction_length: int,
@@ -60,12 +59,11 @@ def seasonality_model(
         *[F.sin(2 * np.pi * i * t) for i in range(num_coefficients)]
     )
     S = F.concat(cosines, sines, dim=0)
-    return F.dot(thetas, S)
+    return S  # F.dot(thetas, S)
 
 
 def trend_model(
     F,
-    thetas: Tensor,
     num_coefficients: int,
     context_length: int,
     prediction_length: int,
@@ -78,14 +76,12 @@ def trend_model(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
     T = F.stack(*[t ** i for i in range(num_coefficients)])
-    return F.dot(thetas, T)
+    return T  # F.dot(thetas, T)
 
 
 class NBEATSBlock(mx.gluon.HybridBlock):
     """
     The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
-    Its configurable to any of the specific block
-    types through the block_type parameter.
 
     Parameters
     ----------
@@ -97,15 +93,13 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         If the type is "G" (generic), then the length of the expansion coefficient.
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
         If the type is "S" (seasonal) then its not used.
-    block_type
-        Either "G" (generic), "S" (seasonal) or "T" (trend).
     prediction_length
         Length of the prediction. Also known as 'horizon'.
     context_length
         Number of time units that condition the predictions
         Also known as 'lookback period'.
     has_backcast
-        Only the last block of the network doesnt.
+        Only the last block of the network doesn't.
     kwargs
         Arguments passed to 'HybridBlock'.
     """
@@ -120,7 +114,6 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         expansion_coefficient_length: int,
         prediction_length: int,
         context_length: int,
-        block_type: str,
         has_backcast: bool,
         **kwargs,
     ) -> None:
@@ -129,90 +122,23 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         self.width = width
         self.num_block_layers = num_block_layers
         self.expansion_coefficient_length = expansion_coefficient_length
-        self.block_type = block_type
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.has_backcast = has_backcast
 
         with self.name_scope():
             self.fc_stack = mx.gluon.nn.HybridSequential()
-            for i in range(num_block_layers):
+            for i in range(self.num_block_layers):
                 self.fc_stack.add(
                     mx.gluon.nn.Dense(units=self.width, activation="relu")
                 )
-            if block_type == "G":
-                if has_backcast:
-                    self.theta_backcast = mx.gluon.nn.Dense(
-                        units=expansion_coefficient_length  # linear activation:
-                    )
-                    self.backcast = mx.gluon.nn.Dense(
-                        units=context_length  # linear activation:
-                    )
-                self.theta_forecast = mx.gluon.nn.Dense(
-                    units=expansion_coefficient_length  # linear activation:
-                )
-                self.forecast = mx.gluon.nn.Dense(
-                    units=prediction_length  # linear activation:
-                )
-            elif block_type == "S":
-                num_coefficients = (
-                    int((prediction_length / 2) - 1) + 1
-                )  # according to paper, dont use floor because prediction_length=1 should be mapped to 0
-                if has_backcast:
-                    self.theta_backcast = mx.gluon.nn.Dense(
-                        units=2 * num_coefficients  # linear activation:
-                    )
-                    self.backcast = mx.gluon.nn.HybridLambda(
-                        lambda F, thetas: seasonality_model(
-                            F,
-                            thetas,
-                            num_coefficients=num_coefficients,
-                            context_length=context_length,
-                            prediction_length=prediction_length,
-                            is_forecast=False,
-                        )
-                    )
-                self.theta_forecast = mx.gluon.nn.Dense(
-                    units=2 * num_coefficients  # linear activation:
-                )
-                self.forecast = mx.gluon.nn.HybridLambda(
-                    lambda F, thetas: seasonality_model(
-                        F,
-                        thetas,
-                        num_coefficients=num_coefficients,
-                        context_length=context_length,
-                        prediction_length=prediction_length,
-                        is_forecast=True,
-                    )
-                )
-            else:  # "T"
-                if self.has_backcast:
-                    self.theta_backcast = mx.gluon.nn.Dense(
-                        units=expansion_coefficient_length  # linear activation:
-                    )
-                    self.backcast = mx.gluon.nn.HybridLambda(
-                        lambda F, thetas: trend_model(
-                            F,
-                            thetas,
-                            num_coefficients=expansion_coefficient_length,
-                            context_length=context_length,
-                            prediction_length=prediction_length,
-                            is_forecast=False,
-                        )
-                    )
-                self.theta_forecast = mx.gluon.nn.Dense(
-                    units=expansion_coefficient_length  # linear activation:
-                )
-                self.forecast = mx.gluon.nn.HybridLambda(
-                    lambda F, thetas: trend_model(
-                        F,
-                        thetas,
-                        num_coefficients=expansion_coefficient_length,
-                        context_length=context_length,
-                        prediction_length=prediction_length,
-                        is_forecast=True,
-                    )
-                )
+
+            # all these variables will be overwritten in the subclass
+            # only defined here to be able to use them in the generic hybrid_forward
+            self.theta_forecast = None
+            self.forecast = None
+            self.theta_backcast = None
+            self.backcast = None
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         x = self.fc_stack(x)
@@ -224,6 +150,213 @@ class NBEATSBlock(mx.gluon.HybridBlock):
             backcast = self.backcast(theta_b)
             return backcast, forecast
 
+        return forecast
+
+
+class NBEATSGenericBlock(NBEATSBlock):
+    """
+    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
+    This is the GenericBlock variant.
+
+    Parameters
+    ----------
+    width
+        Width of the fully connected layers with ReLu activation.
+    num_block_layers
+        Number of fully connected layers with ReLu activation.
+    expansion_coefficient_length
+        The length of the expansion coefficient.
+    prediction_length
+        Length of the prediction. Also known as 'horizon'.
+    context_length
+        Number of time units that condition the predictions
+        Also known as 'lookback period'.
+    has_backcast
+        Only the last block of the network doesn't.
+    kwargs
+        Arguments passed to 'HybridBlock'.
+    """
+
+    # Needs the validated decorator so that arguments types are checked and
+    # the block can be serialized.
+    @validated()
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        with self.name_scope():
+            if self.has_backcast:
+                self.theta_backcast = mx.gluon.nn.Dense(
+                    units=self.expansion_coefficient_length  # linear activation:
+                )
+                self.backcast = mx.gluon.nn.Dense(
+                    units=self.context_length  # linear activation:
+                )
+            self.theta_forecast = mx.gluon.nn.Dense(
+                units=self.expansion_coefficient_length  # linear activation:
+            )
+            self.forecast = mx.gluon.nn.Dense(
+                units=self.prediction_length  # linear activation:
+            )
+
+
+class NBEATSSeasonalBlock(NBEATSBlock):
+    """
+    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
+    This is the Seasonal block variant.
+
+    Parameters
+    ----------
+    width
+        Width of the fully connected layers with ReLu activation.
+    num_block_layers
+        Number of fully connected layers with ReLu activation.
+    expansion_coefficient_length
+        Not used in this block type.
+    prediction_length
+        Length of the prediction. Also known as 'horizon'.
+    context_length
+        Number of time units that condition the predictions
+        Also known as 'lookback period'.
+    has_backcast
+        Only the last block of the network doesn't.
+    kwargs
+        Arguments passed to 'HybridBlock'.
+    """
+
+    # Needs the validated decorator so that arguments types are checked and
+    # the block can be serialized.
+    @validated()
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        # parameter to control whether the fourier basis has to be initialized
+        # True upon first call of hybrid_forwards, else False
+        self.initialize_basis = True
+
+        # this is essentially a constant matrix of type F that
+        # defines the basis for the seasonal model
+        # it's initialized in upon first hybrid_forward call
+        self.backcast_basis = None
+        self.forecast_basis = None
+
+        # the number of coefficient in the fourier basis per sine and cosine each
+        # determined depending on prediction length, as defined by paper
+        # also: dont use floor because prediction_length=1 should be mapped to 0
+        self.num_coefficients = int((self.prediction_length / 2) - 1) + 1
+
+        with self.name_scope():
+            if self.has_backcast:
+                self.theta_backcast = mx.gluon.nn.Dense(
+                    units=2 * self.num_coefficients  # linear activation:
+                )
+                self.backcast = mx.gluon.nn.HybridLambda(
+                    lambda F, thetas: F.dot(thetas, self.backcast_basis)
+                )
+            self.theta_forecast = mx.gluon.nn.Dense(
+                units=2 * self.num_coefficients  # linear activation:
+            )
+            self.forecast = mx.gluon.nn.HybridLambda(
+                lambda F, thetas: F.dot(thetas, self.forecast_basis)
+            )
+
+    def hybrid_forward(self, F, x, *args, **kwargs):
+        if self.initialize_basis:
+            if self.has_backcast:
+                self.backcast_basis = seasonality_model(
+                    F,
+                    num_coefficients=self.num_coefficients,
+                    context_length=self.context_length,
+                    prediction_length=self.prediction_length,
+                    is_forecast=False,
+                )
+            self.forecast_basis = seasonality_model(
+                F,
+                num_coefficients=self.num_coefficients,
+                context_length=self.context_length,
+                prediction_length=self.prediction_length,
+                is_forecast=True,
+            )
+            self.initialize_basis = False
+        forecast = super().hybrid_forward(F, x, *args, **kwargs)
+        return forecast
+
+
+class NBEATSTrendBlock(NBEATSBlock):
+    """"
+    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
+    This is the Trend block variant.
+
+    Parameters
+    ----------
+    width
+        Width of the fully connected layers with ReLu activation.
+    num_block_layers
+        Number of fully connected layers with ReLu activation.
+    expansion_coefficient_length
+        The length of the number of expansion coefficients.
+        This corresponds to degree of the polynomial basis as follows:
+            expansion_coefficient_length-1
+    prediction_length
+        Length of the prediction. Also known as 'horizon'.
+    context_length
+        Number of time units that condition the predictions
+        Also known as 'lookback period'.
+    has_backcast
+        Only the last block of the network doesn't.
+    kwargs
+        Arguments passed to 'HybridBlock'.
+    """
+
+    # Needs the validated decorator so that arguments types are checked and
+    # the block can be serialized.
+    @validated()
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        # parameter to control whether the fourier basis has to be initialized
+        # True upon first call of hybrid_forwards, else False
+        self.initialize_basis = True
+
+        # this is essentially a constant matrix of type F that
+        # defines the basis for the seasonal model
+        # it's initialized in upon first hybrid_forward call
+        self.backcast_basis = None
+        self.forecast_basis = None
+
+        with self.name_scope():
+            if self.has_backcast:
+                self.theta_backcast = mx.gluon.nn.Dense(
+                    units=self.expansion_coefficient_length  # linear activation:
+                )
+                self.backcast = mx.gluon.nn.HybridLambda(
+                    lambda F, thetas: F.dot(thetas, self.backcast_basis)
+                )
+            self.theta_forecast = mx.gluon.nn.Dense(
+                units=self.expansion_coefficient_length  # linear activation:
+            )
+            self.forecast = mx.gluon.nn.HybridLambda(
+                lambda F, thetas: F.dot(thetas, self.forecast_basis)
+            )
+
+    def hybrid_forward(self, F, x, *args, **kwargs):
+        if self.initialize_basis:
+            if self.has_backcast:
+                self.backcast_basis = trend_model(
+                    F,
+                    num_coefficients=self.expansion_coefficient_length,
+                    context_length=self.context_length,
+                    prediction_length=self.prediction_length,
+                    is_forecast=False,
+                )
+            self.forecast_basis = trend_model(
+                F,
+                num_coefficients=self.expansion_coefficient_length,
+                context_length=self.context_length,
+                prediction_length=self.prediction_length,
+                is_forecast=True,
+            )
+            self.initialize_basis = False
+        forecast = super().hybrid_forward(F, x, *args, **kwargs)
         return forecast
 
 
@@ -325,18 +458,43 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         stack_id == num_stacks - 1
                         and block_id == num_blocks[num_stacks - 1] - 1
                     )
-                    net_block = NBEATSBlock(
-                        width=self.widths[stack_id],
-                        num_block_layers=self.num_block_layers[stack_id],
-                        expansion_coefficient_length=self.expansion_coefficient_lengths[
-                            stack_id
-                        ],
-                        prediction_length=prediction_length,
-                        context_length=context_length,
-                        block_type=self.stack_types[stack_id],
-                        has_backcast=has_backcast,
-                        params=params,
-                    )
+                    if self.stack_types[stack_id] == "G":
+                        net_block = NBEATSGenericBlock(
+                            width=self.widths[stack_id],
+                            num_block_layers=self.num_block_layers[stack_id],
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                                stack_id
+                            ],
+                            prediction_length=prediction_length,
+                            context_length=context_length,
+                            has_backcast=has_backcast,
+                            params=params,
+                        )
+                    elif self.stack_types[stack_id] == "S":
+                        net_block = NBEATSSeasonalBlock(
+                            width=self.widths[stack_id],
+                            num_block_layers=self.num_block_layers[stack_id],
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                                stack_id
+                            ],
+                            prediction_length=prediction_length,
+                            context_length=context_length,
+                            has_backcast=has_backcast,
+                            params=params,
+                        )
+                    else:  # self.stack_types[stack_id] == "T"
+                        net_block = NBEATSTrendBlock(
+                            width=self.widths[stack_id],
+                            num_block_layers=self.num_block_layers[stack_id],
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                                stack_id
+                            ],
+                            prediction_length=prediction_length,
+                            context_length=context_length,
+                            has_backcast=has_backcast,
+                            params=params,
+                        )
+
                     self.net_blocks.append(net_block)
                     self.register_child(
                         net_block, f"block_{stack_id}_{block_id}"
