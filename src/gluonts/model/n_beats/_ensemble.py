@@ -44,7 +44,7 @@ from ._estimator import NBEATSEstimator
 # None is also a valid parameter
 AGGREGATION_METHODS = "median", "mean", "none"
 
-# TODO: change parent class to RepresentablePredictor
+
 class NBEATSEnsemblePredictor(Predictor):
     """"
     An ensemble predictor for N-BEATS.
@@ -96,7 +96,7 @@ class NBEATSEnsemblePredictor(Predictor):
         num_digits = len(str(len(self.predictors)))
         for index, predictor in enumerate(self.predictors):
             composite_path = path / f"predictor_{str(index).zfill(num_digits)}"
-            os.makedirs(composite_path)
+            os.makedirs(str(composite_path))
             predictor.serialize(composite_path)
 
         # serialize all remaining constructor parameters

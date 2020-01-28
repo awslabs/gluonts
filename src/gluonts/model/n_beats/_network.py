@@ -59,7 +59,7 @@ def seasonality_model(
         *[F.sin(2 * np.pi * i * t) for i in range(num_coefficients)]
     )
     S = F.concat(cosines, sines, dim=0)
-    return S  # F.dot(thetas, S)
+    return S
 
 
 def trend_model(
@@ -76,7 +76,7 @@ def trend_model(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
     T = F.stack(*[t ** i for i in range(num_coefficients)])
-    return T  # F.dot(thetas, T)
+    return T
 
 
 class NBEATSBlock(mx.gluon.HybridBlock):
@@ -126,6 +126,11 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         self.context_length = context_length
         self.has_backcast = has_backcast
 
+        # Parameter to control whether the basis matrix has
+        # been initialised, if the block uses one
+        self.basis_initialized = False
+
+        # Only fc_stack defined concretely in this class
         with self.name_scope():
             self.fc_stack = mx.gluon.nn.HybridSequential()
             for i in range(self.num_block_layers):
@@ -133,14 +138,27 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                     mx.gluon.nn.Dense(units=self.width, activation="relu")
                 )
 
-            # all these variables will be overwritten in the subclass
-            # only defined here to be able to use them in the generic hybrid_forward
-            self.theta_forecast = None
-            self.forecast = None
+            # Subclasses will have to initialize these attributes appropriately:
+
             self.theta_backcast = None
+            self.theta_forecast = None
+
             self.backcast = None
+            self.forecast = None
+
+            self.backcast_basis = None
+            self.forecast_basis = None
+
+    # This function is called upon first call of the hybrid_forward method
+    def initialize_basis(self, F):
+        pass
 
     def hybrid_forward(self, F, x, *args, **kwargs):
+        # We do this to cache the constant basis matrix between forward passes
+        if not self.basis_initialized:
+            self.initialize_basis(F)
+            self.basis_initialized = True
+
         x = self.fc_stack(x)
         theta_f = self.theta_forecast(x)
         forecast = self.forecast(theta_f)
@@ -229,16 +247,6 @@ class NBEATSSeasonalBlock(NBEATSBlock):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        # parameter to control whether the fourier basis has to be initialized
-        # True upon first call of hybrid_forwards, else False
-        self.initialize_basis = True
-
-        # this is essentially a constant matrix of type F that
-        # defines the basis for the seasonal model
-        # it's initialized in upon first hybrid_forward call
-        self.backcast_basis = None
-        self.forecast_basis = None
-
         # the number of coefficient in the fourier basis per sine and cosine each
         # determined depending on prediction length, as defined by paper
         # also: dont use floor because prediction_length=1 should be mapped to 0
@@ -259,26 +267,24 @@ class NBEATSSeasonalBlock(NBEATSBlock):
                 lambda F, thetas: F.dot(thetas, self.forecast_basis)
             )
 
-    def hybrid_forward(self, F, x, *args, **kwargs):
-        if self.initialize_basis:
-            if self.has_backcast:
-                self.backcast_basis = seasonality_model(
-                    F,
-                    num_coefficients=self.num_coefficients,
-                    context_length=self.context_length,
-                    prediction_length=self.prediction_length,
-                    is_forecast=False,
-                )
-            self.forecast_basis = seasonality_model(
+    def initialize_basis(self, F):
+        # these are essentially constant matrices of type F that
+        # define the basis for the seasonal model
+        if self.has_backcast:
+            self.backcast_basis = seasonality_model(
                 F,
                 num_coefficients=self.num_coefficients,
                 context_length=self.context_length,
                 prediction_length=self.prediction_length,
-                is_forecast=True,
+                is_forecast=False,
             )
-            self.initialize_basis = False
-        forecast = super().hybrid_forward(F, x, *args, **kwargs)
-        return forecast
+        self.forecast_basis = seasonality_model(
+            F,
+            num_coefficients=self.num_coefficients,
+            context_length=self.context_length,
+            prediction_length=self.prediction_length,
+            is_forecast=True,
+        )
 
 
 class NBEATSTrendBlock(NBEATSBlock):
@@ -313,16 +319,6 @@ class NBEATSTrendBlock(NBEATSBlock):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        # parameter to control whether the fourier basis has to be initialized
-        # True upon first call of hybrid_forwards, else False
-        self.initialize_basis = True
-
-        # this is essentially a constant matrix of type F that
-        # defines the basis for the seasonal model
-        # it's initialized in upon first hybrid_forward call
-        self.backcast_basis = None
-        self.forecast_basis = None
-
         with self.name_scope():
             if self.has_backcast:
                 self.theta_backcast = mx.gluon.nn.Dense(
@@ -338,26 +334,24 @@ class NBEATSTrendBlock(NBEATSBlock):
                 lambda F, thetas: F.dot(thetas, self.forecast_basis)
             )
 
-    def hybrid_forward(self, F, x, *args, **kwargs):
-        if self.initialize_basis:
-            if self.has_backcast:
-                self.backcast_basis = trend_model(
-                    F,
-                    num_coefficients=self.expansion_coefficient_length,
-                    context_length=self.context_length,
-                    prediction_length=self.prediction_length,
-                    is_forecast=False,
-                )
-            self.forecast_basis = trend_model(
+    def initialize_basis(self, F):
+        # these are essentially constant matrices of type F that
+        # define the basis for the trend model
+        if self.has_backcast:
+            self.backcast_basis = trend_model(
                 F,
                 num_coefficients=self.expansion_coefficient_length,
                 context_length=self.context_length,
                 prediction_length=self.prediction_length,
-                is_forecast=True,
+                is_forecast=False,
             )
-            self.initialize_basis = False
-        forecast = super().hybrid_forward(F, x, *args, **kwargs)
-        return forecast
+        self.forecast_basis = trend_model(
+            F,
+            num_coefficients=self.expansion_coefficient_length,
+            context_length=self.context_length,
+            prediction_length=self.prediction_length,
+            is_forecast=True,
+        )
 
 
 class NBEATSNetwork(mx.gluon.HybridBlock):
