@@ -48,7 +48,13 @@ AGGREGATION_METHODS = "median", "mean", "none"
 class NBEATSEnsemblePredictor(Predictor):
     """"
     An ensemble predictor for N-BEATS.
-    Calling '.predict' will result in |predictors|x|dataset| predictions.
+    Calling '.predict' will result in::
+
+        |predictors|x|dataset|
+
+    predictions, if aggregation_method is 'none', otherwise in::
+
+        |dataset|
 
     Parameters
     ----------
@@ -232,7 +238,8 @@ class NBEATSEnsembleEstimator(Estimator):
 
     The three meta parameters 'meta_context_length', 'meta_loss_function' and 'meta_bagging_size'
     together define the way the sub-models are assembled together.
-    The total number of models used for the ensemble is:
+    The total number of models used for the ensemble is::
+
         |meta_context_length| x |meta_loss_function| x meta_bagging_size
 
     Noteworthy differences in this implementation compared to the paper:
