@@ -354,7 +354,7 @@ class NBEATSEnsembleEstimator(Estimator):
         self.meta_context_length = (
             meta_context_length
             if meta_context_length is not None
-            else [multiplier * prediction_length for multiplier in range(2, 7)]
+            else [multiplier * prediction_length for multiplier in range(2, 8)]
         )
         self.meta_loss_function = (
             meta_loss_function
