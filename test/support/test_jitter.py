@@ -17,7 +17,7 @@ import math
 # First-party imports
 from gluonts.core.component import check_gpu_support
 from gluonts.kernels import RBFKernel
-from gluonts.gp import GaussianProcess
+from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
 from gluonts.support.linalg_util import jitter_cholesky, jitter_cholesky_eig
 
 # Third-party imports
