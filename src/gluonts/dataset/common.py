@@ -374,14 +374,11 @@ class ProcessTimeSeriesField:
         value = data.get(self.name, None)
         if value is not None:
             value = np.asarray(value, dtype=self.dtype)
-            ddiff = self.req_ndim - value.ndim
 
-            if ddiff == 1:
-                value = np.expand_dims(a=value, axis=0)
-            elif ddiff != 0:
+            if self.req_ndim != value.ndim:
                 raise GluonTSDataError(
                     f"JSON array has bad shape - expected {self.req_ndim} "
-                    f"dimensions, got {ddiff}"
+                    f"dimensions, got {value.ndim}"
                 )
 
             data[self.name] = value
