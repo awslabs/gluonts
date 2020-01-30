@@ -528,7 +528,7 @@ class GluonTSFramework(Framework):
         wait: bool = True,
         logs: bool = True,
         job_name: str = None,
-    ) -> Tuple[Predictor, dict, pd.DataFrame, str]:
+    ) -> Optional[Tuple[Predictor, dict, pd.DataFrame, str]]:
         """
         Use this function to train and evaluate any GluonTS model on Sagemaker.
         You need to call this method before you can call 'deploy'.
@@ -585,12 +585,13 @@ class GluonTSFramework(Framework):
         inputs = self._prepare_inputs(locations, dataset)
         self.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
-        metrics = self._retrieve_metrics(locations)
-        predictor = self._retrieve_model(locations)
+        if wait:
+            metrics = self._retrieve_metrics(locations)
+            predictor = self._retrieve_model(locations)
 
-        return TrainResult(
-            predictor=predictor, metrics=metrics, job_name=job_name
-        )
+            return TrainResult(
+                predictor=predictor, metrics=metrics, job_name=job_name
+            )
 
     @classmethod
     def run(
