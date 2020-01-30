@@ -33,11 +33,11 @@ from typing import (
 # Third-party imports
 import mxnet as mx
 import numpy as np
+from mxnet.gluon.block import _flatten
 
 # First-party imports
 from gluonts.core.serde import dump_json, load_json
 from gluonts.model.common import Tensor
-
 
 MXNET_HAS_ERF = hasattr(mx.nd, "erf")
 MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")
@@ -176,6 +176,7 @@ def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
     return param_names[1:]  # skip: F
 
 
+# noinspection PyProtectedMember
 def hybrid_block_to_symbol_block(
     hb: mx.gluon.HybridBlock, data_batch: List[mx.nd.NDArray]
 ) -> mx.gluon.SymbolBlock:
@@ -203,7 +204,11 @@ def hybrid_block_to_symbol_block(
     with tempfile.TemporaryDirectory(
         prefix="gluonts-estimator-temp-"
     ) as model_dir:
-        num_inputs = len(data_batch)
+        # when importing, SymbolBlock has to know about the total number
+        # of input symbols, including nested Tensors
+        flat_data_batch, _ = _flatten(data_batch, "input")
+        num_inputs = len(flat_data_batch)
+
         model_dir_path = Path(model_dir)
         model_name = "gluonts-model"
 
@@ -220,6 +225,7 @@ def hybrid_block_to_symbol_block(
         return sb
 
 
+# noinspection PyProtectedMember
 def export_symb_block(
     hb: mx.gluon.HybridBlock, model_dir: Path, model_name: str, epoch: int = 0
 ) -> None:
@@ -239,6 +245,11 @@ def export_symb_block(
         model parameters.
     """
     hb.export(path=str(model_dir / model_name), epoch=epoch)
+    with (model_dir / f"{model_name}-in_out_format.json").open("w") as fp:
+        in_out_format = dict(
+            in_format=hb._in_format, out_format=hb._out_format
+        )
+        print(dump_json(in_out_format), file=fp)
 
 
 def import_symb_block(
@@ -269,14 +280,27 @@ def import_symb_block(
     else:
         input_names = [f"data{i}" for i in range(num_inputs)]
 
+    # FIXME: prevents mxnet from failing with empty saved parameters list
+    param_file: Optional[str] = str(
+        model_dir / f"{model_name}-{epoch:04}.params"
+    )
+    if not mx.nd.load(param_file):
+        param_file = None
+
     # FIXME: mx.gluon.SymbolBlock cannot infer float_type and uses default np.float32
     # FIXME: https://github.com/apache/incubator-mxnet/issues/11849
-    return mx.gluon.SymbolBlock.imports(
+    sb = mx.gluon.SymbolBlock.imports(
         symbol_file=str(model_dir / f"{model_name}-symbol.json"),
         input_names=input_names,
-        param_file=str(model_dir / f"{model_name}-{epoch:04}.params"),
+        param_file=param_file,
         ctx=mx.current_context(),
     )
+    with (model_dir / f"{model_name}-in_out_format.json").open("r") as fp:
+        formats = load_json(fp.read())
+        sb._in_format = formats["in_format"]
+        sb._out_format = formats["out_format"]
+
+    return sb
 
 
 def export_repr_block(
