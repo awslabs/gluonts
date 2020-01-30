@@ -327,16 +327,17 @@ def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
             rnn_estimator(hybridize=hyb) + (10.0,),
             simple_feedforward_estimator(hybridize=hyb, batches_per_epoch=200)
             + (0.3,),
-            n_beats_generic_estimator(hybridize=hyb, batches_per_epoch=200)
-            + (0.3,),
-            n_beats_generic_ensemble_estimator(
-                hybridize=hyb, batches_per_epoch=200
-            )
-            + (0.3,),
-            n_beats_interpretable_estimator(
-                hybridize=hyb, batches_per_epoch=200
-            )
-            + (0.3,),
+            # TODO: disabling this because it appears to time out
+            # n_beats_generic_estimator(hybridize=hyb, batches_per_epoch=200)
+            # + (0.3,),
+            # n_beats_generic_ensemble_estimator(
+            #     hybridize=hyb, batches_per_epoch=200
+            # )
+            # + (0.3,),
+            # n_beats_interpretable_estimator(
+            #     hybridize=hyb, batches_per_epoch=200
+            # )
+            # + (0.3,),
             transformer_estimator(hybridize=hyb, batches_per_epoch=80)
             + (0.2,),
         ]
