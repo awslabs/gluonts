@@ -168,7 +168,10 @@ class InstanceSplitter(FlatMapTransformation):
 
         if is_train:
             sampling_bounds = (
-                (0, len_target - self.future_length)
+                (
+                    0,
+                    len_target - self.future_length,
+                )  # TODO: create parameter lower sampling bound for NBEATS
                 if self.pick_incomplete
                 else (self.past_length, len_target - self.future_length)
             )
