@@ -576,6 +576,8 @@ class GluonTSFramework(Framework):
 
         if not job_name:
             job_name = make_job_name(self.base_job_name)
+        else:
+            job_name = self.base_job_name + "-" + job_name
 
         locations = self._initialize_job(
             monitored_metrics, dataset, num_samples, quantiles, job_name
@@ -781,6 +783,8 @@ class GluonTSFramework(Framework):
 
         if not job_name:
             job_name = make_job_name(experiment.base_job_name)
+        else:
+            job_name = base_job_name + "-" + job_name
 
         experiment.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 

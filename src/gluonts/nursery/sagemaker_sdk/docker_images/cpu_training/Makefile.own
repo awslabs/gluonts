@@ -1,0 +1,40 @@
+ACCOUNT_ACCOUNT_ID=670864377759
+PROFILE=default
+REPOSITORY=preprod-mxnet
+REGION=us-west-2
+TAG=1.4.1-cpu-py3-training-n-beats
+ECR_IMAGE="$(ACCOUNT_ACCOUNT_ID).dkr.ecr.$(REGION).amazonaws.com/$(REPOSITORY):$(TAG)"
+
+all:
+	make sagemaker-mxnet-container_dependency -f "Makefile.own"
+	make build -f "Makefile.own"
+	make tag -f "Makefile.own"
+	make login -f "Makefile.own"
+	make push -f "Makefile.own"
+	make clean -f "Makefile.own"
+
+sagemaker-mxnet-container_dependency:
+	@echo Retrieving 'sagemaker-mxnet-container' dependency.
+	git clone https://github.com/aws/sagemaker-mxnet-container.git
+	cd sagemaker-mxnet-container; python setup.py sdist
+	cp sagemaker-mxnet-container/dist/sagemaker_mxnet_container-*.tar.gz sagemaker_mxnet_container.tar.gz
+
+build:
+	@echo Making $(REPOSITORY) image.
+	docker build --no-cache -t "$(REPOSITORY):latest" .
+
+tag:
+	@echo Tagging base image for repository $(REPOSITORY) with $(TAG).
+	docker tag "$(REPOSITORY):latest" $(ECR_IMAGE)
+
+login:
+	@echo Logging into AWS ECR.
+	$(shell aws ecr get-login --region $(REGION) --no-include-email --registry-ids $(ACCOUNT_ACCOUNT_ID) --profile $(PROFILE))
+
+push:
+	@echo Pushing image $(ECR_IMAGE) to AWS ECR.
+	docker push $(ECR_IMAGE)
+
+clean:
+	rm -rf sagemaker-mxnet-container
+	rm sagemaker_mxnet_container.tar.gz
