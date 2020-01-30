@@ -337,8 +337,8 @@ We can easily create the train and test datasets by simply filling in the correc
 ```python
 train_ds = ListDataset([{FieldName.TARGET: target, 
                          FieldName.START: start,
-                         FieldName.FEAT_DYNAMIC_REAL: fdr,
-                         FieldName.FEAT_STATIC_CAT: fsc} 
+                         FieldName.FEAT_DYNAMIC_REAL: [fdr],
+                         FieldName.FEAT_STATIC_CAT: [fsc]} 
                         for (target, start, fdr, fsc) in zip(target[:, :-custom_ds_metadata['prediction_length']], 
                                                              custom_ds_metadata['start'], 
                                                              feat_dynamic_real[:, :-custom_ds_metadata['prediction_length']], 
@@ -350,8 +350,8 @@ train_ds = ListDataset([{FieldName.TARGET: target,
 ```python
 test_ds = ListDataset([{FieldName.TARGET: target, 
                         FieldName.START: start,
-                        FieldName.FEAT_DYNAMIC_REAL: fdr,
-                        FieldName.FEAT_STATIC_CAT: fsc} 
+                        FieldName.FEAT_DYNAMIC_REAL: [fdr],
+                        FieldName.FEAT_STATIC_CAT: [fsc]} 
                        for (target, start, fdr, fsc) in zip(target, 
                                                             custom_ds_metadata['start'], 
                                                             feat_dynamic_real, 
