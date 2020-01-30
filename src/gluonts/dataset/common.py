@@ -377,8 +377,8 @@ class ProcessTimeSeriesField:
 
             if self.req_ndim != value.ndim:
                 raise GluonTSDataError(
-                    f"JSON array has bad shape - expected {self.req_ndim} "
-                    f"dimensions, got {value.ndim}"
+                    f"Array '{self.name}' has bad shape - expected "
+                    f"{self.req_ndim} dimensions, got {value.ndim}."
                 )
 
             data[self.name] = value
@@ -388,7 +388,7 @@ class ProcessTimeSeriesField:
             return data
         else:
             raise GluonTSDataError(
-                f"JSON object is missing a required field `{self.name}`"
+                f"Object is missing a required field `{self.name}`"
             )
 
 
