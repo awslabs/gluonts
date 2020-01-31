@@ -17,7 +17,7 @@ import json
 import tarfile
 from functools import partial
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple, Dict
+from typing import List, NamedTuple, Optional, Tuple, Dict, Union
 from tempfile import TemporaryDirectory
 
 
@@ -528,7 +528,7 @@ class GluonTSFramework(Framework):
         wait: bool = True,
         logs: bool = True,
         job_name: str = None,
-    ) -> Optional[Tuple[Predictor, dict, pd.DataFrame, str]]:
+    ) -> Union[TrainResult, str]:
         """
         Use this function to train and evaluate any GluonTS model on Sagemaker.
         You need to call this method before you can call 'deploy'.
@@ -576,8 +576,6 @@ class GluonTSFramework(Framework):
 
         if not job_name:
             job_name = make_job_name(self.base_job_name)
-        else:
-            job_name = self.base_job_name + "-" + job_name
 
         locations = self._initialize_job(
             monitored_metrics, dataset, num_samples, quantiles, job_name
@@ -594,6 +592,8 @@ class GluonTSFramework(Framework):
             return TrainResult(
                 predictor=predictor, metrics=metrics, job_name=job_name
             )
+        else:
+            return job_name
 
     @classmethod
     def run(
@@ -783,8 +783,6 @@ class GluonTSFramework(Framework):
 
         if not job_name:
             job_name = make_job_name(experiment.base_job_name)
-        else:
-            job_name = base_job_name + "-" + job_name
 
         experiment.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
