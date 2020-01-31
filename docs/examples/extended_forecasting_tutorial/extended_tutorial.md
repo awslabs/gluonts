@@ -693,7 +693,7 @@ print(f"Start date of the forecast window: {forecast_entry.start_date}")
 print(f"Frequency of the time series: {forecast_entry.freq}")
 ```
 
-We can also do calculations to summarize the sample paths, such computing the mean or a quantile for each of the 48 time steps in the forecast window.
+We can also do calculations to summarize the sample paths, such as computing the mean or a quantile for each of the 24 time steps in the forecast window.
 
 
 ```python
