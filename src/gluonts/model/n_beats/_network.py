@@ -396,7 +396,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
         If the type is "S" (seasonal) then its not used.
         A list of ints of length 1 or 'num_stacks'.
-        Default and recommended value for generic mode: [32]
+        Default value for generic mode: [32]
         Recommended value for interpretable mode: [3]
     stack_types
         One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
