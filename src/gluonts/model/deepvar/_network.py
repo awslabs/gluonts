@@ -323,7 +323,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
         if future_time_feat is None or future_target_cdf is None:
             time_feat = past_time_feat.slice_axis(
-                axis=1, begin=-self.context_length, end=None
+                axis=1, begin=self.history_length-self.context_length, end=None
             )
             sequence = past_target_cdf
             sequence_length = self.history_length
@@ -331,7 +331,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         else:
             time_feat = F.concat(
                 past_time_feat.slice_axis(
-                    axis=1, begin=-self.context_length, end=None
+                    axis=1, begin=self.history_length-self.context_length, end=None
                 ),
                 future_time_feat,
                 dim=1,
