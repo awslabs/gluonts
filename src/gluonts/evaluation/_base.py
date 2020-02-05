@@ -160,7 +160,7 @@ class Evaluator:
     @staticmethod
     def extract_pred_target(
         time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Union[pd.Series, pd.DataFrame]:
+    ) -> np.ndarray:
         """
 
         Parameters
@@ -170,7 +170,7 @@ class Evaluator:
 
         Returns
         -------
-        Union[pandas.Series, pandas.DataFrame]
+        np.ndarray
             time series cut in the Forecast object dates
         """
         assert forecast.index.intersection(time_series.index).equals(
@@ -183,6 +183,41 @@ class Evaluator:
         # cut the time series using the dates of the forecast object
         return np.atleast_1d(
             np.squeeze(time_series.loc[forecast.index].transpose())
+        )
+
+    # This method is needed for the owa calculation
+    # It extracts the training sequence from the Series or DataFrame to a numpy array
+    @staticmethod
+    def extract_train_target(
+        time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+    ) -> np.ndarray:
+        """
+
+        Parameters
+        ----------
+        time_series
+        forecast
+
+        Returns
+        -------
+        np.ndarray
+            time series without the forecast dates
+        """
+
+        assert forecast.index.intersection(time_series.index).equals(
+            forecast.index
+        ), (
+            "Index of forecast is outside the index of target\n"
+            f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
+        )
+
+        # cut the time series using the dates of the forecast object
+        return np.atleast_1d(
+            np.squeeze(
+                time_series.loc[
+                    time_series.index.difference(forecast.index)
+                ].transpose()
+            )
         )
 
     def seasonal_error(
@@ -229,6 +264,12 @@ class Evaluator:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
+        # needed for OWA calculation
+        train_target = np.array(
+            self.extract_train_target(time_series, forecast)
+        )
+        train_target = np.ma.masked_invalid(train_target)
+
         try:
             mean_fcst = forecast.mean
         except:
@@ -255,6 +296,14 @@ class Evaluator:
             "seasonal_error": seasonal_error,
             "MASE": self.mase(pred_target, median_fcst, seasonal_error),
             "sMAPE": self.smape(pred_target, median_fcst),
+            "OWA": self.owa(
+                pred_target,
+                median_fcst,
+                train_target,
+                seasonal_error,
+                freq=forecast.freq,
+                start_date=forecast.start_date,
+            ),
             "MSIS": self.msis(
                 pred_target,
                 forecast.quantile(lower_q.value),
@@ -287,6 +336,7 @@ class Evaluator:
             "seasonal_error": "mean",
             "MASE": "mean",
             "sMAPE": "mean",
+            "OWA": "mean",
             "MSIS": "mean",
         }
         for quantile in self.quantiles:
@@ -386,6 +436,38 @@ class Evaluator:
             (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
         )
         return smape
+
+    @staticmethod
+    def owa(target, forecast, train_target, seasonal_error, freq, start_date):
+        r"""
+        .. math::
+
+            owa = 0.5*(smape/smape_naive + mase/mase_naive)
+
+        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+        """
+        # avoid import error due to circular dependency
+        from gluonts.model.seasonal_naive import SeasonalNaivePredictor
+
+        # calculate the forecast of the seasonal naive predictor
+        naive_median_fcst = (
+            SeasonalNaivePredictor(freq=freq, prediction_length=len(forecast))
+            .predict_time_series(start_time=start_date, target=train_target)
+            .quantile(0.5)
+        )
+
+        owa = 0.5 * (
+            (
+                Evaluator.smape(target, forecast)
+                / Evaluator.smape(target, naive_median_fcst)
+            )
+            + (
+                Evaluator.mase(target, forecast, seasonal_error)
+                / Evaluator.mase(target, naive_median_fcst, seasonal_error)
+            )
+        )
+
+        return owa
 
     @staticmethod
     def msis(target, lower_quantile, upper_quantile, seasonal_error, alpha):
