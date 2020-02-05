@@ -452,7 +452,9 @@ class Evaluator:
         # calculate the forecast of the seasonal naive predictor
         naive_median_fcst = (
             SeasonalNaivePredictor(freq=freq, prediction_length=len(forecast))
-            .predict_time_series(start_time=start_date, target=train_target)
+            .predict_time_series(
+                forecast_start_time=start_date, target=train_target
+            )
             .quantile(0.5)
         )
 
