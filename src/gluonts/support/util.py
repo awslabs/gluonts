@@ -245,6 +245,9 @@ def export_symb_block(
         model parameters.
     """
     hb.export(path=str(model_dir / model_name), epoch=epoch)
+
+    # FIXME: we persist input/output formats of hybrid blocks as mxnet does not
+    # FIXME: https://github.com/apache/incubator-mxnet/issues/17488
     with (model_dir / f"{model_name}-in_out_format.json").open("w") as fp:
         in_out_format = dict(
             in_format=hb._in_format, out_format=hb._out_format
@@ -281,6 +284,7 @@ def import_symb_block(
         input_names = [f"data{i}" for i in range(num_inputs)]
 
     # FIXME: prevents mxnet from failing with empty saved parameters list
+    # FIXME: https://github.com/apache/incubator-mxnet/issues/17488
     param_file: Optional[str] = str(
         model_dir / f"{model_name}-{epoch:04}.params"
     )
@@ -295,10 +299,15 @@ def import_symb_block(
         param_file=param_file,
         ctx=mx.current_context(),
     )
-    with (model_dir / f"{model_name}-in_out_format.json").open("r") as fp:
-        formats = load_json(fp.read())
-        sb._in_format = formats["in_format"]
-        sb._out_format = formats["out_format"]
+
+    # FIXME: try to retrieve input/output format
+    # FIXME: https://github.com/apache/incubator-mxnet/issues/17488
+    format_json_path = model_dir / f"{model_name}-in_out_format.json"
+    if format_json_path.exists():
+        with format_json_path.open("r") as fp:
+            formats = load_json(fp.read())
+            sb._in_format = formats["in_format"]
+            sb._out_format = formats["out_format"]
 
     return sb
 

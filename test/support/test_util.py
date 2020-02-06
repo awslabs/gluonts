@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 import itertools
+import tempfile
+from pathlib import Path
 from typing import List
 
 # Third-party imports
@@ -191,3 +193,32 @@ def test_symb_block_export_import_nested_array(block_type, hybridize) -> None:
     sb = util.hybrid_block_to_symbol_block(my_block, [x1, x2])
 
     assert np.allclose(sb(x1, x2).asnumpy(), my_block(x1, x2).asnumpy())
+
+
+@pytest.mark.parametrize("block_type", sym_block_import_export_test_cases())
+def test_symb_block_import_backward_compatible(block_type) -> None:
+    x1 = mx.nd.array([1, 2, 3])
+    x2 = [mx.nd.array([1, 5, 5]), mx.nd.array([2, 3, 3])]
+
+    my_block = block_type()
+    my_block.collect_params().initialize()
+    my_block.hybridize()
+    my_block(x1, x2)
+
+    with tempfile.TemporaryDirectory(
+        prefix="gluonts-estimator-temp-"
+    ) as temp_dir:
+        temp_path = Path(temp_dir)
+
+        util.export_symb_block(my_block, temp_path, "gluonts-model")
+
+        format_json_path = temp_path / "gluonts-model-in_out_format.json"
+
+        assert format_json_path.exists()
+        try:
+            format_json_path.unlink()
+            util.import_symb_block(3, temp_path, "gluonts-model")
+        except FileNotFoundError:
+            pytest.fail(
+                "Symbol block import fails when format json is not in path"
+            )

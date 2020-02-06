@@ -396,8 +396,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         If type is "T" (trend), then it corresponds to the degree of the polynomial.
         If the type is "S" (seasonal) then its not used.
         A list of ints of length 1 or 'num_stacks'.
-        Default and recommended value for generic mode: [2]
-        Recommended value for interpretable mode: [2]
+        Default value for generic mode: [32]
+        Recommended value for interpretable mode: [3]
     stack_types
         One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
         A list of strings of length 1 or 'num_stacks'.
@@ -509,7 +509,6 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
             # connect last block
             return forecast + self.net_blocks[-1](backcast)
 
-    # TODO: somehow interpretable mode not learning?
     def smape_loss(self, F, forecast: Tensor, future_target: Tensor) -> Tensor:
         r"""
         .. math::
@@ -519,7 +518,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         According to paper: https://arxiv.org/abs/1905.10437.
         """
 
-        denominator = F.abs(future_target) + F.abs(forecast)
+        # Stop gradient required for stable learning
+        denominator = F.stop_gradient(F.abs(future_target) + F.abs(forecast))
         flag = denominator == 0
 
         smape = (200 / self.prediction_length) * F.mean(
