@@ -19,7 +19,7 @@ from datetime import datetime
 def make_metrics(metrics_names):
     avg_epoch_loss_metric = {
         "Name": "training_loss",
-        "Regex": r"'avg_epoch_loss'=(\S+)",
+        "Regex": r"'epoch_loss'=(\S+)",
     }
     final_loss_metric = {"Name": "final_loss", "Regex": r"Final loss: (\S+)"}
     other_metrics = [
