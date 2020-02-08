@@ -304,27 +304,29 @@ class Evaluator:
         # derived metrics based on previous aggregate metrics
         totals["RMSE"] = np.sqrt(totals["MSE"])
 
-        flag = totals["abs_target_mean"] == 0
-        totals["NRMSE"] = np.divide(
-            totals["RMSE"] * (1 - flag), totals["abs_target_mean"] + flag
+        true_values_zero = totals["abs_target_sum"] == 0
+        # if all true values are zero, we can not calcualte relative metrics
+        if true_values_zero:
+            totals["ND"] = 0.0
+            totals["NRMSE"] = 0.0
+
+            for quant in self.quantiles:
+                totals[quant.weighted_loss_name] = totals[quant.loss_name]
+        else:
+            totals["NRMSE"] = totals["RMSE"] / totals["abs_target_mean"]
+            totals["ND"] = totals["abs_error"] / totals["abs_target_sum"]
+
+            for quant in self.quantiles:
+                totals[quant.weighted_loss_name] = (
+                    totals[quantile.loss_name] / totals["abs_target_sum"]
+                )
+
+        totals["mean_wQuantileLoss"] = np.mean(
+            [
+                totals[quantile.weighted_loss_name]
+                for quantile in self.quantiles
+            ]
         )
-
-        flag = totals["abs_target_sum"] == 0
-        totals["ND"] = np.divide(
-            totals["abs_error"] * (1 - flag), totals["abs_target_sum"] + flag
-        )
-
-        all_qLoss_names = [
-            quantile.weighted_loss_name for quantile in self.quantiles
-        ]
-        for quantile in self.quantiles:
-            totals[quantile.weighted_loss_name] = np.divide(
-                totals[quantile.loss_name], totals["abs_target_sum"]
-            )
-
-        totals["mean_wQuantileLoss"] = np.array(
-            [totals[ql] for ql in all_qLoss_names]
-        ).mean()
 
         totals["MAE_Coverage"] = np.mean(
             [
@@ -423,7 +425,6 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-    
     The MultivariateEvaluator class owns functionality for evaluating
     multidimensional target arrays of shape
     (target_dimensionality, prediction_length).

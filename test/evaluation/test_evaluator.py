@@ -11,6 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import functools
+from textwrap import dedent
+
 # Third-party imports
 import numpy as np
 import pandas as pd
@@ -24,45 +27,14 @@ from gluonts.evaluation import (
 )
 from gluonts.model.forecast import QuantileForecast, SampleForecast
 
-QUANTILES = [str(q / 10.0) for q in range(1, 10)]
-
-
-def data_iterator(ts):
-    """
-    :param ts: list of pd.Series or pd.DataFrame
-    :return:
-    """
-    for i in range(len(ts)):
-        yield ts[i]
-
 
 def fcst_iterator(fcst, start_dates, freq):
     """
     :param fcst: list of numpy arrays with the sample paths
     :return:
     """
-    for i in range(len(fcst)):
-        yield SampleForecast(
-            samples=fcst[i], start_date=start_dates[i], freq=freq
-        )
-
-
-def iterator(it):
-    """
-    Convenience function to toggle whether to consume dataset and forecasts as iterators or iterables.
-    :param it:
-    :return: it (as iterator)
-    """
-    return iter(it)
-
-
-def iterable(it):
-    """
-    Convenience function to toggle whether to consume dataset and forecasts as iterators or iterables.
-    :param it:
-    :return: it (as iterable)
-    """
-    return list(it)
+    for samples, start_date in zip(fcst, start_dates):
+        yield SampleForecast(samples, start_date, freq)
 
 
 def naive_forecaster(ts, prediction_length, num_samples=100, target_dim=0):
@@ -93,48 +65,31 @@ def calculate_metrics(
     ts_datastructure,
     has_nans=False,
     forecaster=naive_forecaster,
-    input_type=iterator,
+    input_type=list,
+    prediction_length=3,
+    freq="1D",
 ):
-    num_timeseries = timeseries.shape[0]
-    num_timestamps = timeseries.shape[1]
-
     if has_nans:
         timeseries[0, 1] = np.nan
         timeseries[0, 7] = np.nan
 
-    num_samples = 100
-    prediction_length = 3
-    freq = "1D"
+    forecast = functools.partial(
+        forecaster, prediction_length=prediction_length, num_samples=100
+    )
 
-    ts_start_dates = (
-        []
-    )  # starting date of each time series - can be different in general
-    pd_timeseries = []  # list of pandas.DataFrame
-    samples = []  # list of forecast samples
-    start_dates = []  # start date of the prediction range
-    for i in range(num_timeseries):
-        ts_start_dates.append(pd.Timestamp(year=2018, month=1, day=1, hour=1))
-        index = pd.date_range(
-            ts_start_dates[i], periods=num_timestamps, freq=freq
-        )
+    index = pd.date_range(
+        pd.Timestamp("2018-1-1 01:00:00"),
+        periods=timeseries.shape[1],
+        freq="1D",
+    )
+    forecast_start = [index[-prediction_length]] * len(timeseries)
 
-        pd_timeseries.append(ts_datastructure(timeseries[i], index=index))
-        samples.append(
-            forecaster(pd_timeseries[i], prediction_length, num_samples)
-        )
-        start_dates.append(
-            pd.date_range(
-                ts_start_dates[i], periods=num_timestamps, freq=freq
-            )[-prediction_length]
-        )
+    true_values = [ts_datastructure(ts, index=index) for ts in timeseries]
+    forecasts = list(map(forecast, true_values))
 
-    # data iterator
-    data_iter = input_type(data_iterator(pd_timeseries))
-    fcst_iter = input_type(fcst_iterator(samples, start_dates, freq))
+    fcst_iter = input_type(fcst_iterator(forecasts, forecast_start, freq))
 
-    # evaluate
-    agg_df, item_df = evaluator(data_iter, fcst_iter)
-    return agg_df, item_df
+    return evaluator(input_type(true_values), fcst_iter)
 
 
 TIMESERIES_M4 = [
@@ -288,11 +243,7 @@ RES_M4 = [
 
 @pytest.mark.parametrize("timeseries, res", zip(TIMESERIES_M4, RES_M4))
 def test_MASE_sMAPE_M4(timeseries, res):
-    ts_datastructure = pd.Series
-    evaluator = Evaluator(quantiles=QUANTILES)
-    agg_df, item_df = calculate_metrics(
-        timeseries, evaluator, ts_datastructure
-    )
+    agg_df, item_df = calculate_metrics(timeseries, Evaluator(), pd.Series)
 
     assert abs((agg_df["MASE"] - res["MASE"]) / res["MASE"]) < 0.001, (
         "Scores for the metric MASE do not match: "
@@ -313,113 +264,136 @@ def test_MASE_sMAPE_M4(timeseries, res):
     )
 
 
-TIMESERIES = [
-    np.ones((5, 10), dtype=np.float64),
-    np.ones((5, 10), dtype=np.float64),
-    np.arange(0, 50, dtype=np.float64).reshape(5, 10),
-    np.arange(0, 50, dtype=np.float64).reshape(5, 10),
-    np.array([[np.nan] * 10, [1.0] * 10]),
+METRIC_TESTS = [
+    {
+        "timeseries": np.zeros((5, 10)),
+        "metrics": {
+            "abs_target_sum": 0.0,
+            "abs_target_mean": 0.0,
+            "NRMSE": 0.0,
+            "ND": 0.0,
+            "wQuantileLoss[0.5]": 0,
+            "mean_wQuantileLoss": 0.0,
+        },
+        "has_nans": False,
+        "input_type": list,
+    }.values(),
+    {
+        "timeseries": np.ones((5, 10), dtype=np.float64),
+        "metrics": {
+            "MSE": 0.0,
+            "abs_error": 0.0,
+            "abs_target_sum": 15.0,
+            "abs_target_mean": 1.0,
+            "seasonal_error": 0.0,
+            "MASE": 0.0,
+            "sMAPE": 0.0,
+            "MSIS": 0.0,
+            "RMSE": 0.0,
+            "NRMSE": 0.0,
+            "ND": 0.0,
+            "MAE_Coverage": 0.5,
+        },
+        "has_nans": False,
+        "input_type": list,
+    }.values(),
+    {
+        "timeseries": np.ones((5, 10), dtype=np.float64),
+        "metrics": {
+            "MSE": 0.0,
+            "abs_error": 0.0,
+            "abs_target_sum": 14.0,
+            "abs_target_mean": 1.0,
+            "seasonal_error": 0.0,
+            "MASE": 0.0,
+            "sMAPE": 0.0,
+            "MSIS": 0.0,
+            "RMSE": 0.0,
+            "NRMSE": 0.0,
+            "ND": 0.0,
+            "MAE_Coverage": 0.5,
+        },
+        "has_nans": True,
+        "input_type": list,
+    }.values(),
+    {
+        "timeseries": np.arange(0, 50, dtype=np.float64).reshape(5, 10),
+        "metrics": {
+            "MSE": 4.666_666_666_666,
+            "abs_error": 30.0,
+            "abs_target_sum": 420.0,
+            "abs_target_mean": 28.0,
+            "seasonal_error": 1.0,
+            "MASE": 2.0,
+            "sMAPE": 0.113_254_049_3,
+            "MSIS": 80.0,
+            "RMSE": 2.160_246_899_469_286_9,
+            "NRMSE": 0.077_151_674_981_045_956,
+            "ND": 0.071_428_571_428_571_42,
+            "MAE_Coverage": 0.5,
+        },
+        "has_nans": False,
+        "input_type": iter,
+    }.values(),
+    {
+        "timeseries": np.arange(0, 50, dtype=np.float64).reshape(5, 10),
+        "metrics": {
+            "MSE": 5.033_333_333_333_3,
+            "abs_error": 29.0,
+            "abs_target_sum": 413.0,
+            "abs_target_mean": 28.1,
+            "seasonal_error": 1.0,
+            "MASE": 2.1,
+            "sMAPE": 0.125_854_781_903_299_57,
+            "MSIS": 84.0,
+            "RMSE": 2.243_509_156_061_845_6,
+            "NRMSE": 0.079_840_183_489_745_39,
+            "ND": 0.070_217_917_675_544_79,
+            "MAE_Coverage": 0.5,
+        },
+        "has_nans": True,
+        "input_type": iter,
+    }.values(),
+    {
+        "timeseries": np.array([[np.nan] * 10, [1.0] * 10]),
+        "metrics": {
+            "MSE": 0.0,
+            "abs_error": 0.0,
+            "abs_target_sum": 3.0,
+            "abs_target_mean": 1.0,
+            "seasonal_error": 0.0,
+            "MASE": 0.0,
+            "sMAPE": 0.0,
+            "MSIS": 0.0,
+            "RMSE": 0.0,
+            "NRMSE": 0.0,
+            "ND": 0.0,
+            "MAE_Coverage": 0.5,
+        },
+        "has_nans": True,
+        "input_type": list,
+    }.values(),
 ]
 
-RES = [
-    {
-        "MSE": 0.0,
-        "abs_error": 0.0,
-        "abs_target_sum": 15.0,
-        "abs_target_mean": 1.0,
-        "seasonal_error": 0.0,
-        "MASE": 0.0,
-        "sMAPE": 0.0,
-        "MSIS": 0.0,
-        "RMSE": 0.0,
-        "NRMSE": 0.0,
-        "ND": 0.0,
-        "MAE_Coverage": 0.5,
-    },
-    {
-        "MSE": 0.0,
-        "abs_error": 0.0,
-        "abs_target_sum": 14.0,
-        "abs_target_mean": 1.0,
-        "seasonal_error": 0.0,
-        "MASE": 0.0,
-        "sMAPE": 0.0,
-        "MSIS": 0.0,
-        "RMSE": 0.0,
-        "NRMSE": 0.0,
-        "ND": 0.0,
-        "MAE_Coverage": 0.5,
-    },
-    {
-        "MSE": 4.666_666_666_666,
-        "abs_error": 30.0,
-        "abs_target_sum": 420.0,
-        "abs_target_mean": 28.0,
-        "seasonal_error": 1.0,
-        "MASE": 2.0,
-        "sMAPE": 0.113_254_049_3,
-        "MSIS": 80.0,
-        "RMSE": 2.160_246_899_469_286_9,
-        "NRMSE": 0.077_151_674_981_045_956,
-        "ND": 0.071_428_571_428_571_42,
-        "MAE_Coverage": 0.5,
-    },
-    {
-        "MSE": 5.033_333_333_333_3,
-        "abs_error": 29.0,
-        "abs_target_sum": 413.0,
-        "abs_target_mean": 28.1,
-        "seasonal_error": 1.0,
-        "MASE": 2.1,
-        "sMAPE": 0.125_854_781_903_299_57,
-        "MSIS": 84.0,
-        "RMSE": 2.243_509_156_061_845_6,
-        "NRMSE": 0.079_840_183_489_745_39,
-        "ND": 0.070_217_917_675_544_79,
-        "MAE_Coverage": 0.5,
-    },
-    {
-        "MSE": 0.0,
-        "abs_error": 0.0,
-        "abs_target_sum": 3.0,
-        "abs_target_mean": 1.0,
-        "seasonal_error": 0.0,
-        "MASE": 0.0,
-        "sMAPE": 0.0,
-        "MSIS": 0.0,
-        "RMSE": 0.0,
-        "NRMSE": 0.0,
-        "ND": 0.0,
-        "MAE_Coverage": 0.5,
-    },
-]
 
-HAS_NANS = [False, True, False, True, True]
-
-
-INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable]
-
-
-@pytest.mark.parametrize(
-    "timeseries, res, has_nans, input_type",
-    zip(TIMESERIES, RES, HAS_NANS, INPUT_TYPE),
-)
+@pytest.mark.parametrize("timeseries, res, has_nans, input_type", METRIC_TESTS)
 def test_metrics(timeseries, res, has_nans, input_type):
-    ts_datastructure = pd.Series
-    evaluator = Evaluator(quantiles=QUANTILES)
+
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
-        evaluator,
-        ts_datastructure,
+        Evaluator(),
+        pd.Series,
         has_nans=has_nans,
         input_type=input_type,
     )
 
     for metric, score in agg_metrics.items():
-        if metric in res.keys():
-            assert abs(score - res[metric]) < 0.001, (
-                "Scores for the metric {} do not match: \nexpected: {} "
-                "\nobtained: {}".format(metric, res[metric], score)
+        if metric in res:
+            assert abs(score - res[metric]) < 0.001, dedent(
+                f"""\
+                Scores for the metric {metric} do not match:
+                expected: {res[metric]}
+                obtained: {score}."""
             )
 
 
@@ -549,7 +523,7 @@ HAS_NANS_MULTIVARIATE = [False, False, False, False, False, False]
 
 EVAL_DIMS = [[0], [1], [0, 1], [0], [1], None]
 
-INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable, iterator]
+INPUT_TYPE = [list, list, iter, iter, list, iter]
 
 
 @pytest.mark.parametrize(
@@ -567,7 +541,6 @@ def test_metrics_multivariate(
 ):
     ts_datastructure = pd.DataFrame
     evaluator = MultivariateEvaluator(
-        quantiles=QUANTILES,
         eval_dims=eval_dims,
         target_agg_funcs={"sum": np.sum},
     )

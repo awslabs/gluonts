@@ -64,7 +64,7 @@ def make_evaluation_predictions(
     freq = predictor.freq
 
     def add_ts_dataframe(
-        data_iterator: Iterator[DataEntry]
+        data_iterator: Iterator[DataEntry],
     ) -> Iterator[DataEntry]:
         for data_entry in data_iterator:
             data = data_entry.copy()
