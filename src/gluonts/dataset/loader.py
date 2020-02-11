@@ -13,8 +13,10 @@
 
 # Standard library imports
 import itertools
+import random
 from collections import defaultdict
-from typing import Any, Dict, Iterable, Iterator, List, Optional  # noqa: F401
+from functools import partial
+from typing import Any, Collection, Dict, Iterable, Iterator, List, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -28,55 +30,37 @@ from gluonts.transform import Transformation
 DataBatch = Dict[str, Any]
 
 
-class BatchBuffer:
-    def __init__(
-        self, batch_size: int, ctx: mx.Context, dtype: DType = np.float32
-    ) -> None:
-        self._buffers: Dict[Any, List[Any]] = defaultdict(list)
+def batcher(iterable, batch_size):
+    while True:
+        items = list(itertools.islice(iterable, batch_size))
+        if not items:
+            break
+        yield items
+
+
+class BatchStacker:
+    def __init__(self, batch_size: int, stream, stack_fn) -> None:
         self.batch_size = batch_size
-        self._size = 0
-        self.ctx = ctx
-        self.dtype = dtype
+        self.stream = stream
+        self.stack = stack_fn
 
-    def add(self, d: Dict[str, List[np.ndarray]]):
-        if self._buffers:
-            assert self._buffers.keys() == d.keys()
-        for k, v in d.items():
-            self._buffers[k].append(v)
-        self._size += 1
+    def __iter__(self):
+        for items in batcher(self.stream, self.batch_size):
+            yield {
+                key: self.stack([item[key] for item in items])
+                for key in items[0]
+            }
 
-    def __len__(self):
-        return self._size
 
-    def next_batch(self) -> DataBatch:
-        assert self._size > 0
-        n = min(self._size, self.batch_size)
-        batch = {k: self.stack(v[:n]) for k, v in self._buffers.items()}
-        for key in self._buffers.keys():
-            self._buffers[key] = self._buffers[key][n:]
-        self._size -= n
-        return batch
+class Shuffler(Iterable[DataBatch]):
+    def __init__(self, batch_size, stream):
+        self.batch_size = batch_size
+        self.stream = stream
 
-    def stack(self, xs):
-        if isinstance(xs[0], np.ndarray):
-            data = np.asarray(xs)
-            if data.dtype.kind == "f":
-                data = data.astype(self.dtype)
-            return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
-        elif isinstance(xs[0], mx.nd.NDArray):
-            return mx.nd.stack(*xs)
-        elif isinstance(xs[0], list):
-            return [self.stack(t) for t in zip(*[x for x in xs])]
-        elif isinstance(xs[0], tuple):
-            return tuple([self.stack(t) for t in zip(*[x for x in xs])])
-        else:
-            return xs  # stack all other types as list
-
-    def shuffle(self):
-        perm = np.random.permutation(self._size)
-        for key in self._buffers.keys():
-            li = self._buffers[key]
-            self._buffers[key] = [li[i] for i in perm]
+    def __iter__(self) -> Iterator[DataBatch]:
+        for batch in batcher(self.stream, self.batch_size):
+            random.shuffle(batch)
+            yield from batch
 
 
 class DataLoader(Iterable[DataEntry]):
@@ -101,16 +85,44 @@ class DataLoader(Iterable[DataEntry]):
     def __init__(
         self,
         dataset: Dataset,
+        *,
         transform: Transformation,
+        is_train: bool,
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
     ) -> None:
-        self.dataset = dataset
-        self.transform = transform
         self.batch_size = batch_size
         self.ctx = ctx
         self.dtype = dtype
+        self.stream: Iterable = transform(dataset, is_train=is_train)
+
+    @property
+    def batches(self):
+        return BatchStacker(
+            self.batch_size, stream=self.stream, stack_fn=self.stack,
+        )
+
+    def stack(self, xs):
+        if isinstance(xs[0], np.ndarray):
+            data = np.asarray(xs)
+            if data.dtype.kind == "f":
+                data = data.astype(self.dtype)
+            return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
+
+        if isinstance(xs[0], mx.nd.NDArray):
+            return mx.nd.stack(*xs)
+
+        if isinstance(xs[0], list):
+            return list(self.stack(t) for t in zip(*xs))
+
+        if isinstance(xs[0], tuple):
+            return tuple(self.stack(t) for t in zip(*xs))
+
+        return xs
+
+    def __iter__(self) -> Iterator[DataBatch]:
+        return iter(self.batches)
 
 
 class TrainDataLoader(DataLoader):
@@ -148,121 +160,64 @@ class TrainDataLoader(DataLoader):
         shuffle_for_training: bool = True,
         num_batches_for_shuffling: int = 10,
     ) -> None:
-        super().__init__(dataset, transform, batch_size, ctx, dtype)
-        self.num_batches_per_epoch = num_batches_per_epoch
-        self.shuffle_for_training = shuffle_for_training
-        self._num_buffered_batches = (
-            num_batches_for_shuffling if shuffle_for_training else 1
+        assert dataset, "empty dataset"
+
+        super().__init__(
+            dataset=itertools.cycle(dataset),
+            transform=transform,
+            batch_size=batch_size,
+            ctx=ctx,
+            dtype=dtype,
+            is_train=True,
         )
-        self._cur_iter: Optional[Iterator] = None
-        self._buffer = BatchBuffer(self.batch_size, ctx, dtype)
 
-    def _emit_batches_while_buffer_larger_than(
-        self, thresh
-    ) -> Iterator[DataBatch]:
-        if self.shuffle_for_training:
-            self._buffer.shuffle()
-        while len(self._buffer) > thresh:
-            yield self._buffer.next_batch()
+        self.num_batches_per_epoch = num_batches_per_epoch
 
-    def _iterate_forever(
-        self, collection: Iterable[DataEntry]
-    ) -> Iterator[DataEntry]:
-        # iterate forever over the collection, the collection must be non empty
-        while True:
-            try:
-                first = next(iter(collection))
-            except StopIteration:
-                raise Exception("empty dataset")
-            else:
-                for x in itertools.chain([first], collection):
-                    yield x
+        if shuffle_for_training:
+            self.stream = Shuffler(num_batches_for_shuffling, self.stream)
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
 
     def __iter__(self) -> Iterator[DataBatch]:
-        batch_count = 0
-        if self._cur_iter is None:
-            self._cur_iter = self.transform(
-                self._iterate_forever(self.dataset), is_train=True
-            )
-        assert self._cur_iter is not None
-        while True:
-            data_entry = next(self._cur_iter)
-            self._buffer.add(data_entry)
-            if (
-                len(self._buffer)
-                >= self._num_buffered_batches * self.batch_size
-            ):
-                for batch in self._emit_batches_while_buffer_larger_than(
-                    self.batch_size - 1
-                ):
-                    yield batch
-                    batch_count += 1
-                    if batch_count >= self.num_batches_per_epoch:
-                        return
+        return itertools.islice(self.batches, self.num_batches_per_epoch)
 
 
 class ValidationDataLoader(DataLoader):
-    """
-     An Iterable type for iterating and transforming a dataset just once, in
-     batches of a prescribed size.
-
-     The transformation are applied with in training mode, i.e. with the flag
-     `is_train = True`.
-
-     Parameters
-     ----------
-     dataset
-         The dataset from which to load data.
-     transform
-         A transformation to apply to each entry in the dataset.
-     batch_size
-         The size of the batches to emit.
-     ctx
-         MXNet context to use to store data.
-     dtype
-         Floating point type to use.
-     """
-
-    def __iter__(self) -> Iterator[DataBatch]:
-        buffer = BatchBuffer(self.batch_size, self.ctx, self.dtype)
-        for data_entry in self.transform(iter(self.dataset), is_train=True):
-            buffer.add(data_entry)
-            if len(buffer) >= self.batch_size:
-                yield buffer.next_batch()
-        if len(buffer) > 0:
-            yield buffer.next_batch()
+    def __init__(
+        self,
+        dataset: Dataset,
+        *,
+        transform: Transformation,
+        batch_size: int,
+        ctx: mx.Context,
+        dtype: DType = np.float32,
+    ) -> None:
+        super().__init__(
+            dataset,
+            transform=transform,
+            is_train=True,
+            batch_size=batch_size,
+            ctx=ctx,
+            dtype=dtype,
+        )
 
 
 class InferenceDataLoader(DataLoader):
-    """
-    An Iterable type for iterating and transforming a dataset just once, in
-    batches of a prescribed size.
-
-    The transformation are applied with in inference mode, i.e. with the flag
-    `is_train = False`.
-
-    Parameters
-    ----------
-    dataset
-        The dataset from which to load data.
-    transform
-        A transformation to apply to each entry in the dataset.
-    batch_size
-        The size of the batches to emit.
-    ctx
-        MXNet context to use to store data.
-    dtype
-        Floating point type to use.
-    """
-
-    def __iter__(self) -> Iterator[DataBatch]:
-        buffer = BatchBuffer(self.batch_size, self.ctx, self.dtype)
-        for data_entry in self.transform(iter(self.dataset), is_train=False):
-            buffer.add(data_entry)
-            if len(buffer) >= self.batch_size:
-                yield buffer.next_batch()
-        if len(buffer) > 0:
-            yield buffer.next_batch()
+    def __init__(
+        self,
+        dataset: Dataset,
+        *,
+        transform: Transformation,
+        batch_size: int,
+        ctx: mx.Context,
+        dtype: DType = np.float32,
+    ) -> None:
+        super().__init__(
+            dataset,
+            transform=transform,
+            is_train=False,
+            batch_size=batch_size,
+            ctx=ctx,
+            dtype=dtype,
+        )
