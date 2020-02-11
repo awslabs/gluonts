@@ -32,12 +32,14 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         train_sampler,
         enc_len: int,
         dec_len: int,
-        time_series_fields: List[str] = None,
-        target_in="target",
+        target_in: str = "target",
+        encoder_series_fields: List[str] = None,
+        decoder_series_fields: List[str] = [],
         is_pad_out: str = "is_pad",
-        start_in: str = "start",
-        forecast_start_out: str = "forecast_start",
+        start_input_field: str = "start",
+        forecast_start_output_field: str = "forecast_start",
     ) -> None:
+
         assert enc_len > 0, "The value of `enc_len` should be > 0"
         assert dec_len > 0, "The value of `dec_len` should be > 0"
 
@@ -45,12 +47,13 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         self.enc_len = enc_len
         self.dec_len = dec_len
         self.ts_fields = (
-            time_series_fields if time_series_fields is not None else []
+            encoder_series_fields if encoder_series_fields is not None else []
         )
         self.target_in = target_in
         self.is_pad_out = is_pad_out
-        self.start_in = start_in
-        self.forecast_start_out = forecast_start_out
+        self.start_in = start_input_field
+        self.forecast_start_out = forecast_start_output_field
+        self.decoder_series_fields = decoder_series_fields
 
     def _past(self, col_name):
         return f"past_{col_name}"
@@ -97,21 +100,39 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 else:
                     past_piece = d[ts_field][..., :i]
 
-                d[self._past(ts_field)] = np.expand_dims(past_piece, -1)
+                if ts_field is self.target_in:
+                    d[self._past(ts_field)] = np.expand_dims(past_piece, -1)
+                else:
+                    d[self._past(ts_field)] = past_piece.swapaxes(0, 1)
 
-                if is_train and ts_field is self.target_in:
-                    forking_dec_field = np.zeros(
-                        shape=(self.enc_len, self.dec_len)
-                    )
+                if ts_field in ([self.target_in] + self.decoder_series_fields):
+                    # target is of shape (len_ts, )
+                    # decoder features is of shape (num_feat, len_ts)
+                    ts_value = d[ts_field]
 
-                    for j in range(self.enc_len):
-                        start_idx = i - self.enc_len + j + 1
-                        if start_idx >= 0:
-                            forking_dec_field[j, :] = d[ts_field][
-                                ..., start_idx : start_idx + dec_len
-                            ]
+                    if ts_field is self.target_in and not is_train:
+                        break
+                    else:
+                        if ts_field is self.target_in:
+                            forking_dec_field = np.zeros(
+                                shape=(self.enc_len, self.dec_len)
+                            )
+                        else:
+                            forking_dec_field = np.zeros(
+                                shape=(
+                                    self.enc_len,
+                                    self.dec_len,
+                                    ts_value.shape[0],
+                                )
+                            )
 
-                    d[self._future(ts_field)] = forking_dec_field
+                        for j in range(self.enc_len):
+                            start_idx = i - self.enc_len + j + 1
+                            if start_idx >= 0:
+                                forking_dec_field[j, ...] = ts_value[
+                                    ..., start_idx : start_idx + dec_len
+                                ]
+                        d[self._future(ts_field)] = forking_dec_field
 
                 del d[ts_field]
 
