@@ -100,7 +100,7 @@ class DataLoader(Iterable[DataEntry]):
     @property
     def batches(self):
         return BatchStacker(
-            self.batch_size, stream=self.stream, stack_fn=self.stack,
+            self.batch_size, stream=self.stream, stack_fn=self.stack
         )
 
     def stack(self, xs):
