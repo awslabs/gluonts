@@ -278,7 +278,7 @@ class CNN2QRForecaster(Seq2SeqEstimator):
             kernel_size_seq=([3] * len([30, 30, 30])),
             channels_seq=[30, 30, 30],
             use_residual=True,
-            use_covariates=True,
+            use_dynamic_feat=True,
         )
 
         super(CNN2QRForecaster, self).__init__(

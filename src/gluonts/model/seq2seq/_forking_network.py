@@ -67,7 +67,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self, F, past_target: Tensor, future_target: Tensor
+        self, F, past_target: Tensor, past_feat_dynamic_real: Tensor, future_target: Tensor
     ) -> Tensor:
         """
         Parameters
@@ -84,9 +84,13 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         loss with shape (FIXME, FIXME)
         """
 
+        # print(f"past target: {past_target.shape}")
+        # print(f"past_feat_dynamic_real: {past_feat_dynamic_real.shape}")
+        # print(f"future_target: {future_target.shape}")
+
         # FIXME: can we factor out a common prefix in the base network?
         feat_static_real = nd_None
-        past_feat_dynamic_real = nd_None
+        # past_feat_dynamic_real = nd_None
         future_feat_dynamic_real = nd_None
 
         enc_output_static, enc_output_dynamic = self.encoder(
@@ -100,13 +104,15 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
         dec_dist_output = self.quantile_proj(dec_output)
 
+        # print(f"decoder output: {dec_dist_output.shape}")
+
         loss = self.loss(future_target, dec_dist_output)
         return loss.mean(axis=1)
 
 
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
-    def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
+    def hybrid_forward(self, F, past_target: Tensor, past_feat_dynamic_real: Tensor) -> Tensor:
         """
         Parameters
         ----------
@@ -122,7 +128,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
         # FIXME: can we factor out a common prefix in the base network?
         feat_static_real = nd_None
-        past_feat_dynamic_real = nd_None
+        # past_feat_dynamic_real = nd_None
         future_feat_dynamic_real = nd_None
 
         enc_output_static, enc_output_dynamic = self.encoder(

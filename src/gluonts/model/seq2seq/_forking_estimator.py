@@ -29,12 +29,14 @@ from gluonts.support.util import copy_parameters
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AsNumpyArray,
+    AddAgeFeature,
     Chain,
     TestSplitSampler,
     Transformation,
 )
 
 # Relative imports
+# from transform import AddAgeFeature
 from ._forking_network import (
     ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqTrainingNetwork,
@@ -115,11 +117,21 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     def create_transformation(self) -> Transformation:
         return Chain(
             trans=[
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
+                AsNumpyArray(
+                    field=FieldName.TARGET, expected_ndim=1, dtype=self.dtype
+                ),
+                AddAgeFeature(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_DYNAMIC_REAL,
+                    log_scale=True,
+                    pred_length=self.prediction_length,
+                    dtype=self.dtype,
+                ),
                 ForkingSequenceSplitter(
                     train_sampler=TestSplitSampler(),
                     enc_len=self.context_length,
                     dec_len=self.prediction_length,
+                    encoder_series_fields=[FieldName.FEAT_DYNAMIC_REAL],
                 ),
             ]
         )
