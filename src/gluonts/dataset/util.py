@@ -12,10 +12,12 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import itertools
 import logging
+import random
 import os
 from pathlib import Path
-from typing import Callable, Iterator, List, Tuple, TypeVar
+from typing import Callable, Iterable, Iterator, List, Tuple, TypeVar
 
 # Third-party imports
 import pandas as pd
@@ -83,3 +85,54 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
         freq = start.freqstr
     index = pd.date_range(start=start, periods=len(target), freq=freq)
     return pd.Series(target, index=index)
+
+
+def take(iterable, n):
+    """Returns up to `n` elements from `iterable`.
+
+    This is similar to xs[:n], except that it works on `Iterable`s and possibly
+    consumes the given `iterable`.
+
+    >>> list(take(range(10), 5))
+    [0, 1, 2, 3, 4]
+    """
+    return itertools.islice(iterable, n)
+
+
+def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
+    """Groups elements from `iterable` into batches of size `batch_size`.
+
+    >>> list(batcher("ABCDEFG", 3))
+    [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
+
+    Unlike the grouper proposed in the documentation of itertools, `batcher`
+    doesn't fill up missing values.
+    """
+    while True:
+        items = list(take(iterable, batch_size))
+        if not items:
+            break
+        yield items
+
+
+def dct_reduce(reduce_fn, dcts):
+    """Similar to `reduce`, but applies reduce_fn to fields of dicts with the
+    same name.
+
+    >>> list(dct_reduce(sum, [{"a": 1}, {"a": 2}]))
+    {'a': 3}
+    """
+    keys = dcts[0].keys()
+
+    return {key: reduce_fn([item[key] for item in dcts]) for key in keys}
+
+
+def shuffler(stream: Iterable[T], batch_size: int) -> Iterator[T]:
+    """Modifies a stream by shuffling items in windows.
+
+    It continously takes `batch_size`-elements from the stream and yields
+    elements from each batch  in random order."""
+
+    for batch in batcher(stream, batch_size):
+        random.shuffle(batch)
+        yield from batch

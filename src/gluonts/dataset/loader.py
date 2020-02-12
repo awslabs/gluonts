@@ -12,11 +12,21 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import functools
 import itertools
 import random
 from collections import defaultdict
 from functools import partial
-from typing import Any, Collection, Dict, Iterable, Iterator, List, Optional
+from typing import (
+    Any,
+    Collection,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    TypeVar,
+)
 
 # Third-party imports
 import mxnet as mx
@@ -27,40 +37,11 @@ from gluonts.core.component import DType
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.transform import Transformation
 
+from .util import take, batcher, dct_reduce, shuffler
+
 DataBatch = Dict[str, Any]
 
-
-def batcher(iterable, batch_size):
-    while True:
-        items = list(itertools.islice(iterable, batch_size))
-        if not items:
-            break
-        yield items
-
-
-class BatchStacker:
-    def __init__(self, batch_size: int, stream, stack_fn) -> None:
-        self.batch_size = batch_size
-        self.stream = stream
-        self.stack = stack_fn
-
-    def __iter__(self):
-        for items in batcher(self.stream, self.batch_size):
-            yield {
-                key: self.stack([item[key] for item in items])
-                for key in items[0]
-            }
-
-
-class Shuffler(Iterable[DataBatch]):
-    def __init__(self, batch_size, stream):
-        self.batch_size = batch_size
-        self.stream = stream
-
-    def __iter__(self) -> Iterator[DataBatch]:
-        for batch in batcher(self.stream, self.batch_size):
-            random.shuffle(batch)
-            yield from batch
+T = TypeVar("T")
 
 
 class DataLoader(Iterable[DataEntry]):
@@ -97,11 +78,10 @@ class DataLoader(Iterable[DataEntry]):
         self.dtype = dtype
         self.stream: Iterable = transform(dataset, is_train=is_train)
 
-    @property
-    def batches(self):
-        return BatchStacker(
-            self.batch_size, stream=self.stream, stack_fn=self.stack
-        )
+    def make_batch_iter(self):
+        batches = batcher(self.stream, self.batch_size)
+        stack = functools.partial(dct_reduce, self.stack)
+        return map(stack, batches)
 
     def stack(self, xs):
         if isinstance(xs[0], np.ndarray):
@@ -122,7 +102,7 @@ class DataLoader(Iterable[DataEntry]):
         return xs
 
     def __iter__(self) -> Iterator[DataBatch]:
-        return iter(self.batches)
+        return self.make_batch_iter()
 
 
 class TrainDataLoader(DataLoader):
@@ -174,13 +154,14 @@ class TrainDataLoader(DataLoader):
         self.num_batches_per_epoch = num_batches_per_epoch
 
         if shuffle_for_training:
-            self.stream = Shuffler(num_batches_for_shuffling, self.stream)
+            self.stream = shuffler(self.stream, num_batches_for_shuffling)
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
 
     def __iter__(self) -> Iterator[DataBatch]:
-        return itertools.islice(self.batches, self.num_batches_per_epoch)
+        batches = self.make_batch_iter()
+        return take(batches, self.num_batches_per_epoch)
 
 
 class ValidationDataLoader(DataLoader):
