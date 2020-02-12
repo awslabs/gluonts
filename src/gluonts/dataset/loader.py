@@ -14,18 +14,11 @@
 # Standard library imports
 import functools
 import itertools
-import random
-from collections import defaultdict
-from functools import partial
 from typing import (
     Any,
-    Collection,
     Dict,
     Iterable,
     Iterator,
-    List,
-    Optional,
-    TypeVar,
 )
 
 # Third-party imports
@@ -40,8 +33,6 @@ from gluonts.transform import Transformation
 from .util import take, batcher, dct_reduce, shuffler
 
 DataBatch = Dict[str, Any]
-
-T = TypeVar("T")
 
 
 class DataLoader(Iterable[DataEntry]):
