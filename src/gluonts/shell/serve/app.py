@@ -15,7 +15,7 @@ import logging
 import json
 import time
 import traceback
-from typing import Tuple, Iterable, List
+from typing import Callable, Tuple, Iterable, List
 
 from flask import Flask, Response, request, jsonify
 from pydantic import BaseModel
@@ -80,7 +80,7 @@ def get_base_app(execution_params):
         return traceback.format_exc(), 500
 
     @app.route("/ping")
-    def ping() -> Response:
+    def ping() -> str:
         return ""
 
     @app.route("/execution-parameters")
@@ -107,7 +107,7 @@ def handle_predictions(predictor, instances, configuration):
     return predictions
 
 
-def inference_invocations(predictor_factory) -> Flask:
+def inference_invocations(predictor_factory) -> Callable[[], Response]:
     def invocations() -> Response:
         predictor = predictor_factory(request.json)
         req = InferenceRequest.parse_obj(request.json)
@@ -120,7 +120,9 @@ def inference_invocations(predictor_factory) -> Flask:
     return invocations
 
 
-def batch_inference_invocations(predictor_factory, configuration) -> Flask:
+def batch_inference_invocations(
+    predictor_factory, configuration
+) -> Callable[[], Response]:
     DEBUG = configuration.dict().get("DEBUG")
     predictor = predictor_factory({"configuration": configuration.dict()})
 

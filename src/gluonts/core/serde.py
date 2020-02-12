@@ -560,7 +560,7 @@ def decode(r: Any) -> Any:
     # r = { 'class': ..., 'args': ... }
     # r = { 'class': ..., 'kwargs': ... }
     if type(r) == dict and r.get("__kind__") == kind_inst:
-        cls = locate(r["class"])
+        cls = cast(Any, locate(r["class"]))
         args = decode(r["args"]) if "args" in r else []
         kwargs = decode(r["kwargs"]) if "kwargs" in r else {}
         return cls(*args, **kwargs)
