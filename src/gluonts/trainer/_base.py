@@ -75,7 +75,7 @@ class Trainer:
     ----------
     ctx
     epochs
-        Number of epochs that the network will train (default: 1).
+        Number of epochs that the network will train (default: 100).
     batch_size
         Number of examples in each batch (default: 32).
     num_batches_per_epoch
