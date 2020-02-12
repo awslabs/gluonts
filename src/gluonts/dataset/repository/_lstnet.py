@@ -166,6 +166,7 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
                     target_values=sliced_ts.values,
                     start=sliced_ts.index[0],
                     cat=[cat],
+                    item_id=cat,
                 )
             )
 
@@ -192,6 +193,7 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
                     target_values=sliced_ts.values,
                     start=sliced_ts.index[0],
                     cat=[cat],
+                    item_id=cat,
                 )
             )
 

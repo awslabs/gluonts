@@ -88,7 +88,7 @@ def maximum_likelihood_estimate_sgd(
     num_epochs: PositiveInt = PositiveInt(5),
     learning_rate: PositiveFloat = PositiveFloat(1e-2),
     hybridize: bool = True,
-) -> Iterable[float]:
+) -> List[np.ndarray]:
     model_ctx = mx.cpu()
 
     arg_proj = distr_output.get_args_proj()
@@ -304,7 +304,6 @@ def test_gaussian_likelihood(mu: float, sigma: float, hybridize: bool):
     ), f"alpha did not match: sigma = {sigma}, sigma_hat = {sigma_hat}"
 
 
-@pytest.mark.timeout(10)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_multivariate_gaussian(hybridize: bool) -> None:
     num_samples = 2000
@@ -415,7 +414,6 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
-@pytest.mark.timeout(15)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
     num_samples = 2000
@@ -576,7 +574,6 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
     ), f"alpha did not match: alpha = {alpha}, alpha_hat = {alpha_hat}"
 
 
-@pytest.mark.timeout(10)
 @pytest.mark.parametrize("mu_b", [(3.3, 0.7)])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_laplace(mu_b: Tuple[float, float], hybridize: bool) -> None:
@@ -786,7 +783,7 @@ def test_binned_likelihood(
     bin_probs = mx.nd.zeros((NUM_SAMPLES, num_bins)) + bin_prob
     bin_centers = mx.nd.zeros((NUM_SAMPLES, num_bins)) + bin_center
 
-    distr = Binned(bin_probs, bin_centers)
+    distr = Binned(bin_probs.log(), bin_centers)
     samples = distr.sample()
 
     # add some jitter to the uniform initialization and normalize
@@ -795,7 +792,7 @@ def test_binned_likelihood(
 
     init_biases = [bin_prob_init]
 
-    bin_prob_hat, _ = maximum_likelihood_estimate_sgd(
+    bin_log_prob_hat, _ = maximum_likelihood_estimate_sgd(
         BinnedOutput(bin_center),
         samples,
         init_biases=init_biases,
@@ -803,6 +800,8 @@ def test_binned_likelihood(
         learning_rate=PositiveFloat(0.05),
         num_epochs=PositiveInt(25),
     )
+
+    bin_prob_hat = np.exp(bin_log_prob_hat)
 
     assert all(
         mx.nd.abs(mx.nd.array(bin_prob_hat) - bin_prob) < TOL * bin_prob

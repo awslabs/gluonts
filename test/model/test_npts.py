@@ -417,7 +417,10 @@ def test_npts_custom_features(
     )
     # Dummy feature defining 52 seasons
     feat_dynamic_real = [
-        (ix % 52) / 51.0 - 0.5 for ix, timestamp in enumerate(full_time_index)
+        [
+            (ix % 52) / 51.0 - 0.5
+            for ix, timestamp in enumerate(full_time_index)
+        ]
     ]
 
     predictor = NPTSPredictor(

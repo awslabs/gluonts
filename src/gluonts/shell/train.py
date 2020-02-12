@@ -22,9 +22,11 @@ from gluonts.core.component import check_gpu_support
 from gluonts.core.serde import dump_code
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 from gluonts.transform import FilterTransformation, TransformedDataset
+from gluonts.support.util import maybe_len
 
 # Relative imports
 from .sagemaker import TrainEnv
@@ -79,7 +81,9 @@ def run_train(
     train_dataset: Dataset,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
-    log.metric("train_dataset_stats", train_dataset.calc_stats())
+    log.metric(
+        "train_dataset_stats", calculate_dataset_statistics(train_dataset)
+    )
 
     return forecaster.train(train_dataset, validation_dataset)
 
@@ -87,7 +91,7 @@ def run_train(
 def run_test(
     env: TrainEnv, predictor: Predictor, test_dataset: Dataset
 ) -> None:
-    len_original = len(test_dataset)
+    len_original = maybe_len(test_dataset)
 
     test_dataset = TransformedDataset(
         base_dataset=test_dataset,
@@ -100,7 +104,7 @@ def run_test(
 
     len_filtered = len(test_dataset)
 
-    if len_original > len_filtered:
+    if len_original is not None and len_original > len_filtered:
         logger.warning(
             f"Not all time-series in the test-channel have "
             f"enough data to be used for evaluation. Proceeding with "

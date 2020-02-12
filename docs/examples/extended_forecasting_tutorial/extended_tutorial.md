@@ -337,8 +337,8 @@ We can easily create the train and test datasets by simply filling in the correc
 ```python
 train_ds = ListDataset([{FieldName.TARGET: target, 
                          FieldName.START: start,
-                         FieldName.FEAT_DYNAMIC_REAL: fdr,
-                         FieldName.FEAT_STATIC_CAT: fsc} 
+                         FieldName.FEAT_DYNAMIC_REAL: [fdr],
+                         FieldName.FEAT_STATIC_CAT: [fsc]} 
                         for (target, start, fdr, fsc) in zip(target[:, :-custom_ds_metadata['prediction_length']], 
                                                              custom_ds_metadata['start'], 
                                                              feat_dynamic_real[:, :-custom_ds_metadata['prediction_length']], 
@@ -350,8 +350,8 @@ train_ds = ListDataset([{FieldName.TARGET: target,
 ```python
 test_ds = ListDataset([{FieldName.TARGET: target, 
                         FieldName.START: start,
-                        FieldName.FEAT_DYNAMIC_REAL: fdr,
-                        FieldName.FEAT_STATIC_CAT: fsc} 
+                        FieldName.FEAT_DYNAMIC_REAL: [fdr],
+                        FieldName.FEAT_STATIC_CAT: [fsc]} 
                        for (target, start, fdr, fsc) in zip(target, 
                                                             custom_ds_metadata['start'], 
                                                             feat_dynamic_real, 
@@ -693,7 +693,7 @@ print(f"Start date of the forecast window: {forecast_entry.start_date}")
 print(f"Frequency of the time series: {forecast_entry.freq}")
 ```
 
-We can also do calculations to summarize the sample paths, such computing the mean or a quantile for each of the 48 time steps in the forecast window.
+We can also do calculations to summarize the sample paths, such as computing the mean or a quantile for each of the 24 time steps in the forecast window.
 
 
 ```python

@@ -112,12 +112,11 @@ class MeanEstimator(Estimator):
         training_data: Dataset,
         validation_dataset: Optional[Dataset] = None,
     ) -> ConstantPredictor:
-        contexts = np.broadcast_to(
-            array=[
+        contexts = np.array(
+            [
                 item["target"][-self.prediction_length :]
                 for item in training_data
-            ],
-            shape=(len(training_data), self.prediction_length),
+            ]
         )
 
         samples = np.broadcast_to(
