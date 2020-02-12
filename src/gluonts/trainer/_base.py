@@ -79,7 +79,7 @@ class Trainer:
     batch_size
         Number of examples in each batch (default: 32).
     num_batches_per_epoch
-        Number of batches at each epoch (default: 100).
+        Number of batches at each epoch (default: 50).
     learning_rate
         Initial learning rate (default: :math:`10^{-3}`).
     learning_rate_decay_factor
