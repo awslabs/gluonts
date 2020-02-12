@@ -236,7 +236,7 @@ class PiecewiseLinear(Distribution):
             / slope_l0_nz,
         )
 
-        return a_tilde
+        return F.broadcast_minimum(F.ones_like(a_tilde), a_tilde)
 
     def quantile(self, level: Tensor) -> Tensor:
         return self.quantile_internal(level, axis=0)
@@ -321,6 +321,8 @@ class PiecewiseLinearOutput(DistributionOutput):
 
     @validated()
     def __init__(self, num_pieces: int) -> None:
+        super().__init__(self)
+
         assert (
             isinstance(num_pieces, int) and num_pieces > 1
         ), "num_pieces should be an integer larger than 1"
@@ -334,15 +336,7 @@ class PiecewiseLinearOutput(DistributionOutput):
     @classmethod
     def domain_map(cls, F, gamma, slopes, knot_spacings):
         # slopes of the pieces are non-negative
-        thresh = F.zeros_like(slopes) + 20.0
-        I_grt_thresh = F.broadcast_greater_equal(slopes, thresh)
-        I_sml_thresh = F.broadcast_lesser(slopes, thresh)
-        slopes_proj = (
-            I_sml_thresh
-            * F.Activation(data=(I_sml_thresh * slopes), act_type="softrelu")
-            + I_grt_thresh * slopes
-        )
-        # slopes = F.Activation(slopes, 'softrelu')
+        slopes_proj = F.Activation(data=slopes, act_type="softrelu") + 1e-4
 
         # the spacing between the knots should be in [0, 1] and sum to 1
         knot_spacings_proj = F.softmax(knot_spacings)
@@ -350,14 +344,17 @@ class PiecewiseLinearOutput(DistributionOutput):
         return gamma.squeeze(axis=-1), slopes_proj, knot_spacings_proj
 
     def distribution(
-        self, distr_args, scale: Optional[Tensor] = None, **kwargs
+        self,
+        distr_args,
+        loc: Optional[Tensor] = None,
+        scale: Optional[Tensor] = None,
     ) -> PiecewiseLinear:
         if scale is None:
             return self.distr_cls(*distr_args)
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedPiecewiseLinear(
-                distr, [AffineTransformation(scale=scale)]
+                distr, [AffineTransformation(loc=loc, scale=scale)]
             )
 
     @property
@@ -376,19 +373,13 @@ class TransformedPiecewiseLinear(TransformedDistribution, PiecewiseLinear):
     def crps(self, y: Tensor) -> Tensor:
         # TODO: use event_shape
         F = getF(y)
-
+        x = y
+        scale = 1.0
         for t in self.transforms[::-1]:
             assert isinstance(
                 t, AffineTransformation
             ), "Not an AffineTransformation"
-            assert (
-                t.scale is not None and t.loc is None
-            ), "Not a scaling transformation"
-
-            scale = t.scale
-            x = t.f_inv(y)
-
-        # (..., 1)
+            x = t.f_inv(x)
+            scale *= t.scale
         p = self.base_distribution.crps(x)
-
         return F.broadcast_mul(p, scale)

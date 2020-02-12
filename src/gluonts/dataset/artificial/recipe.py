@@ -165,16 +165,19 @@ class Lifted:
         return LiftedSub(other, self)
 
     def __mul__(self, other):
-        return LiftedMul(self, other, operator.mul)
+        return LiftedMul(self, other)
 
     def __rmul__(self, other):
-        return LiftedMul(other, self, operator.mul)
+        return LiftedMul(other, self)
 
     def __truediv__(self, other):
-        return LiftedTruediv(self, other, operator.truediv)
+        return LiftedTruediv(self, other)
 
     def __rtruediv__(self, other):
-        return LiftedTruediv(other, self, operator.truediv)
+        return LiftedTruediv(other, self)
+
+    def __pow__(self, other):
+        return LiftedBinaryOp(self, other, operator.pow)
 
     def __call__(
         self,

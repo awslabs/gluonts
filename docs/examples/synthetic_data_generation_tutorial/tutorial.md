@@ -232,7 +232,7 @@ As recipes are just lists of expressions that evaluated sequentially, recipes ca
 
 ```python
 scaling = [
-    ("scale", rcp.RandomUniform(0, 1000)),
+    ("scale", rcp.RandomUniform(low=0, high=1000, shape=1)),
     ("z", "scale" * rcp.Ref("unscaled"))
 ]
 

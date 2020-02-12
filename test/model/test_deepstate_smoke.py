@@ -26,8 +26,11 @@ from gluonts.trainer import Trainer
 common_estimator_hps = dict(
     freq="D",
     prediction_length=3,
-    trainer=Trainer(epochs=3, num_batches_per_epoch=2, batch_size=1),
+    trainer=Trainer(
+        epochs=3, num_batches_per_epoch=2, batch_size=1, hybridize=True
+    ),
     past_length=10,
+    add_trend=True,
 )
 
 

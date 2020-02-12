@@ -26,6 +26,7 @@ from .dirichlet_multinomial import (
 from .distribution import Distribution
 from .distribution_output import DistributionOutput
 from .gaussian import Gaussian, GaussianOutput
+from .beta import Beta, BetaOutput
 from .laplace import Laplace, LaplaceOutput
 from .lowrank_multivariate_gaussian import (
     LowrankMultivariateGaussian,
@@ -47,11 +48,18 @@ from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
 
+from .gamma import Gamma, GammaOutput
+from .poisson import Poisson, PoissonOutput
+
 __all__ = [
     "Distribution",
     "DistributionOutput",
     "StudentTOutput",
     "StudentT",
+    "GammaOutput",
+    "Gamma",
+    "BetaOutput",
+    "Beta",
     "GaussianOutput",
     "Gaussian",
     "LaplaceOutput",
@@ -70,6 +78,8 @@ __all__ = [
     "BinnedOutput",
     "PiecewiseLinear",
     "PiecewiseLinearOutput",
+    "Poisson",
+    "PoissonOutput",
     "TransformedPiecewiseLinear",
     "TransformedDistribution",
     "TransformedDistributionOutput",

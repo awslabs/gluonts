@@ -20,9 +20,9 @@ import mxnet as mx
 # First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.distribution.distribution import softplus
-from gluonts.gp import GaussianProcess
 from gluonts.kernels import KernelOutputDict
 from gluonts.model.common import Tensor
+from .gaussian_process import GaussianProcess
 
 
 class GaussianProcessNetworkBase(mx.gluon.HybridBlock):

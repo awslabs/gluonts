@@ -23,8 +23,11 @@ from gluonts.distribution import (
     NegativeBinomial,
     Laplace,
     Gaussian,
+    Gamma,
+    Beta,
     MultivariateGaussian,
     PiecewiseLinear,
+    Poisson,
     Binned,
     TransformedDistribution,
 )
@@ -38,6 +41,14 @@ test_cases = [
             "mu": mx.nd.array([1000.0, -1000.0]),
             "sigma": mx.nd.array([0.1, 1.0]),
         },
+    ),
+    (
+        Gamma,
+        {"alpha": mx.nd.array([2.5, 7.0]), "beta": mx.nd.array([1.5, 2.1])},
+    ),
+    (
+        Beta,
+        {"alpha": mx.nd.array([2.5, 7.0]), "beta": mx.nd.array([1.5, 2.1])},
     ),
     (
         Laplace,
@@ -65,14 +76,17 @@ test_cases = [
     (
         Binned,
         {
-            "bin_probs": mx.nd.array(
-                [[0, 0.3, 0.1, 0.05, 0.2, 0.1, 0.25]]
-            ).repeat(axis=0, repeats=2),
+            "bin_log_probs": mx.nd.array(
+                [[1e-300, 0.3, 0.1, 0.05, 0.2, 0.1, 0.25]]
+            )
+            .log()
+            .repeat(axis=0, repeats=2),
             "bin_centers": mx.nd.array(
                 [[-5, -3, -1.2, -0.5, 0, 0.1, 0.2]]
             ).repeat(axis=0, repeats=2),
         },
     ),
+    (Poisson, {"rate": mx.nd.array([1000.0, 1.0])}),
 ]
 
 test_output = {
@@ -80,6 +94,16 @@ test_output = {
         "mean": mx.nd.array([1000.0, -1000.0]),
         "stddev": mx.nd.array([0.1, 1.0]),
         "variance": mx.nd.array([0.01, 1.0]),
+    },
+    "Beta": {
+        "mean": mx.nd.array([0.625, 0.7692307]),
+        "stddev": mx.nd.array([0.2165063, 0.1325734]),
+        "variance": mx.nd.array([0.046875, 0.0175757]),
+    },
+    "Gamma": {
+        "mean": mx.nd.array([1.6666666, 3.3333333]),
+        "stddev": mx.nd.array([1.05409255, 1.25988158]),
+        "variance": mx.nd.array([1.1111111, 1.58730159]),
     },
     "Laplace": {
         "mean": mx.nd.array([1000.0, -1000.0]),
@@ -106,6 +130,11 @@ test_output = {
         "stddev": mx.nd.array([1.377416, 1.377416]),
         "variance": mx.nd.array([1.8972749, 1.8972749]),
     },
+    "Poisson": {
+        "mean": mx.nd.array([1000.0, 1.0]),
+        "stddev": mx.nd.array([31.622776, 1.0]),
+        "variance": mx.nd.array([1000.0, 1.0]),
+    },
 }
 
 # TODO: implement stddev methods for MultivariateGaussian and LowrankMultivariateGaussian
@@ -113,9 +142,11 @@ DISTRIBUTIONS = [
     Gaussian,
     Laplace,
     StudentT,
+    Gamma,
     NegativeBinomial,
     Uniform,
     Binned,
+    Poisson,
 ]
 
 

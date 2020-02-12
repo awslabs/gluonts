@@ -13,6 +13,7 @@
 
 from typing import Tuple, List, Union
 import pytest
+from itertools import product
 
 import mxnet as mx
 
@@ -20,12 +21,15 @@ from gluonts.model.common import Tensor
 from gluonts.distribution import (
     DistributionOutput,
     GaussianOutput,
+    GammaOutput,
+    BetaOutput,
     LaplaceOutput,
     MixtureDistributionOutput,
     MultivariateGaussianOutput,
     LowrankMultivariateGaussianOutput,
     NegativeBinomialOutput,
     PiecewiseLinearOutput,
+    PoissonOutput,
     StudentTOutput,
     UniformOutput,
     DirichletOutput,
@@ -34,11 +38,12 @@ from gluonts.distribution import (
 
 
 @pytest.mark.parametrize(
-    "distr_out, data, scale, expected_batch_shape, expected_event_shape",
+    "distr_out, data, loc, scale, expected_batch_shape, expected_event_shape",
     [
         (
             GaussianOutput(),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),
@@ -47,12 +52,30 @@ from gluonts.distribution import (
             StudentTOutput(),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4, 5),
+            (),
+        ),
+        (
+            GammaOutput(),
+            mx.nd.random.gamma(shape=(3, 4, 5, 6)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4, 5),
+            (),
+        ),
+        (
+            BetaOutput(),
+            mx.nd.random.gamma(shape=(3, 4, 5, 6)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),
         ),
         (
             MultivariateGaussianOutput(dim=5),
             mx.nd.random.normal(shape=(3, 4, 10)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4),
             (5,),
@@ -61,12 +84,14 @@ from gluonts.distribution import (
             LowrankMultivariateGaussianOutput(dim=5, rank=4),
             mx.nd.random.normal(shape=(3, 4, 10)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4),
             (5,),
         ),
         (
             DirichletOutput(dim=5),
             mx.nd.random.gamma(shape=(3, 4, 5)),
+            [None],
             [None],
             (3, 4),
             (5,),
@@ -75,6 +100,7 @@ from gluonts.distribution import (
             DirichletMultinomialOutput(dim=5, n_trials=10),
             mx.nd.random.gamma(shape=(3, 4, 5)),
             [None],
+            [None],
             (3, 4),
             (5,),
         ),
@@ -82,12 +108,14 @@ from gluonts.distribution import (
             LaplaceOutput(),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),
         ),
         (
             NegativeBinomialOutput(),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
+            [None],
             [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),
@@ -96,6 +124,7 @@ from gluonts.distribution import (
             UniformOutput(),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),
         ),
@@ -103,12 +132,14 @@ from gluonts.distribution import (
             PiecewiseLinearOutput(num_pieces=3),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),
         ),
         (
             MixtureDistributionOutput([GaussianOutput(), StudentTOutput()]),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),
@@ -122,14 +153,24 @@ from gluonts.distribution import (
             ),
             mx.nd.random.normal(shape=(3, 4, 10)),
             [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4),
             (5,),
+        ),
+        (
+            PoissonOutput(),
+            mx.nd.random.normal(shape=(3, 4, 5, 6)),
+            [None],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4, 5),
+            (),
         ),
     ],
 )
 def test_distribution_output_shapes(
     distr_out: DistributionOutput,
     data: Tensor,
+    loc: List[Union[None, Tensor]],
     scale: List[Union[None, Tensor]],
     expected_batch_shape: Tuple,
     expected_event_shape: Tuple,
@@ -141,9 +182,9 @@ def test_distribution_output_shapes(
 
     assert distr_out.event_shape == expected_event_shape
 
-    for s in scale:
+    for l, s in product(loc, scale):
 
-        distr = distr_out.distribution(args, scale=s)
+        distr = distr_out.distribution(args, loc=l, scale=s)
 
         assert distr.batch_shape == expected_batch_shape
         assert distr.event_shape == expected_event_shape

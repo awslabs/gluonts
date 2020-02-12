@@ -35,8 +35,9 @@ class Binned(Distribution):
 
     Parameters
     ----------
-    bin_probs
-        Tensor containing the bin probabilities, of shape `(*batch_shape, num_bins)`.
+    bin_log_probs
+        Tensor containing log probabilities of the bins, of shape
+        `(*batch_shape, num_bins)`.
     bin_centers
         Tensor containing the bin centers, of shape `(*batch_shape, num_bins)`.
     F
@@ -45,10 +46,13 @@ class Binned(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, bin_probs: Tensor, bin_centers: Tensor, F=None) -> None:
+    def __init__(
+        self, bin_log_probs: Tensor, bin_centers: Tensor, F=None
+    ) -> None:
         self.bin_centers = bin_centers
-        self.bin_probs = bin_probs
-        self.F = F if F else getF(bin_probs)
+        self.bin_log_probs = bin_log_probs
+        self._bin_probs = None
+        self.F = F if F else getF(bin_log_probs)
 
         self.bin_edges = Binned._compute_edges(self.F, bin_centers)
 
@@ -87,8 +91,14 @@ class Binned(Distribution):
         return F.concat(low, means, high, dim=-1)
 
     @property
+    def bin_probs(self):
+        if self._bin_probs is None:
+            self._bin_probs = self.bin_log_probs.exp()
+        return self._bin_probs
+
+    @property
     def batch_shape(self) -> Tuple:
-        return self.bin_probs.shape[:-1]
+        return self.bin_log_probs.shape[:-1]
 
     @property
     def event_shape(self) -> Tuple:
@@ -104,8 +114,8 @@ class Binned(Distribution):
 
     @property
     def stddev(self):
-        Ex2 = (self.bin_probs * self.bin_centers.square()).sum(axis=-1)
-        return (Ex2 - self.mean.square()).sqrt()
+        ex2 = (self.bin_probs * self.bin_centers.square()).sum(axis=-1)
+        return (ex2 - self.mean.square()).sqrt()
 
     def log_prob(self, x):
         F = self.F
@@ -116,7 +126,7 @@ class Binned(Distribution):
         mask = F.broadcast_lesser_equal(left_edges, x) * F.broadcast_lesser(
             x, right_edges
         )
-        return F.broadcast_mul(self.bin_probs.log(), mask).sum(axis=-1)
+        return F.broadcast_mul(self.bin_log_probs, mask).sum(axis=-1)
 
     def cdf(self, x: Tensor) -> Tensor:
         F = self.F
@@ -129,9 +139,10 @@ class Binned(Distribution):
         F = self.F
 
         probs = self.bin_probs.swapaxes(0, 1)  # (num_bins, batch)
-        zeros_batch_size = F.slice_axis(probs, axis=0, begin=0, end=1).squeeze(
-            axis=0
-        )  # (batch_size,)
+        # (batch_size,)
+        zeros_batch_size = F.zeros_like(
+            F.slice_axis(probs, axis=0, begin=0, end=1).squeeze(axis=0)
+        )
 
         level = level.expand_dims(axis=0)
         # cdf shape (batch_size, levels)
@@ -177,7 +188,7 @@ class Binned(Distribution):
 
     @property
     def args(self) -> List:
-        return [self.bin_probs, self.bin_centers]
+        return [self.bin_log_probs, self.bin_centers]
 
 
 class BinnedArgs(gluon.HybridBlock):
@@ -202,7 +213,7 @@ class BinnedArgs(gluon.HybridBlock):
                     weight_initializer=mx.init.Xavier(),
                 )
             )
-            self.proj.add(gluon.nn.HybridLambda("softmax"))
+            self.proj.add(gluon.nn.HybridLambda("log_softmax"))
 
     def hybrid_forward(
         self, F, x: Tensor, bin_centers: Tensor
@@ -218,6 +229,7 @@ class BinnedOutput(DistributionOutput):
 
     @validated()
     def __init__(self, bin_centers: mx.nd.NDArray) -> None:
+        super().__init__(self)
         self.bin_centers = bin_centers
         self.num_bins = self.bin_centers.shape[0]
         assert len(self.bin_centers.shape) == 1
@@ -225,7 +237,7 @@ class BinnedOutput(DistributionOutput):
     def get_args_proj(self, *args, **kwargs) -> gluon.nn.HybridBlock:
         return BinnedArgs(self.num_bins, self.bin_centers)
 
-    def distribution(self, args, scale=None) -> Binned:
+    def distribution(self, args, loc=None, scale=None) -> Binned:
         probs = args[0]
         bin_centers = args[1]
         F = getF(probs)
@@ -235,6 +247,10 @@ class BinnedOutput(DistributionOutput):
         if scale is not None:
             bin_centers = F.broadcast_mul(
                 bin_centers, scale.expand_dims(axis=-1)
+            )
+        if loc is not None:
+            bin_centers = F.broadcast_add(
+                bin_centers, loc.expand_dims(axis=-1)
             )
 
         return Binned(probs, bin_centers)
