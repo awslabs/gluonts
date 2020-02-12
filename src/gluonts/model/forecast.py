@@ -390,7 +390,7 @@ class SampleForecast(Forecast):
         """
         Forecast mean, as a pandas.Series object.
         """
-        return pd.Series(data=self.mean, index=self.index)
+        return pd.Series(self.mean, index=self.index)
 
     def quantile(self, q):
         q = Quantile.parse(q).value
@@ -624,7 +624,7 @@ class DistributionForecast(Forecast):
         """
         Forecast mean, as a pandas.Series object.
         """
-        return pd.Series(data=self.mean, index=self.index)
+        return pd.Series(self.mean, index=self.index)
 
     def quantile(self, level):
         level = Quantile.parse(level).value
