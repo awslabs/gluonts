@@ -120,7 +120,9 @@ def inference_invocations(predictor_factory) -> Callable[[], Response]:
     return invocations
 
 
-def batch_inference_invocations(predictor_factory, configuration) -> Callable[[], Response]:
+def batch_inference_invocations(
+    predictor_factory, configuration
+) -> Callable[[], Response]:
     DEBUG = configuration.dict().get("DEBUG")
     predictor = predictor_factory({"configuration": configuration.dict()})
 
