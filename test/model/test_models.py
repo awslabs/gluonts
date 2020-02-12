@@ -37,6 +37,7 @@ from gluonts.model.seq2seq import (
     Seq2SeqEstimator,
 )
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.model.n_beats import NBEATSEnsembleEstimator, NBEATSEstimator
 from gluonts.model.transformer import TransformerEstimator
 from gluonts.model.canonical._estimator import (
     CanonicalRNNEstimator,
@@ -150,6 +151,62 @@ def simple_feedforward_estimator(hybridize: bool = True, batches_per_epoch=1):
     )
 
 
+def n_beats_generic_estimator(hybridize: bool = False, batches_per_epoch=1):
+    return (
+        NBEATSEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            hybridize=hybridize,
+            num_stacks=2,
+            prediction_length=prediction_length,
+            num_batches_per_epoch=batches_per_epoch,
+            num_parallel_samples=num_parallel_samples,
+        ),
+    )
+
+
+def n_beats_generic_ensemble_estimator(
+    hybridize: bool = True, batches_per_epoch=1
+):
+    return (
+        NBEATSEnsembleEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            hybridize=hybridize,
+            prediction_length=prediction_length,
+            num_batches_per_epoch=batches_per_epoch,
+            num_parallel_samples=num_parallel_samples,
+            meta_context_length=[2 * prediction_length],
+            meta_loss_function=["MAPE"],
+            meta_bagging_size=2,
+            num_stacks=3,
+        ),
+    )
+
+
+def n_beats_interpretable_estimator(
+    hybridize: bool = True, batches_per_epoch=1
+):
+    return (
+        NBEATSEstimator,
+        dict(
+            ctx="cpu",
+            epochs=epochs,
+            hybridize=hybridize,
+            prediction_length=prediction_length,
+            num_batches_per_epoch=batches_per_epoch,
+            num_parallel_samples=num_parallel_samples,
+            num_stacks=2,
+            num_blocks=[3],
+            widths=[256, 2048],
+            sharing=[True],
+            stack_types=["T", "S"],
+        ),
+    )
+
+
 def deep_factor_estimator(hybridize: bool = True, batches_per_epoch=1):
     return (
         DeepFactorEstimator,
@@ -253,7 +310,6 @@ def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
 
 
 @flaky(max_runs=3, min_passes=1)
-@pytest.mark.timeout(10)  # DeepAR occasionally fails with the 5 second timeout
 @pytest.mark.parametrize(
     "Estimator, hyperparameters, accuracy",
     [
@@ -271,6 +327,17 @@ def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
             rnn_estimator(hybridize=hyb) + (10.0,),
             simple_feedforward_estimator(hybridize=hyb, batches_per_epoch=200)
             + (0.3,),
+            # TODO: disabling this because it appears to time out
+            # n_beats_generic_estimator(hybridize=hyb, batches_per_epoch=200)
+            # + (0.3,),
+            # n_beats_generic_ensemble_estimator(
+            #     hybridize=hyb, batches_per_epoch=200
+            # )
+            # + (0.3,),
+            # n_beats_interpretable_estimator(
+            #     hybridize=hyb, batches_per_epoch=200
+            # )
+            # + (0.3,),
             transformer_estimator(hybridize=hyb, batches_per_epoch=80)
             + (0.2,),
         ]
@@ -294,6 +361,9 @@ def test_accuracy(Estimator, hyperparameters, accuracy):
     "Estimator, hyperparameters",
     [
         simple_feedforward_estimator(),
+        n_beats_generic_estimator(),
+        n_beats_generic_ensemble_estimator(),
+        n_beats_interpretable_estimator(),
         deepar_estimator(),
         deep_factor_estimator(),
         npts_estimator(),
@@ -313,6 +383,9 @@ def test_repr(Estimator, hyperparameters):
     "Estimator, hyperparameters",
     [
         simple_feedforward_estimator(),
+        n_beats_generic_estimator(),
+        n_beats_generic_ensemble_estimator(),
+        n_beats_interpretable_estimator(),
         deepar_estimator(),
         # TODO: Enable this test: Error:  assert <gluonts.model.predictor.RepresentableBlockPredictor object at
         # TODO: 0x124701240> == <gluonts.model.predictor.RepresentableBlockPredictor object at 0x124632940>

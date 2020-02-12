@@ -210,7 +210,7 @@ class GPVAREstimator(GluonEstimator):
 
     def create_transformation(self) -> Transformation:
         def use_marginal_transformation(
-            marginal_transformation: bool
+            marginal_transformation: bool,
         ) -> Transformation:
             if marginal_transformation:
                 return CDFtoGaussianTransform(

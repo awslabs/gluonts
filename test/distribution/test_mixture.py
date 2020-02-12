@@ -200,7 +200,6 @@ np_samples = np.where(
 EXPECTED_HIST = histogram(np_samples)
 
 
-@pytest.mark.timeout(20)
 @pytest.mark.skip("Skip test that takes long time to run")
 def test_mixture_inference() -> None:
     mdo = MixtureDistributionOutput([GaussianOutput(), GaussianOutput()])
