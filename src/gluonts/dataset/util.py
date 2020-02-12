@@ -119,7 +119,7 @@ def dct_reduce(reduce_fn, dcts):
     """Similar to `reduce`, but applies reduce_fn to fields of dicts with the
     same name.
 
-    >>> list(dct_reduce(sum, [{"a": 1}, {"a": 2}]))
+    >>> dct_reduce(sum, [{"a": 1}, {"a": 2}])
     {'a': 3}
     """
     keys = dcts[0].keys()
