@@ -188,7 +188,7 @@ class Evaluator:
     # This method is needed for the owa calculation
     # It extracts the training sequence from the Series or DataFrame to a numpy array
     @staticmethod
-    def extract_train_target(
+    def extract_past_data(
         time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> np.ndarray:
         """
@@ -265,10 +265,8 @@ class Evaluator:
         pred_target = np.ma.masked_invalid(pred_target)
 
         # needed for OWA calculation
-        train_target = np.array(
-            self.extract_train_target(time_series, forecast)
-        )
-        train_target = np.ma.masked_invalid(train_target)
+        past_data = np.array(self.extract_past_data(time_series, forecast))
+        past_data = np.ma.masked_invalid(past_data)
 
         try:
             mean_fcst = forecast.mean
@@ -299,10 +297,9 @@ class Evaluator:
             "OWA": self.owa(
                 pred_target,
                 median_fcst,
-                train_target,
+                past_data,
                 seasonal_error,
-                freq=forecast.freq,
-                start_date=forecast.start_date,
+                forecast.start_date,
             ),
             "MSIS": self.msis(
                 pred_target,
@@ -438,7 +435,7 @@ class Evaluator:
         return smape
 
     @staticmethod
-    def owa(target, forecast, train_target, seasonal_error, freq, start_date):
+    def owa(target, forecast, past_data, seasonal_error, start_date):
         r"""
         .. math::
 
@@ -447,16 +444,12 @@ class Evaluator:
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
         # avoid import error due to circular dependency
-        from gluonts.model.seasonal_naive import SeasonalNaivePredictor
+        from gluonts.model.naive_2 import naive_02
 
         # calculate the forecast of the seasonal naive predictor
-        naive_median_fcst = (
-            SeasonalNaivePredictor(freq=freq, prediction_length=len(forecast))
-            .predict_time_series(
-                forecast_start_time=start_date, target=train_target
-            )
-            .quantile(0.5)
-        )
+        naive_median_fcst = naive_02(
+            past_data, start_date, len(target)
+        ).quantile(0.5)
 
         owa = 0.5 * (
             (

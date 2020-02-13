@@ -73,14 +73,9 @@ class SeasonalNaivePredictor(RepresentablePredictor):
     def predict_item(self, item: DataEntry) -> Forecast:
         start_time = pd.Timestamp(item["start"], freq=self.freq)
         target = np.asarray(item["target"], np.float32)
-        forecast_start_time = start_time + len(target) * start_time.freq
-        return self.predict_time_series(forecast_start_time, target)
-
-    # Needed for OWA metric
-    def predict_time_series(
-        self, forecast_start_time: pd.Timestamp, target: np.ndarray
-    ) -> SampleForecast:
         len_ts = len(target)
+        forecast_start_time = start_time + len_ts * start_time.freq
+
         assert (
             len_ts >= 1
         ), "all time series should have at least one data point"
@@ -96,6 +91,4 @@ class SeasonalNaivePredictor(RepresentablePredictor):
                 shape=(1, self.prediction_length), fill_value=target.mean()
             )
 
-        return SampleForecast(
-            samples, forecast_start_time, forecast_start_time.freqstr
-        )
+        return SampleForecast(samples, forecast_start_time, self.freq)

@@ -16,21 +16,21 @@ from gluonts.core.component import validated
 from gluonts.model.estimator import DummyEstimator
 
 # Relative imports
-from ._predictor import SeasonalNaivePredictor
+from ._predictor import Naive2Predictor
 
 
-class SeasonalNaiveEstimator(DummyEstimator):
+class Naive2Estimator(DummyEstimator):
     """
-    An estimator that, upon `train`, simply returns a pre-constructed `SeasonalNaivePredictor`.
+    An estimator that, upon `train`, simply returns a pre-constructed `Naive2Predictor`.
 
     Parameters
     ----------
     kwargs
-        Arguments to pass to the `SeasonalNaivePredictor` constructor.
+        Arguments to pass to the `Naive2Predictor` constructor.
     """
 
     @validated(
-        getattr(SeasonalNaivePredictor.__init__, "Model")
+        getattr(Naive2Predictor.__init__, "Model")
     )  # Reuse the model Predictor model
     def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=SeasonalNaivePredictor, **kwargs)
+        super().__init__(predictor_cls=Naive2Predictor, **kwargs)
