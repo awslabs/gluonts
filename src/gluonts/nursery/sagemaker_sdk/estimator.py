@@ -13,6 +13,7 @@
 
 
 # Standard library imports
+import logging
 import json
 import tarfile
 from functools import partial
@@ -47,7 +48,6 @@ from .defaults import (
     NUM_SAMPLES,
     QUANTILES,
 )
-from .log import logger
 from .model import GluonTSModel
 from .utils import make_metrics, make_job_name
 
@@ -69,6 +69,9 @@ from .utils import make_metrics, make_job_name
 #    > Update the model dict with the nested dict from the MODEL_HPMs
 #      with dict.update(...)
 #    > Write this new dict back to a s3 as a .json file like before
+
+
+logger = logging.getLogger(__name__)
 
 
 class TrainResult(NamedTuple):
