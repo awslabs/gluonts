@@ -15,7 +15,7 @@
 from typing import List, Optional
 
 # First-party imports
-from evaluation.backtest import make_evaluation_predictions
+from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.block.decoder import ForkingMLPDecoder
 from gluonts.block.encoder import (
     HierarchicalCausalConv1DEncoder,
