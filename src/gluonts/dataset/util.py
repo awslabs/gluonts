@@ -87,7 +87,7 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     return pd.Series(target, index=index)
 
 
-def take(iterable, n):
+def take(iterable: Iterable[T], n: int) -> Iterator[T]:
     """Returns up to `n` elements from `iterable`.
 
     This is similar to xs[:n], except that it works on `Iterable`s and possibly
@@ -108,11 +108,12 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     Unlike the grouper proposed in the documentation of itertools, `batcher`
     doesn't fill up missing values.
     """
-    while True:
-        items = list(take(iterable, batch_size))
-        if not items:
-            break
-        yield items
+    it: Iterator[T] = iter(iterable)
+
+    def get_batch():
+        return list(take(it, batch_size))
+
+    return iter(get_batch, [])
 
 
 def dct_reduce(reduce_fn, dcts):
