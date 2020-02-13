@@ -295,8 +295,8 @@ class GluonPredictor(Predictor):
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
             dataset,
-            self.input_transform,
-            self.batch_size,
+            transform=self.input_transform,
+            batch_size=self.batch_size,
             ctx=self.ctx,
             dtype=self.dtype,
         )
