@@ -72,7 +72,8 @@ class Quantile(NamedTuple):
                     f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
                 )
             else:
-                return cls(value=int(m.group(1)) / 100, name=str(quantile))
+                quantile_float: float = int(m.group(1)) / 100
+                return cls(value=quantile_float, name=str(quantile_float))
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
