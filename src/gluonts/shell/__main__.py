@@ -33,6 +33,8 @@ from .sagemaker import TrainEnv, ServeEnv
 
 Forecaster = Type[Union[Estimator, Predictor]]
 
+logger = logging.getLogger(__name__)
+
 
 def forecaster_type_by_name(name: str) -> Forecaster:
     """
@@ -110,7 +112,7 @@ def serve_command(
 ) -> None:
     from gluonts.shell import serve
 
-    logging.info("Run 'serve' command")
+    logger.info("Run 'serve' command")
 
     if not force_static and forecaster is not None:
         forecaster_type: Optional[Forecaster] = forecaster_type_by_name(
@@ -150,7 +152,7 @@ def serve_command(
 def train_command(data_path: str, forecaster: Optional[str]) -> None:
     from gluonts.shell import train
 
-    logging.info("Run 'train' command")
+    logger.info("Run 'train' command")
     env = TrainEnv(Path(data_path))
 
     try:
@@ -176,4 +178,11 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
 
 
 if __name__ == "__main__":
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s %(message)s",
+        datefmt="[%Y-%m-%d %H:%M:%S]",
+    )
     cli(prog_name=__package__)
