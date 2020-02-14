@@ -14,7 +14,7 @@
 # Standard library imports
 import abc
 from functools import reduce
-from typing import Callable, Iterator, List
+from typing import Callable, Iterator, Iterable, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -31,7 +31,7 @@ class Transformation(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
+        self, data_it: Iterable[DataEntry], is_train: bool
     ) -> Iterator[DataEntry]:
         pass
 
@@ -61,7 +61,7 @@ class Chain(Transformation):
                 self.transformations.append(transformation)
 
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
+        self, data_it: Iterable[DataEntry], is_train: bool
     ) -> Iterator[DataEntry]:
         tmp = data_it
         for t in self.transformations:
@@ -76,7 +76,7 @@ class Chain(Transformation):
 
 class Identity(Transformation):
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
+        self, data_it: Iterable[DataEntry], is_train: bool
     ) -> Iterator[DataEntry]:
         return data_it
 
@@ -87,7 +87,7 @@ class MapTransformation(Transformation):
     """
 
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
+        self, data_it: Iterable[DataEntry], is_train: bool
     ) -> Iterator:
         for data_entry in data_it:
             try:
@@ -135,7 +135,7 @@ class FlatMapTransformation(Transformation):
     """
 
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
+        self, data_it: Iterable[DataEntry], is_train: bool
     ) -> Iterator:
         num_idle_transforms = 0
         for data_entry in data_it:

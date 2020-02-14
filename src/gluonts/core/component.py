@@ -35,10 +35,7 @@ from gluonts.monkey_patch import monkey_patch_property_metaclass  # noqa: F401
 # Relative imports
 from . import fqname_for
 
-DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
-
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+logger = logging.getLogger(__name__)
 
 A = TypeVar("A")
 
@@ -496,17 +493,17 @@ def num_gpus(refresh=False):
     return NUM_GPUS
 
 
+@functools.lru_cache()
 def get_mxnet_context(gpu_number=0) -> mx.Context:
     """
     Returns either CPU or GPU context
     """
-    n = num_gpus()
-    if n == 0:
-        logging.info("Using CPU")
-        return mx.context.cpu()
-    else:
-        logging.info("Using GPU")
+    if num_gpus():
+        logger.info("Using GPU")
         return mx.context.gpu(gpu_number)
+    else:
+        logger.info("Using CPU")
+        return mx.context.cpu()
 
 
 def check_gpu_support() -> bool:
@@ -516,7 +513,7 @@ def check_gpu_support() -> bool:
     """
     n = num_gpus()
     logger.info(f'MXNet GPU support is {"ON" if n > 0 else "OFF"}')
-    return False if n == 0 else True
+    return n != 0
 
 
 class DType:
