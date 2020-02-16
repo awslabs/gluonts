@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 # Third-party imports
 import numpy as np
@@ -57,6 +57,10 @@ class Dirichlet(Distribution):
         self.alpha = alpha
         self.F = F if F else getF(alpha)
         self.float_type = float_type
+
+    @property
+    def args(self) -> List:
+        return [self.alpha]
 
     @property
     def batch_shape(self) -> Tuple:
