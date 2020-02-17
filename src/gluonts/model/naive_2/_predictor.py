@@ -55,14 +55,27 @@ def seasonality_test(past_ts_data: np.array, season_length: int):
     return is_seasonal
 
 
-def naive_02(past_ts_data: np.array, forecast_length: int, freq: str):
+def naive_02(
+    past_ts_data: np.array,
+    forecast_length: int,
+    freq: Optional[str] = None,
+    season_length: Optional[int] = None,
+):
     """
     Make seasonality adjusted time series prediction.
+
+    If specified, `season_length` takes precedence.
 
     As described here: https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     Code based on: https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
-    season_length = get_seasonality(freq)
+    assert freq is not None or season_length is not None, (
+        "Either the frequency or season length of the time series "
+        "has to be specified. "
+    )
+    season_length = (
+        season_length if season_length is not None else get_seasonality(freq)
+    )
     has_seasonality = False
 
     if season_length > 1:
