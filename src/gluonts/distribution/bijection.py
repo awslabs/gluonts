@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional
+from typing import Optional, Union
 
 # Third-party imports
 import numpy as np
@@ -74,7 +74,7 @@ class Bijection:
         raise NotImplementedError()
 
     @property
-    def sign(self) -> Tensor:
+    def sign(self) -> Union[float, Tensor]:
         """
         Return the sign of the Jacobian's determinant.
         """
@@ -96,6 +96,7 @@ class InverseBijection(Bijection):
 
     @validated()
     def __init__(self, bijection: Bijection) -> None:
+        super().__init__(self)
         self._bijection = bijection
 
     def f(self, x: Tensor) -> Tensor:
@@ -115,7 +116,7 @@ class InverseBijection(Bijection):
         return self._bijection.event_dim
 
     @property
-    def sign(self) -> Tensor:
+    def sign(self) -> Union[float, Tensor]:
         return self._bijection.sign
 
 
@@ -134,7 +135,7 @@ class _Exp(Bijection):
         return 0
 
     @property
-    def sign(self) -> Tensor:
+    def sign(self) -> float:
         return 1.0
 
 
@@ -153,7 +154,7 @@ class _Log(Bijection):
         return 0
 
     @property
-    def sign(self) -> Tensor:
+    def sign(self) -> float:
         return 1.0
 
 
@@ -183,7 +184,7 @@ class _Softrelu(Bijection):
         return 0
 
     @property
-    def sign(self) -> Tensor:
+    def sign(self) -> float:
         return 1.0
 
 
@@ -207,6 +208,7 @@ class AffineTransformation(Bijection):
     def __init__(
         self, loc: Optional[Tensor] = None, scale: Optional[Tensor] = None
     ) -> None:
+        super().__init__(self)
         self.loc = loc
         self.scale = scale
 
@@ -233,8 +235,8 @@ class AffineTransformation(Bijection):
         return F.zeros_like(x)
 
     @property
-    def sign(self):
-        return self.scale.sign()
+    def sign(self) -> Union[float, Tensor]:
+        return 1.0 if self.scale is None else self.scale.sign()
 
     @property
     def event_dim(self) -> int:
