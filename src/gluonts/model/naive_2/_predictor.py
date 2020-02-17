@@ -27,7 +27,7 @@ from gluonts.evaluation import get_seasonality
 import statsmodels.api as sm
 
 
-def seasonality_test(past_ts_data, season_length):
+def seasonality_test(past_ts_data: np.array, season_length: int):
     """
     Test the time-series for seasonal patterns by performing a 90% auto-correlation test:
 
@@ -55,7 +55,7 @@ def seasonality_test(past_ts_data, season_length):
     return is_seasonal
 
 
-def naive_02(past_ts_data, forecast_length: int, freq: str):
+def naive_02(past_ts_data: np.array, forecast_length: int, freq: str):
     """
     Make seasonality adjusted time series prediction.
 
