@@ -13,6 +13,7 @@
 
 
 # Standard library imports
+import logging
 from typing import Dict
 
 # Third-party imports
@@ -29,7 +30,9 @@ from pkg_resources import parse_version
 
 # First-party imports
 from .defaults import GLUONTS_VERSION, LOWEST_MMS_VERSION, FRAMEWORK_NAME
-from .log import logger
+
+
+logger = logging.getLogger(__name__)
 
 
 class GluonTSPredictor(RealTimePredictor):

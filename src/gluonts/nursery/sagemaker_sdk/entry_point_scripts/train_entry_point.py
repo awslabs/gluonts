@@ -27,7 +27,11 @@ from gluonts.dataset import common
 from gluonts.dataset.repository import datasets
 from gluonts.evaluation import Evaluator, backtest
 
-# Logging: print logs analogously to Sagemaker.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s %(message)s",
+    datefmt="[%Y-%m-%d %H:%M:%S]",
+)
 logger = logging.getLogger(__name__)
 
 # TODO: implement model_fn, input_fn, predict_fn, and output_fn !!

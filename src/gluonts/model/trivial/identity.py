@@ -23,6 +23,7 @@ from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
+from gluonts.support.pandas import forecast_start
 
 
 class IdentityPredictor(RepresentablePredictor):
@@ -60,7 +61,7 @@ class IdentityPredictor(RepresentablePredictor):
 
         return SampleForecast(
             samples=samples,
-            start_date=item["start"],
+            start_date=forecast_start(item),
             freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )

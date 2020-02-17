@@ -13,11 +13,11 @@
 
 # Standard library imports
 import logging
-from typing import Type, Union, Optional
+from typing import Any, Type, Union, Optional
 
 # First-party imports
 import gluonts
-from gluonts.core import fqname_for, log
+from gluonts.core import fqname_for
 from gluonts.core.component import check_gpu_support
 from gluonts.core.serde import dump_code
 from gluonts.evaluation import Evaluator, backtest
@@ -31,13 +31,22 @@ from gluonts.support.util import maybe_len
 # Relative imports
 from .sagemaker import TrainEnv
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
-    datefmt="[%Y-%m-%d %H:%M:%S %z]",
-)
 
-logger = logging.getLogger("gluonts.train")
+logger = logging.getLogger(__name__)
+
+
+def log_metric(metric: str, value: Any) -> None:
+    """
+    Emits a log message with a ``value`` for a specific ``metric``.
+
+    Parameters
+    ----------
+    metric
+        The name of the metric to be reported.
+    value
+        The metric value to be reported.
+    """
+    logger.info(f"gluonts[{metric}]: {dump_code(value)}")
 
 
 def run_train_and_test(
@@ -81,7 +90,7 @@ def run_train(
     train_dataset: Dataset,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
-    log.metric(
+    log_metric(
         "train_dataset_stats", calculate_dataset_statistics(train_dataset)
     )
 

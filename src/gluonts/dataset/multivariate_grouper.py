@@ -21,7 +21,10 @@ from typing import Callable, Optional
 from gluonts.dataset.common import ListDataset, DataEntry, Dataset
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.constants import DateConstants
+
+
+OLDEST_SUPPORTED_TIMESTAMP = pd.Timestamp(1800, 1, 1, 12)
+LATEST_SUPPORTED_TIMESTAMP = pd.Timestamp(2200, 1, 1, 12)
 
 
 class MultivariateGrouper:
@@ -81,8 +84,8 @@ class MultivariateGrouper:
         self.train_fill_function = train_fill_rule
         self.test_fill_rule = test_fill_rule
 
-        self.first_timestamp = DateConstants.LATEST_SUPPORTED_TIMESTAMP
-        self.last_timestamp = DateConstants.OLDEST_SUPPORTED_TIMESTAMP
+        self.first_timestamp = LATEST_SUPPORTED_TIMESTAMP
+        self.last_timestamp = OLDEST_SUPPORTED_TIMESTAMP
         self.frequency = ""
 
     def __call__(self, dataset: Dataset) -> Dataset:
