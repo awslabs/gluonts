@@ -373,7 +373,7 @@ class SampleForecast(Forecast):
         """
         Time length of the forecast.
         """
-        return self.samples.shape[-1]
+        return self.samples.shape[1]
 
     @property
     def mean(self) -> np.ndarray:
