@@ -448,8 +448,8 @@ class Evaluator:
 
         # calculate the forecast of the seasonal naive predictor
         naive_median_fcst = naive_02(
-            past_data, start_date, len(target)
-        ).quantile(0.5)
+            past_data, len(target), start_date.freqstr
+        )
 
         owa = 0.5 * (
             (

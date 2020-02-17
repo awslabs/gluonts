@@ -55,15 +55,14 @@ def seasonality_test(past_ts_data, season_length):
     return is_seasonal
 
 
-def naive_02(past_ts_data, forecast_start_time, forecast_length):
+def naive_02(past_ts_data, forecast_length: int, freq: str):
     """
     Make seasonality adjusted time series prediction.
 
     As described here: https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     Code based on: https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
-    freq_str = forecast_start_time.freqstr
-    season_length = get_seasonality(freq_str)
+    season_length = get_seasonality(freq)
     has_seasonality = False
 
     if season_length > 1:
@@ -95,9 +94,8 @@ def naive_02(past_ts_data, forecast_start_time, forecast_length):
     )
 
     forecast = np.mean(naive_1_forecast) * multiplicative_seasonal_component
-    samples = np.array([forecast])
 
-    return SampleForecast(samples, forecast_start_time, freq_str)
+    return forecast
 
 
 class Naive2Predictor(RepresentablePredictor):
@@ -142,14 +140,14 @@ class Naive2Predictor(RepresentablePredictor):
     def predict_item(self, item: DataEntry) -> Forecast:
         start_time = pd.Timestamp(item["start"], freq=self.freq)
         past_ts_data = np.asarray(item["target"], np.float32)
-        forecast_start_time = start_time + len(past_ts_data) * start_time.freq
+        forecast_start_time = start_time + len(past_ts_data) * self.freq
 
         assert (
             len(past_ts_data) >= 1
         ), "all time series should have at least one data point"
 
-        prediction = naive_02(
-            past_ts_data, forecast_start_time, self.prediction_length
-        )
+        prediction = naive_02(past_ts_data, self.prediction_length, self.freq)
 
-        return prediction
+        samples = np.array([prediction])
+
+        return SampleForecast(samples, forecast_start_time, self.freq)
