@@ -85,6 +85,11 @@ class Evaluator:
         for alpha=0.05 the 95% considered is considered in the metric,
         see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4
         -Competitors-Guide.pdf for more detail on MSIS
+    calculate_owa
+        Determines whether the OWA metric should also be calculated,
+        which is computationally expensive to evaluate and thus slows
+        down the evaluation process considerably.
+        By default False.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -94,10 +99,12 @@ class Evaluator:
         quantiles: Iterable[Union[float, str]] = default_quantiles,
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
+        calculate_owa: bool = False,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
+        self.calculate_owa = calculate_owa
 
     def __call__(
         self,
@@ -265,8 +272,9 @@ class Evaluator:
         pred_target = np.ma.masked_invalid(pred_target)
 
         # needed for OWA calculation
-        past_data = np.array(self.extract_past_data(time_series, forecast))
-        past_data = np.ma.masked_invalid(past_data)
+        if self.calculate_owa:
+            past_data = np.array(self.extract_past_data(time_series, forecast))
+            past_data = np.ma.masked_invalid(past_data)
 
         try:
             mean_fcst = forecast.mean
@@ -294,13 +302,7 @@ class Evaluator:
             "seasonal_error": seasonal_error,
             "MASE": self.mase(pred_target, median_fcst, seasonal_error),
             "sMAPE": self.smape(pred_target, median_fcst),
-            "OWA": self.owa(
-                pred_target,
-                median_fcst,
-                past_data,
-                seasonal_error,
-                forecast.start_date,
-            ),
+            "OWA": np.nan,  # by default not calculated
             "MSIS": self.msis(
                 pred_target,
                 forecast.quantile(lower_q.value),
@@ -309,6 +311,15 @@ class Evaluator:
                 self.alpha,
             ),
         }
+
+        if self.calculate_owa:
+            metrics["OWA"] = self.owa(
+                pred_target,
+                median_fcst,
+                past_data,
+                seasonal_error,
+                forecast.start_date,
+            )
 
         for quantile in self.quantiles:
             forecast_quantile = forecast.quantile(quantile.value)
