@@ -55,18 +55,17 @@ class UniformSplitSampler(InstanceSampler):
     """
 
     @validated()
-    def __init__(self, p: float = 1.0 / 20.0) -> None:
+    def __init__(self, p: float) -> None:
         self.p = p
-        self.lookup = np.arange(2 ** 13)
 
     def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
         assert (
             a <= b
         ), "First index must be less than or equal to the last index."
-        while ts.shape[-1] >= len(self.lookup):
-            self.lookup = np.arange(2 * len(self.lookup))
-        mask = np.random.uniform(low=0.0, high=1.0, size=b - a + 1) < self.p
-        return self.lookup[a : a + len(mask)][mask]
+
+        window_size = b - a + 1
+        (indices,) = np.where(np.random.random_sample(window_size) < self.p)
+        return indices + a
 
 
 class TestSplitSampler(InstanceSampler):
@@ -99,24 +98,18 @@ class ExpectedNumInstanceSampler(InstanceSampler):
     @validated()
     def __init__(self, num_instances: float) -> None:
         self.num_instances = num_instances
-        self.avg_length = 0.0
-        self.n = 0.0
-        self.lookup = np.arange(2 ** 13)
+        self.total_length = 0
+        self.n = 0
 
     def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        assert (
-            a <= b
-        ), "First index must be less than or equal to the last index."
-        while ts.shape[-1] >= len(self.lookup):
-            self.lookup = np.arange(2 * len(self.lookup))
+        window_size = b - a + 1
 
-        self.n += 1.0
-        self.avg_length += float(b - a + 1 - self.avg_length) / float(self.n)
-        p = self.num_instances / self.avg_length
+        self.n += 1
+        self.total_length += window_size
+        avg_length = self.total_length / self.n
 
-        mask = np.random.uniform(low=0.0, high=1.0, size=b - a + 1) < p
-        indices = self.lookup[a : a + len(mask)][mask]
-        return indices
+        sampler = UniformSplitSampler(self.num_instances / avg_length)
+        return sampler(ts, a, b)
 
 
 class BucketInstanceSampler(InstanceSampler):
