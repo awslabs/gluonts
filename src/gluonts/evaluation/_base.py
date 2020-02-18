@@ -452,10 +452,10 @@ class Evaluator:
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
         # avoid import error due to circular dependency
-        from gluonts.model.m_competitions import naive_02
+        from gluonts.model.m_competitions import naive_2
 
         # calculate the forecast of the seasonal naive predictor
-        naive_median_fcst = naive_02(
+        naive_median_fcst = naive_2(
             past_data, len(target), freq=start_date.freqstr
         )
 

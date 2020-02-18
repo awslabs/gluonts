@@ -19,24 +19,22 @@ from pathlib import Path
 
 # First-party imports
 from gluonts.dataset.common import Dataset
-from gluonts.model.m_competitions import naive_02
+from gluonts.model.m_competitions import naive_2
 
 
 # DISCLAIMER:
 # this script is only to test whether the R implementation
-# of naive_02 produces the same outputs as out python implementation
+# of naive_2 produces the same outputs as out python implementation
 
-R_INPUT_FILE = "r_naive_02_inputs.csv"
-R_OUTPUT_FILE = "r_naive_02_outputs.csv"
+R_INPUT_FILE = "r_naive_2_inputs.csv"
+R_OUTPUT_FILE = "r_naive_2_outputs.csv"
 
 
-def load_naive_02_data():
+def load_naive_2_data():
     test_directory_path = Path(os.getenv("PYTEST_CURRENT_TEST")).parents[0]
-    r_naive_02_inputs = pd.read_csv(test_directory_path / R_INPUT_FILE).values
-    r_naive_02_outputs = pd.read_csv(
-        test_directory_path / R_OUTPUT_FILE
-    ).values
-    return r_naive_02_inputs, r_naive_02_outputs
+    r_naive_2_inputs = pd.read_csv(test_directory_path / R_INPUT_FILE).values
+    r_naive_2_outputs = pd.read_csv(test_directory_path / R_OUTPUT_FILE).values
+    return r_naive_2_inputs, r_naive_2_outputs
 
 
 # To generate the above dataset use the following script:
@@ -73,17 +71,17 @@ FH = 6  # The forecasting horizon examined
 FRQ = 1  # The frequency of the data
 
 
-def test_naive_02(prediction_length=FH, season_length=FRQ):
-    r_naive_02_inputs, r_naive_02_outputs = load_naive_02_data()
+def test_naive_2(prediction_length=FH, season_length=FRQ):
+    r_naive_2_inputs, r_naive_2_outputs = load_naive_2_data()
     predictions = []
-    for i in range(len(r_naive_02_inputs)):
+    for i in range(len(r_naive_2_inputs)):
         predictions.append(
-            naive_02(
-                r_naive_02_inputs[i],
+            naive_2(
+                r_naive_2_inputs[i],
                 prediction_length=prediction_length,
                 season_length=season_length,
             )
         )
     predictions = np.array(predictions)
 
-    assert np.allclose(r_naive_02_outputs, predictions)
+    assert np.allclose(r_naive_2_outputs, predictions)

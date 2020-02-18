@@ -57,7 +57,7 @@ def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     return is_seasonal
 
 
-def naive_02(
+def naive_2(
     past_ts_data: np.ndarray,
     prediction_length: int,
     freq: Optional[str] = None,
@@ -160,7 +160,7 @@ class Naive2Predictor(RepresentablePredictor):
             len(past_ts_data) >= 1
         ), "all time series should have at least one data point"
 
-        prediction = naive_02(past_ts_data, self.prediction_length, self.freq)
+        prediction = naive_2(past_ts_data, self.prediction_length, self.freq)
 
         samples = np.array([prediction])
 

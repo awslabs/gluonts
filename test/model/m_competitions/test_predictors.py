@@ -112,7 +112,7 @@ def seasonal_naive_predictor():
     )
 
 
-def naive_02_predictor():
+def naive_2_predictor():
     return (
         Naive2Predictor,
         dict(prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH),
@@ -122,7 +122,7 @@ def naive_02_predictor():
 @flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize(
     "RepresentablePredictor, parameters, accuracy",
-    [seasonal_naive_predictor() + (0.0,), naive_02_predictor() + (0.0,)],
+    [seasonal_naive_predictor() + (0.0,), naive_2_predictor() + (0.0,)],
 )
 def test_accuracy(RepresentablePredictor, parameters, accuracy):
     predictor = RepresentablePredictor(
@@ -143,7 +143,7 @@ def test_accuracy(RepresentablePredictor, parameters, accuracy):
 
 @pytest.mark.parametrize(
     "RepresentablePredictor, parameters",
-    [seasonal_naive_predictor(), naive_02_predictor()],
+    [seasonal_naive_predictor(), naive_2_predictor()],
 )
 def test_seriali_predictors(RepresentablePredictor, parameters):
     predictor = RepresentablePredictor(
