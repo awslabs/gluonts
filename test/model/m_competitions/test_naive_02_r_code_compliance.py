@@ -69,11 +69,11 @@ for (i in 1:length(data_train)){
 """
 
 # R script variables:
-fh = 6  # The forecasting horizon examined
-frq = 1  # The frequency of the data
+FH = 6  # The forecasting horizon examined
+FRQ = 1  # The frequency of the data
 
 
-def test_naive_02(prediction_length=fh, season_length=frq):
+def test_naive_02(prediction_length=FH, season_length=FRQ):
     r_naive_02_inputs, r_naive_02_outputs = load_naive_02_data()
     predictions = []
     for i in range(len(r_naive_02_inputs)):

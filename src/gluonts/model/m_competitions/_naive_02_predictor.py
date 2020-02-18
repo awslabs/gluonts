@@ -17,6 +17,9 @@ from typing import Iterator, Optional
 # Third-party imports
 import numpy as np
 
+# Third-party imports
+import statsmodels.api as sm
+
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
@@ -24,9 +27,6 @@ from gluonts.model.forecast import SampleForecast, Forecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.evaluation import get_seasonality
 from gluonts.support.pandas import forecast_start
-
-# Third-party imports
-import statsmodels.api as sm
 
 
 def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:

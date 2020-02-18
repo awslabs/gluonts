@@ -218,17 +218,16 @@ class Evaluator:
             f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
         )
 
-        # cut the time series up to, but excluding, the forecast start date.
+        # Remove the prediction range
+        # If the prediction range is not in the end of the time series,
+        # everything after the prediction range is truncated
+        date_before_forecast = forecast.index[0] - forecast.index[0].freq
         return np.atleast_1d(
-            np.squeeze(
-                time_series.loc[
-                    : forecast.index[0] - forecast.index[0].freq
-                ].transpose()
-            )
+            np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
 
     def seasonal_error(
-        self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+        self, past_data: np.ndarray, forecast: Forecast
     ) -> float:
         r"""
         .. math::
@@ -238,28 +237,21 @@ class Evaluator:
         where m is the seasonal frequency
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
-        # Remove the prediction range
-        # If the prediction range is not in the end of the time series,
-        # everything after the prediction range is truncated
-        forecast_date = pd.Timestamp(forecast.start_date, freq=forecast.freq)
-        date_before_forecast = forecast_date - 1 * forecast_date.freq
-        ts = time_series[:date_before_forecast]
-
         # Check if the length of the time series is larger than the seasonal frequency
         seasonality = (
             self.seasonality
             if self.seasonality
             else get_seasonality(forecast.freq)
         )
-        if seasonality < len(ts):
+        if seasonality < len(past_data):
             forecast_freq = seasonality
         else:
             # edge case: the seasonal freq is larger than the length of ts
             # revert to freq=1
             # logging.info('The seasonal frequency is larger than the length of the time series. Reverting to freq=1.')
             forecast_freq = 1
-        y_t = np.ma.masked_invalid(ts.values[:-forecast_freq])
-        y_tm = np.ma.masked_invalid(ts.values[forecast_freq:])
+        y_t = past_data[:-forecast_freq]
+        y_tm = past_data[forecast_freq:]
 
         seasonal_mae = np.mean(abs(y_t - y_tm))
 
@@ -271,17 +263,16 @@ class Evaluator:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
-        # needed for OWA calculation
-        if self.calculate_owa:
-            past_data = np.array(self.extract_past_data(time_series, forecast))
-            past_data = np.ma.masked_invalid(past_data)
+        # required for seasonal_error and owa calculation
+        past_data = np.array(self.extract_past_data(time_series, forecast))
+        past_data = np.ma.masked_invalid(past_data)
 
         try:
             mean_fcst = forecast.mean
         except:
             mean_fcst = None
         median_fcst = forecast.quantile(0.5)
-        seasonal_error = self.seasonal_error(time_series, forecast)
+        seasonal_error = self.seasonal_error(past_data, forecast)
         # For MSIS: alpha/2 quantile may not exist. Find the closest.
         lower_q = min(
             self.quantiles, key=lambda q: abs(q.value - self.alpha / 2)
@@ -446,7 +437,13 @@ class Evaluator:
         return smape
 
     @staticmethod
-    def owa(target, forecast, past_data, seasonal_error, start_date):
+    def owa(
+        target: np.ndarray,
+        forecast: np.ndarray,
+        past_data: np.ndarray,
+        seasonal_error: float,
+        start_date: pd.Timestamp,
+    ) -> float:
         r"""
         .. math::
 
