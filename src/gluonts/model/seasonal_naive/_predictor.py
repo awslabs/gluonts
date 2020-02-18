@@ -71,10 +71,9 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         )
 
     def predict_item(self, item: DataEntry) -> Forecast:
-        start_time = pd.Timestamp(item["start"], freq=self.freq)
         target = np.asarray(item["target"], np.float32)
         len_ts = len(target)
-        forecast_start_time = start_time + len_ts * start_time.freq
+        forecast_start_time = item["start"] + len_ts * item["start"].freq
 
         assert (
             len_ts >= 1

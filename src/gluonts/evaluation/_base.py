@@ -218,11 +218,11 @@ class Evaluator:
             f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
         )
 
-        # cut the time series using the dates of the forecast object
+        # cut the time series up to, but excluding, the forecast start date.
         return np.atleast_1d(
             np.squeeze(
                 time_series.loc[
-                    time_series.index.difference(forecast.index)
+                    : forecast.index[0] - forecast.index[0].freq
                 ].transpose()
             )
         )

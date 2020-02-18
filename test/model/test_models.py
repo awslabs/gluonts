@@ -24,6 +24,7 @@ from gluonts import time_feature
 from gluonts.core.serde import load_code
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.evaluation import Evaluator
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.deep_factor import DeepFactorEstimator
 from gluonts.model.deepstate import DeepStateEstimator
@@ -31,6 +32,7 @@ from gluonts.model.gp_forecaster import GaussianProcessEstimator
 from gluonts.model.npts import NPTSEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaiveEstimator
+from gluonts.model.naive_2 import Naive2Estimator
 from gluonts.model.seq2seq import (
     MQCNNEstimator,
     MQRNNEstimator,
@@ -287,6 +289,10 @@ def seasonal_estimator():
     return SeasonalNaiveEstimator, dict(prediction_length=prediction_length)
 
 
+def naive_02_estimator():
+    return Naive2Estimator, dict(prediction_length=prediction_length)
+
+
 def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
     return (
         DeepStateEstimator,
@@ -345,13 +351,17 @@ def deepstate_estimator(hybridize: bool = False, batches_per_epoch=1):
     + [
         npts_estimator() + (0.0,),
         seasonal_estimator() + (0.0,),
+        naive_02_estimator() + (0.0,),
         deepstate_estimator(hybridize=False, batches_per_epoch=100) + (0.5,),
     ],
 )
 def test_accuracy(Estimator, hyperparameters, accuracy):
     estimator = Estimator.from_hyperparameters(freq=freq, **hyperparameters)
     agg_metrics, item_metrics = backtest_metrics(
-        train_dataset=train_ds, test_dataset=test_ds, forecaster=estimator
+        train_dataset=train_ds,
+        test_dataset=test_ds,
+        forecaster=estimator,
+        evaluator=Evaluator(calculate_owa=True),
     )
 
     assert agg_metrics["ND"] <= accuracy
@@ -368,6 +378,7 @@ def test_accuracy(Estimator, hyperparameters, accuracy):
         deep_factor_estimator(),
         npts_estimator(),
         seasonal_estimator(),
+        naive_02_estimator(),
         mqcnn_estimator(),
         mqrnn_estimator(),
         gp_estimator(),
@@ -392,6 +403,7 @@ def test_repr(Estimator, hyperparameters):
         # TODO: deep_factor_estimator(),
         npts_estimator(),
         seasonal_estimator(),
+        naive_02_estimator(),
         mqcnn_estimator(),
         mqrnn_estimator(),
         gp_estimator(),

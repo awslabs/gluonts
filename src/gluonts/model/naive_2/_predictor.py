@@ -57,7 +57,7 @@ def seasonality_test(past_ts_data: np.array, season_length: int):
 
 def naive_02(
     past_ts_data: np.array,
-    forecast_length: int,
+    prediction_length: int,
     freq: Optional[str] = None,
     season_length: Optional[int] = None,
 ):
@@ -83,27 +83,27 @@ def naive_02(
 
     # it has seasonality, then calculate the multiplicative seasonal component
     if has_seasonality:
-        # TODO: think about maybe only using past_ts_data[- max(5*season_length, 2*forecast_length):] for speedup
+        # TODO: think about maybe only using past_ts_data[- max(5*season_length, 2*prediction_length):] for speedup
         seasonal_decomposition = sm.tsa.seasonal_decompose(
             x=past_ts_data, period=season_length, model="multiplicative"
         ).seasonal
         seasonality_normed_context = past_ts_data / seasonal_decomposition
 
         last_period = seasonal_decomposition[-season_length:]
-        num_required_periods = (forecast_length // len(last_period)) + 1
+        num_required_periods = (prediction_length // len(last_period)) + 1
 
         multiplicative_seasonal_component = np.tile(
             last_period, num_required_periods
-        )[:forecast_length]
+        )[:prediction_length]
     else:
         seasonality_normed_context = past_ts_data
         multiplicative_seasonal_component = np.ones(
-            forecast_length
+            prediction_length
         )  # i.e. no seasonality component
 
-    # calculate naive 1 forecast: (last value forecast_length times)
+    # calculate naive 1 forecast: (last value prediction_length times)
     naive_1_forecast = (
-        np.ones(forecast_length) * seasonality_normed_context[-1]
+        np.ones(prediction_length) * seasonality_normed_context[-1]
     )
 
     forecast = np.mean(naive_1_forecast) * multiplicative_seasonal_component
@@ -151,9 +151,10 @@ class Naive2Predictor(RepresentablePredictor):
         )
 
     def predict_item(self, item: DataEntry) -> Forecast:
-        start_time = pd.Timestamp(item["start"], freq=self.freq)
         past_ts_data = np.asarray(item["target"], np.float32)
-        forecast_start_time = start_time + len(past_ts_data) * self.freq
+        forecast_start_time = (
+            item["start"] + len(past_ts_data) * item["start"].freq
+        )
 
         assert (
             len(past_ts_data) >= 1
