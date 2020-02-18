@@ -16,18 +16,20 @@ from typing import Iterator, Optional
 
 # Third-party imports
 import numpy as np
-import pandas as pd
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset, DataEntry
+from gluonts.dataset.common import DataEntry
 from gluonts.model.forecast import SampleForecast, Forecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.evaluation import get_seasonality
+from gluonts.support.pandas import forecast_start
+
+# Third-party imports
 import statsmodels.api as sm
 
 
-def seasonality_test(past_ts_data: np.array, season_length: int):
+def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     """
     Test the time-series for seasonal patterns by performing a 90% auto-correlation test:
 
@@ -36,7 +38,7 @@ def seasonality_test(past_ts_data: np.array, season_length: int):
     """
     critical_z_score = 1.645  # corresponds to 90% confidence interval
     if len(past_ts_data) < 3 * season_length:
-        is_seasonal = False
+        return False
     else:
         # calculate auto-correlation for lags up to season_length
         auto_correlations = sm.tsa.stattools.acf(
@@ -56,11 +58,11 @@ def seasonality_test(past_ts_data: np.array, season_length: int):
 
 
 def naive_02(
-    past_ts_data: np.array,
+    past_ts_data: np.ndarray,
     prediction_length: int,
     freq: Optional[str] = None,
     season_length: Optional[int] = None,
-):
+) -> np.ndarray:
     """
     Make seasonality adjusted time series prediction.
 
@@ -152,9 +154,7 @@ class Naive2Predictor(RepresentablePredictor):
 
     def predict_item(self, item: DataEntry) -> Forecast:
         past_ts_data = np.asarray(item["target"], np.float32)
-        forecast_start_time = (
-            item["start"] + len(past_ts_data) * item["start"].freq
-        )
+        forecast_start_time = forecast_start(item)
 
         assert (
             len(past_ts_data) >= 1

@@ -10,4 +10,3 @@ pandas~=1.0
 pydantic~=1.1
 tqdm~=4.23
 ujson~=1.35
-statsmodels~=0.11

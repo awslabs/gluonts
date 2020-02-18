@@ -12,18 +12,18 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Iterator, Optional
+from typing import Optional
 
 # Third-party imports
 import numpy as np
-import pandas as pd
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset, DataEntry
+from gluonts.dataset.common import DataEntry
 from gluonts.model.forecast import SampleForecast, Forecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.evaluation import get_seasonality
+from gluonts.support.pandas import forecast_start
 
 
 class SeasonalNaivePredictor(RepresentablePredictor):
@@ -73,7 +73,7 @@ class SeasonalNaivePredictor(RepresentablePredictor):
     def predict_item(self, item: DataEntry) -> Forecast:
         target = np.asarray(item["target"], np.float32)
         len_ts = len(target)
-        forecast_start_time = item["start"] + len_ts * item["start"].freq
+        forecast_start_time = forecast_start(item)
 
         assert (
             len_ts >= 1

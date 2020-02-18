@@ -19,7 +19,7 @@ from pydantic import PositiveInt
 
 # First-party imports
 from gluonts.dataset.common import Dataset
-from gluonts.model.seasonal_naive._predictor import SeasonalNaivePredictor
+from gluonts.model.m_competitions import SeasonalNaivePredictor
 
 
 def generate_random_dataset(
