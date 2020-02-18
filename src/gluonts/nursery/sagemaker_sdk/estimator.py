@@ -13,11 +13,12 @@
 
 
 # Standard library imports
+import logging
 import json
 import tarfile
 from functools import partial
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple, Dict
+from typing import List, NamedTuple, Optional, Tuple, Dict, Union
 from tempfile import TemporaryDirectory
 
 
@@ -47,7 +48,6 @@ from .defaults import (
     NUM_SAMPLES,
     QUANTILES,
 )
-from .log import logger
 from .model import GluonTSModel
 from .utils import make_metrics, make_job_name
 
@@ -69,6 +69,9 @@ from .utils import make_metrics, make_job_name
 #    > Update the model dict with the nested dict from the MODEL_HPMs
 #      with dict.update(...)
 #    > Write this new dict back to a s3 as a .json file like before
+
+
+logger = logging.getLogger(__name__)
 
 
 class TrainResult(NamedTuple):
@@ -528,7 +531,7 @@ class GluonTSFramework(Framework):
         wait: bool = True,
         logs: bool = True,
         job_name: str = None,
-    ) -> Tuple[Predictor, dict, pd.DataFrame, str]:
+    ) -> Union[TrainResult, str]:
         """
         Use this function to train and evaluate any GluonTS model on Sagemaker.
         You need to call this method before you can call 'deploy'.
@@ -585,12 +588,15 @@ class GluonTSFramework(Framework):
         inputs = self._prepare_inputs(locations, dataset)
         self.fit(inputs=inputs, wait=wait, logs=logs, job_name=job_name)
 
-        metrics = self._retrieve_metrics(locations)
-        predictor = self._retrieve_model(locations)
+        if wait:
+            metrics = self._retrieve_metrics(locations)
+            predictor = self._retrieve_model(locations)
 
-        return TrainResult(
-            predictor=predictor, metrics=metrics, job_name=job_name
-        )
+            return TrainResult(
+                predictor=predictor, metrics=metrics, job_name=job_name
+            )
+        else:
+            return job_name
 
     @classmethod
     def run(
