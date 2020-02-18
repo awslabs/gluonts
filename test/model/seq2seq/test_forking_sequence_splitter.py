@@ -40,19 +40,22 @@ def make_dataset(N, train_length):
 
 
 def test_forking_sequence_splitter() -> None:
-    ds = make_dataset(1, 20)
+    len_ts = 20
+    ds = make_dataset(1, len_ts)
+    enc_len = 5
+    dec_len = 3
 
     trans = transform.Chain(
         trans=[
             transform.AddAgeFeature(
                 target_field=FieldName.TARGET,
                 output_field="age",
-                pred_length=10,
+                pred_length=dec_len,
             ),
             ForkingSequenceSplitter(
                 train_sampler=TSplitSampler(),
-                enc_len=5,
-                dec_len=3,
+                enc_len=enc_len,
+                dec_len=dec_len,
                 encoder_series_fields=["age"],
             ),
         ]
@@ -70,34 +73,19 @@ def test_forking_sequence_splitter() -> None:
             [17.0, 18.0, 19.0],
         ]
     )
-
     assert (
         np.linalg.norm(future_target - transformed_data["future_target"])
         < 1e-5
     ), "the forking sequence target should be computed correctly."
 
-    trans_oob = transform.Chain(
-        trans=[
-            transform.AddAgeFeature(
-                target_field=FieldName.TARGET,
-                output_field="age",
-                pred_length=10,
-            ),
-            ForkingSequenceSplitter(
-                train_sampler=TSplitSampler(),
-                enc_len=20,
-                dec_len=20,
-                encoder_series_fields=["age"],
-            ),
-        ]
-    )
-
-    transformed_data_oob = next(iter(trans_oob(iter(ds), is_train=True)))
-
+    age = np.log10(2.0 + np.arange(len_ts))
     assert (
-        np.sum(transformed_data_oob["future_target"]) - np.sum(np.arange(20))
+        np.linalg.norm(
+            age[-(enc_len + dec_len) : -dec_len]
+            - transformed_data["past_age"].flatten()
+        )
         < 1e-5
-    ), "the forking sequence target should be computed correctly."
+    ), "the forking sequence past feature should be computed correctly."
 
 
 @pytest.mark.parametrize("is_train", [True, False])

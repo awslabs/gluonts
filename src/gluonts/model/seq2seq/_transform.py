@@ -133,7 +133,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
 
                     skip = max(0, self.enc_len - 1 - sampling_idx)
                     for dec_field, idx in zip(
-                        forking_dec_field[skip:], range(start_idx)
+                        forking_dec_field[skip:],
+                        range(start_idx + 1, start_idx + self.enc_len + 1),
                     ):
                         dec_field[:] = ts[:, idx : idx + self.dec_len]
 
