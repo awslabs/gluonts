@@ -452,10 +452,11 @@ class RepresentableBlockPredictor(GluonPredictor):
     def as_symbol_block_predictor(
         self, batch: DataBatch
     ) -> SymbolBlockPredictor:
-        symbol_block_net = hybrid_block_to_symbol_block(
-            hb=self.prediction_net,
-            data_batch=[batch[k] for k in self.input_names],
-        )
+        with self.ctx:
+            symbol_block_net = hybrid_block_to_symbol_block(
+                hb=self.prediction_net,
+                data_batch=[batch[k] for k in self.input_names],
+            )
 
         return SymbolBlockPredictor(
             input_names=self.input_names,
