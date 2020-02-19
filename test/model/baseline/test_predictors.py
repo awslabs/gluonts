@@ -27,10 +27,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.evaluation import Evaluator
 from gluonts.model.predictor import Predictor
-from gluonts.model.m_competitions import (
-    Naive2Predictor,
-    SeasonalNaivePredictor,
-)
+from gluonts.model.baseline import Naive2Predictor, SeasonalNaivePredictor
 from gluonts.dataset.common import Dataset
 from gluonts.support.pandas import forecast_start
 
@@ -55,7 +52,7 @@ NUM_TS = 10
 
 
 @pytest.mark.parametrize(
-    "RepresentablePredictor", [SeasonalNaivePredictor, Naive2Predictor]
+    "predictor_cls", [SeasonalNaivePredictor, Naive2Predictor]
 )
 @pytest.mark.parametrize(
     "freq", ["1min", "15min", "30min", "1H", "2H", "12H", "7D", "1W", "1M"]
@@ -121,7 +118,7 @@ def naive_2_predictor():
 
 @flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize(
-    "RepresentablePredictor, parameters, accuracy",
+    "predictor_cls, parameters, accuracy",
     [seasonal_naive_predictor() + (0.0,), naive_2_predictor() + (0.0,)],
 )
 def test_accuracy(predictor_cls, parameters, accuracy):
@@ -140,7 +137,7 @@ def test_accuracy(predictor_cls, parameters, accuracy):
 
 
 @pytest.mark.parametrize(
-    "RepresentablePredictor, parameters",
+    "predictor_cls, parameters",
     [seasonal_naive_predictor(), naive_2_predictor()],
 )
 def test_seriali_predictors(predictor_cls, parameters):

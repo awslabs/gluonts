@@ -19,7 +19,7 @@ from pathlib import Path
 
 # First-party imports
 from gluonts.dataset.common import Dataset
-from gluonts.model.m_competitions import naive_2
+from gluonts.model.baseline import naive_2
 
 
 # DISCLAIMER:
