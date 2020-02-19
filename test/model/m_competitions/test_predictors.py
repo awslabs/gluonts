@@ -60,8 +60,8 @@ NUM_TS = 10
 @pytest.mark.parametrize(
     "freq", ["1min", "15min", "30min", "1H", "2H", "12H", "7D", "1W", "1M"]
 )
-def test_seasonal_naive(RepresentablePredictor, freq: str):
-    predictor = RepresentablePredictor(
+def test_seasonal_naive(predictor_cls, freq: str):
+    predictor = predictor_cls(
         freq=freq,
         prediction_length=PREDICTION_LENGTH,
         season_length=SEASON_LENGTH,
@@ -93,7 +93,7 @@ def test_seasonal_naive(RepresentablePredictor, freq: str):
         assert forecast.start_date == forecast_start(data)
 
         # specifically for the seasonal naive we can test the supposed result directly
-        if RepresentablePredictor == SeasonalNaivePredictor:
+        if predictor_cls == SeasonalNaivePredictor:
             assert np.allclose(forecast.samples[0], ref)
 
 
@@ -124,10 +124,8 @@ def naive_2_predictor():
     "RepresentablePredictor, parameters, accuracy",
     [seasonal_naive_predictor() + (0.0,), naive_2_predictor() + (0.0,)],
 )
-def test_accuracy(RepresentablePredictor, parameters, accuracy):
-    predictor = RepresentablePredictor(
-        freq=CONSTANT_DATASET_FREQ, **parameters
-    )
+def test_accuracy(predictor_cls, parameters, accuracy):
+    predictor = predictor_cls(freq=CONSTANT_DATASET_FREQ, **parameters)
     agg_metrics, item_metrics = backtest_metrics(
         train_dataset=constant_train_ds,
         test_dataset=constant_test_ds,
@@ -145,10 +143,8 @@ def test_accuracy(RepresentablePredictor, parameters, accuracy):
     "RepresentablePredictor, parameters",
     [seasonal_naive_predictor(), naive_2_predictor()],
 )
-def test_seriali_predictors(RepresentablePredictor, parameters):
-    predictor = RepresentablePredictor(
-        freq=CONSTANT_DATASET_FREQ, **parameters
-    )
+def test_seriali_predictors(predictor_cls, parameters):
+    predictor = predictor_cls(freq=CONSTANT_DATASET_FREQ, **parameters)
     with tempfile.TemporaryDirectory() as temp_dir:
         predictor.serialize(Path(temp_dir))
         predictor_exp = Predictor.deserialize(Path(temp_dir))
