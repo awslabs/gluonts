@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union, Any
 
 # Third-party imports
 import mxnet as mx
@@ -38,6 +38,39 @@ def getF(var: Tensor):
         return mx.sym
     else:
         raise RuntimeError("var must be instance of NDArray or Symbol in getF")
+
+
+def _index_tensor(x: Tensor, item: Any) -> Tensor:
+    """
+    """
+    squeeze: List[int] = []
+    if not isinstance(item, tuple):
+        item = (item,)
+
+    saw_ellipsis = False
+
+    for i, item_i in enumerate(item):
+        axis = i - len(item) if saw_ellipsis else i
+        if isinstance(item_i, int):
+            if item_i != -1:
+                x = x.slice_axis(axis=axis, begin=item_i, end=item_i + 1)
+            else:
+                x = x.slice_axis(axis=axis, begin=-1, end=None)
+            squeeze.append(axis)
+        elif item_i == slice(None):
+            continue
+        elif item_i == Ellipsis:
+            saw_ellipsis = True
+            continue
+        elif isinstance(item_i, slice):
+            assert item_i.step is None
+            start = item_i.start if item_i.start is not None else 0
+            x = x.slice_axis(axis=axis, begin=start, end=item_i.stop)
+        else:
+            raise RuntimeError(f"invalid indexing item: {item}")
+    if len(squeeze):
+        x = x.squeeze(axis=tuple(squeeze))
+    return x
 
 
 class Distribution:
@@ -265,18 +298,22 @@ class Distribution:
         """
         raise NotImplementedError()
 
-    def slice_axis(
-        self, axis: int, begin: int, end: Optional[int]
-    ) -> "Distribution":
-        """
-        Construct a new distribution by slicing all constructor arguments
-        as specified by the provided bounds. Relies on ``mx.nd.slice_axis``.
-        """
+    def __getitem__(self, item):
         sliced_distr = self.__class__(
-            *[arg.slice_axis(axis, begin, end) for arg in self.args]
+            *[_index_tensor(arg, item) for arg in self.args]
         )
         assert isinstance(sliced_distr, type(self))
         return sliced_distr
+
+    def slice_axis(
+        self, axis: int, begin: int, end: Optional[int]
+    ) -> "Distribution":
+        index: List[Any]
+        if axis >= 0:
+            index = [slice(None)] * axis + [slice(begin, end)]
+        else:
+            index = [Ellipsis, slice(begin, end)] + [slice(None)] * (-axis - 1)
+        return self[tuple(index)]
 
 
 def _expand_param(p: Tensor, num_samples: Optional[int] = None) -> Tensor:
