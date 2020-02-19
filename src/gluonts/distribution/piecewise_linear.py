@@ -69,12 +69,18 @@ class PiecewiseLinear(Distribution):
     ) -> None:
         self.F = F if F else getF(gamma)
         self.gamma = gamma
+        self.slopes = slopes
+        self.knot_spacings = knot_spacings
 
         # Since most of the calculations are easily expressed in the original parameters, we transform the
         # learned parameters back
         self.b, self.knot_positions = PiecewiseLinear._to_orig_params(
             self.F, slopes, knot_spacings
         )
+
+    @property
+    def args(self) -> List:
+        return [self.gamma, self.slopes, self.knot_spacings]
 
     @staticmethod
     def _to_orig_params(

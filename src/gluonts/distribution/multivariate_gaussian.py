@@ -55,6 +55,9 @@ class MultivariateGaussian(Distribution):
         self.F = F if F else getF(mu)
         self.L = L
 
+    def __getitem__(self, item):
+        raise NotImplementedError()
+
     @property
     def batch_shape(self) -> Tuple:
         return self.mu.shape[:-1]
