@@ -23,7 +23,7 @@ from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 # Relative imports
-from .distribution import Distribution, _expand_param, getF
+from .distribution import Distribution, _expand_param, getF, _index_tensor
 from .distribution_output import DistributionOutput
 
 
@@ -61,6 +61,12 @@ class MixtureDistribution(Distribution):
         # self.all_same = len(set(c.__class__.__name__ for c in components)) == 1
         self.mixture_probs = mixture_probs
         self.components = components
+
+    def __getitem__(self, item):
+        return MixtureDistribution(
+            _index_tensor(self.mixture_probs, item),
+            [c[item] for c in self.components],
+        )
 
     @property
     def batch_shape(self) -> Tuple:

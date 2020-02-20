@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Any
 
 # Third-party imports
 from mxnet import autograd
@@ -25,7 +25,7 @@ from gluonts.core.component import validated
 
 # Relative imports
 from . import bijection as bij
-from .distribution import Distribution, getF
+from .distribution import Distribution, getF, _index_tensor
 
 
 class TransformedDistribution(Distribution):
@@ -48,6 +48,40 @@ class TransformedDistribution(Distribution):
         self._event_dim: Optional[int] = None
         self._event_shape: Optional[Tuple] = None
         self._batch_shape: Optional[Tuple] = None
+
+    def _slice_bijection(
+        self, trans: bij.Bijection, item: Any
+    ) -> bij.Bijection:
+        from gluonts.distribution.box_cox_transform import BoxCoxTransform
+
+        if isinstance(trans, bij.AffineTransformation):
+            loc = (
+                _index_tensor(trans.loc, item)
+                if trans.loc is not None
+                else None
+            )
+            scale = (
+                _index_tensor(trans.scale, item)
+                if trans.scale is not None
+                else None
+            )
+            return bij.AffineTransformation(loc=loc, scale=scale)
+        elif isinstance(trans, BoxCoxTransform):
+            return BoxCoxTransform(
+                _index_tensor(trans.lambda_1, item),
+                _index_tensor(trans.lambda_2, item),
+            )
+        elif isinstance(trans, bij.InverseBijection):
+            return bij.InverseBijection(
+                self._slice_bijection(trans._bijection, item)
+            )
+        else:
+            return trans
+
+    def __getitem__(self, item):
+        bd_slice = self.base_distribution[item]
+        trans_slice = [self._slice_bijection(t, item) for t in self.transforms]
+        return TransformedDistribution(bd_slice, trans_slice)
 
     @property
     def event_dim(self):
