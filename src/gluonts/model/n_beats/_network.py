@@ -463,7 +463,6 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         if (block_id > 0 and sharing[stack_id])
                         else None
                     )
-                    # print(params)
                     # only last one does not have backcast
                     has_backcast = not (
                         stack_id == num_stacks - 1
