@@ -44,7 +44,7 @@ class LSTNetBase(nn.HybridBlock):
         scaling: bool,
         dtype: DType,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.num_series = num_series
@@ -80,8 +80,8 @@ class LSTNetBase(nn.HybridBlock):
         self.conv_out = context_length - kernel_size + 1
         conv_skip = self.conv_out // skip_size
         assert conv_skip > 0, (
-            "conv1d output size must be greater than or equal to skip_size\n"
-            "Choose a smaller kernel_size or bigger context_length"
+            "conv1d output size must be greater than or equal to `skip_size`\n"
+            "Choose a smaller `kernel_size` or bigger `context_length`"
         )
         self.channel_skip_count = conv_skip * skip_size
         self.skip_rnn_c_dim = channels * skip_size
@@ -169,6 +169,25 @@ class LSTNetBase(nn.HybridBlock):
     def hybrid_forward(
         self, F, past_target: Tensor, past_observed_values: Tensor
     ) -> Tensor:
+        """
+        Given the tensor `past_target`, first we normalize it by the
+        `past_observed_values` which is an indicator tensor with 0 or 1 values.
+        Then it outputs the result of LSTNet.
+
+        Parameters
+        ----------
+        F
+        past_target
+            Tensor of shape (batch_size, num_series, context_length)
+        past_observed_values
+            Tensor of shape (batch_size, num_series, context_length)
+
+        Returns
+        -------
+        Tensor
+            Shape (batch_size, num_series)
+            
+        """
         scaled_past_target, _ = self.scaler(
             past_target.slice_axis(
                 axis=2, begin=-self.context_length, end=None
@@ -227,20 +246,23 @@ class LSTNetTrain(LSTNetBase):
         Parameters
         ----------
         F
-        past_target: (batch_size, num_series, context_length)
-        past_observed_values: (batch_size, num_series, context_length)
-        future_target: (batch_size, num_series, prediction_length)
+        past_target
+            Tensor of shape (batch_size, num_series, context_length)
+        past_observed_values
+            Tensor of shape (batch_size, num_series, context_length)
+        future_target
+            Tensor of shape (batch_size, num_series, prediction_length)
 
         Returns
         -------
         Tensor
-            Loss value of shape (1,)
+            Loss value of shape (batch_size,)
         """
 
         ret = super().hybrid_forward(F, past_target, past_observed_values)
         # get the last time horizon
         future_target = F.slice_axis(future_target, axis=2, begin=-1, end=None)
-        loss = F.mean(self.loss_fn(ret, future_target), axis=-1)
+        loss = self.loss_fn(ret, future_target)
         return loss
 
 
@@ -254,16 +276,18 @@ class LSTNetPredict(LSTNetBase):
         Parameters
         ----------
         F
-        past_target: (batch_size, num_series, context_length)
-        past_observed_values: (batch_size, num_series, context_length)
+        past_target
+            Tensor of shape (batch_size, num_series, context_length)
+        past_observed_values
+            Tensor of shape (batch_size, num_series, context_length)
 
         Returns
         -------
         Tensor
-            Predicted samples
+            Predicted samples of shape (num_samples, 1, num_series)
         """
 
         ret = super().hybrid_forward(F, past_target, past_observed_values)
-        # (num_samples, prediction_length, target_dim)
+        # create multivariate prediction (num_samples, prediction_length, target_dim)
         ret = ret.expand_dims(axis=1).expand_dims(axis=2)
         return ret

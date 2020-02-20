@@ -23,12 +23,17 @@ from gluonts.model.lstnet import LSTNetEstimator
 from gluonts.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.evaluation import MultivariateEvaluator
+from gluonts.evaluation.backtest import make_evaluation_predictions
+
+
+NUM_SERIES = 10
+NUM_SAMPLES = 5
 
 
 def load_multivariate_constant_dataset():
     metadata, train_ds, test_ds = constant_dataset()
-    grouper_train = MultivariateGrouper(max_target_dim=10)
-    grouper_test = MultivariateGrouper(max_target_dim=10)
+    grouper_train = MultivariateGrouper(max_target_dim=NUM_SERIES)
+    grouper_test = MultivariateGrouper(max_target_dim=NUM_SERIES)
     return TrainDatasets(
         metadata=metadata,
         train=grouper_train(train_ds),
@@ -51,7 +56,7 @@ def test_lstnet(skip_size, ar_window, hybridize, dtype):
         channels=6,
         kernel_size=3,
         context_length=4,
-        freq="1H",
+        freq=dataset.metadata.metadata.freq,
         prediction_length=dataset.metadata.prediction_length,
         trainer=Trainer(
             epochs=1, batch_size=2, learning_rate=0.01, hybridize=hybridize
@@ -60,8 +65,14 @@ def test_lstnet(skip_size, ar_window, hybridize, dtype):
     )
 
     predictor = estimator.train(dataset.train)
-    forecasts = list(predictor.predict(dataset.test))
-    assert len(forecasts) == len(dataset.test)
+    forecast_it, ts_it = make_evaluation_predictions(
+        dataset=dataset.test, predictor=predictor, num_samples=NUM_SAMPLES
+    )
+    forecasts = list(forecast_it)
+    assert len(forecasts) == len(list(ts_it)) == len(dataset.test)
+    for fct in forecasts:
+        assert fct.freq == dataset.metadata.metadata.freq
+        assert fct.samples.shape == (NUM_SAMPLES, 1, NUM_SERIES)
 
     agg_metrics, _ = backtest_metrics(
         train_dataset=dataset.train,

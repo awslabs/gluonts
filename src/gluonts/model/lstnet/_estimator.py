@@ -48,25 +48,26 @@ class LSTNetEstimator(GluonEstimator):
 
     Parameters
     ----------
-    num_series
-        Number of time-series (variats)
-    channels
-        Number of channels for first layer Conv1D
-    kernel_size
-        Kernel size for first layer Conv1D
-    skip_size
-        Skip size for the skip RNN layer
     freq
         Frequency of the data to train and predict
-    ar_window
-        Auto-regressive window size for the linear part
-    trainer
-        Trainer object to be used
+    prediction_length
+        Length of the prediction horizon `h` where give `(y_1, ..., y_t)` the model
+        predicts `y_{t+h}`
     context_length
         The maximum number of steps to unroll the RNN for computing the predictions
         (Note that it is constraints by the Conv1D output size)
-    prediction_length
-        Length of the prediction horizon
+    num_series
+        Number of time-series (variats)
+    skip_size
+        Skip size for the skip RNN layer
+    ar_window
+        Auto-regressive window size for the linear part
+    channels
+        Number of channels for first layer Conv1D
+    kernel_size
+        Kernel size for first layer Conv1D (default: 6)
+    trainer
+        Trainer object to be used (default: Trainer())
     dropout_rate
         Dropout regularization parameter (default: 0.2)
     output_activation
@@ -89,15 +90,15 @@ class LSTNetEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        num_series: int,
-        channels: int,
-        kernel_size: int,
-        skip_size: int,
         freq: str,
-        ar_window: Optional[int],
-        trainer: Trainer,
-        context_length: int,
         prediction_length: int,
+        context_length: int,
+        num_series: int,
+        skip_size: int,
+        ar_window: Optional[int],
+        channels: int,
+        kernel_size: int = 6,
+        trainer: Trainer = Trainer(),
         dropout_rate: Optional[float] = 0.2,
         output_activation: Optional[str] = None,
         rnn_cell_type: str = "gru",
