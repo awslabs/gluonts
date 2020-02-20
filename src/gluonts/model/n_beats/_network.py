@@ -334,16 +334,16 @@ class NBEATSTrendBlock(NBEATSBlock):
         with self.name_scope():
             if self.has_backcast:
                 self.theta_backcast = mx.gluon.nn.Dense(
-                    units=self.expansion_coefficient_length  # linear activation:
+                    units=self.expansion_coefficient_length, prefix=f"theta_backcast_dense_"  # linear activation:
                 )
                 self.backcast = mx.gluon.nn.HybridLambda(
-                    lambda F, thetas: F.dot(thetas, self.backcast_basis)
+                    lambda F, thetas: F.dot(thetas, self.backcast_basis), prefix=f"backcast_lambda_"
                 )
             self.theta_forecast = mx.gluon.nn.Dense(
-                units=self.expansion_coefficient_length  # linear activation:
+                units=self.expansion_coefficient_length, prefix=f"theta_forecast_dense_"  # linear activation:
             )
             self.forecast = mx.gluon.nn.HybridLambda(
-                lambda F, thetas: F.dot(thetas, self.forecast_basis)
+                lambda F, thetas: F.dot(thetas, self.forecast_basis), prefix=f"forecast_lambda_"
             )
 
     def initialize_basis(self, F):
