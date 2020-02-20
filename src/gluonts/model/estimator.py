@@ -221,7 +221,7 @@ class GluonEstimator(Estimator):
 
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
-        with self.trainer.ctx:
+        with self.trainer.ctx[0]:
             trained_net = self.create_training_network()
 
         self.trainer(
@@ -231,7 +231,7 @@ class GluonEstimator(Estimator):
             validation_iter=validation_data_loader,
         )
 
-        with self.trainer.ctx:
+        with self.trainer.ctx[0]:
             # ensure that the prediction network is created within the same MXNet
             # context as the one that was used during training
             return TrainOutput(

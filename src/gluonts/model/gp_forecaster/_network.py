@@ -12,13 +12,13 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Tuple
+from typing import Tuple, Union, List
 
 # Third-party imports
 import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import DType, validated
+from gluonts.core.component import DType, validated, normalize_ctx, ContextType
 from gluonts.distribution.distribution import softplus
 from gluonts.kernels import KernelOutputDict
 from gluonts.model.common import Tensor
@@ -42,7 +42,7 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         cardinality: int,
         kernel_output: KernelOutputDict,
         params_scaling: bool,
-        ctx: mx.Context,
+        ctx: ContextType,
         float_type: DType,
         max_iter_jitter: int,
         jitter_method: str,
@@ -80,7 +80,7 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         self.kernel_output = kernel_output
         self.params_scaling = params_scaling
         self.float_type = float_type
-        self.ctx = ctx
+        self.ctx = normalize_ctx(ctx)
         self.max_iter_jitter = max_iter_jitter
         self.jitter_method = jitter_method
 

@@ -26,7 +26,7 @@ import mxnet.gluon.nn as nn
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import get_mxnet_context, validated
+from gluonts.core.component import normalize_ctx, validated, ContextType
 from gluonts.core.exception import GluonTSDataError, GluonTSUserError
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.support.util import HybridContext
@@ -75,6 +75,9 @@ class Trainer:
     Parameters
     ----------
     ctx
+        Device context which accepts `None`, `str`, `mx.Context` or list of `mx.Context`.
+        Note that the default `None` uses all the existing gpus
+        and if gpu doesn't exist, it uses cpu.
     epochs
         Number of epochs that the network will train (default: 100).
     batch_size
@@ -102,7 +105,7 @@ class Trainer:
     @validated()
     def __init__(
         self,
-        ctx: Optional[mx.Context] = None,
+        ctx: ContextType = None,
         epochs: int = 100,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
@@ -147,7 +150,7 @@ class Trainer:
         self.weight_decay = weight_decay
         self.init = init
         self.hybridize = hybridize
-        self.ctx = ctx if ctx is not None else get_mxnet_context()
+        self.ctx = normalize_ctx(ctx)
         self.halt = False
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:
@@ -232,25 +235,34 @@ class Trainer:
                             if self.halt:
                                 break
 
-                            inputs = [data_entry[k] for k in input_names]
-
+                            inputs = [
+                                mx.gluon.utils.split_and_load(
+                                    data_entry[k],
+                                    ctx_list=self.ctx,
+                                    batch_axis=0,
+                                )[0]
+                                for k in input_names
+                            ]
+                            losses = []
                             with mx.autograd.record():
-                                output = net(*inputs)
+                                for inpt in zip(*inputs):
+                                    output = net(*inpt)
+                                    # network can returns several outputs, the first being always the loss
+                                    # when having multiple outputs, the forward returns a list in the case of hybrid and a
+                                    # tuple otherwise
+                                    # we may wrap network outputs in the future to avoid this type check
+                                    if isinstance(output, (list, tuple)):
+                                        loss = output[0]
+                                    else:
+                                        loss = output
 
-                                # network can returns several outputs, the first being always the loss
-                                # when having multiple outputs, the forward returns a list in the case of hybrid and a
-                                # tuple otherwise
-                                # we may wrap network outputs in the future to avoid this type check
-                                if isinstance(output, (list, tuple)):
-                                    loss = output[0]
-                                else:
-                                    loss = output
+                                    losses.append(loss)
 
                             if is_training:
-                                loss.backward()
+                                mx.autograd.backward(losses)
                                 trainer.step(batch_size)
 
-                            epoch_loss.update(None, preds=loss)
+                            epoch_loss.update(None, preds=losses)
                             lv = loss_value(epoch_loss)
 
                             if not np.isfinite(lv):

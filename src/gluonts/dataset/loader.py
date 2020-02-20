@@ -22,7 +22,7 @@ import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import DType
+from gluonts.core.component import DType, ContextType, normalize_ctx
 from gluonts.dataset.common import DataEntry, Dataset, DataBatch
 from gluonts.dataset.parallelized_loader import ParallelDataLoader
 from gluonts.transform import Transformation
@@ -69,14 +69,14 @@ class DataLoader(Iterable[DataEntry]):
         cyclic: bool,
         is_train: bool,
         batch_size: int,
-        ctx: mx.Context,
+        ctx: ContextType,
         dtype: DType = np.float32,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         **kwargs,
     ) -> None:
         self.batch_size = batch_size
-        self.ctx = ctx
+        self.ctx = normalize_ctx(ctx)
         self.dtype = dtype
         self.is_train = is_train
         self.transform = transform
@@ -96,7 +96,7 @@ class DataLoader(Iterable[DataEntry]):
             cyclic=self.cyclic,
             is_train=self.is_train,
             batch_size=self.batch_size,
-            ctx=self.ctx,
+            ctx=self.ctx[0],
             dtype=self.dtype,
             num_workers=self.num_workers,
             num_prefetch=self.num_prefetch,
@@ -147,7 +147,7 @@ class TrainDataLoader(DataLoader):
         dataset: Dataset,
         transform: Transformation,
         batch_size: int,
-        ctx: mx.Context,
+        ctx: ContextType,
         num_batches_per_epoch: int,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
@@ -193,7 +193,7 @@ class ValidationDataLoader(DataLoader):
         *,
         transform: Transformation,
         batch_size: int,
-        ctx: mx.Context,
+        ctx: ContextType,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
@@ -220,7 +220,7 @@ class InferenceDataLoader(DataLoader):
         *,
         transform: Transformation,
         batch_size: int,
-        ctx: mx.Context,
+        ctx: ContextType,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,

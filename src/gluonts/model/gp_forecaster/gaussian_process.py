@@ -12,14 +12,14 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 # Third-party imports
 import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import DType
+from gluonts.core.component import DType, ContextType, normalize_ctx
 from gluonts.distribution import MultivariateGaussian
 from gluonts.distribution.distribution import getF
 from gluonts.kernels import Kernel
@@ -40,7 +40,7 @@ class GaussianProcess:
         prediction_length: Optional[int] = None,
         context_length: Optional[int] = None,
         num_samples: Optional[int] = None,
-        ctx: mx.Context = mx.Context("cpu"),
+        ctx: ContextType = None,
         float_type: DType = np.float64,
         jitter_method: str = "iter",
         max_iter_jitter: int = 10,
@@ -102,7 +102,7 @@ class GaussianProcess:
         )
         self.num_samples = num_samples
         self.F = F if F else getF(sigma)
-        self.ctx = ctx
+        self.ctx = normalize_ctx(ctx)
         self.float_type = float_type
         self.jitter_method = jitter_method
         self.max_iter_jitter = max_iter_jitter
@@ -141,7 +141,7 @@ class GaussianProcess:
                 self.F.broadcast_mul(
                     self.sigma ** 2,
                     self.F.eye(
-                        num_data_points, ctx=self.ctx, dtype=self.float_type
+                        num_data_points, ctx=self.ctx[0], dtype=self.float_type
                     ),
                 ),
             )
@@ -152,7 +152,7 @@ class GaussianProcess:
                 self.F,
                 kernel_matrix,
                 num_data_points,
-                self.ctx,
+                self.ctx[0],
                 self.float_type,
                 self.diag_weight,
             )
@@ -161,7 +161,7 @@ class GaussianProcess:
                 self.F,
                 kernel_matrix,
                 num_data_points,
-                self.ctx,
+                self.ctx[0],
                 self.float_type,
                 self.max_iter_jitter,
                 self.neg_tol,
@@ -310,7 +310,7 @@ class GaussianProcess:
             self.F,
             predictive_covariance,
             self.prediction_length,
-            self.ctx,
+            self.ctx[0],
             self.float_type,
         )
         # If self.sample_noise = True, predictive covariance has sigma^2 on the diagonal

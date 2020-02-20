@@ -44,10 +44,12 @@ import gluonts
 from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.core.component import (
     DType,
+    ContextType,
     equals,
     from_hyperparameters,
     get_mxnet_context,
     validated,
+    normalize_ctx,
 )
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
@@ -232,10 +234,11 @@ class GluonPredictor(Predictor):
         Input transformation pipeline
     output_transform
         Output transformation
-    ctx
-        MXNet context to use for computation
     forecast_generator
         Class to generate forecasts from network ouputs
+    ctx
+        MXNet context to use for computation. Default is `None`
+        resulting in all the gpus if exist and if not, it uses cpu
     """
 
     BlockType = mx.gluon.Block
@@ -247,9 +250,9 @@ class GluonPredictor(Predictor):
         batch_size: int,
         prediction_length: int,
         freq: str,
-        ctx: mx.Context,
         input_transform: Transformation,
         lead_time: int = 0,
+        ctx: ContextType = None,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         dtype: DType = np.float32,
@@ -266,7 +269,7 @@ class GluonPredictor(Predictor):
         self.input_transform = input_transform
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
-        self.ctx = ctx
+        self.ctx = normalize_ctx(ctx)
         self.dtype = dtype
 
     def hybridize(self, batch: DataBatch) -> None:
@@ -396,11 +399,10 @@ class SymbolBlockPredictor(GluonPredictor):
 
     @classmethod
     def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
+        cls, path: Path, ctx: ContextType = None
     ) -> "SymbolBlockPredictor":
-        ctx = ctx if ctx is not None else get_mxnet_context()
-
-        with mx.Context(ctx):
+        ctx = normalize_ctx(ctx)
+        with ctx:
             # deserialize constructor parameters
             with (path / "parameters.json").open("r") as fp:
                 parameters = load_json(fp.read())
@@ -449,7 +451,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         batch_size: int,
         prediction_length: int,
         freq: str,
-        ctx: mx.Context,
+        ctx: ContextType,
         input_transform: Transformation,
         lead_time: int = 0,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
