@@ -27,11 +27,7 @@ from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.nursery.sagemaker_sdk.entry_point_scripts.train_entry_point import (
     train,
 )
-
-# CONSTANTS
-DATASET_NAME = "m4_hourly"
-DATASET_PREDICTION_LENGTH = 48
-FREQ = "H"
+from gluonts.nursery.sagemaker_sdk.defaults import QUANTILES, NUM_SAMPLES
 
 
 def create_arguments(temp_dir_abs_path, dataset_name, s3_dataset_path=None):
@@ -44,12 +40,8 @@ def create_arguments(temp_dir_abs_path, dataset_name, s3_dataset_path=None):
     parser.add_argument("--estimator", type=str, default=temp_dir_abs_path)
     parser.add_argument("--s3-dataset", type=str, default=s3_dataset_path)
     parser.add_argument("--dataset", type=str, default=dataset_name)
-    parser.add_argument("--num-samples", type=int, default="100")
-    parser.add_argument(
-        "--quantiles",
-        type=str,
-        default="(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)",
-    )
+    parser.add_argument("--num-samples", type=int, default=str(NUM_SAMPLES))
+    parser.add_argument("--quantiles", type=str, default=str(QUANTILES))
 
     args, _ = parser.parse_known_args()
 
