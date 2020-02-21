@@ -16,7 +16,7 @@ dependencies:
   - ipykernel
   - nbconvert=5.4.0
   - notedown
-  - sphinx>=2.1,==2.*
+  - sphinx>=2.1.0,==2.1.*
   - sphinx-gallery
   - nbsphinx>=0.3.4,<0.4
   - tornado=5.1.1
