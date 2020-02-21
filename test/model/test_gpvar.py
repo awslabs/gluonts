@@ -11,8 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
+# Third-party imports
 import pytest
+from flaky import flaky
 import mxnet as mx
 
 # First-party imports
@@ -94,6 +95,7 @@ def test_gpvar_proj():
     assert distr.mean.shape == (batch, dim)
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("target_dim_sample", [None, 2])
 @pytest.mark.parametrize("use_marginal_transformation", [True, False])
@@ -112,7 +114,7 @@ def test_smoke(
         freq=metadata.freq,
         use_marginal_transformation=use_marginal_transformation,
         trainer=Trainer(
-            epochs=3,
+            epochs=2,
             batch_size=10,
             learning_rate=1e-4,
             num_batches_per_epoch=num_batches_per_epoch,
@@ -129,5 +131,4 @@ def test_smoke(
             quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
         ),
     )
-    print(f"RESULT: {agg_metrics['ND']}")
     assert agg_metrics["ND"] < 2.5
