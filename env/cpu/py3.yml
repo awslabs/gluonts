@@ -34,3 +34,4 @@ dependencies:
     - https://github.com/mli/mx-theme/archive/0.3.1.tar.gz
     - sphinx~=2.1
     - sphinx-autorun
+    - numpy~=1.14
