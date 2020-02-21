@@ -20,7 +20,7 @@ dependencies:
   - sphinx-gallery
   - nbsphinx>=0.3.4,<0.4
   - tornado=5.1.1
-  - pytest-runner>=2.11,=2.*,<2.12
+  - pytest-runner>=2.11,<2.12
   - mypy=0.761
   - black=19.*
   - setuptools>=40.1.0
