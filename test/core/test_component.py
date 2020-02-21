@@ -160,7 +160,7 @@ def test_dynamic_loading():
         """
         dict(
            trainer=gluonts.trainer.Trainer(
-               ctx="cpu(0)",
+               ctx="cpu",
                epochs=5,
                learning_rate=0.001,
                clip_gradient=10.0,

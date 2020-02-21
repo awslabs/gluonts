@@ -36,7 +36,7 @@ from . import fqname_for
 
 logger = logging.getLogger(__name__)
 
-ContextType = Optional[Union[mx.Context, List[mx.Context]]]
+ContextType = Optional[Union[str, mx.Context, List[mx.Context]]]
 
 A = TypeVar("A")
 
@@ -505,19 +505,20 @@ def get_mxnet_context(gpu_number=0) -> mx.Context:
         return mx.context.cpu()
 
 
-def normalize_ctx(
-    ctx: Optional[Union[str, mx.Context, List[mx.Context]]]
-) -> List[mx.Context]:
+def normalize_ctx(ctx: ContextType) -> List[mx.Context]:
+    if ctx is None:
+        if mx.context.num_gpus():
+            return [mx.gpu(i) for i in range(mx.context.num_gpus())]
+        else:
+            return [mx.cpu()]
+
     if isinstance(ctx, str):
         return [mx.Context(ctx)]
-    if ctx is not None:
-        return [ctx] if not isinstance(ctx, list) else ctx
-    else:
-        return (
-            [mx.gpu(i) for i in range(mx.context.num_gpus())]
-            if mx.context.num_gpus()
-            else [mx.cpu()]
-        )
+
+    if isinstance(ctx, list):
+        return ctx
+
+    return [ctx]
 
 
 def check_gpu_support() -> bool:
