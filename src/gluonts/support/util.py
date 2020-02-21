@@ -96,6 +96,8 @@ class HybridContext:
     hybridize
         A boolean flag inidicating whether the hybrid mode should be set or
         not.
+    data_batch
+        Optional list of ndarrays as inputs to the `net` (default: None)
     kwargs
         A dictionary of optional arguments to pass to the `hybridize()` call
         of the enclosed `HybridBlock` network.
@@ -158,9 +160,16 @@ def copy_parameters(
     ) as model_dir:
         model_dir_path = str(Path(model_dir) / "tmp_model")
         net_source.save_parameters(model_dir_path)
+        params = net_source.collect_params()
+        for p in params:
+            ctx = params[p].list_ctx()
+            break
+        # force init otherwise may not load params
+        # since not all params have the same ctx in net_source
+        net_dest.initialize(ctx=ctx, force_reinit=True)
         net_dest.load_parameters(
             model_dir_path,
-            ctx=mx.current_context(),
+            ctx=ctx,
             allow_missing=allow_missing,
             ignore_extra=ignore_extra,
         )
