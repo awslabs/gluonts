@@ -26,8 +26,8 @@ dependencies:
   - setuptools>=40.1.0
   - pydantic
   - requests<2.21,>=2.20.0
-  - sagemaker-python-sdk>=1.44,=1.*
-  - s3fs>=0.4,=0.*
+  - sagemaker-python-sdk>=1.44
+  - s3fs>=0.4
   - seaborn
   - statsmodels>=0.11
   - pip:
