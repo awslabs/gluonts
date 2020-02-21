@@ -240,7 +240,7 @@ class Trainer:
                                     data_entry[k],
                                     ctx_list=self.ctx,
                                     batch_axis=0,
-                                )[0]
+                                )
                                 for k in input_names
                             ]
                             losses = []
