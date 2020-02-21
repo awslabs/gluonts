@@ -112,7 +112,7 @@ def test_smoke(
         freq=metadata.freq,
         use_marginal_transformation=use_marginal_transformation,
         trainer=Trainer(
-            epochs=2,
+            epochs=3,
             batch_size=10,
             learning_rate=1e-4,
             num_batches_per_epoch=num_batches_per_epoch,
@@ -129,4 +129,5 @@ def test_smoke(
             quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
         ),
     )
+    print(f"RESULT: {agg_metrics['ND']}")
     assert agg_metrics["ND"] < 2.5
