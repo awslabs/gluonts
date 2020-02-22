@@ -399,9 +399,10 @@ class SymbolBlockPredictor(GluonPredictor):
 
     @classmethod
     def deserialize(
-        cls, path: Path, ctx: ContextType = None
+        cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "SymbolBlockPredictor":
-        ctx = normalize_ctx(ctx)
+        # serde in one ctx only
+        ctx = ctx if ctx is not None else get_mxnet_context()
         with ctx:
             # deserialize constructor parameters
             with (path / "parameters.json").open("r") as fp:
@@ -477,7 +478,7 @@ class RepresentableBlockPredictor(GluonPredictor):
     def as_symbol_block_predictor(
         self, batch: DataBatch
     ) -> SymbolBlockPredictor:
-        with self.ctx:
+        with self.ctx[0]:
             symbol_block_net = hybrid_block_to_symbol_block(
                 hb=self.prediction_net,
                 data_batch=[batch[k] for k in self.input_names],
