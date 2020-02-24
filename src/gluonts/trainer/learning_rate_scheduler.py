@@ -92,7 +92,6 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         self.patience = patience
         self.objective = objective
         self.min_lr = min_lr
-        self.curr_lr = base_lr
 
         self.reset()
 
@@ -115,14 +114,15 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         metric_value
             Value of the metric that is being optimized.
         """
-        if self.steps_without_progress >= self.patience:
-            self.curr_lr = max(
-                self.min_lr, self.curr_lr * self.decay_factor
-            )
-            self.steps_without_progress = 0
 
         if self.objective.is_better(metric_value, self.current_best):
             self.current_best = metric_value
             self.steps_without_progress = 0
         else:
             self.steps_without_progress += 1
+
+        # even if we improved, we always have to decrease the learning rate
+        # when `self.patience == 0`
+        if self.steps_without_progress >= self.patience:
+            self.curr_lr = max(self.min_lr, self.curr_lr * self.decay_factor)
+            self.steps_without_progress = 0
