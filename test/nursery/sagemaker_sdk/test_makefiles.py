@@ -25,7 +25,6 @@ import pytest
 # First-party imports
 import gluonts
 
-
 docker_images_path = (
     Path(os.path.dirname(gluonts.__file__))
     / "nursery"
@@ -40,6 +39,9 @@ cpu_serving_docker_build_makefile_path = (
 )
 
 
+@pytest.mark.xfail(
+    reason="The sagemaker-mxnet-container library might have changed breaking the docker makefile."
+)
 @pytest.mark.parametrize(
     "docker_build_makefile_path, fetch_dependency_command",
     [
