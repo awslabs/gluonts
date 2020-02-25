@@ -153,7 +153,7 @@ class Naive2Predictor(RepresentablePredictor):
         )
 
     def predict_item(self, item: DataEntry) -> Forecast:
-        past_ts_data = np.asarray(item["target"], np.float32)
+        past_ts_data = item["target"]
         forecast_start_time = forecast_start(item)
 
         assert (
