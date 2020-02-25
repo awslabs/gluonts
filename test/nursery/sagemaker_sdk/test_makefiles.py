@@ -26,10 +26,7 @@ import pytest
 import gluonts
 
 docker_images_path = (
-    Path(os.path.dirname(gluonts.__file__))
-    / "nursery"
-    / "sagemaker_sdk"
-    / "docker_images"
+    Path(gluonts.__file__).parent / "nursery" / "sagemaker_sdk" / "docker_images"
 )
 cpu_training_docker_build_makefile_path = (
     docker_images_path / "cpu_training" / "Makefile"
@@ -69,16 +66,17 @@ def test_make_pre_and_post_build_tasks(
             )
         except subprocess.CalledProcessError as e:
             # The error message is not going to be useful in case of an error, so adding custom one:
-            assert False, (
+            raise AssertionError(
                 f"Something went wrong when fetching the sagemaker-mxnet-container dependency to building the "
-                f"container. Check sagemaker_sdk/cpu_training and run 'make' to debug. The original error message: {e.output} "
+                f"container. Check sagemaker_sdk/cpu_training and run 'make' to debug."
+                f"The original error message: {e.output} "
             )
 
         try:
             subprocess.check_output(["make", "clean"], cwd=temp_dir_path)
         except subprocess.CalledProcessError as e:
             # The error message is not going to be useful in case of an error, so adding custom one:
-            assert False, (
+            raise AssertionError(
                 f"Something went wrong when cleaning up after container building. Check sagemaker_sdk/cpu_training "
                 f"and run 'make' to debug. The original error message: {e.output} "
             )
