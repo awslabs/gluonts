@@ -69,32 +69,33 @@ def simple_feedforward_estimator():
 )
 def test_train_script(dataset_name, custom_dataset):
     # we need to write some data for this test, so we use a temporary directory
-    temp_dir = Path(tempfile.mkdtemp())
-    dataset = get_dataset(
-        dataset_name, path=temp_dir, regenerate=True
-    )  # exchange_rate, m4_yearly
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+        dataset = get_dataset(
+            dataset_name, path=temp_dir_path, regenerate=True
+        )  # exchange_rate, m4_yearly
 
-    # either use provided dataset, in which case it must be present in the directory, or a built in one
-    # for testing we will provide a built in dataset as a custom one too
-    if custom_dataset:
-        args = create_arguments(
-            str(temp_dir),
-            dataset_name,
-            s3_dataset_path=str(temp_dir / dataset_name),
+        # either use provided dataset, in which case it must be present in the directory, or a built in one
+        # for testing we will provide a built in dataset as a custom one too
+        if custom_dataset:
+            args = create_arguments(
+                str(temp_dir_path),
+                dataset_name,
+                s3_dataset_path=str(temp_dir_path / dataset_name),
+            )
+        else:
+            args = create_arguments(str(temp_dir_path), dataset_name)
+
+        # the test requires using a deserialized estimator, which we first need to create
+        estimator_cls, hyperparameters = simple_feedforward_estimator()
+        estimator = estimator_cls.from_hyperparameters(
+            prediction_length=dataset.metadata.prediction_length,
+            freq=dataset.metadata.freq,
+            **hyperparameters
         )
-    else:
-        args = create_arguments(str(temp_dir), dataset_name)
+        serialized = serde.dump_json(estimator)
+        with open(temp_dir_path / "estimator.json", "w") as estimator_file:
+            estimator_file.write(serialized)
 
-    # the test requires using a deserialized estimator, which we first need to create
-    estimator_cls, hyperparameters = simple_feedforward_estimator()
-    estimator = estimator_cls.from_hyperparameters(
-        prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.freq,
-        **hyperparameters
-    )
-    serialized = serde.dump_json(estimator)
-    with open(temp_dir / "estimator.json", "w") as estimator_file:
-        estimator_file.write(serialized)
-
-    # No assert necessary, the idea is just that the code needs to run through
-    train(args)
+        # No assert necessary, the idea is just that the code needs to run through
+        train(args)

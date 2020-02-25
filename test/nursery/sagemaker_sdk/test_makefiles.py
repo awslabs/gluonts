@@ -59,25 +59,26 @@ def test_make_pre_and_post_build_tasks(
     docker_build_makefile_path, fetch_dependency_command
 ):
     # we need to write some data for this test, so we use a temporary directory
-    temp_dir = Path(tempfile.mkdtemp())
-    copyfile(docker_build_makefile_path, str(temp_dir / "Makefile"))
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+        copyfile(docker_build_makefile_path, str(temp_dir_path / "Makefile"))
 
-    try:
-        subprocess.check_output(
-            ["make", fetch_dependency_command], cwd=temp_dir
-        )
-    except subprocess.CalledProcessError as e:
-        # The error message is not going to be useful in case of an error, so adding custom one:
-        assert False, (
-            f"Something went wrong when fetching the sagemaker-mxnet-container dependency to building the "
-            f"container. Check sagemaker_sdk/cpu_training and run 'make' to debug. The original error message: {e.output} "
-        )
+        try:
+            subprocess.check_output(
+                ["make", fetch_dependency_command], cwd=temp_dir_path
+            )
+        except subprocess.CalledProcessError as e:
+            # The error message is not going to be useful in case of an error, so adding custom one:
+            assert False, (
+                f"Something went wrong when fetching the sagemaker-mxnet-container dependency to building the "
+                f"container. Check sagemaker_sdk/cpu_training and run 'make' to debug. The original error message: {e.output} "
+            )
 
-    try:
-        subprocess.check_output(["make", "clean"], cwd=temp_dir)
-    except subprocess.CalledProcessError as e:
-        # The error message is not going to be useful in case of an error, so adding custom one:
-        assert False, (
-            f"Something went wrong when cleaning up after container building. Check sagemaker_sdk/cpu_training "
-            f"and run 'make' to debug. The original error message: {e.output} "
-        )
+        try:
+            subprocess.check_output(["make", "clean"], cwd=temp_dir_path)
+        except subprocess.CalledProcessError as e:
+            # The error message is not going to be useful in case of an error, so adding custom one:
+            assert False, (
+                f"Something went wrong when cleaning up after container building. Check sagemaker_sdk/cpu_training "
+                f"and run 'make' to debug. The original error message: {e.output} "
+            )
