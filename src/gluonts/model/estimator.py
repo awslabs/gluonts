@@ -135,7 +135,10 @@ class GluonEstimator(Estimator):
             )
 
         try:
-            trainer = from_hyperparameters(Trainer, **hyperparameters)
+            trainer = hyperparameters.get("trainer")
+            if not isinstance(trainer, Trainer):
+                trainer = from_hyperparameters(Trainer, **hyperparameters)
+
             return cls(
                 **Model(**{**hyperparameters, "trainer": trainer}).__dict__
             )
