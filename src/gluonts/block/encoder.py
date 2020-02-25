@@ -233,9 +233,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
                 dynamic_features=dynamic_features,
             )
         elif self.use_dynamic_feat:
-            inputs = F.concat(
-            target, dynamic_features, dim=2
-        )  # (N, T, C)
+            inputs = F.concat(target, dynamic_features, dim=2)  # (N, T, C)
         else:
             inputs = target
 

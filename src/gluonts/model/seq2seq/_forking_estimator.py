@@ -34,6 +34,7 @@ from gluonts.transform import (
     Chain,
     TestSplitSampler,
     Transformation,
+    VstackFeatures,
 )
 
 # Relative imports
@@ -41,8 +42,11 @@ from gluonts.time_feature import time_features_from_frequency_str
 from ._forking_network import (
     ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqTrainingNetwork,
-    ForkingSeq2SeqNetwork, ForkingSeq2SeqNetworkBase, ForkingSeq2SeqTargetPredictionNetwork,
-    ForkingSeq2SeqTargetTrainingNetwork)
+    ForkingSeq2SeqNetwork,
+    ForkingSeq2SeqNetworkBase,
+    ForkingSeq2SeqTargetPredictionNetwork,
+    ForkingSeq2SeqTargetTrainingNetwork,
+)
 from ._transform import ForkingSequenceSplitter
 
 
@@ -117,50 +121,52 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
+        self.add_time_feature = True
+
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        return {}
 
     def create_transformation(self) -> Transformation:
+        chain = []
+        dynamic_feat_fields = []
 
-        if self.use_dynamic_feat:
-            feat_def = Chain(
-            trans=[
-                AsNumpyArray(
-                    field=FieldName.TARGET, expected_ndim=1, dtype=self.dtype
-                ),
-                # AddAgeFeature(
-                #     target_field=FieldName.TARGET,
-                #     output_field=FieldName.FEAT_DYNAMIC_REAL,
-                #     log_scale=True,
-                #     pred_length=self.prediction_length,
-                #     dtype=self.dtype,
-                # ),
+        if self.add_time_feature:
+            chain.append(
                 AddTimeFeatures(
                     start_field=FieldName.START,
                     target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_DYNAMIC_REAL,
-                    time_features= time_features_from_frequency_str(self.freq),
+                    output_field="time_feature",
+                    time_features=time_features_from_frequency_str(self.freq),
                     pred_length=self.prediction_length,
                 ),
-                ForkingSequenceSplitter(
-                    train_sampler=TestSplitSampler(),
-                    enc_len=self.context_length,
-                    dec_len=self.prediction_length,
-                    encoder_series_fields=[FieldName.FEAT_DYNAMIC_REAL],
-                ),
-            ])
-        else:
-            feat_def = Chain(
-            trans=[
-                AsNumpyArray(
-                    field=FieldName.TARGET, expected_ndim=1, dtype=self.dtype
-                ),
-                ForkingSequenceSplitter(
-                    train_sampler=TestSplitSampler(),
-                    enc_len=self.context_length,
-                    dec_len=self.prediction_length,
-                ),
-            ])
+            )
+            dynamic_feat_fields.append("time_feature")
 
-        return feat_def
+        if self.use_dynamic_feat:
+            dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
+
+        if dynamic_feat_fields:
+            chain.append(
+                VstackFeatures(
+                    output_field=FieldName.FEAT_TIME,
+                    input_fields=dynamic_feat_fields,
+                )
+            )
+            output_field = [FieldName.FEAT_TIME]
+        else:
+            output_field = []
+
+        chain.append(
+            ForkingSequenceSplitter(
+                train_sampler=TestSplitSampler(),
+                enc_len=self.context_length,
+                dec_len=self.prediction_length,
+                encoder_series_fields=output_field,
+            ),
+        )
+
+        return Chain(chain)
 
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
         # return ForkingSeq2SeqTrainingNetwork(
@@ -175,9 +181,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=PassThroughEnc2Dec(),
             decoder=self.decoder,
             quantile_output=self.quantile_output,
-            use_dynamic_real=self.use_dynamic_feat
+            use_dynamic_real=self.use_dynamic_feat,
         ).get_training_network()
-
 
     def create_predictor(
         self,
@@ -190,13 +195,12 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             for quantile in self.quantile_output.quantiles
         ]
 
-
         prediction_network = ForkingSeq2SeqNetwork(
             encoder=trained_network.encoder,
             enc2dec=trained_network.enc2dec,
             decoder=trained_network.decoder,
             quantile_output=trained_network.quantile_output,
-            use_dynamic_real=self.use_dynamic_feat
+            use_dynamic_real=self.use_dynamic_feat,
         ).get_prediction_network()
 
         copy_parameters(trained_network, prediction_network)

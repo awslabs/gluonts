@@ -67,17 +67,18 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             self.quantile_proj = quantile_output.get_quantile_proj()
             self.loss = quantile_output.get_loss()
 
-class ForkingSeq2SeqNetwork():
+
+class ForkingSeq2SeqNetwork:
     @validated()
     def __init__(
-            self,
-            encoder: Seq2SeqEncoder,
-            enc2dec: Seq2SeqEnc2Dec,
-            decoder: Seq2SeqDecoder,
-            quantile_output: QuantileOutput,
-            use_dynamic_real: bool = False,
-            use_static_cat: bool = False,
-            **kwargs,
+        self,
+        encoder: Seq2SeqEncoder,
+        enc2dec: Seq2SeqEnc2Dec,
+        decoder: Seq2SeqDecoder,
+        quantile_output: QuantileOutput,
+        use_dynamic_real: bool = False,
+        use_static_cat: bool = False,
+        **kwargs,
     ) -> None:
         self.encoder = encoder
         self.enc2dec = enc2dec
@@ -93,17 +94,17 @@ class ForkingSeq2SeqNetwork():
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
                 decoder=self.decoder,
-                quantile_output=self.quantile_output
+                quantile_output=self.quantile_output,
             )
         elif self.use_static_cat is False and self.use_dynamic_real:
             return ForkingSeq2SeqTrainingNetwork(
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
                 decoder=self.decoder,
-                quantile_output=self.quantile_output
+                quantile_output=self.quantile_output,
             )
         else:
-            raise("Not implemented yet!")
+            raise ("Not implemented yet!")
 
     def get_prediction_network(self) -> ForkingSeq2SeqNetworkBase:
         if self.use_static_cat is False and self.use_dynamic_real is False:
@@ -111,27 +112,27 @@ class ForkingSeq2SeqNetwork():
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
                 decoder=self.decoder,
-                quantile_output=self.quantile_output
+                quantile_output=self.quantile_output,
             )
         elif self.use_static_cat is False and self.use_dynamic_real:
             return ForkingSeq2SeqPredictionNetwork(
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
                 decoder=self.decoder,
-                quantile_output=self.quantile_output
+                quantile_output=self.quantile_output,
             )
         else:
-            raise("Not implemented yet!")
-
+            raise ("Not implemented yet!")
 
 
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self, F,
-            past_target: Tensor,
-            past_feat_dynamic_real: Tensor,
-            future_target: Tensor
+        self,
+        F,
+        past_target: Tensor,
+        past_feat_dynamic_real: Tensor,
+        future_target: Tensor,
     ) -> Tensor:
         """
         Parameters
@@ -152,13 +153,14 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         # print(f"past_feat_dynamic_real: {past_feat_dynamic_real.shape}")
         # print(f"future_target: {future_target.shape}")
 
-
         enc_output_static, enc_output_dynamic = self.encoder(
             past_target, self.feat_static_real, past_feat_dynamic_real
         )
 
         dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, self.future_feat_dynamic_real
+            enc_output_static,
+            enc_output_dynamic,
+            self.future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
@@ -172,10 +174,9 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
 
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
-    def hybrid_forward(self,
-                       F,
-                       past_target: Tensor,
-                       past_feat_dynamic_real: Tensor) -> Tensor:
+    def hybrid_forward(
+        self, F, past_target: Tensor, past_feat_dynamic_real: Tensor
+    ) -> Tensor:
         """
         Parameters
         ----------
@@ -200,7 +201,9 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         dec_inp_static, dec_inp_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, self.future_feat_dynamic_real
+            enc_output_static,
+            enc_output_dynamic,
+            self.future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_inp_dynamic, dec_inp_static)
@@ -236,7 +239,9 @@ class ForkingSeq2SeqTargetTrainingNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, self.future_feat_dynamic_real
+            enc_output_static,
+            enc_output_dynamic,
+            self.future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
@@ -264,7 +269,6 @@ class ForkingSeq2SeqTargetPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
         # FIXME: can we factor out a common prefix in the base network?
 
-
         enc_output_static, enc_output_dynamic = self.encoder(
             past_target, self.feat_static_real, self.past_feat_dynamic_real
         )
@@ -274,7 +278,9 @@ class ForkingSeq2SeqTargetPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         dec_inp_static, dec_inp_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, self.future_feat_dynamic_real
+            enc_output_static,
+            enc_output_dynamic,
+            self.future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_inp_dynamic, dec_inp_static)
