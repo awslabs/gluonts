@@ -26,7 +26,10 @@ import pytest
 import gluonts
 
 docker_images_path = (
-    Path(gluonts.__file__).parent / "nursery" / "sagemaker_sdk" / "docker_images"
+    Path(gluonts.__file__).parent
+    / "nursery"
+    / "sagemaker_sdk"
+    / "docker_images"
 )
 cpu_training_docker_build_makefile_path = (
     docker_images_path / "cpu_training" / "Makefile"
