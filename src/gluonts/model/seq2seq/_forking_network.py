@@ -104,7 +104,7 @@ class ForkingSeq2SeqNetwork:
                 quantile_output=self.quantile_output,
             )
         else:
-            raise ("Not implemented yet!")
+            raise NotImplementedError
 
     def get_prediction_network(self) -> ForkingSeq2SeqNetworkBase:
         if self.use_static_cat is False and self.use_dynamic_real is False:
@@ -122,7 +122,7 @@ class ForkingSeq2SeqNetwork:
                 quantile_output=self.quantile_output,
             )
         else:
-            raise ("Not implemented yet!")
+            raise NotImplementedError
 
 
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):

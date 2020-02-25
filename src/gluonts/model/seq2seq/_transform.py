@@ -13,7 +13,7 @@
 
 # Standard library imports
 from collections import Counter
-from typing import Iterator, List
+from typing import Iterator, List, Any
 
 # Third-party imports
 import numpy as np
@@ -126,7 +126,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                     continue
 
                 if ts_field in decoder_fields:
-                    d3 = () if ts_field == self.target_in else (len(ts),)
+                    d3: Any = () if ts_field == self.target_in else (len(ts),)
                     forking_dec_field = np.zeros(
                         shape=(self.enc_len, self.dec_len) + d3
                     )

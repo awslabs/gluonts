@@ -63,7 +63,7 @@ def run_train_and_test(
     logger.info(f"Using forecaster {forecaster_fq_name} v{forecaster_version}")
 
     forecaster = forecaster_type.from_inputs(
-        env.datasets["train"], env.hyperparameters
+        env.datasets["train"], **env.hyperparameters
     )
 
     logger.info(

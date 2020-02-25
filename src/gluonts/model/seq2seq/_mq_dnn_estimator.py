@@ -15,6 +15,7 @@
 from typing import List, Optional
 
 # First-party imports
+from dataset.stat import calculate_dataset_statistics
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.block.decoder import ForkingMLPDecoder
 from gluonts.block.encoder import (
@@ -49,6 +50,8 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
         prediction_length: int,
         freq: str,
         use_dynamic_feat: bool = False,
+        add_time_feature: bool = False,
+        add_age_feature: bool = False,
         decoder_mlp_dim_seq: List[int] = [20],
         quantiles: List[float] = list(),
         trainer: Trainer = Trainer(),
@@ -75,6 +78,8 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
             quantile_output=quantile_output,
             freq=freq,
             use_dynamic_feat=use_dynamic_feat,
+            add_age_feature=add_age_feature,
+            add_time_feature=add_time_feature,
             prediction_length=prediction_length,
             context_length=context_length,
             trainer=trainer,
@@ -93,7 +98,9 @@ class MQCNNEstimator(MQDNNEstimator):
         prediction_length: int,
         freq: str,
         context_length: Optional[int] = None,
-        use_dynamic_feat: bool = False,
+        use_feat_dynamic_real: bool = False,
+        add_time_feature: bool = False,
+        add_age_feature: bool = False,
         seed: Optional[int] = None,
         decoder_mlp_dim_seq: List[int] = [20],
         channels_seq: List[int] = [30, 30, 30],
@@ -105,6 +112,11 @@ class MQCNNEstimator(MQDNNEstimator):
         ),
         trainer: Trainer = Trainer(),
     ) -> None:
+
+        use_dynamic_feat_cnn = False
+
+        if use_feat_dynamic_real or add_age_feature or add_time_feature:
+            use_dynamic_feat_cnn = True
 
         if seed:
             np.random.seed(seed)
@@ -122,13 +134,15 @@ class MQCNNEstimator(MQDNNEstimator):
             kernel_size_seq=channels_seq,
             channels_seq=kernel_size_seq,
             use_residual=use_residual,
-            use_dynamic_feat=use_dynamic_feat,
+            use_dynamic_feat=use_dynamic_feat_cnn,
             prefix="encoder_",
         )
 
         super(MQCNNEstimator, self).__init__(
             encoder=encoder,
-            use_dynamic_feat=use_dynamic_feat,
+            use_dynamic_feat=use_feat_dynamic_real,
+            add_time_feature=add_time_feature,
+            add_age_feature=add_age_feature,
             decoder_mlp_dim_seq=decoder_mlp_dim_seq,
             freq=freq,
             prediction_length=prediction_length,
@@ -136,6 +150,16 @@ class MQCNNEstimator(MQDNNEstimator):
             context_length=context_length,
             quantiles=quantiles,
         )
+
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        stats = calculate_dataset_statistics(train_iter)
+
+        return {
+            "use_feat_dynamic_real": stats.num_feat_dynamic_real > 0,
+            # "use_feat_static_cat": bool(stats.feat_static_cat),
+            # "cardinality": [len(cats) for cats in stats.feat_static_cat],
+        }
 
 
 class MQRNNEstimator(MQDNNEstimator):
@@ -186,8 +210,10 @@ if __name__ == "__main__":
     metrics = []
 
     for _ in range(1):
-        estimator = MQCNNEstimator(
-            use_dynamic_feat=True,
+        estimator = MQCNNEstimator.from_inputs(
+            dataset.train,
+            # add_time_feature=True,
+            # add_age_feature=True,
             prediction_length=dataset.metadata.prediction_length,
             seed=42,
             freq=dataset.metadata.freq,
@@ -199,12 +225,14 @@ if __name__ == "__main__":
 
         predictor = estimator.train(dataset.train)
 
+        assert dataset.test is not None
+
         forecast_it, ts_it = make_evaluation_predictions(
             dataset.test, predictor=predictor, num_samples=100
         )
 
         agg_metrics, item_metrics = Evaluator()(
-            ts_it, forecast_it, num_series=len(dataset.test)
+            ts_it, forecast_it, num_series=len(dataset.test)  # type: ignore
         )
 
         metrics.append(agg_metrics["wQuantileLoss[0.5]"])

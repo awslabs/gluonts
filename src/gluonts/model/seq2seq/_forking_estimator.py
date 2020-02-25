@@ -35,6 +35,7 @@ from gluonts.transform import (
     TestSplitSampler,
     Transformation,
     VstackFeatures,
+    RenameFields,
 )
 
 # Relative imports
@@ -100,6 +101,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         freq: str,
         prediction_length: int,
         use_dynamic_feat: bool = False,
+        add_time_feature: bool = False,
+        add_age_feature: bool = False,
         context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
     ) -> None:
@@ -121,11 +124,14 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
-        self.add_time_feature = True
+        self.add_time_feature = add_time_feature
+        self.add_age_feature = add_age_feature
 
-    @classmethod
-    def derive_auto_fields(cls, train_iter):
-        return {}
+        # is target only network or not?
+        self.dynamic_network = (
+            use_dynamic_feat or add_time_feature or add_age_feature
+        )
+        print(f"use_dynamic_network: {self.dynamic_network}")
 
     def create_transformation(self) -> Transformation:
         chain = []
@@ -136,33 +142,50 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 AddTimeFeatures(
                     start_field=FieldName.START,
                     target_field=FieldName.TARGET,
-                    output_field="time_feature",
+                    output_field=FieldName.FEAT_TIME,
                     time_features=time_features_from_frequency_str(self.freq),
                     pred_length=self.prediction_length,
                 ),
             )
-            dynamic_feat_fields.append("time_feature")
+            dynamic_feat_fields.append(FieldName.FEAT_TIME)
+
+        if self.add_age_feature:
+            chain.append(
+                AddAgeFeature(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_AGE,
+                    pred_length=self.prediction_length,
+                ),
+            )
+            dynamic_feat_fields.append(FieldName.FEAT_AGE)
 
         if self.use_dynamic_feat:
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
-        if dynamic_feat_fields:
+        if len(dynamic_feat_fields) > 1:
             chain.append(
                 VstackFeatures(
-                    output_field=FieldName.FEAT_TIME,
+                    output_field=FieldName.FEAT_DYNAMIC_REAL,
                     input_fields=dynamic_feat_fields,
                 )
             )
-            output_field = [FieldName.FEAT_TIME]
-        else:
-            output_field = []
+        elif len(dynamic_feat_fields) == 1:
+            chain.append(
+                RenameFields(
+                    {dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL}
+                )
+            )
+
+        decoder_field = (
+            [FieldName.FEAT_DYNAMIC_REAL] if dynamic_feat_fields else []
+        )
 
         chain.append(
             ForkingSequenceSplitter(
                 train_sampler=TestSplitSampler(),
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
-                encoder_series_fields=output_field,
+                encoder_series_fields=decoder_field,
             ),
         )
 
@@ -181,7 +204,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=PassThroughEnc2Dec(),
             decoder=self.decoder,
             quantile_output=self.quantile_output,
-            use_dynamic_real=self.use_dynamic_feat,
+            use_dynamic_real=self.dynamic_network,
         ).get_training_network()
 
     def create_predictor(
@@ -200,7 +223,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=trained_network.enc2dec,
             decoder=trained_network.decoder,
             quantile_output=trained_network.quantile_output,
-            use_dynamic_real=self.use_dynamic_feat,
+            use_dynamic_real=self.dynamic_network,
         ).get_prediction_network()
 
         copy_parameters(trained_network, prediction_network)

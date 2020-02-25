@@ -74,7 +74,7 @@ class Estimator:
         return {}
 
     @classmethod
-    def from_inputs(cls, train_iter, params):
+    def from_inputs(cls, train_iter, **params):
         auto_params = cls.derive_auto_fields(train_iter)
         return cls.from_hyperparameters(**auto_params, **params)
 
