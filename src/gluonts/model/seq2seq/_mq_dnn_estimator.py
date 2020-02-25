@@ -48,6 +48,7 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
         context_length: Optional[int],
         prediction_length: int,
         freq: str,
+        use_dynamic_feat: bool = False,
         decoder_mlp_dim_seq: List[int] = [20],
         quantiles: List[float] = list(),
         trainer: Trainer = Trainer(),
@@ -73,6 +74,7 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
             decoder=decoder,
             quantile_output=quantile_output,
             freq=freq,
+            use_dynamic_feat=use_dynamic_feat,
             prediction_length=prediction_length,
             context_length=context_length,
             trainer=trainer,
@@ -91,6 +93,7 @@ class MQCNNEstimator(MQDNNEstimator):
         prediction_length: int,
         freq: str,
         context_length: Optional[int] = None,
+        use_dynamic_feat: bool = False,
         seed: Optional[int] = None,
         decoder_mlp_dim_seq: List[int] = [20],
         channels_seq: List[int] = [30, 30, 30],
@@ -119,11 +122,13 @@ class MQCNNEstimator(MQDNNEstimator):
             kernel_size_seq=channels_seq,
             channels_seq=kernel_size_seq,
             use_residual=use_residual,
-            use_dynamic_feat=True,
+            use_dynamic_feat=use_dynamic_feat,
             prefix="encoder_",
         )
+
         super(MQCNNEstimator, self).__init__(
             encoder=encoder,
+            use_dynamic_feat=use_dynamic_feat,
             decoder_mlp_dim_seq=decoder_mlp_dim_seq,
             freq=freq,
             prediction_length=prediction_length,
@@ -182,6 +187,7 @@ if __name__ == "__main__":
 
     for _ in range(1):
         estimator = MQCNNEstimator(
+            use_dynamic_feat=True,
             prediction_length=dataset.metadata.prediction_length,
             seed=42,
             freq=dataset.metadata.freq,
