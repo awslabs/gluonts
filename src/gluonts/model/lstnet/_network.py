@@ -13,6 +13,7 @@
 
 # Standard library imports
 from typing import Optional
+import warnings
 
 # Third-party imports
 import mxnet as mx
@@ -38,7 +39,8 @@ class LSTNetBase(nn.HybridBlock):
         skip_size: int,
         ar_window: int,
         context_length: int,
-        prediction_length: int,
+        horizon: Optional[int],
+        prediction_length: Optional[int],
         dropout_rate: float,
         output_activation: Optional[str],
         scaling: bool,
@@ -57,10 +59,20 @@ class LSTNetBase(nn.HybridBlock):
             ar_window > 0
         ), "auto-regressive window must be a positive integer"
         self.ar_window = ar_window
-        assert (
-            prediction_length > 0
-        ), "`prediction_length` must be greater than zero"
-        self.prediction_length = prediction_length
+        if not ((horizon is None) ^ (prediction_length is None)):
+            raise ValueError(
+                "Only one of `horizon` and `prediction_length` can be used at a time"
+            )
+        if horizon is not None:
+            assert horizon > 0, "`horizon` must be greater than zero"
+            self.horizon = horizon
+            self.prediction_length = None
+        if prediction_length is not None:
+            assert (
+                prediction_length > 0
+            ), "`prediction_length` must be greater than zero"
+            self.prediction_length = prediction_length
+            self.horizon = None
         assert context_length > 0, "`context_length` must be greater than zero"
         self.context_length = context_length
         if output_activation is not None:
@@ -106,7 +118,10 @@ class LSTNetBase(nn.HybridBlock):
             self.skip_rnn.cast(dtype)
             # TODO: add temporal attention option
             self.fc = nn.Dense(num_series, dtype=dtype)
-            self.ar_fc = nn.Dense(1, dtype=dtype)
+            if self.horizon:
+                self.ar_fc = nn.Dense(1, dtype=dtype)
+            else:
+                self.ar_fc = nn.Dense(num_series, dtype=dtype)
             if scaling:
                 self.scaler = MeanScaler()
             else:
@@ -162,8 +177,14 @@ class LSTNetBase(nn.HybridBlock):
     def _ar_highway(self, F, x: Tensor) -> Tensor:
         ar_x = F.slice_axis(x, axis=2, begin=-self.ar_window, end=None)  # NCT
         ar_x = F.reshape(ar_x, shape=(-3, 0))  # (NC)xT
-        ar = self.ar_fc(ar_x)
-        ar = F.reshape(ar, shape=(-1, self.num_series))  # NC
+        ar = self.ar_fc(ar_x)  # (NC)x(1 or num_series)
+        if self.horizon:
+            ar = F.reshape(ar, shape=(-1, self.num_series, 1))
+        else:
+            ar = F.reshape(ar, shape=(-1, self.num_series, self.num_series))
+            ar = F.slice_axis(
+                ar, axis=2, begin=-self.prediction_length, end=None
+            )
         return ar
 
     def hybrid_forward(
@@ -185,9 +206,12 @@ class LSTNetBase(nn.HybridBlock):
         Returns
         -------
         Tensor
-            Shape (batch_size, num_series)
+            Shape (batch_size, num_series, 1) if `horizon` was specified
+            and of shape (batch_size, num_series, prediction_length)
+            if `prediction_length` was provided
             
         """
+
         scaled_past_target, _ = self.scaler(
             past_target.slice_axis(
                 axis=2, begin=-self.context_length, end=None
@@ -214,7 +238,13 @@ class LSTNetBase(nn.HybridBlock):
             F.slice_axis(r, axis=1, begin=-1, end=None), axis=1
         )  # NC
         s = self._skip_rnn_layer(F, c)
-        fc = self.fc(F.concat(r, s, dim=1))
+        fc = self.fc(F.concat(r, s, dim=1)).expand_dims(
+            axis=2
+        )  # N x num_series x 1
+        if self.prediction_length:
+            fc = F.tile(
+                fc, reps=(1, 1, self.prediction_length)
+            )  # N x num_series x num_series
         ar = self._ar_highway(F, past_target)
         out = fc + ar
         if self.output_activation is None:
@@ -240,7 +270,7 @@ class LSTNetTrain(LSTNetBase):
         future_target: Tensor,
     ) -> Tensor:
         """
-        Computes the training loss for LSTNet for multivariate time-series.
+        Computes the training l1 loss for LSTNet for multivariate time-series.
         All input tensors have NCT layout.
 
         Parameters
@@ -251,17 +281,22 @@ class LSTNetTrain(LSTNetBase):
         past_observed_values
             Tensor of shape (batch_size, num_series, context_length)
         future_target
-            Tensor of shape (batch_size, num_series, prediction_length)
+            Tensor of shape (batch_size, num_series, 1) if `horizon` was specified
+            and of shape (batch_size, num_series, prediction_length)
+            if `prediction_length` was provided
 
         Returns
         -------
         Tensor
-            Loss value of shape (batch_size,)
+            Loss values of shape (batch_size,)
         """
 
         ret = super().hybrid_forward(F, past_target, past_observed_values)
-        # get the last time horizon
-        future_target = F.slice_axis(future_target, axis=2, begin=-1, end=None)
+        if self.horizon:
+            # get the last time horizon
+            future_target = F.slice_axis(
+                future_target, axis=2, begin=-1, end=None
+            )
         loss = self.loss_fn(ret, future_target)
         return loss
 
@@ -284,10 +319,11 @@ class LSTNetPredict(LSTNetBase):
         Returns
         -------
         Tensor
-            Predicted samples of shape (num_samples, 1, num_series)
+            Predicted samples of shape (num_samples, 1, num_series) when using `horizon`
+            and of shape (num_samples, prediction_length, num_series)
+            when providing `prediction_length`
         """
 
         ret = super().hybrid_forward(F, past_target, past_observed_values)
-        # create multivariate prediction (num_samples, prediction_length, target_dim)
-        ret = ret.expand_dims(axis=1).expand_dims(axis=2)
-        return ret
+        ret = F.swapaxes(ret, 1, 2)
+        return ret.expand_dims(axis=1)
