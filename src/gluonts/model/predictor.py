@@ -156,6 +156,15 @@ class Predictor:
     def from_hyperparameters(cls, **hyperparameters):
         return from_hyperparameters(cls, **hyperparameters)
 
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        return {}
+
+    @classmethod
+    def from_inputs(cls, train_iter, params):
+        auto_params = cls.derive_auto_fields(train_iter)
+        return cls.from_hyperparameters(**auto_params, **params)
+
 
 class RepresentablePredictor(Predictor):
     """

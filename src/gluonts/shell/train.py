@@ -22,7 +22,6 @@ from gluonts.core.component import check_gpu_support
 from gluonts.core.serde import dump_code
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 from gluonts.transform import FilterTransformation, TransformedDataset
@@ -54,13 +53,18 @@ def run_train_and_test(
 ) -> None:
     check_gpu_support()
 
+    # train_stats = calculate_dataset_statistics(env.datasets["train"])
+    # log_metric("train_dataset_stats", train_stats)
+
     forecaster_fq_name = fqname_for(forecaster_type)
     forecaster_version = forecaster_type.__version__
 
     logger.info(f"Using gluonts v{gluonts.__version__}")
     logger.info(f"Using forecaster {forecaster_fq_name} v{forecaster_version}")
 
-    forecaster = forecaster_type.from_hyperparameters(**env.hyperparameters)
+    forecaster = forecaster_type.from_inputs(
+        env.datasets["train"], env.hyperparameters
+    )
 
     logger.info(
         f"The forecaster can be reconstructed with the following expression: "
@@ -90,10 +94,6 @@ def run_train(
     train_dataset: Dataset,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
-    log_metric(
-        "train_dataset_stats", calculate_dataset_statistics(train_dataset)
-    )
-
     return forecaster.train(train_dataset, validation_dataset)
 
 
