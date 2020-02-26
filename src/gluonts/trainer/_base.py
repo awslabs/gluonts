@@ -252,8 +252,9 @@ class Trainer:
                             epoch_loss.update(None, preds=loss)
                             it.set_postfix(
                                 ordered_dict={
+                                    "epoch": f"{epoch_no + 1}/{self.epochs}",
                                     ("" if is_training else "validation_")
-                                    + "avg_epoch_loss": loss_value(epoch_loss)
+                                    + "avg_epoch_loss": loss_value(epoch_loss),
                                 },
                                 refresh=False,
                             )
