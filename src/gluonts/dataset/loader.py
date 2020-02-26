@@ -14,12 +14,7 @@
 # Standard library imports
 import functools
 import itertools
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    Iterator,
-)
+from typing import Any, Dict, Iterable, Iterator
 
 # Third-party imports
 import mxnet as mx
@@ -67,7 +62,13 @@ class DataLoader(Iterable[DataEntry]):
         self.batch_size = batch_size
         self.ctx = ctx
         self.dtype = dtype
-        self.stream: Iterable = transform(dataset, is_train=is_train)
+        self.is_train = is_train
+        self.dataset = dataset
+        self.transform = transform
+
+    @property
+    def stream(self) -> Iterable:
+        return self.transform(self.dataset, is_train=self.is_train)
 
     def make_batch_iter(self):
         batches = batcher(self.stream, self.batch_size)
@@ -143,9 +144,15 @@ class TrainDataLoader(DataLoader):
         )
 
         self.num_batches_per_epoch = num_batches_per_epoch
+        self.shuffle_for_training = shuffle_for_training
+        self.num_batches_for_shuffling = num_batches_for_shuffling
 
-        if shuffle_for_training:
-            self.stream = shuffler(self.stream, num_batches_for_shuffling)
+    @property
+    def stream(self) -> Iterable:
+        s = self.transform(self.dataset, is_train=self.is_train)
+        if self.shuffle_for_training:
+            return shuffler(s, self.num_batches_for_shuffling)
+        return s
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
