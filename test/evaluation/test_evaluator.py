@@ -590,8 +590,8 @@ def test_metrics_multivariate(
 
 
 def test_evaluation_with_QuantileForecast():
-    start = "2012-01-01"
-    target = [2.4, 1.0, 3.0, 4.4, 5.5, 4.9] * 10
+    start = "2012-01-11"
+    target = [2.4, 1.0, 3.0, 4.4, 5.5, 4.9] * 11
     index = pd.date_range(start=start, freq="1D", periods=len(target))
     ts = pd.Series(index=index, data=target)
 
@@ -599,7 +599,7 @@ def test_evaluation_with_QuantileForecast():
 
     fcst = [
         QuantileForecast(
-            start_date=pd.Timestamp("2012-01-01"),
+            start_date=pd.Timestamp("2012-01-11"),
             freq="D",
             forecast_arrays=np.array([[2.4, 9.0, 3.0, 2.4, 5.5, 4.9] * 10]),
             forecast_keys=["0.5"],
