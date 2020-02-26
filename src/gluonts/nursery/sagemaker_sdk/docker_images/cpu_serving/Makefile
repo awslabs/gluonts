@@ -17,7 +17,7 @@ sagemaker-mxnet-serving-container_dependency:
 	@echo Retrieving 'sagemaker-mxnet-serving-container' dependency.
 	git clone https://github.com/aws/sagemaker-mxnet-serving-container.git
 	cd sagemaker-mxnet-serving-container; python setup.py sdist
-	cp sagemaker-mxnet-serving-container/dist/sagemaker_mxnet_serving_container-*.tar.gz sagemaker_mxnet_serving_container.tar.gz
+	cp sagemaker-mxnet-serving-container/dist/sagemaker_mxnet_*.tar.gz sagemaker_mxnet_serving_container.tar.gz
 	cp sagemaker-mxnet-serving-container/docker/1.4.1/py3/config.properties .
 	cp sagemaker-mxnet-serving-container/docker/1.4.1/py3/mms-entrypoint.py .
 

@@ -17,7 +17,7 @@ sagemaker-mxnet-container_dependency:
 	@echo Retrieving 'sagemaker-mxnet-container' dependency.
 	git clone https://github.com/aws/sagemaker-mxnet-container.git
 	cd sagemaker-mxnet-container; python setup.py sdist
-	cp sagemaker-mxnet-container/dist/sagemaker_mxnet_container-*.tar.gz sagemaker_mxnet_container.tar.gz
+	cp sagemaker-mxnet-container/dist/sagemaker_mxnet_*.tar.gz sagemaker_mxnet_container.tar.gz
 
 build:
 	@echo Making $(REPOSITORY) image.

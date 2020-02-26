@@ -30,6 +30,7 @@ jobs:
         pip install --pre mxnet
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
     - name: Test with pytest
       run: |
