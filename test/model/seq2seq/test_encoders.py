@@ -38,7 +38,7 @@ def test_hierarchical_cnn_encoders(use_residual, hybridize) -> None:
     dial_seq = [1, 3, 9]
 
     cnn = HierarchicalCausalConv1DEncoder(
-        dial_seq, ks_seq, chl_dim, use_residual, use_dynamic_feat=True
+        dial_seq, ks_seq, chl_dim, use_residual, use_dynamic_feat=True, use_static_feat=True,
     )
     cnn.collect_params().initialize()
 

@@ -15,7 +15,7 @@
 from typing import List, Optional
 
 # First-party imports
-from dataset.stat import calculate_dataset_statistics
+from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.block.decoder import ForkingMLPDecoder
 from gluonts.block.encoder import (
