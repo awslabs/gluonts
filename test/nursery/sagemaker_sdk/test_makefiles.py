@@ -61,7 +61,7 @@ def test_make_pre_and_post_build_tasks(
     # we need to write some data for this test, so we use a temporary directory
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
-        copyfile(docker_build_makefile_path, str(temp_dir_path / "Makefile"))
+        copyfile(docker_build_makefile_path, temp_dir_path / "Makefile")
 
         try:
             subprocess.check_output(
