@@ -266,19 +266,27 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         # (batch_size, sub_seq_len, input_dim)
         inputs = F.concat(input_lags, time_feat, repeated_static_feat, dim=-1)
 
+        if F is mx.ndarray:
+            ctx = (
+                inputs.context
+                if isinstance(inputs, mx.gluon.tensor_types)
+                else inputs[0].context
+            )
+            with ctx:
+                begin_state = self.rnn.begin_state(
+                    func=F.zeros, dtype=self.dtype, batch_size=inputs.shape[0]
+                )
+        else:
+            begin_state = self.rnn.begin_state(
+                func=F.zeros, dtype=self.dtype, batch_size=0
+            )
         # unroll encoder
         outputs, state = self.rnn.unroll(
             inputs=inputs,
             length=subsequences_length,
             layout="NTC",
             merge_outputs=True,
-            begin_state=self.rnn.begin_state(
-                func=F.zeros,
-                dtype=self.dtype,
-                batch_size=inputs.shape[0]
-                if isinstance(inputs, mx.nd.NDArray)
-                else 0,
-            ),
+            begin_state=begin_state,
         )
 
         # outputs: (batch_size, seq_len, num_cells)
