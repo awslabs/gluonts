@@ -59,20 +59,17 @@ class LSTNetBase(nn.HybridBlock):
             ar_window > 0
         ), "auto-regressive window must be a positive integer"
         self.ar_window = ar_window
-        if not ((horizon is None) ^ (prediction_length is None)):
-            raise ValueError(
-                "Only one of `horizon` and `prediction_length` can be used at a time"
-            )
-        if horizon is not None:
-            assert horizon > 0, "`horizon` must be greater than zero"
-            self.horizon = horizon
-            self.prediction_length = None
-        if prediction_length is not None:
-            assert (
-                prediction_length > 0
-            ), "`prediction_length` must be greater than zero"
-            self.prediction_length = prediction_length
-            self.horizon = None
+        assert not ((horizon is None)) == (
+            prediction_length is None
+        ), "Exactly one of `horizon` and `prediction_length` must be set at a time"
+        assert (
+            horizon is None or horizon > 0
+        ), "`horizon` must be greater than zero"
+        assert (
+            prediction_length is None or prediction_length > 0
+        ), "`prediction_length` must be greater than zero"
+        self.prediction_length = prediction_length
+        self.horizon = horizon
         assert context_length > 0, "`context_length` must be greater than zero"
         self.context_length = context_length
         if output_activation is not None:
@@ -121,7 +118,7 @@ class LSTNetBase(nn.HybridBlock):
             if self.horizon:
                 self.ar_fc = nn.Dense(1, dtype=dtype)
             else:
-                self.ar_fc = nn.Dense(num_series, dtype=dtype)
+                self.ar_fc = nn.Dense(prediction_length, dtype=dtype)
             if scaling:
                 self.scaler = MeanScaler()
             else:
@@ -155,18 +152,27 @@ class LSTNetBase(nn.HybridBlock):
         )  # NTCxskip
         skip_c = F.transpose(skip_c, axes=(0, 3, 1, 2))  # NxskipxTxC
         skip_c = F.reshape(skip_c, shape=(-3, 0, -1))  # (Nxskip)TC
+        if F is mx.ndarray:
+            ctx = (
+                skip_c.context
+                if isinstance(skip_c, mx.gluon.tensor_types)
+                else skip_c[0].context
+            )
+            with ctx:
+                begin_state = self.skip_rnn.begin_state(
+                    func=F.zeros, dtype=self.dtype, batch_size=skip_c.shape[0]
+                )
+        else:
+            begin_state = self.skip_rnn.begin_state(
+                func=F.zeros, dtype=self.dtype, batch_size=0
+            )
+
         s, _ = self.skip_rnn.unroll(
             inputs=skip_c,
             length=min(self.channel_skip_count, self.context_length),
             layout="NTC",
             merge_outputs=True,
-            begin_state=self.skip_rnn.begin_state(
-                func=F.zeros,
-                dtype=self.dtype,
-                batch_size=skip_c.shape[0]
-                if isinstance(skip_c, mx.nd.NDArray)
-                else 0,
-            ),
+            begin_state=begin_state,
         )
         s = F.squeeze(
             F.slice_axis(s, axis=1, begin=-1, end=None), axis=1
@@ -177,13 +183,12 @@ class LSTNetBase(nn.HybridBlock):
     def _ar_highway(self, F, x: Tensor) -> Tensor:
         ar_x = F.slice_axis(x, axis=2, begin=-self.ar_window, end=None)  # NCT
         ar_x = F.reshape(ar_x, shape=(-3, 0))  # (NC)xT
-        ar = self.ar_fc(ar_x)  # (NC)x(1 or num_series)
+        ar = self.ar_fc(ar_x)  # (NC)x(1 or prediction_length)
         if self.horizon:
             ar = F.reshape(ar, shape=(-1, self.num_series, 1))
         else:
-            ar = F.reshape(ar, shape=(-1, self.num_series, self.num_series))
-            ar = F.slice_axis(
-                ar, axis=2, begin=-self.prediction_length, end=None
+            ar = F.reshape(
+                ar, shape=(-1, self.num_series, self.prediction_length)
             )
         return ar
 
@@ -223,28 +228,40 @@ class LSTNetBase(nn.HybridBlock):
         c = self.cnn(scaled_past_target)
         c = self.dropout(c)
         c = F.transpose(c, axes=(0, 2, 1))  # NTC
+
+        if F is mx.ndarray:
+            ctx = (
+                c.context
+                if isinstance(c, mx.gluon.tensor_types)
+                else c[0].context
+            )
+            with ctx:
+                rnn_begin_state = self.rnn.begin_state(
+                    func=F.zeros, dtype=self.dtype, batch_size=c.shape[0]
+                )
+        else:
+            rnn_begin_state = self.rnn.begin_state(
+                func=F.zeros, dtype=self.dtype, batch_size=0
+            )
         r, _ = self.rnn.unroll(
             inputs=c,
             length=min(self.conv_out, self.context_length),
             layout="NTC",
             merge_outputs=True,
-            begin_state=self.rnn.begin_state(
-                func=F.zeros,
-                dtype=self.dtype,
-                batch_size=c.shape[0] if isinstance(c, mx.nd.NDArray) else 0,
-            ),
+            begin_state=rnn_begin_state,
         )
         r = F.squeeze(
             F.slice_axis(r, axis=1, begin=-1, end=None), axis=1
         )  # NC
         s = self._skip_rnn_layer(F, c)
+        # make fc broadcastable for output
         fc = self.fc(F.concat(r, s, dim=1)).expand_dims(
             axis=2
         )  # N x num_series x 1
         if self.prediction_length:
             fc = F.tile(
                 fc, reps=(1, 1, self.prediction_length)
-            )  # N x num_series x num_series
+            )  # N x num_series x prediction_length
         ar = self._ar_highway(F, past_target)
         out = fc + ar
         if self.output_activation is None:
