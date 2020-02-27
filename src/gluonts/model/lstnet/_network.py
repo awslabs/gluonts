@@ -116,9 +116,11 @@ class LSTNetBase(nn.HybridBlock):
             # TODO: add temporal attention option
             self.fc = nn.Dense(num_series, dtype=dtype)
             if self.horizon:
-                self.ar_fc = nn.Dense(1, dtype=dtype)
+                self.ar_fc = nn.Dense(1, dtype=dtype, flatten=False)
             else:
-                self.ar_fc = nn.Dense(prediction_length, dtype=dtype)
+                self.ar_fc = nn.Dense(
+                    prediction_length, dtype=dtype, flatten=False
+                )
             if scaling:
                 self.scaler = MeanScaler()
             else:
@@ -182,14 +184,7 @@ class LSTNetBase(nn.HybridBlock):
 
     def _ar_highway(self, F, x: Tensor) -> Tensor:
         ar_x = F.slice_axis(x, axis=2, begin=-self.ar_window, end=None)  # NCT
-        ar_x = F.reshape(ar_x, shape=(-3, 0))  # (NC)xT
-        ar = self.ar_fc(ar_x)  # (NC)x(1 or prediction_length)
-        if self.horizon:
-            ar = F.reshape(ar, shape=(-1, self.num_series, 1))
-        else:
-            ar = F.reshape(
-                ar, shape=(-1, self.num_series, self.prediction_length)
-            )
+        ar = self.ar_fc(ar_x)  # NxCx(1 or prediction_length)
         return ar
 
     def hybrid_forward(
