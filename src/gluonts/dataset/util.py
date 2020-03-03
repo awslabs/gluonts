@@ -17,13 +17,33 @@ import logging
 import random
 import os
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, List, Tuple, TypeVar
+from typing import (
+    Callable,
+    Iterable,
+    Iterator,
+    List,
+    Tuple,
+    TypeVar,
+    NamedTuple,
+    Optional,
+)
 
 # Third-party imports
 import pandas as pd
 
 
 T = TypeVar("T")
+
+
+class WorkerInfo(NamedTuple):
+    """
+    Information that a dataset loader might need about a worker to efficiently fetch Data.
+    By default we assume a single worker fetching each entry after another.
+    """
+
+    num_workers: Optional[int] = 1
+    worker_id: Optional[int] = 0
+    batch_size: Optional[int] = 1
 
 
 def _split(
@@ -113,6 +133,7 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     def get_batch():
         return list(take(it, batch_size))
 
+    # has an empty list so that we have a 2D array for sure
     return iter(get_batch, [])
 
 

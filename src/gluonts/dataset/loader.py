@@ -63,17 +63,30 @@ class DataLoader(Iterable[DataEntry]):
         self.ctx = ctx
         self.dtype = dtype
         self.is_train = is_train
-        self.dataset = dataset
         self.transform = transform
+
+        # GET infinite number of samples in train dataset
+        if is_train:
+            self.dataset = itertools.cycle(dataset)
+        else:
+            self.dataset = dataset
 
     @property
     def stream(self) -> Iterable:
-        return self.transform(self.dataset, is_train=self.is_train)
+        return self.transform(
+            self.dataset, is_train=self.is_train
+        )  # applies tra
 
+    # TODO: make this parallelized, should be an interator returning one batch at a time
     def make_batch_iter(self):
+        # fetches a single batch like iter(get_batch, []), where get_batch is a function that fetches batch samples
         batches = batcher(self.stream, self.batch_size)
+        # describes how to stack a single batch, where each sample is a dict, and this creates a
+        # new dict where entries with the same key are reduces according to self.stack
         stack = functools.partial(dct_reduce, self.stack)
-        return map(stack, batches)
+        return map(
+            stack, batches
+        )  # reduces each batch to a single entity e.g. a single matrix (from list)
 
     def stack(self, xs):
         if isinstance(xs[0], np.ndarray):
@@ -116,7 +129,7 @@ class TrainDataLoader(DataLoader):
     ctx
         MXNet context to use to store data.
     num_batches_per_epoch
-        Number of batches to return in one complete iteration over this object.
+        Number of batches to return in one complete iteration over this object.  # TODO: this is not what its used for
     dtype
         Floating point type to use.
     """
@@ -135,7 +148,7 @@ class TrainDataLoader(DataLoader):
         assert dataset, "empty dataset"
 
         super().__init__(
-            dataset=itertools.cycle(dataset),
+            dataset=dataset,  # itertools.cycle(dataset) # GET infinite number of samples
             transform=transform,
             batch_size=batch_size,
             ctx=ctx,
@@ -151,7 +164,12 @@ class TrainDataLoader(DataLoader):
     def stream(self) -> Iterable:
         s = self.transform(self.dataset, is_train=self.is_train)
         if self.shuffle_for_training:
-            return shuffler(s, self.num_batches_for_shuffling)
+            # TODO: fix error...
+            # This should fetch a single sample but fetches a shuffled batch
+            # But says it shuffles the batches?
+            return shuffler(
+                s, self.num_batches_for_shuffling
+            )  # This is not what its doing !!!
         return s
 
     def __len__(self) -> int:
@@ -159,6 +177,7 @@ class TrainDataLoader(DataLoader):
 
     def __iter__(self) -> Iterator[DataBatch]:
         batches = self.make_batch_iter()
+        # this takes num_batches of batches for one epoch
         return take(batches, self.num_batches_per_epoch)
 
 
@@ -173,7 +192,7 @@ class ValidationDataLoader(DataLoader):
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(
-            dataset,
+            dataset=dataset,
             transform=transform,
             is_train=True,
             batch_size=batch_size,
@@ -193,7 +212,7 @@ class InferenceDataLoader(DataLoader):
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(
-            dataset,
+            dataset=dataset,
             transform=transform,
             is_train=False,
             batch_size=batch_size,
