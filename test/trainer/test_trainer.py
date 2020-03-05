@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import re
 from typing import Any, List
 
 # Third-party imports
@@ -48,19 +49,19 @@ def test_learning_rate() -> None:
     assert_invalid_param(
         param_name="learning_rate",
         param_values=[-2, -1e-10, 0, float("inf"), float("nan")],
-        exp_msg="The value of `learning_rate` should be > 0 (type=value_error)",
+        exp_msg=r"learning_rate\s+ensure this value is greater than 0",
     )
 
 
 def test_learning_rate_decay_factor() -> None:
     assert_valid_param(
         param_name="learning_rate_decay_factor",
-        param_values=[0, 1e-10, 0.5, 1 - 1e-10],
+        param_values=[1e-10, 0.5, 1 - 1e-10],
     )
     assert_invalid_param(
         param_name="learning_rate_decay_factor",
         param_values=[-2, -1e-10, +1, +5, float("inf"), float("nan")],
-        exp_msg="The value of `learning_rate_decay_factor` should be in the [0, 1) range (type=value_error)",
+        exp_msg=r"decay_factor\s+ensure this value is greater than 0",
     )
 
 
@@ -79,4 +80,4 @@ def assert_invalid_param(
     for x in param_values:
         with pytest.raises(AssertionError) as excinfo:
             Trainer(**{param_name: x})
-            assert exp_msg in str(excinfo.value)
+            assert re.match(exp_msg, str(excinfo.value))

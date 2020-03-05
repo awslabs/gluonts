@@ -11,9 +11,32 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from enum import Enum
+
 # Third-party imports
 import mxnet as mx
 import numpy as np
+
+from gluonts.core.component import validated
+from gluonts import ty
+
+
+class Objective(str, Enum):
+    Min = "min"
+    Max = "max"
+
+    def is_better(self, current, best):
+
+        if self == self.Min:
+            return current < best
+        else:
+            return current > best
+
+    def baseline(self):
+        if self == self.Min:
+            return np.Inf
+        else:
+            return -np.Inf
 
 
 class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
@@ -50,53 +73,39 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         Lower bound for the learning rate, learning rate will never go below `min_lr`
     """
 
+    @validated()
     def __init__(
         self,
-        objective: str,
-        patience: int,
-        base_lr: float = 0.01,
-        decay_factor: float = 0.5,
-        min_lr: float = 0.0,
+        objective: Objective,
+        patience: ty.NonNegativeInt,
+        base_lr: ty.PositiveFloat = 0.01,
+        decay_factor: ty.Interval01 = 0.5,
+        min_lr: ty.NonNegativeFloat = 0.0,
     ) -> None:
-
-        assert base_lr > 0, f"base_lr should be positive, got {base_lr}"
+        super(MetricAttentiveScheduler, self).__init__(base_lr=base_lr)
 
         assert (
             base_lr > min_lr
         ), f"base_lr should greater than min_lr, {base_lr} <= {min_lr}"
 
-        assert (
-            0 < decay_factor < 1
-        ), f"decay_factor factor should be between 0 and 1, got {decay_factor}"
-
-        assert patience >= 0, f"patience should be nonnegative, got {patience}"
-
-        assert objective in [
-            "min",
-            "max",
-        ], f"objective should be 'min' or 'max', got {objective}"
-
-        super(MetricAttentiveScheduler, self).__init__(base_lr=base_lr)
-
         self.decay_factor = decay_factor
         self.patience = patience
         self.objective = objective
         self.min_lr = min_lr
-        self.best_metric = np.Inf if objective == "min" else -np.Inf
-        self.prev_change = 0
-        self.epoch_no = 0
-        self.curr_lr = None
+
+        self.reset()
 
     def __call__(self, num_update: int) -> float:
-        if self.curr_lr is None:
-            self.curr_lr = self.base_lr
-        assert self.curr_lr is not None
-
         return self.curr_lr
+
+    def reset(self):
+        self.curr_lr = self.base_lr
+        self.steps_without_progress = 0
+        self.current_best = self.objective.baseline()
 
     def step(self, metric_value: float) -> None:
         """
-        Inform the scheduler of the new value of the metric that is being
+        Inform scheduler of the metric's new value that is being
         optimized. This method should be invoked at regular intervals (e.g.
         at the end of every epoch, after computing a validation score).
 
@@ -105,20 +114,15 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         metric_value
             Value of the metric that is being optimized.
         """
-        if self.curr_lr is None:
-            self.curr_lr = self.base_lr
-        assert self.curr_lr is not None
 
-        metric_improved = (
-            self.objective == "min" and metric_value < self.best_metric
-        ) or (self.objective == "max" and metric_value > self.best_metric)
+        if self.objective.is_better(metric_value, self.current_best):
+            self.current_best = metric_value
+            self.steps_without_progress = 0
+        else:
+            self.steps_without_progress += 1
 
-        if metric_improved:
-            self.best_metric = metric_value
-            self.prev_change = self.epoch_no
-
-        if self.epoch_no - self.prev_change >= self.patience:
-            self.curr_lr = max(self.min_lr, self.decay_factor * self.curr_lr)
-            self.prev_change = self.epoch_no
-
-        self.epoch_no += 1
+        # even if we improved, we always have to decrease the learning rate
+        # when `self.patience == 0`
+        if self.steps_without_progress >= self.patience:
+            self.curr_lr = max(self.min_lr, self.curr_lr * self.decay_factor)
+            self.steps_without_progress = 0
