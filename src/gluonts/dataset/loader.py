@@ -98,6 +98,7 @@ class DataLoader(Iterable[DataEntry]):
         if isinstance(xs[0], mx.nd.NDArray):
             return mx.nd.stack(*xs)
 
+        # TODO: think about converting int/float lists to np.NDArray
         if isinstance(xs[0], list):
             return list(self.stack(t) for t in zip(*xs))
 

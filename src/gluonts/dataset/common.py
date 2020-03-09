@@ -244,6 +244,12 @@ class FileDataset(Dataset):
         # TODO: in the extension?
         return not (path.name.startswith(".") or path.name == "_SUCCESS")
 
+    def get_worker_info(self):
+        return self.worker_info
+
+    def set_worker_info(self, worker_info: WorkerInfo):
+        self.worker_info = worker_info
+
 
 class ListDataset(Dataset):
     """
@@ -290,6 +296,12 @@ class ListDataset(Dataset):
 
     def __len__(self):
         return len(self.list_data)
+
+    def get_worker_info(self):
+        return self.worker_info
+
+    def set_worker_info(self, worker_info: WorkerInfo):
+        self.worker_info = worker_info
 
 
 class TimeZoneStrategy(Enum):
