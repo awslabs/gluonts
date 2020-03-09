@@ -11,11 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-
 import pickle
 import io
 import sys
-import signal
 import multiprocessing
 import multiprocessing.queues
 from multiprocessing.reduction import ForkingPickler
@@ -28,22 +26,157 @@ try:
 except ImportError:
     pass
 
+from mxnet.gluon.data import sampler as _sampler
 from mxnet import nd, context
-import mxnet as mx
+
+if sys.platform == "darwin" or sys.platform == "win32":
+
+    def rebuild_ndarray(*args):
+        """Rebuild ndarray from pickled shared memory"""
+        # pylint: disable=no-value-for-parameter
+        return nd.NDArray(nd.ndarray._new_from_shared_mem(*args))
+
+    def reduce_ndarray(data):
+        """Reduce ndarray to shared memory handle"""
+        return rebuild_ndarray, data._to_shared_mem()
 
 
-########################################
+else:
+
+    def rebuild_ndarray(pid, fd, shape, dtype):
+        """Rebuild ndarray from pickled shared memory"""
+        # pylint: disable=no-value-for-parameter
+        if sys.version_info[0] == 2:
+            fd = multiprocessing.reduction.rebuild_handle(fd)
+        else:
+            fd = fd.detach()
+        return nd.NDArray(
+            nd.ndarray._new_from_shared_mem(pid, fd, shape, dtype)
+        )
+
+    def reduce_ndarray(data):
+        """Reduce ndarray to shared memory handle"""
+        # keep a local ref before duplicating fd
+        data = data.as_in_context(context.Context("cpu_shared", 0))
+        pid, fd, shape, dtype = data._to_shared_mem()
+        if sys.version_info[0] == 2:
+            fd = multiprocessing.reduction.reduce_handle(fd)
+        else:
+            fd = multiprocessing.reduction.DupFd(fd)
+        return rebuild_ndarray, (pid, fd, shape, dtype)
+
+
+ForkingPickler.register(nd.NDArray, reduce_ndarray)
+
+
+class ConnectionWrapper(object):
+    """Connection wrapper for multiprocessing that supports sending
+    NDArray via shared memory."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def send(self, obj):
+        """Send object"""
+        buf = io.BytesIO()
+        ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(obj)
+        self.send_bytes(buf.getvalue())
+
+    def recv(self):
+        """Receive object"""
+        buf = self.recv_bytes()
+        return pickle.loads(buf)
+
+    def __getattr__(self, name):
+        """Emmulate conn"""
+        attr = self.__dict__.get("_conn", None)
+        return getattr(attr, name)
+
+
+class Queue(multiprocessing.queues.Queue):
+    """Wrapper for multiprocessing queue that dumps NDArray with shared memory."""
+
+    def __init__(self, *args, **kwargs):
+        if sys.version_info[0] <= 2:
+            super(Queue, self).__init__(*args, **kwargs)
+        else:
+            super(Queue, self).__init__(
+                *args, ctx=multiprocessing.get_context(), **kwargs
+            )
+        self._reader = ConnectionWrapper(self._reader)
+        self._writer = ConnectionWrapper(self._writer)
+        self._send = self._writer.send
+        self._recv = self._reader.recv
+
+
+class SimpleQueue(multiprocessing.queues.SimpleQueue):
+    """Wrapper for multiprocessing SimpleQueue that dumps NDArray with shared memory.
+       SimpleQueue don't use threading internally.
+    """
+
+    def __init__(self, *args, **kwargs):
+        if sys.version_info[0] <= 2:
+            super(SimpleQueue, self).__init__(*args, **kwargs)
+        else:
+            super(SimpleQueue, self).__init__(
+                *args, ctx=multiprocessing.get_context(), **kwargs
+            )
+        self._reader = ConnectionWrapper(self._reader)
+        self._writer = ConnectionWrapper(self._writer)
+        self._send = self._writer.send
+        self._recv = self._reader.recv
+
+
+def default_batchify_fn(data):
+    """Collate data into batch."""
+    if isinstance(data[0], nd.NDArray):
+        return nd.stack(*data)
+    elif isinstance(data[0], tuple):
+        data = zip(*data)
+        return [default_batchify_fn(i) for i in data]
+    else:
+        data = np.asarray(data)
+        return nd.array(data, dtype=data.dtype)
+
+
+def default_mp_batchify_fn(data):
+    """Collate data into batch. Use shared memory for stacking."""
+    if isinstance(data[0], nd.NDArray):
+        out = nd.empty(
+            (len(data),) + data[0].shape,
+            dtype=data[0].dtype,
+            ctx=context.Context("cpu_shared", 0),
+        )
+        return nd.stack(*data, out=out)
+    elif isinstance(data[0], tuple):
+        data = zip(*data)
+        return [default_mp_batchify_fn(i) for i in data]
+    else:
+        data = np.asarray(data)
+        return nd.array(
+            data, dtype=data.dtype, ctx=context.Context("cpu_shared", 0)
+        )
 
 
 def _as_in_context(data, ctx):
     """Move data into new context."""
-    if isinstance(
-        data, nd.NDArray
-    ):  # TODO: we should make sure that any array type data we provide is an nd.NDArray
+    if isinstance(data, nd.NDArray):
         return data.as_in_context(ctx)
     elif isinstance(data, (list, tuple)):
         return [_as_in_context(d, ctx) for d in data]
     return data
+
+
+_worker_dataset = None
+
+
+def _worker_initializer(dataset):
+    """Initialier for processing pool."""
+    # global dataset is per-process based and only available in worker processes
+    # this is only necessary to handle MXIndexedRecordIO because otherwise dataset
+    # can be passed as argument
+    global _worker_dataset
+    _worker_dataset = dataset
 
 
 def _worker_fn(samples, batchify_fn, dataset=None):
@@ -58,46 +191,9 @@ def _worker_fn(samples, batchify_fn, dataset=None):
     return buf.getvalue()
 
 
-def default_batchify_fn(data):
-    """Collate data into batch."""
-    if isinstance(data[0], nd.NDArray):
-        return _mx_np.stack(data) if is_np_array() else nd.stack(*data)
-    elif isinstance(data[0], tuple):
-        data = zip(*data)
-        return [default_batchify_fn(i) for i in data]
-    else:
-        data = np.asarray(data)
-        array_fn = _mx_np.array if is_np_array() else nd.array
-        return array_fn(data, dtype=data.dtype)
-
-
-def _thread_worker_initializer(active_shape, active_array):
-    """Initializer for ThreadPool."""
-    set_np(shape=active_shape, array=active_array)
-
-
-def default_mp_batchify_fn(data):
-    """Collate data into batch. Use shared memory for stacking."""
-    if isinstance(data[0], nd.NDArray):
-        empty_fn = _mx_np.empty if is_np_array() else nd.empty
-        out = empty_fn(
-            (len(data),) + data[0].shape,
-            dtype=data[0].dtype,
-            ctx=context.Context("cpu_shared", 0),
-        )
-        if is_np_array():
-            return _mx_np.stack(data, out=out)
-        else:
-            return nd.stack(*data, out=out)
-    elif isinstance(data[0], tuple):
-        data = zip(*data)
-        return [default_mp_batchify_fn(i) for i in data]
-    else:
-        data = np.asarray(data)
-        array_fn = _mx_np.array if is_np_array() else nd.array
-        return array_fn(
-            data, dtype=data.dtype, ctx=context.Context("cpu_shared", 0)
-        )
+def _thread_worker_fn(samples, batchify_fn, dataset):
+    """Threadpool worker function for processing data."""
+    return batchify_fn([dataset[i] for i in samples])
 
 
 ###########################################
@@ -116,8 +212,6 @@ class _MultiWorkerIter(object):
         worker_fn=_worker_fn,
         prefetch=0,
         dataset=None,
-        data_loader=None,
-        timeout=120,
     ):
         self._worker_pool = worker_pool
         self._batchify_fn = batchify_fn  # Need to customize
@@ -130,8 +224,6 @@ class _MultiWorkerIter(object):
         self._pin_memory = pin_memory
         self._pin_device_id = pin_device_id
         self._dataset = dataset
-        self._data_loader = data_loader
-        self._timeout = timeout
         # pre-fetch
         for _ in range(prefetch):
             self._push_next()
@@ -256,11 +348,6 @@ class DataLoader(object):
         If ``True``, use threading pool instead of multiprocessing pool. Using threadpool
         can avoid shared memory usage. If `DataLoader` is more IO bounded or GIL is not a killing
         problem, threadpool version may achieve better performance than multiprocessing.
-    timeout : int, default is 120
-        The timeout in seconds for each worker to fetch a batch data. Only modify this number
-        unless you are experiencing timeout and you know it's due to slow data loading.
-        Sometimes full `shared_memory` will cause all workers to hang and causes timeout. In these
-        cases please reduce `num_workers` or increase system `shared_memory` size instead.
     """
 
     def __init__(
@@ -277,16 +364,11 @@ class DataLoader(object):
         pin_device_id=0,
         prefetch=None,
         thread_pool=False,
-        timeout=120,
     ):
         self._dataset = dataset
         self._pin_memory = pin_memory
         self._pin_device_id = pin_device_id
         self._thread_pool = thread_pool
-        self._timeout = timeout
-        assert timeout > 0, "timeout must be positive, given {}".format(
-            timeout
-        )
 
         if batch_sampler is None:
             if batch_size is None:
@@ -326,23 +408,13 @@ class DataLoader(object):
         )
         if self._num_workers > 0:
             if self._thread_pool:
-                self._worker_pool = ThreadPool(
-                    self._num_workers,
-                    initializer=_thread_worker_initializer,
-                    initargs=(is_np_shape(), is_np_array()),
-                )
+                self._worker_pool = ThreadPool(self._num_workers)
             else:
-                # set ignore keyboard interupt signal before forking processes
-                original_sigint_handler = signal.signal(
-                    signal.SIGINT, signal.SIG_IGN
-                )
                 self._worker_pool = multiprocessing.Pool(
                     self._num_workers,
                     initializer=_worker_initializer,
-                    initargs=[self._dataset, is_np_shape(), is_np_array()],
+                    initargs=[self._dataset],
                 )
-                # resume keyboard interupt signal in main process
-                signal.signal(signal.SIGINT, original_sigint_handler)
         if batchify_fn is None:
             if num_workers > 0:
                 self._batchify_fn = default_mp_batchify_fn
@@ -377,8 +449,6 @@ class DataLoader(object):
             worker_fn=_thread_worker_fn if self._thread_pool else _worker_fn,
             prefetch=self._prefetch,
             dataset=self._dataset if self._thread_pool else None,
-            data_loader=self,
-            timeout=self._timeout,
         )
 
     def __len__(self):
