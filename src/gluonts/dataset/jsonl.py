@@ -15,16 +15,12 @@
 import functools
 from pathlib import Path
 from typing import NamedTuple
-import linecache
-from queue import Queue
-import multiprocessing as mp
 
 # Third-party imports
 import ujson as json
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset.util import WorkerInfo
 
 
 def load(file_obj):
@@ -56,78 +52,22 @@ class JsonLinesFile:
     path
         Path of the file to load data from. This should be a valid
         JSON Lines file.
-    worker_info
-        What worker this dataset is handled by. Default: WorkerInfo()
     """
 
-    def __init__(self, path, worker_info=WorkerInfo()) -> None:
+    def __init__(self, path) -> None:
         self.path = path
-        self.worker_info = worker_info
-        # For caching purposes, since its expensive to calculate
-        self._len = None
 
     def __iter__(self):
-
-        # ORIGINAL:
-        # with open(self.path) as jsonl_file:
-        #     for line_number, raw in enumerate(jsonl_file, start=1):
-        #         span = Span(path=self.path, line=line_number)
-        #         try:
-        #             yield Line(json.loads(raw), span=span)
-        #         except ValueError:
-        #             raise GluonTSDataError(
-        #                 f"Could not read json line {line_number}, {raw}"
-        #             )
-
-        # LINECACHE
-        # for line_number in range(1, self.__len__()):
-        #     raw = linecache.getline(str(self.path), line_number)
-        #     span = Span(path=self.path, line=line_number)
-        #     try:
-        #         yield Line(json.loads(raw), span=span)
-        #     except ValueError:
-        #         raise GluonTSDataError(
-        #             f"Could not read json line {line_number}, {raw}"
-        #         )
-
-        # LINECACHE V2
-        # line_number = 1
-        # while True:
-        #     # assign a batch number of consecutive lines to one worker
-        #     if not (
-        #         ((line_number - 1) // self.worker_info.num_workers)
-        #         % self.worker_info.num_workers
-        #         == self.worker_info.worker_id
-        #     ):
-        #         continue
-        #
-        #     # linecache caches all lines in a HashMap
-        #     raw = linecache.getline(str(self.path), line_number)
-        #
-        #     # end of file
-        #     if raw == "":
-        #         break
-        #
-        #     span = Span(path=self.path, line=line_number)
-        #     try:
-        #         yield Line(json.loads(raw), span=span)
-        #         line_number += 1
-        #     except ValueError:
-        #         raise GluonTSDataError(
-        #             f"Could not read json line {line_number}, {raw}"
-        #         )
-
-        # ORIGINAL modified slightly:
         with open(self.path) as jsonl_file:
             for line_number, raw in enumerate(jsonl_file, start=1):
-                # assign batch_size large chunks of consecutive lines to one worker at at time,
-                # skipping batch_size * (num_workers-1) lines before taking the next chunk
-                if not (
-                    ((line_number - 1) // self.worker_info.num_workers)
-                    % self.worker_info.num_workers
-                    == self.worker_info.worker_id
-                ):
-                    continue
+                # # assign batch_size large chunks of consecutive lines to one worker at at time,
+                # # skipping batch_size * (num_workers-1) lines before taking the next chunk
+                # if not (
+                #         ((line_number - 1) // self.worker_info.num_workers)
+                #         % self.worker_info.num_workers
+                #         == self.worker_info.worker_id
+                # ):
+                #     continue
                 span = Span(path=self.path, line=line_number)
                 try:
                     yield Line(json.loads(raw), span=span)
@@ -137,16 +77,10 @@ class JsonLinesFile:
                     )
 
     def __len__(self):
-        if self._len is None:
-            # 1MB
-            BUF_SIZE = 1024 ** 2
+        # 1MB
+        BUF_SIZE = 1024 ** 2
 
-            with open(self.path) as file_obj:
-                read_chunk = functools.partial(file_obj.read, BUF_SIZE)
-                file_len = sum(
-                    chunk.count("\n") for chunk in iter(read_chunk, "")
-                )
-                self._len = file_len
-                return file_len
-        else:
-            return self._len
+        with open(self.path) as file_obj:
+            read_chunk = functools.partial(file_obj.read, BUF_SIZE)
+            file_len = sum(chunk.count("\n") for chunk in iter(read_chunk, ""))
+            return file_len

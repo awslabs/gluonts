@@ -185,29 +185,19 @@ class FileDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
-    worker_info
-        What worker this dataset is handled by. Default: WorkerInfo()
     """
 
     def __init__(
-        self,
-        path: Path,
-        freq: str,
-        one_dim_target: Optional[bool] = True,
-        worker_info: Optional[WorkerInfo] = WorkerInfo(),
+        self, path: Path, freq: str, one_dim_target: Optional[bool] = True,
     ) -> None:
         self.path = path
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
         if not self.files():
             raise OSError(f"no valid file found in {path}")
-        self.worker_info = worker_info
-        # For caching purposes, since its expensive to calculate
-        self._len = None
 
     def __iter__(self) -> Iterator[DataEntry]:
         for path in self.files():
-            # JsonLinesFile already handles only returning the appropriate lines for the associated worker
-            for line in jsonl.JsonLinesFile(path, self.worker_info):
+            for line in jsonl.JsonLinesFile(path):
                 data = self.process(line.content)
                 data["source"] = SourceContext(
                     source=line.span.path, row=line.span.line
@@ -215,17 +205,10 @@ class FileDataset(Dataset):
                 yield data
 
     def __len__(self):
-        if self._len is None:
-            len_sum = sum(
-                [
-                    len(jsonl.JsonLinesFile(path, self.worker_info))
-                    for path in self.files()
-                ]
-            )
-            self._len = len_sum
-            return len_sum
-        else:
-            return self._len
+        len_sum = sum(
+            [len(jsonl.JsonLinesFile(path)) for path in self.files()]
+        )
+        return len_sum
 
     def files(self) -> List[Path]:
         """
@@ -244,12 +227,6 @@ class FileDataset(Dataset):
         # TODO: in the extension?
         return not (path.name.startswith(".") or path.name == "_SUCCESS")
 
-    def get_worker_info(self):
-        return self.worker_info
-
-    def set_worker_info(self, worker_info: WorkerInfo):
-        self.worker_info = worker_info
-
 
 class ListDataset(Dataset):
     """
@@ -264,8 +241,6 @@ class ListDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
-    worker_info
-        What worker this dataset is handled by. Default: WorkerInfo()
     """
 
     def __init__(
@@ -273,35 +248,27 @@ class ListDataset(Dataset):
         data_iter: Iterable[DataEntry],
         freq: str,
         one_dim_target: Optional[bool] = True,
-        worker_info: Optional[WorkerInfo] = WorkerInfo(),
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
         self.list_data = list(data_iter)
-        self.worker_info = worker_info
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
         for row_number, data in enumerate(self.list_data, start=1):
-            # assign batch_size large chunks of consecutive lines to one worker at at time,
-            # skipping batch_size * (num_workers-1) lines before taking the next chunk
-            if not (
-                ((row_number - 1) // self.worker_info.num_workers)
-                % self.worker_info.num_workers
-                == self.worker_info.worker_id
-            ):
-                continue
+            # # assign batch_size large chunks of consecutive lines to one worker at at time,
+            # # skipping batch_size * (num_workers-1) lines before taking the next chunk
+            # if not (
+            #     ((row_number - 1) // self.worker_info.num_workers)
+            #     % self.worker_info.num_workers
+            #     == self.worker_info.worker_id
+            # ):
+            #     continue
             data = self.process(data)
             data["source"] = SourceContext(source=source_name, row=row_number)
             yield data
 
     def __len__(self):
         return len(self.list_data)
-
-    def get_worker_info(self):
-        return self.worker_info
-
-    def set_worker_info(self, worker_info: WorkerInfo):
-        self.worker_info = worker_info
 
 
 class TimeZoneStrategy(Enum):
