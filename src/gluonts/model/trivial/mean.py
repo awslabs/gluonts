@@ -103,6 +103,7 @@ class MeanEstimator(Estimator):
         freq: str,
         num_samples: PositiveInt,
     ) -> None:
+        super().__init__()
         self.prediction_length = prediction_length
         self.freq = freq
         self.num_samples = num_samples
