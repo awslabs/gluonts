@@ -77,7 +77,7 @@ ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
 # Used when creating a single batch from list of dicts
-def stack(data, mp, dtype):
+def stack(data, mp, ctx, dtype):
     """Stack a list of data."""
     if isinstance(data[0], np.ndarray):
         data = np.asarray(data)
@@ -88,7 +88,7 @@ def stack(data, mp, dtype):
                 data, dtype=data.dtype, ctx=context.Context("cpu_shared", 0)
             )
         else:
-            return mx.nd.array(data, dtype=data.dtype)
+            return mx.nd.array(data, dtype=data.dtype, ctx=ctx)
 
     if isinstance(data[0], mx.nd.NDArray):
         if mx:
@@ -375,7 +375,7 @@ class ParallelDataLoader(object):
         dataset: Dataset,
         transform: Transformation,
         is_train: bool,
-        ctx: mx.Context,
+        ctx: mx.Context,  # TODO: check whether really necessary
         dtype: DType = np.float32,
         batch_size: int = None,
         shuffle: bool = False,
@@ -455,7 +455,7 @@ class ParallelDataLoader(object):
             multi_processing = num_workers > 0
             self.batchify_fn = lambda data_inp: dct_reduce(
                 reduce_fn=lambda dict_list: stack(
-                    data=dict_list, mp=multi_processing, dtype=dtype
+                    data=dict_list, mp=multi_processing, ctx=self.ctx, dtype=dtype
                 ),
                 dcts=data_inp,
             )
