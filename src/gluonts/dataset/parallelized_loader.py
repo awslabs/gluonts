@@ -18,13 +18,11 @@ import multiprocessing
 import multiprocessing.queues
 from multiprocessing.reduction import ForkingPickler, DupFd, recv_handle
 from multiprocessing.pool import ThreadPool, Pool
-import threading
 from typing import Optional
 
 import numpy as np
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.util import dct_reduce
 from gluonts.transform import Transformation
 
 try:
@@ -76,19 +74,24 @@ else:
 ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
+# TODO: think about this, especially about possibilities for improvement
 # Used when creating a single batch from list of dicts
-def stack(data, mp, ctx, dtype):
+# depending on whether multiprocessing is turned on, the batches will be
+# constructed using different memory allocation techniques
+def stack(data, parallel_processing, dtype):
     """Stack a list of data."""
     if isinstance(data[0], np.ndarray):
         data = np.asarray(data)
         if data.dtype.kind == "f":
             data = data.astype(dtype)
-        if mp:
+        if parallel_processing:
             return mx.nd.array(
                 data, dtype=data.dtype, ctx=context.Context("cpu_shared", 0)
             )
         else:
-            return mx.nd.array(data, dtype=data.dtype, ctx=ctx)
+            return mx.nd.array(
+                data, dtype=data.dtype
+            )  # TODO: Dont use the ctx after all?
 
     if isinstance(data[0], mx.nd.NDArray):
         if mx:
@@ -102,41 +105,28 @@ def stack(data, mp, ctx, dtype):
             return mx.nd.stack(*data)
 
     # TODO: think about converting int/float lists/tuples to np.NDArray
-    if isinstance(data[0], (list, tuple)):
-        return list(stack(t) for t in zip(*data))
+
+    if isinstance(data[0], list):
+        return list(stack(t, parallel_processing, dtype) for t in zip(*data))
+
+    if isinstance(data[0], tuple):
+        return tuple(stack(t, parallel_processing, dtype) for t in zip(*data))
 
     return data
 
 
-# def default_batchify_fn(data):
-#     """Collate data into batch."""
-#     if isinstance(data[0], nd.NDArray):
-#         return nd.stack(*data)
-#     elif isinstance(data[0], tuple):
-#         data = zip(*data)
-#         return [default_batchify_fn(i) for i in data]
-#     else:
-#         data = np.asarray(data)
-#         return nd.array(data, dtype=data.dtype)
-
-
-# def default_mp_batchify_fn(data):
-#     """Collate data into batch. Use shared memory for stacking."""
-#     if isinstance(data[0], nd.NDArray):
-#         out = nd.empty(
-#             (len(data),) + data[0].shape,
-#             dtype=data[0].dtype,
-#             ctx=context.Context("cpu_shared", 0),
-#         )
-#         return nd.stack(*data, out=out)
-#     elif isinstance(data[0], tuple):
-#         data = zip(*data)
-#         return [default_mp_batchify_fn(i) for i in data]
-#     else:
-#         data = np.asarray(data)
-#         return nd.array(
-#             data, dtype=data.dtype, ctx=context.Context("cpu_shared", 0)
-#         )
+# Need to define function explicitly, because lambda functions are no pickle'able in some cases
+def default_batchify_fn(data, dtype, parallel_processing):
+    # reduce the list of dictionaries to a single dictionary, where values
+    # referenced by identical key are reduced using the stack function
+    return {
+        key: stack(
+            data=[item[key] for item in data],
+            parallel_processing=parallel_processing,
+            dtype=dtype,
+        )
+        for key in data[0].keys()
+    }
 
 
 def _as_in_context(data, ctx):
@@ -160,11 +150,11 @@ def _worker_initializer(dataset):
     _worker_dataset = dataset
 
 
-# TODO: modify
 def _worker_fn(
     samples,
     batchify_fn: callable,
     transformation: Transformation,
+    dtype: DType,
     is_train: bool,
     dataset=None,
 ):
@@ -174,31 +164,34 @@ def _worker_fn(
     # preserving dataset as global variable can save tons of overhead and is safe in new process
     global _worker_dataset
     data = [_worker_dataset[i] for i in samples]
-    transformed_data = transformation(data_it=data, is_train=is_train)
-    batch = batchify_fn(transformed_data)
+    transformed_data = list(transformation(data_it=data, is_train=is_train))
+    batch = batchify_fn(
+        data=transformed_data, dtype=dtype, parallel_processing=True
+    )
     buf = io.BytesIO()
     ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(batch)
     return buf.getvalue()
 
 
-# TODO: modify
 def _thread_worker_fn(
     samples,
     batchify_fn: callable,
     transformation: Transformation,
+    dtype: DType,
     is_train: bool,
     dataset,
 ):
     """Threadpool worker function for processing data."""
     data = [dataset[i] for i in samples]
-    transformed_data = transformation(data_it=data, is_train=is_train)
-    batch = batchify_fn(transformed_data)
+    transformed_data = list(transformation(data_it=data, is_train=is_train))
+    batch = batchify_fn(
+        data=transformed_data, dtype=dtype, parallel_processing=True
+    )
     return batch
 
 
-###########################################
-
-
+# TODO: test that threads terminate correctly (merged code of mxnet 1.4 and newest
+#  which contained more thread termination handling)
 class _MultiWorkerIter(object):
     """Internal multi-worker iterator for DataLoader."""
 
@@ -207,6 +200,7 @@ class _MultiWorkerIter(object):
         worker_pool: Pool,
         batchify_fn: callable,
         transform: Transformation,  # yield Iterator of transformed Dataset
+        dtype: DType,
         is_train: bool,
         batch_sampler: Sampler,
         pin_memory: Optional[bool] = False,
@@ -219,6 +213,7 @@ class _MultiWorkerIter(object):
         self._worker_pool = worker_pool
         self._batchify_fn = batchify_fn  # Need to customize
         self.transform = transform
+        self.dtype = dtype
         self.is_train = is_train
         self._batch_sampler = batch_sampler
         self._data_buffer = (
@@ -250,6 +245,7 @@ class _MultiWorkerIter(object):
                 r,
                 self._batchify_fn,
                 self.transform,
+                self.dtype,
                 self.is_train,
                 self._dataset,
             ),  # r is 'samples'
@@ -274,7 +270,8 @@ class _MultiWorkerIter(object):
         ret = self._data_buffer.pop(self._rcvd_idx)
         try:
             if self._dataset is None:
-                batch = pickle.loads(ret.get(self._timeout))
+                got = ret.get(self._timeout)
+                batch = pickle.loads(got)
             else:
                 batch = ret.get(self._timeout)
             if self._pin_memory:
@@ -338,16 +335,7 @@ class ParallelDataLoader(object):
         shuffle, sampler, and last_batch if batch_sampler is specified.
     batchify_fn
         Callback function to allow users to specify how to merge samples
-        into a batch. Defaults to `default_batchify_fn`::
-            def default_batchify_fn(data):
-                if isinstance(data[0], nd.NDArray):
-                    return nd.stack(*data)
-                elif isinstance(data[0], tuple):
-                    data = zip(*data)
-                    return [default_batchify_fn(i) for i in data]
-                else:
-                    data = np.asarray(data)
-                    return nd.array(data, dtype=data.dtype)
+        into a batch.
     num_workers
         The number of multiprocessing workers to use for data preprocessing.
     pin_memory
@@ -390,7 +378,7 @@ class ParallelDataLoader(object):
         thread_pool: Optional[bool] = False,
     ):
         self.dataset = list(dataset)  # convert dataset to list
-        self.ctx = ctx
+        self.ctx = ctx  # Currently not in use
         self.dtype = dtype
         self.is_train = is_train
         self.transform = transform
@@ -399,7 +387,7 @@ class ParallelDataLoader(object):
         self.pin_device_id = pin_device_id
         self.thread_pool = thread_pool
 
-        assert last_batch in {"keep", "discard", "rollover"}, (
+        assert last_batch in {"keep", "discard", "rollover", None}, (
             f"Invalid argument for last_batch: {last_batch}. "
             f"Expected one of : 'keep', 'discard' or 'rollover' "
         )
@@ -450,15 +438,7 @@ class ParallelDataLoader(object):
                     initargs=[self.dataset],
                 )
         if batchify_fn is None:
-            # depending on whether multiprocessing is turned on, the batches will be
-            # constructed using different memory allocation techniques
-            multi_processing = num_workers > 0
-            self.batchify_fn = lambda data_inp: dct_reduce(
-                reduce_fn=lambda dict_list: stack(
-                    data=dict_list, mp=multi_processing, ctx=self.ctx, dtype=dtype
-                ),
-                dcts=data_inp,
-            )
+            self.batchify_fn = default_batchify_fn
         else:
             self.batchify_fn = batchify_fn
 
@@ -467,8 +447,14 @@ class ParallelDataLoader(object):
 
             def same_process_iter():
                 for batch in self.batch_sampler:
+                    data = [self.dataset[idx] for idx in batch]
+                    transformed_data = list(
+                        self.transform(data_it=data, is_train=self.is_train)
+                    )
                     ret = self.batchify_fn(
-                        [self.dataset[idx] for idx in batch]
+                        data=transformed_data,
+                        parallel_processing=False,
+                        dtype=self.dtype,
                     )
                     if self.pin_memory:
                         ret = _as_in_context(
@@ -483,6 +469,7 @@ class ParallelDataLoader(object):
             worker_pool=self.worker_pool,
             batchify_fn=self.batchify_fn,
             transform=self.transform,
+            dtype=self.dtype,
             is_train=self.is_train,
             batch_sampler=self.batch_sampler,
             pin_memory=self.pin_memory,

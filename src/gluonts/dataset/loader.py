@@ -19,6 +19,7 @@ from typing import Any, Dict, Iterable, Iterator
 # Third-party imports
 import mxnet as mx
 import numpy as np
+from multiprocessing import cpu_count
 
 # First-party imports
 from gluonts.core.component import DType
@@ -28,6 +29,8 @@ from gluonts.transform import Transformation
 from .util import take, batcher, dct_reduce, shuffler
 
 DataBatch = Dict[str, Any]
+
+from gluonts.dataset.parallelized_loader import ParallelDataLoader
 
 
 class DataLoader(Iterable[DataEntry]):
@@ -47,6 +50,8 @@ class DataLoader(Iterable[DataEntry]):
         MXNet context to use to store data.
     dtype
         Floating point type to use.
+    num_workers
+        Number of workers.
     """
 
     def __init__(
@@ -58,6 +63,9 @@ class DataLoader(Iterable[DataEntry]):
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
+        num_workers: int = 0,  # cpu_count(),  # TODO: think about this, non default
+        pin_memory: bool = True,  # TODO: think about this, non default
+        **kwargs
     ) -> None:
         self.batch_size = batch_size
         self.ctx = ctx
@@ -65,50 +73,26 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
 
-        # GET infinite number of samples in train dataset
-        if is_train:
-            self.dataset = itertools.cycle(dataset)
-        else:
-            self.dataset = dataset
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+        self.last_batch = "rollover" if is_train else "keep"
 
-    @property
-    def stream(self) -> Iterable:
-        return self.transform(
-            self.dataset, is_train=self.is_train
-        )  # applies transformation
-
-    # TODO: make this parallelized, should be an interator returning one batch at a time
-    def make_batch_iter(self):
-        # fetches a single batch like iter(get_batch, []), where get_batch is a function that fetches batch samples
-        batches = batcher(self.stream, self.batch_size)
-        # describes how to stack a single batch, where each sample is a dict, and this creates a
-        # new dict where entries with the same key are reduces according to self.stack
-        stack = functools.partial(dct_reduce, self.stack)
-        return map(
-            stack, batches
-        )  # reduces each batch (list of dicts) to a single entity e.g. a dict
-
-    def stack(self, xs):
-        if isinstance(xs[0], np.ndarray):
-            data = np.asarray(xs)
-            if data.dtype.kind == "f":
-                data = data.astype(self.dtype)
-            return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
-
-        if isinstance(xs[0], mx.nd.NDArray):
-            return mx.nd.stack(*xs)
-
-        # TODO: think about converting int/float lists to np.NDArray
-        if isinstance(xs[0], list):
-            return list(self.stack(t) for t in zip(*xs))
-
-        if isinstance(xs[0], tuple):
-            return tuple(self.stack(t) for t in zip(*xs))
-
-        return xs
+        self.parallel_data_loader = ParallelDataLoader(
+            dataset=dataset,
+            transform=self.transform,
+            is_train=self.is_train,
+            batch_size=self.batch_size,
+            ctx=self.ctx,
+            dtype=self.dtype,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            last_batch=self.last_batch,
+            **kwargs,
+        )
 
     def __iter__(self) -> Iterator[DataBatch]:
-        return self.make_batch_iter()
+        # Will take all batches, so that all data is sampled exactly once if is_train is False
+        return take(self.parallel_data_loader, len(self.parallel_data_loader))
 
 
 class TrainDataLoader(DataLoader):
@@ -145,6 +129,7 @@ class TrainDataLoader(DataLoader):
         dtype: DType = np.float32,
         shuffle_for_training: bool = True,
         num_batches_for_shuffling: int = 10,
+        **kwargs
     ) -> None:
         assert dataset, "empty dataset"
 
@@ -155,31 +140,21 @@ class TrainDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             is_train=True,
+            shuffle=shuffle_for_training,
+            **kwargs,
         )
 
         self.num_batches_per_epoch = num_batches_per_epoch
         self.shuffle_for_training = shuffle_for_training
-        self.num_batches_for_shuffling = num_batches_for_shuffling
-
-    @property
-    def stream(self) -> Iterable:
-        s = self.transform(self.dataset, is_train=self.is_train)
-        if self.shuffle_for_training:
-            # TODO: fix error...
-            # This should fetch a single sample but fetches a shuffled batch
-            # But says it shuffles the batches?
-            return shuffler(
-                s, self.num_batches_for_shuffling
-            )  # This is not what its doing !!!
-        return s
+        # self.num_batches_for_shuffling = num_batches_for_shuffling # I dont think we need this anymore
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
 
     def __iter__(self) -> Iterator[DataBatch]:
-        batches = self.make_batch_iter()
         # this takes num_batches of batches for one epoch
-        return take(batches, self.num_batches_per_epoch)
+        # sampling with replacement is handled by the parallel_data_loader
+        return take(self.parallel_data_loader, self.num_batches_per_epoch)
 
 
 class ValidationDataLoader(DataLoader):
@@ -191,6 +166,7 @@ class ValidationDataLoader(DataLoader):
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
+        **kwargs
     ) -> None:
         super().__init__(
             dataset=dataset,
@@ -199,6 +175,7 @@ class ValidationDataLoader(DataLoader):
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
+            **kwargs,
         )
 
 
@@ -211,6 +188,7 @@ class InferenceDataLoader(DataLoader):
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
+        **kwargs
     ) -> None:
         super().__init__(
             dataset=dataset,
@@ -219,4 +197,5 @@ class InferenceDataLoader(DataLoader):
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
+            **kwargs,
         )

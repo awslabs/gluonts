@@ -231,7 +231,14 @@ class Trainer:
                             if self.halt:
                                 break
 
-                            inputs = [data_entry[k] for k in input_names]
+                            # TODO: make sure that 'as_in_context' is best way to handle this
+                            # TODO: even copying from shared cpu memory to non shared cpu context was necessary
+                            # Select and copy relevant data from CPU or shared
+                            # CPU memory to correct context, i.e. CPU or GPU
+                            inputs = [
+                                data_entry[k].as_in_context(self.ctx)
+                                for k in input_names
+                            ]
 
                             with mx.autograd.record():
                                 output = net(*inputs)
