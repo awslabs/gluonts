@@ -75,7 +75,7 @@ class DataLoader(Iterable[DataEntry]):
     def stream(self) -> Iterable:
         return self.transform(
             self.dataset, is_train=self.is_train
-        )  # applies tra
+        )  # applies transformation
 
     # TODO: make this parallelized, should be an interator returning one batch at a time
     def make_batch_iter(self):
@@ -86,7 +86,7 @@ class DataLoader(Iterable[DataEntry]):
         stack = functools.partial(dct_reduce, self.stack)
         return map(
             stack, batches
-        )  # reduces each batch to a single entity e.g. a single matrix (from list)
+        )  # reduces each batch (list of dicts) to a single entity e.g. a dict
 
     def stack(self, xs):
         if isinstance(xs[0], np.ndarray):
