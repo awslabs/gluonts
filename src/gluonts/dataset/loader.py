@@ -33,16 +33,6 @@ DataBatch = Dict[str, Any]
 from gluonts.dataset.parallelized_loader import ParallelDataLoader
 
 
-def batch_generator(batch_sampler, num_batches):
-    curr_batch_num = 0
-    while True:
-        for batch in batch_sampler:
-            yield batch
-            curr_batch_num += 1
-            if curr_batch_num == num_batches:
-                return
-
-
 class DataLoader(Iterable[DataEntry]):
     """
     An abstract Iterable type for iterating and transforming a dataset,
@@ -73,14 +63,13 @@ class DataLoader(Iterable[DataEntry]):
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
-        num_workers: int = 0,  # cpu_count(),  # TODO: think about this, non default
+        num_workers: int = 3,  # cpu_count(),  # TODO: think about this, non default
         pin_memory: bool = False,  # TODO: think about this, non default
-        last_batch: str = None,
+        cache_dataset: bool = True,  # TODO: think about this, non default
+        resample: bool = False,
         **kwargs
     ) -> None:
         # conversion from iterator to list
-        cached_dataset = list(dataset)
-
         self.batch_size = batch_size
         self.ctx = ctx
         self.dtype = dtype
@@ -89,18 +78,14 @@ class DataLoader(Iterable[DataEntry]):
 
         self.num_workers = num_workers
         self.pin_memory = pin_memory
-        # TODO: would rather like 'rollover', however, small train sets < batch size cause err
+        self.resample = resample
 
-        assert (
-            last_batch is None
-        ), "Last batch mechanics are automatically determined, no need to set it."
-        assert batch_size < len(
-            dataset
-        ), "Not sure how much sense this makes"  # TODO this is just for debugigng
-        self.last_batch = "keep"  # "keep" if len(cached_dataset) < batch_size else "rollover" # TODO fix this
+        # TODO: Implement better caching, maybe in the dataset itself
+        if cache_dataset:
+            self.cached_dataset = list(dataset)
 
         self.parallel_data_loader = ParallelDataLoader(
-            dataset=cached_dataset,
+            dataset=self.cached_dataset if cache_dataset else dataset,
             transform=self.transform,
             is_train=self.is_train,
             batch_size=self.batch_size,
@@ -108,16 +93,14 @@ class DataLoader(Iterable[DataEntry]):
             dtype=self.dtype,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            last_batch=self.last_batch,
+            resample=self.resample,
             **kwargs,
         )
 
     def __iter__(self) -> Iterator[DataBatch]:
         # Will take all batches, so that all data is sampled exactly once if is_train is False
-        # print(len(list(batch_generator(self.parallel_data_loader, len(self.parallel_data_loader)))))
-        return batch_generator(
-            self.parallel_data_loader, len(self.parallel_data_loader)
-        )
+        for batch in self.parallel_data_loader:
+            yield batch
 
 
 class TrainDataLoader(DataLoader):
@@ -166,6 +149,7 @@ class TrainDataLoader(DataLoader):
             dtype=dtype,
             is_train=True,
             shuffle=shuffle_for_training,
+            resample=True,
             **kwargs,
         )
 
@@ -178,17 +162,21 @@ class TrainDataLoader(DataLoader):
 
     def __iter__(self) -> Iterator[DataBatch]:
         # this takes num_batches of batches for one epoch
-        # sampling with replacement is handled by the parallel_data_loader
-        return batch_generator(
-            self.parallel_data_loader, self.num_batches_per_epoch
-        )
+        batch_num = 0
+        while True:
+            for batch in self.parallel_data_loader:
+                yield batch
+                batch_num += 1
+                if batch_num == self.num_batches_per_epoch:
+                    return
 
 
 class ValidationDataLoader(DataLoader):
     def __init__(
         self,
         dataset: Dataset,
-        *transform: Transformation,
+        *,
+        transform: Transformation,
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
@@ -201,6 +189,7 @@ class ValidationDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             is_train=True,
+            resample=False,
             **kwargs,
         )
 
@@ -223,5 +212,6 @@ class InferenceDataLoader(DataLoader):
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
+            resample=False,
             **kwargs,
         )

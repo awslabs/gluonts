@@ -185,13 +185,21 @@ class FileDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
+    worker_info
+        What worker this dataset is handled by. Default: WorkerInfo()
     """
 
     def __init__(
-        self, path: Path, freq: str, one_dim_target: Optional[bool] = True,
+        self,
+        path: Path,
+        freq: str,
+        one_dim_target: Optional[bool] = True,
+        worker_info=WorkerInfo(),
     ) -> None:
         self.path = path
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
+        self._len = None
+        self.worker_info = worker_info
         if not self.files():
             raise OSError(f"no valid file found in {path}")
 
@@ -205,10 +213,14 @@ class FileDataset(Dataset):
                 yield data
 
     def __len__(self):
-        len_sum = sum(
-            [len(jsonl.JsonLinesFile(path)) for path in self.files()]
-        )
-        return len_sum
+        if self._len is None:
+            len_sum = sum(
+                [len(jsonl.JsonLinesFile(path)) for path in self.files()]
+            )
+            self._len = len_sum
+            return len_sum
+        else:
+            return self._len
 
     def files(self) -> List[Path]:
         """
@@ -227,10 +239,16 @@ class FileDataset(Dataset):
         # TODO: in the extension?
         return not (path.name.startswith(".") or path.name == "_SUCCESS")
 
+    def set_worker_info(self, worker_info: WorkerInfo):
+        self.worker_info = worker_info
+
+    def get_worker_info(self):
+        return self.worker_info
+
 
 class ListDataset(Dataset):
     """
-    Dataset backed directly by an array of dictionaries.
+    Dataset backed directly by an iterator over dictionaries.
 
     data_iter
         Iterable object yielding all items in the dataset.
@@ -241,6 +259,8 @@ class ListDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
+    worker_info
+        What worker this dataset is handled by. Default: WorkerInfo()
     """
 
     def __init__(
@@ -248,27 +268,30 @@ class ListDataset(Dataset):
         data_iter: Iterable[DataEntry],
         freq: str,
         one_dim_target: Optional[bool] = True,
+        worker_info=WorkerInfo(),
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
-        self.list_data = list(data_iter)
+        self.data_iter = data_iter
+        self.worker_info = worker_info
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
-        for row_number, data in enumerate(self.list_data, start=1):
-            # # assign batch_size large chunks of consecutive lines to one worker at at time,
-            # # skipping batch_size * (num_workers-1) lines before taking the next chunk
-            # if not (
-            #     ((row_number - 1) // self.worker_info.num_workers)
-            #     % self.worker_info.num_workers
-            #     == self.worker_info.worker_id
-            # ):
-            #     continue
+        for row_number, data in enumerate(self.data_iter, start=1):
+            # assign every num_worker'th entry to this worker
+            if not self.worker_info.worker_id % row_number == 0:
+                continue
             data = self.process(data)
             data["source"] = SourceContext(source=source_name, row=row_number)
             yield data
 
     def __len__(self):
-        return len(self.list_data)
+        return len(self.data_iter)
+
+    def set_worker_info(self, worker_info: WorkerInfo):
+        self.worker_info = worker_info
+
+    def get_worker_info(self):
+        return self.worker_info
 
 
 class TimeZoneStrategy(Enum):

@@ -10,7 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
+import itertools
 import pickle
 import io
 import sys
@@ -19,10 +19,12 @@ import multiprocessing.queues
 from multiprocessing.reduction import ForkingPickler, DupFd, recv_handle
 from multiprocessing.pool import ThreadPool, Pool
 from typing import Optional
+import copy
 
 import numpy as np
 from gluonts.core.component import DType
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import Dataset, FileDataset, ListDataset
+from gluonts.dataset.util import WorkerInfo
 from gluonts.transform import Transformation
 
 try:
@@ -138,43 +140,55 @@ def _as_in_context(data, ctx):
     return data
 
 
-_worker_dataset = None
+# _worker_dataset_list = None
+#
+#
+# def _worker_initializer(dataset:, num_workers, batch_size):
+#     """Initialier for processing pool."""
+#     # global dataset is per-process based and only available in worker processes
+#     # this is only necessary to handle MXIndexedRecordIO because otherwise dataset
+#     # can be passed as argument
+#
+#     global _worker_dataset_list
+#     _worker_dataset_list = [copy.deepcopy(dataset) for i in range(num_workers)]
+#
+#     # associate each dataset with a worker
+#     for worker_id, ds in enumerate(_worker_dataset_list):
+#         if isinstance(ds, (FileDataset, ListDataset)):
+#             ds.set_worker_info(WorkerInfo(worker_id=worker_id, batch_size=batch_size))
 
 
-def _worker_initializer(dataset):
-    """Initialier for processing pool."""
-    # global dataset is per-process based and only available in worker processes
-    # this is only necessary to handle MXIndexedRecordIO because otherwise dataset
-    # can be passed as argument
-    global _worker_dataset
-    _worker_dataset = dataset
-
-
+# multiprocessing.current_process()
 def _worker_fn(
-    samples,
     batchify_fn: callable,
     transformation: Transformation,
     dtype: DType,
     is_train: bool,
-    dataset=None,
+    dataset,
 ):
     """Function for processing data in worker process."""
     # pylint: disable=unused-argument
     # it is required that each worker process has to fork a new MXIndexedRecordIO handle
     # preserving dataset as global variable can save tons of overhead and is safe in new process
-    global _worker_dataset
-    data = [_worker_dataset[i] for i in samples]
-    transformed_data = list(transformation(data_it=data, is_train=is_train))
-    batch = batchify_fn(
-        data=transformed_data, dtype=dtype, parallel_processing=True
-    )
-    buf = io.BytesIO()
-    ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(batch)
-    return buf.getvalue()
+
+    # global _worker_dataset
+    # data = [_worker_dataset[i] for i in samples]
+    # transformed_data = list(transformation(data_it=data, is_train=is_train))
+
+    if isinstance(dataset, (FileDataset, ListDataset)):
+        transformed_data = list(
+            itertools.islice(dataset, dataset.worker_info.batch_size)
+        )
+
+        batch = batchify_fn(
+            data=transformed_data, dtype=dtype, parallel_processing=True
+        )
+        buf = io.BytesIO()
+        ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(batch)
+        return buf.getvalue()
 
 
 def _thread_worker_fn(
-    samples,
     batchify_fn: callable,
     transformation: Transformation,
     dtype: DType,
@@ -182,12 +196,27 @@ def _thread_worker_fn(
     dataset,
 ):
     """Threadpool worker function for processing data."""
-    data = [dataset[i] for i in samples]
-    transformed_data = list(transformation(data_it=data, is_train=is_train))
-    batch = batchify_fn(
-        data=transformed_data, dtype=dtype, parallel_processing=True
-    )
-    return batch
+    # data = [dataset[i] for i in samples]
+    # transformed_data = list(transformation(data_it=data, is_train=is_train))
+
+    if isinstance(dataset, (FileDataset, ListDataset)):
+        transformed_data = list(
+            itertools.islice(dataset, dataset.worker_info.batch_size)
+        )
+
+        batch = batchify_fn(
+            data=transformed_data, dtype=dtype, parallel_processing=True
+        )
+        return batch
+
+
+def sequential_sample_generator(dataset, transformation, is_train, resample):
+    while True:
+        for sample in transformation(data_it=dataset, is_train=is_train):
+            yield sample
+        # Dont cycle if not training time
+        if not resample:
+            return
 
 
 # TODO: test that threads terminate correctly (merged code of mxnet 1.4 and newest
@@ -202,31 +231,63 @@ class _MultiWorkerIter(object):
         transform: Transformation,  # yield Iterator of transformed Dataset
         dtype: DType,
         is_train: bool,
-        batch_sampler: Sampler,
         pin_memory: Optional[bool] = False,
         pin_device_id: Optional[bool] = 0,
         worker_fn: Optional[callable] = _worker_fn,
         dataset: Optional[Dataset] = None,
         prefetch: Optional[int] = 0,
         timeout: Optional[int] = 120,
+        num_workers: int = None,
+        batch_size: int = None,
+        resample: bool = None,
+        thread_pool: bool = None,
     ):
         self._worker_pool = worker_pool
+        self.thread_pool = thread_pool
         self._batchify_fn = batchify_fn  # Need to customize
         self.transform = transform
         self.dtype = dtype
         self.is_train = is_train
-        self._batch_sampler = batch_sampler
+        self.resample = resample
         self._data_buffer = (
             {}
         )  # Its a dictionary with {index: data} structure in our case
         self._rcvd_idx = 0
         self._sent_idx = 0
-        self._iter = iter(self._batch_sampler)
+        # self._iter = iter(self._batch_sampler)
         self._worker_fn = worker_fn
         self._pin_memory = pin_memory
         self._pin_device_id = pin_device_id
         self._dataset = dataset
         self._timeout = timeout
+
+        self.num_workers = num_workers
+        self.batch_size = batch_size
+
+        # replicate dataset for each worker
+        temporary_dataset_list = [
+            copy.deepcopy(self._dataset) for i in range(self.num_workers)
+        ]
+        # associate each dataset with a worker
+        for worker_id, ds in enumerate(temporary_dataset_list):
+            if isinstance(ds, (FileDataset, ListDataset)):
+                ds.set_worker_info(
+                    WorkerInfo(worker_id=worker_id, batch_size=self.batch_size)
+                )
+        # apply transformation lazily
+        self.dataset_list = [
+            sequential_sample_generator(
+                dataset=dataset,
+                transformation=self.transform,
+                is_train=self.is_train,
+                resample=self.resample,
+            )
+            for dataset in temporary_dataset_list
+        ]
+
+        # cycle dataset ids
+        self._iter = itertools.cycle(range(num_workers))
+
         # pre-fetch
         for _ in range(prefetch):
             self._push_next()
@@ -236,7 +297,7 @@ class _MultiWorkerIter(object):
 
     def _push_next(self):
         """Assign next batch workload to workers."""
-        r = next(self._iter, None)  # r is 'samples'
+        r = next(self._iter)  # next(self._iter, None)  # r is now dataset id
         if r is None:
             return
         async_ret = self._worker_pool.apply_async(
@@ -247,8 +308,9 @@ class _MultiWorkerIter(object):
                 self.transform,
                 self.dtype,
                 self.is_train,
-                self._dataset,
-            ),  # r is 'samples'
+                # self._dataset,
+                self.dataset_list[r],
+            ),  # r is now dataset id
         )
         self._data_buffer[self._sent_idx] = async_ret
         self._sent_idx += 1
@@ -269,7 +331,7 @@ class _MultiWorkerIter(object):
         ), "fatal error with _push_next, rcvd_idx missing"
         ret = self._data_buffer.pop(self._rcvd_idx)
         try:
-            if self._dataset is None:
+            if not self.thread_pool:  # self._dataset is None:
                 got = ret.get(self._timeout)
                 batch = pickle.loads(got)
             else:
@@ -367,75 +429,41 @@ class ParallelDataLoader(object):
         dtype: DType = np.float32,
         batch_size: int = None,
         shuffle: bool = False,
-        sampler: Optional[Sampler] = None,
-        last_batch: Optional[str] = None,
-        batch_sampler: Optional[Sampler] = None,
         batchify_fn: Optional[callable] = None,
         num_workers: Optional[int] = 0,
         pin_memory: Optional[bool] = False,
         pin_device_id: Optional[int] = 0,
         prefetch: Optional[int] = None,
         thread_pool: Optional[bool] = False,
+        resample: bool = False,
     ):
-        self.dataset = dataset  # list(dataset)  # convert dataset to list
-        self.ctx = ctx  # Currently not in use
+        self.resample = resample
+        self.ctx = ctx  # TODO: currently not in use
         self.dtype = dtype
         self.is_train = is_train
         self.transform = transform
+        self.batch_size = batch_size
 
         self.pin_memory = pin_memory
         self.pin_device_id = pin_device_id
         self.thread_pool = thread_pool
 
-        assert last_batch in {"keep", "discard", "rollover", None}, (
-            f"Invalid argument for last_batch: {last_batch}. "
-            f"Expected one of : 'keep', 'discard' or 'rollover' "
-        )
-
-        if batch_sampler is None:
-            if batch_size is None:
-                raise ValueError(
-                    "batch_size must be specified unless "
-                    "batch_sampler is specified"
-                )
-            if sampler is None:
-                if shuffle:
-                    sampler = _sampler.RandomSampler(len(self.dataset))
-                else:
-                    sampler = _sampler.SequentialSampler(len(self.dataset))
-            elif shuffle:
-                raise ValueError(
-                    "shuffle must not be specified if sampler is specified"
-                )
-
-            batch_sampler = _sampler.BatchSampler(
-                sampler, batch_size, last_batch if last_batch else "keep"
-            )
-        elif (
-            batch_size is not None
-            or shuffle
-            or sampler is not None
-            or last_batch is not None
-        ):
-            raise ValueError(
-                "batch_size, shuffle, sampler and last_batch must "
-                "not be specified if batch_sampler is specified."
-            )
-
-        self.batch_sampler = batch_sampler
         self.num_workers = num_workers if num_workers >= 0 else 0
         self.worker_pool = None
         self.prefetch = max(
             0, int(prefetch) if prefetch is not None else 2 * self.num_workers
         )
+
+        self.dataset = dataset
+
         if self.num_workers > 0:
             if self.thread_pool:
                 self.worker_pool = ThreadPool(self.num_workers)
             else:
                 self.worker_pool = Pool(
                     self.num_workers,
-                    initializer=_worker_initializer,
-                    initargs=[self.dataset],
+                    # initializer=_worker_initializer,
+                    # initargs=[self.dataset],
                 )
         if batchify_fn is None:
             self.batchify_fn = default_batchify_fn
@@ -444,23 +472,29 @@ class ParallelDataLoader(object):
 
     def __iter__(self):
         if self.num_workers == 0:
+            generator = sequential_sample_generator(
+                self.dataset, self.transform, self.is_train, self.resample
+            )
 
             def same_process_iter():
-                for batch in self.batch_sampler:
-                    data = [self.dataset[idx] for idx in batch]
-                    transformed_data = list(
-                        self.transform(data_it=data, is_train=self.is_train)
+                while True:
+                    # take the next batch size elements
+                    sample_batch = list(
+                        itertools.islice(generator, self.batch_size)
                     )
 
-                    # TODO: think about this / fix this: transformed data can have different length from data
-                    if len(transformed_data) == 0:
-                        continue
+                    # terminate if no more batches to be dealt with
+                    if len(sample_batch) == 0:
+                        return
 
+                    # make them into a single batch
                     ret = self.batchify_fn(
-                        data=transformed_data,
+                        data=sample_batch,
                         parallel_processing=False,
                         dtype=self.dtype,
                     )
+
+                    # pin them into memory for faster copying into GPU memory
                     if self.pin_memory:
                         ret = _as_in_context(
                             ret, context.cpu_pinned(self.pin_device_id)
@@ -472,20 +506,22 @@ class ParallelDataLoader(object):
         # multi-worker
         return _MultiWorkerIter(
             worker_pool=self.worker_pool,
+            num_workers=self.num_workers,
+            thread_pool=self.thread_pool,
             batchify_fn=self.batchify_fn,
             transform=self.transform,
             dtype=self.dtype,
             is_train=self.is_train,
-            batch_sampler=self.batch_sampler,
+            resample=self.resample,
             pin_memory=self.pin_memory,
             pin_device_id=self.pin_device_id,
             worker_fn=_thread_worker_fn if self.thread_pool else _worker_fn,
             prefetch=self.prefetch,
-            dataset=self.dataset if self.thread_pool else None,
+            dataset=self.dataset,  # self.dataset if self.thread_pool else None, # TODO check validity of this
         )
 
     def __len__(self):
-        return len(self.batch_sampler)
+        return len(self.dataset)
 
     def __del__(self):
         if self.worker_pool:

@@ -41,7 +41,7 @@ class WorkerInfo(NamedTuple):
     By default we assume a single worker fetching each entry after another.
     """
 
-    num_workers: Optional[int] = 1
+    # num_workers: Optional[int] = 1
     worker_id: Optional[int] = 0
     batch_size: Optional[int] = 1
 
