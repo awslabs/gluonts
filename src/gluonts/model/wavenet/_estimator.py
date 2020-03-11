@@ -260,7 +260,10 @@ class WaveNetEstimator(GluonEstimator):
         )
 
     def train(
-        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        **kwargs,
     ) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
         low = -10.0 if has_negative_data else 0
@@ -286,6 +289,7 @@ class WaveNetEstimator(GluonEstimator):
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
+            **kwargs,
         )
 
         validation_data_loader = None
@@ -296,6 +300,7 @@ class WaveNetEstimator(GluonEstimator):
                 batch_size=self.trainer.batch_size,
                 ctx=self.trainer.ctx,
                 dtype=self.dtype,
+                **kwargs,
             )
 
         # ensure that the training network is created within the same MXNet

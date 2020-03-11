@@ -33,6 +33,16 @@ DataBatch = Dict[str, Any]
 from gluonts.dataset.parallelized_loader import ParallelDataLoader
 
 
+def batch_generator(batch_sampler, num_batches):
+    curr_batch_num = 0
+    while True:
+        for batch in batch_sampler:
+            yield batch
+            curr_batch_num += 1
+            if curr_batch_num == num_batches:
+                return
+
+
 class DataLoader(Iterable[DataEntry]):
     """
     An abstract Iterable type for iterating and transforming a dataset,
@@ -64,9 +74,13 @@ class DataLoader(Iterable[DataEntry]):
         ctx: mx.Context,
         dtype: DType = np.float32,
         num_workers: int = 0,  # cpu_count(),  # TODO: think about this, non default
-        pin_memory: bool = True,  # TODO: think about this, non default
+        pin_memory: bool = False,  # TODO: think about this, non default
+        last_batch: str = None,
         **kwargs
     ) -> None:
+        # conversion from iterator to list
+        cached_dataset = list(dataset)
+
         self.batch_size = batch_size
         self.ctx = ctx
         self.dtype = dtype
@@ -75,10 +89,18 @@ class DataLoader(Iterable[DataEntry]):
 
         self.num_workers = num_workers
         self.pin_memory = pin_memory
-        self.last_batch = "rollover" if is_train else "keep"
+        # TODO: would rather like 'rollover', however, small train sets < batch size cause err
+
+        assert (
+            last_batch is None
+        ), "Last batch mechanics are automatically determined, no need to set it."
+        assert batch_size < len(
+            dataset
+        ), "Not sure how much sense this makes"  # TODO this is just for debugigng
+        self.last_batch = "keep"  # "keep" if len(cached_dataset) < batch_size else "rollover" # TODO fix this
 
         self.parallel_data_loader = ParallelDataLoader(
-            dataset=dataset,
+            dataset=cached_dataset,
             transform=self.transform,
             is_train=self.is_train,
             batch_size=self.batch_size,
@@ -92,7 +114,10 @@ class DataLoader(Iterable[DataEntry]):
 
     def __iter__(self) -> Iterator[DataBatch]:
         # Will take all batches, so that all data is sampled exactly once if is_train is False
-        return take(self.parallel_data_loader, len(self.parallel_data_loader))
+        # print(len(list(batch_generator(self.parallel_data_loader, len(self.parallel_data_loader)))))
+        return batch_generator(
+            self.parallel_data_loader, len(self.parallel_data_loader)
+        )
 
 
 class TrainDataLoader(DataLoader):
@@ -114,7 +139,7 @@ class TrainDataLoader(DataLoader):
     ctx
         MXNet context to use to store data.
     num_batches_per_epoch
-        Number of batches to return in one complete iteration over this object.  # TODO: this is not what its used for
+        Number of batches to return in one complete iteration over this object.  # TODO: this isn't what it was used for
     dtype
         Floating point type to use.
     """
@@ -154,15 +179,16 @@ class TrainDataLoader(DataLoader):
     def __iter__(self) -> Iterator[DataBatch]:
         # this takes num_batches of batches for one epoch
         # sampling with replacement is handled by the parallel_data_loader
-        return take(self.parallel_data_loader, self.num_batches_per_epoch)
+        return batch_generator(
+            self.parallel_data_loader, self.num_batches_per_epoch
+        )
 
 
 class ValidationDataLoader(DataLoader):
     def __init__(
         self,
         dataset: Dataset,
-        *,
-        transform: Transformation,
+        *transform: Transformation,
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
@@ -171,10 +197,10 @@ class ValidationDataLoader(DataLoader):
         super().__init__(
             dataset=dataset,
             transform=transform,
-            is_train=True,
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
+            is_train=True,
             **kwargs,
         )
 

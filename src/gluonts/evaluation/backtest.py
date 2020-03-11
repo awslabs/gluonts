@@ -125,6 +125,7 @@ def backtest_metrics(
     num_samples: int = 100,
     logging_file: Optional[str] = None,
     use_symbol_block_predictor: bool = False,
+    **kwargs,
 ):
     """
     Parameters
@@ -185,6 +186,7 @@ def backtest_metrics(
                 batch_size=forecaster.trainer.batch_size,
                 ctx=forecaster.trainer.ctx,
                 dtype=forecaster.dtype,
+                **kwargs,
             )
 
             if forecaster.trainer.hybridize:

@@ -377,7 +377,7 @@ class ParallelDataLoader(object):
         prefetch: Optional[int] = None,
         thread_pool: Optional[bool] = False,
     ):
-        self.dataset = list(dataset)  # convert dataset to list
+        self.dataset = dataset  # list(dataset)  # convert dataset to list
         self.ctx = ctx  # Currently not in use
         self.dtype = dtype
         self.is_train = is_train
@@ -451,6 +451,11 @@ class ParallelDataLoader(object):
                     transformed_data = list(
                         self.transform(data_it=data, is_train=self.is_train)
                     )
+
+                    # TODO: think about this / fix this: transformed data can have different length from data
+                    if len(transformed_data) == 0:
+                        continue
+
                     ret = self.batchify_fn(
                         data=transformed_data,
                         parallel_processing=False,
