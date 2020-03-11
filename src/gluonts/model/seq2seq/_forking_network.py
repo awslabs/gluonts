@@ -21,6 +21,7 @@ from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
+from gluonts.support.util import weighted_average
 
 nd_None = nd.array([])
 
@@ -67,7 +68,12 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self, F, past_target: Tensor, future_target: Tensor
+        self,
+        F,
+        past_target: Tensor,
+        future_target: Tensor,
+        past_observed_values: Tensor,
+        future_observed_values: Tensor,
     ) -> Tensor:
         """
         Parameters
@@ -75,18 +81,22 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         F: mx.symbol or mx.ndarray
             Gluon function space
         past_target: Tensor
-            FIXME
+            shape (num_ts, encoder_length, 1)
         future_target: Tensor
-            shape (num_ts, encoder_length, 1) FIXME
+            shape (num_ts, encoder_length, decoder_length)
+        past_observed_values: Tensor
+            shape (num_ts, encoder_length, 1)
+        future_observed_values: Tensor
+            shape (num_ts, encoder_length, decoder_length)
 
         Returns
         -------
-        loss with shape (FIXME, FIXME)
+        loss with shape (num_ts, decoder_length)
         """
 
         # FIXME: can we factor out a common prefix in the base network?
         feat_static_real = nd_None
-        past_feat_dynamic_real = nd_None
+        past_feat_dynamic_real = past_observed_values
         future_feat_dynamic_real = nd_None
 
         enc_output_static, enc_output_dynamic = self.encoder(
@@ -101,19 +111,26 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         dec_dist_output = self.quantile_proj(dec_output)
 
         loss = self.loss(future_target, dec_dist_output)
-        return loss.mean(axis=1)
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=future_observed_values, axis=1
+        )
+        return weighted_loss
 
 
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
-    def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
+    def hybrid_forward(
+        self, F, past_target: Tensor, past_observed_values: Tensor
+    ) -> Tensor:
         """
         Parameters
         ----------
         F: mx.symbol or mx.ndarray
             Gluon function space
         past_target: Tensor
-            FIXME
+            shape (num_ts, encoder_length, 1)
+        past_observed_values: Tensor
+            shape (num_ts, encoder_length, 1)
 
         Returns
         -------
@@ -122,7 +139,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
         # FIXME: can we factor out a common prefix in the base network?
         feat_static_real = nd_None
-        past_feat_dynamic_real = nd_None
+        past_feat_dynamic_real = past_observed_values
         future_feat_dynamic_real = nd_None
 
         enc_output_static, enc_output_dynamic = self.encoder(

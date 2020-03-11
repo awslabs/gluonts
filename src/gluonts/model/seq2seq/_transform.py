@@ -20,6 +20,7 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 from gluonts.transform import FlatMapTransformation, shift_timestamp
 
 
@@ -34,6 +35,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         dec_len: int,
         time_series_fields: List[str] = None,
         target_in="target",
+        obs_val_field=FieldName.OBSERVED_VALUES,
         is_pad_out: str = "is_pad",
         start_in: str = "start",
         forecast_start_out: str = "forecast_start",
@@ -48,6 +50,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             time_series_fields if time_series_fields is not None else []
         )
         self.target_in = target_in
+        self.obs_val_field = obs_val_field
         self.is_pad_out = is_pad_out
         self.start_in = start_in
         self.forecast_start_out = forecast_start_out
@@ -99,7 +102,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
 
                 d[self._past(ts_field)] = np.expand_dims(past_piece, -1)
 
-                if is_train and ts_field is self.target_in:
+                if is_train and ts_field in [
+                    self.target_in,
+                    self.obs_val_field,
+                ]:
                     forking_dec_field = np.zeros(
                         shape=(self.enc_len, self.dec_len)
                     )

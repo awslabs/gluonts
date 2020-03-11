@@ -29,6 +29,7 @@ from gluonts.support.util import copy_parameters
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AsNumpyArray,
+    AddObservedValuesIndicator,
     Chain,
     TestSplitSampler,
     Transformation,
@@ -81,6 +82,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         length of the encoding sequence (prediction_length is used if None)
     trainer
         trainer
+    dummy_value
+        Value to use for replacing missing values.
     """
 
     @validated()
@@ -93,6 +96,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         prediction_length: int,
         context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
+        dummy_value: int = 0,
     ) -> None:
         assert (
             context_length is None or context_length > 0
@@ -111,15 +115,22 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
+        self.dummy_value = dummy_value
 
     def create_transformation(self) -> Transformation:
         return Chain(
             trans=[
                 AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                    dummy_value=self.dummy_value,
+                ),
                 ForkingSequenceSplitter(
                     train_sampler=TestSplitSampler(),
                     enc_len=self.context_length,
                     dec_len=self.prediction_length,
+                    time_series_fields=[FieldName.OBSERVED_VALUES],
                 ),
             ]
         )
