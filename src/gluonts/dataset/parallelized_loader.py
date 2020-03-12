@@ -172,13 +172,13 @@ def _worker_initializer(
     # associate each dataset with a worker
     for worker_id, ds in enumerate(temporary_dataset_list):
         if isinstance(ds, (FileDataset, ListDataset)):
-            start_index = (
-                int(worker_id / num_workers) * dataset_len
+            start_index = int(
+                (worker_id / num_workers) * dataset_len
             )  # calculate offsets for different replicas
             end_index = (
                 None
                 if resample
-                else int((worker_id + 1) / num_workers) * dataset_len
+                else int(((worker_id + 1) / num_workers) * dataset_len)
             )  # loop infinitely if resample
             ds.set_replica_info(
                 ReplicaInfo(start_index=start_index, end_index=end_index,)
@@ -241,7 +241,7 @@ class _MultiWorkerIter(object):
         self,
         worker_pool: Pool,
         batchify_fn: callable,
-        transform: Transformation,  # yield Iterator of transformed Dataset
+        transform: Transformation,
         dtype: DType,
         is_train: bool,
         pin_memory: Optional[bool] = False,

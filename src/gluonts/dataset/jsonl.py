@@ -86,10 +86,9 @@ class JsonLinesFile:
                     else:  # line_number == self.replica_info.start_index
                         self._burn_in = False
 
-                # only yield until end_index, if specified
+                # only yield until, but excluding, the end_index, if specified
                 if self.replica_info.end_index is not None:
-                    if line_number > self.replica_info.end_index:
-                        print(self.replica_info.end_index)
+                    if line_number == self.replica_info.end_index:
                         return
 
                 # --- dataset specific ---
