@@ -44,6 +44,7 @@ from gluonts.dataset.util import WorkerInfo
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]
 
+# TODO: change this so it has attributes: cached, and worker_info
 # A Dataset is an iterable of DataEntry.
 Dataset = Iterable[DataEntry]
 
@@ -205,7 +206,9 @@ class FileDataset(Dataset):
 
     def __iter__(self) -> Iterator[DataEntry]:
         for path in self.files():
-            for line in jsonl.JsonLinesFile(path):
+            for line in jsonl.JsonLinesFile(
+                path=path, worker_info=self.worker_info
+            ):
                 data = self.process(line.content)
                 data["source"] = SourceContext(
                     source=line.span.path, row=line.span.line
@@ -215,7 +218,14 @@ class FileDataset(Dataset):
     def __len__(self):
         if self._len is None:
             len_sum = sum(
-                [len(jsonl.JsonLinesFile(path)) for path in self.files()]
+                [
+                    len(
+                        jsonl.JsonLinesFile(
+                            path=path, worker_info=self.worker_info
+                        )
+                    )
+                    for path in self.files()
+                ]
             )
             self._len = len_sum
             return len_sum
@@ -271,21 +281,24 @@ class ListDataset(Dataset):
         worker_info=WorkerInfo(),
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
-        self.data_iter = data_iter
+        self.list_data = data_iter  # TODO refactor to represent data_iter
         self.worker_info = worker_info
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
-        for row_number, data in enumerate(self.data_iter, start=1):
+        for row_number, data in enumerate(self.list_data, start=1):
             # assign every num_worker'th entry to this worker
-            if not self.worker_info.worker_id % row_number == 0:
+            if (
+                not row_number % self.worker_info.num_workers
+                == self.worker_info.worker_id
+            ):
                 continue
             data = self.process(data)
             data["source"] = SourceContext(source=source_name, row=row_number)
             yield data
 
     def __len__(self):
-        return len(self.data_iter)
+        return len(self.list_data)
 
     def set_worker_info(self, worker_info: WorkerInfo):
         self.worker_info = worker_info

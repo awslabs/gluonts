@@ -65,7 +65,7 @@ class DataLoader(Iterable[DataEntry]):
         dtype: DType = np.float32,
         num_workers: int = 3,  # cpu_count(),  # TODO: think about this, non default
         pin_memory: bool = False,  # TODO: think about this, non default
-        cache_dataset: bool = True,  # TODO: think about this, non default
+        cache_dataset: bool = False,  # TODO: think about how to do this properly: File dataset use the thingy
         resample: bool = False,
         **kwargs
     ) -> None:
@@ -80,12 +80,8 @@ class DataLoader(Iterable[DataEntry]):
         self.pin_memory = pin_memory
         self.resample = resample
 
-        # TODO: Implement better caching, maybe in the dataset itself
-        if cache_dataset:
-            self.cached_dataset = list(dataset)
-
         self.parallel_data_loader = ParallelDataLoader(
-            dataset=self.cached_dataset if cache_dataset else dataset,
+            dataset=dataset,
             transform=self.transform,
             is_train=self.is_train,
             batch_size=self.batch_size,
@@ -190,6 +186,7 @@ class ValidationDataLoader(DataLoader):
             dtype=dtype,
             is_train=True,
             resample=False,
+            num_workers=0,  # for now required to ensure no duplicate sampling and correct termination
             **kwargs,
         )
 
@@ -208,10 +205,11 @@ class InferenceDataLoader(DataLoader):
         super().__init__(
             dataset=dataset,
             transform=transform,
-            is_train=False,
+            is_train=False,  # should make sure that every sequence is used exactly once
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
             resample=False,
+            num_workers=0,  # for now required to ensure no duplicate sampling and correct termination
             **kwargs,
         )

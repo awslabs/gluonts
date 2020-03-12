@@ -47,6 +47,7 @@ class Line(NamedTuple):
     span: Span
 
 
+# TODO: implement caching here...
 class JsonLinesFile:
     """
     An iterable type that draws from a JSON Lines file.
@@ -67,12 +68,18 @@ class JsonLinesFile:
         self._len = None
 
     def __iter__(self):
+        # print("JSON LOAD: ", self.worker_info) TODO remove, useful for debug
         with open(self.path) as jsonl_file:
             for line_number, raw in enumerate(jsonl_file, start=1):
-                # print(line_number)  # TODO: remove
+                # print(line_number)  # TODO: remove, useful for debug
 
                 # assign every num_worker'th entry to this worker
-                if not self.worker_info.worker_id % line_number == 0:
+                # if not self.worker_info.worker_id % line_number == 0:
+                if (
+                    not line_number % self.worker_info.num_workers
+                    == self.worker_info.worker_id
+                ):
+                    print("SKIP", line_number, self.worker_info.worker_id)
                     continue
                 span = Span(path=self.path, line=line_number)
                 try:
