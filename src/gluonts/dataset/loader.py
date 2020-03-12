@@ -78,10 +78,10 @@ class DataLoader(Iterable[DataEntry]):
 
         # TODO: think about this, non default
         if num_workers is None:
-            self.num_workers = min(len(dataset), cpu_count())
+            self.num_workers = min(len(list(dataset)), cpu_count())
         else:
             assert num_workers <= len(
-                dataset
+                list(dataset)
             ), "Cannot have more workers than dataset entries currently."
             self.num_workers = num_workers
 

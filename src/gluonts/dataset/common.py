@@ -283,16 +283,30 @@ class ListDataset(Dataset):
         self.process = ProcessDataEntry(freq, one_dim_target)
         self.list_data = data_iter  # TODO refactor to represent data_iter
         self.replica_info = replica_info
+        self._burn_in = True
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
         for row_number, data in enumerate(self.list_data, start=1):
-            # Only use every num_replicas'th entry with replica_id offset
-            if (
-                not row_number % self.replica_info.num_replicas
-                == self.replica_info.replica_id
-            ):
-                continue
+            # TODO: I think this iteration logic, as well as total_dataset_len, start_index
+            #  and end_index should be properties of the dataset. Total_dataset_len should be
+            #  metadata. What is done to return an entry should be the only dataset type specific thing.
+
+            # skip until start_index on first pass, aka do burn_in
+            if self._burn_in:
+                if row_number < self.replica_info.start_index:
+                    continue
+                else:  # line_number == self.replica_info.start_index
+                    self._burn_in = False
+
+            # only yield until end_index, if specified
+            if self.replica_info.end_index is not None:
+                if row_number > self.replica_info.end_index:
+                    print(self.replica_info.end_index)
+                    return
+
+            # --- dataset specific ---
+
             data = self.process(data)
             data["source"] = SourceContext(source=source_name, row=row_number)
             yield data

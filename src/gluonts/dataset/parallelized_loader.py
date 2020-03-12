@@ -32,7 +32,6 @@ try:
 except ImportError:
     pass
 
-from mxnet.gluon.data import sampler as _sampler, Sampler
 from mxnet import nd, context
 import mxnet as mx
 
@@ -147,7 +146,13 @@ _worker_dataset_list = None
 # TODO: when resampling = False, mechanics is needed not to request same dataset again, if last
 #  sample was drawn; put finished (0 vs 1) into shared array for worker id
 def _worker_initializer(
-    dataset, num_workers, batch_size, transformation, is_train, resample
+    dataset,
+    dataset_len,
+    num_workers,
+    batch_size,
+    transformation,
+    is_train,
+    resample,
 ):
     """Initialier for processing pool."""
     # global dataset is per-process based and only available in worker processes
@@ -167,8 +172,16 @@ def _worker_initializer(
     # associate each dataset with a worker
     for worker_id, ds in enumerate(temporary_dataset_list):
         if isinstance(ds, (FileDataset, ListDataset)):
+            start_index = (
+                int(worker_id / num_workers) * dataset_len
+            )  # calculate offsets for different replicas
+            end_index = (
+                None
+                if resample
+                else int((worker_id + 1) / num_workers) * dataset_len
+            )  # loop infinitely if resample
             ds.set_replica_info(
-                ReplicaInfo(num_replicas=num_workers, replica_id=worker_id)
+                ReplicaInfo(start_index=start_index, end_index=end_index,)
             )
 
     # create generators by applying transformation lazily
@@ -234,16 +247,14 @@ class _MultiWorkerIter(object):
         pin_memory: Optional[bool] = False,
         pin_device_id: Optional[bool] = 0,
         worker_fn: Optional[callable] = _worker_fn,
-        dataset: Optional[Dataset] = None,
+        dataset_len: Optional[int] = None,
         prefetch: Optional[int] = 0,
         timeout: Optional[int] = 120,
         num_workers: int = None,
         batch_size: int = None,
         resample: bool = None,
-        thread_pool: bool = None,
     ):
         self._worker_pool = worker_pool
-        self.thread_pool = thread_pool
         self._batchify_fn = batchify_fn  # Need to customize
         self.transform = transform
         self.dtype = dtype
@@ -254,15 +265,14 @@ class _MultiWorkerIter(object):
         )  # Its a dictionary with {index: data} structure in our case
         self._rcvd_idx = 0
         self._sent_idx = 0
-        # self._iter = iter(self._batch_sampler)
         self._worker_fn = worker_fn
         self._pin_memory = pin_memory
         self._pin_device_id = pin_device_id
-        self._dataset = dataset
         self._timeout = timeout
 
         self.num_workers = num_workers
         self.batch_size = batch_size
+        self.dataset_len = dataset_len
 
         # cycle dataset ids
         self._iter = itertools.cycle(range(num_workers))
@@ -272,7 +282,7 @@ class _MultiWorkerIter(object):
             self._push_next()
 
     def __len__(self):
-        return len(self._batch_sampler)
+        return self.dataset_len
 
     def _push_next(self):
         """Assign next batch workload to workers."""
@@ -303,13 +313,8 @@ class _MultiWorkerIter(object):
         ret = self._data_buffer.pop(self._rcvd_idx)
 
         try:
-            if (
-                not self.thread_pool
-            ):  # not self.thread_pool:  # self._dataset is None:
-                got = ret.get(self._timeout)
-                batch = pickle.loads(got)
-            else:
-                batch = ret.get(self._timeout)
+            got = ret.get(self._timeout)
+            batch = pickle.loads(got)
             if self._pin_memory:
                 batch = _as_in_context(
                     batch, context.cpu_pinned(self._pin_device_id)
@@ -388,10 +393,6 @@ class ParallelDataLoader(object):
         but will consume more shared_memory. Using smaller number may forfeit the purpose of using
         multiple worker processes, try reduce `num_workers` in this case.
         By default it defaults to `num_workers * 2`.
-    thread_pool
-        If ``True``, use threading pool instead of multiprocessing pool. Using threadpool
-        can avoid shared memory usage. If `DataLoader` is more IO bounded or GIL is not a killing
-        problem, threadpool version may achieve better performance than multiprocessing.
     """
 
     def __init__(
@@ -408,7 +409,6 @@ class ParallelDataLoader(object):
         pin_memory: Optional[bool] = False,
         pin_device_id: Optional[int] = 0,
         prefetch: Optional[int] = None,
-        thread_pool: Optional[bool] = False,
         resample: bool = False,
     ):
         self.resample = resample
@@ -420,7 +420,6 @@ class ParallelDataLoader(object):
 
         self.pin_memory = pin_memory
         self.pin_device_id = pin_device_id
-        self.thread_pool = thread_pool
 
         self.num_workers = num_workers if num_workers >= 0 else 0
         self.worker_pool = None
@@ -429,23 +428,22 @@ class ParallelDataLoader(object):
         )
 
         self.dataset = dataset
+        self.dataset_len = len(dataset)
 
         if self.num_workers > 0:
-            if self.thread_pool:
-                self.worker_pool = ThreadPool(self.num_workers)
-            else:
-                self.worker_pool = Pool(
+            self.worker_pool = Pool(
+                self.num_workers,
+                initializer=_worker_initializer,
+                initargs=[
+                    self.dataset,
+                    self.dataset_len,
                     self.num_workers,
-                    initializer=_worker_initializer,
-                    initargs=[
-                        self.dataset,
-                        self.num_workers,
-                        self.batch_size,
-                        self.transform,
-                        self.is_train,
-                        self.resample,
-                    ],
-                )
+                    self.batch_size,
+                    self.transform,
+                    self.is_train,
+                    self.resample,
+                ],
+            )
         if batchify_fn is None:
             self.batchify_fn = default_batchify_fn
         else:
@@ -488,7 +486,6 @@ class ParallelDataLoader(object):
         return _MultiWorkerIter(
             worker_pool=self.worker_pool,
             num_workers=self.num_workers,
-            thread_pool=self.thread_pool,
             batch_size=self.batch_size,
             batchify_fn=self.batchify_fn,
             transform=self.transform,
@@ -497,15 +494,13 @@ class ParallelDataLoader(object):
             resample=self.resample,
             pin_memory=self.pin_memory,
             pin_device_id=self.pin_device_id,
-            worker_fn=_thread_worker_fn if self.thread_pool else _worker_fn,
+            worker_fn=_worker_fn,
             prefetch=self.prefetch,
-            dataset=self.dataset
-            if self.thread_pool
-            else None,  # TODO check validity of this
+            dataset_len=self.dataset_len,
         )
 
     def __len__(self):
-        return len(self.dataset)
+        return self.dataset_len
 
     def __del__(self):
         if self.worker_pool:

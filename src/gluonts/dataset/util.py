@@ -37,12 +37,13 @@ T = TypeVar("T")
 
 class ReplicaInfo(NamedTuple):
     """
-    Information that a dataset loader might need about a worker to efficiently fetch Data.
-    By default we assume a single worker fetching each entry after another.
+    Additional information the data_loader might need.
     """
 
-    num_replicas: Optional[int] = 1
-    replica_id: Optional[int] = 0
+    # total_length: int  # TODO: might be one possibility to cache total dataset length
+    start_index: Optional[int] = 0
+    end_index: Optional[int] = None  # by default until end
+    # cached: Optional[bool] = False  # TODO: implement caching logic
 
 
 def _split(

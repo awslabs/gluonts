@@ -65,16 +65,35 @@ class JsonLinesFile:
         self.path = path
         self.replica_info = replica_info
         self._len = None  # cache the calculated length
+        self._burn_in = True
 
     def __iter__(self):
         with open(self.path) as jsonl_file:
+
+            # TODO: could use this for caching lines
+            # for line_number in range(1, self.__len__()):
+            #     raw = linecache.getline(str(self.path), line_number)
+
             for line_number, raw in enumerate(jsonl_file, start=1):
-                # Only use every num_replicas'th entry with replica_id offset
-                if (
-                    not line_number % self.replica_info.num_replicas
-                    == self.replica_info.replica_id
-                ):
-                    continue
+                # TODO: I think this iteration logic, as well as total_dataset_len, start_index
+                #  and end_index should be properties of the dataset. Total_dataset_len should be
+                #  metadata. What is done to return an entry should be the only dataset type specific thing.
+
+                # skip until start_index on first pass, aka do burn_in
+                if self._burn_in:
+                    if line_number < self.replica_info.start_index:
+                        continue
+                    else:  # line_number == self.replica_info.start_index
+                        self._burn_in = False
+
+                # only yield until end_index, if specified
+                if self.replica_info.end_index is not None:
+                    if line_number > self.replica_info.end_index:
+                        print(self.replica_info.end_index)
+                        return
+
+                # --- dataset specific ---
+
                 span = Span(path=self.path, line=line_number)
                 try:
                     yield Line(json.loads(raw), span=span)
