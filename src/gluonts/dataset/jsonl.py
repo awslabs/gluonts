@@ -24,7 +24,7 @@ import ujson as json
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset.util import WorkerInfo
+from gluonts.dataset.util import ReplicaInfo
 
 
 def load(file_obj):
@@ -57,29 +57,23 @@ class JsonLinesFile:
     path
         Path of the file to load data from. This should be a valid
         JSON Lines file.
-    worker_info
+    replica_info
         What worker this dataset is handled by. Default: WorkerInfo()
     """
 
-    def __init__(self, path, worker_info=WorkerInfo()) -> None:
+    def __init__(self, path, replica_info=ReplicaInfo()) -> None:
         self.path = path
-        self.worker_info = worker_info
-        # For caching purposes, since its expensive to calculate
-        self._len = None
+        self.replica_info = replica_info
+        self._len = None  # cache the calculated length
 
     def __iter__(self):
-        # print("JSON LOAD: ", self.worker_info) TODO remove, useful for debug
         with open(self.path) as jsonl_file:
             for line_number, raw in enumerate(jsonl_file, start=1):
-                # print(line_number)  # TODO: remove, useful for debug
-
-                # assign every num_worker'th entry to this worker
-                # if not self.worker_info.worker_id % line_number == 0:
+                # Only use every num_replicas'th entry with replica_id offset
                 if (
-                    not line_number % self.worker_info.num_workers
-                    == self.worker_info.worker_id
+                    not line_number % self.replica_info.num_replicas
+                    == self.replica_info.replica_id
                 ):
-                    print("SKIP", line_number, self.worker_info.worker_id)
                     continue
                 span = Span(path=self.path, line=line_number)
                 try:
@@ -89,6 +83,8 @@ class JsonLinesFile:
                         f"Could not read json line {line_number}, {raw}"
                     )
 
+    # TODO: len should be metadata of the dataset,
+    #  it cannot be that to calculate the len we have to parse the whole dataset
     def __len__(self):
         if self._len is None:
             # 1MB

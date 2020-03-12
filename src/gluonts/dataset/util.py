@@ -35,15 +35,14 @@ import pandas as pd
 T = TypeVar("T")
 
 
-class WorkerInfo(NamedTuple):
+class ReplicaInfo(NamedTuple):
     """
     Information that a dataset loader might need about a worker to efficiently fetch Data.
     By default we assume a single worker fetching each entry after another.
     """
 
-    num_workers: Optional[int] = 1
-    worker_id: Optional[int] = 0
-    batch_size: Optional[int] = 1
+    num_replicas: Optional[int] = 1
+    replica_id: Optional[int] = 0
 
 
 def _split(

@@ -63,7 +63,7 @@ class DataLoader(Iterable[DataEntry]):
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
-        num_workers: int = 3,  # cpu_count(),  # TODO: think about this, non default
+        num_workers: int = None,
         pin_memory: bool = False,  # TODO: think about this, non default
         cache_dataset: bool = False,  # TODO: think about how to do this properly: File dataset use the thingy
         resample: bool = False,
@@ -76,7 +76,15 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
 
-        self.num_workers = num_workers
+        # TODO: think about this, non default
+        if num_workers is None:
+            self.num_workers = min(len(dataset), cpu_count())
+        else:
+            assert num_workers <= len(
+                dataset
+            ), "Cannot have more workers than dataset entries currently."
+            self.num_workers = num_workers
+
         self.pin_memory = pin_memory
         self.resample = resample
 

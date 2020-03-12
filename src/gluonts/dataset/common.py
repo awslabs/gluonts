@@ -39,12 +39,12 @@ from pandas.tseries.offsets import Tick
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
-from gluonts.dataset.util import WorkerInfo
+from gluonts.dataset.util import ReplicaInfo
 
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]
 
-# TODO: change this so it has attributes: cached, and worker_info
+# TODO: change this so it has attributes: cached, and replica_info
 # A Dataset is an iterable of DataEntry.
 Dataset = Iterable[DataEntry]
 
@@ -186,7 +186,7 @@ class FileDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
-    worker_info
+    replica_info
         What worker this dataset is handled by. Default: WorkerInfo()
     """
 
@@ -195,19 +195,19 @@ class FileDataset(Dataset):
         path: Path,
         freq: str,
         one_dim_target: Optional[bool] = True,
-        worker_info=WorkerInfo(),
+        replica_info=ReplicaInfo(),
     ) -> None:
         self.path = path
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
         self._len = None
-        self.worker_info = worker_info
+        self.replica_info = replica_info
         if not self.files():
             raise OSError(f"no valid file found in {path}")
 
     def __iter__(self) -> Iterator[DataEntry]:
         for path in self.files():
             for line in jsonl.JsonLinesFile(
-                path=path, worker_info=self.worker_info
+                path=path, replica_info=self.replica_info
             ):
                 data = self.process(line.content)
                 data["source"] = SourceContext(
@@ -221,7 +221,7 @@ class FileDataset(Dataset):
                 [
                     len(
                         jsonl.JsonLinesFile(
-                            path=path, worker_info=self.worker_info
+                            path=path, replica_info=self.replica_info
                         )
                     )
                     for path in self.files()
@@ -249,11 +249,11 @@ class FileDataset(Dataset):
         # TODO: in the extension?
         return not (path.name.startswith(".") or path.name == "_SUCCESS")
 
-    def set_worker_info(self, worker_info: WorkerInfo):
-        self.worker_info = worker_info
+    def set_replica_info(self, replica_info: ReplicaInfo):
+        self.replica_info = replica_info
 
-    def get_worker_info(self):
-        return self.worker_info
+    def get_replica_info(self):
+        return self.replica_info
 
 
 class ListDataset(Dataset):
@@ -269,7 +269,7 @@ class ListDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
-    worker_info
+    replica_info
         What worker this dataset is handled by. Default: WorkerInfo()
     """
 
@@ -278,19 +278,19 @@ class ListDataset(Dataset):
         data_iter: Iterable[DataEntry],
         freq: str,
         one_dim_target: Optional[bool] = True,
-        worker_info=WorkerInfo(),
+        replica_info=ReplicaInfo(),
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
         self.list_data = data_iter  # TODO refactor to represent data_iter
-        self.worker_info = worker_info
+        self.replica_info = replica_info
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
         for row_number, data in enumerate(self.list_data, start=1):
-            # assign every num_worker'th entry to this worker
+            # Only use every num_replicas'th entry with replica_id offset
             if (
-                not row_number % self.worker_info.num_workers
-                == self.worker_info.worker_id
+                not row_number % self.replica_info.num_replicas
+                == self.replica_info.replica_id
             ):
                 continue
             data = self.process(data)
@@ -298,13 +298,13 @@ class ListDataset(Dataset):
             yield data
 
     def __len__(self):
-        return len(self.list_data)
+        return len(list(self.list_data))
 
-    def set_worker_info(self, worker_info: WorkerInfo):
-        self.worker_info = worker_info
+    def set_replica_info(self, replica_info: ReplicaInfo):
+        self.replica_info = replica_info
 
-    def get_worker_info(self):
-        return self.worker_info
+    def get_replica_info(self):
+        return self.replica_info
 
 
 class TimeZoneStrategy(Enum):

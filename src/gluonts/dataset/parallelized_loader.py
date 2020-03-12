@@ -24,7 +24,7 @@ import copy
 import numpy as np
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset, FileDataset, ListDataset
-from gluonts.dataset.util import WorkerInfo
+from gluonts.dataset.util import ReplicaInfo
 from gluonts.transform import Transformation
 
 try:
@@ -93,7 +93,7 @@ def stack(data, parallel_processing, dtype):
         else:
             return mx.nd.array(
                 data, dtype=data.dtype
-            )  # TODO: Dont use the ctx after all?
+            )  # TODO: Figure out impact of using DataLoader provided context here
 
     if isinstance(data[0], mx.nd.NDArray):
         if mx:
@@ -154,7 +154,8 @@ def _worker_initializer(
     # this is only necessary to handle MXIndexedRecordIO because otherwise dataset
     # can be passed as argument
 
-    print(num_workers, batch_size, is_train, resample)
+    # TODO: DEBUG PRINT
+    # print("num_workers: ", num_workers, "current worker: ", str(multiprocessing.current_process()), "dataset_id", dataset, "batch_size: ", batch_size, "is_train: ", is_train, "resample: ", resample)
 
     global _worker_dataset_list
 
@@ -162,17 +163,14 @@ def _worker_initializer(
     temporary_dataset_list = [
         copy.deepcopy(dataset) for i in range(num_workers)
     ]
-    # associate each dataset with a worker # TODO: just give each dataset copy an id
+
+    # associate each dataset with a worker
     for worker_id, ds in enumerate(temporary_dataset_list):
-        print("PRINTING WORKER ID", worker_id)
         if isinstance(ds, (FileDataset, ListDataset)):
-            ds.set_worker_info(
-                WorkerInfo(
-                    worker_id=worker_id,
-                    batch_size=batch_size,
-                    num_workers=num_workers,
-                )
+            ds.set_replica_info(
+                ReplicaInfo(num_replicas=num_workers, replica_id=worker_id)
             )
+
     # create generators by applying transformation lazily
     _worker_dataset_list = [
         sequential_sample_generator(
@@ -187,18 +185,15 @@ def _worker_initializer(
 
 # multiprocessing.current_process()
 def _worker_fn(
-    dataset_id,
-    batchify_fn: callable,
-    batch_size,
-    transformation: Transformation,
-    dtype: DType,
-    is_train: bool,
-    dataset,
+    dataset_id, batch_size: int, batchify_fn: callable, dtype: DType,
 ):
     """Function for processing data in worker process."""
     # pylint: disable=unused-argument
     # it is required that each worker process has to fork a new MXIndexedRecordIO handle
     # preserving dataset as global variable can save tons of overhead and is safe in new process
+
+    # TODO: DEBUG PRINT
+    # print(f"Worker function:: current worker: , {str(multiprocessing.current_process())}, datset_id: {dataset_id}, batch_size: {batch_size}, dtype: {dtype}")
 
     global _worker_dataset_list
 
@@ -209,32 +204,10 @@ def _worker_fn(
     batch = batchify_fn(
         data=transformed_data, dtype=dtype, parallel_processing=True
     )
+
     buf = io.BytesIO()
     ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(batch)
     return buf.getvalue()
-
-
-# TODO: delete this
-def _thread_worker_fn(
-    batchify_fn: callable,
-    transformation: Transformation,
-    dtype: DType,
-    is_train: bool,
-    dataset,
-):
-    """Threadpool worker function for processing data."""
-    # data = [dataset[i] for i in samples]
-    # transformed_data = list(transformation(data_it=data, is_train=is_train))
-
-    if isinstance(dataset, (FileDataset, ListDataset)):
-        transformed_data = list(
-            itertools.islice(dataset, dataset.worker_info.batch_size)
-        )
-
-        batch = batchify_fn(
-            data=transformed_data, dtype=dtype, parallel_processing=True
-        )
-        return batch
 
 
 def sequential_sample_generator(dataset, transformation, is_train, resample):
@@ -303,20 +276,12 @@ class _MultiWorkerIter(object):
 
     def _push_next(self):
         """Assign next batch workload to workers."""
-        r = next(self._iter)  # next(self._iter, None)  # r is now dataset id
-        if r is None:
+        dataset_id = next(self._iter, None)
+        if dataset_id is None:
             return
         async_ret = self._worker_pool.apply_async(
             self._worker_fn,
-            (
-                r,
-                self._batchify_fn,
-                self.resample,
-                self.transform,
-                self.dtype,
-                self.is_train,
-                self._dataset,
-            ),  # r is now dataset id
+            (dataset_id, self.batch_size, self._batchify_fn, self.dtype,),
         )
         self._data_buffer[self._sent_idx] = async_ret
         self._sent_idx += 1
@@ -336,9 +301,10 @@ class _MultiWorkerIter(object):
             self._rcvd_idx in self._data_buffer
         ), "fatal error with _push_next, rcvd_idx missing"
         ret = self._data_buffer.pop(self._rcvd_idx)
+
         try:
             if (
-                self._dataset is None
+                not self.thread_pool
             ):  # not self.thread_pool:  # self._dataset is None:
                 got = ret.get(self._timeout)
                 batch = pickle.loads(got)
@@ -523,6 +489,7 @@ class ParallelDataLoader(object):
             worker_pool=self.worker_pool,
             num_workers=self.num_workers,
             thread_pool=self.thread_pool,
+            batch_size=self.batch_size,
             batchify_fn=self.batchify_fn,
             transform=self.transform,
             dtype=self.dtype,
