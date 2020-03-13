@@ -52,6 +52,9 @@ class DataLoader(Iterable[DataEntry]):
         Floating point type to use.
     num_workers
         Number of workers.
+    resample
+        Indicates whether the dataset is traversed potentially multiple times, helper variable
+
     """
 
     def __init__(
@@ -64,8 +67,6 @@ class DataLoader(Iterable[DataEntry]):
         ctx: mx.Context,
         dtype: DType = np.float32,
         num_workers: int = None,
-        pin_memory: bool = False,  # TODO: think about this, non default
-        cache_dataset: bool = False,  # TODO: think about how to do this properly: File dataset use the thingy
         resample: bool = False,
         **kwargs
     ) -> None:
@@ -76,16 +77,14 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
 
-        # TODO: think about this, non default
+        # TODO: think about what a good value is, probably 0, and if multiprocessing=True, then what is below
         if num_workers is None:
-            self.num_workers = min(len(list(dataset)), cpu_count())
+            self.num_workers = min(len(list(dataset)), int(cpu_count() / 2))
         else:
             assert num_workers <= len(
                 list(dataset)
             ), "Cannot have more workers than dataset entries currently."
             self.num_workers = num_workers
-
-        self.pin_memory = pin_memory
         self.resample = resample
 
         self.parallel_data_loader = ParallelDataLoader(
@@ -93,16 +92,15 @@ class DataLoader(Iterable[DataEntry]):
             transform=self.transform,
             is_train=self.is_train,
             batch_size=self.batch_size,
-            ctx=self.ctx,
             dtype=self.dtype,
+            ctx=ctx,
             num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
             resample=self.resample,
             **kwargs,
         )
 
     def __iter__(self) -> Iterator[DataBatch]:
-        # Will take all batches, so that all data is sampled exactly once if is_train is False
+        # Will take all batches, so that all data is sampled exactly once
         for batch in self.parallel_data_loader:
             yield batch
 
@@ -112,8 +110,7 @@ class TrainDataLoader(DataLoader):
     An Iterable type for iterating and transforming a dataset, in batches of a
     prescribed size, until a given number of batches is reached.
 
-    The transformation are applied with in training mode, i.e. with the flag
-    `is_train = True`.
+    The transformation are applied with in training mode, i.e. with the flag `is_train = True`.
 
     Parameters
     ----------
@@ -126,7 +123,7 @@ class TrainDataLoader(DataLoader):
     ctx
         MXNet context to use to store data.
     num_batches_per_epoch
-        Number of batches to return in one complete iteration over this object.  # TODO: this isn't what it was used for
+        Number of batches to return in one complete iteration over this object.
     dtype
         Floating point type to use.
     """
@@ -159,7 +156,8 @@ class TrainDataLoader(DataLoader):
 
         self.num_batches_per_epoch = num_batches_per_epoch
         self.shuffle_for_training = shuffle_for_training
-        # self.num_batches_for_shuffling = num_batches_for_shuffling # I dont think we need this anymore
+        # TODO: implement shuffling
+        self.num_batches_for_shuffling = num_batches_for_shuffling
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
@@ -189,12 +187,11 @@ class ValidationDataLoader(DataLoader):
         super().__init__(
             dataset=dataset,
             transform=transform,
+            is_train=True,
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
-            is_train=True,
             resample=False,
-            num_workers=0,  # for now required to ensure no duplicate sampling and correct termination
             **kwargs,
         )
 
@@ -213,11 +210,13 @@ class InferenceDataLoader(DataLoader):
         super().__init__(
             dataset=dataset,
             transform=transform,
-            is_train=False,  # should make sure that every sequence is used exactly once
+            is_train=False,
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
             resample=False,
-            num_workers=0,  # for now required to ensure no duplicate sampling and correct termination
+            # Currently the is a bug with multi processing here,
+            # see: _worker_fn in parallelized_loader.py for explanation
+            num_workers=0,
             **kwargs,
         )

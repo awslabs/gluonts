@@ -66,14 +66,10 @@ class JsonLinesFile:
         self.replica_info = replica_info
         self._len = None  # cache the calculated length
         self._burn_in = True
+        # TODO: implement caching here
 
     def __iter__(self):
         with open(self.path) as jsonl_file:
-
-            # TODO: could use this for caching lines
-            # for line_number in range(1, self.__len__()):
-            #     raw = linecache.getline(str(self.path), line_number)
-
             for line_number, raw in enumerate(jsonl_file, start=1):
                 # TODO: I think this iteration logic, as well as total_dataset_len, start_index
                 #  and end_index should be properties of the dataset. Total_dataset_len should be
@@ -101,8 +97,6 @@ class JsonLinesFile:
                         f"Could not read json line {line_number}, {raw}"
                     )
 
-    # TODO: len should be metadata of the dataset,
-    #  it cannot be that to calculate the len we have to parse the whole dataset
     def __len__(self):
         if self._len is None:
             # 1MB

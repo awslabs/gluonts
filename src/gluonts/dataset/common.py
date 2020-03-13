@@ -194,7 +194,7 @@ class FileDataset(Dataset):
         self,
         path: Path,
         freq: str,
-        one_dim_target: Optional[bool] = True,
+        one_dim_target: bool = True,
         replica_info=ReplicaInfo(),
     ) -> None:
         self.path = path
@@ -277,13 +277,14 @@ class ListDataset(Dataset):
         self,
         data_iter: Iterable[DataEntry],
         freq: str,
-        one_dim_target: Optional[bool] = True,
+        one_dim_target: bool = True,
         replica_info=ReplicaInfo(),
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
-        self.list_data = data_iter  # TODO refactor to represent data_iter
+        self.list_data = data_iter  # TODO do refactor to represent data_iter
         self.replica_info = replica_info
         self._burn_in = True
+        # TODO: implement caching here
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
@@ -302,7 +303,6 @@ class ListDataset(Dataset):
             # only yield until, but excluding, the end_index, if specified
             if self.replica_info.end_index is not None:
                 if row_number == self.replica_info.end_index:
-                    print(self.replica_info.end_index)
                     return
 
             # --- dataset specific ---
