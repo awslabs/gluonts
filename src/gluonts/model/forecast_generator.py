@@ -20,7 +20,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.distribution import Distribution, DistributionOutput
-from gluonts.core.component import validated, get_mxnet_context
+from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import InferenceDataLoader
@@ -108,11 +108,7 @@ class DistributionForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[DistributionForecast]:
         for batch in inference_data_loader:
-            # Copy from shared CPU memory to correct context, i.e. CPU or GPU
-            inputs = [
-                batch[k].as_in_context(get_mxnet_context())
-                for k in input_names
-            ]
+            inputs = [batch[k] for k in input_names]
             outputs = prediction_net(*inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
@@ -156,11 +152,7 @@ class QuantileForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
-            # Copy from shared CPU memory to correct context, i.e. CPU or GPU
-            inputs = [
-                batch[k].as_in_context(get_mxnet_context())
-                for k in input_names
-            ]
+            inputs = [batch[k] for k in input_names]
             outputs = prediction_net(*inputs).asnumpy()
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
@@ -201,11 +193,7 @@ class SampleForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
-            # Copy from shared CPU memory to correct context, i.e. CPU or GPU
-            inputs = [
-                batch[k].as_in_context(get_mxnet_context())
-                for k in input_names
-            ]
+            inputs = [batch[k] for k in input_names]
             outputs = prediction_net(*inputs).asnumpy()
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)

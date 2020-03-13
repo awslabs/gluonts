@@ -191,23 +191,12 @@ def backtest_metrics(
                 **kwargs,
             )
 
-            next_batch = next(iter(inference_data_loader))
-            # Copy from shared CPU memory to correct context, i.e. CPU or GPU
-            next_batch = {
-                k: v.as_in_context(get_mxnet_context())
-                if isinstance(v, NDArray)
-                else v
-                for k, v in next_batch.items()
-            }
-
             if forecaster.trainer.hybridize:
-                # Move batch data to correct context
-
-                predictor.hybridize(batch=next_batch)
+                predictor.hybridize(batch=next(iter(inference_data_loader)))
 
             if use_symbol_block_predictor:
                 predictor = predictor.as_symbol_block_predictor(
-                    batch=next_batch
+                    batch=next(iter(inference_data_loader))
                 )
     else:
         predictor = forecaster

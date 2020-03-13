@@ -27,6 +27,7 @@ from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset, FileDataset, ListDataset
 from gluonts.dataset.util import ReplicaInfo
 from gluonts.transform import Transformation
+from mxnet.ndarray import NDArray
 
 try:
     import multiprocessing.resource_sharer
@@ -273,6 +274,9 @@ def _worker_fn(
             data=transformed_data, dtype=dtype, parallel_processing=True
         )
     else:
+        print(
+            "FETCH FAILED, iD: ", _worker_dataset.get_replica_info().replica_id
+        )
         success = False
         batch = None
 
@@ -323,8 +327,6 @@ class _MultiWorkerIter(object):
         cyclic: bool,
         cycle_num: int,
         prefetch: int,
-        pin_memory: bool = False,
-        pin_device_id: int = 0,
         worker_fn: Callable = _worker_fn,
         dataset_len: int = None,
         timeout: int = 120,
@@ -337,8 +339,6 @@ class _MultiWorkerIter(object):
         self._rcvd_idx = 0
         self._sent_idx = 0
         self._worker_fn = worker_fn
-        self._pin_memory = pin_memory
-        self._pin_device_id = pin_device_id
         self._timeout = timeout
 
         self.is_train = is_train
@@ -414,11 +414,15 @@ class _MultiWorkerIter(object):
                     else:
                         self._push_next()
                 else:
-                    # TODO: convert to provided context here?
-                    if self._pin_memory:
-                        batch = _as_in_context(
-                            batch, context.cpu_pinned(self._pin_device_id)
-                        )
+                    # either pin to cpu memory, or return with the right context straight away
+                    batch = {
+                        k: v.as_in_context(self.ctx)
+                        if isinstance(
+                            v, NDArray
+                        )  # context.cpu_pinned(self.pin_device_id)
+                        else v
+                        for k, v in batch.items()
+                    }
                     return batch
             except multiprocessing.context.TimeoutError:
                 msg = """Worker timed out after {} seconds. This might be caused by \n
@@ -480,10 +484,6 @@ class ParallelDataLoader(object):
         into a batch.
     num_workers
         The number of multiprocessing workers to use for data preprocessing.
-    pin_memory
-        If ``True``, the dataloader will copy NDArrays into pinned memory
-        before returning them. Copying from CPU pinned memory to GPU is faster
-        than from normal CPU memory.
     pin_device_id
         The device id to use for allocating pinned memory if pin_memory is ``True``
     prefetch
@@ -500,27 +500,24 @@ class ParallelDataLoader(object):
         self,
         dataset: Dataset,
         transformation: Transformation,
+        cyclic: bool,
         is_train: bool,
-        ctx: mx.Context,  # TODO: check how to use properly, currently not in use
-        dtype: DType = np.float32,
-        batch_size: int = None,
+        batch_size: int,
         shuffle: bool = False,
         batchify_fn: Callable = None,
-        num_workers: int = 0,
-        pin_memory: bool = False,
-        pin_device_id: int = 0,
+        ctx: mx.Context = None,
+        dtype: DType = np.float32,
         prefetch: int = None,
-        cyclic: bool = False,
+        num_workers: int = 0,
     ):
-        self.cyclic = cyclic  # indicates cyclic nature of underlying dataset
-        self.ctx = ctx  # the context the computations are happening in
+        self.cyclic = (
+            cyclic  # indicates that we want to cycle through the dataset
+        )
         self.dtype = dtype
         self.is_train = is_train
         self.transformation = transformation
+        self.ctx = ctx
         self.batch_size = batch_size
-
-        self.pin_memory = pin_memory
-        self.pin_device_id = pin_device_id
 
         self.num_workers = num_workers if num_workers >= 0 else 0
         self.worker_pool = None
@@ -576,19 +573,22 @@ class ParallelDataLoader(object):
                         return
 
                     # make them into a single batch
-                    ret = self.batchify_fn(
+                    batch = self.batchify_fn(
                         data=sample_batch,
                         parallel_processing=False,
                         dtype=self.dtype,
                     )
 
-                    # TODO: convert to provided context here?
-                    # pin them into memory for faster copying into GPU memory
-                    if self.pin_memory:
-                        ret = _as_in_context(
-                            ret, context.cpu_pinned(self.pin_device_id)
-                        )
-                    yield ret
+                    # either pin to cpu memory, or return with the right context straight away
+                    batch = {
+                        k: v.as_in_context(self.ctx)
+                        if isinstance(
+                            v, NDArray
+                        )  # context.cpu_pinned(self.pin_device_id)
+                        else v
+                        for k, v in batch.items()
+                    }
+                    yield batch
 
             return same_process_iter()
         else:
@@ -602,8 +602,6 @@ class ParallelDataLoader(object):
                 ctx=self.ctx,
                 is_train=self.is_train,
                 cyclic=self.cyclic,
-                pin_memory=self.pin_memory,
-                pin_device_id=self.pin_device_id,
                 worker_fn=_worker_fn,
                 prefetch=self.prefetch,
                 dataset_len=self.dataset_len,

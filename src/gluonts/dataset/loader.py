@@ -76,6 +76,7 @@ class DataLoader(Iterable[DataEntry]):
         self.dtype = dtype
         self.is_train = is_train
         self.transform = transform
+        self.cyclic = cyclic
 
         # TODO: think about what a good value is, probably 0, and if multiprocessing=True, then what is below
         if num_workers is None:
@@ -85,17 +86,16 @@ class DataLoader(Iterable[DataEntry]):
                 list(dataset)
             ), "Cannot have more workers than dataset entries currently."
             self.num_workers = num_workers
-        self.cyclic = cyclic
 
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
             transformation=self.transform,
+            cyclic=self.cyclic,
             is_train=self.is_train,
             batch_size=self.batch_size,
-            dtype=self.dtype,
             ctx=ctx,
+            dtype=self.dtype,
             num_workers=self.num_workers,
-            cyclic=self.cyclic,
             **kwargs,
         )
 

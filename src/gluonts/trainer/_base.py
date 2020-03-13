@@ -75,11 +75,11 @@ class Trainer:
     ----------
     ctx
     epochs
-        Number of epochs that the network will train (default: 100).
+        Number of epochs that the network will train (default: 1).
     batch_size
         Number of examples in each batch (default: 32).
     num_batches_per_epoch
-        Number of batches at each epoch (default: 50).
+        Number of batches at each epoch (default: 100).
     learning_rate
         Initial learning rate (default: :math:`10^{-3}`).
     learning_rate_decay_factor
@@ -231,14 +231,7 @@ class Trainer:
                             if self.halt:
                                 break
 
-                            # TODO: make sure that 'as_in_context' is best way to handle this
-                            # TODO: even copying from shared cpu memory to non shared cpu context was necessary
-                            # Select and copy relevant data from CPU or shared
-                            # CPU memory to correct context, i.e. CPU or GPU
-                            inputs = [
-                                data_entry[k].as_in_context(self.ctx)
-                                for k in input_names
-                            ]
+                            inputs = [data_entry[k] for k in input_names]
 
                             with mx.autograd.record():
                                 output = net(*inputs)
@@ -259,9 +252,8 @@ class Trainer:
                             epoch_loss.update(None, preds=loss)
                             it.set_postfix(
                                 ordered_dict={
-                                    "epoch": f"{epoch_no + 1}/{self.epochs}",
                                     ("" if is_training else "validation_")
-                                    + "avg_epoch_loss": loss_value(epoch_loss),
+                                    + "avg_epoch_loss": loss_value(epoch_loss)
                                 },
                                 refresh=False,
                             )
