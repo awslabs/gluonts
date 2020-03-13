@@ -16,6 +16,7 @@ import io
 import sys
 import multiprocessing
 import multiprocessing.queues
+import time
 from multiprocessing.reduction import ForkingPickler, DupFd, recv_handle
 from multiprocessing.pool import ThreadPool, Pool
 from multiprocessing import Queue
@@ -142,6 +143,7 @@ def _as_in_context(data, ctx):
 _worker_dataset = None
 _worker_dataset_iterator = None
 _worker_iterator_reset_num = None
+_worker_iterator_exhausted_indicator = None
 _worker_tansformation = (
     None  # TODO: maybe unnecessary, added during InferenceDataLoader debug
 )
@@ -180,12 +182,12 @@ def _worker_initializer(
     global _worker_tansformation
     global _worker_iterator_reset_num
 
-    # indicates how often the iterator has been reset
-    _worker_iterator_reset_num = 0
     # replicate dataset
     _worker_dataset = copy.deepcopy(dataset)
     # replicate transformation
     _worker_tansformation = copy.deepcopy(transformation)
+    # indicates how often the iterator has been reset
+    _worker_iterator_reset_num = 0
 
     # get unique worker id
     worker_id = int(worker_id_queue.get())
@@ -235,6 +237,7 @@ def _worker_fn(
 
     global _worker_dataset_iterator
     global _worker_iterator_reset_num
+    global _worker_iterator_exhausted_indicator
 
     # TODO: remove debug print
     # print(
@@ -274,9 +277,12 @@ def _worker_fn(
             data=transformed_data, dtype=dtype, parallel_processing=True
         )
     else:
-        print(
-            "FETCH FAILED, iD: ", _worker_dataset.get_replica_info().replica_id
-        )
+        # the second time without being able to provide a batch we want to delay calling them again
+        # on fist exhaustion they should not be delayed, since they need to indicate depletion
+        if _worker_iterator_exhausted_indicator:
+            time.sleep(0.05)
+        else:
+            _worker_iterator_exhausted_indicator = True
         success = False
         batch = None
 
@@ -299,6 +305,7 @@ def _worker_reset_iterator(
     global _worker_dataset_iterator
     global _worker_tansformation
     global _worker_iterator_reset_num
+    global _worker_iterator_exhausted_indicator
 
     _worker_dataset_iterator = sequential_sample_generator(
         dataset=_worker_dataset,
@@ -308,6 +315,8 @@ def _worker_reset_iterator(
     )
     assert isinstance(_worker_iterator_reset_num, int)
     _worker_iterator_reset_num += 1
+    # indicates whether the iterator was previously depleted
+    _worker_iterator_exhausted_indicator = False
 
 
 # TODO: test that threads terminate correctly (merged code of mxnet 1.4 and newest
