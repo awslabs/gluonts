@@ -52,7 +52,7 @@ class DataLoader(Iterable[DataEntry]):
         Floating point type to use.
     num_workers
         Number of workers.
-    resample
+    cyclic
         Indicates whether the dataset is traversed potentially multiple times, helper variable
 
     """
@@ -67,7 +67,7 @@ class DataLoader(Iterable[DataEntry]):
         ctx: mx.Context,
         dtype: DType = np.float32,
         num_workers: int = None,
-        resample: bool = False,
+        cyclic: bool = False,
         **kwargs
     ) -> None:
         # conversion from iterator to list
@@ -85,7 +85,7 @@ class DataLoader(Iterable[DataEntry]):
                 list(dataset)
             ), "Cannot have more workers than dataset entries currently."
             self.num_workers = num_workers
-        self.resample = resample
+        self.cyclic = cyclic
 
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
@@ -95,7 +95,7 @@ class DataLoader(Iterable[DataEntry]):
             dtype=self.dtype,
             ctx=ctx,
             num_workers=self.num_workers,
-            resample=self.resample,
+            cyclic=self.cyclic,
             **kwargs,
         )
 
@@ -150,7 +150,7 @@ class TrainDataLoader(DataLoader):
             dtype=dtype,
             is_train=True,
             shuffle=shuffle_for_training,
-            resample=True,
+            cyclic=True,
             **kwargs,
         )
 
@@ -191,7 +191,7 @@ class ValidationDataLoader(DataLoader):
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
-            resample=False,
+            cyclic=False,
             **kwargs,
         )
 
@@ -214,7 +214,7 @@ class InferenceDataLoader(DataLoader):
             batch_size=batch_size,
             ctx=ctx,
             dtype=dtype,
-            resample=False,
+            cyclic=False,
             # Currently the is a bug with multi processing here,
             # see: _worker_fn in parallelized_loader.py for explanation
             num_workers=0,

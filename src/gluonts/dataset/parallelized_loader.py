@@ -151,7 +151,7 @@ def _worker_initializer(
     num_workers: int,
     transformation: Transformation,
     is_train: bool,
-    resample: bool,
+    cyclic: bool,
     worker_id_queue: Queue,
 ):
     """Initialier for processing pool."""
@@ -171,8 +171,8 @@ def _worker_initializer(
     #     batch_size,
     #     "is_train: ",
     #     is_train,
-    #     "resample: ",
-    #     resample,
+    #     "cyclic: ",
+    #     cyclic,
     # )
 
     global _worker_dataset
@@ -195,20 +195,20 @@ def _worker_initializer(
         )  # calculate offsets for different replicas
         end_index = (
             None
-            if resample
+            if cyclic
             else int(((worker_id + 1) / num_workers) * dataset_len)
-        )  # loop infinitely if resample
+        )  # loop infinitely if cyclic
         _worker_dataset.set_replica_info(
             ReplicaInfo(start_index=start_index, end_index=end_index)
         )
 
 
-def sequential_sample_generator(dataset, transformation, is_train, resample):
+def sequential_sample_generator(dataset, transformation, is_train, cyclic):
     while True:
         for sample in transformation(data_it=dataset, is_train=is_train):
             yield sample
         # Dont cycle if not training time
-        if not resample:
+        if not cyclic:
             return
 
 
@@ -219,7 +219,7 @@ def _worker_fn(
     batchify_fn: Callable,
     dtype: DType,
     is_train: bool,
-    resample: bool,
+    cyclic: bool,
     reset_iterator,
 ):
     """Function for processing data in worker process."""
@@ -238,9 +238,11 @@ def _worker_fn(
 
     # reset or initialize the iterator
     if reset_iterator:
-        _worker_reset_iterator(is_train, resample)
+        _worker_reset_iterator(is_train, cyclic)
 
-    assert isinstance(_worker_dataset_iterator, Iterable), "Dataset not Iterable."
+    assert isinstance(
+        _worker_dataset_iterator, Iterable
+    ), "Dataset not Iterable."
     transformed_data = list(
         itertools.islice(_worker_dataset_iterator, batch_size)
     )
@@ -264,7 +266,7 @@ def _worker_fn(
 # initialize or reset iterators
 # needed because some iterators are not cyclic
 def _worker_reset_iterator(
-    is_train: bool, resample: bool,
+    is_train: bool, cyclic: bool,
 ):
     global _worker_dataset
     global _worker_dataset_iterator
@@ -274,7 +276,7 @@ def _worker_reset_iterator(
         dataset=_worker_dataset,
         transformation=_worker_tansformation,
         is_train=is_train,
-        resample=resample,
+        cyclic=cyclic,
     )
 
 
@@ -292,7 +294,7 @@ class _MultiWorkerIter(object):
         is_train: bool,
         num_workers: int,
         batch_size: int,
-        resample: bool,
+        cyclic: bool,
         prefetch: int,
         pin_memory: bool = False,
         pin_device_id: int = 0,
@@ -315,14 +317,14 @@ class _MultiWorkerIter(object):
         self.is_train = is_train
         self.dtype = dtype
         self.ctx = ctx
-        self.resample = resample
+        self.cyclic = cyclic
         self.num_workers = num_workers
         self.batch_size = batch_size
         self.dataset_len = dataset_len
 
         # cycle dataset ids to draw batches from them
         self._iter = itertools.cycle(range(num_workers))
-        # in case of resample=False iterators can be exhausted
+        # in case of cyclic=False iterators can be exhausted
         self._exhausted_iterators: set = set()
 
         # pre-fetch
@@ -356,7 +358,7 @@ class _MultiWorkerIter(object):
                 self._batchify_fn,
                 self.dtype,
                 self.is_train,
-                self.resample,
+                self.cyclic,
                 reset_iterator,
             ),
         )
@@ -397,10 +399,6 @@ class _MultiWorkerIter(object):
                         return []
                     else:
                         self._push_next()
-                # TODO: now not neded anymore due to removal of resetting in worker fun
-                # elif dataset_id in self._exhausted_iterators:
-                #     # can happen due to pre-fetching
-                #     success = False
                 else:
                     # TODO: convert to provided context here?
                     if self._pin_memory:
@@ -497,9 +495,9 @@ class ParallelDataLoader(object):
         pin_memory: bool = False,
         pin_device_id: int = 0,
         prefetch: int = None,
-        resample: bool = False,
+        cyclic: bool = False,
     ):
-        self.resample = resample
+        self.cyclic = cyclic
         self.ctx = ctx
         self.dtype = dtype
         self.is_train = is_train
@@ -534,7 +532,7 @@ class ParallelDataLoader(object):
                     self.num_workers,
                     self.transform,
                     self.is_train,
-                    self.resample,
+                    self.cyclic,
                     self.worker_id_queue,
                 ],
             )
@@ -546,7 +544,7 @@ class ParallelDataLoader(object):
     def __iter__(self):
         if self.num_workers == 0:
             generator = sequential_sample_generator(
-                self.dataset, self.transform, self.is_train, self.resample
+                self.dataset, self.transform, self.is_train, self.cyclic
             )
 
             def same_process_iter():
@@ -586,7 +584,7 @@ class ParallelDataLoader(object):
                 dtype=self.dtype,
                 ctx=self.ctx,
                 is_train=self.is_train,
-                resample=self.resample,
+                cyclic=self.cyclic,
                 pin_memory=self.pin_memory,
                 pin_device_id=self.pin_device_id,
                 worker_fn=_worker_fn,
