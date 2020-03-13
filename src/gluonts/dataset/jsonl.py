@@ -89,6 +89,18 @@ class JsonLinesFile:
 
                 # --- dataset specific ---
 
+                # TODO: remove debug print
+                # print(
+                #     f"replica: ",
+                #     self.replica_info.replica_id,
+                #     "start: ",
+                #     self.replica_info.start_index,
+                #     "end: ",
+                #     self.replica_info.end_index,
+                #     "line_number: ",
+                #     line_number,
+                # )
+
                 span = Span(path=self.path, line=line_number)
                 try:
                     yield Line(json.loads(raw), span=span)

@@ -89,7 +89,7 @@ class DataLoader(Iterable[DataEntry]):
 
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
-            transform=self.transform,
+            transformation=self.transform,
             is_train=self.is_train,
             batch_size=self.batch_size,
             dtype=self.dtype,

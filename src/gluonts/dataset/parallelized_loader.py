@@ -140,6 +140,7 @@ def _as_in_context(data, ctx):
 # NOT SHARED ACROSS PROCESSES !!!
 _worker_dataset = None
 _worker_dataset_iterator = None
+_worker_iterator_reset_num = None
 _worker_tansformation = (
     None  # TODO: maybe unnecessary, added during InferenceDataLoader debug
 )
@@ -150,7 +151,6 @@ def _worker_initializer(
     dataset_len: int,
     num_workers: int,
     transformation: Transformation,
-    is_train: bool,
     cyclic: bool,
     worker_id_queue: Queue,
 ):
@@ -177,18 +177,20 @@ def _worker_initializer(
 
     global _worker_dataset
     global _worker_tansformation
+    global _worker_iterator_reset_num
 
+    # indicates how often the iterator has been reset
+    _worker_iterator_reset_num = 0
     # replicate dataset
     _worker_dataset = copy.deepcopy(dataset)
-
     # replicate transformation
     _worker_tansformation = copy.deepcopy(transformation)
 
-    # convert worker name to id
+    # get unique worker id
     worker_id = int(worker_id_queue.get())
     multiprocessing.current_process().name = f"worker_{worker_id}"
 
-    # associate each dataset with a worker
+    # propagate worker information to dataset
     if isinstance(_worker_dataset, (FileDataset, ListDataset)):
         start_index = int(
             (worker_id / num_workers) * dataset_len
@@ -199,7 +201,11 @@ def _worker_initializer(
             else int(((worker_id + 1) / num_workers) * dataset_len)
         )  # loop infinitely if cyclic
         _worker_dataset.set_replica_info(
-            ReplicaInfo(start_index=start_index, end_index=end_index)
+            ReplicaInfo(
+                start_index=start_index,
+                end_index=end_index,
+                replica_id=worker_id,
+            )
         )
 
 
@@ -214,13 +220,12 @@ def sequential_sample_generator(dataset, transformation, is_train, cyclic):
 
 # TODO: for some reason cannot pickle 'future_observed_values' or 'future_target' when using InferenceDataLoader
 def _worker_fn(
-    dataset_id: int,
     batch_size: int,
     batchify_fn: Callable,
     dtype: DType,
     is_train: bool,
     cyclic: bool,
-    reset_iterator,
+    cycle_num: int,
 ):
     """Function for processing data in worker process."""
     # pylint: disable=unused-argument
@@ -228,6 +233,7 @@ def _worker_fn(
     # preserving dataset as global variable can save tons of overhead and is safe in new process
 
     global _worker_dataset_iterator
+    global _worker_iterator_reset_num
 
     # TODO: remove debug print
     # print(
@@ -236,8 +242,22 @@ def _worker_fn(
     #     _worker_dataset_iterator is None,
     # )
 
-    # reset or initialize the iterator
-    if reset_iterator:
+    # initialize, or reset the iterator at each cycle
+    assert isinstance(_worker_iterator_reset_num, int)
+    if (_worker_iterator_reset_num < cycle_num) and (
+        cycle_num == 1 or not cyclic
+    ):
+        # TODO: remove debug print
+        # print(
+        #     "CYCLE NUM: ",
+        #     cycle_num,
+        #     "REPLICA ID:",
+        #     _worker_dataset.get_replica_info().replica_id,
+        #     "worker reset num: ",
+        #     _worker_iterator_reset_num,
+        #     "cycle_num",
+        #     cycle_num,
+        # )
         _worker_reset_iterator(is_train, cyclic)
 
     assert isinstance(
@@ -256,9 +276,12 @@ def _worker_fn(
         success = False
         batch = None
 
+    assert isinstance(_worker_dataset, (FileDataset, ListDataset))
+    dataset_replica_id = _worker_dataset.get_replica_info().replica_id
+
     buf = io.BytesIO()
     ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
-        (success, dataset_id, batch)
+        (success, dataset_replica_id, batch)
     )
     return buf.getvalue()
 
@@ -271,6 +294,7 @@ def _worker_reset_iterator(
     global _worker_dataset
     global _worker_dataset_iterator
     global _worker_tansformation
+    global _worker_iterator_reset_num
 
     _worker_dataset_iterator = sequential_sample_generator(
         dataset=_worker_dataset,
@@ -278,6 +302,8 @@ def _worker_reset_iterator(
         is_train=is_train,
         cyclic=cyclic,
     )
+    assert isinstance(_worker_iterator_reset_num, int)
+    _worker_iterator_reset_num += 1
 
 
 # TODO: test that threads terminate correctly (merged code of mxnet 1.4 and newest
@@ -295,6 +321,7 @@ class _MultiWorkerIter(object):
         num_workers: int,
         batch_size: int,
         cyclic: bool,
+        cycle_num: int,
         prefetch: int,
         pin_memory: bool = False,
         pin_device_id: int = 0,
@@ -322,44 +349,31 @@ class _MultiWorkerIter(object):
         self.batch_size = batch_size
         self.dataset_len = dataset_len
 
-        # cycle dataset ids to draw batches from them
-        self._iter = itertools.cycle(range(num_workers))
         # in case of cyclic=False iterators can be exhausted
         self._exhausted_iterators: set = set()
 
         # pre-fetch
-        self.prefetch = max(num_workers, prefetch)
+        self.cycle_num = cycle_num
+        self.prefetch = prefetch
         for i in range(self.prefetch):
-            if i < self.num_workers:
-                # sets up / creates the iterators over the dataset
-                self._push_next(reset_iterator=True)
-            else:
-                self._push_next()
+            self._push_next()
 
     def __len__(self):
         return self.dataset_len
 
-    def _push_next(self, reset_iterator=False):
+    def _push_next(self):
         """Assign next batch workload to workers."""
-        found_next = False
-        dataset_id = None
-
-        # find next valid id, there should always be at least one
-        while not found_next:
-            dataset_id = next(self._iter)
-            if dataset_id not in self._exhausted_iterators:
-                found_next = True
-
+        # Optimally one would want to task worker that have none depleted iterators,
+        # however, this does not seem to be possible with a worker pool
         async_ret = self._worker_pool.apply_async(
             self._worker_fn,
             (
-                dataset_id,
                 self.batch_size,
                 self._batchify_fn,
                 self.dtype,
                 self.is_train,
                 self.cyclic,
-                reset_iterator,
+                self.cycle_num,
             ),
         )
         self._data_buffer[self._sent_idx] = async_ret
@@ -432,13 +446,14 @@ class _MultiWorkerIter(object):
             yield next_batch
 
 
+# TODO: think about how a multiprocessing.Manager() would complement this implementation
 class ParallelDataLoader(object):
     """Loads data from a dataset and returns mini-batches of data.
     Parameters
     ----------
     dataset
         The dataset from which to load data.
-    transform
+    transformation
         A transformation to apply to each entry in the dataset.
     batch_size
         Size of mini-batch.
@@ -484,7 +499,7 @@ class ParallelDataLoader(object):
     def __init__(
         self,
         dataset: Dataset,
-        transform: Transformation,
+        transformation: Transformation,
         is_train: bool,
         ctx: mx.Context,  # TODO: check how to use properly, currently not in use
         dtype: DType = np.float32,
@@ -497,11 +512,11 @@ class ParallelDataLoader(object):
         prefetch: int = None,
         cyclic: bool = False,
     ):
-        self.cyclic = cyclic
-        self.ctx = ctx
+        self.cyclic = cyclic  # indicates cyclic nature of underlying dataset
+        self.ctx = ctx  # the context the computations are happening in
         self.dtype = dtype
         self.is_train = is_train
-        self.transform = transform
+        self.transformation = transformation
         self.batch_size = batch_size
 
         self.pin_memory = pin_memory
@@ -516,9 +531,11 @@ class ParallelDataLoader(object):
         self.dataset = dataset
         self.dataset_len = len(list(dataset))
 
-        self.worker_id_queue: Queue = Queue()
+        # indicates the current cycle, needed for resetting iterators at each cycle
+        self.cycle_num = 0
 
         # generate unique ids for processes
+        self.worker_id_queue: Queue = Queue()
         for i in range(num_workers):
             self.worker_id_queue.put(i)
 
@@ -530,8 +547,7 @@ class ParallelDataLoader(object):
                     self.dataset,
                     self.dataset_len,
                     self.num_workers,
-                    self.transform,
-                    self.is_train,
+                    self.transformation,
                     self.cyclic,
                     self.worker_id_queue,
                 ],
@@ -542,9 +558,10 @@ class ParallelDataLoader(object):
             self.batchify_fn = batchify_fn
 
     def __iter__(self):
+        self.cycle_num += 1
         if self.num_workers == 0:
             generator = sequential_sample_generator(
-                self.dataset, self.transform, self.is_train, self.cyclic
+                self.dataset, self.transformation, self.is_train, self.cyclic
             )
 
             def same_process_iter():
@@ -590,6 +607,7 @@ class ParallelDataLoader(object):
                 worker_fn=_worker_fn,
                 prefetch=self.prefetch,
                 dataset_len=self.dataset_len,
+                cycle_num=self.cycle_num,
             )
 
             return iter(multi_worker)

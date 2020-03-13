@@ -43,6 +43,7 @@ class ReplicaInfo(NamedTuple):
     # total_length: int  # TODO: might be one possibility to cache total dataset length
     start_index: Optional[int] = 0
     end_index: Optional[int] = None  # by default until end
+    replica_id: Optional[int] = 0
     # cached: Optional[bool] = False  # TODO: implement caching logic
 
 
