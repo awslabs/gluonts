@@ -94,7 +94,7 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
 
         return self.curr_lr
 
-    def step(self, metric_value: float) -> None:
+    def step(self, metric_value: float) -> bool:
         """
         Inform the scheduler of the new value of the metric that is being
         optimized. This method should be invoked at regular intervals (e.g.
@@ -104,6 +104,10 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         ----------
         metric_value
             Value of the metric that is being optimized.
+
+        Returns
+        -------
+        bool value indicating, whether to continue training
         """
         if self.curr_lr is None:
             self.curr_lr = self.base_lr
@@ -117,8 +121,14 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
             self.best_metric = metric_value
             self.prev_change = self.epoch_no
 
-        if self.epoch_no - self.prev_change >= self.patience:
+        if (
+            self.epoch_no - self.prev_change >= self.patience
+            or not np.isfinite(metric_value)
+        ):
+            if self.curr_lr == self.min_lr:
+                return False
             self.curr_lr = max(self.min_lr, self.decay_factor * self.curr_lr)
             self.prev_change = self.epoch_no
 
         self.epoch_no += 1
+        return True
