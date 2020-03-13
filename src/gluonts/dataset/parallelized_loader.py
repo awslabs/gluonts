@@ -144,9 +144,7 @@ _worker_dataset = None
 _worker_dataset_iterator = None
 _worker_iterator_reset_num = None
 _worker_iterator_exhausted_indicator = None
-_worker_tansformation = (
-    None  # TODO: maybe unnecessary, added during InferenceDataLoader debug
-)
+_worker_tansformation = None
 
 
 def _worker_initializer(
@@ -474,27 +472,12 @@ class ParallelDataLoader(object):
         MXNet context to use to store data.
     dtype
         Floating point type to use.
-
     shuffle
         Whether to shuffle the samples.
     sampler
         The sampler to use. Either specify sampler or shuffle, not both.
-    last_batch
-        How to handle the last batch if batch_size does not evenly divide
-        `len(dataset)`.
-        keep - A batch with less samples than previous batches is returned.
-        discard - The last batch is discarded if its incomplete.
-        rollover - The remaining samples are rolled over to the next epoch.
-    batch_sampler
-        A sampler that returns mini-batches. Do not specify batch_size,
-        shuffle, sampler, and last_batch if batch_sampler is specified.
-    batchify_fn
-        Callback function to allow users to specify how to merge samples
-        into a batch.
     num_workers
         The number of multiprocessing workers to use for data preprocessing.
-    pin_device_id
-        The device id to use for allocating pinned memory if pin_memory is ``True``
     prefetch
         The number of prefetching batches only works if `num_workers` > 0.
         If `prefetch` > 0, it allow worker process to prefetch certain batches before

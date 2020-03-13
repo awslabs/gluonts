@@ -53,7 +53,7 @@ class DataLoader(Iterable[DataEntry]):
     num_workers
         Number of workers.
     cyclic
-        Indicates whether the dataset is traversed potentially multiple times, helper variable
+        Indicates whether the dataset is traversed potentially multiple times.
 
     """
 
