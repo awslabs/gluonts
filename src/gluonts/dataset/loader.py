@@ -13,7 +13,6 @@
 
 # Standard library imports
 import functools
-import itertools
 from typing import Any, Dict, Iterable, Iterator
 
 # Third-party imports
@@ -26,7 +25,7 @@ from gluonts.core.component import DType
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.transform import Transformation
 
-from .util import take, batcher, dct_reduce, shuffler
+from .util import take, batcher, dct_reduce, shuffler, cycle
 
 DataBatch = Dict[str, Any]
 
