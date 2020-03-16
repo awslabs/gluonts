@@ -87,8 +87,6 @@ class DataLoader(Iterable[DataEntry]):
             ), "Cannot have more workers than dataset entries currently."
             self.num_workers = num_workers
 
-        self.num_workers = 0
-
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
             transformation=self.transform,
