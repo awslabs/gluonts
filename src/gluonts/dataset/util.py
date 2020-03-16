@@ -159,3 +159,10 @@ def shuffler(stream: Iterable[T], batch_size: int) -> Iterator[T]:
     for batch in batcher(stream, batch_size):
         random.shuffle(batch)
         yield from batch
+
+
+def cycle(it):
+    """Like `itertools.cycle`, but does not store the data."""
+
+    while True:
+        yield from it
