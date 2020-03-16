@@ -87,8 +87,6 @@ class DataLoader(Iterable[DataEntry]):
             ), "Cannot have more workers than dataset entries currently."
             self.num_workers = num_workers
 
-        self.num_workers = 0
-
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
             transformation=self.transform,
@@ -139,7 +137,7 @@ class TrainDataLoader(DataLoader):
         num_batches_per_epoch: int,
         dtype: DType = np.float32,
         shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 10,
+        num_batches_for_shuffling: int = 10,  # TODO: this does not worc currently
         **kwargs
     ) -> None:
         assert dataset, "empty dataset"

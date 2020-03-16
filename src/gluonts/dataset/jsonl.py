@@ -61,26 +61,32 @@ class JsonLinesFile:
         What worker this dataset is handled by. Default: WorkerInfo()
     """
 
-    def __init__(self, path, replica_info=ReplicaInfo()) -> None:
+    def __init__(
+        self, path, replica_info=ReplicaInfo(), burnt_in=False
+    ) -> None:
         self.path = path
         self.replica_info = replica_info
         self._len = None  # cache the calculated length
-        self._burn_in = True
+        # indicates in the case of cyclic data sets (end_index is None) that the burn in has
+        # been done once: (it is reset whenever the ReplicaInfo() is set)
+        self._burnt_in = burnt_in
         # TODO: implement caching here
 
     def __iter__(self):
         with open(self.path) as jsonl_file:
-            for line_number, raw in enumerate(jsonl_file, start=1):
+            for line_number, raw in enumerate(jsonl_file):
                 # TODO: I think this iteration logic, as well as total_dataset_len, start_index
                 #  and end_index should be properties of the dataset. Total_dataset_len should be
                 #  metadata. What is done to return an entry should be the only dataset type specific thing.
 
                 # skip until start_index on first pass, aka do burn_in
-                if self._burn_in:
-                    if line_number < self.replica_info.start_index:
-                        continue
-                    else:  # line_number == self.replica_info.start_index
-                        self._burn_in = False
+                # in case of cyclic data sets always do burn in, in case of non cyclic ones, only once
+                if line_number < self.replica_info.start_index and (
+                    self.replica_info.end_index is not None
+                    or not self._burnt_in
+                ):
+                    continue
+                self._burnt_in = True
 
                 # only yield until, but excluding, the end_index, if specified
                 if self.replica_info.end_index is not None:

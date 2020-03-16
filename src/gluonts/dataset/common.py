@@ -201,19 +201,32 @@ class FileDataset(Dataset):
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
         self._len = None
         self.replica_info = replica_info
+        # indicates in the case of cyclic data sets (end_index is None) that the burn in has
+        # been done once: (it is reset whenever the ReplicaInfo() is set)
+        self._burnt_in = False
         if not self.files():
             raise OSError(f"no valid file found in {path}")
+        assert not (len(self.files()) > 1 and replica_info.replica_id > 0), (
+            "Currently cannot handle multiple "
+            "underlying JsonLineFiles in "
+            "multiprocessing mode. "
+        )
 
     def __iter__(self) -> Iterator[DataEntry]:
         for path in self.files():
             for line in jsonl.JsonLinesFile(
-                path=path, replica_info=self.replica_info
+                path=path,
+                replica_info=self.replica_info,
+                burnt_in=self._burnt_in,
             ):
                 data = self.process(line.content)
                 data["source"] = SourceContext(
                     source=line.span.path, row=line.span.line
                 )
+                if self.replica_info.replica_id != 0:
+                    pass
                 yield data
+        self._burnt_in = True
 
     def __len__(self):
         if self._len is None:
@@ -221,7 +234,9 @@ class FileDataset(Dataset):
                 [
                     len(
                         jsonl.JsonLinesFile(
-                            path=path, replica_info=self.replica_info
+                            path=path,
+                            replica_info=self.replica_info,
+                            burnt_in=False,
                         )
                     )
                     for path in self.files()
@@ -251,6 +266,12 @@ class FileDataset(Dataset):
 
     def set_replica_info(self, replica_info: ReplicaInfo):
         self.replica_info = replica_info
+        self._burnt_in = False
+        assert not (len(self.files()) > 1 and replica_info.replica_id > 0), (
+            "Currently cannot handle multiple "
+            "underlying JsonLineFiles in "
+            "multiprocessing mode. "
+        )
 
     def get_replica_info(self):
         return self.replica_info
@@ -281,24 +302,29 @@ class ListDataset(Dataset):
         replica_info=ReplicaInfo(),
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
-        self.list_data = data_iter  # TODO do refactor to represent data_iter
+        self.list_data = list(
+            data_iter
+        )  # TODO do refactor to represent data_iter
         self.replica_info = replica_info
-        self._burn_in = True
+        # indicates in the case of cyclic data sets (end_index is None) that the burn in has
+        # been done once: (it is reset whenever the ReplicaInfo() is set)
+        self._burnt_in = False
         # TODO: implement caching here
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
-        for row_number, data in enumerate(self.list_data, start=1):
+        for row_number, data in enumerate(self.list_data):
             # TODO: I think this iteration logic, as well as total_dataset_len, start_index
             #  and end_index should be properties of the dataset. Total_dataset_len should be
             #  metadata. What is done to return an entry should be the only dataset type specific thing.
 
             # skip until start_index on first pass, aka do burn_in
-            if self._burn_in:
-                if row_number < self.replica_info.start_index:
-                    continue
-                else:  # line_number == self.replica_info.start_index
-                    self._burn_in = False
+            # in case of cyclic data sets always do burn in, in case of non cyclic ones, only once
+            if row_number < self.replica_info.start_index and (
+                self.replica_info.end_index is not None or not self._burnt_in
+            ):
+                continue
+            self._burnt_in = True
 
             # only yield until, but excluding, the end_index, if specified
             if self.replica_info.end_index is not None:
@@ -306,6 +332,19 @@ class ListDataset(Dataset):
                     return
 
             # --- dataset specific ---
+
+            # TODO: remove debug print
+            # if self.replica_info.end_index is not None:
+            #     print(
+            #         f"replica: ",
+            #         self.replica_info.replica_id,
+            #         "start: ",
+            #         self.replica_info.start_index,
+            #         "end: ",
+            #         self.replica_info.end_index,
+            #         "line_number: ",
+            #         row_number,
+            #     )
 
             data = self.process(data)
             data["source"] = SourceContext(source=source_name, row=row_number)
@@ -316,6 +355,7 @@ class ListDataset(Dataset):
 
     def set_replica_info(self, replica_info: ReplicaInfo):
         self.replica_info = replica_info
+        self._burnt_in = False
 
     def get_replica_info(self):
         return self.replica_info

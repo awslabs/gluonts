@@ -10,20 +10,24 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+
 import itertools
 import pickle
 import io
+import random
 import sys
-import multiprocessing
-import multiprocessing.queues
 import time
-from multiprocessing.reduction import ForkingPickler, DupFd, recv_handle
-from multiprocessing.pool import ThreadPool, Pool
-from multiprocessing import Queue
-from typing import Callable, Iterable
 import copy
 
 import numpy as np
+from typing import Callable, Iterable
+
+import multiprocessing
+import multiprocessing.queues
+from multiprocessing.reduction import ForkingPickler, DupFd
+from multiprocessing.pool import ThreadPool, Pool
+from multiprocessing import Queue
+
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset, FileDataset, ListDataset
 from gluonts.dataset.util import ReplicaInfo
@@ -139,12 +143,12 @@ def _as_in_context(data, ctx):
     return data
 
 
-# NOT SHARED ACROSS PROCESSES !!!
+# GLOBAL VARIABLES NOT SHARED ACROSS PROCESSES !!!
 _worker_dataset = None
 _worker_dataset_iterator = None
+_worker_transformation = None
 _worker_iterator_reset_num = None
 _worker_iterator_exhausted_indicator = None
-_worker_tansformation = None
 
 
 def _worker_initializer(
@@ -177,13 +181,13 @@ def _worker_initializer(
     # )
 
     global _worker_dataset
-    global _worker_tansformation
+    global _worker_transformation
     global _worker_iterator_reset_num
 
     # replicate dataset
-    _worker_dataset = copy.deepcopy(dataset)
+    _worker_dataset = dataset
     # replicate transformation
-    _worker_tansformation = copy.deepcopy(transformation)
+    _worker_transformation = transformation
     # indicates how often the iterator has been reset
     _worker_iterator_reset_num = 0
 
@@ -225,6 +229,7 @@ def _worker_fn(
     batchify_fn: Callable,
     dtype: DType,
     is_train: bool,
+    shuffle: bool,
     cyclic: bool,
     cycle_num: int,
 ):
@@ -269,6 +274,9 @@ def _worker_fn(
         itertools.islice(_worker_dataset_iterator, batch_size)
     )
 
+    if shuffle:
+        random.shuffle(transformed_data)
+
     if transformed_data:
         success = True
         batch = batchify_fn(
@@ -278,7 +286,7 @@ def _worker_fn(
         # the second time without being able to provide a batch we want to delay calling them again
         # on fist exhaustion they should not be delayed, since they need to indicate depletion
         if _worker_iterator_exhausted_indicator:
-            time.sleep(0.05)
+            time.sleep(0.1)
         else:
             _worker_iterator_exhausted_indicator = True
         success = False
@@ -301,13 +309,13 @@ def _worker_reset_iterator(
 ):
     global _worker_dataset
     global _worker_dataset_iterator
-    global _worker_tansformation
+    global _worker_transformation
     global _worker_iterator_reset_num
     global _worker_iterator_exhausted_indicator
 
     _worker_dataset_iterator = sequential_sample_generator(
         dataset=_worker_dataset,
-        transformation=_worker_tansformation,
+        transformation=_worker_transformation,
         is_train=is_train,
         cyclic=cyclic,
     )
@@ -331,6 +339,7 @@ class _MultiWorkerIter(object):
         is_train: bool,
         num_workers: int,
         batch_size: int,
+        shuffle: bool,
         cyclic: bool,
         cycle_num: int,
         prefetch: int,
@@ -354,6 +363,7 @@ class _MultiWorkerIter(object):
         self.cyclic = cyclic
         self.num_workers = num_workers
         self.batch_size = batch_size
+        self.shuffle = shuffle
         self.dataset_len = dataset_len
 
         # in case of cyclic=False iterators can be exhausted
@@ -379,6 +389,7 @@ class _MultiWorkerIter(object):
                 self._batchify_fn,
                 self.dtype,
                 self.is_train,
+                self.shuffle,
                 self.cyclic,
                 self.cycle_num,
             ),
@@ -510,6 +521,7 @@ class ParallelDataLoader(object):
         self.transformation = transformation
         self.ctx = ctx
         self.batch_size = batch_size
+        self.shuffle = shuffle
 
         self.num_workers = num_workers if num_workers >= 0 else 0
         self.worker_pool = None
@@ -589,6 +601,7 @@ class ParallelDataLoader(object):
                 worker_pool=self.worker_pool,
                 num_workers=self.num_workers,
                 batch_size=self.batch_size,
+                shuffle=self.shuffle,
                 batchify_fn=self.batchify_fn,
                 dtype=self.dtype,
                 ctx=self.ctx,
