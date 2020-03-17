@@ -141,11 +141,11 @@ def _as_in_context(data, ctx):
 
 
 # GLOBAL VARIABLES NOT SHARED ACROSS PROCESSES !!!
-# _worker_dataset = None
-# _worker_dataset_iterator = None
-# _worker_transformation = None
-# _worker_iterator_latest_reset_cycle = None
-# _worker_iterator_exhausted_indicator = None
+_worker_dataset = None
+_worker_dataset_iterator = None
+_worker_transformation = None
+_worker_iterator_latest_reset_cycle = None
+_worker_iterator_exhausted_indicator = None
 
 
 def _worker_initializer(
@@ -537,10 +537,9 @@ class ParallelDataLoader(object):
         num_workers: int = 0,
     ):
         self.dataset = dataset
+        self.dataset_len = None
         if isinstance(dataset, (FileDataset, ListDataset)):
             self.dataset_len = len(dataset)
-        else:
-            self.dataset_len = None
         # indicates that we want to cycle through the dataset
         self.cyclic = cyclic
         # indicates the current cycle, needed for resetting iterators at each cycle
@@ -557,6 +556,9 @@ class ParallelDataLoader(object):
         self.prefetch = max(
             0, int(prefetch) if prefetch is not None else 2 * self.num_workers
         )
+        self.worker_pool = None
+        self.worker_manager = None
+        self.worker_id_queue = None
 
         if self.num_workers > 0:
             assert isinstance(
@@ -581,10 +583,6 @@ class ParallelDataLoader(object):
                     self.worker_id_queue,
                 ],
             )
-        else:
-            self.worker_pool = None
-            self.worker_manager = None
-            self.worker_id_queue = None
 
         if batchify_fn is None:
             self.batchify_fn = default_batchify_fn
