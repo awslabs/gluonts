@@ -141,11 +141,11 @@ def _as_in_context(data, ctx):
 
 
 # GLOBAL VARIABLES NOT SHARED ACROSS PROCESSES !!!
-_worker_dataset = None
-_worker_dataset_iterator = None
-_worker_transformation = None
-_worker_iterator_reset_num = None
-_worker_iterator_exhausted_indicator = None
+# _worker_dataset = None
+# _worker_dataset_iterator = None
+# _worker_transformation = None
+# _worker_iterator_latest_reset_cycle = None
+# _worker_iterator_exhausted_indicator = None
 
 
 def _worker_initializer(
@@ -178,19 +178,33 @@ def _worker_initializer(
     # )
 
     global _worker_dataset
+    global _worker_dataset_iterator
     global _worker_transformation
-    global _worker_iterator_reset_num
+    global _worker_iterator_latest_reset_cycle
+    global _worker_iterator_exhausted_indicator
 
-    # replicate dataset
+    # dataset replica
     _worker_dataset = dataset
+    # current dataset iterator in form of a transformation applied to the dataset
+    _worker_dataset_iterator = None
     # replicate transformation
     _worker_transformation = transformation
-    # indicates how often the iterator has been reset
-    _worker_iterator_reset_num = 0
+    # indicates which cycle the iterator has been reset last
+    _worker_iterator_latest_reset_cycle = 0
+    # indicates whether the iterator was previously depleted
+    _worker_iterator_exhausted_indicator = None
 
     # get unique worker id
     worker_id = int(worker_id_queue.get())
     multiprocessing.current_process().name = f"worker_{worker_id}"
+
+    # TODO: remove debug print
+    # print(
+    #     "PROCESS; NAME: ",
+    #     multiprocessing.current_process().name,
+    #     "ID: ",
+    #     worker_id,
+    # )
 
     # propagate worker information to dataset
     if isinstance(_worker_dataset, (FileDataset, ListDataset)):
@@ -236,7 +250,7 @@ def _worker_fn(
     # preserving dataset as global variable can save tons of overhead and is safe in new process
 
     global _worker_dataset_iterator
-    global _worker_iterator_reset_num
+    global _worker_iterator_latest_reset_cycle
     global _worker_iterator_exhausted_indicator
 
     # TODO: remove debug print
@@ -246,27 +260,40 @@ def _worker_fn(
     #     _worker_dataset_iterator is None,
     # )
 
+    # TODO: remove debug print
+    # print(
+    #     "CYCLE NUM: ",
+    #     cycle_num,
+    #     "REPLICA ID:",
+    #     _worker_dataset.get_replica_info().replica_id,
+    #     "worker reset num: ",
+    #     _worker_iterator_latest_reset_cycle,
+    #     "cycle_num",
+    #     cycle_num,
+    # )
+
     # initialize, or reset the iterator at each cycle
-    assert isinstance(_worker_iterator_reset_num, int)
-    if (_worker_iterator_reset_num < cycle_num) and (
-        cycle_num == 1 or not cyclic
+    assert isinstance(_worker_iterator_latest_reset_cycle, int)
+    if (_worker_iterator_latest_reset_cycle < cycle_num) and (
+        _worker_iterator_latest_reset_cycle == 0 or not cyclic
     ):
         # TODO: remove debug print
         # print(
+        #     "RESETTING;",
         #     "CYCLE NUM: ",
         #     cycle_num,
         #     "REPLICA ID:",
         #     _worker_dataset.get_replica_info().replica_id,
         #     "worker reset num: ",
-        #     _worker_iterator_reset_num,
+        #     _worker_iterator_latest_reset_cycle,
         #     "cycle_num",
         #     cycle_num,
         # )
-        _worker_reset_iterator(is_train, cyclic)
+        _worker_reset_iterator(is_train, cyclic, cycle_num)
 
     assert isinstance(
         _worker_dataset_iterator, Iterable
-    ), "Dataset not Iterable."
+    ), f"Dataset not Iterable: {type(_worker_dataset_iterator)}."
     transformed_data = list(
         itertools.islice(_worker_dataset_iterator, batch_size)
     )
@@ -302,12 +329,12 @@ def _worker_fn(
 # initialize or reset iterators
 # needed because some iterators are not cyclic
 def _worker_reset_iterator(
-    is_train: bool, cyclic: bool,
+    is_train: bool, cyclic: bool, cycle_num: int,
 ):
     global _worker_dataset
     global _worker_dataset_iterator
     global _worker_transformation
-    global _worker_iterator_reset_num
+    global _worker_iterator_latest_reset_cycle
     global _worker_iterator_exhausted_indicator
 
     _worker_dataset_iterator = sequential_sample_generator(
@@ -316,9 +343,8 @@ def _worker_reset_iterator(
         is_train=is_train,
         cyclic=cyclic,
     )
-    assert isinstance(_worker_iterator_reset_num, int)
-    _worker_iterator_reset_num += 1
-    # indicates whether the iterator was previously depleted
+    assert isinstance(_worker_iterator_latest_reset_cycle, int)
+    _worker_iterator_latest_reset_cycle = cycle_num
     _worker_iterator_exhausted_indicator = False
 
 
@@ -510,9 +536,16 @@ class ParallelDataLoader(object):
         prefetch: int = None,
         num_workers: int = 0,
     ):
-        self.cyclic = (
-            cyclic  # indicates that we want to cycle through the dataset
-        )
+        self.dataset = dataset
+        if isinstance(dataset, (FileDataset, ListDataset)):
+            self.dataset_len = len(dataset)
+        else:
+            self.dataset_len = None
+        # indicates that we want to cycle through the dataset
+        self.cyclic = cyclic
+        # indicates the current cycle, needed for resetting iterators at each cycle
+        self.cycle_num = 0
+
         self.dtype = dtype
         self.is_train = is_train
         self.transformation = transformation
@@ -521,24 +554,22 @@ class ParallelDataLoader(object):
         self.shuffle = shuffle
 
         self.num_workers = num_workers if num_workers >= 0 else 0
-        self.worker_pool = None
         self.prefetch = max(
             0, int(prefetch) if prefetch is not None else 2 * self.num_workers
         )
 
-        self.dataset = dataset
-        self.dataset_len = len(list(dataset))
-
-        # indicates the current cycle, needed for resetting iterators at each cycle
-        self.cycle_num = 0
-
-        # generate unique ids for processes
-        self.worker_id_queue: Queue = Queue()
-        for i in range(num_workers):
-            self.worker_id_queue.put(i)
-
         if self.num_workers > 0:
-            self.worker_pool = Pool(
+            assert isinstance(
+                dataset, (FileDataset, ListDataset)
+            ), "Currently multiprocessing is only supported for 'FileDataset' and 'ListDataset'"
+
+            # generate unique ids for processes
+            self.worker_manager = multiprocessing.Manager()
+            self.worker_id_queue = self.worker_manager.Queue()
+            for i in range(num_workers):
+                self.worker_id_queue.put(i)
+
+            self.worker_pool = multiprocessing.get_context("spawn").Pool(
                 self.num_workers,
                 initializer=_worker_initializer,
                 initargs=[
@@ -550,6 +581,11 @@ class ParallelDataLoader(object):
                     self.worker_id_queue,
                 ],
             )
+        else:
+            self.worker_pool = None
+            self.worker_manager = None
+            self.worker_id_queue = None
+
         if batchify_fn is None:
             self.batchify_fn = default_batchify_fn
         else:
@@ -614,6 +650,12 @@ class ParallelDataLoader(object):
 
     def __len__(self):
         return self.dataset_len
+
+    def __exit__(self):
+        # clean up worker pool resource
+        if self.num_workers > 0:
+            self.worker_pool.close()
+            self.worker_pool.join()
 
     def __del__(self):
         if self.worker_pool:
