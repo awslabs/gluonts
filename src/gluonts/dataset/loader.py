@@ -12,20 +12,17 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import functools
 from typing import Any, Dict, Iterable, Iterator
+from multiprocessing import cpu_count
 
 # Third-party imports
 import mxnet as mx
 import numpy as np
-from multiprocessing import cpu_count
 
 # First-party imports
 from gluonts.core.component import DType
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.transform import Transformation
-
-from .util import take, batcher, dct_reduce, shuffler, cycle
 
 DataBatch = Dict[str, Any]
 

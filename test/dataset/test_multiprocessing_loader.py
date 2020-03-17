@@ -37,9 +37,7 @@ CD_NUM_STEPS = 30
 CD_NUM_TIME_SERIES = 100
 CD_MAX_LEN_MULTIPLICATION_FACTOR = 5
 
-# DATASET AND DETERMINISTIC TRANSFORMATION:
-
-
+# get dataset and deterministic transformation
 def get_dataset_and_transformation():
     # create constant dataset with each time series having
     # variable length and unique constant integer entries
@@ -227,7 +225,7 @@ def test_training_loader_soft_constraint() -> None:
         batch_size=BATCH_SIZE,
         num_workers=1,  # This is the crucial difference
         ctx=current_desired_context,
-        num_batches_per_epoch=int(5 * exp_num_batches),
+        num_batches_per_epoch=int(2 * exp_num_batches),
     )
 
     # multi-processed validation dataset

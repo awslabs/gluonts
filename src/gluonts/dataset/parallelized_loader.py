@@ -11,36 +11,39 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+
+# Standard library imports
 import itertools
 import pickle
 import io
 import random
 import sys
 import time
-import copy
-
-import numpy as np
 from typing import Callable, Iterable
 
 import multiprocessing
 import multiprocessing.queues
-from multiprocessing.reduction import ForkingPickler, DupFd
-from multiprocessing.pool import ThreadPool, Pool
+from multiprocessing.reduction import ForkingPickler
+from multiprocessing.pool import Pool
 from multiprocessing import Queue
-
-from gluonts.core.component import DType
-from gluonts.dataset.common import Dataset, FileDataset, ListDataset
-from gluonts.dataset.util import ReplicaInfo
-from gluonts.transform import Transformation
-from mxnet.ndarray import NDArray
 
 try:
     import multiprocessing.resource_sharer
 except ImportError:
     pass
 
+# Third-party imports
+import numpy as np
 from mxnet import nd, context
 import mxnet as mx
+from mxnet.ndarray import NDArray
+
+# First-party imports
+from gluonts.core.component import DType
+from gluonts.dataset.common import Dataset, FileDataset, ListDataset
+from gluonts.dataset.util import ReplicaInfo
+from gluonts.transform import Transformation
+
 
 if sys.platform == "darwin" or sys.platform == "win32":
 
@@ -59,10 +62,7 @@ else:
     def rebuild_ndarray(pid, fd, shape, dtype):
         """Rebuild ndarray from pickled shared memory"""
         # pylint: disable=no-value-for-parameter
-        if sys.version_info[0] == 2:
-            fd = multiprocessing.reduction.rebuild_handle(fd)
-        else:
-            fd = fd.detach()
+        fd = fd.detach()
         return nd.NDArray(
             nd.ndarray._new_from_shared_mem(pid, fd, shape, dtype)
         )
@@ -72,10 +72,7 @@ else:
         # keep a local ref before duplicating fd
         data = data.as_in_context(context.Context("cpu_shared", 0))
         pid, fd, shape, dtype = data._to_shared_mem()
-        if sys.version_info[0] == 2:
-            fd = multiprocessing.reduction.reduce_handle(fd)
-        else:
-            fd = DupFd(fd)
+        fd = multiprocessing.reduction.DupFd(fd)
         return rebuild_ndarray, (pid, fd, shape, dtype)
 
 
