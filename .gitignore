@@ -163,3 +163,6 @@ conda
 # not to be tracked
 src/gluonts/version.py
 
+# makefiles with own credentials
+Makefile.own
+

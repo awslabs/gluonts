@@ -122,6 +122,7 @@ if __name__ == "__main__":
             "mean_wQuantileLoss",
             "MASE",
             "sMAPE",
+            "OWA",
             "MSIS",
         ]
     ]

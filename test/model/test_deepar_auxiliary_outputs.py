@@ -35,11 +35,11 @@ def test_distribution():
     estimator = DeepAREstimator(
         freq=freq,
         prediction_length=prediction_length,
-        trainer=Trainer(epochs=1, num_batches_per_epoch=1),
+        trainer=Trainer(epochs=2, num_batches_per_epoch=1),
         distr_output=StudentTOutput(),
     )
 
-    train_output = estimator.train_model(train_ds)
+    train_output = estimator.train_model(train_ds, test_ds)
 
     # todo adapt loader to anomaly detection use-case
     batch_size = 2

@@ -11,8 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
+# Third-party imports
 import pytest
+from flaky import flaky
 import mxnet as mx
 
 # First-party imports
@@ -94,6 +95,7 @@ def test_gpvar_proj():
     assert distr.mean.shape == (batch, dim)
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("target_dim_sample", [None, 2])
 @pytest.mark.parametrize("use_marginal_transformation", [True, False])
