@@ -107,9 +107,3 @@ def test_lstnet(
         iter(tss), iter(forecasts), num_series=len(dataset.test)
     )
     assert agg_metrics["ND"] < 1.5
-
-
-if __name__ == "__main__":
-    test_lstnet(
-        2, 2, dataset.metadata.prediction_length - 1, 1, True, np.float32
-    )
