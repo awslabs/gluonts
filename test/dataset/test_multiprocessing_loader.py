@@ -29,13 +29,15 @@ from gluonts.dataset.artificial import ConstantDataset
 # CONSTANTS:
 
 BATCH_SIZE = 8
-NUM_WORKERS_MP = 5
+NUM_WORKERS_MP = (
+    5  # 5 is specific and intentional, see train set soft constraint test
+)
 NUM_WORKERS = 0
-CONTEXT_LEN = 14
+CONTEXT_LEN = 7
 SPLITTING_SAMPLE_PROBABILITY = 1  # crucial for the ValidationDataLoader test
-CD_NUM_STEPS = 30
-CD_NUM_TIME_SERIES = 100
-CD_MAX_LEN_MULTIPLICATION_FACTOR = 5
+CD_NUM_STEPS = 14
+CD_NUM_TIME_SERIES = 30
+CD_MAX_LEN_MULTIPLICATION_FACTOR = 3
 
 # get dataset and deterministic transformation
 def get_dataset_and_transformation():

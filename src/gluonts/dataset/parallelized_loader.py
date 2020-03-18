@@ -493,7 +493,9 @@ class _MultiWorkerIter(object):
 
 # TODO: think about how a multiprocessing.Manager() would complement this implementation
 class ParallelDataLoader(object):
-    """Loads data from a dataset and returns mini-batches of data.
+    """
+    Loads data from a dataset and returns mini-batches of data.
+
     Parameters
     ----------
     dataset
