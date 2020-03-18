@@ -13,7 +13,7 @@
 
 # Standard library imports
 import math
-from sys import platform
+import sys
 
 # First-party imports
 from gluonts.core.component import check_gpu_support
