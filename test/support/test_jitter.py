@@ -31,11 +31,14 @@ import pytest
 # This test verifies that both eigenvalue decomposition and iterative jitter method
 # make a non-positive definite matrix positive definite to be able to compute the cholesky.
 # Both gpu and cpu as well as single and double precision are tested.
+@pytest.mark.skipif(
+    sys.platform == "linux",
+    reason=f"skipping since potrf crashes on mxnet 1.6.0 on linux when matrix is not spd",
+)
 @pytest.mark.parametrize("ctx", [mx.Context("gpu"), mx.Context("cpu")])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
 def test_jitter_unit(jitter_method, float_type, ctx) -> None:
-    pytest.skipif(sys.platform == "linux", reason=f"skipping this test on {platform}")
     # TODO: Enable GPU tests on Jenkins
     if ctx == mx.Context("gpu") and not check_gpu_support():
         return
@@ -55,11 +58,14 @@ def test_jitter_unit(jitter_method, float_type, ctx) -> None:
 # Without the jitter method, NaNs occurs on the gpu for single and double precision and on the cpu for only single
 # precision.  This test verifies that applying the default jitter method fixes these numerical issues on both cpu
 # and gpu and for single and double precision.
+@pytest.mark.skipif(
+    sys.platform == "linux",
+    reason=f"skipping since potrf crashes on mxnet 1.6.0 on linux when matrix is not spd",
+)
 @pytest.mark.parametrize("ctx", [mx.Context("gpu"), mx.Context("cpu")])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
 def test_jitter_synthetic_gp(jitter_method, float_type, ctx) -> None:
-    pytest.skipif(sys.platform == "linux", reason=f"skipping this test on {sys.platform}")
     # TODO: Enable GPU tests on Jenkins
     if ctx == mx.Context("gpu") and not check_gpu_support():
         return
