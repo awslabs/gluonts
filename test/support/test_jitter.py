@@ -35,8 +35,7 @@ import pytest
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
 def test_jitter_unit(jitter_method, float_type, ctx) -> None:
-    if platform == "linux":
-        pytest.skip(f"skipping this test on {platform}")
+    pytest.skipif(sys.platform == "linux", reason=f"skipping this test on {platform}")
     # TODO: Enable GPU tests on Jenkins
     if ctx == mx.Context("gpu") and not check_gpu_support():
         return
