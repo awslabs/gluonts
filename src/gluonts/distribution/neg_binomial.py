@@ -131,7 +131,7 @@ class NegativeBinomialOutput(DistributionOutput):
         else:
             F = getF(mu)
             mu = F.broadcast_mul(mu, scale)
-            alpha = F.broadcast_mul(alpha, F.sqrt(scale + 1.0))
+            alpha = F.broadcast_div(alpha, F.sqrt(scale))
             return NegativeBinomial(mu, alpha, F)
 
     @property
