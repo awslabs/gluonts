@@ -7,6 +7,7 @@ export CONDA_ENVS_PATH=$PWD/conda
 export CONDA_PKGS_DIRS=$PWD/conda/pkgs
 
 make clean
+conda update -n base -c defaults conda
 conda env update --prune -p conda/${env_name} -f env/${env_name}.yml
 conda activate ./conda/${env_name}
 conda list
