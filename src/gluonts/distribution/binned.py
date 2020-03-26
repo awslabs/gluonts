@@ -121,7 +121,7 @@ class Binned(Distribution):
         ex2 = self.F.broadcast_mul(
             self.bin_probs, self.bin_centers.square()
         ).sum(axis=-1)
-        return F.broadcast_minus(ex2, self.mean.square()).sqrt()
+        return self.F.broadcast_minus(ex2, self.mean.square()).sqrt()
 
     def log_prob(self, x):
         F = self.F
