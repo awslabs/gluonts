@@ -84,9 +84,12 @@ class Binned(Distribution):
         )
 
         means = (
-            bin_centers.slice_axis(axis=-1, begin=1, end=None)
-            + bin_centers.slice_axis(axis=-1, begin=0, end=-1)
-        ) / 2.0
+            F.broadcast_add(
+                bin_centers.slice_axis(axis=-1, begin=1, end=None),
+                bin_centers.slice_axis(axis=-1, begin=0, end=-1),
+            )
+            / 2.0
+        )
 
         return F.concat(low, means, high, dim=-1)
 
@@ -110,12 +113,15 @@ class Binned(Distribution):
 
     @property
     def mean(self):
-        return (self.bin_probs * self.bin_centers).sum(axis=-1)
+        F = self.F
+        return F.broadcast_mul(self.bin_probs, self.bin_centers).sum(axis=-1)
 
     @property
     def stddev(self):
-        ex2 = (self.bin_probs * self.bin_centers.square()).sum(axis=-1)
-        return (ex2 - self.mean.square()).sqrt()
+        ex2 = self.F.broadcast_mul(
+            self.bin_probs, self.bin_centers.square()
+        ).sum(axis=-1)
+        return self.F.broadcast_minus(ex2, self.mean.square()).sqrt()
 
     def log_prob(self, x):
         F = self.F
@@ -123,8 +129,9 @@ class Binned(Distribution):
         # TODO: when mxnet has searchsorted replace this
         left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
         right_edges = self.bin_edges.slice_axis(axis=-1, begin=1, end=None)
-        mask = F.broadcast_lesser_equal(left_edges, x) * F.broadcast_lesser(
-            x, right_edges
+        mask = F.broadcast_mul(
+            F.broadcast_lesser_equal(left_edges, x),
+            F.broadcast_lesser(x, right_edges),
         )
         return F.broadcast_mul(self.bin_log_probs, mask).sum(axis=-1)
 
