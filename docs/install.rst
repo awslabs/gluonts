@@ -9,7 +9,7 @@ command installs the latest version of MXNet.
 
 .. code-block:: console
 
-   pip install --upgrade mxnet>=1.3.1,<1.5.*
+   pip install --upgrade mxnet==1.6
 
 .. note::
 

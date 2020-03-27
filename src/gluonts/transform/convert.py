@@ -19,7 +19,6 @@ from gluonts.core.component import validated, DType
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
 from gluonts.model.common import Tensor
-from gluonts.monkey_patch.monkey_patch_take_along_axis import take_along_axis
 from gluonts.support.util import erf, erfinv
 
 from ._base import (
@@ -737,10 +736,13 @@ def cdf_to_gaussian_forward_transform(
         indices = indices.astype(np.int)
 
         transformed = np.where(
-            take_along_axis(slopes, indices, axis=1) != 0.0,
-            (batch_predictions - take_along_axis(intercepts, indices, axis=1))
-            / take_along_axis(slopes, indices, axis=1),
-            take_along_axis(batch_target_sorted, indices, axis=1),
+            np.take_along_axis(slopes, indices, axis=1) != 0.0,
+            (
+                batch_predictions
+                - np.take_along_axis(intercepts, indices, axis=1)
+            )
+            / np.take_along_axis(slopes, indices, axis=1),
+            np.take_along_axis(batch_target_sorted, indices, axis=1),
         )
         return transformed
 
