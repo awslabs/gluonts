@@ -24,7 +24,7 @@ from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 # Relative imports
-from .distribution import Distribution, _sample_multiple, getF
+from .distribution import Distribution, _sample_multiple, getF, _index_tensor
 from .distribution_output import DistributionOutput
 
 
@@ -84,9 +84,12 @@ class Binned(Distribution):
         )
 
         means = (
-            bin_centers.slice_axis(axis=-1, begin=1, end=None)
-            + bin_centers.slice_axis(axis=-1, begin=0, end=-1)
-        ) / 2.0
+            F.broadcast_add(
+                bin_centers.slice_axis(axis=-1, begin=1, end=None),
+                bin_centers.slice_axis(axis=-1, begin=0, end=-1),
+            )
+            / 2.0
+        )
 
         return F.concat(low, means, high, dim=-1)
 
@@ -110,12 +113,15 @@ class Binned(Distribution):
 
     @property
     def mean(self):
-        return (self.bin_probs * self.bin_centers).sum(axis=-1)
+        F = self.F
+        return F.broadcast_mul(self.bin_probs, self.bin_centers).sum(axis=-1)
 
     @property
     def stddev(self):
-        ex2 = (self.bin_probs * self.bin_centers.square()).sum(axis=-1)
-        return (ex2 - self.mean.square()).sqrt()
+        ex2 = self.F.broadcast_mul(
+            self.bin_probs, self.bin_centers.square()
+        ).sum(axis=-1)
+        return self.F.broadcast_minus(ex2, self.mean.square()).sqrt()
 
     def log_prob(self, x):
         F = self.F
@@ -123,8 +129,9 @@ class Binned(Distribution):
         # TODO: when mxnet has searchsorted replace this
         left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
         right_edges = self.bin_edges.slice_axis(axis=-1, begin=1, end=None)
-        mask = F.broadcast_lesser_equal(left_edges, x) * F.broadcast_lesser(
-            x, right_edges
+        mask = F.broadcast_mul(
+            F.broadcast_lesser_equal(left_edges, x),
+            F.broadcast_lesser(x, right_edges),
         )
         return F.broadcast_mul(self.bin_log_probs, mask).sum(axis=-1)
 
@@ -138,36 +145,50 @@ class Binned(Distribution):
     def quantile(self, level: Tensor) -> Tensor:
         F = self.F
 
-        probs = self.bin_probs.swapaxes(0, 1)  # (num_bins, batch)
-        # (batch_size,)
+        # self.bin_probs.shape = (batch_shape, num_bins)
+        probs = self.bin_probs.transpose()  # (num_bins, batch_shape.T)
+
+        # (batch_shape)
         zeros_batch_size = F.zeros_like(
-            F.slice_axis(probs, axis=0, begin=0, end=1).squeeze(axis=0)
+            F.slice_axis(self.bin_probs, axis=-1, begin=0, end=1).squeeze(
+                axis=-1
+            )
         )
 
         level = level.expand_dims(axis=0)
-        # cdf shape (batch_size, levels)
+
+        # cdf shape (batch_size.T, levels)
         zeros_cdf = F.broadcast_add(
-            zeros_batch_size.expand_dims(axis=1), level.zeros_like()
+            zeros_batch_size.transpose().expand_dims(axis=-1),
+            level.zeros_like(),
         )
         start_state = (zeros_cdf, zeros_cdf.astype("int32"))
 
         def step(p, state):
             cdf, idx = state
-            cdf = F.broadcast_add(cdf, p.expand_dims(axis=1))
+            cdf = F.broadcast_add(cdf, p.expand_dims(axis=-1))
             idx = F.where(F.broadcast_greater(cdf, level), idx, idx + 1)
             return zeros_batch_size, (cdf, idx)
 
         _, states = F.contrib.foreach(step, probs, start_state)
         _, idx = states
 
-        # expand centers to shape (batch, levels, num_bins)
-        # so we can use pick with idx.shape = (batch, levels)
+        # idx.shape = (batch.T, levels)
+        # centers.shape = (batch, num_bins)
+        #
+        # expand centers to shape -> (levels, batch, num_bins)
+        # so we can use pick with idx.T.shape = (levels, batch)
+        #
+        # zeros_cdf.shape (batch.T, levels)
         centers_expanded = F.broadcast_add(
-            self.bin_centers.expand_dims(axis=1),
-            zeros_cdf.expand_dims(axis=-1),
-        )
-        a = centers_expanded.pick(idx, axis=-1)
-        return a.swapaxes(0, 1)
+            self.bin_centers.transpose().expand_dims(axis=-1),
+            zeros_cdf.expand_dims(axis=0),
+        ).transpose()
+
+        # centers_expanded.shape = (levels, batch, num_bins)
+        # idx.shape (batch.T, levels)
+        a = centers_expanded.pick(idx.transpose(), axis=-1)
+        return a
 
     def sample(self, num_samples=None, dtype=np.float32):
         def s(bin_probs):

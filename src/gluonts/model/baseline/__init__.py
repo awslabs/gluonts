@@ -11,18 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import mxnet as mx
+# Relative imports
+from ._naive_2_predictor import Naive2Predictor
+from ._seasonal_naive_predictor import SeasonalNaivePredictor
+from ._naive_2_predictor import naive_2
 
+__all__ = ["Naive2Predictor", "naive_2", "SeasonalNaivePredictor"]
 
-def __my__setattr__(cls, key, value):
-    obj = cls.__dict__.get(key)
-    if obj and isinstance(obj, mx.base._MXClassPropertyDescriptor):
-        return obj.__set__(cls, value)
-
-    return super(mx.base._MXClassPropertyMetaClass, cls).__setattr__(
-        key, value
-    )
-
-
-mx.base._MXClassPropertyMetaClass.__setattr__ = __my__setattr__
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

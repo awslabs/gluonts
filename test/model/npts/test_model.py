@@ -11,13 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
-from ._estimator import SeasonalNaiveEstimator
-from ._predictor import SeasonalNaivePredictor
+from gluonts.model.npts import NPTSEstimator
 
-__all__ = ["SeasonalNaiveEstimator", "SeasonalNaivePredictor"]
+hyperparameters = dict(kernel_type="uniform", use_default_features=True,)
 
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+
+def test_accuracy(accuracy_test):
+    accuracy_test(NPTSEstimator, hyperparameters, accuracy=0.0)
+
+
+def test_repr(repr_test):
+    repr_test(NPTSEstimator, hyperparameters)
+
+
+def test_serialize(serialize_test):
+    serialize_test(NPTSEstimator, hyperparameters)
