@@ -148,14 +148,10 @@ def test_validation_loader_equivalence() -> None:
     ), "Batches in incorrect context"
 
 
-# The idea of the test is, that:
 # CASE 01: if we have say 5 workers, then iterating
 # over the dataset so that one worker could cover 2/5 of the whole dataset
 # should still be enough that every time series is at least processed once
-# CASE 02: if we have say 5 workers, but let each only cover 1/10, then
-# it should be impossible to cover the whole underlying dataset
-# CASE 03: one worker should be able to traverse the whole dataset on its own
-def test_training_loader_soft_constraint() -> None:
+def test_training_loader_soft_constraint_01() -> None:
     (
         list_dataset,
         transformation,
@@ -219,6 +215,70 @@ def test_training_loader_soft_constraint() -> None:
         [k in transformation_counts_02 for k in range(CD_NUM_TIME_SERIES)]
     ), "It should not have been possible to process every time series once. "
 
+
+# CASE 02: if we have say 5 workers, but let each only cover 1/10, then
+# it should be impossible to cover the whole underlying dataset
+def test_training_loader_soft_constraint_02() -> None:
+    (
+        list_dataset,
+        transformation,
+        list_dataset_pred_length,
+    ) = get_dataset_and_transformation()
+    current_desired_context = current_context()
+
+    # the on average expected processed time series samples, and batches
+    avg_mult_factor = (
+        sum(range(1, CD_MAX_LEN_MULTIPLICATION_FACTOR + 1))
+        / CD_MAX_LEN_MULTIPLICATION_FACTOR
+    )
+    exp_num_samples = CD_NUM_TIME_SERIES * (
+        avg_mult_factor * CD_NUM_STEPS - CONTEXT_LEN - list_dataset_pred_length
+    )
+    exp_num_batches = int(exp_num_samples / BATCH_SIZE)
+
+    # CASE 01: EVERY TS VISITED ONCE
+
+    train_dataset_loader_01 = TrainDataLoader(
+        dataset=list_dataset,
+        transform=transformation,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        ctx=current_desired_context,
+        num_batches_per_epoch=int(2 * exp_num_batches),
+    )
+
+    # multi-processed validation dataset
+    mp_training_data_loader_result_01 = list(train_dataset_loader_01)
+
+    # should contain an entry for every time series id
+    transformation_counts_01 = get_transformation_counts(
+        mp_training_data_loader_result_01
+    )
+
+    assert all(
+        [k in transformation_counts_01 for k in range(CD_NUM_TIME_SERIES)]
+    ), "Not every time series processed at least once."
+
+
+# CASE 03: one worker should be able to traverse the whole dataset on its own
+def test_training_loader_soft_constraint_03() -> None:
+    (
+        list_dataset,
+        transformation,
+        list_dataset_pred_length,
+    ) = get_dataset_and_transformation()
+    current_desired_context = current_context()
+
+    # the on average expected processed time series samples, and batches
+    avg_mult_factor = (
+        sum(range(1, CD_MAX_LEN_MULTIPLICATION_FACTOR + 1))
+        / CD_MAX_LEN_MULTIPLICATION_FACTOR
+    )
+    exp_num_samples = CD_NUM_TIME_SERIES * (
+        avg_mult_factor * CD_NUM_STEPS - CONTEXT_LEN - list_dataset_pred_length
+    )
+    exp_num_batches = int(exp_num_samples / BATCH_SIZE)
+
     # CASE 03: ONE WORKER TRAVERSES ALL
 
     train_dataset_loader_03 = TrainDataLoader(
@@ -227,7 +287,7 @@ def test_training_loader_soft_constraint() -> None:
         batch_size=BATCH_SIZE,
         num_workers=1,  # This is the crucial difference
         ctx=current_desired_context,
-        num_batches_per_epoch=int(2 * exp_num_batches),
+        num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
     # multi-processed validation dataset
