@@ -8,11 +8,14 @@ from gluonts.model.forecast import Forecast
 
 
 def main():
-    """Train a forecast model according to quickstart (https://gluon-ts.mxnet.io/examples/basic_forecasting_tutorial/tutorial.html),
+    """Train a forecast model according to quickstart
+    (https://gluon-ts.mxnet.io/examples/basic_forecasting_tutorial/tutorial.html),
     then compute metrics."""
     dataset, forecasts, tss = quickstart()
     my_evaluator = MyEvaluator(quantiles=[0.1, 0.5, 0.9])
-    agg_metrics, item_metrics = my_evaluator(iter(tss), iter(forecasts), num_series=len(dataset.test))
+    agg_metrics, item_metrics = my_evaluator(
+        iter(tss), iter(forecasts), num_series=len(dataset.test)
+    )
 
     try:
         from IPython.display import display
@@ -26,19 +29,23 @@ def main():
 
 
 class MyEvaluator(Evaluator):
-    """This is an example of an evaluator that extends gluonts's one with additional metrics.
+    """This is an example of an evaluator that extends gluonts's one with
+    additional metrics.
 
-    The two metrics here are just toy examples, as they're already part of gluonts, however they're chosen for their
-    simplicity and you'd be able to confirm that they produce the same numbers as their original counterpart.
+    The two metrics here are just toy examples, as they're already part of
+    gluonts, however they're chosen for their simplicity and you'd be able to
+    confirm that they produce the same numbers as their original counterpart.
 
-    The key here is to compute two kind of metrics: per-time-series, and the aggregate across all time series. For the
-    later part, you just need to think about the proper aggregation function (is it just simply a mean, or another way
-    that you want to use).
+    The key here is to compute two kind of metrics: per-time-series, and the
+    aggregate across all time series. For the later part, you just need to
+    think about the proper aggregation function (is it just simply a mean, or
+    another way that you want to use).
     """
 
     @staticmethod
     def mysmape(target, forecast):
-        r"""This is SMAPE, but purposely given a new name to demonstrate how to add metric to evaluator.
+        r"""This is SMAPE, but purposely given a new name to demonstrate how to
+        add metric to evaluator.
 
         .. math::
 
@@ -50,7 +57,9 @@ class MyEvaluator(Evaluator):
         denominator = np.abs(target) + np.abs(forecast)
         flag = denominator == 0
 
-        smape = 2 * np.mean((np.abs(target - forecast) * (1 - flag)) / (denominator + flag))
+        smape = 2 * np.mean(
+            (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
+        )
         return smape
 
     @staticmethod
@@ -63,7 +72,9 @@ class MyEvaluator(Evaluator):
         denominator = np.abs(target)
         flag = denominator == 0
 
-        mape = np.mean((np.abs(target - forecast) * (1 - flag)) / (denominator + flag))
+        mape = np.mean(
+            (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
+        )
         return mape
 
     def get_metrics_per_ts(
@@ -78,10 +89,14 @@ class MyEvaluator(Evaluator):
         # endregion
 
         metrics["mysmape"] = self.mysmape(pred_target, median_fcst)
-        metrics["mape"] = self.mape(pred_target, median_fcst)  # https://github.com/awslabs/gluon-ts/pull/725
+        metrics["mape"] = self.mape(
+            pred_target, median_fcst
+        )  # https://github.com/awslabs/gluon-ts/pull/725
         return metrics
 
-    def get_aggregate_metrics(self, metric_per_ts: pd.DataFrame) -> Tuple[Dict[str, float], pd.DataFrame]:
+    def get_aggregate_metrics(
+        self, metric_per_ts: pd.DataFrame
+    ) -> Tuple[Dict[str, float], pd.DataFrame]:
         totals, metric_per_ts = super().get_aggregate_metrics(metric_per_ts)
 
         # region : this is based on gluonts.evaluator.Evaluator
@@ -89,8 +104,12 @@ class MyEvaluator(Evaluator):
             "mysmape": "mean",
             "mape": "mean",
         }
-        assert set(metric_per_ts.columns) >= agg_funs.keys(), "The some of the requested item metrics are missing."
-        my_totals = {key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()}
+        assert (
+            set(metric_per_ts.columns) >= agg_funs.keys()
+        ), "The some of the requested item metrics are missing."
+        my_totals = {
+            key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()
+        }
         # endregion
 
         totals.update(my_totals)
@@ -102,7 +121,10 @@ def quickstart():
 
     See: https://gluon-ts.mxnet.io/examples/basic_forecasting_tutorial/tutorial.html
     """
-    from gluonts.dataset.repository.datasets import dataset_recipes, get_dataset
+    from gluonts.dataset.repository.datasets import (
+        dataset_recipes,
+        get_dataset,
+    )
     from gluonts.dataset.util import to_pandas
     from gluonts.evaluation.backtest import make_evaluation_predictions
     from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
@@ -115,8 +137,12 @@ def quickstart():
     train_series = to_pandas(entry)
     entry = next(iter(dataset.test))
     test_series = to_pandas(entry)
-    print(f"Length of forecasting window in test dataset: {len(test_series) - len(train_series)}")
-    print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
+    print(
+        f"Length of forecasting window in test dataset: {len(test_series) - len(train_series)}"
+    )
+    print(
+        f"Recommended prediction horizon: {dataset.metadata.prediction_length}"
+    )
     print(f"Frequency of the time series: {dataset.metadata.freq}")
 
     estimator = SimpleFeedForwardEstimator(
@@ -124,7 +150,9 @@ def quickstart():
         prediction_length=dataset.metadata.prediction_length,
         context_length=100,
         freq=dataset.metadata.freq,
-        trainer=Trainer(ctx="cpu", epochs=5, learning_rate=1e-3, num_batches_per_epoch=100),
+        trainer=Trainer(
+            ctx="cpu", epochs=5, learning_rate=1e-3, num_batches_per_epoch=100
+        ),
     )
 
     predictor = estimator.train(dataset.train)
