@@ -372,6 +372,7 @@ class _MultiWorkerIter(object):
     ):
         self._worker_pool = worker_pool
         self._batchify_fn = batchify_fn
+        # TODO: currently between epochs all batches in queue are dropped, maybe find a workaround?
         self._data_buffer: dict = (
             {}
         )  # Its a dictionary with {index: data} structure in our case
@@ -484,6 +485,13 @@ class _MultiWorkerIter(object):
                 return
             yield next_batch
 
+    def __del__(self):
+        # Explicitly load the content from shared memory to delete it
+        # Unfortunately it seems the way the data is pickled prevents efficient implicit GarbageCollection
+        for k in list(self._data_buffer.keys()):
+            res = pickle.loads(self._data_buffer.pop(k).get(self._timeout))
+            del res
+
 
 # TODO: think about how a multiprocessing.Manager() would complement this implementation
 class ParallelDataLoader(object):
@@ -553,8 +561,11 @@ class ParallelDataLoader(object):
             0, int(prefetch) if prefetch is not None else 2 * self.num_workers
         )
         self.worker_pool = None
+        # In order to set unique IDs to workers:
         self.worker_manager = None
         self.worker_id_queue = None
+        # In order to recycle unused but pre-calculated batches from last epoch for training:
+        self.multi_worker_cache = None
 
         if self.num_workers > 0:
             assert isinstance(
@@ -624,36 +635,37 @@ class ParallelDataLoader(object):
             return same_process_iter()
         else:
             # multi-worker takes care of asynchronously preparing batches
-            multi_worker = _MultiWorkerIter(
-                worker_pool=self.worker_pool,
-                num_workers=self.num_workers,
-                batch_size=self.batch_size,
-                shuffle=self.shuffle,
-                batchify_fn=self.batchify_fn,
-                dtype=self.dtype,
-                ctx=self.ctx,
-                is_train=self.is_train,
-                cyclic=self.cyclic,
-                worker_fn=_worker_fn,
-                prefetch=self.prefetch,
-                dataset_len=self.dataset_len,
-                cycle_num=self.cycle_num,
-            )
-
-            return iter(multi_worker)
+            # only cache multi_worker for cyclic datasets
+            if self.multi_worker_cache is None:
+                multi_worker = _MultiWorkerIter(
+                    worker_pool=self.worker_pool,
+                    num_workers=self.num_workers,
+                    batch_size=self.batch_size,
+                    shuffle=self.shuffle,
+                    batchify_fn=self.batchify_fn,
+                    dtype=self.dtype,
+                    ctx=self.ctx,
+                    is_train=self.is_train,
+                    cyclic=self.cyclic,
+                    worker_fn=_worker_fn,
+                    prefetch=self.prefetch,
+                    dataset_len=self.dataset_len,
+                    cycle_num=self.cycle_num,
+                )
+                if self.cyclic:
+                    self.multi_worker_cache = iter(multi_worker)
+                return iter(multi_worker)
+            else:
+                # This way we can recycle the unused pre-fetched batches for the next epoch
+                # (cycle num is irrelevant for cyclic datasets, and rest of the arguments stays same between epochs)
+                return self.multi_worker_cache
 
     def __len__(self):
         return self.dataset_len
 
-    def __exit__(self):
-        # clean up worker pool resource
-        if self.num_workers > 0:
-            self.worker_pool.close()
-            self.worker_pool.join()
-
     def __del__(self):
         if self.worker_pool:
-            # manually terminate due to a bug that pool is not automatically terminated
-            # https://bugs.python.org/issue34172
+            # clean up worker pool resource
             assert isinstance(self.worker_pool, multiprocessing.pool.Pool)
-            self.worker_pool.terminate()
+            self.worker_pool.close()
+            self.worker_pool.join()
