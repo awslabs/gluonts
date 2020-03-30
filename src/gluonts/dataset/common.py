@@ -243,9 +243,7 @@ class FileDataset(Dataset):
                 ]
             )
             self._len = len_sum
-            return len_sum
-        else:
-            return self._len
+        return self._len
 
     def files(self) -> List[Path]:
         """
@@ -351,7 +349,7 @@ class ListDataset(Dataset):
             yield data
 
     def __len__(self):
-        return len(list(self.list_data))
+        return len(self.list_data)
 
     def set_replica_info(self, replica_info: ReplicaInfo):
         self.replica_info = replica_info

@@ -15,9 +15,6 @@
 import functools
 from pathlib import Path
 from typing import NamedTuple
-import linecache
-from queue import Queue
-import multiprocessing as mp
 
 # Third-party imports
 import ujson as json

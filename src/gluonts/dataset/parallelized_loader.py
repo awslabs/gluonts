@@ -466,18 +466,12 @@ class _MultiWorkerIter(object):
                     }
                     return batch
             except multiprocessing.context.TimeoutError:
-                msg = """Worker timed out after {} seconds. This might be caused by \n
-                - Slow transform. Please increase timeout to allow slower data loading in each worker.
-                """.format(
-                    self._timeout
+                print(
+                    f"Worker timed out after {self._timeout} seconds. This might be caused by "
+                    "\n - Slow transform. Please increase timeout to allow slower data loading in each worker. "
+                    "\n - Insufficient shared_memory if `timeout` is large enough. "
+                    "\n Please consider to reduce `num_workers` or increase shared_memory in system."
                 )
-                if not isinstance(
-                    self._worker_pool, multiprocessing.pool.ThreadPool
-                ):
-                    msg += """- Insufficient shared_memory if `timeout` is large enough.
-                Please consider reduce `num_workers` or increase shared_memory in system.
-                """
-                print(msg)
                 raise
             except Exception:
                 self._worker_pool.terminate()

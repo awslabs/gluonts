@@ -21,7 +21,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import DataEntry, Dataset, FileDataset, ListDataset
 from gluonts.transform import Transformation
 
 DataBatch = Dict[str, Any]
@@ -74,12 +74,18 @@ class DataLoader(Iterable[DataEntry]):
         self.transform = transform
         self.cyclic = cyclic
 
+        if isinstance(dataset, (FileDataset, ListDataset)):
+            dataset_len = len(dataset)
+        else:
+            # TODO: find workaround so we dont require this information at this point
+            dataset_len = len(list(dataset))
+
         # TODO: think about what a good value is, probably 0, and if multiprocessing=True, then what is below
         if num_workers is None:
-            self.num_workers = min(len(list(dataset)), int(cpu_count() / 2))
+            self.num_workers = min(dataset_len, int(cpu_count() / 2))
         else:
-            assert num_workers <= len(
-                list(dataset)
+            assert (
+                num_workers <= dataset_len
             ), "Cannot have more workers than dataset entries currently."
             self.num_workers = num_workers
 
@@ -97,8 +103,7 @@ class DataLoader(Iterable[DataEntry]):
 
     def __iter__(self) -> Iterator[DataBatch]:
         # Will take all batches, so that all data is sampled exactly once
-        for batch in self.parallel_data_loader:
-            yield batch
+        yield from self.parallel_data_loader
 
 
 class TrainDataLoader(DataLoader):

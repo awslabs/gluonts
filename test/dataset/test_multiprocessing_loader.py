@@ -239,5 +239,5 @@ def test_training_loader_soft_constraint() -> None:
     )
 
     assert all(
-        [k in transformation_counts_03 for k in range(CD_NUM_TIME_SERIES)]
+        k in transformation_counts_03 for k in range(CD_NUM_TIME_SERIES)
     ), "One worker should be able to traverse all in one sweep, and should not deplete its iterator."

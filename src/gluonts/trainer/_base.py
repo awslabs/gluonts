@@ -27,7 +27,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import get_mxnet_context, validated
-from gluonts.core.exception import GluonTSDataError, GluonTSUserError
+from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.support.util import HybridContext
 from gluonts.gluonts_tqdm import tqdm
@@ -35,8 +35,7 @@ from gluonts.gluonts_tqdm import tqdm
 # Relative imports
 from . import learning_rate_scheduler as lrs
 
-logger = logging.getLogger("gluonts").getChild("trainer")
-
+logger = logging.getLogger("trainer")
 
 MODEL_ARTIFACT_FILE_NAME = "model"
 STATE_ARTIFACT_FILE_NAME = "state"
@@ -151,7 +150,7 @@ class Trainer:
         self.halt = False
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:
-        logger.info("Received signal: {}".format(signum))
+        logging.info("Received signal: {}".format(signum))
         self.halt = True
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
@@ -182,7 +181,7 @@ class Trainer:
                     "{}_{}".format(STATE_ARTIFACT_FILE_NAME, uuid.uuid4()),
                 )
 
-            logger.info("Start model training")
+            logging.info("Start model training")
 
             net.initialize(ctx=self.ctx, init=self.init)
 
@@ -251,18 +250,10 @@ class Trainer:
                                 trainer.step(batch_size)
 
                             epoch_loss.update(None, preds=loss)
-                            lv = loss_value(epoch_loss)
-
-                            if not np.isfinite(lv):
-                                logger.warning(
-                                    "Epoch[%d] gave nan loss", epoch_no
-                                )
-                                return epoch_loss
-
                             it.set_postfix(
                                 ordered_dict={
                                     ("" if is_training else "validation_")
-                                    + "avg_epoch_loss": lv,
+                                    + "avg_epoch_loss": loss_value(epoch_loss)
                                 },
                                 refresh=False,
                             )
@@ -270,32 +261,36 @@ class Trainer:
                             if batch_no == 1 and epoch_no == 0:
                                 net_name = type(net).__name__
                                 num_model_param = self.count_model_params(net)
-                                logger.info(
+                                logging.info(
                                     f"Number of parameters in {net_name}: {num_model_param}"
                                 )
                     # mark epoch end time and log time cost of current epoch
                     toc = time.time()
-                    logger.info(
+                    logging.info(
                         "Epoch[%d] Elapsed time %.3f seconds",
                         epoch_no,
                         (toc - tic),
                     )
 
-                    logger.info(
+                    # check and log epoch loss
+                    check_loss_finite(loss_value(epoch_loss))
+                    logging.info(
                         "Epoch[%d] Evaluation metric '%s'=%f",
                         epoch_no,
                         ("" if is_training else "validation_") + "epoch_loss",
-                        lv,
+                        loss_value(epoch_loss),
                     )
                     return epoch_loss
 
                 for epoch_no in range(self.epochs):
                     if self.halt:
-                        logger.info(f"Epoch[{epoch_no}] Interrupting training")
+                        logging.info(
+                            f"Epoch[{epoch_no}] Interrupting training"
+                        )
                         break
 
                     curr_lr = trainer.learning_rate
-                    logger.info(
+                    logging.info(
                         f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
                     )
 
@@ -305,10 +300,7 @@ class Trainer:
                             epoch_no, validation_iter, is_training=False
                         )
 
-                    should_continue = lr_scheduler.step(loss_value(epoch_loss))
-                    if not should_continue:
-                        logger.info("Stopping training")
-                        break
+                    lr_scheduler.step(loss_value(epoch_loss))
 
                     if loss_value(epoch_loss) < best_epoch_info.metric_value:
                         best_epoch_info = BestEpochInfo(
@@ -322,12 +314,7 @@ class Trainer:
                         )  # TODO: handle possible exception
 
                     if not trainer.learning_rate == curr_lr:
-                        if best_epoch_info.epoch_no == -1:
-                            raise GluonTSUserError(
-                                "Got NaN in first epoch. Try reducing initial learning rate."
-                            )
-
-                        logger.info(
+                        logging.info(
                             f"Loading parameters from best epoch "
                             f"({best_epoch_info.epoch_no})"
                         )
@@ -335,13 +322,13 @@ class Trainer:
                             best_epoch_info.params_path, self.ctx
                         )
 
-                logger.info(
+                logging.info(
                     f"Loading parameters from best epoch "
                     f"({best_epoch_info.epoch_no})"
                 )
                 net.load_parameters(best_epoch_info.params_path, self.ctx)
 
-                logger.info(
+                logging.info(
                     f"Final loss: {best_epoch_info.metric_value} "
                     f"(occurred at epoch {best_epoch_info.epoch_no})"
                 )
@@ -349,4 +336,4 @@ class Trainer:
                 # save net parameters
                 net.save_parameters(best_epoch_info.params_path)
 
-                logger.info("End model training")
+                logging.getLogger().info("End model training")
