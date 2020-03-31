@@ -44,7 +44,7 @@ from gluonts.dataset.util import ReplicaInfo
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]
 
-# TODO: change this so it has attributes: cached, and replica_info
+# TODO: change this maybe to typing_extensions.Protocol
 # A Dataset is an iterable of DataEntry.
 Dataset = Iterable[DataEntry]
 

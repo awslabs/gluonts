@@ -126,7 +126,9 @@ def backtest_metrics(
     ),
     num_samples: int = 100,
     logging_file: Optional[str] = None,
-    use_symbol_block_predictor: bool = False,
+    use_symbol_block_predictor: Optional[bool] = False,
+    num_workers: Optional[int] = None,
+    num_prefetch: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -188,6 +190,8 @@ def backtest_metrics(
                 batch_size=forecaster.trainer.batch_size,
                 ctx=forecaster.trainer.ctx,
                 dtype=forecaster.dtype,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
                 **kwargs,
             )
 

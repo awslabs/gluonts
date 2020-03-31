@@ -263,6 +263,8 @@ class WaveNetEstimator(GluonEstimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
         **kwargs,
     ) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
@@ -289,6 +291,8 @@ class WaveNetEstimator(GluonEstimator):
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
             **kwargs,
         )
 
@@ -300,6 +304,8 @@ class WaveNetEstimator(GluonEstimator):
                 batch_size=self.trainer.batch_size,
                 ctx=self.trainer.ctx,
                 dtype=self.dtype,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
                 **kwargs,
             )
 

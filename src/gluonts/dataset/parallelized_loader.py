@@ -19,7 +19,9 @@ import io
 import random
 import sys
 import time
-from typing import Callable, Iterable
+from collections import Sized
+from typing import Callable, Iterable, Optional
+
 
 import multiprocessing
 import multiprocessing.queues
@@ -43,7 +45,6 @@ from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset, FileDataset, ListDataset
 from gluonts.dataset.util import ReplicaInfo
 from gluonts.transform import Transformation
-
 
 if sys.platform == "darwin" or sys.platform == "win32":
 
@@ -365,7 +366,7 @@ class _MultiWorkerIter(object):
         shuffle: bool,
         cyclic: bool,
         cycle_num: int,
-        prefetch: int,
+        num_prefetch: int,
         worker_fn: Callable = _worker_fn,
         dataset_len: int = None,
         timeout: int = 120,
@@ -395,8 +396,8 @@ class _MultiWorkerIter(object):
 
         # pre-fetch
         self.cycle_num = cycle_num
-        self.prefetch = prefetch
-        for i in range(self.prefetch):
+        self.num_prefetch = num_prefetch
+        for i in range(self.num_prefetch):
             self._push_next()
 
     def __len__(self):
@@ -516,7 +517,7 @@ class ParallelDataLoader(object):
         The sampler to use. Either specify sampler or shuffle, not both.
     num_workers
         The number of multiprocessing workers to use for data preprocessing.
-    prefetch
+    num_prefetch
         The number of prefetching batches only works if `num_workers` > 0.
         If `prefetch` > 0, it allow worker process to prefetch certain batches before
         acquiring data from iterators.
@@ -537,13 +538,16 @@ class ParallelDataLoader(object):
         batchify_fn: Callable = None,
         ctx: mx.Context = None,
         dtype: DType = np.float32,
-        prefetch: int = None,
-        num_workers: int = 0,
+        num_prefetch: Optional[int] = None,
+        num_workers: Optional[int] = None,
     ):
         self.dataset = dataset
         self.dataset_len = None
-        if isinstance(dataset, (FileDataset, ListDataset)):
+        if isinstance(dataset, Sized):
+            assert isinstance(dataset, Sized)
             self.dataset_len = len(dataset)
+        else:
+            self.dataset_len = len(list(dataset))
         # indicates that we want to cycle through the dataset
         self.cyclic = cyclic
         # indicates the current cycle, needed for resetting iterators at each cycle
@@ -556,9 +560,20 @@ class ParallelDataLoader(object):
         self.batch_size = batch_size
         self.shuffle = shuffle
 
-        self.num_workers = num_workers if num_workers >= 0 else 0
-        self.prefetch = max(
-            0, int(prefetch) if prefetch is not None else 2 * self.num_workers
+        assert (
+            num_workers is None or num_workers <= self.dataset_len
+        ), "Cannot have more workers than dataset entries currently."
+
+        # TODO: switch to default 0 here
+        self.num_workers = max(
+            0,
+            num_workers
+            if num_workers is not None
+            else min(self.dataset_len, multiprocessing.cpu_count()),
+        )
+        self.num_prefetch = max(
+            0,
+            num_prefetch if num_prefetch is not None else 2 * self.num_workers,
         )
         self.worker_pool = None
         # In order to set unique IDs to workers:
@@ -575,7 +590,7 @@ class ParallelDataLoader(object):
             # generate unique ids for processes
             self.worker_manager = multiprocessing.Manager()
             self.worker_id_queue = self.worker_manager.Queue()
-            for i in range(num_workers):
+            for i in range(self.num_workers):
                 self.worker_id_queue.put(i)
 
             self.worker_pool = multiprocessing.get_context("spawn").Pool(
@@ -648,7 +663,7 @@ class ParallelDataLoader(object):
                     is_train=self.is_train,
                     cyclic=self.cyclic,
                     worker_fn=_worker_fn,
-                    prefetch=self.prefetch,
+                    num_prefetch=self.num_prefetch,
                     dataset_len=self.dataset_len,
                     cycle_num=self.cycle_num,
                 )

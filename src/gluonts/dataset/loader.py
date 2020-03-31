@@ -12,7 +12,9 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Any, Dict, Iterable, Iterator
+import itertools
+import logging
+from typing import Any, Dict, Iterable, Iterator, Optional
 from multiprocessing import cpu_count
 
 # Third-party imports
@@ -62,8 +64,9 @@ class DataLoader(Iterable[DataEntry]):
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
-        num_workers: int = None,
         cyclic: bool = False,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
         **kwargs
     ) -> None:
         # conversion from iterator to list
@@ -74,21 +77,6 @@ class DataLoader(Iterable[DataEntry]):
         self.transform = transform
         self.cyclic = cyclic
 
-        if isinstance(dataset, (FileDataset, ListDataset)):
-            dataset_len = len(dataset)
-        else:
-            # TODO: find workaround so we dont require this information at this point
-            dataset_len = len(list(dataset))
-
-        # TODO: think about what a good value is, probably 0, and if multiprocessing=True, then what is below
-        if num_workers is None:
-            self.num_workers = min(dataset_len, int(cpu_count() / 2))
-        else:
-            assert (
-                num_workers <= dataset_len
-            ), "Cannot have more workers than dataset entries currently."
-            self.num_workers = num_workers
-
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
             transformation=self.transform,
@@ -97,7 +85,8 @@ class DataLoader(Iterable[DataEntry]):
             batch_size=self.batch_size,
             ctx=ctx,
             dtype=self.dtype,
-            num_workers=self.num_workers,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
             **kwargs,
         )
 
@@ -136,15 +125,17 @@ class TrainDataLoader(DataLoader):
         batch_size: int,
         ctx: mx.Context,
         num_batches_per_epoch: int,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
         shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 10,  # TODO: this does not worc currently
+        num_batches_for_shuffling: int = 10,  # TODO: this does not work currently
         **kwargs
     ) -> None:
         assert dataset, "empty dataset"
 
         super().__init__(
-            dataset=dataset,  # itertools.cycle(dataset) # GET infinite number of samples
+            dataset=dataset,
             transform=transform,
             batch_size=batch_size,
             ctx=ctx,
@@ -152,6 +143,8 @@ class TrainDataLoader(DataLoader):
             is_train=True,
             shuffle=shuffle_for_training,
             cyclic=True,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
             **kwargs,
         )
 
@@ -164,14 +157,10 @@ class TrainDataLoader(DataLoader):
         return self.num_batches_per_epoch
 
     def __iter__(self) -> Iterator[DataBatch]:
-        # this takes num_batches of batches for one epoch
-        batch_num = 0
-        while True:
-            for batch in self.parallel_data_loader:
-                yield batch
-                batch_num += 1
-                if batch_num == self.num_batches_per_epoch:
-                    return
+        # take num_batches of batches for one epoch
+        return itertools.islice(
+            self.parallel_data_loader, self.num_batches_per_epoch
+        )
 
 
 class ValidationDataLoader(DataLoader):
@@ -182,6 +171,8 @@ class ValidationDataLoader(DataLoader):
         transform: Transformation,
         batch_size: int,
         ctx: mx.Context,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
         **kwargs
     ) -> None:
@@ -193,6 +184,8 @@ class ValidationDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             cyclic=False,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
             **kwargs,
         )
 
@@ -205,9 +198,20 @@ class InferenceDataLoader(DataLoader):
         transform: Transformation,
         batch_size: int,
         ctx: mx.Context,
+        # Currently the is a bug with multi processing here,
+        # see: _worker_fn in parallelized_loader.py for explanation
+        num_workers: Optional[int] = 0,
+        num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
         **kwargs
     ) -> None:
+        if num_workers != 0:
+            num_workers = 0
+            logging.warning(
+                "You have set `num_workers` for InferenceDataLoader to a non zero value, "
+                "however, currently multiprocessing is not supported for the InferenceDataLoader."
+            )
+
         super().__init__(
             dataset=dataset,
             transform=transform,
@@ -216,8 +220,7 @@ class InferenceDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             cyclic=False,
-            # Currently the is a bug with multi processing here,
-            # see: _worker_fn in parallelized_loader.py for explanation
-            num_workers=0,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
             **kwargs,
         )
