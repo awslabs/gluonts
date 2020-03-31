@@ -58,9 +58,9 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         self.decoder = decoder
         self.quantile_output = quantile_output
 
-        self.feat_static_real = nd_None
-        self.past_feat_dynamic_real = nd_None
-        self.future_feat_dynamic_real = nd_None
+        # self.feat_static_real = F.zeros(shape=(1,))
+        # self.past_feat_dynamic_real = F.zeros(shape=(1,))
+        # self.future_feat_dynamic_real = F.zeros(shape=(1,))
 
         with self.name_scope():
             self.quantile_proj = quantile_output.get_quantile_proj()
