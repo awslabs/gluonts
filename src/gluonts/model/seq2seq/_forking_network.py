@@ -106,7 +106,7 @@ class ForkingSeq2SeqNetwork:
             raise NotImplementedError
 
     def get_prediction_network(self) -> ForkingSeq2SeqNetworkBase:
-        if self.use_static_cat is False and self.use_dynamic_real is False:
+        if not self.use_static_cat and not self.use_dynamic_real:
             return ForkingSeq2SeqTargetPredictionNetwork(
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
@@ -153,15 +153,12 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         past_feat_dynamic_real = F.zeros(shape=(1,))
         future_feat_dynamic_real = F.zeros(shape=(1,))
 
-
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, self.feat_static_real, past_feat_dynamic_real
+            past_target, feat_static_real, past_feat_dynamic_real
         )
 
         dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static,
-            enc_output_dynamic,
-            self.future_feat_dynamic_real,
+            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
         )
 
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
@@ -193,8 +190,11 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
         # FIXME: can we factor out a common prefix in the base network?
 
+        feat_static_real = F.zeros(shape=(1,))
+        future_feat_dynamic_real = F.zeros(shape=(1,))
+
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, self.feat_static_real, past_feat_dynamic_real
+            past_target, feat_static_real, past_feat_dynamic_real
         )
 
         enc_output_static = (
@@ -202,9 +202,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         dec_inp_static, dec_inp_dynamic, _ = self.enc2dec(
-            enc_output_static,
-            enc_output_dynamic,
-            self.future_feat_dynamic_real,
+            enc_output_static, enc_output_dynamic, future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_inp_dynamic, dec_inp_static)
@@ -235,14 +233,16 @@ class ForkingSeq2SeqTargetTrainingNetwork(ForkingSeq2SeqNetworkBase):
         loss with shape (FIXME, FIXME)
         """
 
+        feat_static_real = F.zeros(shape=(1,))
+        past_feat_dynamic_real = F.zeros(shape=(1,))
+        future_feat_dynamic_real = F.zeros(shape=(1,))
+
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, self.feat_static_real, self.past_feat_dynamic_real
+            past_target, feat_static_real, past_feat_dynamic_real
         )
 
         dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static,
-            enc_output_dynamic,
-            self.future_feat_dynamic_real,
+            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
         )
 
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
@@ -274,7 +274,7 @@ class ForkingSeq2SeqTargetPredictionNetwork(ForkingSeq2SeqNetworkBase):
         future_feat_dynamic_real = F.zeros(shape=(1,))
 
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, self.feat_static_real, self.past_feat_dynamic_real
+            past_target, feat_static_real, past_feat_dynamic_real
         )
 
         enc_output_static = (
@@ -284,9 +284,7 @@ class ForkingSeq2SeqTargetPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         dec_inp_static, dec_inp_dynamic, _ = self.enc2dec(
-            enc_output_static,
-            enc_output_dynamic,
-            self.future_feat_dynamic_real,
+            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
         )
 
         dec_output = self.decoder(dec_inp_dynamic, dec_inp_static)

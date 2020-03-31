@@ -32,10 +32,6 @@ class Seq2SeqEncoder(nn.HybridBlock):
     a dynamic latent code with the same length as the `target` sequence.
     """
 
-    @validated()
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
@@ -77,7 +73,6 @@ class Seq2SeqEncoder(nn.HybridBlock):
         """
         raise NotImplementedError
 
-    @staticmethod
     def _assemble_inputs(
         F, target: Tensor, static_features: Tensor, dynamic_features: Tensor
     ) -> Tensor:
@@ -226,7 +221,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         """
 
         if self.use_dynamic_feat and self.use_static_feat:
-            inputs = Seq2SeqEncoder._assemble_inputs(
+            inputs = self._assemble_inputs(
                 F,
                 target=target,
                 static_features=static_features,
@@ -383,7 +378,7 @@ class MLPEncoder(Seq2SeqEncoder):
             shape (batch_size, sequence_length, num_dynamic_features)
         """
 
-        inputs = Seq2SeqEncoder._assemble_inputs(
+        inputs = self._assemble_inputs(
             F, target, static_features, dynamic_features
         )
         static_code = self.model(inputs)
@@ -465,7 +460,7 @@ class RNNCovariateEncoder(Seq2SeqEncoder):
             dynamic code,
             shape (batch_size, sequence_length, num_dynamic_features)
         """
-        inputs = Seq2SeqEncoder._assemble_inputs(
+        inputs = self._assemble_inputs(
             F, target, static_features, dynamic_features
         )
         dynamic_code = self.rnn(inputs)
