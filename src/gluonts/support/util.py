@@ -627,3 +627,8 @@ def assert_shape(x: Tensor, expected_shape: Tuple[int, ...]):
                 assert (
                     i == j
                 ), f"shape mismatch got {x.shape} expected {expected_shape}"
+
+
+def zdivide(a, b):
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return a / b

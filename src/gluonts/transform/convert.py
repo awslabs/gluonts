@@ -19,7 +19,7 @@ from gluonts.core.component import validated, DType
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
 from gluonts.model.common import Tensor
-from gluonts.support.util import erf, erfinv
+from gluonts.support.util import erf, erfinv, zdivide
 
 from ._base import (
     SimpleTransformation,
@@ -478,7 +478,7 @@ class CDFtoGaussianTransform(MapTransformation):
 
         # Calculate slopes of the pw-linear pieces.
         slopes = np.where(
-            x_diff == 0.0, np.zeros_like(x_diff), y_diff / x_diff
+            x_diff == 0.0, np.zeros_like(x_diff), zdivide(y_diff, x_diff),
         )
 
         zeroes = np.zeros_like(np.expand_dims(slopes[0, :], axis=0))
@@ -737,11 +737,13 @@ def cdf_to_gaussian_forward_transform(
 
         transformed = np.where(
             np.take_along_axis(slopes, indices, axis=1) != 0.0,
-            (
-                batch_predictions
-                - np.take_along_axis(intercepts, indices, axis=1)
-            )
-            / np.take_along_axis(slopes, indices, axis=1),
+            zdivide(
+                (
+                    batch_predictions
+                    - np.take_along_axis(intercepts, indices, axis=1)
+                ),
+                np.take_along_axis(slopes, indices, axis=1),
+            ),
             np.take_along_axis(batch_target_sorted, indices, axis=1),
         )
         return transformed

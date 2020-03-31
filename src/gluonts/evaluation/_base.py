@@ -35,6 +35,7 @@ import pandas as pd
 # First-party imports
 from gluonts.model.forecast import Forecast, Quantile
 from gluonts.gluonts_tqdm import tqdm
+from gluonts.support.util import zdivide
 
 
 @lru_cache()
@@ -370,7 +371,7 @@ class Evaluator:
         ]
         for quantile in self.quantiles:
             totals[quantile.weighted_loss_name] = np.divide(
-                totals[quantile.loss_name], totals["abs_target_sum"]
+                totals[quantile.loss_name], totals["abs_target_sum"] + flag
             )
 
         totals["mean_wQuantileLoss"] = np.array(
@@ -478,9 +479,9 @@ class Evaluator:
         )
 
         owa = 0.5 * (
-            (
-                Evaluator.smape(target, forecast)
-                / Evaluator.smape(target, naive_median_fcst)
+            zdivide(
+                Evaluator.smape(target, forecast),
+                Evaluator.smape(target, naive_median_fcst),
             )
             + (
                 Evaluator.mase(target, forecast, seasonal_error)
