@@ -304,7 +304,7 @@ class GluonPredictor(Predictor):
             batch_size=self.batch_size,
             ctx=self.ctx,
             dtype=self.dtype,
-            num_workers=num_workers,
+            num_mp_workers=num_workers,
             num_prefetch=num_prefetch,
             **kwargs,
         )

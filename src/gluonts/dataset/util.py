@@ -35,16 +35,17 @@ import pandas as pd
 T = TypeVar("T")
 
 
-class ReplicaInfo(NamedTuple):
-    """
-    Additional information the data_loader might need.
-    """
+# Each process has its own namespace, so the class attributes can be set by the
+# individual process and the accessed anywhere else, for example in the datasets
+class MPWorkerInfo(object):
+    """Contains the current worker information."""
 
-    # total_length: int  # TODO: might be one possibility to cache total dataset length
-    start_index: int = 0
-    end_index: Optional[int] = None  # by default until end
-    replica_id: int = 0
-    # cached: Optional[bool] = False  # TODO: implement caching logic
+    num_workers = 1
+    worker_id = 0
+
+    @classmethod
+    def set_worker_info(cls, num_workers: int, worker_id: int):
+        cls.num_workers, cls.worker_id = num_workers, worker_id
 
 
 def _split(

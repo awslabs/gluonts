@@ -18,6 +18,7 @@ import random
 import numpy as np
 import pandas as pd
 from mxnet.context import current_context
+from flaky import flaky
 
 # First-party imports
 from gluonts.dataset.field_names import FieldName
@@ -103,7 +104,7 @@ def test_validation_loader_equivalence() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_desired_context,
     )
 
@@ -119,7 +120,7 @@ def test_validation_loader_equivalence() -> None:
             dataset=list_dataset,
             transform=transformation,
             batch_size=BATCH_SIZE,
-            num_workers=NUM_WORKERS,  # This is the crucial difference
+            num_mp_workers=NUM_WORKERS,  # This is the crucial difference
             ctx=current_desired_context,
         )
     )
@@ -150,7 +151,9 @@ def test_validation_loader_equivalence() -> None:
 
 # CASE 01: if we have say 5 workers, then iterating
 # over the dataset so that one worker could cover 2/5 of the whole dataset
-# should still be enough that every time series is at least processed once
+# should still be enough that every time series is at least processed once,
+# (most of the time, if the underlying ts result in approx equal number of processed samples)
+@flaky(max_runs=3, min_passes=1)
 def test_training_loader_soft_constraint_01() -> None:
     (
         list_dataset,
@@ -169,13 +172,13 @@ def test_training_loader_soft_constraint_01() -> None:
     )
     exp_num_batches = int(exp_num_samples / BATCH_SIZE)
 
-    # CASE 01: EVERY TS VISITED ONCE
+    # CASE 01: EVERY TS VISITED AT LEAST ONCE
 
     train_dataset_loader_01 = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_desired_context,
         num_batches_per_epoch=int(2 * exp_num_batches),
     )
@@ -191,29 +194,6 @@ def test_training_loader_soft_constraint_01() -> None:
     assert all(
         [k in transformation_counts_01 for k in range(CD_NUM_TIME_SERIES)]
     ), "Not every time series processed at least once."
-
-    # CASE 02: NOT EVERY TS VISITED ONCE
-
-    train_dataset_loader_02 = TrainDataLoader(
-        dataset=list_dataset,
-        transform=transformation,
-        batch_size=BATCH_SIZE,
-        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_desired_context,
-        num_batches_per_epoch=int(0.5 * exp_num_batches),
-    )
-
-    # multi-processed validation dataset
-    mp_training_data_loader_result_02 = list(train_dataset_loader_02)
-
-    # should contain an entry for every time series id
-    transformation_counts_02 = get_transformation_counts(
-        mp_training_data_loader_result_02
-    )
-
-    assert not all(
-        [k in transformation_counts_02 for k in range(CD_NUM_TIME_SERIES)]
-    ), "It should not have been possible to process every time series once. "
 
 
 # CASE 02: if we have say 5 workers, but let each only cover 1/10, then
@@ -236,28 +216,28 @@ def test_training_loader_soft_constraint_02() -> None:
     )
     exp_num_batches = int(exp_num_samples / BATCH_SIZE)
 
-    # CASE 01: EVERY TS VISITED ONCE
+    # CASE 02: NOT EVERY TS VISITED ONCE
 
-    train_dataset_loader_01 = TrainDataLoader(
+    train_dataset_loader_02 = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_desired_context,
-        num_batches_per_epoch=int(2 * exp_num_batches),
+        num_batches_per_epoch=int(0.5 * exp_num_batches),
     )
 
     # multi-processed validation dataset
-    mp_training_data_loader_result_01 = list(train_dataset_loader_01)
+    mp_training_data_loader_result_02 = list(train_dataset_loader_02)
 
     # should contain an entry for every time series id
-    transformation_counts_01 = get_transformation_counts(
-        mp_training_data_loader_result_01
+    transformation_counts_02 = get_transformation_counts(
+        mp_training_data_loader_result_02
     )
 
-    assert all(
-        [k in transformation_counts_01 for k in range(CD_NUM_TIME_SERIES)]
-    ), "Not every time series processed at least once."
+    assert not all(
+        [k in transformation_counts_02 for k in range(CD_NUM_TIME_SERIES)]
+    ), "It should not have been possible to process every time series once. "
 
 
 # CASE 03: one worker should be able to traverse the whole dataset on its own
@@ -285,7 +265,7 @@ def test_training_loader_soft_constraint_03() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        num_workers=1,  # This is the crucial difference
+        num_mp_workers=1,  # This is the crucial difference
         ctx=current_desired_context,
         num_batches_per_epoch=int(3 * exp_num_batches),
     )

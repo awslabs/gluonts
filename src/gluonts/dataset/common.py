@@ -39,7 +39,6 @@ from pandas.tseries.offsets import Tick
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
-from gluonts.dataset.util import ReplicaInfo
 
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]
@@ -186,61 +185,31 @@ class FileDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
-    replica_info
-        What worker this dataset is handled by. Default: WorkerInfo()
     """
 
     def __init__(
-        self,
-        path: Path,
-        freq: str,
-        one_dim_target: bool = True,
-        replica_info=ReplicaInfo(),
+        self, path: Path, freq: str, one_dim_target: bool = True,
     ) -> None:
         self.path = path
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
         self._len = None
-        self.replica_info = replica_info
-        # indicates in the case of cyclic data sets (end_index is None) that the burn in has
-        # been done once: (it is reset whenever the ReplicaInfo() is set)
-        self._burnt_in = False
         if not self.files():
             raise OSError(f"no valid file found in {path}")
-        assert not (len(self.files()) > 1 and replica_info.replica_id > 0), (
-            "Currently cannot handle multiple "
-            "underlying JsonLineFiles in "
-            "multiprocessing mode. "
-        )
 
     def __iter__(self) -> Iterator[DataEntry]:
         for path in self.files():
-            for line in jsonl.JsonLinesFile(
-                path=path,
-                replica_info=self.replica_info,
-                burnt_in=self._burnt_in,
-            ):
+            for line in jsonl.JsonLinesFile(path=path):
                 data = self.process(line.content)
                 data["source"] = SourceContext(
                     source=line.span.path, row=line.span.line
                 )
-                if self.replica_info.replica_id != 0:
-                    pass
                 yield data
         self._burnt_in = True
 
     def __len__(self):
         if self._len is None:
             len_sum = sum(
-                [
-                    len(
-                        jsonl.JsonLinesFile(
-                            path=path,
-                            replica_info=self.replica_info,
-                            burnt_in=False,
-                        )
-                    )
-                    for path in self.files()
-                ]
+                [len(jsonl.JsonLinesFile(path=path)) for path in self.files()]
             )
             self._len = len_sum
         return self._len
@@ -262,18 +231,6 @@ class FileDataset(Dataset):
         # TODO: in the extension?
         return not (path.name.startswith(".") or path.name == "_SUCCESS")
 
-    def set_replica_info(self, replica_info: ReplicaInfo):
-        self.replica_info = replica_info
-        self._burnt_in = False
-        assert not (len(self.files()) > 1 and replica_info.replica_id > 0), (
-            "Currently cannot handle multiple "
-            "underlying JsonLineFiles in "
-            "multiprocessing mode. "
-        )
-
-    def get_replica_info(self):
-        return self.replica_info
-
 
 class ListDataset(Dataset):
     """
@@ -288,8 +245,6 @@ class ListDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
-    replica_info
-        What worker this dataset is handled by. Default: WorkerInfo()
     """
 
     def __init__(
@@ -297,52 +252,20 @@ class ListDataset(Dataset):
         data_iter: Iterable[DataEntry],
         freq: str,
         one_dim_target: bool = True,
-        replica_info=ReplicaInfo(),
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
-        self.list_data = list(
-            data_iter
-        )  # TODO do refactor to represent data_iter
-        self.replica_info = replica_info
-        # indicates in the case of cyclic data sets (end_index is None) that the burn in has
-        # been done once: (it is reset whenever the ReplicaInfo() is set)
-        self._burnt_in = False
+        self.list_data = list(data_iter)
         # TODO: implement caching here
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
         for row_number, data in enumerate(self.list_data):
-            # TODO: I think this iteration logic, as well as total_dataset_len, start_index
-            #  and end_index should be properties of the dataset. Total_dataset_len should be
-            #  metadata. What is done to return an entry should be the only dataset type specific thing.
-
-            # skip until start_index on first pass, aka do burn_in
-            # in case of cyclic data sets always do burn in, in case of non cyclic ones, only once
-            if row_number < self.replica_info.start_index and (
-                self.replica_info.end_index is not None or not self._burnt_in
+            # The dataset is equally distributed among the workers
+            if not (
+                row_number % util.MPWorkerInfo.num_workers
+                == util.MPWorkerInfo.worker_id
             ):
                 continue
-            self._burnt_in = True
-
-            # only yield until, but excluding, the end_index, if specified
-            if self.replica_info.end_index is not None:
-                if row_number == self.replica_info.end_index:
-                    return
-
-            # --- dataset specific ---
-
-            # TODO: remove debug print
-            # if self.replica_info.end_index is not None:
-            #     print(
-            #         f"replica: ",
-            #         self.replica_info.replica_id,
-            #         "start: ",
-            #         self.replica_info.start_index,
-            #         "end: ",
-            #         self.replica_info.end_index,
-            #         "line_number: ",
-            #         row_number,
-            #     )
 
             data = self.process(data)
             data["source"] = SourceContext(source=source_name, row=row_number)
@@ -350,13 +273,6 @@ class ListDataset(Dataset):
 
     def __len__(self):
         return len(self.list_data)
-
-    def set_replica_info(self, replica_info: ReplicaInfo):
-        self.replica_info = replica_info
-        self._burnt_in = False
-
-    def get_replica_info(self):
-        return self.replica_info
 
 
 class TimeZoneStrategy(Enum):

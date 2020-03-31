@@ -23,12 +23,11 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset, FileDataset, ListDataset
+from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.parallelized_loader import ParallelDataLoader
 from gluonts.transform import Transformation
 
 DataBatch = Dict[str, Any]
-
-from gluonts.dataset.parallelized_loader import ParallelDataLoader
 
 
 class DataLoader(Iterable[DataEntry]):
@@ -48,7 +47,7 @@ class DataLoader(Iterable[DataEntry]):
         MXNet context to use to store data.
     dtype
         Floating point type to use.
-    num_workers
+    num_mp_workers
         Number of workers.
     cyclic
         Indicates whether the dataset is traversed potentially multiple times.
@@ -65,7 +64,7 @@ class DataLoader(Iterable[DataEntry]):
         ctx: mx.Context,
         dtype: DType = np.float32,
         cyclic: bool = False,
-        num_workers: Optional[int] = None,
+        num_mp_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         **kwargs
     ) -> None:
@@ -85,7 +84,7 @@ class DataLoader(Iterable[DataEntry]):
             batch_size=self.batch_size,
             ctx=ctx,
             dtype=self.dtype,
-            num_workers=num_workers,
+            num_mp_workers=num_mp_workers,
             num_prefetch=num_prefetch,
             **kwargs,
         )
@@ -125,7 +124,7 @@ class TrainDataLoader(DataLoader):
         batch_size: int,
         ctx: mx.Context,
         num_batches_per_epoch: int,
-        num_workers: Optional[int] = None,
+        num_mp_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
         shuffle_for_training: bool = True,
@@ -143,7 +142,7 @@ class TrainDataLoader(DataLoader):
             is_train=True,
             shuffle=shuffle_for_training,
             cyclic=True,
-            num_workers=num_workers,
+            num_mp_workers=num_mp_workers,
             num_prefetch=num_prefetch,
             **kwargs,
         )
@@ -171,7 +170,7 @@ class ValidationDataLoader(DataLoader):
         transform: Transformation,
         batch_size: int,
         ctx: mx.Context,
-        num_workers: Optional[int] = None,
+        num_mp_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
         **kwargs
@@ -184,7 +183,7 @@ class ValidationDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             cyclic=False,
-            num_workers=num_workers,
+            num_mp_workers=num_mp_workers,
             num_prefetch=num_prefetch,
             **kwargs,
         )
@@ -198,19 +197,20 @@ class InferenceDataLoader(DataLoader):
         transform: Transformation,
         batch_size: int,
         ctx: mx.Context,
-        # Currently the is a bug with multi processing here,
-        # see: _worker_fn in parallelized_loader.py for explanation
-        num_workers: Optional[int] = 0,
+        num_mp_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
         **kwargs
     ) -> None:
-        if num_workers != 0:
-            num_workers = 0
+        # TODO fix this bug:
+        # Currently the is a bug with multi processing here,
+        # see: _worker_fn in parallelized_loader.py for explanation
+        if num_mp_workers != 0 and num_mp_workers is not None:
             logging.warning(
                 "You have set `num_workers` for InferenceDataLoader to a non zero value, "
                 "however, currently multiprocessing is not supported for the InferenceDataLoader."
             )
+        num_mp_workers = 0
 
         super().__init__(
             dataset=dataset,
@@ -220,7 +220,7 @@ class InferenceDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             cyclic=False,
-            num_workers=num_workers,
+            num_mp_workers=num_mp_workers,
             num_prefetch=num_prefetch,
             **kwargs,
         )

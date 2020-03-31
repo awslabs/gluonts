@@ -42,9 +42,9 @@ from mxnet.ndarray import NDArray
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import Dataset, FileDataset, ListDataset
-from gluonts.dataset.util import ReplicaInfo
+from gluonts.dataset.common import Dataset
 from gluonts.transform import Transformation
+from gluonts.dataset.util import MPWorkerInfo
 
 if sys.platform == "darwin" or sys.platform == "win32":
 
@@ -199,6 +199,9 @@ def _worker_initializer(
     worker_id = int(worker_id_queue.get())
     multiprocessing.current_process().name = f"worker_{worker_id}"
 
+    # propagate worker information
+    MPWorkerInfo.set_worker_info(num_workers=num_workers, worker_id=worker_id)
+
     # TODO: remove debug print
     # print(
     #     "PROCESS; NAME: ",
@@ -206,24 +209,6 @@ def _worker_initializer(
     #     "ID: ",
     #     worker_id,
     # )
-
-    # propagate worker information to dataset
-    if isinstance(_worker_dataset, (FileDataset, ListDataset)):
-        start_index = int(
-            (worker_id / num_workers) * dataset_len
-        )  # calculate offsets for different replicas
-        end_index = (
-            None
-            if cyclic
-            else int(((worker_id + 1) / num_workers) * dataset_len)
-        )  # loop infinitely if cyclic
-        _worker_dataset.set_replica_info(
-            ReplicaInfo(
-                start_index=start_index,
-                end_index=end_index,
-                replica_id=worker_id,
-            )
-        )
 
 
 def sequential_sample_generator(dataset, transformation, is_train, cyclic):
@@ -266,7 +251,7 @@ def _worker_fn(
     #     "CYCLE NUM: ",
     #     cycle_num,
     #     "REPLICA ID:",
-    #     _worker_dataset.get_replica_info().replica_id,
+    #     MPWorkerInfo.worker_id,
     #     "worker reset num: ",
     #     _worker_iterator_latest_reset_cycle,
     #     "cycle_num",
@@ -284,7 +269,7 @@ def _worker_fn(
         #     "CYCLE NUM: ",
         #     cycle_num,
         #     "REPLICA ID:",
-        #     _worker_dataset.get_replica_info().replica_id,
+        #     MPWorkerInfo.worker_id,
         #     "worker reset num: ",
         #     _worker_iterator_latest_reset_cycle,
         #     "cycle_num",
@@ -317,12 +302,9 @@ def _worker_fn(
         success = False
         batch = None
 
-    assert isinstance(_worker_dataset, (FileDataset, ListDataset))
-    dataset_replica_id = _worker_dataset.get_replica_info().replica_id
-
     buf = io.BytesIO()
     ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
-        (success, dataset_replica_id, batch)
+        (success, MPWorkerInfo.worker_id, batch)
     )
     return buf.getvalue()
 
@@ -515,7 +497,7 @@ class ParallelDataLoader(object):
         Whether to shuffle the samples.
     sampler
         The sampler to use. Either specify sampler or shuffle, not both.
-    num_workers
+    num_mp_workers
         The number of multiprocessing workers to use for data preprocessing.
     num_prefetch
         The number of prefetching batches only works if `num_workers` > 0.
@@ -539,7 +521,7 @@ class ParallelDataLoader(object):
         ctx: mx.Context = None,
         dtype: DType = np.float32,
         num_prefetch: Optional[int] = None,
-        num_workers: Optional[int] = None,
+        num_mp_workers: Optional[int] = None,
     ):
         self.dataset = dataset
         self.dataset_len = None
@@ -561,19 +543,21 @@ class ParallelDataLoader(object):
         self.shuffle = shuffle
 
         assert (
-            num_workers is None or num_workers <= self.dataset_len
+            num_mp_workers is None or num_mp_workers <= self.dataset_len
         ), "Cannot have more workers than dataset entries currently."
 
         # TODO: switch to default 0 here
-        self.num_workers = max(
+        self.num_mp_workers = max(
             0,
-            num_workers
-            if num_workers is not None
+            num_mp_workers
+            if num_mp_workers is not None
             else min(self.dataset_len, multiprocessing.cpu_count()),
         )
         self.num_prefetch = max(
             0,
-            num_prefetch if num_prefetch is not None else 2 * self.num_workers,
+            num_prefetch
+            if num_prefetch is not None
+            else 2 * self.num_mp_workers,
         )
         self.worker_pool = None
         # In order to set unique IDs to workers:
@@ -582,24 +566,20 @@ class ParallelDataLoader(object):
         # In order to recycle unused but pre-calculated batches from last epoch for training:
         self.multi_worker_cache = None
 
-        if self.num_workers > 0:
-            assert isinstance(
-                dataset, (FileDataset, ListDataset)
-            ), "Currently multiprocessing is only supported for 'FileDataset' and 'ListDataset'"
-
+        if self.num_mp_workers > 0:
             # generate unique ids for processes
             self.worker_manager = multiprocessing.Manager()
             self.worker_id_queue = self.worker_manager.Queue()
-            for i in range(self.num_workers):
+            for i in range(self.num_mp_workers):
                 self.worker_id_queue.put(i)
 
             self.worker_pool = multiprocessing.get_context("spawn").Pool(
-                self.num_workers,
+                self.num_mp_workers,
                 initializer=_worker_initializer,
                 initargs=[
                     self.dataset,
                     self.dataset_len,
-                    self.num_workers,
+                    self.num_mp_workers,
                     self.transformation,
                     self.cyclic,
                     self.worker_id_queue,
@@ -613,7 +593,7 @@ class ParallelDataLoader(object):
 
     def __iter__(self):
         self.cycle_num += 1
-        if self.num_workers == 0:
+        if self.num_mp_workers == 0:
             generator = sequential_sample_generator(
                 self.dataset, self.transformation, self.is_train, self.cyclic
             )
@@ -654,7 +634,7 @@ class ParallelDataLoader(object):
             if self.multi_worker_cache is None:
                 multi_worker = _MultiWorkerIter(
                     worker_pool=self.worker_pool,
-                    num_workers=self.num_workers,
+                    num_workers=self.num_mp_workers,
                     batch_size=self.batch_size,
                     shuffle=self.shuffle,
                     batchify_fn=self.batchify_fn,

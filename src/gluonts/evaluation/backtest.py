@@ -190,7 +190,7 @@ def backtest_metrics(
                 batch_size=forecaster.trainer.batch_size,
                 ctx=forecaster.trainer.ctx,
                 dtype=forecaster.dtype,
-                num_workers=num_workers,
+                num_mp_workers=num_workers,
                 num_prefetch=num_prefetch,
                 **kwargs,
             )
