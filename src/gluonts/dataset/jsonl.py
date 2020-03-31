@@ -62,7 +62,6 @@ class JsonLinesFile:
         # TODO: implement caching here
 
     def __iter__(self):
-        print("HEY!!!", MPWorkerInfo.num_workers, MPWorkerInfo.worker_id)
         with open(self.path) as jsonl_file:
             for line_number, raw in enumerate(jsonl_file):
                 # The dataset is equally distributed among the workers
@@ -71,16 +70,6 @@ class JsonLinesFile:
                     == MPWorkerInfo.worker_id
                 ):
                     continue
-
-                # --- dataset specific ---
-
-                # TODO: remove debug print
-                # print(
-                #     f"replica: ",
-                #     MPWorkerInfo.worker_id,
-                #     "line_number: ",
-                #     line_number,
-                # )
 
                 span = Span(path=self.path, line=line_number)
                 try:

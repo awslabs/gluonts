@@ -162,22 +162,6 @@ def _worker_initializer(
     # this is only necessary to handle MXIndexedRecordIO because otherwise dataset
     # can be passed as argument
 
-    # TODO: remove debug print
-    # print(
-    #     "num_workers: ",
-    #     num_workers,
-    #     "current worker: ",
-    #     str(multiprocessing.current_process()),
-    #     "dataset_id",
-    #     dataset,
-    #     "batch_size: ",
-    #     batch_size,
-    #     "is_train: ",
-    #     is_train,
-    #     "cyclic: ",
-    #     cyclic,
-    # )
-
     global _worker_dataset
     global _worker_dataset_iterator
     global _worker_transformation
@@ -201,14 +185,6 @@ def _worker_initializer(
 
     # propagate worker information
     MPWorkerInfo.set_worker_info(num_workers=num_workers, worker_id=worker_id)
-
-    # TODO: remove debug print
-    # print(
-    #     "PROCESS; NAME: ",
-    #     multiprocessing.current_process().name,
-    #     "ID: ",
-    #     worker_id,
-    # )
 
 
 def sequential_sample_generator(dataset, transformation, is_train, cyclic):
@@ -239,42 +215,11 @@ def _worker_fn(
     global _worker_iterator_latest_reset_cycle
     global _worker_iterator_exhausted_indicator
 
-    # TODO: remove debug print
-    # print(
-    #     multiprocessing.current_process().name,
-    #     "iterator none:",
-    #     _worker_dataset_iterator is None,
-    # )
-
-    # TODO: remove debug print
-    # print(
-    #     "CYCLE NUM: ",
-    #     cycle_num,
-    #     "REPLICA ID:",
-    #     MPWorkerInfo.worker_id,
-    #     "worker reset num: ",
-    #     _worker_iterator_latest_reset_cycle,
-    #     "cycle_num",
-    #     cycle_num,
-    # )
-
     # initialize, or reset the iterator at each cycle
     assert isinstance(_worker_iterator_latest_reset_cycle, int)
     if (_worker_iterator_latest_reset_cycle < cycle_num) and (
         _worker_iterator_latest_reset_cycle == 0 or not cyclic
     ):
-        # TODO: remove debug print
-        # print(
-        #     "RESETTING;",
-        #     "CYCLE NUM: ",
-        #     cycle_num,
-        #     "REPLICA ID:",
-        #     MPWorkerInfo.worker_id,
-        #     "worker reset num: ",
-        #     _worker_iterator_latest_reset_cycle,
-        #     "cycle_num",
-        #     cycle_num,
-        # )
         _worker_reset_iterator(is_train, cyclic, cycle_num)
 
     assert isinstance(
@@ -331,8 +276,6 @@ def _worker_reset_iterator(
     _worker_iterator_exhausted_indicator = False
 
 
-# TODO: test that threads terminate correctly (merged code of mxnet 1.4 and newest
-#  which contained more thread termination handling)
 class _MultiWorkerIter(object):
     """Internal multi-worker iterator for DataLoader."""
 
@@ -355,7 +298,6 @@ class _MultiWorkerIter(object):
     ):
         self._worker_pool = worker_pool
         self._batchify_fn = batchify_fn
-        # TODO: currently between epochs all batches in queue are dropped, maybe find a workaround?
         self._data_buffer: dict = (
             {}
         )  # Its a dictionary with {index: data} structure in our case
