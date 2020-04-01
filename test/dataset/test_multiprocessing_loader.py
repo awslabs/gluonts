@@ -13,13 +13,14 @@
 
 # First-party imports
 import random
+import time
 
 # Third-party imports
 import numpy as np
 import pandas as pd
 from mxnet.context import current_context
 from flaky import flaky
-import time
+import pytest
 
 # First-party imports
 from gluonts.dataset.field_names import FieldName
@@ -182,7 +183,11 @@ def test_validation_loader_equivalence() -> None:
 # CASE 01: if we have say 5 workers, then iterating
 # over the dataset so that one worker could cover 3/5 of the whole dataset
 # should still be enough that every time series is at least processed once,
-@flaky(max_runs=5, min_passes=1)
+@pytest.mark.xfail(
+    reason="""High data-subset length variability, cheap batch transformations and
+    different process start times often lead to this toy test failing."""
+)
+@flaky(max_runs=3, min_passes=1)
 def test_training_loader_soft_constraint_01() -> None:
     (
         list_dataset,
