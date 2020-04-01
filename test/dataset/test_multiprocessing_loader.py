@@ -28,6 +28,12 @@ from gluonts.dataset.common import ListDataset
 from gluonts.transform import Chain, UniformSplitSampler, InstanceSplitter
 from gluonts.dataset.artificial import ConstantDataset
 
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.trainer import Trainer
+from gluonts.dataset.artificial import constant_dataset
+from gluonts.evaluation import Evaluator
+
 # CONSTANTS:
 
 BATCH_SIZE = 8
@@ -288,5 +294,33 @@ def test_training_loader_soft_constraint_03() -> None:
         k in transformation_counts_03 for k in range(CD_NUM_TIME_SERIES)
     ), "One worker should be able to traverse all in one sweep, and should not deplete its iterator."
 
-    # delete cache explicitly in last test
-    delete_cache()
+
+# This is just a general functionality test, whether the multiprocessing works in practice as expected
+def test_general_functionality() -> None:
+    ds_info, train_ds, test_ds = constant_dataset()
+    freq = ds_info.metadata.freq
+    prediction_length = ds_info.prediction_length
+
+    ctx = "cpu"
+    trainer = Trainer(ctx=ctx, epochs=3, num_batches_per_epoch=5)
+
+    estimator = DeepAREstimator(
+        prediction_length=prediction_length, freq=freq, trainer=trainer
+    )
+
+    agg_metrics, item_metrics = backtest_metrics(
+        train_dataset=train_ds,
+        test_dataset=test_ds,
+        forecaster=estimator,
+        evaluator=Evaluator(calculate_owa=False),
+        num_workers=NUM_WORKERS_MP,
+    )
+
+    # just some sanity check
+    assert (
+        agg_metrics is not None and item_metrics is not None
+    ), "Metrics should not be None if everything went smooth."
+
+
+# delete cache explicitly in last test
+delete_cache()

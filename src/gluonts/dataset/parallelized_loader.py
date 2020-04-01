@@ -14,6 +14,8 @@
 
 # Standard library imports
 import itertools
+import logging
+import pathlib
 import pickle
 import io
 import random
@@ -29,6 +31,8 @@ from multiprocessing.reduction import ForkingPickler
 from multiprocessing.pool import Pool
 from multiprocessing import Queue
 
+import pandas as pd
+
 try:
     import multiprocessing.resource_sharer
 except ImportError:
@@ -38,8 +42,6 @@ except ImportError:
 import numpy as np
 from mxnet import nd, context
 import mxnet as mx
-from mxnet.ndarray import NDArray
-from mxnet import numpy as _mx_np
 
 # First-party imports
 from gluonts.core.component import DType
@@ -47,7 +49,9 @@ from gluonts.dataset.common import Dataset
 from gluonts.transform import Transformation
 from gluonts.dataset.util import MPWorkerInfo
 
-if sys.platform == "darwin" or sys.platform == "win32":
+if (
+    sys.platform == "darwin"
+):  # TODO: put this back: or sys.platform == "win32":
 
     def rebuild_ndarray(*args):
         """Rebuild ndarray from pickled shared memory"""
@@ -86,7 +90,17 @@ ForkingPickler.register(nd.NDArray, reduce_ndarray)
 # constructed using different memory allocation techniques
 def stack(data, parallel_processing, dtype):
     """Stack a list of data."""
-    if isinstance(data[0], np.ndarray):
+    if isinstance(data[0], mx.nd.NDArray):
+        if parallel_processing:
+            out = nd.empty(
+                (len(data),) + data[0].shape,
+                dtype=data[0].dtype,
+                ctx=context.Context("cpu_shared", 0),
+            )
+            return mx.nd.stack(*data, out=out)
+        else:
+            return mx.nd.stack(*data)
+    elif isinstance(data[0], np.ndarray):
         data = np.asarray(data)
         if data.dtype.kind == "f":
             data = data.astype(dtype)
@@ -96,29 +110,16 @@ def stack(data, parallel_processing, dtype):
             )
         else:
             return mx.nd.array(data, dtype=data.dtype)
-
-    if isinstance(data[0], mx.nd.NDArray):
-        if mx:
-            out = nd.empty(
-                (len(data),) + data[0].shape,
-                dtype=data[0].dtype,
-                ctx=context.Context("cpu_shared", 0),
-            )
-            return mx.nd.stack(*data, out=out)
-        else:
-            return mx.nd.stack(*data)
-
-    # TODO: think about converting int/float lists/tuples to np.NDArray
-
-    if isinstance(data[0], list):
-        print("STACKING TUPLE HERE")
+    elif isinstance(data[0], list):
         return list(stack(t, parallel_processing, dtype) for t in zip(*data))
-
-    if isinstance(data[0], tuple):
-        # print("STACKING LIST HERE")
+    elif isinstance(data[0], tuple):
         return tuple(stack(t, parallel_processing, dtype) for t in zip(*data))
-
-    return data
+    elif isinstance(data[0], (pd.Timestamp, str, int, pathlib.PosixPath)):
+        return data
+    else:
+        raise TypeError(
+            f"Invalid type of data: {type(data[0])} for argument loss_function."
+        )
 
 
 # Need to define function explicitly, because lambda functions are no pickle'able in some cases
@@ -249,8 +250,6 @@ def _worker_fn(
             _worker_iterator_exhausted_indicator = True
         success = False
         batch = None
-
-    # print("Worker provides batch: ", MPWorkerInfo.worker_id) # TODO REMOVE
 
     buf = io.BytesIO()
     ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
@@ -390,7 +389,7 @@ class _MultiWorkerIter(object):
                     batch = {
                         k: v.as_in_context(self.ctx)
                         if isinstance(
-                            v, NDArray
+                            v, nd.NDArray
                         )  # context.cpu_pinned(self.pin_device_id)
                         else v
                         for k, v in batch.items()
@@ -471,6 +470,14 @@ class ParallelDataLoader(object):
         num_prefetch: Optional[int] = None,
         num_workers: Optional[int] = None,
     ):
+        # Some windows error with the ForkingPickler prevents usage currently:
+        # if sys.platform == "win32":
+        #     logging.warning(
+        #         "You have set `num_workers` for to a non zero value, "
+        #         "however, currently multiprocessing is not supported on windows."
+        #     )
+        #     num_workers = 0
+
         self.dataset = dataset
         self.dataset_len = None
         if isinstance(dataset, Sized):
@@ -567,7 +574,7 @@ class ParallelDataLoader(object):
                     batch = {
                         k: v.as_in_context(self.ctx)
                         if isinstance(
-                            v, NDArray
+                            v, nd.NDArray
                         )  # context.cpu_pinned(self.pin_device_id)
                         else v
                         for k, v in batch.items()
