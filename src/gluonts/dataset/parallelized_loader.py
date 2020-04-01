@@ -247,6 +247,8 @@ def _worker_fn(
         success = False
         batch = None
 
+    # print("Worker provides batch: ", MPWorkerInfo.worker_id) # TODO REMOVE
+
     buf = io.BytesIO()
     ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
         (success, MPWorkerInfo.worker_id, batch)
@@ -488,12 +490,13 @@ class ParallelDataLoader(object):
             num_mp_workers is None or num_mp_workers <= self.dataset_len
         ), "Cannot have more workers than dataset entries currently."
 
-        # TODO: switch to default 0 here
+        # TODO: switch to default multiprocessing.cpu_count() here
+        default_num_mp_workers = 0
         self.num_mp_workers = max(
             0,
             num_mp_workers
             if num_mp_workers is not None
-            else min(self.dataset_len, multiprocessing.cpu_count()),
+            else min(self.dataset_len, default_num_mp_workers),
         )
         self.num_prefetch = max(
             0,

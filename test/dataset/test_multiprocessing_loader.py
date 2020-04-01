@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 from mxnet.context import current_context
 from flaky import flaky
+import time
 
 # First-party imports
 from gluonts.dataset.field_names import FieldName
@@ -33,15 +34,23 @@ BATCH_SIZE = 8
 NUM_WORKERS_MP = (
     5  # 5 is specific and intentional, see train set soft constraint test
 )
-NUM_WORKERS = 0
 CONTEXT_LEN = 7
 SPLITTING_SAMPLE_PROBABILITY = 1  # crucial for the ValidationDataLoader test
 CD_NUM_STEPS = 14
 CD_NUM_TIME_SERIES = 30
 CD_MAX_LEN_MULTIPLICATION_FACTOR = 3
 
+# CACHED DATA
+
+_data_cache = None
+
 # get dataset and deterministic transformation
 def get_dataset_and_transformation():
+    # dont recompute, since expensive
+    global _data_cache
+    if _data_cache is not None:
+        return _data_cache
+
     # create constant dataset with each time series having
     # variable length and unique constant integer entries
     dataset = ConstantDataset(
@@ -75,7 +84,25 @@ def get_dataset_and_transformation():
         ]
     )
 
-    return list_dataset, transformation, list_dataset_pred_length
+    # original no multiprocessing processed validation dataset
+    train_data_transformed_original = list(
+        ValidationDataLoader(
+            dataset=list_dataset,
+            transform=transformation,
+            batch_size=BATCH_SIZE,
+            num_mp_workers=0,  # This is the crucial difference
+            ctx=current_context(),
+        )
+    )
+
+    _data_cache = (
+        list_dataset,
+        transformation,
+        list_dataset_pred_length,
+        train_data_transformed_original,
+    )
+
+    return _data_cache
 
 
 # returns the number of transformed datasets per original ts as a dict
@@ -97,6 +124,7 @@ def test_validation_loader_equivalence() -> None:
         list_dataset,
         transformation,
         list_dataset_pred_length,
+        train_data_transformed_original,
     ) = get_dataset_and_transformation()
     current_desired_context = current_context()
 
@@ -114,29 +142,18 @@ def test_validation_loader_equivalence() -> None:
     # multi-processed validation dataset NR2, second iteration/pass through
     mp_val_data_loader_result_02 = list(validation_dataset_loader)
 
-    # single-processed validation dataset
-    training_data_loader_result = list(
-        ValidationDataLoader(
-            dataset=list_dataset,
-            transform=transformation,
-            batch_size=BATCH_SIZE,
-            num_mp_workers=NUM_WORKERS,  # This is the crucial difference
-            ctx=current_desired_context,
-        )
-    )
-
     # ASSERTIONS:
 
     assert get_transformation_counts(
         mp_val_data_loader_result_01
     ) == get_transformation_counts(
-        training_data_loader_result
+        train_data_transformed_original
     ), "The multiprocessing ValidationDataLoader should yield equivalent result to the non multiprocessing one."
 
     assert get_transformation_counts(
         mp_val_data_loader_result_02
     ) == get_transformation_counts(
-        training_data_loader_result
+        train_data_transformed_original
     ), "The multiprocessing ValidationDataLoader should yield equivalent result to the non multiprocessing one."
 
     assert (
@@ -153,24 +170,17 @@ def test_validation_loader_equivalence() -> None:
 # over the dataset so that one worker could cover 2/5 of the whole dataset
 # should still be enough that every time series is at least processed once,
 # (most of the time, if the underlying ts result in approx equal number of processed samples)
-@flaky(max_runs=3, min_passes=1)
+@flaky(max_runs=5, min_passes=1)
 def test_training_loader_soft_constraint_01() -> None:
     (
         list_dataset,
         transformation,
         list_dataset_pred_length,
+        train_data_transformed_original,
     ) = get_dataset_and_transformation()
-    current_desired_context = current_context()
 
-    # the on average expected processed time series samples, and batches
-    avg_mult_factor = (
-        sum(range(1, CD_MAX_LEN_MULTIPLICATION_FACTOR + 1))
-        / CD_MAX_LEN_MULTIPLICATION_FACTOR
-    )
-    exp_num_samples = CD_NUM_TIME_SERIES * (
-        avg_mult_factor * CD_NUM_STEPS - CONTEXT_LEN - list_dataset_pred_length
-    )
-    exp_num_batches = int(exp_num_samples / BATCH_SIZE)
+    # the expected number of batches
+    exp_num_batches = len(train_data_transformed_original)
 
     # CASE 01: EVERY TS VISITED AT LEAST ONCE
 
@@ -179,9 +189,13 @@ def test_training_loader_soft_constraint_01() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_desired_context,
+        ctx=current_context(),
         num_batches_per_epoch=int(2 * exp_num_batches),
     )
+
+    # give all the workers a little time to get ready, so they can start at the same time
+    time.sleep(0.5)
+    time.sleep(0.5)
 
     # multi-processed validation dataset
     mp_training_data_loader_result_01 = list(train_dataset_loader_01)
@@ -191,6 +205,8 @@ def test_training_loader_soft_constraint_01() -> None:
         mp_training_data_loader_result_01
     )
 
+    print(transformation_counts_01)
+
     assert all(
         [k in transformation_counts_01 for k in range(CD_NUM_TIME_SERIES)]
     ), "Not every time series processed at least once."
@@ -198,23 +214,17 @@ def test_training_loader_soft_constraint_01() -> None:
 
 # CASE 02: if we have say 5 workers, but let each only cover 1/10, then
 # it should be impossible to cover the whole underlying dataset
+@flaky(max_runs=3, min_passes=3)
 def test_training_loader_soft_constraint_02() -> None:
     (
         list_dataset,
         transformation,
         list_dataset_pred_length,
+        train_data_transformed_original,
     ) = get_dataset_and_transformation()
-    current_desired_context = current_context()
 
-    # the on average expected processed time series samples, and batches
-    avg_mult_factor = (
-        sum(range(1, CD_MAX_LEN_MULTIPLICATION_FACTOR + 1))
-        / CD_MAX_LEN_MULTIPLICATION_FACTOR
-    )
-    exp_num_samples = CD_NUM_TIME_SERIES * (
-        avg_mult_factor * CD_NUM_STEPS - CONTEXT_LEN - list_dataset_pred_length
-    )
-    exp_num_batches = int(exp_num_samples / BATCH_SIZE)
+    # the expected number of batches
+    exp_num_batches = len(train_data_transformed_original)
 
     # CASE 02: NOT EVERY TS VISITED ONCE
 
@@ -223,7 +233,7 @@ def test_training_loader_soft_constraint_02() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_desired_context,
+        ctx=current_context(),
         num_batches_per_epoch=int(0.5 * exp_num_batches),
     )
 
@@ -246,18 +256,11 @@ def test_training_loader_soft_constraint_03() -> None:
         list_dataset,
         transformation,
         list_dataset_pred_length,
+        train_data_transformed_original,
     ) = get_dataset_and_transformation()
-    current_desired_context = current_context()
 
-    # the on average expected processed time series samples, and batches
-    avg_mult_factor = (
-        sum(range(1, CD_MAX_LEN_MULTIPLICATION_FACTOR + 1))
-        / CD_MAX_LEN_MULTIPLICATION_FACTOR
-    )
-    exp_num_samples = CD_NUM_TIME_SERIES * (
-        avg_mult_factor * CD_NUM_STEPS - CONTEXT_LEN - list_dataset_pred_length
-    )
-    exp_num_batches = int(exp_num_samples / BATCH_SIZE)
+    # the expected number of batches
+    exp_num_batches = len(train_data_transformed_original)
 
     # CASE 03: ONE WORKER TRAVERSES ALL
 
@@ -266,7 +269,7 @@ def test_training_loader_soft_constraint_03() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         num_mp_workers=1,  # This is the crucial difference
-        ctx=current_desired_context,
+        ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
