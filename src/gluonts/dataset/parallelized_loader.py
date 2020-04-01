@@ -51,7 +51,9 @@ from gluonts.dataset.util import MPWorkerInfo
 
 if (
     sys.platform == "darwin"
-):  # TODO: put this back: or sys.platform == "win32":
+    or sys.platform == "win32"
+    or sys.platform == "win64"
+):
 
     def rebuild_ndarray(*args):
         """Rebuild ndarray from pickled shared memory"""
