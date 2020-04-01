@@ -469,12 +469,12 @@ class ParallelDataLoader(object):
         num_workers: Optional[int] = None,
     ):
         # Some windows error with the ForkingPickler prevents usage currently:
-        # if sys.platform == "win32":
-        #     logging.warning(
-        #         "You have set `num_workers` for to a non zero value, "
-        #         "however, currently multiprocessing is not supported on windows."
-        #     )
-        #     num_workers = 0
+        if sys.platform == "win32":
+            logging.warning(
+                "You have set `num_workers` for to a non zero value, "
+                "however, currently multiprocessing is not supported on windows."
+            )
+            num_workers = 0
 
         self.dataset = dataset
         self.dataset_len = None
@@ -525,7 +525,7 @@ class ParallelDataLoader(object):
             for i in range(self.num_workers):
                 self.worker_id_queue.put(i)
 
-            self.worker_pool = multiprocessing.Pool(
+            self.worker_pool = multiprocessing.get_context("spawn").Pool(
                 self.num_workers,
                 initializer=_worker_initializer,
                 initargs=[
