@@ -15,7 +15,6 @@
 import itertools
 import logging
 from typing import Any, Dict, Iterable, Iterator, Optional
-from multiprocessing import cpu_count
 
 # Third-party imports
 import mxnet as mx
@@ -48,7 +47,16 @@ class DataLoader(Iterable[DataEntry]):
     dtype
         Floating point type to use.
     num_workers
-        Number of workers.
+        The number of multiprocessing workers to use for data preprocessing.
+        By default 0, in which case no multiprocessing will be utilized.
+    num_prefetch
+        The number of prefetching batches only works if `num_workers` > 0.
+        If `prefetch` > 0, it allow worker process to prefetch certain batches before
+        acquiring data from iterators.
+        Note that using large prefetching batch will provide smoother bootstrapping performance,
+        but will consume more shared_memory. Using smaller number may forfeit the purpose of using
+        multiple worker processes, try reduce `num_workers` in this case.
+        By default it defaults to `num_workers * 2`.
     cyclic
         Indicates whether the dataset is traversed potentially multiple times.
 
@@ -68,7 +76,6 @@ class DataLoader(Iterable[DataEntry]):
         num_prefetch: Optional[int] = None,
         **kwargs
     ) -> None:
-        # conversion from iterator to list
         self.batch_size = batch_size
         self.ctx = ctx
         self.dtype = dtype
@@ -113,6 +120,17 @@ class TrainDataLoader(DataLoader):
         MXNet context to use to store data.
     num_batches_per_epoch
         Number of batches to return in one complete iteration over this object.
+    num_workers
+        The number of multiprocessing workers to use for data preprocessing.
+        By default 0, in which case no multiprocessing will be utilized.
+    num_prefetch
+        The number of prefetching batches only works if `num_workers` > 0.
+        If `prefetch` > 0, it allow worker process to prefetch certain batches before
+        acquiring data from iterators.
+        Note that using large prefetching batch will provide smoother bootstrapping performance,
+        but will consume more shared_memory. Using smaller number may forfeit the purpose of using
+        multiple worker processes, try reduce `num_workers` in this case.
+        By default it defaults to `num_workers * 2`.
     dtype
         Floating point type to use.
     """
@@ -149,7 +167,6 @@ class TrainDataLoader(DataLoader):
 
         self.num_batches_per_epoch = num_batches_per_epoch
         self.shuffle_for_training = shuffle_for_training
-        # TODO: implement shuffling
         self.num_batches_for_shuffling = num_batches_for_shuffling
 
     def __len__(self) -> int:

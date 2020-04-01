@@ -232,8 +232,10 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
         **kwargs,
     ) -> Predictor:
         return self.train_model(
-            training_data, validation_data, **kwargs
+            training_data, validation_data, num_workers, num_prefetch, **kwargs
         ).predictor

@@ -24,14 +24,11 @@ import time
 from collections import Sized
 from typing import Callable, Iterable, Optional
 
-
 import multiprocessing
 import multiprocessing.queues
 from multiprocessing.reduction import ForkingPickler
 from multiprocessing.pool import Pool
 from multiprocessing import Queue
-
-import pandas as pd
 
 try:
     import multiprocessing.resource_sharer
@@ -42,6 +39,7 @@ except ImportError:
 import numpy as np
 from mxnet import nd, context
 import mxnet as mx
+import pandas as pd
 
 # First-party imports
 from gluonts.core.component import DType
@@ -49,6 +47,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.transform import Transformation
 from gluonts.dataset.util import MPWorkerInfo
 
+# ForkingPickler related functions:
 if sys.platform == "darwin" or sys.platform == "win32":
 
     def rebuild_ndarray(*args):
@@ -83,11 +82,11 @@ else:
 ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
-# Used when creating a single batch from list of dicts
-# depending on whether multiprocessing is turned on, the batches will be
-# constructed using different memory allocation techniques
 def stack(data, parallel_processing, dtype):
-    """Stack a list of data."""
+    """Stack a list of data.
+        Used when creating a single batch from list of dicts
+        depending on whether multiprocessing is turned on, the batches will be
+        constructed using different memory allocation techniques"""
     if isinstance(data[0], mx.nd.NDArray):
         if parallel_processing:
             out = nd.empty(
@@ -122,8 +121,8 @@ def stack(data, parallel_processing, dtype):
 
 # Need to define function explicitly, because lambda functions are no pickle'able in some cases
 def default_batchify_fn(data, dtype, parallel_processing):
-    # reduce the list of dictionaries to a single dictionary, where values
-    # referenced by identical key are reduced using the stack function
+    """reduce the list of dictionaries to a single dictionary, where values
+        referenced by identical key are reduced using the stack function"""
     return {
         key: stack(
             data=[item[key] for item in data],
@@ -160,9 +159,6 @@ def _worker_initializer(
     worker_id_queue: Queue,
 ):
     """Initialier for processing pool."""
-    # global dataset is per-process based and only available in worker processes
-    # this is only necessary to handle MXIndexedRecordIO because otherwise dataset
-    # can be passed as argument
 
     global _worker_dataset
     global _worker_dataset_iterator
@@ -209,9 +205,6 @@ def _worker_fn(
     cycle_num: int,
 ):
     """Function for processing data in worker process."""
-    # pylint: disable=unused-argument
-    # it is required that each worker process has to fork a new MXIndexedRecordIO handle
-    # preserving dataset as global variable can save tons of overhead and is safe in new process
 
     global _worker_dataset_iterator
     global _worker_iterator_latest_reset_cycle
@@ -256,11 +249,12 @@ def _worker_fn(
     return buf.getvalue()
 
 
-# initialize or reset iterators
 # needed because some iterators are not cyclic
 def _worker_reset_iterator(
     is_train: bool, cyclic: bool, cycle_num: int,
 ):
+    """Initialize or reset iterators of workers."""
+
     global _worker_dataset
     global _worker_dataset_iterator
     global _worker_transformation

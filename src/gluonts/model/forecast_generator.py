@@ -87,8 +87,6 @@ class ForecastGenerator:
         freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
         **kwargs
     ) -> Iterator[Forecast]:
         raise NotImplementedError()
@@ -107,8 +105,6 @@ class DistributionForecastGenerator(ForecastGenerator):
         freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
         **kwargs
     ) -> Iterator[DistributionForecast]:
         for batch in inference_data_loader:
@@ -153,8 +149,6 @@ class QuantileForecastGenerator(ForecastGenerator):
         freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
@@ -196,8 +190,6 @@ class SampleForecastGenerator(ForecastGenerator):
         freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
