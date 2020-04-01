@@ -271,6 +271,7 @@ TIMESERIES_M4 = [
 RES_M4 = [
     {
         "MASE": 0.816_837_618,
+        "MAPE": 0.324_517_430_685_928_1,
         "sMAPE": 0.326_973_268_4,
         "seasonal_error": np.array(
             [1.908_101, 1.258_838, 0.63018, 1.238_201, 1.287_771]
@@ -278,6 +279,7 @@ RES_M4 = [
     },
     {
         "MASE": 0.723_948_2,
+        "MAPE": 0.063_634_129_851_747_6,
         "sMAPE": 0.065_310_85,
         "seasonal_error": np.array(
             [1.867_847, 1.315_505, 0.602_587_4, 1.351_535, 1.339_179]
@@ -297,6 +299,10 @@ def test_MASE_sMAPE_M4(timeseries, res):
     assert abs((agg_df["MASE"] - res["MASE"]) / res["MASE"]) < 0.001, (
         "Scores for the metric MASE do not match: "
         "\nexpected: {} \nobtained: {}".format(res["MASE"], agg_df["MASE"])
+    )
+    assert abs((agg_df["MAPE"] - res["MAPE"]) / res["MAPE"]) < 0.001, (
+        "Scores for the metric MAPE do not match: \nexpected: {} "
+        "\nobtained: {}".format(res["MAPE"], agg_df["MAPE"])
     )
     assert abs((agg_df["sMAPE"] - res["sMAPE"]) / res["sMAPE"]) < 0.001, (
         "Scores for the metric sMAPE do not match: \nexpected: {} "
@@ -329,6 +335,7 @@ RES = [
         "abs_target_mean": 1.0,
         "seasonal_error": 0.0,
         "MASE": 0.0,
+        "MAPE": 0.0,
         "sMAPE": 0.0,
         "MSIS": 0.0,
         "RMSE": 0.0,
@@ -343,6 +350,7 @@ RES = [
         "abs_target_mean": 1.0,
         "seasonal_error": 0.0,
         "MASE": 0.0,
+        "MAPE": 0.0,
         "sMAPE": 0.0,
         "MSIS": 0.0,
         "RMSE": 0.0,
@@ -357,6 +365,7 @@ RES = [
         "abs_target_mean": 28.0,
         "seasonal_error": 1.0,
         "MASE": 2.0,
+        "MAPE": 0.103_112_211_532_524_85,
         "sMAPE": 0.113_254_049_3,
         "MSIS": 80.0,
         "RMSE": 2.160_246_899_469_286_9,
@@ -371,6 +380,7 @@ RES = [
         "abs_target_mean": 28.1,
         "seasonal_error": 1.0,
         "MASE": 2.1,
+        "MAPE": 0.113_032_846_453_159_77,
         "sMAPE": 0.125_854_781_903_299_57,
         "MSIS": 84.0,
         "RMSE": 2.243_509_156_061_845_6,
@@ -385,6 +395,7 @@ RES = [
         "abs_target_mean": 1.0,
         "seasonal_error": 0.0,
         "MASE": 0.0,
+        "MAPE": 0.0,
         "sMAPE": 0.0,
         "MSIS": 0.0,
         "RMSE": 0.0,

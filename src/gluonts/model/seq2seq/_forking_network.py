@@ -12,7 +12,8 @@
 # permissions and limitations under the License.
 
 # Third-party imports
-from mxnet import gluon, nd
+import mxnet as mx
+from mxnet import gluon
 
 # First-party imports
 from gluonts.block.decoder import Seq2SeqDecoder
@@ -21,8 +22,6 @@ from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
-
-nd_None = nd.array([])
 
 
 class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
@@ -85,9 +84,9 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         """
 
         # FIXME: can we factor out a common prefix in the base network?
-        feat_static_real = nd_None
-        past_feat_dynamic_real = nd_None
-        future_feat_dynamic_real = nd_None
+        feat_static_real = F.zeros(shape=(1,))
+        past_feat_dynamic_real = F.zeros(shape=(1,))
+        future_feat_dynamic_real = F.zeros(shape=(1,))
 
         enc_output_static, enc_output_dynamic = self.encoder(
             past_target, feat_static_real, past_feat_dynamic_real
@@ -121,16 +120,18 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         """
 
         # FIXME: can we factor out a common prefix in the base network?
-        feat_static_real = nd_None
-        past_feat_dynamic_real = nd_None
-        future_feat_dynamic_real = nd_None
+        feat_static_real = F.zeros(shape=(1,))
+        past_feat_dynamic_real = F.zeros(shape=(1,))
+        future_feat_dynamic_real = F.zeros(shape=(1,))
 
         enc_output_static, enc_output_dynamic = self.encoder(
             past_target, feat_static_real, past_feat_dynamic_real
         )
 
         enc_output_static = (
-            nd_None if enc_output_static is None else enc_output_static
+            F.zeros(shape=(1,))
+            if enc_output_static is None
+            else enc_output_static
         )
 
         dec_inp_static, dec_inp_dynamic, _ = self.enc2dec(

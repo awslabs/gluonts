@@ -11,6 +11,8 @@ Bibliography
 
 .. [LCY+18] Lai, Guokun, et al. "Modeling long-and short-term temporal patterns with deep neural networks." The 41st International ACM SIGIR Conference on Research & Development in Information Retrieval. ACM, 2018.
 
+.. [MKH19] Muller, Rafael, Simon Kornblith, and Geoffrey E. Hinton. "When does label smoothing help?." Advances in Neural Information Processing Systems. 2019.
+
 .. [ODZ+16] Oord, Aaron van den, et al. "Wavenet: A generative model for raw audio." arXiv preprint arXiv:1609.03499 (2016).
 
 .. [PKC+16] Paine, Tom Le, et al. "Fast wavenet generation algorithm." arXiv preprint arXiv:1611.09482 (2016).

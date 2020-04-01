@@ -292,6 +292,7 @@ class Evaluator:
             "abs_target_mean": self.abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
             "MASE": self.mase(pred_target, median_fcst, seasonal_error),
+            "MAPE": self.mape(pred_target, median_fcst),
             "sMAPE": self.smape(pred_target, median_fcst),
             "OWA": np.nan,  # by default not calculated
             "MSIS": self.msis(
@@ -334,6 +335,7 @@ class Evaluator:
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
             "MASE": "mean",
+            "MAPE": "mean",
             "sMAPE": "mean",
             "OWA": "mean",
             "MSIS": "mean",
@@ -417,6 +419,22 @@ class Evaluator:
         return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
             seasonal_error + flag
         )
+
+    @staticmethod
+    def mape(target, forecast):
+        r"""
+        .. math::
+
+            mape = mean(|Y - Y_hat| / |Y|))
+        """
+
+        denominator = np.abs(target)
+        flag = denominator == 0
+
+        mape = np.mean(
+            (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
+        )
+        return mape
 
     @staticmethod
     def smape(target, forecast):

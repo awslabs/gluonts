@@ -124,7 +124,6 @@ class NegativeBinomialOutput(DistributionOutput):
         loc: Optional[Tensor] = None,
         scale: Optional[Tensor] = None,
     ) -> NegativeBinomial:
-        assert loc is None
         mu, alpha = distr_args
         if scale is None:
             return NegativeBinomial(mu, alpha)
