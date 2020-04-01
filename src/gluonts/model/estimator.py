@@ -189,7 +189,7 @@ class GluonEstimator(Estimator):
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
             dtype=self.dtype,
-            num_mp_workers=num_workers,
+            num_workers=num_workers,
             num_prefetch=num_prefetch,
             **kwargs,
         )
@@ -202,7 +202,7 @@ class GluonEstimator(Estimator):
                 batch_size=self.trainer.batch_size,
                 ctx=self.trainer.ctx,
                 dtype=self.dtype,
-                num_mp_workers=num_workers,
+                num_workers=num_workers,
                 num_prefetch=num_prefetch,
                 **kwargs,
             )

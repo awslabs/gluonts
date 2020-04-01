@@ -97,7 +97,7 @@ def get_dataset_and_transformation():
             dataset=list_dataset,
             transform=transformation,
             batch_size=BATCH_SIZE,
-            num_mp_workers=0,  # This is the crucial difference
+            num_workers=0,  # This is the crucial difference
             ctx=current_context(),
         )
     )
@@ -139,7 +139,7 @@ def test_validation_loader_equivalence() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_desired_context,
     )
 
@@ -194,7 +194,7 @@ def test_training_loader_soft_constraint_01() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
     )
@@ -235,7 +235,7 @@ def test_training_loader_soft_constraint_02() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(0.5 * exp_num_batches),
     )
@@ -271,7 +271,7 @@ def test_training_loader_soft_constraint_03() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        num_mp_workers=1,  # This is the crucial difference
+        num_workers=1,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
     )

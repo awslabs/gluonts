@@ -111,9 +111,11 @@ def stack(data, parallel_processing, dtype):
     # TODO: think about converting int/float lists/tuples to np.NDArray
 
     if isinstance(data[0], list):
+        print("STACKING TUPLE HERE")
         return list(stack(t, parallel_processing, dtype) for t in zip(*data))
 
     if isinstance(data[0], tuple):
+        # print("STACKING LIST HERE")
         return tuple(stack(t, parallel_processing, dtype) for t in zip(*data))
 
     return data
@@ -442,8 +444,9 @@ class ParallelDataLoader(object):
         Whether to shuffle the samples.
     sampler
         The sampler to use. Either specify sampler or shuffle, not both.
-    num_mp_workers
+    num_workers
         The number of multiprocessing workers to use for data preprocessing.
+        By default 0, in which case no multiprocessing will be utilized.
     num_prefetch
         The number of prefetching batches only works if `num_workers` > 0.
         If `prefetch` > 0, it allow worker process to prefetch certain batches before
@@ -466,7 +469,7 @@ class ParallelDataLoader(object):
         ctx: mx.Context = None,
         dtype: DType = np.float32,
         num_prefetch: Optional[int] = None,
-        num_mp_workers: Optional[int] = None,
+        num_workers: Optional[int] = None,
     ):
         self.dataset = dataset
         self.dataset_len = None
@@ -488,22 +491,20 @@ class ParallelDataLoader(object):
         self.shuffle = shuffle
 
         assert (
-            num_mp_workers is None or num_mp_workers <= self.dataset_len
+            num_workers is None or num_workers <= self.dataset_len
         ), "Cannot have more workers than dataset entries currently."
 
         # TODO: switch to default multiprocessing.cpu_count() here
-        default_num_mp_workers = 0
-        self.num_mp_workers = max(
+        default_num_workers = 0
+        self.num_workers = max(
             0,
-            num_mp_workers
-            if num_mp_workers is not None
-            else min(self.dataset_len, default_num_mp_workers),
+            num_workers
+            if num_workers is not None
+            else min(self.dataset_len, default_num_workers),
         )
         self.num_prefetch = max(
             0,
-            num_prefetch
-            if num_prefetch is not None
-            else 2 * self.num_mp_workers,
+            num_prefetch if num_prefetch is not None else 2 * self.num_workers,
         )
         self.worker_pool = None
         # In order to set unique IDs to workers:
@@ -512,20 +513,20 @@ class ParallelDataLoader(object):
         # In order to recycle unused but pre-calculated batches from last epoch for training:
         self.multi_worker_cache = None
 
-        if self.num_mp_workers > 0:
+        if self.num_workers > 0:
             # generate unique ids for processes
             self.worker_manager = multiprocessing.Manager()
             self.worker_id_queue = self.worker_manager.Queue()
-            for i in range(self.num_mp_workers):
+            for i in range(self.num_workers):
                 self.worker_id_queue.put(i)
 
             self.worker_pool = multiprocessing.get_context("spawn").Pool(
-                self.num_mp_workers,
+                self.num_workers,
                 initializer=_worker_initializer,
                 initargs=[
                     self.dataset,
                     self.dataset_len,
-                    self.num_mp_workers,
+                    self.num_workers,
                     self.transformation,
                     self.cyclic,
                     self.worker_id_queue,
@@ -539,7 +540,7 @@ class ParallelDataLoader(object):
 
     def __iter__(self):
         self.cycle_num += 1
-        if self.num_mp_workers == 0:
+        if self.num_workers == 0:
             generator = sequential_sample_generator(
                 self.dataset, self.transformation, self.is_train, self.cyclic
             )
@@ -580,7 +581,7 @@ class ParallelDataLoader(object):
             if self.multi_worker_cache is None:
                 multi_worker = _MultiWorkerIter(
                     worker_pool=self.worker_pool,
-                    num_workers=self.num_mp_workers,
+                    num_workers=self.num_workers,
                     batch_size=self.batch_size,
                     shuffle=self.shuffle,
                     batchify_fn=self.batchify_fn,

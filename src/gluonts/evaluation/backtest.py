@@ -148,6 +148,17 @@ def backtest_metrics(
         If specified, information of the backtest is redirected to this file.
     use_symbol_block_predictor
         Use a :class:`SymbolBlockPredictor` during testing.
+    num_workers
+        The number of multiprocessing workers to use for data preprocessing.
+        By default 0, in which case no multiprocessing will be utilized.
+    num_prefetch
+        The number of prefetching batches only works if `num_workers` > 0.
+        If `prefetch` > 0, it allow worker process to prefetch certain batches before
+        acquiring data from iterators.
+        Note that using large prefetching batch will provide smoother bootstrapping performance,
+        but will consume more shared_memory. Using smaller number may forfeit the purpose of using
+        multiple worker processes, try reduce `num_workers` in this case.
+        By default it defaults to `num_workers * 2`.
 
     Returns
     -------
@@ -190,7 +201,7 @@ def backtest_metrics(
                 batch_size=forecaster.trainer.batch_size,
                 ctx=forecaster.trainer.ctx,
                 dtype=forecaster.dtype,
-                num_mp_workers=num_workers,
+                num_workers=num_workers,
                 num_prefetch=num_prefetch,
                 **kwargs,
             )
