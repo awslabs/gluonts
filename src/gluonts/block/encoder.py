@@ -74,7 +74,11 @@ class Seq2SeqEncoder(nn.HybridBlock):
         raise NotImplementedError
 
     def _assemble_inputs(
-        F, target: Tensor, static_features: Tensor, dynamic_features: Tensor
+        self,
+        F,
+        target: Tensor,
+        static_features: Tensor,
+        dynamic_features: Tensor,
     ) -> Tensor:
         """
         Assemble features from target, static features, and the dynamic

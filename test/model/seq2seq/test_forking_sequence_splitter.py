@@ -46,7 +46,7 @@ def test_forking_sequence_splitter() -> None:
     dec_len = 3
 
     trans = transform.Chain(
-        trans=[
+        [
             transform.AddAgeFeature(
                 target_field=FieldName.TARGET,
                 output_field="age",
@@ -61,7 +61,7 @@ def test_forking_sequence_splitter() -> None:
         ]
     )
 
-    out = trans(iter(ds), is_train=True)
+    out = trans(ds, is_train=True)
     transformed_data = next(iter(out))
 
     future_target = np.array(
