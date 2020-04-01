@@ -49,11 +49,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.transform import Transformation
 from gluonts.dataset.util import MPWorkerInfo
 
-if (
-    sys.platform == "darwin"
-    or sys.platform == "win32"
-    or sys.platform == "win64"
-):
+if sys.platform == "darwin" or sys.platform == "win32":
 
     def rebuild_ndarray(*args):
         """Rebuild ndarray from pickled shared memory"""
@@ -529,7 +525,7 @@ class ParallelDataLoader(object):
             for i in range(self.num_workers):
                 self.worker_id_queue.put(i)
 
-            self.worker_pool = multiprocessing.get_context("spawn").Pool(
+            self.worker_pool = multiprocessing.Pool(
                 self.num_workers,
                 initializer=_worker_initializer,
                 initargs=[
