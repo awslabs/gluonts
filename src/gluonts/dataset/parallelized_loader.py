@@ -39,6 +39,7 @@ import numpy as np
 from mxnet import nd, context
 import mxnet as mx
 from mxnet.ndarray import NDArray
+from mxnet import numpy as _mx_np
 
 # First-party imports
 from gluonts.core.component import DType

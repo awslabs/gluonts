@@ -44,6 +44,13 @@ CD_MAX_LEN_MULTIPLICATION_FACTOR = 3
 
 _data_cache = None
 
+# delete cache explicitly in last test
+def delete_cache() -> None:
+    global _data_cache
+    if _data_cache is not None:
+        del _data_cache
+
+
 # get dataset and deterministic transformation
 def get_dataset_and_transformation():
     # dont recompute, since expensive
@@ -167,9 +174,8 @@ def test_validation_loader_equivalence() -> None:
 
 
 # CASE 01: if we have say 5 workers, then iterating
-# over the dataset so that one worker could cover 2/5 of the whole dataset
+# over the dataset so that one worker could cover 3/5 of the whole dataset
 # should still be enough that every time series is at least processed once,
-# (most of the time, if the underlying ts result in approx equal number of processed samples)
 @flaky(max_runs=5, min_passes=1)
 def test_training_loader_soft_constraint_01() -> None:
     (
@@ -190,12 +196,11 @@ def test_training_loader_soft_constraint_01() -> None:
         batch_size=BATCH_SIZE,
         num_mp_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
-        num_batches_per_epoch=int(2 * exp_num_batches),
+        num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
     # give all the workers a little time to get ready, so they can start at the same time
-    time.sleep(0.5)
-    time.sleep(0.5)
+    time.sleep(1.5)
 
     # multi-processed validation dataset
     mp_training_data_loader_result_01 = list(train_dataset_loader_01)
@@ -204,8 +209,6 @@ def test_training_loader_soft_constraint_01() -> None:
     transformation_counts_01 = get_transformation_counts(
         mp_training_data_loader_result_01
     )
-
-    print(transformation_counts_01)
 
     assert all(
         [k in transformation_counts_01 for k in range(CD_NUM_TIME_SERIES)]
@@ -284,3 +287,6 @@ def test_training_loader_soft_constraint_03() -> None:
     assert all(
         k in transformation_counts_03 for k in range(CD_NUM_TIME_SERIES)
     ), "One worker should be able to traverse all in one sweep, and should not deplete its iterator."
+
+    # delete cache explicitly in last test
+    delete_cache()

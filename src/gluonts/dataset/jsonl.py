@@ -44,7 +44,6 @@ class Line(NamedTuple):
     span: Span
 
 
-# TODO: implement caching here...
 class JsonLinesFile:
     """
     An iterable type that draws from a JSON Lines file.
