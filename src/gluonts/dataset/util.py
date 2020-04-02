@@ -17,13 +17,35 @@ import logging
 import random
 import os
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, List, Tuple, TypeVar
+from typing import (
+    Callable,
+    Iterable,
+    Iterator,
+    List,
+    Tuple,
+    TypeVar,
+    NamedTuple,
+    Optional,
+)
 
 # Third-party imports
 import pandas as pd
 
 
 T = TypeVar("T")
+
+
+# Each process has its own namespace, so the class attributes can be set by the
+# individual process and the accessed anywhere else, for example in the datasets
+class MPWorkerInfo(object):
+    """Contains the current worker information."""
+
+    num_workers = 1
+    worker_id = 0
+
+    @classmethod
+    def set_worker_info(cls, num_workers: int, worker_id: int):
+        cls.num_workers, cls.worker_id = num_workers, worker_id
 
 
 def _split(
@@ -113,6 +135,7 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     def get_batch():
         return list(take(it, batch_size))
 
+    # has an empty list so that we have a 2D array for sure
     return iter(get_batch, [])
 
 
