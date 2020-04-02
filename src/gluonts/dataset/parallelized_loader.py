@@ -13,6 +13,7 @@
 
 
 # Standard library imports
+import collections
 import itertools
 import logging
 import pathlib
@@ -101,7 +102,7 @@ def stack(data, parallel_processing, dtype):
         data = np.asarray(data)
         if data.dtype.kind == "f":
             data = data.astype(dtype)
-        # ForkingPickler can't handle empty NDArrays with shape
+        # ForkingPickler can't handle empty NDArrays with shape!
         if data.shape[-1] == 0:
             return data
         if parallel_processing:
@@ -144,38 +145,32 @@ def _as_in_context(data, ctx):
     return data
 
 
-# GLOBAL VARIABLES NOT SHARED ACROSS PROCESSES !!!
-_worker_dataset = None
-_worker_dataset_iterator = None
-_worker_transformation = None
-_worker_iterator_latest_reset_cycle = None
-_worker_iterator_exhausted_indicator = None
+# Each process has its own copy, so other processes can't interfere
+class _WorkerData:
+    """Contain the current data that the worker is using."""
+
+    # dataset replica
+    dataset: Optional[Dataset] = None
+    # current dataset iterator in form of a transformation applied to the dataset
+    transformation: Optional[Transformation] = None
+    # replicate transformation
+    dataset_iterator: Optional[Iterable] = None
+    # indicates which cycle the iterator has been reset last
+    iterator_latest_reset_cycle: Optional[int] = 0
+    # indicates whether the iterator was previously depleted
+    iterator_exhausted_indicator: Optional[bool] = None
 
 
 def _worker_initializer(
     dataset: Dataset,
-    num_workers: int,
     transformation: Transformation,
+    num_workers: int,
     worker_id_queue: Queue,
 ):
     """Initialier for processing pool."""
 
-    global _worker_dataset
-    global _worker_dataset_iterator
-    global _worker_transformation
-    global _worker_iterator_latest_reset_cycle
-    global _worker_iterator_exhausted_indicator
-
-    # dataset replica
-    _worker_dataset = dataset
-    # current dataset iterator in form of a transformation applied to the dataset
-    _worker_dataset_iterator = None
-    # replicate transformation
-    _worker_transformation = transformation
-    # indicates which cycle the iterator has been reset last
-    _worker_iterator_latest_reset_cycle = 0
-    # indicates whether the iterator was previously depleted
-    _worker_iterator_exhausted_indicator = None
+    _WorkerData.dataset = dataset
+    _WorkerData.transformation = transformation
 
     # get unique worker id
     worker_id = int(worker_id_queue.get())
@@ -185,7 +180,7 @@ def _worker_initializer(
     MPWorkerInfo.set_worker_info(num_workers=num_workers, worker_id=worker_id)
 
 
-def sequential_sample_generator(dataset, transformation, is_train, cyclic):
+def _sequential_sample_generator(dataset, transformation, is_train, cyclic):
     while True:
         for sample in transformation(data_it=dataset, is_train=is_train):
             yield sample
@@ -194,7 +189,6 @@ def sequential_sample_generator(dataset, transformation, is_train, cyclic):
             return
 
 
-# TODO: for some reason cannot pickle 'future_observed_values' or 'future_target' when using InferenceDataLoader
 def _worker_fn(
     batch_size: int,
     batchify_fn: Callable,
@@ -206,22 +200,18 @@ def _worker_fn(
 ):
     """Function for processing data in worker process."""
 
-    global _worker_dataset_iterator
-    global _worker_iterator_latest_reset_cycle
-    global _worker_iterator_exhausted_indicator
-
     # initialize, or reset the iterator at each cycle
-    assert isinstance(_worker_iterator_latest_reset_cycle, int)
-    if (_worker_iterator_latest_reset_cycle < cycle_num) and (
-        _worker_iterator_latest_reset_cycle == 0 or not cyclic
+    assert isinstance(_WorkerData.iterator_latest_reset_cycle, int)
+    if (_WorkerData.iterator_latest_reset_cycle < cycle_num) and (
+        _WorkerData.iterator_latest_reset_cycle == 0 or not cyclic
     ):
         _worker_reset_iterator(is_train, cyclic, cycle_num)
 
     assert isinstance(
-        _worker_dataset_iterator, Iterable
-    ), f"Dataset not Iterable: {type(_worker_dataset_iterator)}."
+        _WorkerData.dataset_iterator, Iterable
+    ), f"Dataset not Iterable: {type(_WorkerData.dataset_iterator)}."
     transformed_data = list(
-        itertools.islice(_worker_dataset_iterator, batch_size)
+        itertools.islice(_WorkerData.dataset_iterator, batch_size)
     )
 
     if shuffle:
@@ -235,10 +225,10 @@ def _worker_fn(
     else:
         # the second time without being able to provide a batch we want to delay calling them again
         # on fist exhaustion they should not be delayed, since they need to indicate depletion
-        if _worker_iterator_exhausted_indicator:
+        if _WorkerData.iterator_exhausted_indicator:
             time.sleep(0.1)
         else:
-            _worker_iterator_exhausted_indicator = True
+            _WorkerData.iterator_exhausted_indicator = True
         success = False
         batch = None
 
@@ -255,21 +245,15 @@ def _worker_reset_iterator(
 ):
     """Initialize or reset iterators of workers."""
 
-    global _worker_dataset
-    global _worker_dataset_iterator
-    global _worker_transformation
-    global _worker_iterator_latest_reset_cycle
-    global _worker_iterator_exhausted_indicator
-
-    _worker_dataset_iterator = sequential_sample_generator(
-        dataset=_worker_dataset,
-        transformation=_worker_transformation,
+    _WorkerData.dataset_iterator = _sequential_sample_generator(
+        dataset=_WorkerData.dataset,
+        transformation=_WorkerData.transformation,
         is_train=is_train,
         cyclic=cyclic,
     )
-    assert isinstance(_worker_iterator_latest_reset_cycle, int)
-    _worker_iterator_latest_reset_cycle = cycle_num
-    _worker_iterator_exhausted_indicator = False
+    assert isinstance(_WorkerData.iterator_latest_reset_cycle, int)
+    _WorkerData.iterator_latest_reset_cycle = cycle_num
+    _WorkerData.iterator_exhausted_indicator = False
 
 
 class _MultiWorkerIter(object):
@@ -524,8 +508,8 @@ class ParallelDataLoader(object):
                 initializer=_worker_initializer,
                 initargs=[
                     self.dataset,
-                    self.num_workers,
                     self.transformation,
+                    self.num_workers,
                     self.worker_id_queue,
                 ],
             )
@@ -538,7 +522,7 @@ class ParallelDataLoader(object):
     def __iter__(self):
         self.cycle_num += 1
         if self.num_workers == 0:
-            generator = sequential_sample_generator(
+            generator = _sequential_sample_generator(
                 self.dataset, self.transformation, self.is_train, self.cyclic
             )
 

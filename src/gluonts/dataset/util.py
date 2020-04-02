@@ -35,8 +35,7 @@ import pandas as pd
 T = TypeVar("T")
 
 
-# Each process has its own namespace, so the class attributes can be set by the
-# individual process and the accessed anywhere else, for example in the datasets
+# Each process has its own copy, so other processes can't interfere
 class MPWorkerInfo(object):
     """Contains the current worker information."""
 
