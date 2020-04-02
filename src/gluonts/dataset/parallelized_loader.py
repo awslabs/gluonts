@@ -101,6 +101,9 @@ def stack(data, parallel_processing, dtype):
         data = np.asarray(data)
         if data.dtype.kind == "f":
             data = data.astype(dtype)
+        # ForkingPickler can't handle empty NDArrays with shape
+        if data.shape[-1] == 0:
+            return data
         if parallel_processing:
             return mx.nd.array(
                 data, dtype=data.dtype, ctx=context.Context("cpu_shared", 0)
@@ -119,7 +122,6 @@ def stack(data, parallel_processing, dtype):
         )
 
 
-# Need to define function explicitly, because lambda functions are no pickle'able in some cases
 def default_batchify_fn(data, dtype, parallel_processing):
     """reduce the list of dictionaries to a single dictionary, where values
         referenced by identical key are reduced using the stack function"""
@@ -152,10 +154,8 @@ _worker_iterator_exhausted_indicator = None
 
 def _worker_initializer(
     dataset: Dataset,
-    dataset_len: int,
     num_workers: int,
     transformation: Transformation,
-    cyclic: bool,
     worker_id_queue: Queue,
 ):
     """Initialier for processing pool."""
@@ -524,10 +524,8 @@ class ParallelDataLoader(object):
                 initializer=_worker_initializer,
                 initargs=[
                     self.dataset,
-                    self.dataset_len,
                     self.num_workers,
                     self.transformation,
-                    self.cyclic,
                     self.worker_id_queue,
                 ],
             )
