@@ -24,8 +24,6 @@ from typing import (
     List,
     Tuple,
     TypeVar,
-    NamedTuple,
-    Optional,
 )
 
 # Third-party imports
@@ -39,12 +37,19 @@ T = TypeVar("T")
 class MPWorkerInfo(object):
     """Contains the current worker information."""
 
+    worker_process = False
     num_workers = 1
     worker_id = 0
 
     @classmethod
-    def set_worker_info(cls, num_workers: int, worker_id: int):
-        cls.num_workers, cls.worker_id = num_workers, worker_id
+    def set_worker_info(
+        cls, num_workers: int, worker_id: int, worker_process: bool
+    ):
+        cls.num_workers, cls.worker_id, cls.worker_process = (
+            num_workers,
+            worker_id,
+            worker_process,
+        )
 
 
 def _split(

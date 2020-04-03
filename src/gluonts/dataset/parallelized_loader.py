@@ -23,7 +23,7 @@ import random
 import sys
 import time
 from collections import Sized
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, Optional, List
 
 import multiprocessing
 import multiprocessing.queues
@@ -83,13 +83,18 @@ else:
 ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
-def stack(data, parallel_processing, dtype):
+def stack(
+    data,
+    multi_processing: bool,
+    dtype: DType,
+    single_process_ctx: Optional[mx.Context] = None,
+):
     """Stack a list of data.
         Used when creating a single batch from list of dicts
         depending on whether multiprocessing is turned on, the batches will be
         constructed using different memory allocation techniques"""
     if isinstance(data[0], mx.nd.NDArray):
-        if parallel_processing:
+        if multi_processing:
             out = nd.empty(
                 (len(data),) + data[0].shape,
                 dtype=data[0].dtype,
@@ -102,19 +107,25 @@ def stack(data, parallel_processing, dtype):
         data = np.asarray(data)
         if data.dtype.kind == "f":
             data = data.astype(dtype)
-        # ForkingPickler can't handle empty NDArrays with shape!
-        if data.shape[-1] == 0:
-            return data
-        if parallel_processing:
+        if multi_processing:
+            # Workaround due to MXNet not being able to handle NDArrays with 0 in shape properly:
+            if 0 in data.shape:
+                return data
             return mx.nd.array(
                 data, dtype=data.dtype, ctx=context.Context("cpu_shared", 0)
             )
         else:
-            return mx.nd.array(data, dtype=data.dtype)
+            return mx.nd.array(data, dtype=data.dtype, ctx=single_process_ctx)
     elif isinstance(data[0], list):
-        return list(stack(t, parallel_processing, dtype) for t in zip(*data))
+        return list(
+            stack(t, multi_processing, dtype, single_process_ctx)
+            for t in zip(*data)
+        )
     elif isinstance(data[0], tuple):
-        return tuple(stack(t, parallel_processing, dtype) for t in zip(*data))
+        return tuple(
+            stack(t, multi_processing, dtype, single_process_ctx)
+            for t in zip(*data)
+        )
     elif isinstance(data[0], (pd.Timestamp, str, int, pathlib.PosixPath)):
         return data
     else:
@@ -123,26 +134,41 @@ def stack(data, parallel_processing, dtype):
         )
 
 
-def default_batchify_fn(data, dtype, parallel_processing):
+def default_batchify_fn(
+    data: List[dict],
+    dtype: DType,
+    multi_processing: bool,
+    single_process_ctx: Optional[mx.Context] = None,
+):
     """reduce the list of dictionaries to a single dictionary, where values
         referenced by identical key are reduced using the stack function"""
     return {
         key: stack(
             data=[item[key] for item in data],
-            parallel_processing=parallel_processing,
+            multi_processing=multi_processing,
             dtype=dtype,
+            single_process_ctx=single_process_ctx,
         )
         for key in data[0].keys()
     }
 
 
-def _as_in_context(data, ctx):
-    """Move data into new context."""
-    if isinstance(data, nd.NDArray):
-        return data.as_in_context(ctx)
-    elif isinstance(data, (list, tuple)):
-        return [_as_in_context(d, ctx) for d in data]
-    return data
+def _as_in_context(batch: dict, ctx: mx.Context):
+    """Move data into new context, should only be in main process."""
+    assert (
+        not MPWorkerInfo.worker_process
+    ), "This function is not meant to be used in workers."
+    batch = {
+        k: v.as_in_context(ctx) if isinstance(v, nd.NDArray)
+        # Workaround due to MXNet not being able to handle NDArrays with 0 in shape properly:
+        else (
+            stack(v, False, v.dtype, ctx)
+            if isinstance(v[0], np.ndarray) and 0 in v[0].shape
+            else v
+        )
+        for k, v in batch.items()
+    }
+    return batch
 
 
 # Each process has its own copy, so other processes can't interfere
@@ -177,7 +203,9 @@ def _worker_initializer(
     multiprocessing.current_process().name = f"worker_{worker_id}"
 
     # propagate worker information
-    MPWorkerInfo.set_worker_info(num_workers=num_workers, worker_id=worker_id)
+    MPWorkerInfo.set_worker_info(
+        num_workers=num_workers, worker_id=worker_id, worker_process=True
+    )
 
 
 def _sequential_sample_generator(dataset, transformation, is_train, cyclic):
@@ -220,7 +248,7 @@ def _worker_fn(
     if transformed_data:
         success = True
         batch = batchify_fn(
-            data=transformed_data, dtype=dtype, parallel_processing=True
+            data=transformed_data, dtype=dtype, multi_processing=True
         )
     else:
         # the second time without being able to provide a batch we want to delay calling them again
@@ -361,16 +389,9 @@ class _MultiWorkerIter(object):
                     else:
                         self._push_next()
                 else:
-                    # either pin to cpu memory, or return with the right context straight away
-                    batch = {
-                        k: v.as_in_context(self.ctx)
-                        if isinstance(
-                            v, nd.NDArray
-                        )  # context.cpu_pinned(self.pin_device_id)
-                        else v
-                        for k, v in batch.items()
-                    }
-                    return batch
+                    # either pin to cpu memory (with ctx=context.cpu_pinned(self.pin_device_id)),
+                    # or return with the right context straight away
+                    return _as_in_context(batch, self.ctx)
             except multiprocessing.context.TimeoutError:
                 print(
                     f"Worker timed out after {self._timeout} seconds. This might be caused by "
@@ -540,8 +561,9 @@ class ParallelDataLoader(object):
                     # make them into a single batch
                     batch = self.batchify_fn(
                         data=sample_batch,
-                        parallel_processing=False,
+                        multi_processing=False,
                         dtype=self.dtype,
+                        single_process_ctx=self.ctx,
                     )
 
                     yield batch
