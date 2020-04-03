@@ -253,8 +253,9 @@ def _worker_fn(
     else:
         # the second time without being able to provide a batch we want to delay calling them again
         # on fist exhaustion they should not be delayed, since they need to indicate depletion
+        # dont make the penalty to high, since that delays rescheduling of non empty iterators
         if _WorkerData.iterator_exhausted_indicator:
-            time.sleep(0.1)
+            time.sleep(0.05)
         else:
             _WorkerData.iterator_exhausted_indicator = True
         success = False
@@ -528,7 +529,10 @@ class ParallelDataLoader(object):
             for i in range(self.num_workers):
                 self.worker_id_queue.put(i)
 
-            self.worker_pool = multiprocessing.get_context("spawn").Pool(
+            # Use multiprocessing.get_context("spawn").Pool to check whether
+            # implementation `clean`, i.e no unix forking magic required,
+            # Otherwise use recommended defaults
+            self.worker_pool = multiprocessing.Pool(
                 self.num_workers,
                 initializer=_worker_initializer,
                 initargs=[

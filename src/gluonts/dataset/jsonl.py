@@ -18,6 +18,7 @@ from typing import NamedTuple
 
 # Third-party imports
 import ujson as json
+import numpy as np
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
@@ -61,13 +62,17 @@ class JsonLinesFile:
         # TODO: implement caching here
 
     def __iter__(self):
+        chunk_size = int(self.__len__() / MPWorkerInfo.num_workers)
         with open(self.path) as jsonl_file:
             for line_number, raw in enumerate(jsonl_file):
                 # The dataset is equally distributed among the workers
-                if not (
-                    line_number % MPWorkerInfo.num_workers
-                    == MPWorkerInfo.worker_id
-                ):
+                lower_bound = MPWorkerInfo.worker_id * chunk_size
+                upper_bound = (
+                    (MPWorkerInfo.worker_id + 1) * chunk_size
+                    if MPWorkerInfo.worker_id + 1 != MPWorkerInfo.num_workers
+                    else np.inf
+                )
+                if not lower_bound <= line_number < upper_bound:
                     continue
 
                 span = Span(path=self.path, line=line_number)

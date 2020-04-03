@@ -255,16 +255,20 @@ class ListDataset(Dataset):
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
         self.list_data = list(data_iter)
-        # TODO: implement caching here
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
+        chunk_size = int(len(self.list_data) / util.MPWorkerInfo.num_workers)
         for row_number, data in enumerate(self.list_data):
             # The dataset is equally distributed among the workers
-            if not (
-                row_number % util.MPWorkerInfo.num_workers
-                == util.MPWorkerInfo.worker_id
-            ):
+            lower_bound = util.MPWorkerInfo.worker_id * chunk_size
+            upper_bound = (
+                (util.MPWorkerInfo.worker_id + 1) * chunk_size
+                if util.MPWorkerInfo.worker_id + 1
+                != util.MPWorkerInfo.num_workers
+                else np.inf
+            )
+            if not lower_bound <= row_number < upper_bound:
                 continue
 
             data = self.process(data)
