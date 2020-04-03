@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -41,13 +41,24 @@ class Binned(Distribution):
     bin_centers
         Tensor containing the bin centers, of shape `(*batch_shape, num_bins)`.
     F
+    label_smoothing
+        The label smoothing weight, real number in `[0, 1)`. Default `None`. If not
+        `None`, then the loss of the distribution will be "label smoothed" cross-entropy.
+        For example, instead of computing cross-entropy loss between the estimated bin
+        probabilities and a hard-label (one-hot encoding) `[1, 0, 0]`, a soft label of
+        `[0.9, 0.05, 0.05]` is taken as the ground truth (when `label_smoothing=0.15`).
+        See (Muller et al., 2019) [MKH19]_, for further reference.
     """
 
     is_reparameterizable = False
 
     @validated()
     def __init__(
-        self, bin_log_probs: Tensor, bin_centers: Tensor, F=None
+        self,
+        bin_log_probs: Tensor,
+        bin_centers: Tensor,
+        F=None,
+        label_smoothing: Optional[float] = None,
     ) -> None:
         self.bin_centers = bin_centers
         self.bin_log_probs = bin_log_probs
@@ -55,6 +66,7 @@ class Binned(Distribution):
         self.F = F if F else getF(bin_log_probs)
 
         self.bin_edges = Binned._compute_edges(self.F, bin_centers)
+        self.label_smoothing = label_smoothing
 
     @staticmethod
     def _compute_edges(F, bin_centers: Tensor) -> Tensor:
@@ -84,9 +96,12 @@ class Binned(Distribution):
         )
 
         means = (
-            bin_centers.slice_axis(axis=-1, begin=1, end=None)
-            + bin_centers.slice_axis(axis=-1, begin=0, end=-1)
-        ) / 2.0
+            F.broadcast_add(
+                bin_centers.slice_axis(axis=-1, begin=1, end=None),
+                bin_centers.slice_axis(axis=-1, begin=0, end=-1),
+            )
+            / 2.0
+        )
 
         return F.concat(low, means, high, dim=-1)
 
@@ -110,22 +125,52 @@ class Binned(Distribution):
 
     @property
     def mean(self):
-        return (self.bin_probs * self.bin_centers).sum(axis=-1)
+        F = self.F
+        return F.broadcast_mul(self.bin_probs, self.bin_centers).sum(axis=-1)
 
     @property
     def stddev(self):
-        ex2 = (self.bin_probs * self.bin_centers.square()).sum(axis=-1)
-        return (ex2 - self.mean.square()).sqrt()
+        ex2 = self.F.broadcast_mul(
+            self.bin_probs, self.bin_centers.square()
+        ).sum(axis=-1)
+        return self.F.broadcast_minus(ex2, self.mean.square()).sqrt()
+
+    def _get_mask(self, x):
+        F = self.F
+        # TODO: when mxnet has searchsorted replace this
+        left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
+        right_edges = self.bin_edges.slice_axis(axis=-1, begin=1, end=None)
+        mask = F.broadcast_mul(
+            F.broadcast_lesser_equal(left_edges, x),
+            F.broadcast_lesser(x, right_edges),
+        )
+        return mask
+
+    @staticmethod
+    def _smooth_mask(F, mask, alpha):
+        return F.broadcast_add(
+            F.broadcast_mul(mask, F.broadcast_sub(F.ones_like(alpha), alpha)),
+            F.broadcast_mul(F.softmax(F.ones_like(mask)), alpha),
+        )
+
+    def smooth_ce_loss(self, x):
+        """
+        Cross-entropy loss with a "smooth" label.
+        """
+        assert self.label_smoothing is not None
+        F = self.F
+        x = x.expand_dims(axis=-1)
+        mask = self._get_mask(x)
+
+        alpha = F.full(shape=(1,), val=self.label_smoothing)
+        smooth_mask = self._smooth_mask(F, mask, alpha)
+
+        return -F.broadcast_mul(self.bin_log_probs, smooth_mask).sum(axis=-1)
 
     def log_prob(self, x):
         F = self.F
         x = x.expand_dims(axis=-1)
-        # TODO: when mxnet has searchsorted replace this
-        left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
-        right_edges = self.bin_edges.slice_axis(axis=-1, begin=1, end=None)
-        mask = F.broadcast_lesser_equal(left_edges, x) * F.broadcast_lesser(
-            x, right_edges
-        )
+        mask = self._get_mask(x)
         return F.broadcast_mul(self.bin_log_probs, mask).sum(axis=-1)
 
     def cdf(self, x: Tensor) -> Tensor:
@@ -134,6 +179,13 @@ class Binned(Distribution):
         # left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
         mask = F.broadcast_lesser_equal(self.bin_centers, x)
         return F.broadcast_mul(self.bin_probs, mask).sum(axis=-1)
+
+    def loss(self, x: Tensor) -> Tensor:
+        return (
+            self.smooth_ce_loss(x)
+            if self.label_smoothing
+            else -self.log_prob(x)
+        )
 
     def quantile(self, level: Tensor) -> Tensor:
         F = self.F
@@ -242,22 +294,25 @@ class BinnedOutput(DistributionOutput):
     distr_cls: type = Binned
 
     @validated()
-    def __init__(self, bin_centers: mx.nd.NDArray) -> None:
+    def __init__(
+        self,
+        bin_centers: mx.nd.NDArray,
+        label_smoothing: Optional[float] = None,
+    ) -> None:
+        assert label_smoothing is None or (
+            0 <= label_smoothing < 1
+        ), "Smoothing factor should be less than 1 and greater than or equal to 0."
         super().__init__(self)
         self.bin_centers = bin_centers
         self.num_bins = self.bin_centers.shape[0]
+        self.label_smoothing = label_smoothing
         assert len(self.bin_centers.shape) == 1
 
     def get_args_proj(self, *args, **kwargs) -> gluon.nn.HybridBlock:
         return BinnedArgs(self.num_bins, self.bin_centers)
 
-    def distribution(self, args, loc=None, scale=None) -> Binned:
-        probs = args[0]
-        bin_centers = args[1]
-        F = getF(probs)
-
-        bin_centers = F.broadcast_mul(bin_centers, F.ones_like(probs))
-
+    @staticmethod
+    def _scale_bin_centers(F, bin_centers, loc=None, scale=None):
         if scale is not None:
             bin_centers = F.broadcast_mul(
                 bin_centers, scale.expand_dims(axis=-1)
@@ -267,7 +322,19 @@ class BinnedOutput(DistributionOutput):
                 bin_centers, loc.expand_dims(axis=-1)
             )
 
-        return Binned(probs, bin_centers)
+        return bin_centers
+
+    def distribution(self, args, loc=None, scale=None) -> Binned:
+        probs = args[0]
+        bin_centers = args[1]
+        F = getF(probs)
+
+        bin_centers = F.broadcast_mul(bin_centers, F.ones_like(probs))
+        bin_centers = self._scale_bin_centers(
+            F, bin_centers, loc=loc, scale=scale
+        )
+
+        return Binned(probs, bin_centers, label_smoothing=self.label_smoothing)
 
     @property
     def event_shape(self) -> Tuple:

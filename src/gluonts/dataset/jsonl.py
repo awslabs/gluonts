@@ -21,6 +21,7 @@ import ujson as json
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
+from gluonts.dataset.util import MPWorkerInfo
 
 
 def load(file_obj):
@@ -56,10 +57,19 @@ class JsonLinesFile:
 
     def __init__(self, path) -> None:
         self.path = path
+        self._len = None
+        # TODO: implement caching here
 
     def __iter__(self):
         with open(self.path) as jsonl_file:
-            for line_number, raw in enumerate(jsonl_file, start=1):
+            for line_number, raw in enumerate(jsonl_file):
+                # The dataset is equally distributed among the workers
+                if not (
+                    line_number % MPWorkerInfo.num_workers
+                    == MPWorkerInfo.worker_id
+                ):
+                    continue
+
                 span = Span(path=self.path, line=line_number)
                 try:
                     yield Line(json.loads(raw), span=span)
@@ -69,9 +79,14 @@ class JsonLinesFile:
                     )
 
     def __len__(self):
-        # 1MB
-        BUF_SIZE = 1024 ** 2
+        if self._len is None:
+            # 1MB
+            BUF_SIZE = 1024 ** 2
 
-        with open(self.path) as file_obj:
-            read_chunk = functools.partial(file_obj.read, BUF_SIZE)
-            return sum(chunk.count("\n") for chunk in iter(read_chunk, ""))
+            with open(self.path) as file_obj:
+                read_chunk = functools.partial(file_obj.read, BUF_SIZE)
+                file_len = sum(
+                    chunk.count("\n") for chunk in iter(read_chunk, "")
+                )
+                self._len = file_len
+        return self._len

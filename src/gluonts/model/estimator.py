@@ -171,7 +171,12 @@ class GluonEstimator(Estimator):
         raise NotImplementedError
 
     def train_model(
-        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
@@ -184,6 +189,9 @@ class GluonEstimator(Estimator):
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
             dtype=self.dtype,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            **kwargs,
         )
 
         validation_data_loader = None
@@ -194,6 +202,9 @@ class GluonEstimator(Estimator):
                 batch_size=self.trainer.batch_size,
                 ctx=self.trainer.ctx,
                 dtype=self.dtype,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                **kwargs,
             )
 
         # ensure that the training network is created within the same MXNet
@@ -218,6 +229,13 @@ class GluonEstimator(Estimator):
             )
 
     def train(
-        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        **kwargs,
     ) -> Predictor:
-        return self.train_model(training_data, validation_data).predictor
+        return self.train_model(
+            training_data, validation_data, num_workers, num_prefetch, **kwargs
+        ).predictor

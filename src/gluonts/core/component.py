@@ -30,7 +30,6 @@ from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 # First-party imports
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_code
-from gluonts.monkey_patch import monkey_patch_property_metaclass  # noqa: F401
 
 # Relative imports
 from . import fqname_for
