@@ -24,8 +24,6 @@ from typing import (
     List,
     Tuple,
     TypeVar,
-    NamedTuple,
-    Optional,
 )
 
 # Third-party imports
@@ -35,17 +33,23 @@ import pandas as pd
 T = TypeVar("T")
 
 
-# Each process has its own namespace, so the class attributes can be set by the
-# individual process and the accessed anywhere else, for example in the datasets
+# Each process has its own copy, so other processes can't interfere
 class MPWorkerInfo(object):
     """Contains the current worker information."""
 
+    worker_process = False
     num_workers = 1
     worker_id = 0
 
     @classmethod
-    def set_worker_info(cls, num_workers: int, worker_id: int):
-        cls.num_workers, cls.worker_id = num_workers, worker_id
+    def set_worker_info(
+        cls, num_workers: int, worker_id: int, worker_process: bool
+    ):
+        cls.num_workers, cls.worker_id, cls.worker_process = (
+            num_workers,
+            worker_id,
+            worker_process,
+        )
 
 
 def _split(
