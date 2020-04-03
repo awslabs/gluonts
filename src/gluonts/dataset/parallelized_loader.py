@@ -38,9 +38,9 @@ except ImportError:
 
 # Third-party imports
 import numpy as np
+import pandas as pd
 from mxnet import nd, context
 import mxnet as mx
-import pandas as pd
 
 # First-party imports
 from gluonts.core.component import DType
@@ -544,15 +544,6 @@ class ParallelDataLoader(object):
                         dtype=self.dtype,
                     )
 
-                    # either pin to cpu memory, or return with the right context straight away
-                    batch = {
-                        k: v.as_in_context(self.ctx)
-                        if isinstance(
-                            v, nd.NDArray
-                        )  # context.cpu_pinned(self.pin_device_id)
-                        else v
-                        for k, v in batch.items()
-                    }
                     yield batch
 
             return same_process_iter()
