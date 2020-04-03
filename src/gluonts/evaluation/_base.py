@@ -67,24 +67,6 @@ def get_seasonality(freq: str) -> int:
     return seasonality // multiple
 
 
-# This is required for the multiprocessing to work.
-_worker_evaluator: Optional[Evaluator] = None
-
-
-def _worker_init(evaluator: Evaluator):
-    global _worker_evaluator
-    _worker_evaluator = evaluator
-
-
-def _worker_fun(inp: tuple):
-    ts, forecast = inp
-    global _worker_evaluator
-    assert isinstance(
-        _worker_evaluator, Evaluator
-    ), "Something went wrong with the worker initialization."
-    return _worker_evaluator.get_metrics_per_ts(ts, forecast)
-
-
 class Evaluator:
     """
     Evaluator class, to compute accuracy metrics by comparing observations
@@ -113,7 +95,7 @@ class Evaluator:
     num_workers
         The number of multiprocessing workers that will be used to process
         the data in parallel.
-        Default is `int(multiprocessing.cpu_count()/(2/3)))`.
+        Default is multiprocessing.cpu_count().
         Setting it to 0 means no multiprocessing.
     chunk_size
         Controls the approximate chunk size each workers handles at a time.
@@ -123,13 +105,13 @@ class Evaluator:
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
 
     def __init__(
-        self,
-        quantiles: Iterable[Union[float, str]] = default_quantiles,
-        seasonality: Optional[int] = None,
-        alpha: float = 0.05,
-        calculate_owa: bool = False,
-        num_workers: Optional[int] = None,
-        chunk_size: Optional[int] = None,
+            self,
+            quantiles: Iterable[Union[float, str]] = default_quantiles,
+            seasonality: Optional[int] = None,
+            alpha: float = 0.05,
+            calculate_owa: bool = False,
+            num_workers: Optional[int] = None,
+            chunk_size: Optional[int] = None,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -144,10 +126,10 @@ class Evaluator:
         self.chunk_size = chunk_size if chunk_size is not None else 32
 
     def __call__(
-        self,
-        ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
-        fcst_iterator: Iterable[Forecast],
-        num_series: Optional[int] = None,
+            self,
+            ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
+            fcst_iterator: Iterable[Forecast],
+            num_series: Optional[int] = None,
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
         """
         Compute accuracy metrics by comparing actual data to the forecasts.
@@ -175,9 +157,9 @@ class Evaluator:
         rows = []
 
         with tqdm(
-            zip(ts_iterator, fcst_iterator),
-            total=num_series,
-            desc="Running evaluation",
+                zip(ts_iterator, fcst_iterator),
+                total=num_series,
+                desc="Running evaluation",
         ) as it, np.errstate(invalid="ignore"):
             if self.num_workers > 0:
                 mp_pool = multiprocessing.Pool(
@@ -204,7 +186,7 @@ class Evaluator:
 
         if num_series is not None:
             assert (
-                len(rows) == num_series
+                    len(rows) == num_series
             ), f"num_series={num_series} did not match number of elements={len(rows)}"
 
         # If all entries of a target array are NaNs, the resulting metric will have value "masked". Pandas does not
@@ -215,7 +197,7 @@ class Evaluator:
 
     @staticmethod
     def extract_pred_target(
-        time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+            time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> np.ndarray:
         """
 
@@ -245,7 +227,7 @@ class Evaluator:
     # It extracts the training sequence from the Series or DataFrame to a numpy array
     @staticmethod
     def extract_past_data(
-        time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+            time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> np.ndarray:
         """
 
@@ -276,7 +258,7 @@ class Evaluator:
         )
 
     def seasonal_error(
-        self, past_data: np.ndarray, forecast: Forecast
+            self, past_data: np.ndarray, forecast: Forecast
     ) -> float:
         r"""
         .. math::
@@ -307,7 +289,7 @@ class Evaluator:
         return seasonal_mae if seasonal_mae is not np.ma.masked else np.nan
 
     def get_metrics_per_ts(
-        self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+            self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Dict[str, Union[float, str, None]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
@@ -375,7 +357,7 @@ class Evaluator:
         return metrics
 
     def get_aggregate_metrics(
-        self, metric_per_ts: pd.DataFrame
+            self, metric_per_ts: pd.DataFrame
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
         agg_funs = {
             "MSE": "mean",
@@ -394,7 +376,7 @@ class Evaluator:
             agg_funs[quantile.coverage_name] = "mean"
 
         assert (
-            set(metric_per_ts.columns) >= agg_funs.keys()
+                set(metric_per_ts.columns) >= agg_funs.keys()
         ), "The some of the requested item metrics are missing."
 
         totals = {
@@ -466,7 +448,7 @@ class Evaluator:
         """
         flag = seasonal_error == 0
         return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
-            seasonal_error + flag
+                seasonal_error + flag
         )
 
     @staticmethod
@@ -505,11 +487,11 @@ class Evaluator:
 
     @staticmethod
     def owa(
-        target: np.ndarray,
-        forecast: np.ndarray,
-        past_data: np.ndarray,
-        seasonal_error: float,
-        start_date: pd.Timestamp,
+            target: np.ndarray,
+            forecast: np.ndarray,
+            past_data: np.ndarray,
+            seasonal_error: float,
+            start_date: pd.Timestamp,
     ) -> float:
         r"""
         .. math::
@@ -527,14 +509,14 @@ class Evaluator:
         )
 
         owa = 0.5 * (
-            (
-                Evaluator.smape(target, forecast)
-                / Evaluator.smape(target, naive_median_fcst)
-            )
-            + (
-                Evaluator.mase(target, forecast, seasonal_error)
-                / Evaluator.mase(target, naive_median_fcst, seasonal_error)
-            )
+                (
+                        Evaluator.smape(target, forecast)
+                        / Evaluator.smape(target, naive_median_fcst)
+                )
+                + (
+                        Evaluator.mase(target, forecast, seasonal_error)
+                        / Evaluator.mase(target, naive_median_fcst, seasonal_error)
+                )
         )
 
         return owa
@@ -603,12 +585,12 @@ class MultivariateEvaluator(Evaluator):
     """
 
     def __init__(
-        self,
-        quantiles: Iterable[Union[float, str]] = np.linspace(0.1, 0.9, 9),
-        seasonality: Optional[int] = None,
-        alpha: float = 0.05,
-        eval_dims: List[int] = None,
-        target_agg_funcs: Dict[str, Callable] = {},
+            self,
+            quantiles: Iterable[Union[float, str]] = np.linspace(0.1, 0.9, 9),
+            seasonality: Optional[int] = None,
+            alpha: float = 0.05,
+            eval_dims: List[int] = None,
+            target_agg_funcs: Dict[str, Callable] = {},
     ) -> None:
         """
 
@@ -639,28 +621,28 @@ class MultivariateEvaluator(Evaluator):
 
     @staticmethod
     def extract_target_by_dim(
-        it_iterator: Iterator[pd.DataFrame], dim: int
+            it_iterator: Iterator[pd.DataFrame], dim: int
     ) -> Iterator[pd.DataFrame]:
         for i in it_iterator:
             yield (i[dim])
 
     @staticmethod
     def extract_forecast_by_dim(
-        forecast_iterator: Iterator[Forecast], dim: int
+            forecast_iterator: Iterator[Forecast], dim: int
     ) -> Iterator[Forecast]:
         for forecast in forecast_iterator:
             yield forecast.copy_dim(dim)
 
     @staticmethod
     def extract_aggregate_target(
-        it_iterator: Iterator[pd.DataFrame], agg_fun: Callable
+            it_iterator: Iterator[pd.DataFrame], agg_fun: Callable
     ) -> Iterator[pd.DataFrame]:
         for i in it_iterator:
             yield i.agg(agg_fun, axis=1)
 
     @staticmethod
     def extract_aggregate_forecast(
-        forecast_iterator: Iterator[Forecast], agg_fun: Callable
+            forecast_iterator: Iterator[Forecast], agg_fun: Callable
     ) -> Iterator[Forecast]:
         for forecast in forecast_iterator:
             yield forecast.copy_aggregate(agg_fun)
@@ -694,10 +676,10 @@ class MultivariateEvaluator(Evaluator):
         return eval_dims
 
     def calculate_aggregate_multivariate_metrics(
-        self,
-        ts_iterator: Iterator[pd.DataFrame],
-        forecast_iterator: Iterator[Forecast],
-        agg_fun: Callable,
+            self,
+            ts_iterator: Iterator[pd.DataFrame],
+            forecast_iterator: Iterator[Forecast],
+            agg_fun: Callable,
     ) -> Dict[str, float]:
         """
 
@@ -721,9 +703,9 @@ class MultivariateEvaluator(Evaluator):
         return agg_metrics
 
     def calculate_aggregate_vector_metrics(
-        self,
-        all_agg_metrics: Dict[str, float],
-        all_metrics_per_ts: pd.DataFrame,
+            self,
+            all_agg_metrics: Dict[str, float],
+            all_metrics_per_ts: pd.DataFrame,
     ) -> Dict[str, float]:
         """
 
@@ -749,10 +731,10 @@ class MultivariateEvaluator(Evaluator):
         return all_agg_metrics
 
     def __call__(
-        self,
-        ts_iterator: Iterable[pd.DataFrame],
-        fcst_iterator: Iterable[Forecast],
-        num_series=None,
+            self,
+            ts_iterator: Iterable[pd.DataFrame],
+            fcst_iterator: Iterable[Forecast],
+            num_series=None,
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
@@ -807,3 +789,21 @@ class MultivariateEvaluator(Evaluator):
                     all_agg_metrics[prefix + metric] = value
 
         return all_agg_metrics, all_metrics_per_ts
+
+
+# This is required for the multiprocessing to work.
+_worker_evaluator: Optional[Evaluator] = None
+
+
+def _worker_init(evaluator: Evaluator):
+    global _worker_evaluator
+    _worker_evaluator = evaluator
+
+
+def _worker_fun(inp: tuple):
+    ts, forecast = inp
+    global _worker_evaluator
+    assert isinstance(
+        _worker_evaluator, Evaluator
+    ), "Something went wrong with the worker initialization."
+    return _worker_evaluator.get_metrics_per_ts(ts, forecast)
