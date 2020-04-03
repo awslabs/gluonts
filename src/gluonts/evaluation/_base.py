@@ -13,7 +13,9 @@
 
 # Standard library imports
 import logging
+import multiprocessing
 import re
+from collections import Sized
 from functools import lru_cache
 from itertools import chain, tee
 from typing import (
@@ -65,6 +67,24 @@ def get_seasonality(freq: str) -> int:
     return seasonality // multiple
 
 
+# This is required for the multiprocessing to work.
+_worker_evaluator = None
+
+
+def _worker_init(evaluator):
+    global _worker_evaluator
+    _worker_evaluator = evaluator
+
+
+def _worker_fun(inp: tuple):
+    ts, forecast = inp
+    global _worker_evaluator
+    assert isinstance(
+        _worker_evaluator, Evaluator
+    ), "Something went wrong with the worker initialization."
+    return _worker_evaluator.get_metrics_per_ts(ts, forecast)
+
+
 class Evaluator:
     """
     Evaluator class, to compute accuracy metrics by comparing observations
@@ -90,6 +110,14 @@ class Evaluator:
         which is computationally expensive to evaluate and thus slows
         down the evaluation process considerably.
         By default False.
+    num_worders
+        The number of multiprocessing workers that will be used to process
+        the data in parallel.
+        Default is `int(multiprocessing.cpu_count()/(2/3)))`.
+        Setting it to 0 means no multiprocessing.
+    chunk_size
+        Controls the approximate chunk size each workers handles at a time.
+        Default is 32.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -100,11 +128,20 @@ class Evaluator:
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
         calculate_owa: bool = False,
+        num_workers: Optional[int] = None,
+        chunk_size: Optional[int] = None,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
         self.calculate_owa = calculate_owa
+
+        self.num_workers = (
+            num_workers
+            if num_workers is not None
+            else multiprocessing.cpu_count()
+        )
+        self.chunk_size = chunk_size if chunk_size is not None else 32
 
     def __call__(
         self,
@@ -142,8 +179,20 @@ class Evaluator:
             total=num_series,
             desc="Running evaluation",
         ) as it, np.errstate(invalid="ignore"):
-            for ts, forecast in it:
-                rows.append(self.get_metrics_per_ts(ts, forecast))
+            if self.num_workers > 0:
+                mp_pool = multiprocessing.Pool(
+                    initializer=_worker_init(self), processes=self.num_workers
+                )
+                rows = mp_pool.map(
+                    func=_worker_fun,
+                    iterable=iter(it),
+                    chunksize=self.chunk_size,
+                )
+                mp_pool.close()
+                mp_pool.join()
+            else:
+                for ts, forecast in it:
+                    rows.append(self.get_metrics_per_ts(ts, forecast))
 
         assert not any(
             True for _ in ts_iterator
