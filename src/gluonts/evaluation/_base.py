@@ -68,10 +68,10 @@ def get_seasonality(freq: str) -> int:
 
 
 # This is required for the multiprocessing to work.
-_worker_evaluator = None
+_worker_evaluator: Optional[Evaluator] = None
 
 
-def _worker_init(evaluator):
+def _worker_init(evaluator: Evaluator):
     global _worker_evaluator
     _worker_evaluator = evaluator
 
@@ -110,7 +110,7 @@ class Evaluator:
         which is computationally expensive to evaluate and thus slows
         down the evaluation process considerably.
         By default False.
-    num_worders
+    num_workers
         The number of multiprocessing workers that will be used to process
         the data in parallel.
         Default is `int(multiprocessing.cpu_count()/(2/3)))`.
