@@ -417,7 +417,31 @@ INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable]
 )
 def test_metrics(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
-    evaluator = Evaluator(quantiles=QUANTILES)
+    evaluator = Evaluator(quantiles=QUANTILES, num_workers=0)
+    agg_metrics, item_metrics = calculate_metrics(
+        timeseries,
+        evaluator,
+        ts_datastructure,
+        has_nans=has_nans,
+        input_type=input_type,
+    )
+
+    for metric, score in agg_metrics.items():
+        if metric in res.keys():
+            assert abs(score - res[metric]) < 0.001, (
+                "Scores for the metric {} do not match: \nexpected: {} "
+                "\nobtained: {}".format(metric, res[metric], score)
+            )
+
+
+@pytest.mark.parametrize(
+    "timeseries, res, has_nans, input_type",
+    zip(TIMESERIES, RES, HAS_NANS, INPUT_TYPE),
+)
+def test_metrics(timeseries, res, has_nans, input_type):
+    ts_datastructure = pd.Series
+    # Default will be multiprocessing evaluator
+    evaluator = Evaluator(quantiles=QUANTILES, num_workers=4)
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
         evaluator,
