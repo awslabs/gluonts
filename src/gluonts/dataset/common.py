@@ -185,26 +185,39 @@ class FileDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
+    cache
+        Indicates whether the dataset should be cached or not.
     """
 
     def __init__(
-        self, path: Path, freq: str, one_dim_target: bool = True,
+        self,
+        path: Path,
+        freq: str,
+        one_dim_target: bool = True,
+        cache: Optional[bool] = False,
     ) -> None:
+        self.cache = cache
         self.path = path
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
         self._len = None
+
         if not self.files():
             raise OSError(f"no valid file found in {path}")
 
+        # necessary, in order to preserve the cached datasets, in case caching was enabled
+        self._json_line_files = [
+            jsonl.JsonLinesFile(path=path, cache=cache)
+            for path in self.files()
+        ]
+
     def __iter__(self) -> Iterator[DataEntry]:
-        for path in self.files():
-            for line in jsonl.JsonLinesFile(path=path):
+        for json_line_file in self._json_line_files:
+            for line in json_line_file:
                 data = self.process(line.content)
                 data["source"] = SourceContext(
                     source=line.span.path, row=line.span.line
                 )
                 yield data
-        self._burnt_in = True
 
     def __len__(self):
         if self._len is None:
@@ -254,13 +267,15 @@ class ListDataset(Dataset):
         one_dim_target: bool = True,
     ) -> None:
         self.process = ProcessDataEntry(freq, one_dim_target)
-        self.list_data = list(data_iter)
+        self.list_data = list(data_iter)  # dataset always cached
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
+        # Basic idea is to split the dataset into roughly equally sized segments
+        # with lower and upper bound, where each worker is assigned one segment
         chunk_size = int(len(self.list_data) / util.MPWorkerInfo.num_workers)
+
         for row_number, data in enumerate(self.list_data):
-            # The dataset is equally distributed among the workers
             lower_bound = util.MPWorkerInfo.worker_id * chunk_size
             upper_bound = (
                 (util.MPWorkerInfo.worker_id + 1) * chunk_size

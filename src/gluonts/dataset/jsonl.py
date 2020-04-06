@@ -14,7 +14,7 @@
 # Standard library imports
 import functools
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 # Third-party imports
 import ujson as json
@@ -56,32 +56,43 @@ class JsonLinesFile:
         JSON Lines file.
     """
 
-    def __init__(self, path) -> None:
+    def __init__(self, path: Path, cache: Optional[bool] = False) -> None:
         self.path = path
+        self.cache = cache
         self._len = None
-        # TODO: implement caching here
+        self._data_cache: list = []
 
     def __iter__(self):
-        chunk_size = int(self.__len__() / MPWorkerInfo.num_workers)
-        with open(self.path) as jsonl_file:
-            for line_number, raw in enumerate(jsonl_file):
-                # The dataset is equally distributed among the workers
-                lower_bound = MPWorkerInfo.worker_id * chunk_size
-                upper_bound = (
-                    (MPWorkerInfo.worker_id + 1) * chunk_size
-                    if MPWorkerInfo.worker_id + 1 != MPWorkerInfo.num_workers
-                    else np.inf
-                )
-                if not lower_bound <= line_number < upper_bound:
-                    continue
+        # Basic idea is to split the dataset into roughly equally sized segments
+        # with lower and upper bound, where each worker is assigned one segment
+        segment_size = int(self.__len__() / MPWorkerInfo.num_workers)
 
-                span = Span(path=self.path, line=line_number)
-                try:
-                    yield Line(json.loads(raw), span=span)
-                except ValueError:
-                    raise GluonTSDataError(
-                        f"Could not read json line {line_number}, {raw}"
+        if not self.cache or (self.cache and not self._data_cache):
+            with open(self.path) as jsonl_file:
+                for line_number, raw in enumerate(jsonl_file):
+                    lower_bound = MPWorkerInfo.worker_id * segment_size
+                    upper_bound = (
+                        (MPWorkerInfo.worker_id + 1) * segment_size
+                        if MPWorkerInfo.worker_id + 1
+                        != MPWorkerInfo.num_workers
+                        else np.inf
                     )
+                    if not lower_bound <= line_number < upper_bound:
+                        continue
+
+                    span = Span(path=self.path, line=line_number)
+                    try:
+                        parsed_line = Line(json.loads(raw), span=span)
+                        if self.cache:
+                            self._data_cache.append(parsed_line)
+                        yield parsed_line
+                    except ValueError:
+                        raise GluonTSDataError(
+                            f"Could not read json line {line_number}, {raw}"
+                        )
+        else:
+            for i in range(len(self._data_cache)):
+                yield self._data_cache[i]
 
     def __len__(self):
         if self._len is None:

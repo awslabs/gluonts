@@ -67,6 +67,10 @@ def load_file_dataset(path: Path, freq: str) -> Iterator[Any]:
     return iter(FileDataset(path, freq))
 
 
+def load_file_dataset_cached(path: Path, freq: str) -> Iterator[Any]:
+    return iter(FileDataset(path, freq, cache=True))
+
+
 def load_file_dataset_numpy(path: Path, freq: str) -> Iterator[Any]:
     for item in FileDataset(path, freq):
         item["start"] = pd.Timestamp(item["start"])
@@ -86,7 +90,7 @@ def load_list_dataset(path: Path, freq: str) -> Iterator[Any]:
     return iter(ListDataset(lines, freq))
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_io_speed() -> None:
     exp_size = 250
     act_size = 0
@@ -111,6 +115,7 @@ def test_io_speed() -> None:
         ("JsonLinesFile", load_json_lines_file, 20000),
         ("ListDataset", load_list_dataset, 500),
         ("FileDataset", load_file_dataset, 500),
+        ("FileDatasetCached", load_file_dataset_cached, 500),
         ("FileDatasetNumpy", load_file_dataset_numpy, 500),
         ("ParsedDataset", load_parsed_dataset, 500),
     ]
