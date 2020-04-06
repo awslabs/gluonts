@@ -281,7 +281,7 @@ class WaveNet(nn.HybridBlock):
         Parameters
         ----------
         F
-        target: (batch_size, receptive_field + pred_length - 1)
+        target: (batch_size, sequence_length)
         features: (batch_size, num_features, sequence_length)
 
         Returns
@@ -299,7 +299,7 @@ class WaveNet(nn.HybridBlock):
 
     def base_net(self, F, inputs, one_step_prediction=False, queues=None):
         """
-        Forward pass through the wavenet.
+        Forward pass through the network.
 
         Parameters
         ----------
@@ -307,14 +307,14 @@ class WaveNet(nn.HybridBlock):
         inputs
             Inputs to the network: (batch_size, n_residue, sequence_length)
         one_step_prediction
-            Flag indicating whether the network is "unrolled" one step at a time (prediction phase).
+            Flag indicating whether the network is "unrolled/propagated" one step at a time (prediction phase).
         queues
             Convolutional queues containing past computations. Should be provided if `one_step_prediction` is True.
 
         Returns
         -------
         Tuple: (Tensor, List)
-            A tensor containing the unnormalized outputs of the wavenet. Shape: (batch_size, pred_length, num_bins).
+            A tensor containing the unnormalized outputs of the network. Shape: (batch_size, pred_length, num_bins).
             A list containing the convolutional queues for each layer. The queue corresponding to layer `l` has
             shape: (batch_size, n_residue, 2^l).
         """
@@ -346,7 +346,7 @@ class WaveNet(nn.HybridBlock):
         y = self.output_act(y)
         y = self.conv2(y)
         unnormalized_output = y.swapaxes(1, 2)
-        return unnormalized_output, queues
+        return unnormalized_output, queues_next
 
     def hybrid_forward(
         self,
@@ -360,6 +360,34 @@ class WaveNet(nn.HybridBlock):
         future_observed_values: Tensor,
         scale: Tensor,
     ) -> Tensor:
+        """
+        Computes the training loss for the wavenet model.
+
+        Parameters
+        ----------
+        F
+        feat_static_cat
+            Static categorical features: (batch_size, num_cat_features)
+        past_target
+            Past target: (batch_size, receptive_field)
+        past_observed_values
+            Observed value indicator for the past target: (batch_size, receptive_field)
+        past_time_feat
+            Past time features: (batch_size, num_time_features, receptive_field)
+        future_time_feat
+            Future time features: (batch_size, num_time_features, pred_length)
+        future_target
+            Target on which the loss is computed: (batch_size, pred_length)
+        future_observed_values
+            Observed value indicator for the future target: (batch_size, pred_length).
+        scale
+            scale of the time series: (batch_size, 1)
+
+        Returns
+        -------
+        Tensor
+            Returns loss with shape (batch_size,)
+        """
         full_target = F.concat(past_target, future_target, dim=-1).astype(
             "int32"
         )
@@ -477,6 +505,31 @@ class WaveNetSampler(WaveNet):
         future_time_feat: Tensor,
         scale: Tensor,
     ) -> Tensor:
+        """
+        Computes the training loss for the wavenet model.
+
+        Parameters
+        ----------
+        F
+        feat_static_cat
+            Static categorical features: (batch_size, num_cat_features)
+        past_target
+            Past target: (batch_size, receptive_field)
+        past_observed_values
+            Observed value indicator for the past target: (batch_size, receptive_field)
+        past_time_feat
+            Past time features: (batch_size, num_time_features, receptive_field)
+        future_time_feat
+            Future time features: (batch_size, num_time_features, pred_length)
+        scale
+            scale of the time series: (batch_size, 1)
+
+        Returns
+        -------
+        Tensor
+            Prediction samples with shape (batch_size, num_samples, pred_length)
+        """
+
         def blow_up(u):
             """
             Expand to (batch_size x num_samples)
