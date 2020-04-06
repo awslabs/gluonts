@@ -23,13 +23,14 @@ import random
 import sys
 import time
 from collections import Sized
-from typing import Callable, Iterable, Optional, List
+from multiprocessing.managers import SyncManager
+from typing import Callable, Iterable, Optional, List, Iterator
 
 import multiprocessing
 import multiprocessing.queues
 from multiprocessing.reduction import ForkingPickler
 from multiprocessing.pool import Pool
-from multiprocessing import Queue
+from queue import Queue
 
 try:
     import multiprocessing.resource_sharer
@@ -44,7 +45,7 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import Dataset, DataEntry, DataBatch
 from gluonts.transform import Transformation
 from gluonts.dataset.util import MPWorkerInfo
 
@@ -139,7 +140,7 @@ def _batchify_fn(
     dtype: DType,
     multi_processing: bool,
     single_process_ctx: Optional[mx.Context] = None,
-):
+) -> DataBatch:
     """reduce the list of dictionaries to a single dictionary, where values
         referenced by identical key are reduced using the stack function"""
     return {
@@ -153,7 +154,7 @@ def _batchify_fn(
     }
 
 
-def _as_in_context(batch: dict, ctx: mx.Context):
+def _as_in_context(batch: dict, ctx: mx.Context) -> DataBatch:
     """Move data into new context, should only be in main process."""
     assert (
         not MPWorkerInfo.worker_process
@@ -180,13 +181,13 @@ class _WorkerData:
     # current dataset iterator in form of a transformation applied to the dataset
     transformation: Optional[Transformation] = None
     # replicate transformation
-    dataset_iterator: Optional[Iterable] = None
+    dataset_iterator: Optional[Iterator[DataEntry]] = None
     # indicates which cycle the iterator has been reset last
     iterator_latest_reset_cycle: Optional[int] = 0
     # indicates whether the iterator was previously depleted
     iterator_exhausted_indicator: Optional[bool] = False
     # is used to cached transformed_samples in case  num_batches_for_shuffling > 1
-    iterator_transformed_samples: Optional[Iterable] = None
+    iterator_transformed_samples: Optional[Iterator[DataEntry]] = None
     # tracks how many batches have been retrieved from the
     iterator_transformed_samples_counter: Optional[int] = 0
 
@@ -196,7 +197,7 @@ def _worker_initializer(
     transformation: Transformation,
     num_workers: int,
     worker_id_queue: Queue,
-):
+) -> None:
     """Initialier for processing pool."""
 
     _WorkerData.dataset = dataset
@@ -212,7 +213,9 @@ def _worker_initializer(
     )
 
 
-def _sequential_sample_generator(dataset, transformation, is_train, cyclic):
+def _sequential_sample_generator(
+    dataset, transformation, is_train, cyclic
+) -> Iterator[DataEntry]:
     while True:
         for sample in transformation(data_it=dataset, is_train=is_train):
             yield sample
@@ -313,7 +316,7 @@ def _worker_fn(
 # needed because some iterators are not cyclic
 def _worker_reset_iterator(
     is_train: bool, cyclic: bool, cycle_num: int,
-):
+) -> None:
     """Initialize or reset iterators of workers."""
 
     _WorkerData.dataset_iterator = _sequential_sample_generator(
@@ -379,7 +382,7 @@ class _MultiWorkerIter(object):
     def __len__(self):
         return self._dataset_len
 
-    def _push_next(self):
+    def _push_next(self) -> None:
         """Assign next batch workload to workers."""
         # Optimally one would want to task worker that have none depleted iterators,
         # however, this does not seem to be possible with a worker pool
@@ -399,7 +402,7 @@ class _MultiWorkerIter(object):
         self._data_buffer[self._sent_idx] = async_ret
         self._sent_idx += 1
 
-    def __next__(self):
+    def __next__(self) -> DataBatch:
         # Try to get a batch, sometimes its possible that an iterator was
         # exhausted and thus we don't get a new batch
         success = False
@@ -431,7 +434,7 @@ class _MultiWorkerIter(object):
                     self._exhausted_iterators.add(worker_id)
                     if self._num_workers == len(self._exhausted_iterators):
                         # No more batches to be generated
-                        return []
+                        return {}
                     else:
                         self._push_next()
                 else:
@@ -450,11 +453,12 @@ class _MultiWorkerIter(object):
                 print("An unexpected error occurred in the WorkerIterator.")
                 self._worker_pool.terminate()
                 raise
+        return {}
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[DataBatch]:
         while True:
             next_batch = next(self)
-            if len(next_batch) == 0:
+            if not next_batch:
                 return
             yield next_batch
 
@@ -545,7 +549,7 @@ class ParallelDataLoader(object):
         ), "Num workers has to be >= 0."
 
         self.dataset = dataset
-        self.dataset_len = None
+        self.dataset_len: int
         if isinstance(dataset, Sized):
             assert isinstance(dataset, Sized)
             self.dataset_len = len(dataset)
@@ -585,12 +589,12 @@ class ParallelDataLoader(object):
                 "You have set `num_prefetch` to less than `num_workers`, which is counter productive."
                 "If you want to reduce load, reduce `num_workers`."
             )
-        self.worker_pool = None
-        self.worker_manager = None
+        self.worker_pool: Optional[Pool] = None
+        self.worker_manager: Optional[SyncManager] = None
         # In order to set unique IDs to workers:
-        self.worker_id_queue = None
+        self.worker_id_queue: Optional[Queue] = None
         # In order to recycle unused but pre-calculated batches from last epoch for training:
-        self.multi_worker_cache = None
+        self.multi_worker_cache: Optional[Iterator[DataBatch]] = None
 
         if self.num_workers > 0:
             # generate unique ids for processes
@@ -613,7 +617,7 @@ class ParallelDataLoader(object):
                 ],
             )
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[DataBatch]:
         self.cycle_num += 1
         if self.num_workers == 0:
             generator = _sequential_sample_generator(
@@ -659,6 +663,11 @@ class ParallelDataLoader(object):
 
             return same_process_iter()
         else:
+            # assertions due to Mypy
+            assert isinstance(self.worker_pool, Pool)
+            assert isinstance(self.shuffle, bool)
+            assert isinstance(self.dtype, DType)
+
             # multi-worker takes care of asynchronously preparing batches
             # only cache multi_worker for cyclic datasets
             if self.multi_worker_cache is None:
@@ -687,7 +696,7 @@ class ParallelDataLoader(object):
                 # (cycle num is irrelevant for cyclic datasets, and rest of the arguments stays same between epochs)
                 return self.multi_worker_cache
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.dataset_len
 
     def __del__(self):

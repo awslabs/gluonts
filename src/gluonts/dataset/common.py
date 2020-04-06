@@ -42,6 +42,7 @@ from gluonts.dataset import jsonl, util
 
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]
+DataBatch = Dict[str, Any]
 
 # TODO: change this maybe to typing_extensions.Protocol
 # A Dataset is an iterable of DataEntry.

@@ -22,11 +22,9 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import DataEntry, Dataset, DataBatch
 from gluonts.dataset.parallelized_loader import ParallelDataLoader
 from gluonts.transform import Transformation
-
-DataBatch = Dict[str, Any]
 
 
 class DataLoader(Iterable[DataEntry]):
