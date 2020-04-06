@@ -521,8 +521,8 @@ class ParallelDataLoader(object):
         is_train: bool,
         batch_size: int,
         ctx: mx.Context,
-        dtype: Optional[DType] = np.float32,
-        shuffle: Optional[bool] = False,
+        dtype: Optional[DType] = None,
+        shuffle: Optional[bool] = None,
         num_batches_for_shuffling: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         num_workers: Optional[int] = None,
@@ -564,8 +564,8 @@ class ParallelDataLoader(object):
         self.batch_size = batch_size
         self.ctx = ctx
 
-        self.dtype = dtype
-        self.shuffle = shuffle
+        self.dtype = dtype if dtype is not None else np.float32
+        self.shuffle = shuffle if shuffle is not None else False
         self.num_batches_for_shuffling = (
             num_batches_for_shuffling
             if num_batches_for_shuffling is not None
@@ -663,10 +663,8 @@ class ParallelDataLoader(object):
 
             return same_process_iter()
         else:
-            # assertions due to Mypy
+            # to prevent Mypy complaints
             assert isinstance(self.worker_pool, Pool)
-            assert isinstance(self.shuffle, bool)
-            assert isinstance(self.dtype, DType)
 
             # multi-worker takes care of asynchronously preparing batches
             # only cache multi_worker for cyclic datasets
