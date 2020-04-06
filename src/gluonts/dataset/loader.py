@@ -137,7 +137,12 @@ class TrainDataLoader(DataLoader):
         multiple worker processes, try reduce `num_workers` in this case.
         By default it defaults to `num_workers * 2`.
     dtype
-        Floating point type to use.
+        Floating point type to use. Default is np.float32.
+    shuffle_for_training
+        Whether to shuffle the samples.
+    num_batches_for_shuffling
+        The number of batches among which samples are shuffled. So for example if num_batches_for_shuffling = 8
+        then the next num_batches_for_shuffling * 8 samples will be shuffled and then batched.
     """
 
     def __init__(
