@@ -438,7 +438,7 @@ def test_metrics(timeseries, res, has_nans, input_type):
     "timeseries, res, has_nans, input_type",
     zip(TIMESERIES, RES, HAS_NANS, INPUT_TYPE),
 )
-def test_metrics(timeseries, res, has_nans, input_type):
+def test_metrics_mp(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
     # Default will be multiprocessing evaluator
     evaluator = Evaluator(quantiles=QUANTILES, num_workers=4)
