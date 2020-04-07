@@ -12,17 +12,18 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 # Third-party imports
 import numpy as np
 
-from gluonts.core.component import validated
-
 # First-party imports
+from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 # Relative imports
+from mxnet.gluon.nn import Block
+
 from .distribution import getF
 
 
@@ -119,6 +120,93 @@ class InverseBijection(Bijection):
     @property
     def sign(self) -> Union[float, Tensor]:
         return self._bijection.sign
+
+
+class ComposedBijection(Bijection):
+    @validated()
+    def __init__(self, bijections: Optional[List[Bijection]] = None) -> None:
+        super().__init__(self)
+        self._bijections: List[Bijection] = []
+        if bijections is not None:
+            self.__iadd__(bijections)
+
+    @property
+    def event_shape(self):
+        return self._bijections[0].event_shape
+
+    @property
+    def event_dim(self):
+        return self._bijections[0].event_dim
+
+    def f(self, x: Tensor) -> Tensor:
+        y = x
+        for t in self._bijections:
+            y = t.f(y)
+        return y
+
+    def f_inv(self, y: Tensor) -> Tensor:
+        x = y
+        for t in reversed(self._bijections):
+            x = t.f_inv(x)
+        return x
+
+    def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
+        ladj = 0.0
+        for t in reversed(self._bijections):
+            x = t.f_inv(y)
+            # ladj = ladj + sum_trailing_axes(getF(y), t.log_abs_det_jac(x, y),
+            #                                 self.event_dim - t.event_dim)
+            ladj = ladj + t.log_abs_det_jac(x, y)
+            y = x
+        return ladj
+
+    def __getitem__(self, index):
+        return self._bijections[index]
+
+    def __len__(self):
+        return len(self._bijections)
+
+    def __iadd__(self, bijections):
+        for b in bijections:
+            if not isinstance(b, Bijection):
+                raise TypeError(
+                    f"Object is of type {type(b)}"
+                    f" but should inherit from {Bijection}."
+                )
+
+            if len(self._bijections) > 0 and b.event_shape != self.event_shape:
+                raise RuntimeError(
+                    f"Bijection {b} has event_shape of '{b.event_shape}'"
+                    f"but should be of '{self.event_shape}'"
+                )
+
+            self._bijections.append(b)
+
+        return self
+
+    def __add__(self, bijections):
+        return ComposedBijection(self._bijections + bijections)
+
+
+class BijectionBlock(Block, Bijection):
+    """BijectionBlock"""
+
+
+class ComposedBijectionBlock(BijectionBlock, ComposedBijection):
+    @validated()
+    def __init__(
+        self,
+        bij_blocks: Optional[List[BijectionBlock]] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        Block.__init__(self, *args, **kwargs)
+        ComposedBijection.__init__(self, bij_blocks)
+
+    def __iadd__(self, bij_blocks):
+        for b in bij_blocks:
+            self.register_child(b)
+        return super().__iadd__(bij_blocks)
 
 
 class _Exp(Bijection):
