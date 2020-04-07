@@ -24,7 +24,11 @@ import pytest
 
 # First-party imports
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
+from gluonts.dataset.loader import (
+    TrainDataLoader,
+    ValidationDataLoader,
+    InferenceDataLoader,
+)
 from gluonts.dataset.common import ListDataset
 from gluonts.transform import Chain, UniformSplitSampler, InstanceSplitter
 from gluonts.dataset.artificial import ConstantDataset
@@ -44,7 +48,7 @@ NUM_WORKERS_MP = (
 CONTEXT_LEN = 7
 SPLITTING_SAMPLE_PROBABILITY = 1  # crucial for the ValidationDataLoader test
 CD_NUM_STEPS = 14
-CD_NUM_TIME_SERIES = 30
+CD_NUM_TIME_SERIES = 50  # too small and batch test might fail
 CD_MAX_LEN_MULTIPLICATION_FACTOR = 3
 
 # CACHED DATA
@@ -180,6 +184,65 @@ def test_validation_loader_equivalence() -> None:
     ), "Batches in incorrect context"
 
 
+# The idea is to test that the inference data loader yields equivalent results
+def test_inference_loader_equivalence() -> None:
+    (
+        list_dataset,
+        transformation,
+        list_dataset_pred_length,
+        train_data_transformed_original,
+    ) = get_dataset_and_transformation()
+    current_desired_context = current_context()
+
+    # original no multiprocessing processed validation dataset
+    inference_loader_data_transformed_original = list(
+        InferenceDataLoader(
+            dataset=list_dataset,
+            transform=transformation,
+            batch_size=BATCH_SIZE,
+            num_workers=0,  # This is the crucial difference
+            ctx=current_context(),
+        )
+    )
+
+    inference_loader = InferenceDataLoader(
+        dataset=list_dataset,
+        transform=transformation,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        ctx=current_context(),
+    )
+
+    # multi-processed validation dataset
+    mp_inf_data_loader_result_01 = list(inference_loader)
+
+    # multi-processed validation dataset NR2, second iteration/pass through
+    mp_inf_data_loader_result_02 = list(inference_loader)
+
+    # ASSERTIONS:
+
+    assert get_transformation_counts(
+        mp_inf_data_loader_result_01
+    ) == get_transformation_counts(
+        inference_loader_data_transformed_original
+    ), "The multiprocessing ValidationDataLoader should yield equivalent result to the non multiprocessing one."
+
+    assert get_transformation_counts(
+        mp_inf_data_loader_result_02
+    ) == get_transformation_counts(
+        inference_loader_data_transformed_original
+    ), "The multiprocessing ValidationDataLoader should yield equivalent result to the non multiprocessing one."
+
+    assert (
+        len(mp_inf_data_loader_result_02[1]["item_id"]) == BATCH_SIZE
+    ), "Incorrect batch size from multiprocessing."
+
+    assert (
+        mp_inf_data_loader_result_02[0]["past_target"].context
+        == current_desired_context
+    ), "Batches in incorrect context"
+
+
 # CASE 01: if we have say 5 workers, then iterating
 # over the dataset so that one worker could cover 3/5 of the whole dataset
 # should still be enough that every time series is at least processed once,
@@ -228,7 +291,7 @@ def test_training_loader_soft_constraint_01() -> None:
 
 # CASE 02: if we have say 5 workers, but let each only cover 1/10, then
 # it should be impossible to cover the whole underlying dataset
-@flaky(max_runs=3, min_passes=3)
+@flaky(max_runs=2, min_passes=2)
 def test_training_loader_soft_constraint_02() -> None:
     (
         list_dataset,
