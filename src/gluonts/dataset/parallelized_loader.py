@@ -172,43 +172,6 @@ def _as_in_context(batch: dict, ctx: mx.Context) -> DataBatch:
     return batch
 
 
-# Each process has its own copy, so other processes can't interfere
-class _WorkerData:
-    """Contain the current data that the worker is using."""
-
-    # dataset replica
-    dataset: Optional[Dataset] = None
-    # current dataset iterator in form of a transformation applied to the dataset
-    transformation: Optional[Transformation] = None
-    # replicate transformation
-    dataset_iterator: Optional[Iterator[DataEntry]] = None
-    # indicates which cycle the iterator has been reset last
-    iterator_latest_reset_cycle: Optional[int] = 0
-    # indicates whether the iterator was previously depleted
-    iterator_exhausted_indicator: Optional[bool] = False
-
-
-def _worker_initializer(
-    dataset: Dataset,
-    transformation: Transformation,
-    num_workers: int,
-    worker_id_queue: Queue,
-) -> None:
-    """Initialier for processing pool."""
-
-    _WorkerData.dataset = dataset
-    _WorkerData.transformation = transformation
-
-    # get unique worker id
-    worker_id = int(worker_id_queue.get())
-    multiprocessing.current_process().name = f"worker_{worker_id}"
-
-    # propagate worker information
-    MPWorkerInfo.set_worker_info(
-        num_workers=num_workers, worker_id=worker_id, worker_process=True
-    )
-
-
 def _sequential_sample_generator(
     dataset: Dataset,
     transformation: Transformation,
@@ -243,6 +206,64 @@ def _sequential_sample_generator(
             return
 
 
+# Each process has its own copy, so other processes can't interfere
+class _WorkerData:
+    """Contain the current data that the worker is using."""
+
+    # dataset replica
+    dataset: Dataset
+    # current dataset iterator in form of a transformation applied to the dataset
+    transformation: Transformation
+    # replicate transformation
+    dataset_iterator: Iterator[DataEntry]
+    # indicates which cycle the iterator has been reset last
+    iterator_latest_reset_cycle: int = 0
+    # indicates whether the iterator was previously depleted
+    iterator_exhausted_indicator: bool = False
+
+
+# needed because some iterators are not cyclic
+def _worker_reset_iterator(
+    is_train: bool,
+    cyclic: bool,
+    cycle_num: int,
+    num_batches_for_shuffling: int,
+) -> None:
+    """Initialize or reset iterators of workers."""
+
+    _WorkerData.dataset_iterator = _sequential_sample_generator(
+        dataset=_WorkerData.dataset,
+        transformation=_WorkerData.transformation,
+        is_train=is_train,
+        cyclic=cyclic,
+        num_batches_for_shuffling=num_batches_for_shuffling,
+    )
+
+    _WorkerData.iterator_latest_reset_cycle = cycle_num
+    _WorkerData.iterator_exhausted_indicator = False
+
+
+def _worker_initializer(
+    dataset: Dataset,
+    transformation: Transformation,
+    num_workers: int,
+    worker_id_queue: Queue,
+) -> None:
+    """Initialier for processing pool."""
+
+    _WorkerData.dataset = dataset
+    _WorkerData.transformation = transformation
+
+    # get unique worker id
+    worker_id = int(worker_id_queue.get())
+    multiprocessing.current_process().name = f"worker_{worker_id}"
+
+    # propagate worker information
+    MPWorkerInfo.set_worker_info(
+        num_workers=num_workers, worker_id=worker_id, worker_process=True
+    )
+
+
 def _worker_fn(
     batch_size: int,
     batchify_fn: Callable,
@@ -256,7 +277,6 @@ def _worker_fn(
     """Function for processing data in worker process."""
 
     # initialize, or reset the iterator at each cycle
-    assert isinstance(_WorkerData.iterator_latest_reset_cycle, int)
     if (_WorkerData.iterator_latest_reset_cycle < cycle_num) and (
         _WorkerData.iterator_latest_reset_cycle == 0 or not cyclic
     ):
@@ -265,9 +285,6 @@ def _worker_fn(
         )
 
     # retrieve the samples that will be batched
-    assert isinstance(
-        _WorkerData.dataset_iterator, Iterable
-    ), f"Dataset not Iterable: {type(_WorkerData.dataset_iterator)}."
     batch_samples = list(
         itertools.islice(_WorkerData.dataset_iterator, batch_size)
     )
@@ -296,27 +313,6 @@ def _worker_fn(
         (success, MPWorkerInfo.worker_id, batch)
     )
     return buf.getvalue()
-
-
-# needed because some iterators are not cyclic
-def _worker_reset_iterator(
-    is_train: bool,
-    cyclic: bool,
-    cycle_num: int,
-    num_batches_for_shuffling: int,
-) -> None:
-    """Initialize or reset iterators of workers."""
-
-    _WorkerData.dataset_iterator = _sequential_sample_generator(
-        dataset=_WorkerData.dataset,
-        transformation=_WorkerData.transformation,
-        is_train=is_train,
-        cyclic=cyclic,
-        num_batches_for_shuffling=num_batches_for_shuffling,
-    )
-    assert isinstance(_WorkerData.iterator_latest_reset_cycle, int)
-    _WorkerData.iterator_latest_reset_cycle = cycle_num
-    _WorkerData.iterator_exhausted_indicator = False
 
 
 class _MultiWorkerIter(object):
