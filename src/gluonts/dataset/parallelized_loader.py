@@ -283,7 +283,7 @@ def _worker_fn(
         )
         _WorkerData.iterator_transformed_samples_counter = (
             _WorkerData.iterator_transformed_samples_counter + 1
-        ) % batch_size
+        ) % num_batches_for_shuffling
     else:
         raise AssertionError(
             f"Invalid value for num_batches_for_shuffling encountered: {num_batches_for_shuffling}."
@@ -474,7 +474,6 @@ class _MultiWorkerIter(object):
             pass
 
 
-# TODO: think about how a multiprocessing.Manager() would complement this implementation
 class ParallelDataLoader(object):
     """
     Loads data from a dataset and returns mini-batches of data.

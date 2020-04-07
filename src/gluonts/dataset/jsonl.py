@@ -65,7 +65,7 @@ class JsonLinesFile:
     def __iter__(self):
         # Basic idea is to split the dataset into roughly equally sized segments
         # with lower and upper bound, where each worker is assigned one segment
-        segment_size = int(self.__len__() / MPWorkerInfo.num_workers)
+        segment_size = int(len(self) / MPWorkerInfo.num_workers)
 
         if not self.cache or (self.cache and not self._data_cache):
             with open(self.path) as jsonl_file:
