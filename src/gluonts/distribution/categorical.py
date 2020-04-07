@@ -31,6 +31,16 @@ from .distribution_output import DistributionOutput
 
 
 class Categorical(Distribution):
+    r"""
+    A categorical distribution over num_cats-many categories.
+
+    Parameters
+    ----------
+    log_probs
+        Tensor containing log probabilities of the individual categories, of shape `(*batch_shape, num_cats)`.
+    F
+    """
+
     @validated()
     def __init__(self, log_probs: Tensor, F=None) -> None:
         super().__init__()
