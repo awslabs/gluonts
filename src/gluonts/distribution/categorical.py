@@ -79,9 +79,9 @@ class Categorical(Distribution):
             indices = F.sample_multinomial(bin_probs)
             return indices
 
-        return _sample_multiple(
-            s, self.probs, num_samples=num_samples
-        ).astype("int32")
+        return _sample_multiple(s, self.probs, num_samples=num_samples).astype(
+            "int32"
+        )
 
     @property
     def args(self) -> List:
@@ -103,7 +103,9 @@ class CategoricalOutput(DistributionOutput):
         log_probs_s = F.log_softmax(probs)
         return log_probs_s
 
-    def distribution(self, distr_args, scale=None, **kwargs) -> Distribution:
+    def distribution(
+        self, distr_args, loc=None, scale=None, **kwargs
+    ) -> Distribution:
         distr = Categorical(distr_args)
         return distr
 

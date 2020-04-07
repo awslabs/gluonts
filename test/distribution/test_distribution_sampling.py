@@ -109,9 +109,7 @@ test_cases = [
     (
         Categorical,
         {
-            "log_probs": mx.nd.array(
-                [[0.1, 0.2, 0.1, 0.05, 0.2, 0.1, 0.25]]
-            )
+            "log_probs": mx.nd.array([[0.1, 0.2, 0.1, 0.05, 0.2, 0.1, 0.25]])
             .log()
             .repeat(axis=0, repeats=2),
         },
