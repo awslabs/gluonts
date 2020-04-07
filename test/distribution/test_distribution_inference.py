@@ -840,11 +840,13 @@ def test_categorical_likelihood(
         learning_rate=PositiveFloat(0.05),
         num_epochs=PositiveInt(25),
     )
-
     cat_prob_hat = np.exp(cat_log_prob_hat)
 
+    prob_deviation = np.abs(cat_prob_hat - cat_prob.asnumpy()).flatten()
+    tolerance = (TOL * cat_prob.asnumpy()).flatten()
+
     assert np.all(
-        np.less(np.abs(cat_prob_hat - cat_prob.asnumpy()), TOL * cat_prob)
+        np.less(prob_deviation, tolerance)
     ), f"cat_prob did not match: cat_prob = {cat_prob}, cat_prob_hat = {cat_prob_hat}"
 
 
