@@ -272,12 +272,19 @@ class ListDataset(Dataset):
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
+        # Basic idea is to split the dataset into roughly equally sized segments
+        # with lower and upper bound, where each worker is assigned one segment
+        segment_size = int(len(self) / util.MPWorkerInfo.num_workers)
+
         for row_number, data in enumerate(self.list_data):
-            # Split the dataset into roughly equally sized segments
-            if (
-                row_number % util.MPWorkerInfo.num_workers
-                != util.MPWorkerInfo.worker_id
-            ):
+            lower_bound = util.MPWorkerInfo.worker_id * segment_size
+            upper_bound = (
+                (util.MPWorkerInfo.worker_id + 1) * segment_size
+                if util.MPWorkerInfo.worker_id + 1
+                != util.MPWorkerInfo.num_workers
+                else np.inf
+            )
+            if not lower_bound <= row_number < upper_bound:
                 continue
 
             data = self.process(data)

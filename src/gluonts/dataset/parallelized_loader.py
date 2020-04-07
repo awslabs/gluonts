@@ -186,10 +186,6 @@ class _WorkerData:
     iterator_latest_reset_cycle: Optional[int] = 0
     # indicates whether the iterator was previously depleted
     iterator_exhausted_indicator: Optional[bool] = False
-    # is used to cached transformed_samples in case  num_batches_for_shuffling > 1
-    iterator_transformed_samples: Optional[Iterator[DataEntry]] = None
-    # tracks how many batches have been retrieved from the
-    iterator_transformed_samples_counter: Optional[int] = 0
 
 
 def _worker_initializer(
@@ -214,10 +210,33 @@ def _worker_initializer(
 
 
 def _sequential_sample_generator(
-    dataset, transformation, is_train, cyclic
+    dataset: Dataset,
+    transformation: Transformation,
+    is_train: bool,
+    cyclic: bool,
+    num_batches_for_shuffling: int,
 ) -> Iterator[DataEntry]:
+    # Approximate shuffling `num_batches_for_shuffling` probabilistically
+    def skip_data_iter(data: Dataset):
+        for data_entry in data:
+            if (
+                random.randint(1, num_batches_for_shuffling)
+                == num_batches_for_shuffling
+            ):
+                yield data_entry
+
+    # sanity check
+    assert (
+        cyclic or num_batches_for_shuffling == 1
+    ), "num_batches_for_shuffling only makes sense in the context of cyclic datasets"
+
     while True:
-        for sample in transformation(data_it=dataset, is_train=is_train):
+        for sample in transformation(
+            data_it=skip_data_iter(dataset)
+            if num_batches_for_shuffling > 1
+            else dataset,
+            is_train=is_train,
+        ):
             yield sample
         # Dont cycle if not training time
         if not cyclic:
@@ -241,53 +260,19 @@ def _worker_fn(
     if (_WorkerData.iterator_latest_reset_cycle < cycle_num) and (
         _WorkerData.iterator_latest_reset_cycle == 0 or not cyclic
     ):
-        _worker_reset_iterator(is_train, cyclic, cycle_num)
+        _worker_reset_iterator(
+            is_train, cyclic, cycle_num, num_batches_for_shuffling
+        )
 
     # retrieve the samples that will be batched
-    batch_samples = None
-    if num_batches_for_shuffling == 1:
-        assert isinstance(
-            _WorkerData.dataset_iterator, Iterable
-        ), f"Dataset not Iterable: {type(_WorkerData.dataset_iterator)}."
-        transformed_samples = list(
-            itertools.islice(_WorkerData.dataset_iterator, batch_size)
-        )
-        if shuffle:
-            random.shuffle(transformed_samples)
-        batch_samples = transformed_samples
-    elif num_batches_for_shuffling > 1:
-        # if we haven't yet retrieved batches from the current num_batches_for_shuffling*batch_size samples chunk
-        if _WorkerData.iterator_transformed_samples_counter == 0:
-            assert isinstance(
-                _WorkerData.dataset_iterator, Iterable
-            ), f"Dataset not Iterable: {type(_WorkerData.dataset_iterator)}."
-            transformed_samples = list(
-                itertools.islice(
-                    _WorkerData.dataset_iterator,
-                    batch_size * num_batches_for_shuffling,
-                )
-            )
-            random.shuffle(transformed_samples)
-            _WorkerData.iterator_transformed_samples = iter(
-                transformed_samples
-            )
-        assert isinstance(_WorkerData.iterator_transformed_samples, Iterable)
-        batch_samples = list(
-            itertools.islice(
-                _WorkerData.iterator_transformed_samples, batch_size
-            )
-        )
-        # drive the counter, and reset to 0 if all expected batches have been retrieved
-        assert isinstance(
-            _WorkerData.iterator_transformed_samples_counter, int
-        )
-        _WorkerData.iterator_transformed_samples_counter = (
-            _WorkerData.iterator_transformed_samples_counter + 1
-        ) % num_batches_for_shuffling
-    else:
-        raise AssertionError(
-            f"Invalid value for num_batches_for_shuffling encountered: {num_batches_for_shuffling}."
-        )
+    assert isinstance(
+        _WorkerData.dataset_iterator, Iterable
+    ), f"Dataset not Iterable: {type(_WorkerData.dataset_iterator)}."
+    batch_samples = list(
+        itertools.islice(_WorkerData.dataset_iterator, batch_size)
+    )
+    if shuffle:
+        random.shuffle(batch_samples)
 
     # batch the samples, if there were any
     if batch_samples:
@@ -315,7 +300,10 @@ def _worker_fn(
 
 # needed because some iterators are not cyclic
 def _worker_reset_iterator(
-    is_train: bool, cyclic: bool, cycle_num: int,
+    is_train: bool,
+    cyclic: bool,
+    cycle_num: int,
+    num_batches_for_shuffling: int,
 ) -> None:
     """Initialize or reset iterators of workers."""
 
@@ -324,6 +312,7 @@ def _worker_reset_iterator(
         transformation=_WorkerData.transformation,
         is_train=is_train,
         cyclic=cyclic,
+        num_batches_for_shuffling=num_batches_for_shuffling,
     )
     assert isinstance(_WorkerData.iterator_latest_reset_cycle, int)
     _WorkerData.iterator_latest_reset_cycle = cycle_num
@@ -620,45 +609,37 @@ class ParallelDataLoader(object):
         self.cycle_num += 1
         if self.num_workers == 0:
             generator = _sequential_sample_generator(
-                self.dataset, self.transformation, self.is_train, self.cyclic
+                self.dataset,
+                self.transformation,
+                self.is_train,
+                self.cyclic,
+                self.num_batches_for_shuffling,
             )
 
             def same_process_iter():
                 while True:
                     # take the next batch size elements
-                    transformed_samples = list(
-                        itertools.islice(
-                            generator,
-                            self.batch_size * self.num_batches_for_shuffling,
-                        )
+                    batch_samples = list(
+                        itertools.islice(generator, self.batch_size,)
                     )
 
                     # shuffle data if appropriate and prepare for batching
                     if self.shuffle:
-                        random.shuffle(transformed_samples)
-                    transformed_samples_iterator = iter(transformed_samples)
+                        random.shuffle(batch_samples)
 
-                    # batch the samples
-                    for i in range(self.num_batches_for_shuffling):
-                        batch_samples = list(
-                            itertools.islice(
-                                transformed_samples_iterator, self.batch_size
-                            )
-                        )
+                    # terminate if no more batches to be dealt with
+                    if len(batch_samples) == 0:
+                        return
 
-                        # terminate if no more batches to be dealt with
-                        if len(batch_samples) == 0:
-                            return
+                    # make them into a single batch
+                    batch = _batchify_fn(
+                        data=batch_samples,
+                        multi_processing=False,
+                        dtype=self.dtype,
+                        single_process_ctx=self.ctx,
+                    )
 
-                        # make them into a single batch
-                        batch = _batchify_fn(
-                            data=batch_samples,
-                            multi_processing=False,
-                            dtype=self.dtype,
-                            single_process_ctx=self.ctx,
-                        )
-
-                        yield batch
+                    yield batch
 
             return same_process_iter()
         else:

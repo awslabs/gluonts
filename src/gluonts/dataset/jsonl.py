@@ -63,14 +63,21 @@ class JsonLinesFile:
         self._data_cache: list = []
 
     def __iter__(self):
+        # Basic idea is to split the dataset into roughly equally sized segments
+        # with lower and upper bound, where each worker is assigned one segment
+        segment_size = int(len(self) / MPWorkerInfo.num_workers)
+
         if not self.cache or (self.cache and not self._data_cache):
             with open(self.path) as jsonl_file:
                 for line_number, raw in enumerate(jsonl_file):
-                    # Split the dataset into roughly equally sized segments
-                    if (
-                        line_number % MPWorkerInfo.num_workers
-                        != MPWorkerInfo.worker_id
-                    ):
+                    lower_bound = MPWorkerInfo.worker_id * segment_size
+                    upper_bound = (
+                        (MPWorkerInfo.worker_id + 1) * segment_size
+                        if MPWorkerInfo.worker_id + 1
+                        != MPWorkerInfo.num_workers
+                        else np.inf
+                    )
+                    if not lower_bound <= line_number < upper_bound:
                         continue
 
                     span = Span(path=self.path, line=line_number)
