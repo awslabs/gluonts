@@ -814,7 +814,7 @@ def test_binned_likelihood(
 @pytest.mark.parametrize(
     "cat_probs", [np.array([0.3, 0.1, 0.05, 0.2, 0.1, 0.25])]
 )
-@pytest.mark.parametrize("hybridize", [False])
+@pytest.mark.parametrize("hybridize", [True, False])
 def test_categorical_likelihood(
     num_cats: int, cat_probs: np.ndarray, hybridize: bool
 ):
