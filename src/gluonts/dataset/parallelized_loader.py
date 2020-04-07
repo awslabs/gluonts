@@ -45,7 +45,7 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import Dataset, DataEntry, DataBatch
+from gluonts.dataset.common import Dataset, DataEntry, DataBatch, FileDataset
 from gluonts.transform import Transformation
 from gluonts.dataset.util import MPWorkerInfo
 
@@ -519,6 +519,15 @@ class ParallelDataLoader(object):
                 "`num_workers will be set to 0."
             )
             num_workers = 0
+        # Make the user aware of ways to improve training performance:
+        if num_workers is not None and num_workers > 0:
+            if isinstance(dataset, FileDataset):
+                if not dataset.cache:
+                    logging.warning(
+                        "You have set `num_workers` to a non zero value, "
+                        "however, you have not enabled caching for your FileDataset. "
+                        "To improve training performance you can enable caching for the FileDataset. "
+                    )
         assert (
             batch_size > 0
         ), "Batch size has to be a strictly positive integer."
