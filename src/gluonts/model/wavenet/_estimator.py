@@ -190,7 +190,7 @@ class WaveNetEstimator(GluonEstimator):
           2 * prediction_length.
         :param n_stacks: Number of dilation stacks in wavenet architecture
         :param train_window_length: Length of windows used for training. This should be
-          longer than context + prediction length. Larger values result in more efficient
+          longer than prediction length. Larger values result in more efficient
           reuse of computations for convolutions.
         :param temperature: Temparature used for sampling from softmax distribution.
           For temperature = 1.0 sampling is according to estimated probability.
