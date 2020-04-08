@@ -11,18 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import mxnet as mx
+from gluonts.model.npts import NPTSEstimator
+
+hyperparameters = dict(kernel_type="uniform", use_default_features=True,)
 
 
-def __my__setattr__(cls, key, value):
-    obj = cls.__dict__.get(key)
-    if obj and isinstance(obj, mx.base._MXClassPropertyDescriptor):
-        return obj.__set__(cls, value)
-
-    return super(mx.base._MXClassPropertyMetaClass, cls).__setattr__(
-        key, value
-    )
+def test_accuracy(accuracy_test):
+    accuracy_test(NPTSEstimator, hyperparameters, accuracy=0.0)
 
 
-mx.base._MXClassPropertyMetaClass.__setattr__ = __my__setattr__
+def test_repr(repr_test):
+    repr_test(NPTSEstimator, hyperparameters)
+
+
+def test_serialize(serialize_test):
+    serialize_test(NPTSEstimator, hyperparameters)

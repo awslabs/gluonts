@@ -13,7 +13,9 @@
 
 # Standard library imports
 import logging
+import multiprocessing
 import re
+from collections import Sized
 from functools import lru_cache
 from itertools import chain, tee
 from typing import (
@@ -90,6 +92,14 @@ class Evaluator:
         which is computationally expensive to evaluate and thus slows
         down the evaluation process considerably.
         By default False.
+    num_workers
+        The number of multiprocessing workers that will be used to process
+        the data in parallel.
+        Default is multiprocessing.cpu_count().
+        Setting it to 0 means no multiprocessing.
+    chunk_size
+        Controls the approximate chunk size each workers handles at a time.
+        Default is 32.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -100,11 +110,20 @@ class Evaluator:
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
         calculate_owa: bool = False,
+        num_workers: Optional[int] = None,
+        chunk_size: Optional[int] = None,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
         self.calculate_owa = calculate_owa
+
+        self.num_workers = (
+            num_workers
+            if num_workers is not None
+            else multiprocessing.cpu_count()
+        )
+        self.chunk_size = chunk_size if chunk_size is not None else 32
 
     def __call__(
         self,
@@ -142,8 +161,20 @@ class Evaluator:
             total=num_series,
             desc="Running evaluation",
         ) as it, np.errstate(invalid="ignore"):
-            for ts, forecast in it:
-                rows.append(self.get_metrics_per_ts(ts, forecast))
+            if self.num_workers > 0:
+                mp_pool = multiprocessing.Pool(
+                    initializer=_worker_init(self), processes=self.num_workers
+                )
+                rows = mp_pool.map(
+                    func=_worker_fun,
+                    iterable=iter(it),
+                    chunksize=self.chunk_size,
+                )
+                mp_pool.close()
+                mp_pool.join()
+            else:
+                for ts, forecast in it:
+                    rows.append(self.get_metrics_per_ts(ts, forecast))
 
         assert not any(
             True for _ in ts_iterator
@@ -292,6 +323,7 @@ class Evaluator:
             "abs_target_mean": self.abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
             "MASE": self.mase(pred_target, median_fcst, seasonal_error),
+            "MAPE": self.mape(pred_target, median_fcst),
             "sMAPE": self.smape(pred_target, median_fcst),
             "OWA": np.nan,  # by default not calculated
             "MSIS": self.msis(
@@ -334,6 +366,7 @@ class Evaluator:
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
             "MASE": "mean",
+            "MAPE": "mean",
             "sMAPE": "mean",
             "OWA": "mean",
             "MSIS": "mean",
@@ -417,6 +450,22 @@ class Evaluator:
         return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
             seasonal_error + flag
         )
+
+    @staticmethod
+    def mape(target, forecast):
+        r"""
+        .. math::
+
+            mape = mean(|Y - Y_hat| / |Y|))
+        """
+
+        denominator = np.abs(target)
+        flag = denominator == 0
+
+        mape = np.mean(
+            (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
+        )
+        return mape
 
     @staticmethod
     def smape(target, forecast):
@@ -740,3 +789,21 @@ class MultivariateEvaluator(Evaluator):
                     all_agg_metrics[prefix + metric] = value
 
         return all_agg_metrics, all_metrics_per_ts
+
+
+# This is required for the multiprocessing to work.
+_worker_evaluator: Optional[Evaluator] = None
+
+
+def _worker_init(evaluator: Evaluator):
+    global _worker_evaluator
+    _worker_evaluator = evaluator
+
+
+def _worker_fun(inp: tuple):
+    ts, forecast = inp
+    global _worker_evaluator
+    assert isinstance(
+        _worker_evaluator, Evaluator
+    ), "Something went wrong with the worker initialization."
+    return _worker_evaluator.get_metrics_per_ts(ts, forecast)

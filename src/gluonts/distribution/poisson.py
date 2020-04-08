@@ -102,7 +102,6 @@ class PoissonOutput(DistributionOutput):
         scale: Optional[Tensor] = None,
     ) -> Poisson:
         rate = distr_args
-        assert loc is None
         if scale is None:
             return Poisson(rate)
         else:

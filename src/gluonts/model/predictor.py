@@ -291,7 +291,12 @@ class GluonPredictor(Predictor):
         raise NotImplementedError
 
     def predict(
-        self, dataset: Dataset, num_samples: Optional[int] = None
+        self,
+        dataset: Dataset,
+        num_samples: Optional[int] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        **kwargs,
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
             dataset,
@@ -299,6 +304,9 @@ class GluonPredictor(Predictor):
             batch_size=self.batch_size,
             ctx=self.ctx,
             dtype=self.dtype,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            **kwargs,
         )
         yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,

@@ -58,6 +58,8 @@ from gluonts.distribution import (
     PiecewiseLinearOutput,
     Binned,
     BinnedOutput,
+    Categorical,
+    CategoricalOutput,
 )
 from gluonts.distribution.transformed_distribution_output import (
     TransformedDistributionOutput,
@@ -806,6 +808,46 @@ def test_binned_likelihood(
     assert all(
         mx.nd.abs(mx.nd.array(bin_prob_hat) - bin_prob) < TOL * bin_prob
     ), f"bin_prob did not match: bin_prob = {bin_prob}, bin_prob_hat = {bin_prob_hat}"
+
+
+@pytest.mark.parametrize("num_cats", [6])
+@pytest.mark.parametrize(
+    "cat_probs", [np.array([0.3, 0.1, 0.05, 0.2, 0.1, 0.25])]
+)
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_categorical_likelihood(
+    num_cats: int, cat_probs: np.ndarray, hybridize: bool
+):
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+    cat_prob = mx.nd.array(cat_probs)
+    cat_probs = mx.nd.zeros((NUM_SAMPLES, num_cats)) + cat_prob
+
+    distr = Categorical(cat_probs.log())
+    samples = distr.sample()
+
+    cat_prob_init = mx.nd.random_uniform(1 - TOL, 1 + TOL, num_cats) * cat_prob
+    cat_prob_init = cat_prob_init / cat_prob_init.sum()
+
+    init_biases = [cat_prob_init]
+
+    cat_log_prob_hat = maximum_likelihood_estimate_sgd(
+        CategoricalOutput(num_cats),
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(25),
+    )
+    cat_prob_hat = np.exp(cat_log_prob_hat)
+
+    prob_deviation = np.abs(cat_prob_hat - cat_prob.asnumpy()).flatten()
+    tolerance = (TOL * cat_prob.asnumpy()).flatten()
+
+    assert np.all(
+        np.less(prob_deviation, tolerance)
+    ), f"cat_prob did not match: cat_prob = {cat_prob}, cat_prob_hat = {cat_prob_hat}"
 
 
 @pytest.mark.parametrize("rate", [1.0])
