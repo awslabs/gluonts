@@ -268,9 +268,7 @@ class GluonTSFramework(Framework):
         # must be set
         self.py_version = PYTHON_VERSION
 
-        self._s3fs = s3fs.S3FileSystem(
-            session=self.sagemaker_session.boto_session
-        )
+        self._s3fs = s3fs.S3FileSystem()
 
     def create_model(
         self,
