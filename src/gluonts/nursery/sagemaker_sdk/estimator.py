@@ -268,8 +268,13 @@ class GluonTSFramework(Framework):
         # must be set
         self.py_version = PYTHON_VERSION
 
+        cred = sagemaker_session.boto_session.get_credentials()
         self._s3fs = s3fs.S3FileSystem(
-            session=self.sagemaker_session.boto_session
+            key=cred.access_key,
+            secret=cred.secret_key,
+            s3_additional_kwargs={
+                "region": sagemaker_session.boto_region_name
+            },
         )
 
     def create_model(
