@@ -17,13 +17,39 @@ import logging
 import random
 import os
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, List, Tuple, TypeVar
+from typing import (
+    Callable,
+    Iterable,
+    Iterator,
+    List,
+    Tuple,
+    TypeVar,
+)
 
 # Third-party imports
 import pandas as pd
 
 
 T = TypeVar("T")
+
+
+# Each process has its own copy, so other processes can't interfere
+class MPWorkerInfo(object):
+    """Contains the current worker information."""
+
+    worker_process = False
+    num_workers = 1
+    worker_id = 0
+
+    @classmethod
+    def set_worker_info(
+        cls, num_workers: int, worker_id: int, worker_process: bool
+    ):
+        cls.num_workers, cls.worker_id, cls.worker_process = (
+            num_workers,
+            worker_id,
+            worker_process,
+        )
 
 
 def _split(
@@ -113,6 +139,7 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     def get_batch():
         return list(take(it, batch_size))
 
+    # has an empty list so that we have a 2D array for sure
     return iter(get_batch, [])
 
 
@@ -137,3 +164,10 @@ def shuffler(stream: Iterable[T], batch_size: int) -> Iterator[T]:
     for batch in batcher(stream, batch_size):
         random.shuffle(batch)
         yield from batch
+
+
+def cycle(it):
+    """Like `itertools.cycle`, but does not store the data."""
+
+    while True:
+        yield from it

@@ -190,7 +190,7 @@ class WaveNetEstimator(GluonEstimator):
           2 * prediction_length.
         :param n_stacks: Number of dilation stacks in wavenet architecture
         :param train_window_length: Length of windows used for training. This should be
-          longer than context + prediction length. Larger values result in more efficient
+          longer than prediction length. Larger values result in more efficient
           reuse of computations for convolutions.
         :param temperature: Temparature used for sampling from softmax distribution.
           For temperature = 1.0 sampling is according to estimated probability.
@@ -260,7 +260,12 @@ class WaveNetEstimator(GluonEstimator):
         )
 
     def train(
-        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        **kwargs,
     ) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
         low = -10.0 if has_negative_data else 0
@@ -286,6 +291,9 @@ class WaveNetEstimator(GluonEstimator):
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            **kwargs,
         )
 
         validation_data_loader = None
@@ -296,6 +304,9 @@ class WaveNetEstimator(GluonEstimator):
                 batch_size=self.trainer.batch_size,
                 ctx=self.trainer.ctx,
                 dtype=self.dtype,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                **kwargs,
             )
 
         # ensure that the training network is created within the same MXNet
