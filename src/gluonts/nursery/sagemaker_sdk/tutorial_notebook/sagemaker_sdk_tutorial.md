@@ -1,5 +1,7 @@
 # SagemakerSDK Tutorial
 
+***This notebook is meant to be uploaded to a sagemaker notebook instance and executed there. As a kernel choose `conda_mxnet_p36`***
+
 ***In this how-to tutorial we will train a SimpleFeedForwardEstimator on the m4_hourly dataset on AWS Sagemaker using the GluonTSFramework, and later review its performance. At the very end you will see how to launch your custom training script.*** <br/>
 ***In the end you should know how to train any GluonEstimator on any Dataset on SageMaker using the GluonTSFramework train(...) method, and how to run your own script using the run(...) method.***
 
@@ -9,7 +11,7 @@ Currently, *GluonTSFramework* is only available through the master branch of *Gl
 
 
 ```python
-!pip install --upgrade mxnet==1.4.1  git+https://github.com/awslabs/gluon-ts.git#egg=gluonts[dev]
+!pip install --upgrade mxnet==1.6  git+https://github.com/awslabs/gluon-ts.git#egg=gluonts[dev]
 ```
 
 
@@ -95,11 +97,14 @@ Depending our *general_instance_type* choice we will have to select an appropria
 instance_type = "ml.c5.xlarge" if general_instance_type == "cpu" else "ml.p2.xlarge" 
 ```
 
-and an appropriate prebuilt mxnet image:
+and an appropriate prebuilt mxnet image (we will take the training images here):
 
 
 ```python
-docker_image = f"763104351884.dkr.ecr.{region_name}.amazonaws.com/mxnet-training:1.4.1-{general_instance_type}-py3"
+if general_instance_type == "cpu":
+    docker_image = f"763104351884.dkr.ecr.{region_name}.amazonaws.com/mxnet-training:1.6.0-cpu-py36-ubuntu16.04"
+else:
+    docker_image = f"763104351884.dkr.ecr.{region_name}.amazonaws.com/mxnet-training:1.6.0-gpu-py36-cu101-ubuntu16.04"
 print(f"docker_image = '{docker_image}'")
 ```
 
@@ -156,7 +161,7 @@ Here we will create a temporary requirements file, but you can just have a 'requ
 
 ```python
 requirements_dot_txt_file_name = "requirements.txt"
-requirements_dot_txt_file_content = "git+https://github.com/awslabs/gluon-ts.git"
+requirements_dot_txt_file_content = "git+https://github.com/AaronSpieler/gluon-ts@sagemaker_sdk_updates_v2#egg=gluonts[dev]" # "git+https://github.com/awslabs/gluon-ts.git"
 ```
 
 
@@ -383,4 +388,9 @@ Lets just clean up the temporary directory:
 
 ```python
 temp_dir.cleanup()
+```
+
+
+```python
+
 ```
