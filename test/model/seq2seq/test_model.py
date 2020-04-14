@@ -43,9 +43,9 @@ def Estimator(request):
 
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_accuracy(Estimator, accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize)
+    hyperparameters.update(num_batches_per_epoch=100, hybridize=hybridize)
 
-    accuracy_test(Estimator, hyperparameters, accuracy=0.2)
+    accuracy_test(Estimator, hyperparameters, accuracy=0.25)
 
 
 def test_repr(Estimator, repr_test, hyperparameters):

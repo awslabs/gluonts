@@ -14,6 +14,8 @@
 # Third-party imports
 import mxnet as mx
 from mxnet import gluon
+from mxnet import nd
+
 
 # First-party imports
 from gluonts.block.decoder import Seq2SeqDecoder
@@ -22,6 +24,9 @@ from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
+
+
+nd_None = nd.array([])
 
 
 class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):

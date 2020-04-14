@@ -18,8 +18,6 @@ from mxnet import nd
 # First-party imports
 from gluonts.block.encoder import HierarchicalCausalConv1DEncoder
 
-nd_None = nd.array([])
-
 
 @pytest.mark.parametrize("use_residual", [True, False])
 @pytest.mark.parametrize("hybridize", [True, False])
@@ -38,7 +36,12 @@ def test_hierarchical_cnn_encoders(use_residual, hybridize) -> None:
     dial_seq = [1, 3, 9]
 
     cnn = HierarchicalCausalConv1DEncoder(
-        dial_seq, ks_seq, chl_dim, use_residual, use_dynamic_feat=True, use_static_feat=True,
+        dial_seq,
+        ks_seq,
+        chl_dim,
+        use_residual,
+        use_dynamic_feat=True,
+        use_static_feat=True,
     )
     cnn.collect_params().initialize()
 
@@ -47,4 +50,7 @@ def test_hierarchical_cnn_encoders(use_residual, hybridize) -> None:
 
     true_shape = (num_ts, ts_len, 31) if use_residual else (num_ts, ts_len, 30)
 
-    assert cnn(test_data, test_static_feat, test_dynamic_feat)[1].shape == true_shape
+    assert (
+        cnn(test_data, test_static_feat, test_dynamic_feat)[1].shape
+        == true_shape
+    )
