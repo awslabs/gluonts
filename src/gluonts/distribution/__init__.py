@@ -18,6 +18,7 @@ from .box_cox_transform import (
     BoxCoxTransformOutput,
     InverseBoxCoxTransformOutput,
 )
+from .categorical import Categorical, CategoricalOutput
 from .dirichlet import Dirichlet, DirichletOutput
 from .dirichlet_multinomial import (
     DirichletMultinomial,
@@ -90,6 +91,8 @@ __all__ = [
     "DirichletOutput",
     "DirichletMultinomial",
     "DirichletMultinomialOutput",
+    "Categorical",
+    "CategoricalOutput",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
