@@ -126,12 +126,8 @@ def stack(
             stack(t, multi_processing, dtype, single_process_ctx)
             for t in zip(*data)
         )
-    elif isinstance(data[0], (pd.Timestamp, str, int, pathlib.PosixPath)):
-        return data
-    else:
-        raise TypeError(
-            f"Invalid type of data: {type(data[0])} for argument loss_function."
-        )
+
+    return data
 
 
 def default_batchify_fn(
