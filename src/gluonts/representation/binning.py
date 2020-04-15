@@ -66,7 +66,7 @@ class Binning(Representation):
 
         with self.name_scope():
             if self.is_output:
-                self.embedding = None
+                self.embedding = lambda x: x
             else:
                 self.embedding = nn.Embedding(
                     input_dim=self.num_bins, output_dim=self.embedding_size

@@ -102,7 +102,7 @@ class LocalAbsoluteBinning(Representation):
                 self.mlp = None
 
             if self.is_output or self.pit:
-                self.embedding = None
+                self.embedding = lambda x: x
             else:
                 self.embedding = nn.Embedding(
                     input_dim=self.num_bins, output_dim=self.embedding_size
@@ -113,7 +113,7 @@ class LocalAbsoluteBinning(Representation):
         self,
         F,
         data: Tensor,
-        observed_indicator: Optional[Tensor],
+        observed_indicator: Tensor,
         scale: Optional[Tensor],
     ) -> Tuple[Tensor, Tensor]:
         data_np = data.asnumpy()

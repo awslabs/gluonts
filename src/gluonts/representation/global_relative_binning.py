@@ -76,7 +76,7 @@ class GlobalRelativeBinning(Representation):
         is_quantile: bool = True,
         embedding_size: int = -1,
         linear_scaling_limit: int = 10,
-        quantile_scaling_limit: int = 0.99,
+        quantile_scaling_limit: float = 0.99,
         pit: bool = False,
         mlp_transf: bool = False,
         *args,
@@ -119,7 +119,7 @@ class GlobalRelativeBinning(Representation):
                 self.mlp = None
 
             if self.is_output or self.pit:
-                self.embedding = None
+                self.embedding = lambda x: x
             else:
                 self.embedding = nn.Embedding(
                     input_dim=self.num_bins, output_dim=self.embedding_size
