@@ -72,6 +72,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             self.loss = quantile_output.get_loss()
 
 
+# TODO: THIS SHOULD NOT EXIST, the if else logic should be handled in
+#  the _forking_estimator.py, and possible assertions too
 class ForkingSeq2SeqNetwork:
     @validated()
     def __init__(
@@ -129,6 +131,8 @@ class ForkingSeq2SeqNetwork:
             raise NotImplementedError
 
 
+# TODO: figure out whether we need 2 classes each, in fact we would need 4 each,
+#  if adding categorical with this technique, does not seem reasonable
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
@@ -155,21 +159,24 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
 
         # FIXME: can we factor out a common prefix in the base network?
         feat_static_real = F.zeros(shape=(1,))
-        past_feat_dynamic_real = F.zeros(shape=(1,))
+        # TODO: THIS IS OVERWRITING THE ARGUMENT?!?! (REMOVING IT makes add time and age feature work):
+        # past_feat_dynamic_real = F.zeros(shape=(1,))
         future_feat_dynamic_real = F.zeros(shape=(1,))
 
+        # arguments: target, static_features, dynamic_features
         enc_output_static, enc_output_dynamic = self.encoder(
             past_target, feat_static_real, past_feat_dynamic_real
         )
 
+        # arguments: encoder_output_static, encoder_output_dynamic, future_features
+        # TODO: figure out how future_features is supposed to be used: since no distinction
+        #  between dynamic and static anymore (shape is (N, T, C) suggesting dynamic feature)
         dec_input_static, dec_input_dynamic, _ = self.enc2dec(
             enc_output_static, enc_output_dynamic, future_feat_dynamic_real
         )
 
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
         dec_dist_output = self.quantile_proj(dec_output)
-
-        # print(f"decoder output: {dec_dist_output.shape}")
 
         loss = self.loss(future_target, dec_dist_output)
         return loss.mean(axis=1)

@@ -127,6 +127,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.add_time_feature = add_time_feature
         self.add_age_feature = add_age_feature
 
+        # TODO: refactor this variable name: dynamic_network, in fact it
+        #  is not even necessary as is, because this is how use_dynamic_feat was
+        #  set in MQCNNEstimator and otherwise its not used, i.e. False
         # is target only network or not?
         self.dynamic_network = (
             use_dynamic_feat or add_time_feature or add_age_feature
@@ -172,7 +175,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         elif len(dynamic_feat_fields) == 1:
             chain.append(
                 RenameFields(
-                    {dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL}
+                    {
+                        dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL
+                    }  # TODO: find out why this is done
                 )
             )
 

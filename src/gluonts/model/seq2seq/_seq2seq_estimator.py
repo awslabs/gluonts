@@ -45,6 +45,7 @@ from gluonts.model.forecast_generator import QuantileForecastGenerator
 from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
 
 
+# TODO: fix mutable arguments
 class Seq2SeqEstimator(GluonEstimator):
     """
     Quantile-Regression Sequence-to-Sequence Estimator
@@ -181,6 +182,7 @@ class Seq2SeqEstimator(GluonEstimator):
         )
 
 
+# TODO: fix mutable arguments
 class MLP2QRForecaster(Seq2SeqEstimator):
     @validated()
     def __init__(
@@ -215,6 +217,7 @@ class MLP2QRForecaster(Seq2SeqEstimator):
         )
 
 
+# TODO: fix mutable arguments
 class RNN2QRForecaster(Seq2SeqEstimator):
     @validated()
     def __init__(
@@ -257,6 +260,7 @@ class RNN2QRForecaster(Seq2SeqEstimator):
         )
 
 
+# TODO: fix mutable arguments
 class CNN2QRForecaster(Seq2SeqEstimator):
     @validated()
     def __init__(

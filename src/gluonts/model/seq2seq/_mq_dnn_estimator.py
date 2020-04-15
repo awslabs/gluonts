@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional
+from typing import List, Optional, Sized
 
 # First-party imports
 from gluonts.dataset.stat import calculate_dataset_statistics
@@ -33,7 +33,13 @@ from gluonts.evaluation import Evaluator
 import numpy as np
 import mxnet as mx
 
+# TODO: in general, it seems unnecessary to put the MQCNN and MQRNN into Seq2Seq since their commonality in code with
+#  the rest is just the abstract classes Seq2SeqDecoder and Se2SeqEncoder,
+#  and the Estimator is not based on Seq2SeqEstimator!
 
+
+# TODO: THIS CLASS SHOULD NOT EXIST, the decoder
+#  can be defined in each current subclass
 class MQDNNEstimator(ForkingSeq2SeqEstimator):
     """
     Intermediate base class for a Multi-horizon Quantile Deep Neural Network
@@ -72,7 +78,7 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
 
         quantile_output = QuantileOutput(quantiles)
 
-        super(MQDNNEstimator, self).__init__(
+        super().__init__(
             encoder=encoder,
             decoder=decoder,
             quantile_output=quantile_output,
@@ -86,6 +92,7 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
         )
 
 
+# TODO: integrate MQDNN, change arguments to non mutable
 class MQCNNEstimator(MQDNNEstimator):
     """
     An :class:`MQDNNEstimator` with a Convolutional Neural Network (CNN) as an
@@ -99,8 +106,12 @@ class MQCNNEstimator(MQDNNEstimator):
         freq: str,
         context_length: Optional[int] = None,
         use_feat_dynamic_real: bool = False,
-        add_time_feature: bool = False,
+        use_feat_static_cat: bool = False,
+        cardinality: Optional[List[int]] = None,
+        # TODO: fix add age and time features, currently dont work
+        #  (might be resolved through commenting out line 161 of _forkin_network.py)
         add_age_feature: bool = False,
+        add_time_feature: bool = False,
         seed: Optional[int] = None,
         decoder_mlp_dim_seq: List[int] = [20],
         channels_seq: List[int] = [30, 30, 30],
@@ -114,9 +125,12 @@ class MQCNNEstimator(MQDNNEstimator):
     ) -> None:
 
         use_dynamic_feat_cnn = False
-
         if use_feat_dynamic_real or add_age_feature or add_time_feature:
             use_dynamic_feat_cnn = True
+
+        use_static_feat_cnn = False
+        if use_feat_static_cat or use_feat_static_cat:
+            use_static_feat_cnn = True
 
         if seed:
             np.random.seed(seed)
@@ -129,18 +143,20 @@ class MQCNNEstimator(MQDNNEstimator):
             f"{len(dilation_seq)} vs. {len(kernel_size_seq)}"
         )
 
+        # TODO: figure out whether this needs any additional modification; doesn't seems o
         encoder = HierarchicalCausalConv1DEncoder(
             dilation_seq=dilation_seq,
             kernel_size_seq=channels_seq,
             channels_seq=kernel_size_seq,
             use_residual=use_residual,
             use_dynamic_feat=use_dynamic_feat_cnn,
+            use_static_feat=use_static_feat_cnn,
             prefix="encoder_",
         )
 
-        super(MQCNNEstimator, self).__init__(
+        super().__init__(
             encoder=encoder,
-            use_dynamic_feat=use_feat_dynamic_real,
+            use_dynamic_feat=use_feat_dynamic_real,  # TODO: make use_dynamic_feat this more specific
             add_time_feature=add_time_feature,
             add_age_feature=add_age_feature,
             decoder_mlp_dim_seq=decoder_mlp_dim_seq,
@@ -151,6 +167,7 @@ class MQCNNEstimator(MQDNNEstimator):
             quantiles=quantiles,
         )
 
+    # TODO: does this work? I think this might
     @classmethod
     def derive_auto_fields(cls, train_iter):
         stats = calculate_dataset_statistics(train_iter)
@@ -162,6 +179,7 @@ class MQCNNEstimator(MQDNNEstimator):
         }
 
 
+# TODO: integrate MQDNN, change arguments to non mutable
 class MQRNNEstimator(MQDNNEstimator):
     """
     An :class:`MQDNNEstimator` with a Recurrent Neural Network (RNN) as an
@@ -185,7 +203,7 @@ class MQRNNEstimator(MQDNNEstimator):
             bidirectional=True,
             prefix="encoder_",
         )
-        super(MQRNNEstimator, self).__init__(
+        super().__init__(
             encoder=encoder,
             decoder_mlp_dim_seq=decoder_mlp_dim_seq,
             freq=freq,
@@ -196,6 +214,7 @@ class MQRNNEstimator(MQDNNEstimator):
         )
 
 
+# TODO: REMOVE THIS
 if __name__ == "__main__":
     from gluonts.dataset.repository.datasets import (
         get_dataset,
@@ -232,7 +251,7 @@ if __name__ == "__main__":
         )
 
         agg_metrics, item_metrics = Evaluator()(
-            ts_it, forecast_it, num_series=len(dataset.test)  # type: ignore
+            ts_it, forecast_it, num_series=len(list(dataset.test))
         )
 
         metrics.append(agg_metrics["wQuantileLoss[0.5]"])
