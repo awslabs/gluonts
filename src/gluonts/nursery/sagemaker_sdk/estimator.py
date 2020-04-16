@@ -52,15 +52,12 @@ from .model import GluonTSModel
 from .utils import make_metrics, make_job_name
 
 # OVERALL TODOS:
-#    > TEST EVERYTHING
-#    > Add python tests cases and scripts
-#    > Finish documentation
 #    > Add hyper parameter optimization (HPO) support
 #    > Add local mode support
-#    > Add officially provided images //images work now
 #    > Add support for multiple instances
 #    > GluonTSPredictor: implement/override predict function
 #    > GluonTSModel: implement correct deserialization
+#    > train_entry_point.py: implement model_fn, input_fn, predict_fn, and output_fn
 
 # HPO implementation sketch:
 #    > Example HPO of model: MODEL_HPM:Trainer:batch_size:64
@@ -268,6 +265,7 @@ class GluonTSFramework(Framework):
         # must be set
         self.py_version = PYTHON_VERSION
 
+        # automatically retrieves credentials using context manager, see: https://s3fs.readthedocs.io/en/latest/
         self._s3fs = s3fs.S3FileSystem()
 
     def create_model(

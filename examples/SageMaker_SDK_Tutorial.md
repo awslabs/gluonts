@@ -1,13 +1,13 @@
-# SagemakerSDK Tutorial
+# SageMaker SDK Tutorial
 
-***This notebook is meant to be uploaded to a sagemaker notebook instance and executed there. As a kernel choose `conda_mxnet_p36`***
+***This notebook is meant to be uploaded to a SageMaker notebook instance and executed there. As a kernel choose `conda_mxnet_p36`***
 
-***In this how-to tutorial we will train a SimpleFeedForwardEstimator on the m4_hourly dataset on AWS Sagemaker using the GluonTSFramework, and later review its performance. At the very end you will see how to launch your custom training script.*** <br/>
+***In this how-to tutorial we will train a SimpleFeedForwardEstimator on the m4_hourly dataset on AWS SageMaker using the GluonTSFramework, and later review its performance. At the very end you will see how to launch your custom training script.*** <br/>
 ***In the end you should know how to train any GluonEstimator on any Dataset on SageMaker using the GluonTSFramework train(...) method, and how to run your own script using the run(...) method.***
 
 ## Notebook Setup
 
-Currently, *GluonTSFramework* is only available through the master branch of *GluonTS*, so we install it with the SagemakerSDK dependencies first:
+Currently, *GluonTSFramework* is only available through the master branch of *GluonTS*, so we install it with the required dependencies first:
 
 
 ```python
@@ -53,7 +53,7 @@ Remember that in order to be able to use the profile 'defult' (or any other prof
 
 ### Experiment directory
 
-First, we should define the *s3 parent folder location* which will later contain the folder with all the data generated during the experiment (model artifacts, custom scripts, dependencies etc.). I you choose to use a subfolder for your experiments (like we do here) the folder does not have to exist yet, but it's name must satisfy the regular expression pattern: \^\[a-zA-Z0-9\](-\*\[a-zA-Z0-9\])\*. If not specified, the default bucket of the specified region itself will be used.
+First, we should define the *S3 parent folder location* which will later contain the folder with all the data generated during the experiment (model artifacts, custom scripts, dependencies etc.). I you choose to use a subfolder for your experiments (like we do here) the folder does not have to exist yet, but it's name must satisfy the regular expression pattern: \^\[a-zA-Z0-9\](-\*\[a-zA-Z0-9\])\*. If not specified, the default bucket of the specified region itself will be used.
 
 
 ```python
@@ -61,7 +61,7 @@ experiment_parent_dir = bucket_name + "/my-sagemaker-experiments"
 print(f"experiment_parent_dir = '{experiment_parent_dir}'")
 ```
 
-### Sagemaker session
+### SageMaker session
 
 Next, we need to create a sagemaker session in our region using a [*boto3*](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html#using-boto-3) session with our credentials (profile).
 
@@ -82,7 +82,7 @@ role = iam_role
 
 ### Training image & instance type
 
-We can just use one of the prebuilt Sagemaker [ECR](https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-basics.html) images and install the gluonts version we prefer dynamically though the 'requirements.txt'.
+We can just use one of the prebuilt SageMaker [ECR](https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-basics.html) images and install the gluonts version we prefer dynamically though the 'requirements.txt'.
 
 
 ```python
@@ -120,7 +120,7 @@ base_job_description = "my-sagemaker-experiment-intro"
 
 ### Dataset
 
-Here we have two choices; we can either pick a built in dataset provided by GluonTS or any dataset in the gluonts dataset format located on s3, which would look like this:
+Here we have two choices; we can either pick a built in dataset provided by GluonTS or any dataset in the GluonTS dataset format located on S3, which would look like this:
 
 >dataset_name<br/>
 >&nbsp;&nbsp;&nbsp;&nbsp;|---> train<br/>
@@ -161,7 +161,7 @@ Here we will create a temporary requirements file, but you can just have a 'requ
 
 ```python
 requirements_dot_txt_file_name = "requirements.txt"
-requirements_dot_txt_file_content = "git+https://github.com/AaronSpieler/gluon-ts@sagemaker_sdk_updates_v2#egg=gluonts[dev]" # "git+https://github.com/awslabs/gluon-ts.git"
+requirements_dot_txt_file_content = "git+https://github.com/awslabs/gluon-ts.git"
 ```
 
 
@@ -224,7 +224,7 @@ print(results._fields)
 ```
 
 So we could use the predictor straight away to predict on some additional data if we would like. <br/>
-We can also inspect our training history and monitored metrics (like resource consumption or epoch loss) on Sagemaker under "Training/Training jobs" here:
+We can also inspect our training history and monitored metrics (like resource consumption or epoch loss) on SageMaker under "Training/Training jobs" here:
 
 
 ```python
@@ -247,7 +247,7 @@ print(f"https://s3.console.aws.amazon.com/s3/buckets/{experiment_parent_dir[5:]}
 
 ## Run a custom python script
 
-There process to run a custom python script is not much different, however, you will have to adapt your usual python script to particularities of the Sagemaker.
+There process to run a custom python script is not much different, however, you will have to adapt your usual python script to particularities of the SageMaker.
 
 
 ```python
@@ -281,7 +281,7 @@ with open(run_entry_point_path, 'r') as script:
 
 As we can see, there is a *run* method, whithin which we are supposed to write our custom code.
 
-Additionally, at the bottom we might need to parse additional arguments that we provide for example through the "inputs" parameter of the GluonTSFramework.run(...) method. The "inputs" parameter cannot be empty, due to the restrictions of the Framework baseclass of the GluonTSFramework, however, you can pass an empty file located on s3 as dummy input.
+Additionally, at the bottom we might need to parse additional arguments that we provide for example through the "inputs" parameter of the GluonTSFramework.run(...) method. The "inputs" parameter cannot be empty, due to the restrictions of the Framework baseclass of the GluonTSFramework, however, you can pass an empty file located on S3 as dummy input.
 
 Lets define a path for the dummy file:
 
@@ -291,7 +291,7 @@ dummy_s3_file_path = bucket_name + "/dummy_1234"
 print(f"dummy_s3_file_path = '{dummy_s3_file_path}'")
 ```
 
-Lets create the s3 file (if the file already exists you will have to set overwrite to 'True', or choose a different path for the dummy file):
+Lets create the S3 file (if the file already exists you will have to set overwrite to 'True', or choose a different path for the dummy file):
 
 
 ```python
@@ -329,10 +329,10 @@ For now, we will only use the unmodified run script, however, a good exercise to
 * You parse the location of the input we provide thourgh "my_inputs" 
 * You read the dummy file inside the run(...) method
 * You write the content of the file to a new file called "parsed.txt" and save it to the output location 
-* You check in s3 that "parsed.txt" was saved to s3 in your experiment folder under /output/output.tar.gz
+* You check in S3 that "parsed.txt" was saved to S3 in your experiment folder under /output/output.tar.gz
 
-TIP: you don't need to write or read form s3 explicitly, but rather access the appropriate local location through "arguments" of the run(...) method within your scripts; let sagemaker containers handle the interaction with s3. <br/>
-TIP: you can take a look at the "train_entry_point.py" to see an actual example for a training script.
+HINT: you don't need to write or read form S3 explicitly, but rather access the appropriate local location through "arguments" of the run(...) method within your scripts; let SageMaker containers handle the interaction with S3. <br/>
+HINT: you can take a look at the "train_entry_point.py" to see an actual example for a training script.
 
 ### Run the Experiment
 
@@ -362,7 +362,7 @@ We can take a look at the training job right away:
 print(f"https://{region_name}.console.aws.amazon.com/sagemaker/home?region={region_name}#/jobs/{my_job_name}")
 ```
 
-And again, check out the corresponding s3 location:
+And again, check out the corresponding S3 location:
 
 
 ```python
@@ -372,7 +372,7 @@ print(f"https://s3.console.aws.amazon.com/s3/buckets/{experiment_parent_dir[5:]}
 ### Custom GluonTS version:
 
 
-In case you are modifying gluonts on your local machine and want to run experiments on your custom version, just import gluonts and define:
+In case you are modifying GluonTS on your local machine and want to run experiments on your custom version, just import GluonTS and define:
 
 >gluont_ts_path = Path(gluonts.__path__[0]) <br/>
 >gluont_ts_requirements_path = gluont_ts_path.parent.parent / "requirements" / "requirements.txt"
