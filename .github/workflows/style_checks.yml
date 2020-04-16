@@ -1,4 +1,4 @@
-name: Style Check
+name: Style checks
 
 on: [push, pull_request]
 
@@ -15,7 +15,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-    - name: Style Check
+    - name: Style check with Black
       run: |
         pip install black -c requirements/requirements-setup.txt
         black --check src test examples
+    - name: Check license headers
+      run: python .devtools/license check src test

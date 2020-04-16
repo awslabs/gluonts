@@ -1,4 +1,4 @@
-name: Doc Build
+name: Doc build
 
 on: [push, pull_request]
 
