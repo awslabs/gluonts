@@ -90,8 +90,7 @@ class JsonLinesFile:
                             f"Could not read json line {line_number}, {raw}"
                         )
         else:
-            for i in range(len(self._data_cache)):
-                yield self._data_cache[i]
+            yield from self._data_cache
 
     def __len__(self):
         if self._len is None:
