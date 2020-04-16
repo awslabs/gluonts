@@ -148,6 +148,7 @@ class MQCNNEstimator(MQDNNEstimator):
             channels_seq=channels_seq,
             use_residual=use_residual,
             use_dynamic_feat=use_dynamic_feat_cnn,
+            # use_static_feat=use_static_feat_cnn,  # TODO: enable this
             prefix="encoder_",
         )
 

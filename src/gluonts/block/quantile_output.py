@@ -86,9 +86,12 @@ class QuantileLoss(Loss):
         Tensor
             weighted sum of the quantile losses, shape N1 x N1 x ... Nk
         """
-        y_pred_all = F.split(
-            y_pred, axis=-1, num_outputs=self.num_quantiles, squeeze_axis=1
-        )
+        if self.num_quantiles > 1:
+            y_pred_all = F.split(
+                y_pred, axis=-1, num_outputs=self.num_quantiles, squeeze_axis=1
+            )
+        else:
+            y_pred_all = [F.squeeze(y_pred, axis=-1)]
 
         qt_loss = []
         for i, y_pred_q in enumerate(y_pred_all):

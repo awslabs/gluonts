@@ -41,9 +41,14 @@ def Estimator(request):
     return request.param
 
 
+@pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_accuracy(Estimator, accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=100, hybridize=hybridize)
+def test_accuracy(
+    Estimator, accuracy_test, hyperparameters, hybridize, quantiles
+):
+    hyperparameters.update(
+        num_batches_per_epoch=100, hybridize=hybridize, quantiles=quantiles
+    )
 
     accuracy_test(Estimator, hyperparameters, accuracy=0.25)
 

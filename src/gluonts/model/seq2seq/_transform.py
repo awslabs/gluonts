@@ -131,7 +131,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                         shape=(self.enc_len, self.dec_len) + d3
                     )
 
-                    skip = max(0, self.enc_len - 1 - sampling_idx)
+                    skip = max(0, self.enc_len - sampling_idx)
                     for dec_field, idx in zip(
                         forking_dec_field[skip:],
                         range(start_idx + 1, start_idx + self.enc_len + 1),
