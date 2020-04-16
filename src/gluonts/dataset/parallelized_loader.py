@@ -188,10 +188,11 @@ def _sequential_sample_generator(
             ):
                 yield data_entry
 
-    # sanity check
+    # sanity check: since `num_batches_for_shuffling` works by skipping
+    # entries, this should not be used for non cyclic datasets
     assert (
         cyclic or num_batches_for_shuffling == 1
-    ), "num_batches_for_shuffling only makes sense in the context of cyclic datasets"
+    ), "Setting num_batches_for_shuffling >= 1 only makes sense in the context of cyclic datasets currently."
 
     while True:
         for sample in transformation(
@@ -505,8 +506,8 @@ class ParallelDataLoader(object):
         is_train: bool,
         batch_size: int,
         ctx: mx.Context,
-        dtype: Optional[DType] = None,
-        shuffle: Optional[bool] = None,
+        dtype: DType = np.float32,
+        shuffle: bool = False,
         num_batches_for_shuffling: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         num_workers: Optional[int] = None,
@@ -557,8 +558,8 @@ class ParallelDataLoader(object):
         self.batch_size = batch_size
         self.ctx = ctx
 
-        self.dtype = dtype if dtype is not None else np.float32
-        self.shuffle = shuffle if shuffle is not None else False
+        self.dtype = dtype
+        self.shuffle = shuffle
         self.num_batches_for_shuffling = (
             num_batches_for_shuffling
             if num_batches_for_shuffling is not None

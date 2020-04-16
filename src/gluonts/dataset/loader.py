@@ -69,7 +69,7 @@ class DataLoader(Iterable[DataEntry]):
         is_train: bool,
         batch_size: int,
         ctx: mx.Context,
-        dtype: Optional[DType] = np.float32,
+        dtype: DType = np.float32,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         num_batches_for_shuffling: Optional[int] = None,
@@ -152,9 +152,9 @@ class TrainDataLoader(DataLoader):
         num_batches_per_epoch: int,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        dtype: Optional[DType] = np.float32,
-        shuffle_for_training: Optional[bool] = True,
-        num_batches_for_shuffling: Optional[int] = 8,
+        dtype: DType = np.float32,
+        shuffle_for_training: bool = True,
+        num_batches_for_shuffling: int = 8,
         **kwargs
     ) -> None:
         assert dataset, "empty dataset"
@@ -198,7 +198,7 @@ class ValidationDataLoader(DataLoader):
         ctx: mx.Context,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        dtype: Optional[DType] = np.float32,
+        dtype: DType = np.float32,
         **kwargs
     ) -> None:
         super().__init__(
@@ -225,7 +225,7 @@ class InferenceDataLoader(DataLoader):
         ctx: mx.Context,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        dtype: Optional[DType] = np.float32,
+        dtype: DType = np.float32,
         **kwargs
     ) -> None:
         super().__init__(
