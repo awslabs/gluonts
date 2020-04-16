@@ -28,7 +28,6 @@ from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.support.util import copy_parameters
 from gluonts.trainer import Trainer
 from gluonts.transform import (
-    AsNumpyArray,
     AddAgeFeature,
     AddTimeFeatures,
     Chain,
@@ -41,12 +40,8 @@ from gluonts.transform import (
 # Relative imports
 from gluonts.time_feature import time_features_from_frequency_str
 from ._forking_network import (
-    ForkingSeq2SeqPredictionNetwork,
-    ForkingSeq2SeqTrainingNetwork,
     ForkingSeq2SeqNetwork,
     ForkingSeq2SeqNetworkBase,
-    ForkingSeq2SeqTargetPredictionNetwork,
-    ForkingSeq2SeqTargetTrainingNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 
@@ -175,10 +170,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         elif len(dynamic_feat_fields) == 1:
             chain.append(
                 RenameFields(
-                    {
-                        dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL
-                    }  # TODO: find out why this is done
-                )
+                    {dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL}
+                )  # TODO: find out why this is done
             )
 
         decoder_field = (
@@ -197,13 +190,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         return Chain(chain)
 
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
-        # return ForkingSeq2SeqTrainingNetwork(
-        #     encoder=self.encoder,
-        #     enc2dec=PassThroughEnc2Dec(),
-        #     decoder=self.decoder,
-        #     quantile_output=self.quantile_output,
-        # )
-
         return ForkingSeq2SeqNetwork(
             encoder=self.encoder,
             enc2dec=PassThroughEnc2Dec(),

@@ -12,10 +12,7 @@
 # permissions and limitations under the License.
 
 # Third-party imports
-import mxnet as mx
-from mxnet import gluon
-from mxnet import nd
-
+from mxnet import gluon, nd
 
 # First-party imports
 from gluonts.block.decoder import Seq2SeqDecoder
@@ -24,7 +21,6 @@ from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
-
 
 nd_None = nd.array([])
 
@@ -63,17 +59,15 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         self.decoder = decoder
         self.quantile_output = quantile_output
 
-        # self.feat_static_real = F.zeros(shape=(1,))
-        # self.past_feat_dynamic_real = F.zeros(shape=(1,))
-        # self.future_feat_dynamic_real = F.zeros(shape=(1,))
+        self.feat_static_real = nd_None
+        self.past_feat_dynamic_real = nd_None
+        self.future_feat_dynamic_real = nd_None
 
         with self.name_scope():
             self.quantile_proj = quantile_output.get_quantile_proj()
             self.loss = quantile_output.get_loss()
 
 
-# TODO: THIS SHOULD NOT EXIST, the if else logic should be handled in
-#  the _forking_estimator.py, and possible assertions too
 class ForkingSeq2SeqNetwork:
     @validated()
     def __init__(
@@ -113,7 +107,7 @@ class ForkingSeq2SeqNetwork:
             raise NotImplementedError
 
     def get_prediction_network(self) -> ForkingSeq2SeqNetworkBase:
-        if not self.use_static_cat and not self.use_dynamic_real:
+        if self.use_static_cat is False and self.use_dynamic_real is False:
             return ForkingSeq2SeqTargetPredictionNetwork(
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
@@ -157,26 +151,28 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         loss with shape (FIXME, FIXME)
         """
 
-        # FIXME: can we factor out a common prefix in the base network?
-        feat_static_real = F.zeros(shape=(1,))
-        # TODO: THIS IS OVERWRITING THE ARGUMENT?!?! (REMOVING IT makes add time and age feature work):
-        # past_feat_dynamic_real = F.zeros(shape=(1,))
-        future_feat_dynamic_real = F.zeros(shape=(1,))
+        # print(f"past target: {past_target.shape}")
+        # print(f"past_feat_dynamic_real: {past_feat_dynamic_real.shape}")
+        # print(f"future_target: {future_target.shape}")
 
         # arguments: target, static_features, dynamic_features
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic_real
+            past_target, self.feat_static_real, past_feat_dynamic_real
         )
 
         # arguments: encoder_output_static, encoder_output_dynamic, future_features
         # TODO: figure out how future_features is supposed to be used: since no distinction
         #  between dynamic and static anymore (shape is (N, T, C) suggesting dynamic feature)
         dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
+            enc_output_static,
+            enc_output_dynamic,
+            self.future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
         dec_dist_output = self.quantile_proj(dec_output)
+
+        # print(f"decoder output: {dec_dist_output.shape}")
 
         loss = self.loss(future_target, dec_dist_output)
         return loss.mean(axis=1)
@@ -202,11 +198,8 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
         # FIXME: can we factor out a common prefix in the base network?
 
-        feat_static_real = F.zeros(shape=(1,))
-        future_feat_dynamic_real = F.zeros(shape=(1,))
-
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic_real
+            past_target, self.feat_static_real, past_feat_dynamic_real
         )
 
         enc_output_static = (
@@ -214,7 +207,9 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         dec_inp_static, dec_inp_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, future_feat_dynamic_real,
+            enc_output_static,
+            enc_output_dynamic,
+            self.future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_inp_dynamic, dec_inp_static)
@@ -245,16 +240,14 @@ class ForkingSeq2SeqTargetTrainingNetwork(ForkingSeq2SeqNetworkBase):
         loss with shape (FIXME, FIXME)
         """
 
-        feat_static_real = F.zeros(shape=(1,))
-        past_feat_dynamic_real = F.zeros(shape=(1,))
-        future_feat_dynamic_real = F.zeros(shape=(1,))
-
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic_real
+            past_target, self.feat_static_real, self.past_feat_dynamic_real
         )
 
         dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
+            enc_output_static,
+            enc_output_dynamic,
+            self.future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
@@ -281,22 +274,19 @@ class ForkingSeq2SeqTargetPredictionNetwork(ForkingSeq2SeqNetworkBase):
         """
 
         # FIXME: can we factor out a common prefix in the base network?
-        feat_static_real = F.zeros(shape=(1,))
-        past_feat_dynamic_real = F.zeros(shape=(1,))
-        future_feat_dynamic_real = F.zeros(shape=(1,))
 
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic_real
+            past_target, self.feat_static_real, self.past_feat_dynamic_real
         )
 
         enc_output_static = (
-            F.zeros(shape=(1,))
-            if enc_output_static is None
-            else enc_output_static
+            nd_None if enc_output_static is None else enc_output_static
         )
 
         dec_inp_static, dec_inp_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
+            enc_output_static,
+            enc_output_dynamic,
+            self.future_feat_dynamic_real,
         )
 
         dec_output = self.decoder(dec_inp_dynamic, dec_inp_static)

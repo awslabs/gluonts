@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Sized
+from typing import List, Optional
 
 # First-party imports
 from gluonts.dataset.stat import calculate_dataset_statistics
@@ -108,10 +108,8 @@ class MQCNNEstimator(MQDNNEstimator):
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
         cardinality: Optional[List[int]] = None,
-        # TODO: fix add age and time features, currently dont work
-        #  (might be resolved through commenting out line 161 of _forkin_network.py)
-        add_age_feature: bool = False,
         add_time_feature: bool = False,
+        add_age_feature: bool = False,
         seed: Optional[int] = None,
         decoder_mlp_dim_seq: List[int] = [20],
         channels_seq: List[int] = [30, 30, 30],
@@ -146,11 +144,10 @@ class MQCNNEstimator(MQDNNEstimator):
         # TODO: figure out whether this needs any additional modification; doesn't seems o
         encoder = HierarchicalCausalConv1DEncoder(
             dilation_seq=dilation_seq,
-            kernel_size_seq=channels_seq,
-            channels_seq=kernel_size_seq,
+            kernel_size_seq=kernel_size_seq,
+            channels_seq=channels_seq,
             use_residual=use_residual,
             use_dynamic_feat=use_dynamic_feat_cnn,
-            use_static_feat=use_static_feat_cnn,
             prefix="encoder_",
         )
 
@@ -167,7 +164,6 @@ class MQCNNEstimator(MQDNNEstimator):
             quantiles=quantiles,
         )
 
-    # TODO: does this work? I think this might
     @classmethod
     def derive_auto_fields(cls, train_iter):
         stats = calculate_dataset_statistics(train_iter)
