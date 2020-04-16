@@ -67,8 +67,6 @@ class JsonLinesFile:
         # with lower and upper bound, where each worker is assigned one segment
         segment_size = int(len(self) / MPWorkerInfo.num_workers)
 
-        print("dataset_len:, ", len(self))
-
         if not self.cache or (self.cache and not self._data_cache):
             with open(self.path) as jsonl_file:
                 for line_number, raw in enumerate(jsonl_file):
