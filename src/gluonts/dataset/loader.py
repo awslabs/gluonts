@@ -81,7 +81,7 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
         self.cyclic = cyclic
-        self.num_worker = num_workers
+        self.num_workers = num_workers
         self.num_prefetch = num_prefetch
         self.num_batches_for_shuffling = num_batches_for_shuffling
 
@@ -93,7 +93,7 @@ class DataLoader(Iterable[DataEntry]):
             batch_size=self.batch_size,
             ctx=self.ctx,
             dtype=self.dtype,
-            num_workers=self.num_worker,
+            num_workers=self.num_workers,
             num_prefetch=self.num_prefetch,
             num_batches_for_shuffling=self.num_batches_for_shuffling,
             **kwargs,

@@ -14,7 +14,7 @@
 # Standard library imports
 import functools
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 # Third-party imports
 import ujson as json
@@ -56,7 +56,7 @@ class JsonLinesFile:
         JSON Lines file.
     """
 
-    def __init__(self, path: Path, cache: Optional[bool] = False) -> None:
+    def __init__(self, path: Path, cache: bool = False) -> None:
         self.path = path
         self.cache = cache
         self._len = None
