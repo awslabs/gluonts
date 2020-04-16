@@ -39,7 +39,6 @@ except ImportError:
 
 # Third-party imports
 import numpy as np
-import pandas as pd
 from mxnet import nd, context
 import mxnet as mx
 
