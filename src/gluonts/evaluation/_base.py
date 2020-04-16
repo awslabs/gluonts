@@ -15,7 +15,6 @@
 import logging
 import multiprocessing
 import re
-from collections import Sized
 from functools import lru_cache
 from itertools import chain, tee
 from typing import (
