@@ -278,8 +278,11 @@ class ListDataset(Dataset):
 
         for row_number, data in enumerate(self.list_data):
             lower_bound = util.MPWorkerInfo.worker_id * segment_size
-            upper_bound = min(
-                len(self), (util.MPWorkerInfo.worker_id + 1) * segment_size
+            upper_bound = (
+                (util.MPWorkerInfo.worker_id + 1) * segment_size
+                if util.MPWorkerInfo.worker_id + 1
+                != util.MPWorkerInfo.num_workers
+                else len(self)
             )
             if not lower_bound <= row_number < upper_bound:
                 continue

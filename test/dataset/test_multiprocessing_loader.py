@@ -48,8 +48,11 @@ NUM_WORKERS_MP = (
 CONTEXT_LEN = 7
 SPLITTING_SAMPLE_PROBABILITY = 1  # crucial for the ValidationDataLoader test
 CD_NUM_STEPS = 14
-CD_NUM_TIME_SERIES = 50  # too small and batch test might fail
+CD_NUM_TIME_SERIES = 47  # too small and batch test might fail
 CD_MAX_LEN_MULTIPLICATION_FACTOR = 3
+
+# NEEDED FOR SEGMENTATION COVERAGE TEST:
+assert CD_NUM_TIME_SERIES % NUM_WORKERS_MP != 0
 
 # CACHED DATA
 
@@ -161,6 +164,10 @@ def test_validation_loader_equivalence() -> None:
     mp_val_data_loader_result_02 = list(validation_dataset_loader)
 
     # ASSERTIONS:
+
+    assert len(list_dataset.list_data) == len(
+        get_transformation_counts(mp_val_data_loader_result_01)
+    ), "The dataloaders do not cover the whole dataset. Check that each time series was assigned at least one worker."
 
     assert get_transformation_counts(
         mp_val_data_loader_result_01

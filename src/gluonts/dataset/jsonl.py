@@ -73,8 +73,11 @@ class JsonLinesFile:
             with open(self.path) as jsonl_file:
                 for line_number, raw in enumerate(jsonl_file):
                     lower_bound = MPWorkerInfo.worker_id * segment_size
-                    upper_bound = min(
-                        len(self), (MPWorkerInfo.worker_id + 1) * segment_size
+                    upper_bound = (
+                        (MPWorkerInfo.worker_id + 1) * segment_size
+                        if MPWorkerInfo.worker_id + 1
+                        != MPWorkerInfo.num_workers
+                        else len(self)
                     )
                     if not lower_bound <= line_number < upper_bound:
                         continue
