@@ -479,8 +479,8 @@ class ParallelDataLoader(object):
     shuffle
         Whether to shuffle the samples.
     num_batches_for_shuffling
-        The number of batches among which samples are shuffled. So for example if num_batches_for_shuffling = 8
-        then the next num_batches_for_shuffling * 8 samples will be shuffled and then batched.
+        The effective number of batches among which samples are shuffled. If num_batches_for_shuffling = 8 and
+        batch_size = 8 then the next batch will be randomly sampled from about 64 samples.
     num_workers
         The number of multiprocessing workers to use for data preprocessing.
         By default 0, in which case no multiprocessing will be utilized.
