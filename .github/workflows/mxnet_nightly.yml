@@ -1,4 +1,4 @@
-name: MXNet Nightly
+name: MXNet nightly
 
 on:
   schedule:
