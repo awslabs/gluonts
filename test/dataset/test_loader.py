@@ -160,8 +160,9 @@ def test_loader_multivariate() -> None:
         tmp_path = Path(tmp_folder)
 
         lines = [
-            """{"start": "2014-09-07", "target": [[1, 2, 3]]}""",
-            """{"start": "2014-09-07", "target": [[-1, -2, 3], [2, 4, 81]]}""",
+            """{"start": "2014-09-07", "target": [[1, 2, 3]]}
+                {"start": "2014-09-07", "target": [[-1, -2, 3], [2, 4, 81]]}
+            """,
         ]
         with open(tmp_path / "dataset.json", "w") as f:
             f.write("\n".join(lines))
