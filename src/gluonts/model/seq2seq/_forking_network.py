@@ -50,8 +50,6 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         enc2dec: Seq2SeqEnc2Dec,
         decoder: Seq2SeqDecoder,
         quantile_output: QuantileOutput,
-        use_dynamic_feat: bool,
-        # use_static_feat: bool,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -60,8 +58,6 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         self.enc2dec = enc2dec
         self.decoder = decoder
         self.quantile_output = quantile_output
-        self.use_dynamic_feat = use_dynamic_feat
-        # self.use_static_feat = use_static_feat
 
         with self.name_scope():
             self.quantile_proj = quantile_output.get_quantile_proj()
@@ -69,14 +65,14 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
     # this method connects the sub-networks and returns the decoder output
     def get_decoder_network_output(
-        self, F, past_target: Tensor, past_feat_dynamic_real: Tensor
+        self, F, past_target: Tensor, past_feat_dynamic: Tensor
     ) -> Tensor:
         feat_static_real = F.zeros(shape=(1,))
         future_feat_dynamic_real = F.zeros(shape=(1,))
 
         # arguments: target, static_features, dynamic_features
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic_real
+            past_target, feat_static_real, past_feat_dynamic
         )
 
         # arguments: encoder_output_static, encoder_output_dynamic, future_features
@@ -98,7 +94,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         self,
         F,
         past_target: Tensor,
-        past_feat_dynamic_real: Tensor,
+        past_feat_dynamic: Tensor,
         future_target: Tensor,
     ) -> Tensor:
         """
@@ -116,7 +112,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         loss with shape (FIXME, FIXME)
         """
         dec_output = self.get_decoder_network_output(
-            F, past_target, past_feat_dynamic_real
+            F, past_target, past_feat_dynamic
         )
 
         dec_dist_output = self.quantile_proj(dec_output)
@@ -128,7 +124,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self, F, past_target: Tensor, past_feat_dynamic_real: Tensor
+        self, F, past_target: Tensor, past_feat_dynamic: Tensor
     ) -> Tensor:
         """
         Parameters
@@ -143,7 +139,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         prediction tensor with shape (FIXME, FIXME)
         """
         dec_output = self.get_decoder_network_output(
-            F, past_target, past_feat_dynamic_real
+            F, past_target, past_feat_dynamic
         )
 
         fcst_output = F.slice_axis(dec_output, axis=1, begin=-1, end=None)

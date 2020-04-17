@@ -132,7 +132,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
     use_static_feat
         flag to toggle whether to use use_static_feat as input to the encoder
     use_dynamic_feat
-        flag to toggle whether to use use_static_feat as input to the encoder
+        flag to toggle whether to use use_dynamic_feat as input to the encoder
     """
 
     @validated()
@@ -252,7 +252,7 @@ class RNNEncoder(Seq2SeqEncoder):
     use_static_feat
         flag to toggle whether to use use_static_feat as input to the encoder
     use_dynamic_feat
-        flag to toggle whether to use use_static_feat as input to the encoder
+        flag to toggle whether to use use_dynamic_feat as input to the encoder
     """
 
     @validated()

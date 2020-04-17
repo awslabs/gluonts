@@ -84,6 +84,13 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         frequency of the time series
     prediction_length
         length of the decoding sequence
+    use_feat_dynamic_real
+        Whether to use the ``feat_dynamic_real`` field from the data (default: False)
+    add_time_feature
+        Adds a set of time features.
+    add_age_feature
+        Adds an age feature.
+        The age feature starts with a small value at the start of the time series and grows over time.
     context_length
         length of the encoding sequence (prediction_length is used if None)
     trainer
@@ -98,10 +105,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         quantile_output: QuantileOutput,
         freq: str,
         prediction_length: int,
+        context_length: Optional[int] = None,
         use_feat_dynamic_real: bool = False,
         add_time_feature: bool = False,
         add_age_feature: bool = False,
-        context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
     ) -> None:
         super().__init__(trainer=trainer)
@@ -194,24 +201,17 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             )
             dynamic_feat_fields.append(FieldName.FEAT_CONST)
 
-        # now we map all the dynamic input onto FieldName.FEAT_DYNAMIC_REAL
-        # TODO: change the field from FieldName.FEAT_DYNAMIC_REAL to FieldName.FEAT_TIME for consistency with deepAR
-        #  or to FieldName.FEAT_DYNAMIC, which would have to be added
+        # now we map all the dynamic input onto FieldName.FEAT_DYNAMIC
         if len(dynamic_feat_fields) > 1:
             chain.append(
                 VstackFeatures(
-                    output_field=FieldName.FEAT_DYNAMIC_REAL,
+                    output_field=FieldName.FEAT_DYNAMIC,
                     input_fields=dynamic_feat_fields,
                 )
             )
-        elif (
-            len(dynamic_feat_fields) == 1
-            and FieldName.FEAT_DYNAMIC_REAL not in dynamic_feat_fields
-        ):
+        elif len(dynamic_feat_fields) == 1:
             chain.append(
-                RenameFields(
-                    {dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL}
-                )
+                RenameFields({dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC})
             )
 
         chain.append(
@@ -222,7 +222,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
                 encoder_series_fields=[
-                    FieldName.FEAT_DYNAMIC_REAL
+                    FieldName.FEAT_DYNAMIC
                 ],  # TODO: later add categorical too
             ),
         )
@@ -235,7 +235,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=PassThroughEnc2Dec(),
             decoder=self.decoder,
             quantile_output=self.quantile_output,
-            use_dynamic_feat=self.use_dynamic_feat,
         )
 
     def create_predictor(
@@ -254,7 +253,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=trained_network.enc2dec,
             decoder=trained_network.decoder,
             quantile_output=trained_network.quantile_output,
-            use_dynamic_feat=trained_network.use_dynamic_feat,
         )
 
         copy_parameters(trained_network, prediction_network)
