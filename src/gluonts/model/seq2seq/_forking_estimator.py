@@ -230,11 +230,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     {dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL}
                 )
             )
-        else:
-            print(
-                "IM NAUGHTY?: ",
-                FieldName.FEAT_DYNAMIC_REAL in dynamic_feat_fields,
-            )
 
         chain.append(
             # because of how the forking decoder works, every time step
