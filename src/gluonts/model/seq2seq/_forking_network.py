@@ -86,41 +86,40 @@ class ForkingSeq2SeqNetwork:
         self.use_dynamic_real = use_dynamic_real
         self.use_static_cat = use_static_cat
 
+        # TODO: add this feature:
+        assert self.use_static_cat is False
+
     def get_training_network(self) -> ForkingSeq2SeqNetworkBase:
-        if self.use_static_cat is False and self.use_dynamic_real is False:
+        if self.use_dynamic_real is False:
             return ForkingSeq2SeqTargetTrainingNetwork(
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
                 decoder=self.decoder,
                 quantile_output=self.quantile_output,
             )
-        elif self.use_static_cat is False and self.use_dynamic_real:
+        else:
             return ForkingSeq2SeqTrainingNetwork(
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
                 decoder=self.decoder,
                 quantile_output=self.quantile_output,
             )
-        else:
-            raise NotImplementedError
 
     def get_prediction_network(self) -> ForkingSeq2SeqNetworkBase:
-        if not self.use_static_cat and not self.use_dynamic_real:
+        if self.use_dynamic_real is False:
             return ForkingSeq2SeqTargetPredictionNetwork(
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
                 decoder=self.decoder,
                 quantile_output=self.quantile_output,
             )
-        elif self.use_static_cat is False and self.use_dynamic_real:
+        else:
             return ForkingSeq2SeqPredictionNetwork(
                 encoder=self.encoder,
                 enc2dec=self.enc2dec,
                 decoder=self.decoder,
                 quantile_output=self.quantile_output,
             )
-        else:
-            raise NotImplementedError
 
 
 # TODO: figure out whether we need 2 classes each, in fact we would need 4 each,

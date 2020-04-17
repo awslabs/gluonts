@@ -16,8 +16,8 @@ import pytest
 from gluonts.model.seq2seq import (
     MQCNNEstimator,
     MQRNNEstimator,
-    Seq2SeqEstimator,
 )
+from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 
 @pytest.fixture()
@@ -51,6 +51,38 @@ def test_accuracy(
     )
 
     accuracy_test(Estimator, hyperparameters, accuracy=0.25)
+
+
+@pytest.mark.parametrize("use_feat_dynamic_real", [True, False])
+@pytest.mark.parametrize("add_time_feature", [True, False])
+@pytest.mark.parametrize("add_age_feature", [True, False])
+def test_mqcnn_covariate_smoke_test(
+    use_feat_dynamic_real, add_time_feature, add_age_feature
+):
+    hps = {
+        "seed": 42,
+        "freq": "D",
+        "prediction_length": 3,
+        "quantiles": [0.5, 0.1],
+        "epochs": 3,
+        "num_batches_per_epoch": 3,
+        "use_feat_dynamic_real": use_feat_dynamic_real,
+        "add_time_feature": add_time_feature,
+        "add_age_feature": add_age_feature,
+    }
+
+    dataset_train, dataset_test = make_dummy_datasets_with_features(
+        cardinality=[3, 10, 42],
+        num_feat_dynamic_real=3,
+        freq=hps["freq"],
+        prediction_length=hps["prediction_length"],
+    )
+
+    estimator = MQCNNEstimator.from_hyperparameters(**hps)
+
+    predictor = estimator.train(dataset_train)
+    forecasts = list(predictor.predict(dataset_test))
+    assert len(forecasts) == len(dataset_test)
 
 
 def test_repr(Estimator, repr_test, hyperparameters):

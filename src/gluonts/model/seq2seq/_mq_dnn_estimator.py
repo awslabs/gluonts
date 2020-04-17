@@ -91,7 +91,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             channels_seq=channels_seq,
             use_residual=use_residual,
             use_dynamic_feat=use_dynamic_feat,
-            use_static_feat=use_feat_static_cat,
+            # use_static_feat=use_feat_static_cat,
             prefix="encoder_",
         )
 
@@ -123,8 +123,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
 
         return {
             "use_feat_dynamic_real": stats.num_feat_dynamic_real > 0,
-            "use_feat_static_cat": bool(stats.feat_static_cat),
-            "cardinality": [len(cats) for cats in stats.feat_static_cat],
+            # "use_feat_static_cat": bool(stats.feat_static_cat),
+            # "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
 
 

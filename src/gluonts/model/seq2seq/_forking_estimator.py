@@ -35,6 +35,8 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
     RenameFields,
+    SetField,
+    RemoveFields,
 )
 
 # Relative imports
@@ -153,6 +155,12 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         print(f"use_dynamic_network: {self.use_dynamic_real}")
 
     def create_transformation(self) -> Transformation:
+        # remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
+        # if not self.use_feat_static_real:
+        #     remove_field_names.append(FieldName.FEAT_STATIC_REAL)
+        # if not self.use_feat_dynamic_real:
+        #     remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
+
         chain = []
         dynamic_feat_fields = []
 
@@ -188,18 +196,43 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     input_fields=dynamic_feat_fields,
                 )
             )
-        elif len(dynamic_feat_fields) == 1:
+        elif (
+            len(dynamic_feat_fields) == 1
+            and FieldName.FEAT_DYNAMIC_REAL not in dynamic_feat_fields
+        ):
             chain.append(
                 RenameFields(
                     {dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL}
-                )  # TODO: find out why this is done
+                )
             )
 
+        # TODO: current problem: cannot have no input, if some input provided, because the decoder will not
+        #  accept input, however, the batches contain input, and python complains that
+        #  it cannot map something to nothing?
+
+        # if dynamic_feat_fields:
+        #     chain.append(
+        #         VstackFeatures(
+        #             output_field=FieldName.FEAT_DYNAMIC_REAL,
+        #             input_fields=dynamic_feat_fields,
+        #         )
+        #     )
+        # else:
+        #     # Unfortunately we always need to pass something.
+        #     # Passing a constant does not have an effect on performance and essentially acts as a bias term.
+        #     SetField(
+        #         output_field=FieldName.FEAT_DYNAMIC_REAL, value=[0.0]
+        #     )
+        #     dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
+
+        # So far the decoder only uses dynamic real
         decoder_field = (
             [FieldName.FEAT_DYNAMIC_REAL] if dynamic_feat_fields else []
         )
 
         chain.append(
+            # because of how the forking decoder works, every time step
+            # in context is used for splitting, which is why we use the TestSplitSampler
             ForkingSequenceSplitter(
                 train_sampler=TestSplitSampler(),
                 enc_len=self.context_length,
