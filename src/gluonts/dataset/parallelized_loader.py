@@ -22,7 +22,8 @@ import io
 import random
 import sys
 import time
-from collections import Sized
+
+from collections.abc import Sized
 from multiprocessing.managers import SyncManager
 from typing import Callable, Iterable, Optional, List, Iterator
 
