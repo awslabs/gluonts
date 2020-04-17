@@ -112,7 +112,7 @@ def test_io_speed() -> None:
         ("baseline", baseline, 100_000),
         # ('json.loads', load_json, xxx),
         ("ujson.loads", load_ujson, 20000),
-        ("JsonLinesFile", load_json_lines_file, 20000),
+        ("JsonLinesFile", load_json_lines_file, 10000),
         ("ListDataset", load_list_dataset, 500),
         ("FileDataset", load_file_dataset, 500),
         ("FileDatasetCached", load_file_dataset_cached, 500),

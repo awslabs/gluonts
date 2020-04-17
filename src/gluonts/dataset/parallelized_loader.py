@@ -621,7 +621,7 @@ class ParallelDataLoader(object):
                 while True:
                     # take the next batch size elements
                     batch_samples = list(
-                        itertools.islice(generator, self.batch_size,)
+                        itertools.islice(generator, self.batch_size)
                     )
 
                     # shuffle data if appropriate and prepare for batching
