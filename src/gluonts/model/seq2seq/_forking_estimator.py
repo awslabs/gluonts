@@ -101,14 +101,23 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
     ) -> None:
+        super().__init__(trainer=trainer)
+
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert (
             prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
-
-        super().__init__(trainer=trainer)
+        # assert (cardinality and use_feat_static_cat) or (
+        #     not (cardinality or use_feat_static_cat)
+        # ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
+        # assert cardinality is None or all(
+        #     [c > 0 for c in cardinality]
+        # ), "Elements of `cardinality` should be > 0"
+        # assert embedding_dimension is None or all(
+        #     [e > 0 for e in embedding_dimension]
+        # ), "Elements of `embedding_dimension` should be > 0"
 
         self.encoder = encoder
         self.decoder = decoder
@@ -122,14 +131,26 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.add_time_feature = add_time_feature
         self.add_age_feature = add_age_feature
 
+        # self.use_feat_static_cat = use_feat_static_cat
+        # self.use_feat_dynamic_real = use_feat_dynamic_real
+        # self.cardinality = (
+        #     cardinality if cardinality and use_feat_static_cat else [1]
+        # )
+        # self.embedding_dimension = (
+        #     embedding_dimension
+        #     if embedding_dimension is not None
+        #     else [min(50, (cat + 1) // 2) for cat in self.cardinality]
+        # )
+
         # TODO: refactor this variable name: dynamic_network, in fact it
         #  is not even necessary as is, because this is how use_dynamic_feat was
         #  set in MQCNNEstimator and otherwise its not used, i.e. False
         # is target only network or not?
-        self.dynamic_network = (
+        self.use_dynamic_real = (
             use_dynamic_feat or add_time_feature or add_age_feature
         )
-        print(f"use_dynamic_network: {self.dynamic_network}")
+
+        print(f"use_dynamic_network: {self.use_dynamic_real}")
 
     def create_transformation(self) -> Transformation:
         chain = []
@@ -195,7 +216,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=PassThroughEnc2Dec(),
             decoder=self.decoder,
             quantile_output=self.quantile_output,
-            use_dynamic_real=self.dynamic_network,
+            use_dynamic_real=self.use_dynamic_real,
         ).get_training_network()
 
     def create_predictor(
@@ -214,7 +235,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=trained_network.enc2dec,
             decoder=trained_network.decoder,
             quantile_output=trained_network.quantile_output,
-            use_dynamic_real=self.dynamic_network,
+            use_dynamic_real=self.use_dynamic_real,
         ).get_prediction_network()
 
         copy_parameters(trained_network, prediction_network)
