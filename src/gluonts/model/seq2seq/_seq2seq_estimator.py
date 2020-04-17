@@ -23,9 +23,9 @@ from gluonts.block.decoder import OneShotDecoder
 from gluonts.block.enc2dec import PassThroughEnc2Dec
 from gluonts.block.encoder import (
     HierarchicalCausalConv1DEncoder,
-    RNNCovariateEncoder,
     MLPEncoder,
     Seq2SeqEncoder,
+    RNNEncoder,
 )
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.block.quantile_output import QuantileOutput
@@ -238,11 +238,13 @@ class RNN2QRForecaster(Seq2SeqEstimator):
         trainer: Trainer = Trainer(),
         num_parallel_samples: int = 100,
     ) -> None:
-        encoder = RNNCovariateEncoder(
+        encoder = RNNEncoder(
             mode=encoder_rnn_model,
             hidden_size=encoder_rnn_num_hidden,
             num_layers=encoder_rnn_layer,
             bidirectional=encoder_rnn_bidirectional,
+            use_static_feat=True,
+            use_dynamic_feat=True,
         )
         super(RNN2QRForecaster, self).__init__(
             freq=freq,

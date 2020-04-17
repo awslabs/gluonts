@@ -39,11 +39,11 @@ class RenameFields(SimpleTransformation):
 
     def transform(self, data: DataEntry):
         for key, new_key in self.mapping.items():
-            if key not in data:
-                continue
-            assert new_key not in data
-            data[new_key] = data[key]
-            del data[key]
+            if key in data:
+                # no implicit overriding
+                assert new_key not in data
+                data[new_key] = data[key]
+                del data[key]
         return data
 
 

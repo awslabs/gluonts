@@ -236,6 +236,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         else:
             inputs = target
 
+        print("Been here done that.")
+
         # NTC -> NCT (or NCW)
         ct = inputs.swapaxes(1, 2)
         ct = self.cnn(ct)
@@ -248,12 +250,15 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         # return the last state as the static code
         static_code = F.slice_axis(ct, axis=1, begin=-1, end=None)
         static_code = F.squeeze(static_code, axis=1)
+
+        print("Been here done that. 2.")
+
         return static_code, ct
 
 
 class RNNEncoder(Seq2SeqEncoder):
     """
-    Defines an RNN as the encoder.
+     Defines RNN encoder that uses covariates and target as input to the RNN if desired.
 
     Parameters
     ----------
@@ -278,12 +283,20 @@ class RNNEncoder(Seq2SeqEncoder):
         hidden_size: int,
         num_layers: int,
         bidirectional: bool,
+        use_static_feat: bool = False,
+        use_dynamic_feat: bool = False,
         **kwargs,
     ) -> None:
         assert num_layers > 0, "`num_layers` value must be greater than zero"
         assert hidden_size > 0, "`hidden_size` value must be greater than zero"
 
         super().__init__(**kwargs)
+        self.mode = mode
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.bidirectional = bidirectional
+        self.use_static_feat = use_static_feat
+        self.use_dynamic_feat = use_dynamic_feat
 
         with self.name_scope():
             self.rnn = RNN(mode, hidden_size, num_layers, bidirectional)
@@ -324,7 +337,19 @@ class RNNEncoder(Seq2SeqEncoder):
             dynamic code,
             shape (batch_size, sequence_length, num_dynamic_features)
         """
-        dynamic_code = self.rnn(target)
+        if self.use_dynamic_feat and self.use_static_feat:
+            inputs = self._assemble_inputs(
+                F,
+                target=target,
+                static_features=static_features,
+                dynamic_features=dynamic_features,
+            )
+        elif self.use_dynamic_feat:
+            inputs = F.concat(target, dynamic_features, dim=2)  # (N, T, C)
+        else:
+            inputs = target
+
+        dynamic_code = self.rnn(inputs)
         static_code = F.slice_axis(dynamic_code, axis=1, begin=-1, end=None)
         return static_code, dynamic_code
 
@@ -387,92 +412,4 @@ class MLPEncoder(Seq2SeqEncoder):
         )
         static_code = self.model(inputs)
         dynamic_code = F.zeros_like(target).expand_dims(2)
-        return static_code, dynamic_code
-
-
-class RNNCovariateEncoder(Seq2SeqEncoder):
-    """
-    Defines RNN encoder that uses covariates and target as input to the RNN.
-
-    Parameters
-    ----------
-    mode
-        type of the RNN. Can be either: rnn_relu (RNN with relu activation),
-        rnn_tanh, (RNN with tanh activation), lstm or gru.
-
-    hidden_size
-        number of units per hidden layer.
-
-    num_layers
-        number of hidden layers.
-
-    bidirectional
-        toggle use of bi-directional RNN as encoder.
-    """
-
-    @validated()
-    def __init__(
-        self,
-        mode: str,
-        hidden_size: int,
-        num_layers: int,
-        bidirectional: bool,
-        **kwargs,
-    ) -> None:
-
-        assert num_layers > 0, "`num_layers` value must be greater than zero"
-        assert hidden_size > 0, "`hidden_size` value must be greater than zero"
-
-        super().__init__(**kwargs)
-
-        with self.name_scope():
-            self.rnn = RNN(mode, hidden_size, num_layers, bidirectional)
-
-    def hybrid_forward(
-        self,
-        F,
-        target: Tensor,
-        static_features: Tensor,
-        dynamic_features: Tensor,
-    ) -> Tuple[Tensor, Tensor]:
-        """
-        Parameters
-        ----------
-        F
-            A module that can either refer to the Symbol API or the NDArray
-            API in MXNet.
-
-        target
-            target time series,
-            shape (batch_size, sequence_length, 1)
-
-        static_features
-            static features,
-            shape (batch_size, num_static_features)
-
-        dynamic_features
-            dynamic_features,
-            shape (batch_size, sequence_length, num_dynamic_features)
-
-        Returns
-        -------
-        Tensor
-            static code,
-            shape (batch_size, num_static_features)
-
-        Tensor
-            dynamic code,
-            shape (batch_size, sequence_length, num_dynamic_features)
-        """
-        inputs = self._assemble_inputs(
-            F, target, static_features, dynamic_features
-        )
-        dynamic_code = self.rnn(inputs)
-
-        # using the last state as the static code,
-        # but not working as well as the concat of all the previous states
-        static_code = F.squeeze(
-            F.slice_axis(dynamic_code, axis=1, begin=-1, end=None), axis=1
-        )
-
         return static_code, dynamic_code

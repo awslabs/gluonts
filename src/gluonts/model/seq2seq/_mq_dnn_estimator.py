@@ -81,17 +81,13 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             [d > 0 for d in decoder_mlp_dim_seq]
         ), "Elements of `mlp_hidden_dimension_seq` should be > 0"
 
-        use_dynamic_feat = (
-            use_feat_dynamic_real or add_age_feature or add_time_feature
-        )
-
         encoder = HierarchicalCausalConv1DEncoder(
             dilation_seq=dilation_seq,
             kernel_size_seq=kernel_size_seq,
             channels_seq=channels_seq,
             use_residual=use_residual,
-            use_dynamic_feat=use_dynamic_feat,
-            # use_static_feat=use_feat_static_cat,
+            use_static_feat=False,
+            use_dynamic_feat=True,
             prefix="encoder_",
         )
 
@@ -111,7 +107,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             freq=freq,
             prediction_length=prediction_length,
             context_length=context_length,
-            use_dynamic_feat=use_dynamic_feat,
+            use_feat_dynamic_real=use_feat_dynamic_real,
             add_time_feature=add_time_feature,
             add_age_feature=add_age_feature,
             trainer=trainer,
@@ -159,6 +155,8 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             num_layers=1,
             bidirectional=True,
             prefix="encoder_",
+            use_static_feat=False,
+            use_dynamic_feat=True,
         )
 
         decoder = ForkingMLPDecoder(

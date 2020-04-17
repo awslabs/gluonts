@@ -52,7 +52,7 @@ class Seq2SeqDecoder(nn.HybridBlock):
         pass
 
 
-# TODO: add support for static variables
+# TODO: add support for static variables at some point
 class ForkingMLPDecoder(Seq2SeqDecoder):
     """
     Multilayer perceptron decoder for sequence-to-sequence models.
@@ -105,7 +105,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
             )
             self.model.add(layer)
 
-    # TODO: add support for static input
+    # TODO: add support for static input at some point
     def hybrid_forward(
         self, F, dynamic_input: Tensor, static_input: Tensor = None
     ) -> Tensor:

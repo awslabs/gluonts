@@ -66,9 +66,11 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         self.forecast_start_out = forecast_start_output_field
         self.decoder_series_fields = decoder_series_fields
 
+    # TODO: make use of these
     def _past(self, col_name):
         return f"past_{col_name}"
 
+    # TODO: make use of these
     def _future(self, col_name):
         return f"future_{col_name}"
 
@@ -140,11 +142,13 @@ class ForkingSequenceSplitter(FlatMapTransformation):
 
                     out[self._future(ts_field)] = forking_dec_field
 
+            # So far pad indicator not in use
             pad_indicator = np.zeros(self.enc_len)
             pad_length = max(0, self.enc_len - sampling_idx)
             pad_indicator[:pad_length] = True
             out[f"past_{self.is_pad_out}"] = pad_indicator
 
+            # So far pad forecast_start_out not in use
             out[self.forecast_start_out] = shift_timestamp(
                 out[self.start_in], sampling_idx
             )

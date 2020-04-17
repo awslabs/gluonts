@@ -69,6 +69,7 @@ def test_mqcnn_covariate_smoke_test(
         "use_feat_dynamic_real": use_feat_dynamic_real,
         "add_time_feature": add_time_feature,
         "add_age_feature": add_age_feature,
+        "hybridize": True,
     }
 
     dataset_train, dataset_test = make_dummy_datasets_with_features(

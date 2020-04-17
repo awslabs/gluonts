@@ -27,6 +27,7 @@ from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.support.util import copy_parameters
 from gluonts.trainer import Trainer
+from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
     AddTimeFeatures,
@@ -35,15 +36,15 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
     RenameFields,
-    SetField,
+    AddConstFeature,
     RemoveFields,
 )
 
 # Relative imports
-from gluonts.time_feature import time_features_from_frequency_str
 from ._forking_network import (
-    ForkingSeq2SeqNetwork,
     ForkingSeq2SeqNetworkBase,
+    ForkingSeq2SeqTrainingNetwork,
+    ForkingSeq2SeqPredictionNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 
@@ -97,7 +98,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         quantile_output: QuantileOutput,
         freq: str,
         prediction_length: int,
-        use_dynamic_feat: bool = False,
+        use_feat_dynamic_real: bool = False,
         add_time_feature: bool = False,
         add_age_feature: bool = False,
         context_length: Optional[int] = None,
@@ -124,17 +125,21 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.encoder = encoder
         self.decoder = decoder
         self.quantile_output = quantile_output
-        self.prediction_length = prediction_length
         self.freq = freq
-        self.use_dynamic_feat = use_dynamic_feat
+        self.prediction_length = prediction_length
         self.context_length = (
-            context_length if context_length is not None else prediction_length
+            context_length
+            if context_length is not None
+            else self.prediction_length
         )
+        self.use_feat_dynamic_real = use_feat_dynamic_real
         self.add_time_feature = add_time_feature
         self.add_age_feature = add_age_feature
+        self.use_dynamic_feat = (
+            use_feat_dynamic_real or add_age_feature or add_time_feature
+        )
 
         # self.use_feat_static_cat = use_feat_static_cat
-        # self.use_feat_dynamic_real = use_feat_dynamic_real
         # self.cardinality = (
         #     cardinality if cardinality and use_feat_static_cat else [1]
         # )
@@ -147,17 +152,14 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         # TODO: refactor this variable name: dynamic_network, in fact it
         #  is not even necessary as is, because this is how use_dynamic_feat was
         #  set in MQCNNEstimator and otherwise its not used, i.e. False
-        # is target only network or not?
-        self.use_dynamic_real = (
-            use_dynamic_feat or add_time_feature or add_age_feature
-        )
-
-        print(f"use_dynamic_network: {self.use_dynamic_real}")
+        # # is target only network or not?
+        # self.use_dynamic_real = (
+        #     use_dynamic_feat or add_time_feature or add_age_feature or True  # TODO: fix this
+        # )
+        #
+        # print(f"use_dynamic_network: {self.use_dynamic_real}")
 
     def create_transformation(self) -> Transformation:
-        # remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
-        # if not self.use_feat_static_real:
-        #     remove_field_names.append(FieldName.FEAT_STATIC_REAL)
         # if not self.use_feat_dynamic_real:
         #     remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
@@ -186,9 +188,31 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             )
             dynamic_feat_fields.append(FieldName.FEAT_AGE)
 
-        if self.use_dynamic_feat:
+        # TODO: there may have been a bug here
+        if self.use_feat_dynamic_real:
+            print("NO IM HERE")
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
+        else:
+            print("IM HERE")
+            chain.append(
+                RemoveFields(field_names=[FieldName.FEAT_DYNAMIC_REAL])
+            )
 
+        # we need to make sure that there is always some dynamic input
+        # we will however disregard it in the hybrid forward
+        if len(dynamic_feat_fields) == 0:
+            chain.append(
+                AddConstFeature(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_CONST,
+                    pred_length=self.prediction_length,
+                ),
+            )
+            dynamic_feat_fields.append(FieldName.FEAT_CONST)
+
+        # now we map all the dynamic input onto FieldName.FEAT_DYNAMIC_REAL
+        # TODO: change the field from FieldName.FEAT_DYNAMIC_REAL to FieldName.FEAT_TIME for consistency with deepAR
+        #  or to FieldName.FEAT_DYNAMIC, which would have to be added
         if len(dynamic_feat_fields) > 1:
             chain.append(
                 VstackFeatures(
@@ -200,35 +224,17 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             len(dynamic_feat_fields) == 1
             and FieldName.FEAT_DYNAMIC_REAL not in dynamic_feat_fields
         ):
+            print("ONLY HAVE DYNAMIC REAL")
             chain.append(
                 RenameFields(
                     {dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL}
                 )
             )
-
-        # TODO: current problem: cannot have no input, if some input provided, because the decoder will not
-        #  accept input, however, the batches contain input, and python complains that
-        #  it cannot map something to nothing?
-
-        # if dynamic_feat_fields:
-        #     chain.append(
-        #         VstackFeatures(
-        #             output_field=FieldName.FEAT_DYNAMIC_REAL,
-        #             input_fields=dynamic_feat_fields,
-        #         )
-        #     )
-        # else:
-        #     # Unfortunately we always need to pass something.
-        #     # Passing a constant does not have an effect on performance and essentially acts as a bias term.
-        #     SetField(
-        #         output_field=FieldName.FEAT_DYNAMIC_REAL, value=[0.0]
-        #     )
-        #     dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
-
-        # So far the decoder only uses dynamic real
-        decoder_field = (
-            [FieldName.FEAT_DYNAMIC_REAL] if dynamic_feat_fields else []
-        )
+        else:
+            print(
+                "IM NAUGHTY?: ",
+                FieldName.FEAT_DYNAMIC_REAL in dynamic_feat_fields,
+            )
 
         chain.append(
             # because of how the forking decoder works, every time step
@@ -237,20 +243,22 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 train_sampler=TestSplitSampler(),
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
-                encoder_series_fields=decoder_field,
+                encoder_series_fields=[
+                    FieldName.FEAT_DYNAMIC_REAL
+                ],  # TODO: later add categorical too
             ),
         )
 
         return Chain(chain)
 
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
-        return ForkingSeq2SeqNetwork(
+        return ForkingSeq2SeqTrainingNetwork(
             encoder=self.encoder,
             enc2dec=PassThroughEnc2Dec(),
             decoder=self.decoder,
             quantile_output=self.quantile_output,
-            use_dynamic_real=self.use_dynamic_real,
-        ).get_training_network()
+            use_dynamic_feat=self.use_dynamic_feat,
+        )
 
     def create_predictor(
         self,
@@ -263,13 +271,15 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             for quantile in self.quantile_output.quantiles
         ]
 
-        prediction_network = ForkingSeq2SeqNetwork(
+        print("TOTALLY FINE THUS FAR P1")
+
+        prediction_network = ForkingSeq2SeqPredictionNetwork(
             encoder=trained_network.encoder,
             enc2dec=trained_network.enc2dec,
             decoder=trained_network.decoder,
             quantile_output=trained_network.quantile_output,
-            use_dynamic_real=self.use_dynamic_real,
-        ).get_prediction_network()
+            use_dynamic_feat=trained_network.use_dynamic_feat,
+        )
 
         copy_parameters(trained_network, prediction_network)
 
