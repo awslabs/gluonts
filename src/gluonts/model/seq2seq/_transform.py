@@ -121,7 +121,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 # if we have less than enc_len values, pad_left with 0
                 past_piece = pad_to_size(slice, self.enc_len)
 
-                out[f"past_{ts_field}"] = past_piece.transpose()
+                out[self._past(ts_field)] = past_piece.transpose()
 
                 # in prediction mode, don't provide decode-values
                 if not is_train and ts_field == self.target_in:
@@ -146,7 +146,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             pad_indicator = np.zeros(self.enc_len)
             pad_length = max(0, self.enc_len - sampling_idx)
             pad_indicator[:pad_length] = True
-            out[f"past_{self.is_pad_out}"] = pad_indicator
+            out[self._past(self.is_pad_out)] = pad_indicator
 
             # So far pad forecast_start_out not in use
             out[self.forecast_start_out] = shift_timestamp(

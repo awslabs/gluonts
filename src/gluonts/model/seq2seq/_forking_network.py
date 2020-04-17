@@ -67,6 +67,28 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             self.quantile_proj = quantile_output.get_quantile_proj()
             self.loss = quantile_output.get_loss()
 
+    # this method connects the sub-networks and returns the decoder output
+    def get_decoder_network_output(
+        self, F, past_target: Tensor, past_feat_dynamic_real: Tensor
+    ) -> Tensor:
+        feat_static_real = F.zeros(shape=(1,))
+        future_feat_dynamic_real = F.zeros(shape=(1,))
+
+        # arguments: target, static_features, dynamic_features
+        enc_output_static, enc_output_dynamic = self.encoder(
+            past_target, feat_static_real, past_feat_dynamic_real
+        )
+
+        # arguments: encoder_output_static, encoder_output_dynamic, future_features
+        dec_input_static, dec_input_dynamic, _ = self.enc2dec(
+            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
+        )
+
+        # arguments: dynamic_input, static_input
+        dec_output = self.decoder(dec_input_dynamic, dec_input_static)
+
+        return dec_output
+
 
 # TODO: figure out whether we need 2 classes each, in fact we would need 4 each,
 #  if adding categorical with this technique, does not seem reasonable
@@ -93,37 +115,13 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         -------
         loss with shape (FIXME, FIXME)
         """
-
-        print("TOTALLY FINE SO FAR")
-
-        feat_static_real = F.zeros(shape=(1,))
-        # TODO: Required to be commented out for shape inference...
-        # if not self.use_dynamic_feat:
-        #     past_feat_dynamic_real = F.zeros(shape=(1,))
-        future_feat_dynamic_real = F.zeros(shape=(1,))
-
-        # arguments: target, static_features, dynamic_features
-        enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic_real
+        dec_output = self.get_decoder_network_output(
+            F, past_target, past_feat_dynamic_real
         )
 
-        print("TOTALLY FINE SO FAR 2")
-
-        # arguments: encoder_output_static, encoder_output_dynamic, future_features
-        # TODO: figure out how future_features is supposed to be used: since no distinction
-        #  between dynamic and static anymore (shape is (N, T, C) suggesting dynamic feature)
-        dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
-        )
-
-        dec_output = self.decoder(dec_input_dynamic, dec_input_static)
         dec_dist_output = self.quantile_proj(dec_output)
-
-        print("TOTALLY FINE SO FAR 3")
-
         loss = self.loss(future_target, dec_dist_output)
 
-        print("TOTALLY FINE SO FAR 4")
         return loss.mean(axis=1)
 
 
@@ -144,37 +142,12 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         -------
         prediction tensor with shape (FIXME, FIXME)
         """
-
-        print("TOTALLY FINE SO FAR 5")
-
-        feat_static_real = F.zeros(shape=(1,))
-        # TODO: Required to be commented out for shape inference...
-        # if not self.use_dynamic_feat:
-        #     past_feat_dynamic_real = F.zeros(shape=(1,))
-        future_feat_dynamic_real = F.zeros(shape=(1,))
-
-        print("TOTALLY FINE SO FAR 6")
-
-        enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic_real
+        dec_output = self.get_decoder_network_output(
+            F, past_target, past_feat_dynamic_real
         )
 
-        # TODO: figure out WHY IS THIS NEEDED HERE?
-        enc_output_static = (
-            F.zeros(shape=(1,))
-            if enc_output_static is None
-            else enc_output_static
-        )
-
-        print("TOTALLY FINE SO FAR 7")
-
-        dec_inp_static, dec_inp_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, future_feat_dynamic_real,
-        )
-
-        dec_output = self.decoder(dec_inp_dynamic, dec_inp_static)
         fcst_output = F.slice_axis(dec_output, axis=1, begin=-1, end=None)
         fcst_output = F.squeeze(fcst_output, axis=1)
-
         predictions = self.quantile_proj(fcst_output).swapaxes(2, 1)
+
         return predictions

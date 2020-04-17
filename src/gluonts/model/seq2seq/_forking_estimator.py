@@ -149,20 +149,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         #     else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         # )
 
-        # TODO: refactor this variable name: dynamic_network, in fact it
-        #  is not even necessary as is, because this is how use_dynamic_feat was
-        #  set in MQCNNEstimator and otherwise its not used, i.e. False
-        # # is target only network or not?
-        # self.use_dynamic_real = (
-        #     use_dynamic_feat or add_time_feature or add_age_feature or True  # TODO: fix this
-        # )
-        #
-        # print(f"use_dynamic_network: {self.use_dynamic_real}")
-
     def create_transformation(self) -> Transformation:
-        # if not self.use_feat_dynamic_real:
-        #     remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
-
         chain = []
         dynamic_feat_fields = []
 
@@ -188,12 +175,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             )
             dynamic_feat_fields.append(FieldName.FEAT_AGE)
 
-        # TODO: there may have been a bug here
         if self.use_feat_dynamic_real:
-            print("NO IM HERE")
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
         else:
-            print("IM HERE")
             chain.append(
                 RemoveFields(field_names=[FieldName.FEAT_DYNAMIC_REAL])
             )
@@ -224,7 +208,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             len(dynamic_feat_fields) == 1
             and FieldName.FEAT_DYNAMIC_REAL not in dynamic_feat_fields
         ):
-            print("ONLY HAVE DYNAMIC REAL")
             chain.append(
                 RenameFields(
                     {dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC_REAL}
@@ -265,8 +248,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             Quantile.from_float(quantile).name
             for quantile in self.quantile_output.quantiles
         ]
-
-        print("TOTALLY FINE THUS FAR P1")
 
         prediction_network = ForkingSeq2SeqPredictionNetwork(
             encoder=trained_network.encoder,
