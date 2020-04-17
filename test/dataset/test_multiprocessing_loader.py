@@ -48,8 +48,11 @@ NUM_WORKERS_MP = (
 CONTEXT_LEN = 7
 SPLITTING_SAMPLE_PROBABILITY = 1  # crucial for the ValidationDataLoader test
 CD_NUM_STEPS = 14
-CD_NUM_TIME_SERIES = 50  # too small and batch test might fail
+CD_NUM_TIME_SERIES = 47  # too small and batch test might fail
 CD_MAX_LEN_MULTIPLICATION_FACTOR = 3
+
+# NEEDED FOR SEGMENTATION COVERAGE TEST:
+assert CD_NUM_TIME_SERIES % NUM_WORKERS_MP != 0
 
 # CACHED DATA
 
@@ -162,6 +165,10 @@ def test_validation_loader_equivalence() -> None:
 
     # ASSERTIONS:
 
+    assert len(list_dataset.list_data) == len(
+        get_transformation_counts(mp_val_data_loader_result_01)
+    ), "The dataloaders do not cover the whole dataset. Check that each time series was assigned at least one worker."
+
     assert get_transformation_counts(
         mp_val_data_loader_result_01
     ) == get_transformation_counts(
@@ -271,6 +278,7 @@ def test_training_loader_soft_constraint_01() -> None:
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
+        num_batches_for_shuffling=1,
     )
 
     # give all the workers a little time to get ready, so they can start at the same time
@@ -312,6 +320,7 @@ def test_training_loader_soft_constraint_02() -> None:
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(0.5 * exp_num_batches),
+        num_batches_for_shuffling=1,
     )
 
     # multi-processed validation dataset
@@ -348,6 +357,7 @@ def test_training_loader_soft_constraint_03() -> None:
         num_workers=1,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
+        num_batches_for_shuffling=1,
     )
 
     # multi-processed validation dataset

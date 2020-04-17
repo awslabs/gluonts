@@ -47,12 +47,12 @@ class Timer:
     """Context manager for measuring the time of enclosed code fragments."""
 
     def __enter__(self):
-        self.start = time.clock()
+        self.start = time.perf_counter()
         self.interval = None
         return self
 
     def __exit__(self, *args):
-        self.end = time.clock()
+        self.end = time.perf_counter()
         self.interval = self.end - self.start
 
 
