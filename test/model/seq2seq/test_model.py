@@ -50,7 +50,7 @@ def test_accuracy(
         num_batches_per_epoch=100, hybridize=hybridize, quantiles=quantiles
     )
 
-    accuracy_test(Estimator, hyperparameters, accuracy=0.25)
+    accuracy_test(Estimator, hyperparameters, accuracy=0.20)
 
 
 @pytest.mark.parametrize("use_feat_dynamic_real", [True, False])

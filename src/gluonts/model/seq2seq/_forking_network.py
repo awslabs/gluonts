@@ -195,6 +195,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         dec_dist_output = self.quantile_proj(dec_output)
         loss = self.loss(future_target, dec_dist_output)
 
+        # mask the loss based on observed indicator
         weighted_loss = weighted_average(
             F=F, x=loss, weights=future_observed_values, axis=1
         )

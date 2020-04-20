@@ -109,8 +109,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         The age feature starts with a small value at the start of the time series and grows over time.
     trainer
         trainer (default: Trainer())
-    dummy_value
-        Value to use for replacing missing values (default: 0.0)
     dtype
         (default: np.float32)
     """
@@ -131,7 +129,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         add_time_feature: bool = False,
         add_age_feature: bool = False,
         trainer: Trainer = Trainer(),
-        dummy_value: float = 0.0,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer)
@@ -177,14 +174,15 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.use_dynamic_feat = (
             use_feat_dynamic_real or add_age_feature or add_time_feature
         )
-
-        self.dummy_value = dummy_value
         self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
         chain = []
         dynamic_feat_fields = []
-        remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
+        remove_field_names = [
+            FieldName.FEAT_DYNAMIC_CAT,
+            FieldName.FEAT_STATIC_REAL,
+        ]
 
         # --- GENERAL TRANSFORMATION CHAIN ---
 
@@ -203,7 +201,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
-                    dummy_value=self.dummy_value,
                     dtype=self.dtype,
                 ),
             ]
@@ -286,10 +283,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 train_sampler=TestSplitSampler(),
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
-                encoder_series_fields=[
-                    FieldName.FEAT_DYNAMIC,
-                    FieldName.OBSERVED_VALUES,
-                ],
+                encoder_series_fields=[FieldName.FEAT_DYNAMIC],
+                shared_series_fields=[FieldName.OBSERVED_VALUES],
             ),
         )
 
@@ -312,7 +307,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         transformation: Transformation,
         trained_network: ForkingSeq2SeqNetworkBase,
     ) -> Predictor:
-        # todo: this is specific to quantile output
+        # this is specific to quantile output
         quantile_strs = [
             Quantile.from_float(quantile).name
             for quantile in self.quantile_output.quantiles

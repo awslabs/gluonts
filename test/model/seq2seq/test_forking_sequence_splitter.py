@@ -124,7 +124,6 @@ def test_forking_sequence_with_features(is_train) -> None:
                 train_sampler=TSplitSampler(),
                 enc_len=5,
                 dec_len=3,
-                target_in=FieldName.TARGET,
                 encoder_series_fields=[
                     FieldName.FEAT_AGE,
                     FieldName.FEAT_TIME,

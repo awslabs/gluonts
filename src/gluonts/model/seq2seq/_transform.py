@@ -44,13 +44,12 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         train_sampler,
         enc_len: int,
         dec_len: int,
-        target_in: str = FieldName.TARGET,
-        observed_in: str = FieldName.OBSERVED_VALUES,
+        target_field=FieldName.TARGET,
         encoder_series_fields: Optional[List[str]] = None,
         decoder_series_fields: Optional[List[str]] = None,
+        shared_series_fields: Optional[List[str]] = None,
         is_pad_out: str = "is_pad",
         start_input_field: str = "start",
-        forecast_start_output_field: str = "forecast_start",
     ) -> None:
 
         assert enc_len > 0, "The value of `enc_len` should be > 0"
@@ -59,17 +58,24 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         self.train_sampler = train_sampler
         self.enc_len = enc_len
         self.dec_len = dec_len
-        self.target_in = target_in
-        self.observed_in = observed_in
-        self.is_pad_out = is_pad_out
-        self.start_in = start_input_field
-        self.forecast_start_out = forecast_start_output_field
-        self.ts_fields = (
+        self.target_field = target_field
+
+        self.encoder_series_fields = (
             encoder_series_fields if encoder_series_fields is not None else []
         )
         self.decoder_series_fields = (
             decoder_series_fields if decoder_series_fields is not None else []
         )
+        # defines the fields that are shared among encoder and decoder,
+        # this includes the target by default
+        self.shared_series_fields = (
+            shared_series_fields + [self.target_field]
+            if shared_series_fields is not None
+            else [self.target_field]
+        )
+
+        self.is_pad_out = is_pad_out
+        self.start_in = start_input_field
 
     def _past(self, col_name):
         return f"past_{col_name}"
@@ -80,7 +86,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
-        target = data[self.target_in]
+        target = data[self.target_field]
 
         if is_train:
             # We currently cannot handle time series that are shorter than the
@@ -97,11 +103,13 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             sampling_indices = [len(target)]
 
         decoder_fields = set(
-            [self.target_in, self.observed_in] + self.decoder_series_fields
+            self.shared_series_fields + self.decoder_series_fields
         )
 
         ts_fields_counter = Counter(
-            self.ts_fields + [self.target_in] + self.decoder_series_fields
+            self.encoder_series_fields
+            + self.shared_series_fields
+            + self.decoder_series_fields
         )
 
         for sampling_idx in sampling_indices:
@@ -129,16 +137,13 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 out[self._past(ts_field)] = past_piece.transpose()
 
                 # in prediction mode, don't provide decode-values
-                if not is_train and (
-                    ts_field in [self.target_in, self.observed_in]
-                ):
+                if not is_train and (ts_field in self.shared_series_fields):
                     continue
 
                 if ts_field in decoder_fields:
-                    d3: Any = () if ts_field in [
-                        self.target_in,
-                        self.observed_in,
-                    ] else (len(ts),)
+                    d3: Any = () if ts_field in self.shared_series_fields else (
+                        len(ts),
+                    )
                     forking_dec_field = np.zeros(
                         shape=(self.enc_len, self.dec_len) + d3
                     )
@@ -158,8 +163,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             pad_indicator[:pad_length] = True
             out[self._past(self.is_pad_out)] = pad_indicator
 
-            # So far pad forecast_start_out not in use
-            out[self.forecast_start_out] = shift_timestamp(
+            # So far pad forecast_start not in use
+            out[FieldName.FORECAST_START] = shift_timestamp(
                 out[self.start_in], sampling_idx
             )
 
