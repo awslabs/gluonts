@@ -12,14 +12,17 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional
+from typing import Optional, List
+
+# Third-party imports
+import numpy as np
 
 # First-party imports
 from gluonts.block.decoder import Seq2SeqDecoder
 from gluonts.block.enc2dec import PassThroughEnc2Dec
 from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
-from gluonts.core.component import validated
+from gluonts.core.component import validated, DType
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
@@ -38,6 +41,9 @@ from gluonts.transform import (
     RenameFields,
     AddConstFeature,
     RemoveFields,
+    AsNumpyArray,
+    AddObservedValuesIndicator,
+    SetField,
 )
 
 # Relative imports
@@ -84,17 +90,29 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         frequency of the time series
     prediction_length
         length of the decoding sequence
+    context_length
+        length of the encoding sequence (prediction_length is used if None)
     use_feat_dynamic_real
         Whether to use the ``feat_dynamic_real`` field from the data (default: False)
+    use_feat_static_cat:
+        Whether to use the ``feat_static_cat`` field from the data (default: False)
+    cardinality: List[int] = None,
+        Number of values of each categorical feature.
+        This must be set if ``use_feat_static_cat == True`` (default: None)
+    embedding_dimension: List[int] = None,
+        Dimension of the embeddings for categorical features
+        (default: [min(50, (cat+1)//2) for cat in cardinality])
     add_time_feature
         Adds a set of time features.
     add_age_feature
         Adds an age feature.
         The age feature starts with a small value at the start of the time series and grows over time.
-    context_length
-        length of the encoding sequence (prediction_length is used if None)
     trainer
-        trainer
+        trainer (default: Trainer())
+    dummy_value
+        Value to use for replacing missing values (default: 0.0)
+    dtype
+        (default: np.float32)
     """
 
     @validated()
@@ -107,9 +125,14 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         prediction_length: int,
         context_length: Optional[int] = None,
         use_feat_dynamic_real: bool = False,
+        use_feat_static_cat: bool = False,
+        cardinality: List[int] = None,
+        embedding_dimension: List[int] = None,
         add_time_feature: bool = False,
         add_age_feature: bool = False,
         trainer: Trainer = Trainer(),
+        dummy_value: float = 0.0,
+        dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -119,15 +142,15 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         assert (
             prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
-        # assert (cardinality and use_feat_static_cat) or (
-        #     not (cardinality or use_feat_static_cat)
-        # ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
-        # assert cardinality is None or all(
-        #     [c > 0 for c in cardinality]
-        # ), "Elements of `cardinality` should be > 0"
-        # assert embedding_dimension is None or all(
-        #     [e > 0 for e in embedding_dimension]
-        # ), "Elements of `embedding_dimension` should be > 0"
+        assert (cardinality and use_feat_static_cat) or (
+            not (cardinality or use_feat_static_cat)
+        ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
+        assert cardinality is None or all(
+            [c > 0 for c in cardinality]
+        ), "Elements of `cardinality` should be > 0"
+        assert embedding_dimension is None or all(
+            [e > 0 for e in embedding_dimension]
+        ), "Elements of `embedding_dimension` should be > 0"
 
         self.encoder = encoder
         self.decoder = decoder
@@ -140,25 +163,53 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             else self.prediction_length
         )
         self.use_feat_dynamic_real = use_feat_dynamic_real
+        self.use_feat_static_cat = use_feat_static_cat
+        self.cardinality = (
+            cardinality if cardinality and use_feat_static_cat else [1]
+        )
+        self.embedding_dimension = (
+            embedding_dimension
+            if embedding_dimension is not None
+            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
+        )
         self.add_time_feature = add_time_feature
         self.add_age_feature = add_age_feature
         self.use_dynamic_feat = (
             use_feat_dynamic_real or add_age_feature or add_time_feature
         )
 
-        # self.use_feat_static_cat = use_feat_static_cat
-        # self.cardinality = (
-        #     cardinality if cardinality and use_feat_static_cat else [1]
-        # )
-        # self.embedding_dimension = (
-        #     embedding_dimension
-        #     if embedding_dimension is not None
-        #     else [min(50, (cat + 1) // 2) for cat in self.cardinality]
-        # )
+        self.dummy_value = dummy_value
+        self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
         chain = []
         dynamic_feat_fields = []
+        remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
+
+        # --- GENERAL TRANSFORMATION CHAIN ---
+
+        # determine unused input
+        if not self.use_feat_dynamic_real:
+            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
+        if not self.use_feat_static_cat:
+            remove_field_names.append(FieldName.FEAT_STATIC_CAT)
+
+        chain.extend(
+            [
+                RemoveFields(field_names=remove_field_names),
+                AsNumpyArray(
+                    field=FieldName.TARGET, expected_ndim=1, dtype=self.dtype
+                ),
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                    dummy_value=self.dummy_value,
+                    dtype=self.dtype,
+                ),
+            ]
+        )
+
+        # --- TRANSFORMATION CHAIN FOR DYNAMIC FEATURES ---
 
         if self.add_time_feature:
             chain.append(
@@ -178,16 +229,13 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     target_field=FieldName.TARGET,
                     output_field=FieldName.FEAT_AGE,
                     pred_length=self.prediction_length,
+                    dtype=self.dtype,
                 ),
             )
             dynamic_feat_fields.append(FieldName.FEAT_AGE)
 
         if self.use_feat_dynamic_real:
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
-        else:
-            chain.append(
-                RemoveFields(field_names=[FieldName.FEAT_DYNAMIC_REAL])
-            )
 
         # we need to make sure that there is always some dynamic input
         # we will however disregard it in the hybrid forward
@@ -197,6 +245,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     target_field=FieldName.TARGET,
                     output_field=FieldName.FEAT_CONST,
                     pred_length=self.prediction_length,
+                    dtype=self.dtype,
                 ),
             )
             dynamic_feat_fields.append(FieldName.FEAT_CONST)
@@ -214,6 +263,22 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 RenameFields({dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC})
             )
 
+        # --- TRANSFORMATION CHAIN FOR STATIC FEATURES ---
+
+        if not self.use_feat_static_cat:
+            chain.append(
+                SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0]),
+            )
+        chain.append(
+            AsNumpyArray(
+                field=FieldName.FEAT_STATIC_CAT,
+                expected_ndim=1,
+                dtype=self.dtype,
+            ),
+        )
+
+        # --- SAMPLE AND CUT THE TIME-SERIES ---
+
         chain.append(
             # because of how the forking decoder works, every time step
             # in context is used for splitting, which is why we use the TestSplitSampler
@@ -222,8 +287,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
                 encoder_series_fields=[
-                    FieldName.FEAT_DYNAMIC
-                ],  # TODO: later add categorical too
+                    FieldName.FEAT_DYNAMIC,
+                    FieldName.OBSERVED_VALUES,
+                ],
             ),
         )
 
@@ -235,6 +301,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=PassThroughEnc2Dec(),
             decoder=self.decoder,
             quantile_output=self.quantile_output,
+            context_length=self.context_length,
+            cardinality=self.cardinality,
+            embedding_dimension=self.embedding_dimension,
+            dtype=self.dtype,
         )
 
     def create_predictor(
@@ -253,6 +323,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=trained_network.enc2dec,
             decoder=trained_network.decoder,
             quantile_output=trained_network.quantile_output,
+            context_length=self.context_length,
+            cardinality=self.cardinality,
+            embedding_dimension=self.embedding_dimension,
+            dtype=self.dtype,
         )
 
         copy_parameters(trained_network, prediction_network)

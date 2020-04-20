@@ -68,8 +68,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         assert dilation_seq is None or all(
             [d > 0 for d in dilation_seq]
         ), "Elements of `dilation_seq` should be > 0"
+        # TODO: add support for kernel size=1
         assert kernel_size_seq is None or all(
-            [d > 0 for d in kernel_size_seq]
+            [d > 1 for d in kernel_size_seq]
         ), "Elements of `kernel_size_seq` should be > 0"
         assert quantiles is None or all(
             [0 <= d <= 1 for d in quantiles]
@@ -106,12 +107,14 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             np.random.seed(seed)
             mx.random.seed(seed)
 
+        # `use_static_feat` and `use_dynamic_feat` always True because network
+        # always receives input; either from the input data or constants
         encoder = HierarchicalCausalConv1DEncoder(
             dilation_seq=self.dilation_seq,
             kernel_size_seq=self.kernel_size_seq,
             channels_seq=self.channels_seq,
             use_residual=use_residual,
-            use_static_feat=False,
+            use_static_feat=True,
             use_dynamic_feat=True,
             prefix="encoder_",
         )
@@ -133,6 +136,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             prediction_length=prediction_length,
             context_length=context_length,
             use_feat_dynamic_real=use_feat_dynamic_real,
+            use_feat_static_cat=use_feat_static_cat,
+            cardinality=cardinality,
+            embedding_dimension=embedding_dimension,
             add_time_feature=add_time_feature,
             add_age_feature=add_age_feature,
             trainer=trainer,
@@ -144,8 +150,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
 
         return {
             "use_feat_dynamic_real": stats.num_feat_dynamic_real > 0,
-            # "use_feat_static_cat": bool(stats.feat_static_cat),
-            # "cardinality": [len(cats) for cats in stats.feat_static_cat],
+            "use_feat_static_cat": bool(stats.feat_static_cat),
+            "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
 
 
@@ -183,13 +189,15 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             quantiles if quantiles is not None else [0.1, 0.5, 0.9]
         )
 
+        # `use_static_feat` and `use_dynamic_feat` always True because network
+        # always receives input; either from the input data or constants
         encoder = RNNEncoder(
             mode="gru",
             hidden_size=50,
             num_layers=1,
             bidirectional=True,
             prefix="encoder_",
-            use_static_feat=False,
+            use_static_feat=True,
             use_dynamic_feat=True,
         )
 

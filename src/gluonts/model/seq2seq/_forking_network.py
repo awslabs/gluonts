@@ -12,9 +12,12 @@
 # permissions and limitations under the License.
 
 # Third-party imports
+from typing import List
+
+# Third-party imports
 import mxnet as mx
 from mxnet import gluon
-
+import numpy as np
 
 # First-party imports
 from gluonts.block.decoder import Seq2SeqDecoder
@@ -23,6 +26,10 @@ from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
+from gluonts.block.feature import FeatureEmbedder
+from gluonts.block.scaler import MeanScaler, NOPScaler
+from gluonts.core.component import DType
+from gluonts.support.util import weighted_average
 
 
 class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
@@ -39,6 +46,14 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         decoder block
     quantile_output: QuantileOutput
         quantile output block
+    context_length: int,
+        length of the encoding sequence
+    cardinality: List[int],
+        number of values of each categorical feature.
+    embedding_dimension: List[int],
+        dimension of the embeddings for categorical features
+    dtype
+        (default: np.float32)
     kwargs: dict
         dictionary of Gluon HybridBlock parameters
     """
@@ -50,6 +65,10 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         enc2dec: Seq2SeqEnc2Dec,
         decoder: Seq2SeqDecoder,
         quantile_output: QuantileOutput,
+        context_length: int,
+        cardinality: List[int],
+        embedding_dimension: List[int],
+        dtype: DType = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -58,26 +77,71 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         self.enc2dec = enc2dec
         self.decoder = decoder
         self.quantile_output = quantile_output
+        self.context_length = context_length
+        self.cardinality = cardinality
+        self.embedding_dimension = embedding_dimension
+        self.dtype = dtype
+
+        # TODO: implement scaling
+        scaling = False
+        if scaling:
+            self.scaler = MeanScaler(keepdims=True)
+        else:
+            self.scaler = NOPScaler(keepdims=True)
 
         with self.name_scope():
             self.quantile_proj = quantile_output.get_quantile_proj()
             self.loss = quantile_output.get_loss()
+            self.embedder = FeatureEmbedder(
+                cardinalities=cardinality,
+                embedding_dims=embedding_dimension,
+                dtype=self.dtype,
+            )
 
     # this method connects the sub-networks and returns the decoder output
     def get_decoder_network_output(
-        self, F, past_target: Tensor, past_feat_dynamic: Tensor
+        self,
+        F,
+        past_target: Tensor,
+        past_feat_dynamic: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,
     ) -> Tensor:
-        feat_static_real = F.zeros(shape=(1,))
-        future_feat_dynamic_real = F.zeros(shape=(1,))
+
+        # scale is computed on the context length last units of the past target
+        # scale shape is (batch_size, 1, *target_shape)
+        _, scale = self.scaler(
+            past_target.slice_axis(
+                axis=1, begin=-self.context_length, end=None
+            ),
+            past_observed_values.slice_axis(
+                axis=1, begin=-self.context_length, end=None
+            ),
+        )
+
+        # (batch_size, num_features)
+        embedded_cat = self.embedder(feat_static_cat)
+
+        # in addition to embedding features, use the log scale as it can help prediction too
+        # (batch_size, num_features + prod(target_shape))
+        feat_static_real = F.concat(
+            embedded_cat, F.log(scale.squeeze(axis=1)), dim=1,
+        )
+
+        # Passing past_observed_values as a feature would allow the network to
+        # make that distinction and possibly ignore the masked values.
+        past_feat_dynamic_extended = F.concat(
+            past_feat_dynamic, past_observed_values, dim=-1
+        )
 
         # arguments: target, static_features, dynamic_features
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic
+            past_target, feat_static_real, past_feat_dynamic_extended
         )
 
         # arguments: encoder_output_static, encoder_output_dynamic, future_features
         dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, future_feat_dynamic_real
+            enc_output_static, enc_output_dynamic, F.zeros(shape=(1,))
         )
 
         # arguments: dynamic_input, static_input
@@ -86,16 +150,67 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         return dec_output
 
 
-# TODO: figure out whether we need 2 classes each, in fact we would need 4 each,
-#  if adding categorical with this technique, does not seem reasonable
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
+    # noinspection PyMethodOverriding
+    def hybrid_forward(
+        self,
+        F,
+        future_target: Tensor,
+        past_target: Tensor,
+        past_feat_dynamic: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,  # FOR SOME REASON NOT USED???
+        future_observed_values: Tensor,
+    ) -> Tensor:
+        """
+        Parameters
+        ----------
+        F: mx.symbol or mx.ndarray
+            Gluon function space
+        future_target: Tensor
+            shape (batch_size, encoder_length, decoder_length)
+        past_target: Tensor
+            shape (batch_size, encoder_length, 1)
+        feat_static_cat
+            shape (batch_size, encoder_length, num_feature_static_cat)
+        past_feat_dynamic
+            shape (batch_size, encoder_length, num_feature_dynamic)
+        past_observed_values: Tensor
+            shape (batch_size, encoder_length, 1)
+        future_observed_values: Tensor
+            shape (batch_size, encoder_length, decoder_length)
+
+        Returns
+        -------
+        loss with shape (batch_size, prediction_length)
+        """
+        dec_output = self.get_decoder_network_output(
+            F,
+            past_target,
+            past_feat_dynamic,
+            feat_static_cat,
+            past_observed_values,
+        )
+
+        dec_dist_output = self.quantile_proj(dec_output)
+        loss = self.loss(future_target, dec_dist_output)
+
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=future_observed_values, axis=1
+        )
+
+        return weighted_loss
+
+
+class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
         past_target: Tensor,
         past_feat_dynamic: Tensor,
-        future_target: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,
     ) -> Tensor:
         """
         Parameters
@@ -103,43 +218,25 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         F: mx.symbol or mx.ndarray
             Gluon function space
         past_target: Tensor
-            FIXME
-        future_target: Tensor
-            shape (num_ts, encoder_length, 1) FIXME
+             shape (batch_size, encoder_length, 1)
+        feat_static_cat
+            shape (batch_size, encoder_length, num_feature_static_cat)
+        past_feat_dynamic
+            shape (batch_size, encoder_length, num_feature_dynamic)
+        past_observed_values: Tensor
+            shape (batch_size, encoder_length, 1)
 
         Returns
         -------
-        loss with shape (FIXME, FIXME)
+        prediction tensor with shape (batch_size, prediction_length)
         """
+
         dec_output = self.get_decoder_network_output(
-            F, past_target, past_feat_dynamic
-        )
-
-        dec_dist_output = self.quantile_proj(dec_output)
-        loss = self.loss(future_target, dec_dist_output)
-
-        return loss.mean(axis=1)
-
-
-class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
-    # noinspection PyMethodOverriding
-    def hybrid_forward(
-        self, F, past_target: Tensor, past_feat_dynamic: Tensor
-    ) -> Tensor:
-        """
-        Parameters
-        ----------
-        F: mx.symbol or mx.ndarray
-            Gluon function space
-        past_target: Tensor
-            FIXME
-
-        Returns
-        -------
-        prediction tensor with shape (FIXME, FIXME)
-        """
-        dec_output = self.get_decoder_network_output(
-            F, past_target, past_feat_dynamic
+            F,
+            past_target,
+            past_feat_dynamic,
+            feat_static_cat,
+            past_observed_values,
         )
 
         fcst_output = F.slice_axis(dec_output, axis=1, begin=-1, end=None)

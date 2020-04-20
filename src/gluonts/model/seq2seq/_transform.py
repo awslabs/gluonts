@@ -13,7 +13,7 @@
 
 # Standard library imports
 from collections import Counter
-from typing import Iterator, List, Any
+from typing import Iterator, List, Any, Optional
 
 # Third-party imports
 import numpy as np
@@ -21,6 +21,7 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 from gluonts.transform import FlatMapTransformation, shift_timestamp
 
 
@@ -43,9 +44,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         train_sampler,
         enc_len: int,
         dec_len: int,
-        target_in: str = "target",
-        encoder_series_fields: List[str] = None,
-        decoder_series_fields: List[str] = [],
+        target_in: str = FieldName.TARGET,
+        observed_in: str = FieldName.OBSERVED_VALUES,
+        encoder_series_fields: Optional[List[str]] = None,
+        decoder_series_fields: Optional[List[str]] = None,
         is_pad_out: str = "is_pad",
         start_input_field: str = "start",
         forecast_start_output_field: str = "forecast_start",
@@ -57,20 +59,21 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         self.train_sampler = train_sampler
         self.enc_len = enc_len
         self.dec_len = dec_len
-        self.ts_fields = (
-            encoder_series_fields if encoder_series_fields is not None else []
-        )
         self.target_in = target_in
+        self.observed_in = observed_in
         self.is_pad_out = is_pad_out
         self.start_in = start_input_field
         self.forecast_start_out = forecast_start_output_field
-        self.decoder_series_fields = decoder_series_fields
+        self.ts_fields = (
+            encoder_series_fields if encoder_series_fields is not None else []
+        )
+        self.decoder_series_fields = (
+            decoder_series_fields if decoder_series_fields is not None else []
+        )
 
-    # TODO: make use of these
     def _past(self, col_name):
         return f"past_{col_name}"
 
-    # TODO: make use of these
     def _future(self, col_name):
         return f"future_{col_name}"
 
@@ -93,7 +96,9 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         else:
             sampling_indices = [len(target)]
 
-        decoder_fields = set([self.target_in] + self.decoder_series_fields)
+        decoder_fields = set(
+            [self.target_in, self.observed_in] + self.decoder_series_fields
+        )
 
         ts_fields_counter = Counter(
             self.ts_fields + [self.target_in] + self.decoder_series_fields
@@ -124,11 +129,16 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 out[self._past(ts_field)] = past_piece.transpose()
 
                 # in prediction mode, don't provide decode-values
-                if not is_train and ts_field == self.target_in:
+                if not is_train and (
+                    ts_field in [self.target_in, self.observed_in]
+                ):
                     continue
 
                 if ts_field in decoder_fields:
-                    d3: Any = () if ts_field == self.target_in else (len(ts),)
+                    d3: Any = () if ts_field in [
+                        self.target_in,
+                        self.observed_in,
+                    ] else (len(ts),)
                     forking_dec_field = np.zeros(
                         shape=(self.enc_len, self.dec_len) + d3
                     )
