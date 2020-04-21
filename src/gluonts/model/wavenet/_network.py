@@ -466,7 +466,7 @@ class WaveNetSampler(WaveNet):
 
         with self.name_scope():
             self.post_transform = LookupValues(
-                mx.nd.array(np.ndarray(bin_values, dtype=np.float32))
+                mx.nd.array(np.array(bin_values, dtype=np.float32))
             )
 
     def get_initial_conv_queues(self, F, past_target, features):
