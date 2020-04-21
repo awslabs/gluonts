@@ -9,8 +9,8 @@ Note that the evaluations are not "optimal" in the sense that the models are tra
 estimator | electricity | exchange_rate | m4_daily | m4_hourly | m4_monthly | m4_quarterly | m4_weekly | m4_yearly | solar-energy | traffic
 ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----
 DeepAREstimator | 0.050 | 0.023 | 0.025 | 0.033 | 0.115 | 0.087 | 0.048 | 0.128 | 0.398 | 0.126
-MQCNNEstimator | 0.083 | 0.016 | 0.027 | 0.065 | 0.124 | 0.089 | 0.059 | 0.122 | 0.551 | 0.272
-MQRNNEstimator | 0.197 | 0.004 | 0.222 | 0.298 | 0.209 | 0.326 | 0.104 | 0.328 | 0.164 | 0.087
+MQCNNEstimator | 0.089 | 0.016  | 0.024 | 0.064 | 0.113 | 0.090  | 0.060 | 0.117 | 0.605 | 0.328
+MQRNNEstimator | 0.199 | 0.004 | 0.161 | 0.329 | 0.151 | 0.110 | 0.119 | 0.140 | 0.163 | 0.090
 NPTSPredictor | 0.062 | 0.021 | 0.145 | 0.048 | 0.233 | 0.255 | 0.296 | 0.355 | 0.826 | 0.180
 RForecastPredictor_arima |  | 0.008 | 0.024 | 0.040 |  | 0.080 | 0.050 | 0.124 | 1.153 |
 RForecastPredictor_ets | 0.121 | 0.008 | 0.023 | 0.043 | 0.099 | 0.079 | 0.051 | 0.126 | 1.778 | 0.373
@@ -23,8 +23,8 @@ TransformerEstimator | 0.066 | 0.009 | 0.027 | 0.035 | 0.136 | 0.105 | 0.083 | 0
 estimator | electricity | exchange_rate | m4_daily | m4_hourly | m4_monthly | m4_quarterly | m4_weekly | m4_yearly | solar-energy | traffic
 ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----
 DeepAREstimator | 0.061 | 0.029 | 0.030 | 0.042 | 0.125 | 0.102 | 0.060 | 0.152 | 0.490 | 0.150
-MQCNNEstimator | 0.102 | 0.019 | 0.032 | 0.086 | 0.132 | 0.103 | 0.065 | 0.146 | 0.666 | 0.310
-MQRNNEstimator | 0.639 | 0.015 | 0.662 | 0.906 | 0.660 | 0.981 | 0.345 | 0.987 | 0.702 | 0.334
+MQCNNEstimator | 0.108 | 0.018 | 0.030 | 0.084 | 0.129 | 0.106 | 0.067 | 0.142  | 0.726 | 0.374
+MQRNNEstimator | 0.645 | 0.017 | 0.516 | 0.992 | 0.596 | 0.363 | 0.405  | 0.489 | 0.731 | 0.329
 NPTSPredictor | 0.080 | 0.025 | 0.191 | 0.063 | 0.293 | 0.334 | 0.387 | 0.442 | 1.031 | 0.225
 RForecastPredictor_arima |  | 0.009 | 0.029 | 0.053 |  | 0.097 | 0.060 | 0.148 | 1.150 |
 RForecastPredictor_ets | 0.150 | 0.010 | 0.027 | 0.054 | 0.120 | 0.095 | 0.061 | 0.149 | 1.364 | 0.385
