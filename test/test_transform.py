@@ -25,7 +25,7 @@ import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
-from gluonts.dataset.common import ProcessStartField, DataEntry, ListDataset
+from gluonts.dataset.common import PandasTimestampField, DataEntry, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 
@@ -35,8 +35,8 @@ TEST_VALUES = {
     "is_train": [True, False],
     "target": [np.zeros(0), np.random.rand(13), np.random.rand(100)],
     "start": [
-        ProcessStartField.process("2012-01-02", freq="1D"),
-        ProcessStartField.process("1994-02-19 20:01:02", freq="3D"),
+        PandasTimestampField._process("2012-01-02", freq="1D"),
+        PandasTimestampField._process("1994-02-19 20:01:02", freq="3D"),
     ],
     "use_prediction_features": [True, False],
     "allow_target_padding": [True, False],
@@ -45,7 +45,7 @@ TEST_VALUES = {
 
 def test_align_timestamp():
     def aligned_with(date_str, freq):
-        return str(ProcessStartField.process(date_str, freq=freq))
+        return str(PandasTimestampField._process(date_str, freq=freq))
 
     for _ in range(2):
         assert (
@@ -380,7 +380,6 @@ def test_multi_dim_transformation(is_train):
     ds = gluonts.dataset.common.ListDataset(
         data_iter=[{"start": "2012-01-01", "target": [first_dim, second_dim]}],
         freq="1D",
-        one_dim_target=False,
     )
     pred_length = 2
 
@@ -606,7 +605,6 @@ def test_cdf_to_gaussian_transformation():
                 }
             ],
             freq="1D",
-            one_dim_target=False,
         )
         return ds
 
@@ -692,7 +690,6 @@ def test_target_dim_indicator():
     dataset = gluonts.dataset.common.ListDataset(
         data_iter=[{"start": "2012-01-01", "target": multi_dim_target}],
         freq="1D",
-        one_dim_target=False,
     )
 
     t = transform.Chain(
@@ -724,7 +721,6 @@ def point_process_dataset():
             }
         ],
         freq="H",
-        one_dim_target=False,
     )
 
     return lds

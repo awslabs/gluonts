@@ -32,30 +32,32 @@ from gluonts.dataset.common import (
     TimeSeriesItem,
     save_datasets,
     serialize_data_entry,
+    Schema,
 )
-from gluonts.dataset.common import ProcessDataEntry
 from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
-from gluonts.dataset.jsonl import JsonLinesFile
+from gluonts.dataset.jsonl import JsonLinesFile, open_file
 from gluonts.dataset.util import find_files
 from gluonts.support.util import Timer
 
 
 def baseline(path: Path, freq: str) -> Iterator[Any]:
     for file in find_files(path, FileDataset.is_valid):
-        for line in open(file):
-            yield line
+        with open_file(file) as f:
+            yield from f
 
 
 def load_json(path: Path, freq: str) -> Iterator[Any]:
     for file in find_files(path, FileDataset.is_valid):
-        for line in open(file):
-            yield json.loads(line)
+        with open_file(file) as f:
+            for line in f:
+                yield json.loads(line)
 
 
 def load_ujson(path: Path, freq: str) -> Iterator[Any]:
     for file in find_files(path, FileDataset.is_valid):
-        for line in open(file):
-            yield ujson.loads(line)
+        with open_file(file) as f:
+            for line in f:
+                yield ujson.loads(line)
 
 
 def load_json_lines_file(path: Path, freq: str) -> Iterator[Any]:
@@ -91,7 +93,10 @@ def load_list_dataset(path: Path, freq: str) -> Iterator[Any]:
 
 
 # @pytest.mark.skip()
-def test_io_speed() -> None:
+
+
+@pytest.mark.parametrize("gzip", [True, False])
+def test_io_speed(gzip) -> None:
     exp_size = 250
     act_size = 0
 
@@ -109,10 +114,10 @@ def test_io_speed() -> None:
 
     # name of method, loading function and maximum slowdown expected
     fixtures = [
-        ("baseline", baseline, 100_000),
+        ("baseline", baseline, 100_000 if not gzip else 30_000),
         # ('json.loads', load_json, xxx),
         ("ujson.loads", load_ujson, 20000),
-        ("JsonLinesFile", load_json_lines_file, 10000),
+        ("JsonLinesFile", load_json_lines_file, 10_000),
         ("ListDataset", load_list_dataset, 500),
         ("FileDataset", load_file_dataset, 500),
         ("FileDatasetCached", load_file_dataset_cached, 500),
@@ -123,7 +128,7 @@ def test_io_speed() -> None:
     with tempfile.TemporaryDirectory() as path:
         # save the generated dataset to a temporary folder
         with Timer() as timer:
-            save_datasets(dataset, path)
+            save_datasets(dataset, path, gzip=gzip)
         print(f"Test data saving took {timer.interval} seconds")
 
         # for each loader, read the dataset, assert that the number of lines is
@@ -138,7 +143,7 @@ def test_io_speed() -> None:
                     pass
             rates[name] = int(act_size / max(timer.interval, 0.00001))
             print(
-                f"Loader {name:13} achieved a rate of {rates[name]:10} "
+                f"Loader {name:13} with gzip={gzip} achieved a rate of {rates[name]:10} "
                 f"lines/second"
             )
             assert exp_size == act_size, (
@@ -166,14 +171,13 @@ def test_loader_multivariate() -> None:
         ]
         with open(tmp_path / "dataset.json", "w") as f:
             f.write("\n".join(lines))
+        ds = FileDataset(tmp_path, freq="1D")
+        data = list(ds)
+        assert (data[0]["target"] == [[1, 2, 3]]).all()
+        assert data[0]["start"] == Timestamp("2014-09-07", freq="D")
 
-        ds = list(FileDataset(tmp_path, freq="1D", one_dim_target=False))
-
-        assert (ds[0]["target"] == [[1, 2, 3]]).all()
-        assert ds[0]["start"] == Timestamp("2014-09-07", freq="D")
-
-        assert (ds[1]["target"] == [[-1, -2, 3], [2, 4, 81]]).all()
-        assert ds[1]["start"] == Timestamp("2014-09-07", freq="D")
+        assert (data[1]["target"] == [[-1, -2, 3], [2, 4, 81]]).all()
+        assert data[1]["start"] == Timestamp("2014-09-07", freq="D")
 
 
 def test_timeseries_item_serialization() -> None:
@@ -187,9 +191,9 @@ def test_timeseries_item_serialization() -> None:
         freq="1H",
         feat_static_cat=[{"name": "feat_static_cat_000", "cardinality": 1}],
     )
-    process = ProcessDataEntry(freq=metadata.freq)
-
-    data_entry = process(ts_item.gluontsify(metadata))
+    data_entry = ts_item.gluontsify(metadata)
+    schema = Schema.infer([data_entry], freq=metadata.freq)
+    schema(data_entry)
     serialized_data = serialize_data_entry(data_entry)
 
     deserialized_ts_item = TimeSeriesItem(**serialized_data)

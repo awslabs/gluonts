@@ -18,7 +18,13 @@ import pandas as pd
 from typing import Callable, Optional
 
 # First-party imports
-from gluonts.dataset.common import ListDataset, DataEntry, Dataset
+from gluonts.dataset.common import (
+    ListDataset,
+    DataEntry,
+    Dataset,
+    NumpyArrayField,
+    Schema,
+)
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 
@@ -128,9 +134,7 @@ class MultivariateGrouper:
         grouped_data[FieldName.START] = self.first_timestamp
         grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
 
-        return ListDataset(
-            [grouped_data], freq=self.frequency, one_dim_target=False
-        )
+        return ListDataset([grouped_data], freq=self.frequency)
 
     def _prepare_test_data(self, dataset: Dataset) -> ListDataset:
         logging.info("group test time-series to datasets")
@@ -153,9 +157,7 @@ class MultivariateGrouper:
             grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
             all_entries.append(grouped_data)
 
-        return ListDataset(
-            all_entries, freq=self.frequency, one_dim_target=False
-        )
+        return ListDataset(all_entries, freq=self.frequency)
 
     def _align_data_entry(self, data: DataEntry) -> np.array:
         ts = self.to_ts(data)

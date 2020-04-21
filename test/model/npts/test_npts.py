@@ -28,7 +28,7 @@ from gluonts.model.npts._weighted_sampler import WeightedSampler
 
 def get_test_data(history_length: int, freq: str) -> pd.Series:
     index = pd.date_range("1/1/2011", periods=history_length, freq=freq)
-    return pd.Series(np.arange(len(index)), index=index)
+    return pd.Series(np.arange(len(index)).astype(np.float32), index=index)
 
 
 @pytest.mark.parametrize(
