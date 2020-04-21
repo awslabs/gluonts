@@ -325,16 +325,18 @@ class BinnedOutput(DistributionOutput):
         return bin_centers
 
     def distribution(self, args, loc=None, scale=None) -> Binned:
-        probs = args[0]
+        bin_log_probs = args[0]
         bin_centers = args[1]
-        F = getF(probs)
+        F = getF(bin_log_probs)
 
-        bin_centers = F.broadcast_mul(bin_centers, F.ones_like(probs))
+        bin_centers = F.broadcast_mul(bin_centers, F.ones_like(bin_log_probs))
         bin_centers = self._scale_bin_centers(
             F, bin_centers, loc=loc, scale=scale
         )
 
-        return Binned(probs, bin_centers, label_smoothing=self.label_smoothing)
+        return Binned(
+            bin_log_probs, bin_centers, label_smoothing=self.label_smoothing
+        )
 
     @property
     def event_shape(self) -> Tuple:

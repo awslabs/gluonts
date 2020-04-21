@@ -91,13 +91,15 @@ def accuracy_test(dsinfo):
     from gluonts.evaluation import Evaluator
     from gluonts.evaluation.backtest import backtest_metrics
 
-    def test_accuracy(Estimator, hyperparameters, accuracy):
+    def test_accuracy(Estimator, hyperparameters, accuracy, num_workers=None):
         estimator = from_hyperparameters(Estimator, hyperparameters, dsinfo)
         agg_metrics, item_metrics = backtest_metrics(
             train_dataset=dsinfo.train_ds,
             test_dataset=dsinfo.test_ds,
             forecaster=estimator,
-            evaluator=Evaluator(calculate_owa=statsmodels is not None),
+            evaluator=Evaluator(
+                calculate_owa=statsmodels is not None, num_workers=num_workers
+            ),
         )
 
         if dsinfo.name == "synthetic":

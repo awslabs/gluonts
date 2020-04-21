@@ -33,11 +33,30 @@ def hyperparameters(dsinfo):
 
 
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_accuracy(accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=10, hybridize=hybridize)
+@pytest.mark.parametrize("sample_based_forecast", [True, False])
+def test_accuracy(
+    accuracy_test, hyperparameters, hybridize, sample_based_forecast
+):
+    # TODO: `WavenetEstimator` only works in ndarray mode when `sample_based_forecast` is False
+    if not sample_based_forecast:
+        hybridize = False
+
+    hyperparameters.update(
+        num_batches_per_epoch=10,
+        hybridize=hybridize,
+        sample_based_forecast=sample_based_forecast,
+    )
+
+    # TODO: fix pickling when the predictor produces `DistributionForecast` as opposed to `SampleForecast`.
+    num_workers = None if sample_based_forecast else 0
 
     # large value as this test is breaking frequently
-    accuracy_test(WaveNetEstimator, hyperparameters, accuracy=0.7)
+    accuracy_test(
+        WaveNetEstimator,
+        hyperparameters,
+        accuracy=0.7,
+        num_workers=num_workers,
+    )
 
 
 def test_repr(repr_test, hyperparameters):

@@ -118,8 +118,8 @@ class DistributionForecastGenerator(ForecastGenerator):
                 )
 
             distributions = [
-                self.distr_output.distribution(*u)
-                for u in _extract_instances(outputs)
+                self.distr_output.distribution(distr_args, scale=scale)
+                for distr_args, scale in _extract_instances(outputs)
             ]
 
             i = -1
