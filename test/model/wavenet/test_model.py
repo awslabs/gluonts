@@ -33,7 +33,7 @@ def hyperparameters(dsinfo):
     )
 
 
-@pytest.mark.xfail(
+@pytest.mark.skipif(
     sys.platform == "win32", reason="test times out for some reason"
 )
 @pytest.mark.parametrize("hybridize", [True, False])
