@@ -63,17 +63,17 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             d > 0 for d in decoder_mlp_dim_seq
         ), "Elements of `mlp_hidden_dimension_seq` should be > 0"
         assert channels_seq is None or all(
-            [d > 0 for d in channels_seq]
+            d > 0 for d in channels_seq
         ), "Elements of `channels_seq` should be > 0"
         assert dilation_seq is None or all(
-            [d > 0 for d in dilation_seq]
+            d > 0 for d in dilation_seq
         ), "Elements of `dilation_seq` should be > 0"
         # TODO: add support for kernel size=1
         assert kernel_size_seq is None or all(
-            [d > 1 for d in kernel_size_seq]
+            d > 1 for d in kernel_size_seq
         ), "Elements of `kernel_size_seq` should be > 0"
         assert quantiles is None or all(
-            [0 <= d <= 1 for d in quantiles]
+            0 <= d <= 1 for d in quantiles
         ), "Elements of `quantiles` should be >= 0 and <= 1"
 
         self.decoder_mlp_dim_seq = (
@@ -176,10 +176,10 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             prediction_length > 0
         ), f"Invalid prediction length: {prediction_length}."
         assert decoder_mlp_dim_seq is None or all(
-            [d > 0 for d in decoder_mlp_dim_seq]
+            d > 0 for d in decoder_mlp_dim_seq
         ), "Elements of `mlp_hidden_dimension_seq` should be > 0"
         assert quantiles is None or all(
-            [0 <= d <= 1 for d in quantiles]
+            0 <= d <= 1 for d in quantiles
         ), "Elements of `quantiles` should be >= 0 and <= 1"
 
         self.decoder_mlp_dim_seq = (

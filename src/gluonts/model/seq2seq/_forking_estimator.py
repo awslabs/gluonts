@@ -139,14 +139,14 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         assert (
             prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
-        assert (cardinality and use_feat_static_cat) or (
-            not (cardinality or use_feat_static_cat)
+        assert (
+            use_feat_static_cat or not cardinality
         ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
         assert cardinality is None or all(
-            [c > 0 for c in cardinality]
+            c > 0 for c in cardinality
         ), "Elements of `cardinality` should be > 0"
         assert embedding_dimension is None or all(
-            [e > 0 for e in embedding_dimension]
+            e > 0 for e in embedding_dimension
         ), "Elements of `embedding_dimension` should be > 0"
 
         self.encoder = encoder

@@ -74,7 +74,7 @@ class Seq2SeqEstimator(GluonEstimator):
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert quantiles is None or all(
-            [0 <= d <= 1 for d in quantiles]
+            0 <= d <= 1 for d in quantiles
         ), "Elements of `quantiles` should be >= 0 and <= 1"
 
         super().__init__(trainer=trainer)

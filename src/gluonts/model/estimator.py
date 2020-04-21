@@ -77,12 +77,9 @@ class Estimator:
     def from_inputs(cls, train_iter, **params):
         # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
         auto_params = cls.derive_auto_fields(train_iter)
-        # FIXME: probably params should take precedence over auto_params, since they were deliberately set,
-        #   however, on that case this method does not make sense, since if params says `use_feat_dynamic_real`=True
-        #   but `auto_params`=False, then this will lead to an error, since the appropriate data does not exist.
-        #   This the only context in which this method makes sense is when auto_params take precedence, which could
-        #   lead to overwriting of explicit parameters. In this case a warning should be issued.
-        return cls.from_hyperparameters(**auto_params, **params)
+        # user specified 'params' will take precedence:
+        params = {**auto_params, **params}
+        return cls.from_hyperparameters(params)
 
 
 class DummyEstimator(Estimator):
@@ -141,9 +138,7 @@ class GluonEstimator(Estimator):
             )
 
         try:
-            trainer = hyperparameters.get("trainer")
-            if not isinstance(trainer, Trainer):
-                trainer = from_hyperparameters(Trainer, **hyperparameters)
+            trainer = from_hyperparameters(Trainer, **hyperparameters)
 
             return cls(
                 **Model(**{**hyperparameters, "trainer": trainer}).__dict__
