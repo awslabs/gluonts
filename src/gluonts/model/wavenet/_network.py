@@ -12,8 +12,8 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import math
 from typing import List, Optional
+import math
 import numpy as np
 
 # Third-party imports
