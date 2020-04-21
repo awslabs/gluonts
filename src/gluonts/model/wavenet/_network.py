@@ -14,6 +14,7 @@
 # Standard library imports
 import math
 from typing import List, Optional
+import numpy as np
 
 # Third-party imports
 import mxnet as mx
@@ -464,7 +465,9 @@ class WaveNetSampler(WaveNet):
         self.temperature = temperature
 
         with self.name_scope():
-            self.post_transform = LookupValues(mx.nd.array(bin_values))
+            self.post_transform = LookupValues(
+                mx.nd.array(np.ndarray(bin_values, dtype=np.float32))
+            )
 
     def get_initial_conv_queues(self, F, past_target, features):
         """
