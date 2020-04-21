@@ -1,4 +1,4 @@
-# SageMaker SDK Tutorial
+# GluonTS SageMaker SDK Tutorial
 
 ***This notebook is meant to be uploaded to a SageMaker notebook instance and executed there. As a kernel choose `conda_mxnet_p36`***
 
