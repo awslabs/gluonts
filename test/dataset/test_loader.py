@@ -107,12 +107,12 @@ def test_io_speed() -> None:
         ).generate()
     print(f"Test data generation took {timer.interval} seconds")
 
-    # name of method, loading function and maximum slowdown expected
+    # name of method, loading function and minimum expected throughput 
     fixtures = [
-        ("baseline", baseline, 100_000),
+        ("baseline", baseline, 70_000),
         # ('json.loads', load_json, xxx),
-        ("ujson.loads", load_ujson, 20000),
-        ("JsonLinesFile", load_json_lines_file, 10000),
+        ("ujson.loads", load_ujson, 20_000),
+        ("JsonLinesFile", load_json_lines_file, 10_000),
         ("ListDataset", load_list_dataset, 500),
         ("FileDataset", load_file_dataset, 500),
         ("FileDatasetCached", load_file_dataset_cached, 500),
@@ -146,8 +146,7 @@ def test_io_speed() -> None:
                 f"{exp_size} lines"
             )
 
-        # for each loader, assert that the slowdown w.r.t. the baseline loader
-        # is not above the max. tolerated value
+        # for each loader, assert that throughput is above threshold
         for name, _, min_rate in fixtures:
             assert min_rate <= rates[name], (
                 f"The throughput of {name} ({rates[name]} lines/second) "
