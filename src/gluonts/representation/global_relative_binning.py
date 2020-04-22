@@ -34,39 +34,39 @@ from gluonts.dataset.common import Dataset
 
 class GlobalRelativeBinning(Representation):
     """
-        A class representing a global relative binning approach.
-        This binning first rescales all input series by their respective mean (relative) and then performs one binning
-        across all series (global).
+    A class representing a global relative binning approach.
+    This binning first rescales all input series by their respective mean (relative) and then performs one binning
+    across all series (global).
 
-        Parameters
-        ----------
-        num_bins
-            The number of discrete bins/buckets that we want values to be mapped to.
-            (default: 1024)
-        is_quantile
-            Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
-            distribution function, while linear binning allocates evenly spaced bins.
-            (default: True, i.e. quantile binning)
-        embedding_size
-            The size of the embedding layer.
-            (default: round(num_bins**(1/4)))
-        pit
-            Whether the binning should be used to transform its inputs using a discrete probability integral transform.
-            This requires is_quantile=True.
-            (default: False)
-        mlp_tranf
-            Whether we want to post-process the pit-transformed valued using a MLP which can learn an appropriate
-            binning, which would ensure that pit models have the same expressiveness as standard quantile binning with
-            embedding. This requires pit=True.
-            (default: False)
-        linear_scaling_limit
-            The linear scaling limit. Values which are larger than linear_scaling_limit times the mean will be capped at
-            linear_scaling_limit.
-            (default: 10)
-        quantile_scaling_limit
-            The quantile scaling limit. Values which are larger than the quantile evaluated at quantile_scaling_limit
-            will be capped at the quantile evaluated at quantile_scaling_limit.
-            (default: 0.99)
+    Parameters
+    ----------
+    num_bins
+        The number of discrete bins/buckets that we want values to be mapped to.
+        (default: 1024)
+    is_quantile
+        Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
+        distribution function, while linear binning allocates evenly spaced bins.
+        (default: True, i.e. quantile binning)
+    embedding_size
+        The size of the embedding layer.
+        (default: round(num_bins**(1/4)))
+    pit
+        Whether the binning should be used to transform its inputs using a discrete probability integral transform.
+        This requires is_quantile=True.
+        (default: False)
+    mlp_tranf
+        Whether we want to post-process the pit-transformed valued using a MLP which can learn an appropriate
+        binning, which would ensure that pit models have the same expressiveness as standard quantile binning with
+        embedding. This requires pit=True.
+        (default: False)
+    linear_scaling_limit
+        The linear scaling limit. Values which are larger than linear_scaling_limit times the mean will be capped at
+        linear_scaling_limit.
+        (default: 10)
+    quantile_scaling_limit
+        The quantile scaling limit. Values which are larger than the quantile evaluated at quantile_scaling_limit
+        will be capped at the quantile evaluated at quantile_scaling_limit.
+        (default: 0.99)
     """
 
     @validated()

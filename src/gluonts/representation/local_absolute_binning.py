@@ -32,31 +32,31 @@ from gluonts.model.common import Tensor
 
 class LocalAbsoluteBinning(Representation):
     """
-        A class representing a local absolute binning approach.
-        This binning estimates a binning for every single time series on a local level and therefore implicitly acts as
-        a scaling mechanism.
+    A class representing a local absolute binning approach.
+    This binning estimates a binning for every single time series on a local level and therefore implicitly acts as
+    a scaling mechanism.
 
-        Parameters
-        ----------
-        num_bins
-            The number of discrete bins/buckets that we want values to be mapped to.
-            (default: 1024)
-        is_quantile
-            Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
-            distribution function, while linear binning allocates evenly spaced bins.
-            (default: True, i.e. quantile binning)
-        embedding_size
-            The size of the embedding layer.
-            (default: round(num_bins**(1/4)))
-        pit
-            Whether the binning should be used to transform its inputs using a discrete probability integral transform.
-            This requires is_quantile=True.
-            (default: False)
-        mlp_tranf
-            Whether we want to post-process the pit-transformed valued using a MLP which can learn an appropriate
-            binning, which would ensure that pit models have the same expressiveness as standard quantile binning with
-            embedding. This requires pit=True.
-            (default: False)
+    Parameters
+    ----------
+    num_bins
+        The number of discrete bins/buckets that we want values to be mapped to.
+        (default: 1024)
+    is_quantile
+        Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
+        distribution function, while linear binning allocates evenly spaced bins.
+        (default: True, i.e. quantile binning)
+    embedding_size
+        The size of the embedding layer.
+        (default: round(num_bins**(1/4)))
+    pit
+        Whether the binning should be used to transform its inputs using a discrete probability integral transform.
+        This requires is_quantile=True.
+        (default: False)
+    mlp_tranf
+        Whether we want to post-process the pit-transformed valued using a MLP which can learn an appropriate
+        binning, which would ensure that pit models have the same expressiveness as standard quantile binning with
+        embedding. This requires pit=True.
+        (default: False)
     """
 
     @validated()

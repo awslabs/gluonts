@@ -23,8 +23,8 @@ from gluonts.model.common import Tensor
 
 class NOPScaling(Representation):
     """
-        A class representing NOP (no operation) scaler.
-        As the name suggests, this scaler will not alter its inputs.
+    A class representing NOP (no operation) scaler.
+    As the name suggests, this scaler will not alter its inputs.
     """
 
     @validated()

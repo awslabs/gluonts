@@ -26,14 +26,14 @@ from gluonts.dataset.common import Dataset
 
 class Representation(nn.HybridBlock):
     """
-        An abstract class representing input/output representations.
+    An abstract class representing input/output representations.
 
-        Parameters
-        ----------
-        is_output
-            Whether the representation is an input or output representation. It is necessary to make this distinction
-            because of different shaping considerations and optional child-block creation.
-            (default: False)
+    Parameters
+    ----------
+    is_output
+        Whether the representation is an input or output representation. It is necessary to make this distinction
+        because of different shaping considerations and optional child-block creation.
+        (default: False)
     """
 
     @validated()
@@ -43,7 +43,7 @@ class Representation(nn.HybridBlock):
 
     def initialize_from_dataset(self, input_dataset: Dataset):
         r"""
-        Perform some computation based on an entire dataset.
+        Initialize the representation based on an entire dataset.
 
         Parameters
         ----------
@@ -54,7 +54,7 @@ class Representation(nn.HybridBlock):
 
     def initialize_from_array(self, input_array: np.ndarray):
         r"""
-        Perform some computation based on a numpy array.
+        Initialize the representation based on a numpy array.
 
         Parameters
         ----------

@@ -26,17 +26,17 @@ from gluonts.model.common import Tensor
 
 class MeanScaling(Representation):
     """
-        A class representing a mean scaling approach.
-        Inputs are simply rescaled based on their mean.
+    A class representing a mean scaling approach.
+    Inputs are simply rescaled based on their mean.
 
-        Parameters
-        ----------
-        clip_max
-            The maximum value to which re-scaled values will be clipped to. By default, max values will not be clipped.
-            (default: -1)
-        minimum_scale
-            The minimum value to which re-scaled values will be clipped to.
-            (default: 1e-10)
+    Parameters
+    ----------
+    clip_max
+        The maximum value to which re-scaled values will be clipped to. By default, max values will not be clipped.
+        (default: -1)
+    minimum_scale
+        The minimum value to which re-scaled values will be clipped to.
+        (default: 1e-10)
     """
 
     @validated()

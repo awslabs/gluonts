@@ -28,16 +28,16 @@ from gluonts.model.common import Tensor
 
 class Binning(Representation):
     """
-        A class representing binned representations with custom centers.
+    A class representing binned representations with custom centers.
 
-        Parameters
-        ----------
-        bin_centers
-            The bins to be used to discritize the data.
-            (default: 1024)
-        embedding_size
-            The size of the embedding layer.
-            (default: round(num_bins**(1/4)))
+    Parameters
+    ----------
+    bin_centers
+        The bins to be used to discritize the data.
+        (default: 1024)
+    embedding_size
+        The size of the embedding layer.
+        (default: round(num_bins**(1/4)))
     """
 
     @validated()
