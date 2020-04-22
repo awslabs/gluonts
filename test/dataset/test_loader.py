@@ -107,7 +107,7 @@ def test_io_speed() -> None:
         ).generate()
     print(f"Test data generation took {timer.interval} seconds")
 
-    # name of method, loading function and minimum expected throughput 
+    # name of method, loading function and min allowed throughput 
     fixtures = [
         ("baseline", baseline, 70_000),
         # ('json.loads', load_json, xxx),
