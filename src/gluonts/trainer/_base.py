@@ -274,6 +274,7 @@ class Trainer:
 
                     # check and log epoch loss
                     check_loss_finite(loss_value(epoch_loss))
+
                     logging.info(
                         "Epoch[%d] Evaluation metric '%s'=%f",
                         epoch_no,

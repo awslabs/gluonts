@@ -411,7 +411,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
             dim=1,
         )
 
-        # mask the loss at one time step iff one or more observations is missing in the target dimensions
+        # mask the loss at one time step iff one or more observations is missing in  the target dimensions
         # (batch_size, seq_len)
         loss_weights = (
             observed_values

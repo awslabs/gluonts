@@ -195,10 +195,11 @@ intersphinx_mapping = {
         "https://docs.python.org/{.major}".format(sys.version_info),
         None,
     ),
-    "mxnet": ("https://mxnet.apache.org/", None),
+    # "mxnet": ("https://mxnet.apache.org/", None),
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
     "scipy": ("http://docs.scipy.org/doc/scipy/reference", None),
     "matplotlib": ("http://matplotlib.org/", None),
+    "mxnet": ("https://mxnet.apache.org/api/python/docs", None)
 }
 
 # -- Options for manual page output ---------------------------------------
@@ -269,6 +270,6 @@ linkcheck_ignore = [r"http[s]://apache-mxnet.s3*"]
 linkcheck_retries = 3
 linkcheck_workers = int(multiprocessing.cpu_count() / 2)
 
-intersphinx_mapping = {
-    "mxnet": ("https://mxnet.apache.org/api/python/docs", None)
-}
+# intersphinx_mapping = {
+#     "mxnet": ("https://mxnet.apache.org/api/python/docs", None)
+# }
