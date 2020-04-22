@@ -14,7 +14,7 @@
 import pytest
 import pandas as pd
 
-from gluonts.dataset.common import ProcessStartField
+from gluonts.dataset.common import ProcessStartField, ListDataset
 
 
 @pytest.mark.parametrize(

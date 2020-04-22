@@ -15,6 +15,8 @@
 import logging
 import multiprocessing
 import re
+import sys
+
 from collections import Sized
 from functools import lru_cache
 from itertools import chain, tee
@@ -161,7 +163,7 @@ class Evaluator:
             total=num_series,
             desc="Running evaluation",
         ) as it, np.errstate(invalid="ignore"):
-            if self.num_workers > 0:
+            if self.num_workers > 0 and not sys.platform == "win32":
                 mp_pool = multiprocessing.Pool(
                     initializer=_worker_init(self), processes=self.num_workers
                 )

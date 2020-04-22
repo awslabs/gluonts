@@ -1,3 +1,2 @@
-sagemaker~=1.44
+sagemaker~=1.55
 s3fs~=0.4
-tox~=3.14

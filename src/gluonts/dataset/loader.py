@@ -22,11 +22,9 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import DataEntry, Dataset, DataBatch
 from gluonts.dataset.parallelized_loader import ParallelDataLoader
 from gluonts.transform import Transformation
-
-DataBatch = Dict[str, Any]
 
 
 class DataLoader(Iterable[DataEntry]):
@@ -67,13 +65,14 @@ class DataLoader(Iterable[DataEntry]):
         dataset: Dataset,
         *,
         transform: Transformation,
+        cyclic: bool,
         is_train: bool,
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
-        cyclic: bool = False,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        num_batches_for_shuffling: Optional[int] = None,
         **kwargs
     ) -> None:
         self.batch_size = batch_size
@@ -82,6 +81,9 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
         self.cyclic = cyclic
+        self.num_workers = num_workers
+        self.num_prefetch = num_prefetch
+        self.num_batches_for_shuffling = num_batches_for_shuffling
 
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
@@ -89,10 +91,11 @@ class DataLoader(Iterable[DataEntry]):
             cyclic=self.cyclic,
             is_train=self.is_train,
             batch_size=self.batch_size,
-            ctx=ctx,
+            ctx=self.ctx,
             dtype=self.dtype,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
+            num_workers=self.num_workers,
+            num_prefetch=self.num_prefetch,
+            num_batches_for_shuffling=self.num_batches_for_shuffling,
             **kwargs,
         )
 
@@ -132,7 +135,12 @@ class TrainDataLoader(DataLoader):
         multiple worker processes, try reduce `num_workers` in this case.
         By default it defaults to `num_workers * 2`.
     dtype
-        Floating point type to use.
+        Floating point type to use. Default is np.float32.
+    shuffle_for_training
+        Whether to shuffle the samples.
+    num_batches_for_shuffling
+        The effective number of batches among which samples are shuffled. If num_batches_for_shuffling = 8 and
+        batch_size = 8 then the next batch will be randomly sampled from about 64 samples.
     """
 
     def __init__(
@@ -146,7 +154,7 @@ class TrainDataLoader(DataLoader):
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
         shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 10,  # TODO: this does not work currently
+        num_batches_for_shuffling: int = 8,
         **kwargs
     ) -> None:
         assert dataset, "empty dataset"
@@ -162,6 +170,7 @@ class TrainDataLoader(DataLoader):
             cyclic=True,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
+            num_batches_for_shuffling=num_batches_for_shuffling,
             **kwargs,
         )
 
