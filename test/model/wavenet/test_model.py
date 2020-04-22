@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import pytest
-import sys
 
 from gluonts.model.wavenet import WaveNetEstimator
 
@@ -31,18 +30,6 @@ def hyperparameters(dsinfo):
         use_symbol_block_predictor=False,
         cardinality=[dsinfo.cardinality],
     )
-
-
-@pytest.mark.skipif(
-    sys.platform == "win32", reason="test times out for some reason"
-)
-@pytest.mark.parametrize("hybridize", [True, False])
-def test_accuracy(accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=10, hybridize=hybridize)
-
-    # large value as this test is breaking frequently
-    accuracy_test(WaveNetEstimator, hyperparameters, accuracy=0.7)
-
 
 def test_repr(repr_test, hyperparameters):
     repr_test(WaveNetEstimator, hyperparameters)

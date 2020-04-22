@@ -15,7 +15,6 @@ import pytest
 
 from gluonts.model.deepstate import DeepStateEstimator
 
-
 @pytest.fixture()
 def hyperparameters(dsinfo):
     return dict(
@@ -33,9 +32,7 @@ def hyperparameters(dsinfo):
         use_symbol_block_predictor=False,
     )
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(DeepStateEstimator, hyperparameters)
+def test_accuracy(accuracy_test, hyperparameters):
+    hyperparameters.update(num_batches_per_epoch=100)
 
-
-def test_serialize(serialize_test, hyperparameters):
-    serialize_test(DeepStateEstimator, hyperparameters)
+    accuracy_test(DeepStateEstimator, hyperparameters, accuracy=0.5)

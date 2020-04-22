@@ -12,9 +12,8 @@
 # permissions and limitations under the License.
 
 import pytest
-
-from gluonts.model.deepstate import DeepStateEstimator
-
+import sys
+from gluonts.model.wavenet import WaveNetEstimator
 
 @pytest.fixture()
 def hyperparameters(dsinfo):
@@ -22,20 +21,21 @@ def hyperparameters(dsinfo):
         ctx="cpu",
         epochs=1,
         learning_rate=1e-2,
-        hybridize=False,
+        hybridize=True,
         num_cells=2,
         num_layers=1,
         context_length=2,
-        past_length=dsinfo.prediction_length,
-        cardinality=[1],
-        use_feat_static_cat=False,
         num_batches_per_epoch=1,
         use_symbol_block_predictor=False,
+        cardinality=[dsinfo.cardinality],
     )
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(DeepStateEstimator, hyperparameters)
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="test times out for some reason"
+)
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_accuracy(accuracy_test, hyperparameters, hybridize):
+    hyperparameters.update(num_batches_per_epoch=10, hybridize=hybridize)
 
-
-def test_serialize(serialize_test, hyperparameters):
-    serialize_test(DeepStateEstimator, hyperparameters)
+    # large value as this test is breaking frequently
+    accuracy_test(WaveNetEstimator, hyperparameters, accuracy=0.7)
