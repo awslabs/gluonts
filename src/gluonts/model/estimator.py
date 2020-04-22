@@ -79,7 +79,7 @@ class Estimator:
         auto_params = cls.derive_auto_fields(train_iter)
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
-        return cls.from_hyperparameters(params)
+        return cls.from_hyperparameters(**params)
 
 
 class DummyEstimator(Estimator):
