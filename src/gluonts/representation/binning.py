@@ -87,7 +87,6 @@ class Binning(Representation):
             )
             # Clip scale on the bottom to prevent division by zero.
             scale = F.clip(scale, 1e-20, np.inf)
-        self.scale = scale.asnumpy()
 
         # Discretize the data.
         # Note: Replace this once there is a clean way to do this in MXNet.
