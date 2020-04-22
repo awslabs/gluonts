@@ -137,25 +137,25 @@ class FlatMapTransformation(Transformation):
     def __call__(
         self, data_it: Iterator[DataEntry], is_train: bool
     ) -> Iterator:
-        num_idle_transforms = 0
+        # num_idle_transforms = 0
         for data_entry in data_it:
-            num_idle_transforms += 1
+            # num_idle_transforms += 1
             try:
                 for result in self.flatmap_transform(
                     data_entry.copy(), is_train
                 ):
-                    num_idle_transforms = 0
+                    # num_idle_transforms = 0
                     yield result
             except Exception as e:
                 raise e
-            if num_idle_transforms > GLUONTS_MAX_IDLE_TRANSFORMS:
-                raise Exception(
-                    f"Reached maximum number of idle transformation calls.\n"
-                    f"This means the transformation looped over "
-                    f"GLUONTS_MAX_IDLE_TRANSFORMS={GLUONTS_MAX_IDLE_TRANSFORMS} "
-                    f"inputs without returning any output.\n"
-                    f"This occurred in the following transformation:\n{self}"
-                )
+            # if num_idle_transforms > GLUONTS_MAX_IDLE_TRANSFORMS:
+            #     raise Exception(
+            #         f"Reached maximum number of idle transformation calls.\n"
+            #         f"This means the transformation looped over "
+            #         f"GLUONTS_MAX_IDLE_TRANSFORMS={GLUONTS_MAX_IDLE_TRANSFORMS} "
+            #         f"inputs without returning any output.\n"
+            #         f"This occurred in the following transformation:\n{self}"
+            #     )
 
     @abc.abstractmethod
     def flatmap_transform(

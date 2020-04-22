@@ -13,7 +13,7 @@
 
 # Standard library imports
 import numpy as np
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 
 # Third-party imports
 import mxnet as mx
@@ -52,6 +52,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         lags_seq: List[int],
         scaling: bool = True,
         dtype: DType = np.float32,
+        embedder: Optional[Any] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -104,7 +105,9 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                 )
                 self.rnn.add(cell)
             self.rnn.cast(dtype=dtype)
-            self.embedder = FeatureEmbedder(
+
+            embedder = embedder or FeatureEmbedder
+            self.embedder = embedder(
                 cardinalities=cardinality,
                 embedding_dims=embedding_dimension,
                 dtype=self.dtype,
