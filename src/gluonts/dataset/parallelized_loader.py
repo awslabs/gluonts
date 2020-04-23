@@ -86,27 +86,27 @@ ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
 def _is_stackable(
-    arrays: List[Union[np.ndarray, mx.nd.NDArray, Any]],
+    arrays: List[Union[np.ndarray, mx.nd.NDArray, Any]], axis: int = 0,
 ) -> bool:
     """
     Check if elements are scalars, have too few dimensions, or their
-    time axes have equal length; i.e. they are directly `stack` able.
+    target axes have equal length; i.e. they are directly `stack` able.
     """
     if isinstance(arrays[0], (mx.nd.NDArray, np.ndarray)):
-        s = set(arr.shape[0] for arr in arrays)
-        return len(s) <= 1 and arrays[0].shape[0] != 0
+        s = set(arr.shape[axis] for arr in arrays)
+        return len(s) <= 1 and arrays[0].shape[axis] != 0
     return True
 
 
 def _pad_arrays(
-    data: List[Union[np.ndarray, mx.nd.NDArray]], pad_axis: int = 0,
+    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0,
 ) -> List[Union[np.ndarray, mx.nd.NDArray]]:
     assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
     is_mx = isinstance(data[0], mx.nd.NDArray)
 
     # MxNet causes a segfault when persisting 0-length arrays. As such,
     # we add a dummy pad of length 1 to 0-length dims.
-    max_len = max(1, functools.reduce(max, (x.shape[pad_axis] for x in data)))
+    max_len = max(1, functools.reduce(max, (x.shape[axis] for x in data)))
     padded_data = []
 
     for x in data:
@@ -115,9 +115,9 @@ def _pad_arrays(
         if is_mx:
             x = x.asnumpy()
 
-        pad_size = max_len - x.shape[pad_axis]
+        pad_size = max_len - x.shape[axis]
         pad_lengths = [(0, 0)] * x.ndim
-        pad_lengths[pad_axis] = (0, pad_size)
+        pad_lengths[axis] = (0, pad_size)
         x_padded = np.pad(x, mode="constant", pad_width=pad_lengths)
 
         padded_data.append(x_padded if not is_mx else mx.nd.array(x_padded))
@@ -154,7 +154,7 @@ def stack(
         this axis before stacking.
     """
     if variable_length and not _is_stackable(data):
-        data = _pad_arrays(data, pad_axis=0)
+        data = _pad_arrays(data, axis=0)
 
     if isinstance(data[0], mx.nd.NDArray):
         if multi_processing:
