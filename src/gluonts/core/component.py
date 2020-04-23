@@ -399,7 +399,7 @@ def validated(base_model=None):
             )
         else:
             PydanticModel = create_model(
-                f"{init_clsnme}Model", __base__=base_model, **init_fields,
+                f"{init_clsnme}Model", __base__=base_model, **init_fields
             )
 
         def validated_repr(self) -> str:
