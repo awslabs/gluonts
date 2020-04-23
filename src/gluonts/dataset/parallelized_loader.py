@@ -14,6 +14,7 @@
 
 # Standard library imports
 import collections
+import functools
 import itertools
 import logging
 import pathlib
@@ -25,7 +26,7 @@ import time
 
 from collections.abc import Sized
 from multiprocessing.managers import SyncManager
-from typing import Callable, Iterable, Optional, List, Iterator
+from typing import Callable, Iterable, Optional, List, Iterator, Union, Any
 
 import multiprocessing
 import multiprocessing.queues
@@ -84,16 +85,77 @@ else:
 ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
+def _is_stackable(
+    arrays: List[Union[np.ndarray, mx.nd.NDArray, Any]], axis: int = 0,
+) -> bool:
+    """
+    Check if elements are scalars, have too few dimensions, or their
+    target axes have equal length; i.e. they are directly `stack` able.
+    """
+    if isinstance(arrays[0], (mx.nd.NDArray, np.ndarray)):
+        s = set(arr.shape[axis] for arr in arrays)
+        return len(s) <= 1 and arrays[0].shape[axis] != 0
+    return True
+
+
+def _pad_arrays(
+    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0,
+) -> List[Union[np.ndarray, mx.nd.NDArray]]:
+    assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
+    is_mx = isinstance(data[0], mx.nd.NDArray)
+
+    # MxNet causes a segfault when persisting 0-length arrays. As such,
+    # we add a dummy pad of length 1 to 0-length dims.
+    max_len = max(1, functools.reduce(max, (x.shape[axis] for x in data)))
+    padded_data = []
+
+    for x in data:
+        # MxNet lacks the functionality to pad n-D arrays consistently.
+        # We fall back to numpy if x is an mx.nd.NDArray.
+        if is_mx:
+            x = x.asnumpy()
+
+        pad_size = max_len - x.shape[axis]
+        pad_lengths = [(0, 0)] * x.ndim
+        pad_lengths[axis] = (0, pad_size)
+        x_padded = np.pad(x, mode="constant", pad_width=pad_lengths)
+
+        padded_data.append(x_padded if not is_mx else mx.nd.array(x_padded))
+
+    return padded_data
+
+
 def stack(
     data,
     multi_processing: bool,
     dtype: DType,
     single_process_ctx: Optional[mx.Context] = None,
+    variable_length: bool = False,
 ):
-    """Stack a list of data.
-        Used when creating a single batch from list of dicts
-        depending on whether multiprocessing is turned on, the batches will be
-        constructed using different memory allocation techniques"""
+    """
+    Stack a list of data. Used when creating a single batch from list of dicts
+    depending on whether multiprocessing is turned on, the batches will be
+    constructed using different memory allocation techniques. If `variable_length`
+    is specified, the data will be 'padded' with zeros along the first axis.
+
+    Parameters
+    ----------
+    data: List
+        Lists of array-like, stacked into data batches and loaded to appropriate
+        memory (according to whether `multi_processing` is specified).
+    multi_processing: bool
+        If True, data will be loaded to mxnet ndarrays on shared CPU memory.
+    dtype: DType
+    single_process_ctx: Optional[mx.Context]
+    variable_length: bool
+        If True, the function will check if the list of data are "stackable",
+        i.e., they have matching axes. If not, it will assume that the first
+        dimension of each array is heterogeneous (i.e., ragged) and will pad
+        this axis before stacking.
+    """
+    if variable_length and not _is_stackable(data):
+        data = _pad_arrays(data, axis=0)
+
     if isinstance(data[0], mx.nd.NDArray):
         if multi_processing:
             out = nd.empty(
@@ -131,11 +193,12 @@ def stack(
     return data
 
 
-def _batchify_fn(
+def batchify(
     data: List[dict],
     dtype: DType,
     multi_processing: bool,
     single_process_ctx: Optional[mx.Context] = None,
+    variable_length: bool = False,
 ) -> DataBatch:
     """reduce the list of dictionaries to a single dictionary, where values
         referenced by identical key are reduced using the stack function"""
@@ -145,6 +208,7 @@ def _batchify_fn(
             multi_processing=multi_processing,
             dtype=dtype,
             single_process_ctx=single_process_ctx,
+            variable_length=variable_length,
         )
         for key in data[0].keys()
     }
@@ -491,6 +555,7 @@ class ParallelDataLoader(object):
         ctx: mx.Context,
         dtype: DType = np.float32,
         shuffle: bool = False,
+        batchify_fn: Callable = batchify,
         num_batches_for_shuffling: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         num_workers: Optional[int] = None,
@@ -540,6 +605,7 @@ class ParallelDataLoader(object):
         self.is_train = is_train
         self.batch_size = batch_size
         self.ctx = ctx
+        self.batchify_fn = batchify_fn
 
         self.dtype = dtype
         self.shuffle = shuffle
@@ -621,7 +687,7 @@ class ParallelDataLoader(object):
                         return
 
                     # make them into a single batch
-                    batch = _batchify_fn(
+                    batch = self.batchify_fn(
                         data=batch_samples,
                         multi_processing=False,
                         dtype=self.dtype,
@@ -644,7 +710,7 @@ class ParallelDataLoader(object):
                     batch_size=self.batch_size,
                     shuffle=self.shuffle,
                     num_batches_for_shuffling=self.num_batches_for_shuffling,
-                    batchify_fn=_batchify_fn,
+                    batchify_fn=self.batchify_fn,
                     dtype=self.dtype,
                     ctx=self.ctx,
                     is_train=self.is_train,
