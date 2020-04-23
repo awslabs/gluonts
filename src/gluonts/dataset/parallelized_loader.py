@@ -106,9 +106,7 @@ def _pad_arrays(
 
     # MxNet causes a segfault when persisting 0-length arrays. As such,
     # we add a dummy pad of length 1 to 0-length dims.
-    max_len = max(
-        1, functools.reduce(max, (x.shape[pad_axis] for x in data))
-    )
+    max_len = max(1, functools.reduce(max, (x.shape[pad_axis] for x in data)))
     padded_data = []
 
     for x in data:
@@ -122,9 +120,7 @@ def _pad_arrays(
         pad_lengths[pad_axis] = (0, pad_size)
         x_padded = np.pad(x, mode="constant", pad_width=pad_lengths)
 
-        padded_data.append(
-            x_padded if not is_mx else mx.nd.array(x_padded)
-        )
+        padded_data.append(x_padded if not is_mx else mx.nd.array(x_padded))
 
     return padded_data
 
