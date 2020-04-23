@@ -22,7 +22,7 @@ from ._base import SimpleTransformation, MapTransformation
 
 class RenameFields(SimpleTransformation):
     """
-    Rename fields using a mapping
+    Rename fields using a mapping, if source field present.
 
     Parameters
     ----------
@@ -48,6 +48,15 @@ class RenameFields(SimpleTransformation):
 
 
 class RemoveFields(SimpleTransformation):
+    """"
+    Remove field names if present.
+
+    Parameters
+    ----------
+    field_names
+        List of names of the fields that will be removed
+    """
+
     @validated()
     def __init__(self, field_names: List[str]) -> None:
         self.field_names = field_names

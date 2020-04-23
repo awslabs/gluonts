@@ -93,3 +93,35 @@ def test_repr(Estimator, repr_test, hyperparameters):
 
 def test_serialize(Estimator, serialize_test, hyperparameters):
     serialize_test(Estimator, hyperparameters)
+
+
+def test_backwards_compatibility():
+    hps = {
+        "freq": "D",
+        "prediction_length": 3,
+        "quantiles": [0.5, 0.1],
+        "epochs": 3,
+        "num_batches_per_epoch": 3,
+        "use_feat_dynamic_real": True,
+    }
+
+    dataset_train, dataset_test = make_dummy_datasets_with_features(
+        cardinality=[3, 10],
+        num_feat_dynamic_real=2,
+        freq=hps["freq"],
+        prediction_length=hps["prediction_length"],
+    )
+
+    for entry in dataset_train:
+        entry["dynamic_feat"] = entry["feat_dynamic_real"]
+        del entry["feat_dynamic_real"]
+
+    for entry in dataset_test:
+        entry["dynamic_feat"] = entry["feat_dynamic_real"]
+        del entry["feat_dynamic_real"]
+
+    estimator = MQCNNEstimator.from_inputs(dataset_train, **hps)
+
+    predictor = estimator.train(dataset_train)
+    forecasts = list(predictor.predict(dataset_test))
+    assert len(forecasts) == len(dataset_test)

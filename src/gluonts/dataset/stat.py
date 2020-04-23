@@ -139,7 +139,9 @@ class DatasetStatistics(NamedTuple):
 
 # TODO: reorganize modules to avoid circular dependency
 # TODO: and substitute Any with Dataset
-def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
+def calculate_dataset_statistics(
+    ts_dataset: Any, backwards_compatibility=True
+) -> DatasetStatistics:
     """
     Computes the statistics of a given Dataset.
 
@@ -147,6 +149,9 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     ----------
     ts_dataset
         Dataset of which to compute the statistics.
+    backwards_compatibility
+        Ensures backwards compatibility regarding the naming of certain Fields.
+        For example, 'dynamic_feat' is also accepted as FieldName.FEAT_DYNAMIC_REAL
 
     Returns
     -------
@@ -300,7 +305,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
             feat_dynamic_real = (
                 ts[FieldName.FEAT_DYNAMIC_REAL]
                 if FieldName.FEAT_DYNAMIC_REAL in ts
-                else None
+                else (ts["dynamic_feat"] if "dynamic_feat" in ts else None)
             )
 
             if feat_dynamic_real is None:
@@ -316,6 +321,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 if num_feat_dynamic_real is None:
                     # first num_feat_dynamic_real found
                     num_feat_dynamic_real = feat_dynamic_real.shape[0]
+                    # TODO: could assert that always same feat_dynamic_real key is used
                 else:
                     assert_data_error(
                         num_feat_dynamic_real == feat_dynamic_real.shape[0],
