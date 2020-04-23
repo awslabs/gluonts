@@ -175,15 +175,6 @@ def _sequential_sample_generator(
     cyclic: bool,
     num_batches_for_shuffling: int,
 ) -> Iterator[DataEntry]:
-    # Approximate shuffling `num_batches_for_shuffling` probabilistically
-    def skip_data_iter(data: Dataset):
-        for data_entry in data:
-            if (
-                random.randint(1, num_batches_for_shuffling)
-                == num_batches_for_shuffling
-            ):
-                yield data_entry
-
     # sanity check: since `num_batches_for_shuffling` works by skipping
     # entries, this should not be used for non cyclic datasets
     assert (
@@ -191,13 +182,9 @@ def _sequential_sample_generator(
     ), "Setting num_batches_for_shuffling >= 1 only makes sense in the context of cyclic datasets currently."
 
     while True:
-        for sample in transformation(
-            data_it=skip_data_iter(dataset)
-            if num_batches_for_shuffling > 1
-            else dataset,
-            is_train=is_train,
-        ):
-            yield sample
+        yield from transformation(
+            data_it=dataset, is_train=is_train,
+        )
         # Dont cycle if not training time
         if not cyclic:
             return

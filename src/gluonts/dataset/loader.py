@@ -15,6 +15,7 @@
 import itertools
 import logging
 from typing import Any, Dict, Iterable, Iterator, Optional
+import multiprocessing as mp
 
 # Third-party imports
 import mxnet as mx
@@ -73,7 +74,7 @@ class DataLoader(Iterable[DataEntry]):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         num_batches_for_shuffling: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.batch_size = batch_size
         self.ctx = ctx
@@ -81,6 +82,10 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
         self.cyclic = cyclic
+        if num_workers is not None:
+            assert (
+                num_workers <= mp.cpu_count()
+            ), f"num_workers is set to {num_workers}, but there are only {mp.cpu_count()} cpus"
         self.num_workers = num_workers
         self.num_prefetch = num_prefetch
         self.num_batches_for_shuffling = num_batches_for_shuffling
@@ -155,7 +160,7 @@ class TrainDataLoader(DataLoader):
         dtype: DType = np.float32,
         shuffle_for_training: bool = True,
         num_batches_for_shuffling: int = 8,
-        **kwargs
+        **kwargs,
     ) -> None:
         assert dataset, "empty dataset"
 
@@ -177,15 +182,20 @@ class TrainDataLoader(DataLoader):
         self.num_batches_per_epoch = num_batches_per_epoch
         self.shuffle_for_training = shuffle_for_training
         self.num_batches_for_shuffling = num_batches_for_shuffling
+        self._it = iter(self.parallel_data_loader)
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
 
     def __iter__(self) -> Iterator[DataBatch]:
-        # take num_batches of batches for one epoch
-        return itertools.islice(
-            self.parallel_data_loader, self.num_batches_per_epoch
-        )
+        i = 0
+        while True:
+            for batch in self._it:
+                yield batch
+                i += 1
+                if i == self.num_batches_per_epoch:
+                    return
+            self._it = iter(self.parallel_data_loader)
 
 
 class ValidationDataLoader(DataLoader):
@@ -199,7 +209,7 @@ class ValidationDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             dataset=dataset,
@@ -226,7 +236,7 @@ class InferenceDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             dataset=dataset,

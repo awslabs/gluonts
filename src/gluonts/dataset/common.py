@@ -276,17 +276,18 @@ class ListDataset(Dataset):
         # with lower and upper bound, where each worker is assigned one segment
         segment_size = int(len(self) / util.MPWorkerInfo.num_workers)
 
+        lower_bound = util.MPWorkerInfo.worker_id * segment_size
+        upper_bound = (
+            (util.MPWorkerInfo.worker_id + 1) * segment_size
+            if util.MPWorkerInfo.worker_id + 1 != util.MPWorkerInfo.num_workers
+            else len(self)
+        )
+
         for row_number, data in enumerate(self.list_data):
-            lower_bound = util.MPWorkerInfo.worker_id * segment_size
-            upper_bound = (
-                (util.MPWorkerInfo.worker_id + 1) * segment_size
-                if util.MPWorkerInfo.worker_id + 1
-                != util.MPWorkerInfo.num_workers
-                else len(self)
-            )
             if not lower_bound <= row_number < upper_bound:
                 continue
 
+            data = data.copy()
             data = self.process(data)
             data["source"] = SourceContext(source=source_name, row=row_number)
             yield data
