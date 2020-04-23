@@ -48,16 +48,16 @@ def pp_dataset():
             },
             {
                 "target": np.c_[
-                    np.array([0.2, 0.1, 0.2, 0.1, 0.3, 0.3, 0.5, 0.4]),
-                    np.array([0, 1, 2, 0, 1, 2, 1, 1]),
+                    np.array([0.2, 0.1, 0.2, 0.5, 0.4]),
+                    np.array([0, 1, 2, 1, 1]),
                 ].T,
                 "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
                 "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
             },
             {
                 "target": np.c_[
-                    np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.1, 0.2, 0.1]),
-                    np.array([0, 1, 2, 0, 1, 0, 1, 2]),
+                    np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.2, 0.1]),
+                    np.array([0, 1, 2, 0, 1, 0, 2]),
                 ].T,
                 "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
                 "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
@@ -180,7 +180,6 @@ def test_inference_loader_shapes_small_batch(loader_factory, pp_dataset):
     assert d["past_valid_length"].shape[0] == 2
 
 
-@pytest.mark.skip()
 def test_train_loader_short_intervals(loader_factory, pp_dataset):
     loader = loader_factory(
         dataset=pp_dataset(),
@@ -194,11 +193,10 @@ def test_train_loader_short_intervals(loader_factory, pp_dataset):
 
     d = batches[0]
 
-    assert d["past_target"].shape[1] == d["future_target"].shape[1] == 0
+    assert d["past_target"].shape[1] == d["future_target"].shape[1] == 1
     assert d["past_target"].shape[0] == d["future_target"].shape[0] == 5
 
 
-@pytest.mark.skip()
 def test_inference_loader_short_intervals(loader_factory, pp_dataset):
     loader = loader_factory(
         dataset=pp_dataset(),
@@ -212,7 +210,7 @@ def test_inference_loader_short_intervals(loader_factory, pp_dataset):
 
     d = batches[0]
 
-    assert d["past_target"].shape[1] == 0
+    assert d["past_target"].shape[1] == 1
 
 
 @pytest.mark.parametrize(
@@ -238,7 +236,6 @@ def test_variable_length_stack(pp_dataset, array_type, multi_processing):
     assert stacked.shape[2] == 2
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize(
     "array_type, multi_processing",
     itertools.product(["np", "mx"], [True, False]),
@@ -262,5 +259,5 @@ def test_variable_length_stack_zerosize(
     )
 
     assert stacked.shape[0] == 5
-    assert stacked.shape[1] == 0
+    assert stacked.shape[1] == 1
     assert stacked.shape[2] == 2
