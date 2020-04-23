@@ -180,7 +180,9 @@ class RepresentablePredictor(Predictor):
     def __init__(
         self, prediction_length: int, freq: str, lead_time: int = 0
     ) -> None:
-        super().__init__(prediction_length, freq, lead_time)
+        super().__init__(
+            freq=freq, lead_time=lead_time, prediction_length=prediction_length
+        )
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         for item in dataset:
@@ -252,7 +254,11 @@ class GluonPredictor(Predictor):
         output_transform: Optional[OutputTransform] = None,
         dtype: DType = np.float32,
     ) -> None:
-        super().__init__(prediction_length, freq, lead_time)
+        super().__init__(
+            freq=freq,
+            lead_time=lead_time,
+            prediction_length=prediction_length,
+        )
 
         self.input_names = input_names
         self.prediction_net = prediction_net
@@ -596,9 +602,9 @@ class ParallelizedPredictor(Predictor):
         chunk_size=1,
     ) -> None:
         super().__init__(
-            base_predictor.prediction_length,
-            base_predictor.freq,
-            base_predictor.lead_time,
+            freq=base_predictor.freq,
+            lead_time=base_predictor.lead_time,
+            prediction_length=base_predictor.prediction_length,
         )
 
         self._base_predictor = base_predictor
@@ -723,7 +729,9 @@ class Localizer(Predictor):
 
     def __init__(self, estimator: "Estimator"):
         super().__init__(
-            estimator.prediction_length, estimator.freq, estimator.lead_time
+            freq=estimator.freq,
+            lead_time=estimator.lead_time,
+            prediction_length=estimator.prediction_length,
         )
         self.estimator = estimator
 

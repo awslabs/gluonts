@@ -167,7 +167,7 @@ class NPTSPredictor(RepresentablePredictor):
         num_default_time_features: int = 1,
         feature_scale: float = 1000.0,
     ) -> None:
-        super().__init__(prediction_length=prediction_length, freq=freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
         # We limit the context length to some maximum value instead of
         # looking at the whole history which might be too large.
         self.context_length = (

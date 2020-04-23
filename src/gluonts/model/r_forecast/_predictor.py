@@ -78,7 +78,7 @@ class RForecastPredictor(RepresentablePredictor):
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
-        super().__init__(prediction_length=prediction_length, freq=freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         try:
             from rpy2 import robjects, rinterface

@@ -55,7 +55,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         num_samples: int = 100,
         context_length: Optional[int] = None,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
         self.context_length = context_length
         self.num_samples = num_samples
         self.shape = (self.num_samples, self.prediction_length)
