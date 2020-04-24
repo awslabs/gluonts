@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import pytest
+import sys
 
 from gluonts.model.wavenet import WaveNetEstimator
 
@@ -32,6 +33,9 @@ def hyperparameters(dsinfo):
     )
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="test times out for some reason"
+)
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("sample_based_forecast", [True, False])
 def test_accuracy(

@@ -12,10 +12,16 @@
 # permissions and limitations under the License.
 
 # First-party imports
+import json
 import random
+import tempfile
 import time
+import multiprocessing as mp
 
 # Third-party imports
+from collections import defaultdict
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from mxnet.context import current_context
@@ -29,8 +35,13 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
     InferenceDataLoader,
 )
-from gluonts.dataset.common import ListDataset
-from gluonts.transform import Chain, UniformSplitSampler, InstanceSplitter
+from gluonts.dataset.common import ListDataset, FileDataset
+from gluonts.transform import (
+    Chain,
+    UniformSplitSampler,
+    InstanceSplitter,
+    InstanceSampler,
+)
 from gluonts.dataset.artificial import ConstantDataset
 
 from gluonts.model.deepar import DeepAREstimator
@@ -191,6 +202,80 @@ def test_validation_loader_equivalence() -> None:
     ), "Batches in incorrect context"
 
 
+@pytest.mark.parametrize(
+    "num_workers",
+    [i for i in [None, 1, 2,] if i is None or i <= mp.cpu_count()],
+    # TODO: using more than 2 is a problem for our tests, if some of the cores are busy and fall behind
+    # TODO: using multiple input queues in the loader would make this pass no matter how busy each core is
+    # [i for i in [None, 1, 2, 3, 4] if i is None or i <= mp.cpu_count()],
+)
+def test_train_loader_goes_over_all_data(num_workers) -> None:
+    batch_size = 4
+    num_batches_per_epoch = 4
+
+    X = 3
+
+    simple_data = [
+        {
+            "start": "2012-01-01",
+            "target": np.random.uniform(size=40).astype(float).tolist(),
+            "item_id": i,
+        }
+        for i in range(batch_size * num_batches_per_epoch * X)
+    ]
+
+    num_passes = 5
+    num_epochs = X * num_passes
+
+    def test_dataset(dataset):
+        class ExactlyOneSampler(InstanceSampler):
+            def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+                window_size = b - a + 1
+                assert window_size > 0
+                return np.array([a])
+
+        transformation = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            train_sampler=ExactlyOneSampler(),
+            past_length=10,
+            future_length=5,
+            dummy_value=1.0,
+        )
+
+        dl = TrainDataLoader(
+            dataset=dataset,
+            transform=transformation,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            num_batches_per_epoch=num_batches_per_epoch,
+            ctx=current_context(),
+        )
+
+        item_ids = defaultdict(int)
+
+        for epoch in range(num_epochs):
+            for batch in dl:
+                for item_id in batch["item_id"]:
+                    item_ids[item_id] += 1
+
+        for i in range(len(dataset)):
+            assert num_passes - 1 <= item_ids[i] <= num_passes + 1
+
+    test_dataset(ListDataset(simple_data, freq="1H"))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(tmpdir + "/data.json", "w") as f:
+            for data in simple_data:
+                json.dump(data, f)
+                f.write("\n")
+
+        test_dataset(FileDataset(Path(tmpdir), freq="1H"))
+        test_dataset(FileDataset(Path(tmpdir), freq="1H", cache=True))
+
+
 # The idea is to test that the inference data loader yields equivalent results
 def test_inference_loader_equivalence() -> None:
     (
@@ -278,7 +363,6 @@ def test_training_loader_soft_constraint_01() -> None:
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
-        num_batches_for_shuffling=1,
     )
 
     # give all the workers a little time to get ready, so they can start at the same time
@@ -320,7 +404,6 @@ def test_training_loader_soft_constraint_02() -> None:
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(0.5 * exp_num_batches),
-        num_batches_for_shuffling=1,
     )
 
     # multi-processed validation dataset
@@ -357,7 +440,6 @@ def test_training_loader_soft_constraint_03() -> None:
         num_workers=1,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
-        num_batches_for_shuffling=1,
     )
 
     # multi-processed validation dataset
