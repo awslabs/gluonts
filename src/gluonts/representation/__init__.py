@@ -20,6 +20,7 @@ from .hybrid_representation import HybridRepresentation
 from .mean_scaling import MeanScaling
 from .nop_scaling import NOPScaling
 from .dim_expansion import DimExpansion
+from .embedding import Embedding
 
 __all__ = [
     "Representation",
@@ -30,6 +31,7 @@ __all__ = [
     "MeanScaling",
     "NOPScaling",
     "DimExpansion",
+    "Embedding",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
