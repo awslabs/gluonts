@@ -20,7 +20,7 @@ from gluonts.representation import LocalAbsoluteBinning
 
 la_binning_cases = [
     (
-        LocalAbsoluteBinning(num_bins=6, is_quantile=True, is_output=True,),
+        LocalAbsoluteBinning(num_bins=6, is_quantile=True),
         mx.nd.array(
             [
                 [-1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
@@ -73,7 +73,7 @@ la_binning_cases = [
         ),
     ),
     (
-        LocalAbsoluteBinning(num_bins=6, is_quantile=False, is_output=True,),
+        LocalAbsoluteBinning(num_bins=6, is_quantile=False),
         mx.nd.array(
             [
                 [-1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],

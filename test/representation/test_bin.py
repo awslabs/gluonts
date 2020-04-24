@@ -15,12 +15,12 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.representation import Binning
+from gluonts.representation import CustomBinning
 
 
 binning_cases = [
     (
-        Binning(bin_centers=np.linspace(-1, 10, 5), is_output=True,),
+        CustomBinning(bin_centers=np.linspace(-1, 10, 5)),
         mx.nd.array(
             [
                 [-1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
@@ -54,7 +54,7 @@ binning_cases = [
         ),
     ),
     (
-        Binning(bin_centers=np.linspace(-10, 10, 8), is_output=True,),
+        CustomBinning(bin_centers=np.linspace(-10, 10, 8)),
         mx.nd.array(
             [
                 [-1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],

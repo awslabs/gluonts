@@ -17,8 +17,9 @@ import numpy as np
 
 from gluonts.representation import (
     HybridRepresentation,
-    Binning,
+    CustomBinning,
     LocalAbsoluteBinning,
+    DimExpansion,
 )
 
 
@@ -26,10 +27,13 @@ hyb_cases = [
     (
         HybridRepresentation(
             representations=[
-                Binning(bin_centers=np.linspace(-1, 10, 5), is_output=True,),
-                Binning(bin_centers=np.linspace(-10, 10, 8), is_output=True,),
-            ],
-            is_output=True,
+                DimExpansion(
+                    CustomBinning(bin_centers=np.linspace(-1, 10, 5))
+                ),
+                DimExpansion(
+                    CustomBinning(bin_centers=np.linspace(-10, 10, 8))
+                ),
+            ]
         ),
         mx.nd.array(
             [
@@ -77,12 +81,13 @@ hyb_cases = [
     (
         HybridRepresentation(
             representations=[
-                Binning(bin_centers=np.linspace(-1, 10, 5), is_output=True,),
-                LocalAbsoluteBinning(
-                    num_bins=6, is_quantile=True, is_output=True,
+                DimExpansion(
+                    CustomBinning(bin_centers=np.linspace(-1, 10, 5))
                 ),
-            ],
-            is_output=True,
+                DimExpansion(
+                    LocalAbsoluteBinning(num_bins=6, is_quantile=True,)
+                ),
+            ]
         ),
         mx.nd.array(
             [
@@ -130,11 +135,10 @@ hyb_cases = [
     (
         HybridRepresentation(
             representations=[
-                LocalAbsoluteBinning(
-                    num_bins=6, is_quantile=True, is_output=True,
+                DimExpansion(
+                    LocalAbsoluteBinning(num_bins=6, is_quantile=True,)
                 ),
-            ],
-            is_output=True,
+            ]
         ),
         mx.nd.array(
             [

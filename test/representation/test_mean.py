@@ -20,7 +20,7 @@ from gluonts.representation import MeanScaling
 
 mean_cases = [
     (
-        MeanScaling(is_output=True),
+        MeanScaling(),
         mx.nd.array(
             [
                 [1.0] * 50,
@@ -42,7 +42,7 @@ mean_cases = [
         mx.nd.array([1.0, 3.0, 1.5, 1.00396824, 1.00396824]),
     ),
     (
-        MeanScaling(is_output=True),
+        MeanScaling(),
         mx.nd.array(
             [
                 [120.0] * 25 + [150.0] * 25,
@@ -62,7 +62,7 @@ mean_cases = [
         mx.nd.array([135.0, 32.0, 73.00454712, 2.5e-2]),
     ),
     (
-        MeanScaling(is_output=True),
+        MeanScaling(),
         mx.nd.random.normal(shape=(5, 30)),
         mx.nd.zeros(shape=(5, 30)),
         1e-10 * mx.nd.ones(shape=(5,)),

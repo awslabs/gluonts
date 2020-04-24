@@ -21,10 +21,7 @@ from gluonts.representation import GlobalRelativeBinning
 gr_binning_cases = [
     (
         GlobalRelativeBinning(
-            num_bins=6,
-            is_quantile=True,
-            quantile_scaling_limit=1.0,
-            is_output=True,
+            num_bins=6, is_quantile=True, quantile_scaling_limit=1.0,
         ),
         mx.nd.array(
             [
@@ -93,10 +90,7 @@ gr_binning_cases = [
     ),
     (
         GlobalRelativeBinning(
-            num_bins=8,
-            is_quantile=True,
-            quantile_scaling_limit=1.0,
-            is_output=True,
+            num_bins=8, is_quantile=True, quantile_scaling_limit=1.0,
         ),
         mx.nd.array(
             [
@@ -176,10 +170,7 @@ gr_binning_cases = [
     ),
     (
         GlobalRelativeBinning(
-            num_bins=6,
-            is_quantile=False,
-            quantile_scaling_limit=1.0,
-            is_output=True,
+            num_bins=6, is_quantile=False, quantile_scaling_limit=1.0,
         ),
         mx.nd.array(
             [
