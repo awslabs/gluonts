@@ -22,7 +22,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset.util import MPWorkerInfo
+from gluonts.dataset.util import get_bounds_for_mp_data_loading
 
 
 def load(file_obj):
@@ -65,19 +65,11 @@ class JsonLinesFile:
     def __iter__(self):
         # Basic idea is to split the dataset into roughly equally sized segments
         # with lower and upper bound, where each worker is assigned one segment
-        segment_size = int(len(self) / MPWorkerInfo.num_workers)
-
-        lower_bound = MPWorkerInfo.worker_id * segment_size
-        upper_bound = (
-            (MPWorkerInfo.worker_id + 1) * segment_size
-            if MPWorkerInfo.worker_id + 1 != MPWorkerInfo.num_workers
-            else len(self)
-        )
-
+        bounds = get_bounds_for_mp_data_loading(len(self))
         if not self.cache or (self.cache and not self._data_cache):
             with open(self.path) as jsonl_file:
                 for line_number, raw in enumerate(jsonl_file):
-                    if not lower_bound <= line_number < upper_bound:
+                    if not bounds.lower <= line_number < bounds.upper:
                         continue
 
                     span = Span(path=self.path, line=line_number)

@@ -73,7 +73,6 @@ class DataLoader(Iterable[DataEntry]):
         dtype: DType = np.float32,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        num_batches_for_shuffling: Optional[int] = None,
         **kwargs,
     ) -> None:
         self.batch_size = batch_size
@@ -90,7 +89,6 @@ class DataLoader(Iterable[DataEntry]):
             )
         self.num_workers = num_workers
         self.num_prefetch = num_prefetch
-        self.num_batches_for_shuffling = num_batches_for_shuffling
 
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
@@ -102,7 +100,6 @@ class DataLoader(Iterable[DataEntry]):
             dtype=self.dtype,
             num_workers=self.num_workers,
             num_prefetch=self.num_prefetch,
-            num_batches_for_shuffling=self.num_batches_for_shuffling,
             **kwargs,
         )
 
@@ -143,11 +140,6 @@ class TrainDataLoader(DataLoader):
         By default it defaults to `num_workers * 2`.
     dtype
         Floating point type to use. Default is np.float32.
-    shuffle_for_training
-        Whether to shuffle the samples.
-    num_batches_for_shuffling
-        The effective number of batches among which samples are shuffled. If num_batches_for_shuffling = 8 and
-        batch_size = 8 then the next batch will be randomly sampled from about 64 samples.
     """
 
     def __init__(
@@ -160,8 +152,6 @@ class TrainDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 8,
         **kwargs,
     ) -> None:
         assert dataset, "empty dataset"
@@ -173,17 +163,13 @@ class TrainDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             is_train=True,
-            shuffle=shuffle_for_training,
             cyclic=True,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
-            num_batches_for_shuffling=num_batches_for_shuffling,
             **kwargs,
         )
 
         self.num_batches_per_epoch = num_batches_per_epoch
-        self.shuffle_for_training = shuffle_for_training
-        self.num_batches_for_shuffling = num_batches_for_shuffling
         self._it = iter(self.parallel_data_loader)
 
     def __len__(self) -> int:

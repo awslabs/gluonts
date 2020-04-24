@@ -249,7 +249,6 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             num_workers=num_workers,
             num_batches_per_epoch=num_batches_per_epoch,
             ctx=current_context(),
-            shuffle_for_training=False,
         )
 
         item_ids = defaultdict(int)
@@ -361,7 +360,6 @@ def test_training_loader_soft_constraint_01() -> None:
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
-        num_batches_for_shuffling=1,
     )
 
     # give all the workers a little time to get ready, so they can start at the same time
@@ -403,7 +401,6 @@ def test_training_loader_soft_constraint_02() -> None:
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(0.5 * exp_num_batches),
-        num_batches_for_shuffling=1,
     )
 
     # multi-processed validation dataset
@@ -440,7 +437,6 @@ def test_training_loader_soft_constraint_03() -> None:
         num_workers=1,  # This is the crucial difference
         ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
-        num_batches_for_shuffling=1,
     )
 
     # multi-processed validation dataset

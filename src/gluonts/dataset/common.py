@@ -274,17 +274,9 @@ class ListDataset(Dataset):
         source_name = "list_data"
         # Basic idea is to split the dataset into roughly equally sized segments
         # with lower and upper bound, where each worker is assigned one segment
-        segment_size = int(len(self) / util.MPWorkerInfo.num_workers)
-
-        lower_bound = util.MPWorkerInfo.worker_id * segment_size
-        upper_bound = (
-            (util.MPWorkerInfo.worker_id + 1) * segment_size
-            if util.MPWorkerInfo.worker_id + 1 != util.MPWorkerInfo.num_workers
-            else len(self)
-        )
-
+        bounds = util.get_bounds_for_mp_data_loading(len(self))
         for row_number, data in enumerate(self.list_data):
-            if not lower_bound <= row_number < upper_bound:
+            if not bounds.lower <= row_number < bounds.upper:
                 continue
 
             data = data.copy()
