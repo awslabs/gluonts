@@ -175,7 +175,7 @@ class WaveNetEstimator(GluonEstimator):
         seasonality: Optional[int] = None,
         embedding_dimension: int = 5,
         num_bins: int = 1024,
-        bin_centers: Optional[List[float]] = None,
+        bin_centers: Optional[np.ndarray] = None,
         hybridize_prediction_net: bool = False,
         n_residue=24,
         n_skip=32,

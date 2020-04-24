@@ -23,7 +23,6 @@ from mxnet.gluon import nn
 # First-party imports
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
-from gluonts.distribution import Binned
 from gluonts.model.common import Tensor
 
 
@@ -735,7 +734,7 @@ class WaveNetDistributionPredictor(WaveNetPredictor):
         past_time_feat: Tensor,
         future_time_feat: Tensor,
         scale: Tensor,
-    ) -> Tuple[Tuple[Tensor, Tensor], Tensor]:
+    ) -> Tuple[Tuple[Tensor, Tensor], Tensor, Tensor]:
         """
         Computes the forecast distribution from the trained wavenet model.
 
@@ -760,7 +759,7 @@ class WaveNetDistributionPredictor(WaveNetPredictor):
         Tuple containing `dist_args`, `loc` and `scale`.
 
             `dist_args` is a pair of tensors containing logarithm of bin probabilities with shape
-            (batch_size, pred_length, num_bins) and bin values with shape (num_bins,).
+            (batch_size, pred_length, num_bins) and bin centers with shape (batch_size, num_bins).
 
             `loc` is a Tensor with shape (batch_size, 1).
 
@@ -781,9 +780,10 @@ class WaveNetDistributionPredictor(WaveNetPredictor):
 
         # get the batch shape right
         scale = F.broadcast_add(scale, F.zeros_like(feat_static_cat))
+        loc = F.zeros_like(scale)
         bin_centers = F.broadcast_add(
             F.array(self.bin_values), F.zeros_like(feat_static_cat)
         )
 
         dist_args = F.log(bin_probs), bin_centers
-        return dist_args, scale
+        return dist_args, loc, scale
