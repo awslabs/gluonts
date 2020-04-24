@@ -19,6 +19,7 @@ from .local_absolute_binning import LocalAbsoluteBinning
 from .hybrid_representation import HybridRepresentation
 from .mean_scaling import MeanScaling
 from .nop_scaling import NOPScaling
+from .dim_expansion import DimExpansion
 
 __all__ = [
     "Representation",
@@ -28,6 +29,7 @@ __all__ = [
     "HybridRepresentation",
     "MeanScaling",
     "NOPScaling",
+    "DimExpansion",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
