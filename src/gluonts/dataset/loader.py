@@ -82,10 +82,12 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
         self.cyclic = cyclic
-        if num_workers is not None:
-            assert (
-                num_workers <= mp.cpu_count()
-            ), f"num_workers is set to {num_workers}, but there are only {mp.cpu_count()} cpus"
+        self.logger = logging.getLogger(__name__)
+        if num_workers is not None and num_workers > mp.cpu_count():
+            self.logger.warning(
+                f"num_workers is set to {num_workers}, but there are only {mp.cpu_count()} cpus "
+                f"please reduce the number of workers"
+            )
         self.num_workers = num_workers
         self.num_prefetch = num_prefetch
         self.num_batches_for_shuffling = num_batches_for_shuffling

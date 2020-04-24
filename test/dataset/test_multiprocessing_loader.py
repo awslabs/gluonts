@@ -221,9 +221,6 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
         for i in range(batch_size * num_batches_per_epoch * X)
     ]
 
-    if num_workers:
-        assert len(simple_data) % num_workers == 0
-
     num_passes = 5
     num_epochs = X * num_passes
 
