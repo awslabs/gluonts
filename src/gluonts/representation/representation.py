@@ -27,19 +27,11 @@ from gluonts.dataset.common import Dataset
 class Representation(nn.HybridBlock):
     """
     An abstract class representing input/output representations.
-
-    Parameters
-    ----------
-    is_output
-        Whether the representation is an input or output representation. It is necessary to make this distinction
-        because of different shaping considerations and optional child-block creation.
-        (default: False)
     """
 
     @validated()
-    def __init__(self, is_output: bool = False):
+    def __init__(self):
         super().__init__()
-        self.is_output = is_output
 
     def initialize_from_dataset(self, input_dataset: Dataset):
         r"""
