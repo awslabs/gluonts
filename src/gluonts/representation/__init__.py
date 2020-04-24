@@ -13,7 +13,7 @@
 
 # Relative imports
 from .representation import Representation
-from .binning import Binning
+from .custom_binning import CustomBinning
 from .global_relative_binning import GlobalRelativeBinning
 from .local_absolute_binning import LocalAbsoluteBinning
 from .hybrid_representation import HybridRepresentation
@@ -25,7 +25,7 @@ from .discrete_pit import DiscretePIT
 
 __all__ = [
     "Representation",
-    "Binning",
+    "CustomBinning",
     "GlobalRelativeBinning",
     "LocalAbsoluteBinning",
     "HybridRepresentation",

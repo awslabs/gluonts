@@ -26,7 +26,7 @@ from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 
-class Binning(Representation):
+class CustomBinning(Representation):
     """
     A class representing binned representations with custom centers.
 
@@ -35,19 +35,10 @@ class Binning(Representation):
     bin_centers
         The bins to be used to discritize the data.
         (default: 1024)
-    embedding_size
-        The size of the embedding layer.
-        (default: round(num_bins**(1/4)))
     """
 
     @validated()
-    def __init__(
-        self,
-        bin_centers: np.ndarray,
-        embedding_size: int = -1,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, bin_centers: np.ndarray, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.bin_centers = bin_centers
@@ -55,22 +46,7 @@ class Binning(Representation):
         self.num_bins = len(bin_centers)
         self.scale = np.array([])
 
-        if embedding_size == -1:
-            # Embedding size heuristic that seems to work well in practice. For reference see:
-            # https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
-            self.embedding_size = round(self.num_bins ** (1 / 4))
-        else:
-            self.embedding_size = embedding_size
-
         self.bin_centers_hyb = np.array([])
-
-        with self.name_scope():
-            if self.is_output:
-                self.embedding = lambda x: x
-            else:
-                self.embedding = nn.Embedding(
-                    input_dim=self.num_bins, output_dim=self.embedding_size
-                )
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
@@ -103,13 +79,7 @@ class Binning(Representation):
             axis=0,
         )
 
-        # In output mode, no embedding is used since the data is directly used to compute the loss.
-        # In input mode, we embed the categorical data to ensure that the network can learn similarities between bins.
-        if self.is_output:
-            return data, scale
-        else:
-            emb = self.embedding(data)
-            return emb.swapaxes(1, 2), scale
+        return data, scale
 
     def post_transform(self, F, x: Tensor):
         bin_cent = F.array(self.bin_centers_hyb)

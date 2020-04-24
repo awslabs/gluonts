@@ -23,7 +23,6 @@ from typing import Tuple, Optional
 # Third-party imports
 import numpy as np
 import mxnet as mx
-from mxnet.gluon import nn
 
 # First-party imports
 from gluonts.core.component import validated
@@ -45,68 +44,19 @@ class LocalAbsoluteBinning(Representation):
         Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
         distribution function, while linear binning allocates evenly spaced bins.
         (default: True, i.e. quantile binning)
-    embedding_size
-        The size of the embedding layer.
-        (default: round(num_bins**(1/4)))
-    pit
-        Whether the binning should be used to transform its inputs using a discrete probability integral transform.
-        This requires is_quantile=True.
-        (default: False)
-    mlp_tranf
-        Whether we want to post-process the pit-transformed valued using a MLP which can learn an appropriate
-        binning, which would ensure that pit models have the same expressiveness as standard quantile binning with
-        embedding. This requires pit=True.
-        (default: False)
     """
 
     @validated()
     def __init__(
-        self,
-        num_bins: int = 1024,
-        is_quantile: bool = True,
-        embedding_size: int = -1,
-        pit: bool = False,
-        mlp_transf: bool = False,
-        *args,
-        **kwargs
+        self, num_bins: int = 1024, is_quantile: bool = True, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
 
         self.num_bins = num_bins
         self.is_quantile = is_quantile
-        self.pit = pit
-        self.mlp_transf = mlp_transf
-
-        if embedding_size == -1:
-            # Embedding size heuristic that seems to work well in practice. For reference see:
-            # https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
-            self.embedding_size = round(self.num_bins ** (1 / 4))
-        else:
-            self.embedding_size = embedding_size
 
         self.bin_edges_hyb = np.array([])
         self.bin_centers_hyb = np.array([])
-
-        with self.name_scope():
-            if self.mlp_transf:
-                self.mlp = mx.gluon.nn.HybridSequential()
-                self.mlp.add(
-                    mx.gluon.nn.Dense(
-                        units=self.num_bins, activation="relu", flatten=False
-                    )
-                )
-                self.mlp.add(
-                    mx.gluon.nn.Dense(units=self.embedding_size, flatten=False)
-                )
-            else:
-                self.mlp = None
-
-            if self.is_output or self.pit:
-                self.embedding = lambda x: x
-            else:
-                self.embedding = nn.Embedding(
-                    input_dim=self.num_bins, output_dim=self.embedding_size
-                )
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
@@ -191,23 +141,7 @@ class LocalAbsoluteBinning(Representation):
 
         data = mx.nd.array(data_np)
 
-        # In PIT mode, we rescale the binned data to [0,1] and optionally pass the data through a MLP to achieve the
-        # same level of expressiveness as binning with embedding.
-        if self.pit:
-            data = data / self.num_bins
-            data_exp = data.expand_dims(-1)
-            if self.mlp_transf:
-                return self.mlp(data_exp).swapaxes(1, 2), scale
-            else:
-                return data_exp.swapaxes(1, 2), scale
-
-        # In output mode, no embedding is used since the data is directly used to compute the loss.
-        # In input mode, we embed the categorical data to ensure that the network can learn similarities between bins.
-        if self.is_output:
-            return data, scale
-        else:
-            emb = self.embedding(data)
-            return emb.swapaxes(1, 2), scale
+        return data, scale
 
     def post_transform(self, F, x: Tensor):
         bin_cent = mx.nd.array(self.bin_centers_hyb)

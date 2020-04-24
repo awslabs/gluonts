@@ -19,12 +19,9 @@ from .binning_helpers import (
 
 # Standard library imports
 from typing import Tuple, Optional
-import math
 
 # Third-party imports
 import numpy as np
-import mxnet as mx
-from mxnet.gluon import nn
 
 # First-party imports
 from gluonts.core.component import validated
@@ -47,18 +44,6 @@ class GlobalRelativeBinning(Representation):
         Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
         distribution function, while linear binning allocates evenly spaced bins.
         (default: True, i.e. quantile binning)
-    embedding_size
-        The size of the embedding layer.
-        (default: round(num_bins**(1/4)))
-    pit
-        Whether the binning should be used to transform its inputs using a discrete probability integral transform.
-        This requires is_quantile=True.
-        (default: False)
-    mlp_tranf
-        Whether we want to post-process the pit-transformed valued using a MLP which can learn an appropriate
-        binning, which would ensure that pit models have the same expressiveness as standard quantile binning with
-        embedding. This requires pit=True.
-        (default: False)
     linear_scaling_limit
         The linear scaling limit. Values which are larger than linear_scaling_limit times the mean will be capped at
         linear_scaling_limit.
@@ -74,11 +59,8 @@ class GlobalRelativeBinning(Representation):
         self,
         num_bins: int = 1024,
         is_quantile: bool = True,
-        embedding_size: int = -1,
         linear_scaling_limit: int = 10,
         quantile_scaling_limit: float = 0.99,
-        pit: bool = False,
-        mlp_transf: bool = False,
         *args,
         **kwargs
     ):
@@ -86,14 +68,6 @@ class GlobalRelativeBinning(Representation):
 
         self.num_bins = num_bins
         self.is_quantile = is_quantile
-        self.pit = pit
-        self.mlp_transf = mlp_transf
-        if embedding_size == -1:
-            # Embedding size heuristic that seems to work well in practice. For reference see:
-            # https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
-            self.embedding_size = round(self.num_bins ** (1 / 4))
-        else:
-            self.embedding_size = embedding_size
 
         self.bin_centers_hyb = np.array([])
 
@@ -103,27 +77,6 @@ class GlobalRelativeBinning(Representation):
         self.bin_centers = np.array([])
         self.bin_edges = np.array([])
         self.scale = np.array([])
-
-        with self.name_scope():
-            if self.mlp_transf:
-                self.mlp = mx.gluon.nn.HybridSequential()
-                self.mlp.add(
-                    mx.gluon.nn.Dense(
-                        units=self.num_bins, activation="relu", flatten=False
-                    )
-                )
-                self.mlp.add(
-                    mx.gluon.nn.Dense(units=self.embedding_size, flatten=False)
-                )
-            else:
-                self.mlp = None
-
-            if self.is_output or self.pit:
-                self.embedding = lambda x: x
-            else:
-                self.embedding = nn.Embedding(
-                    input_dim=self.num_bins, output_dim=self.embedding_size
-                )
 
     def initialize_from_dataset(self, input_dataset: Dataset):
         # Rescale all time series in training set.
@@ -193,36 +146,9 @@ class GlobalRelativeBinning(Representation):
             axis=0,
         )
 
-        # In PIT mode, we rescale the binned data to [0,1] and optionally pass the data through a MLP to achieve the
-        # same level of expressiveness as binning with embedding.
-        if self.pit:
-            data = data / self.num_bins
-            if not self.is_output:
-                data = data.expand_dims(-1)
-            if self.mlp_transf:
-                return self.mlp(data).swapaxes(1, 2), scale
-            else:
-                if self.is_output:
-                    return data, scale
-                else:
-                    return data.swapaxes(1, 2), scale
-
-        # In output mode, no embedding is used since the data is directly used to compute the loss.
-        # In input mode, we embed the categorical data to ensure that the network can learn similarities between bins.
-        if self.is_output:
-            return data, scale
-        else:
-            emb = self.embedding(data)
-            return emb.swapaxes(1, 2), scale
+        return data, scale
 
     def post_transform(self, F, x: Tensor):
-        if self.pit:
-            # Transform the data back from [0,1] to the set of bins
-            x_upsc = x * F.array([self.num_bins])
-            x_np = x_upsc.asnumpy()
-            x_np = np.digitize(x_np, np.arange(self.num_bins))
-            x = F.array(x_np)
-
         bin_cent = F.array(self.bin_centers_hyb)
         x_oh = F.one_hot(F.squeeze(x), self.num_bins)
 

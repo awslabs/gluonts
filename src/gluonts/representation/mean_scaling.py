@@ -95,10 +95,7 @@ class MeanScaling(Representation):
         if self.clip_max != -1:
             scaled_data = F.clip(scaled_data, -self.clip_max, self.clip_max)
 
-        if self.is_output:
-            return scaled_data, scale
-        else:
-            return F.expand_dims(scaled_data, axis=1), scale
+        return scaled_data, scale
 
     def post_transform(self, F, x: Tensor):
         transf = F.broadcast_mul(x, self.means)

@@ -45,7 +45,4 @@ class NOPScaling(Representation):
             scale = F.ones_like(data)
             scale = scale.expand_dims(axis=1)
 
-        if self.is_output:
-            return data, scale
-        else:
-            return F.expand_dims(data, axis=1), scale
+        return data, scale

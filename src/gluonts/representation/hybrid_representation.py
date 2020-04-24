@@ -25,7 +25,7 @@ from gluonts.dataset.common import Dataset
 class HybridRepresentation(Representation):
     """
     A class representing a hybrid approach of combining multiple representations into a single representation.
-    Representations will be combined by concatenating them at on dim=1.
+    Representations will be combined by concatenating them on dim=1.
 
     Parameters
     ----------
@@ -58,10 +58,6 @@ class HybridRepresentation(Representation):
             representation_data, _ = representation(
                 data, observed_indicator, scale
             )
-            if self.is_output:
-                representation_data = representation_data.expand_dims(
-                    -1
-                ).swapaxes(1, 2)
             representation_list.append(representation_data)
 
         representation_agg = F.concat(*representation_list, dim=1)
@@ -72,6 +68,3 @@ class HybridRepresentation(Representation):
             )
 
         return representation_agg, scale
-
-    def post_transform(self, F, samples: Tensor):
-        raise NotImplementedError
