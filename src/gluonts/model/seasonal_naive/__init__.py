@@ -12,11 +12,9 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from ._naive_2_predictor import Naive2Predictor
-from ._seasonal_naive_predictor import SeasonalNaivePredictor
-from ._naive_2_predictor import naive_2
+from ._predictor import SeasonalNaivePredictor
 
-__all__ = ["Naive2Predictor", "naive_2", "SeasonalNaivePredictor"]
+__all__ = ["SeasonalNaivePredictor"]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:
