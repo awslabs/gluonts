@@ -202,6 +202,7 @@ def test_validation_loader_equivalence() -> None:
     ), "Batches in incorrect context"
 
 
+@flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     "num_workers",
     [i for i in [None, 1, 2,] if i is None or i <= mp.cpu_count()],
