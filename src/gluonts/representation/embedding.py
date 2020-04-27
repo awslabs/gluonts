@@ -78,6 +78,5 @@ class Embedding(Representation):
         )
 
         emb_data = self.embedding(repr_data)
-        emb_data = emb_data.swapaxes(1, 2)
 
         return emb_data, scale, rep_params

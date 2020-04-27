@@ -37,7 +37,7 @@ class DimExpansion(Representation):
 
     @validated()
     def __init__(
-        self, representation: Representation, axis: int = 1, *args, **kwargs
+        self, representation: Representation, axis: int = -1, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.representation = representation

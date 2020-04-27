@@ -102,6 +102,6 @@ class DiscretePIT(Representation):
         repr_data = repr_data / self.num_bins
         if self.mlp_transf:
             repr_data = F.expand_dims(repr_data, axis=-1)
-            repr_data = self.mlp(repr_data).swapaxes(1, 2)
+            repr_data = self.mlp(repr_data)
 
         return repr_data, scale, rep_params
