@@ -16,7 +16,7 @@ from mxnet.gluon import nn
 import numpy as np
 
 # Standard library imports
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -62,7 +62,8 @@ class Representation(nn.HybridBlock):
         data: Tensor,
         observed_indicator: Tensor,
         scale: Optional[Tensor],
-    ) -> Tuple[Tensor, Tensor]:
+        rep_params: List[Tensor],
+    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         r"""
         Transform the data into the desired representation.
 
@@ -75,15 +76,20 @@ class Representation(nn.HybridBlock):
             Target observed indicator.
         scale
             Pre-computed scale.
+        rep_params
+            Additional pre-computed representation parameters.
 
         Returns
         -------
-        Tuple[Tensor, Tensor]
-            Tuple consisting of the transformed data and the computed scale.
+        Tuple[Tensor, Tensor, List[Tensor]]
+            Tuple consisting of the transformed data, the computed scale, 
+            and additional parameters to be passed to post_transform.
         """
         raise NotImplementedError
 
-    def post_transform(self, F, samples: Tensor):
+    def post_transform(
+        self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]
+    ) -> Tensor:
         r"""
         Transform samples back to the original representation.
 
@@ -91,5 +97,15 @@ class Representation(nn.HybridBlock):
         ----------
         samples
             Samples from a distribution.
+        scale
+            The scale of the samples.
+        rep_params
+            Additional representation-specific parameters used during post 
+            transformation.
+
+        Returns
+        -------
+        Tensor
+            Post-transformed samples.
         """
         return samples
