@@ -81,10 +81,14 @@ class LSTNetEstimator(GluonEstimator):
         Type of the RNN cell. Either `lstm` or `gru` (default: `gru`)
     rnn_num_layers
         Number of RNN layers to be used
+    rnn_num_cells
+        Number of RNN cells for each layer (default: 100)
     skip_rnn_cell_type
         Type of the RNN cell for the skip layer. Either `lstm` or `gru` (default: `gru`)
     skip_rnn_num_layers
         Number of RNN layers to be used for skip part
+    skip_rnn_num_cells
+        Number of RNN cells for each layer for skip part (default: 10)
     scaling
         Whether to automatically scale the target values (default: True)
     dtype
