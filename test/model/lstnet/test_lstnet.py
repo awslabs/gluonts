@@ -55,7 +55,7 @@ freq = dataset.metadata.metadata.freq
         (0, dataset.metadata.prediction_length),
     ],
 )
-@pytest.mark.parametrize("hybridize", [False])
+@pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_lstnet(
     skip_size, ar_window, lead_time, prediction_length, hybridize, dtype
