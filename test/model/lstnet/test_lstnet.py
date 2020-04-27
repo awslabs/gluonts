@@ -106,4 +106,4 @@ def test_lstnet(
     agg_metrics, item_metrics = evaluator(
         iter(tss), iter(forecasts), num_series=len(dataset.test)
     )
-    assert agg_metrics["ND"] < 0.21
+    assert agg_metrics["ND"] < 0.25

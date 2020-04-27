@@ -210,7 +210,7 @@ class LSTNetBase(nn.HybridBlock):
         Tensor
             Shape (batch_size, num_series, 1) if `horizon` was specified
             and of shape (batch_size, num_series, prediction_length)
-            if `prediction_length` was provided           
+            if `prediction_length` was provided
         """
 
         scaled_past_target, scale = self.scaler(
@@ -311,10 +311,9 @@ class LSTNetTrain(LSTNetBase):
         pred, scale = super().hybrid_forward(
             F, past_target, past_observed_values
         )
-        loss = self.loss_fn(
+        return self.loss_fn(
             F.broadcast_mul(pred, scale.expand_dims(axis=-1)), future_target
         )
-        return loss
 
 
 class LSTNetPredict(LSTNetBase):
