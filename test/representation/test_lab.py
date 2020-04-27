@@ -135,14 +135,16 @@ la_binning_cases = [
 def test_la_binning(
     r, target, observed, exp_bin_edges, exp_bin_centers, expected_repr
 ):
-    target_transf, _ = r(target, observed, None)
+    target_transf, _, rep_params = r(target, observed, None, [])
+    bin_centers_hyb = rep_params[0].asnumpy()
+    bin_edges_hyb = rep_params[1].asnumpy()
 
     assert np.allclose(
-        exp_bin_edges.asnumpy(), r.bin_edges_hyb
-    ), f"Bin edges mismatch. Expected: {exp_bin_edges} VS Actual: {r.bin_edges_hyb}."
+        exp_bin_edges.asnumpy(), bin_edges_hyb
+    ), f"Bin edges mismatch. Expected: {exp_bin_edges} VS Actual: {bin_edges_hyb}."
     assert np.allclose(
-        exp_bin_centers.asnumpy(), r.bin_centers_hyb
-    ), f"Bin centers mismatch. Expected: {exp_bin_centers} VS Actual: {r.bin_centers_hyb}."
+        exp_bin_centers.asnumpy(), bin_centers_hyb
+    ), f"Bin centers mismatch. Expected: {exp_bin_centers} VS Actual: {bin_centers_hyb}."
     assert np.allclose(
         expected_repr.asnumpy(), target_transf.asnumpy()
     ), f"Representation mismatch. Expected: {expected_repr} VS Actual: {target_transf}."

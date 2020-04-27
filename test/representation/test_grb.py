@@ -236,7 +236,7 @@ def test_gr_binning(
     r, dataset, target, observed, exp_bin_edges, exp_bin_centers, expected_repr
 ):
     r.initialize_from_array(dataset.asnumpy())
-    target_transf, _ = r(target, observed, None)
+    target_transf, _, _ = r(target, observed, None, [])
 
     assert np.allclose(
         exp_bin_edges.asnumpy(), r.bin_edges

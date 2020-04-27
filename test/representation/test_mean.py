@@ -72,7 +72,7 @@ mean_cases = [
 
 @pytest.mark.parametrize("s, target, observed, expected_scale", mean_cases)
 def test_mean(s, target, observed, expected_scale):
-    target_scaled, scale = s(target, observed, None)
+    target_scaled, scale, _ = s(target, observed, None, [])
     scale = mx.nd.reshape(scale, shape=(len(scale),))
 
     assert np.allclose(

@@ -64,6 +64,6 @@ nop_cases = [
 @pytest.mark.parametrize("target, observed", nop_cases)
 def test_nop(target, observed):
     s = NOPScaling()
-    target_scaled, scale = s(target, observed, None)
+    target_scaled, scale, _ = s(target, observed, None, [])
 
     assert mx.nd.norm(target - target_scaled) == 0

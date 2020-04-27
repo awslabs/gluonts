@@ -106,7 +106,7 @@ binning_cases = [
     "r, target, observed, exp_bin_edges, expected_repr", binning_cases,
 )
 def test_binning(r, target, observed, exp_bin_edges, expected_repr):
-    target_transf, _ = r(target, observed, None)
+    target_transf, _, _ = r(target, observed, None, [])
 
     assert np.allclose(
         exp_bin_edges.asnumpy(), r.bin_edges
