@@ -56,7 +56,7 @@ class HybridRepresentation(Representation):
         representation_list = []
 
         for representation in self.representations:
-            representation_data, _ = representation(
+            representation_data, _, _ = representation(
                 data, observed_indicator, scale, rep_params,
             )
             representation_list.append(representation_data)
