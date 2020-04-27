@@ -85,8 +85,10 @@ class Scaler(nn.HybridBlock):
         Tensor
             Tensor containing the "scaled" data.
         Tensor
-            Tensor containing the scale, of shape (N, C) if ``keepdims == False``, and shape
-            (N, 1, C) if ``keepdims == True``.
+            Tensor containing the scale: this has the same shape as the data, except for the axis ``axis``
+            along which the scale is computed, which is removed if ``keepdims == False``, and kept with
+            length 1 otherwise. For example, if ``data`` has shape ``(N, T, C)`` and ``axis ==1 ``, then
+            ``scale`` has shape ``(N, C)`` if ``keepdims == False``, and ``(N, 1, C)`` otherwise.
 
         """
         scale = self.compute_scale(F, data, observed_indicator)
