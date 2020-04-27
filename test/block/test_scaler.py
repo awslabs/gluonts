@@ -146,10 +146,10 @@ test_cases = [
         1e-10 * mx.nd.ones(shape=(5,)),
     ),
     (
-        scaler.MeanScaler(axis=2),
+        scaler.MeanScaler(axis=2, minimum_scale=1e-6),
         mx.nd.random.normal(shape=(5, 3, 30)),
         mx.nd.zeros(shape=(5, 3, 30)),
-        1e-12 * mx.nd.ones(shape=(5, 3)),
+        1e-6 * mx.nd.ones(shape=(5, 3)),
     ),
     (
         scaler.MeanScaler(minimum_scale=1e-6),
