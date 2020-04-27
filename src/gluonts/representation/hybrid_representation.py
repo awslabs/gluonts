@@ -61,7 +61,7 @@ class HybridRepresentation(Representation):
             )
             representation_list.append(representation_data)
 
-        representation_agg = F.concat(*representation_list, dim=1)
+        representation_agg = F.concat(*representation_list, dim=-1)
 
         if scale is None:
             scale = F.expand_dims(

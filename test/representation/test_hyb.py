@@ -184,7 +184,7 @@ def test_hyb(r, target, observed, expected_repr):
 
     for i in range(len(expected_repr)):
         exp_loc = expected_repr[i].asnumpy()
-        target_loc = target_transf[:, i, :].asnumpy()
+        target_loc = target_transf[:, :, i].asnumpy()
         print(target_loc)
         assert np.allclose(
             exp_loc, target_loc
