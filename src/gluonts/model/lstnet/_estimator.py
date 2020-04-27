@@ -160,7 +160,7 @@ class LSTNetEstimator(GluonEstimator):
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     lead_time=self.lead_time,
-                    output_NTC=False,  # output NCT for first layer conv1d
+                    output_NTC=False,  # output NCT for first layer conv2d
                 ),
             ]
         )
