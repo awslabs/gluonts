@@ -196,7 +196,7 @@ def test_scaler(s, target, observed, expected_scale):
         expected_target_scaled = mx.nd.broadcast_div(target, expected_scale)
     else:
         expected_target_scaled = mx.nd.broadcast_div(
-            target, expected_scale.expand_dims(axis=1)
+            target, expected_scale.expand_dims(axis=s.axis)
         )
 
     assert np.allclose(
