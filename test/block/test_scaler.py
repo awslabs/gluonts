@@ -145,7 +145,7 @@ test_cases = [
         mx.nd.zeros(shape=(5, 30)),
         1e-10 * mx.nd.ones(shape=(5,)),
     ),
-        scaler.MeanScaler(input_NTC=False),
+        scaler.MeanScaler(axis=2),
         mx.nd.random.normal(shape=(5, 1, 30)),
         mx.nd.zeros(shape=(5, 30)),
         1e-10 * mx.nd.ones(shape=(5,)),

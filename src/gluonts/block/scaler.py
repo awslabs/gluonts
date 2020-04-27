@@ -30,16 +30,16 @@ class Scaler(nn.HybridBlock):
     ----------
     keepdims
         toggle to keep the dimension of the input tensor.
-    input_NTC
-        specify the shape of the input tensors either the default (N, T, C)
-        or (N, C, T) when this is False.
+    axis
+        specify the axis over which to scale. Default is 1 for (N, T, C)
+        shaped input tensor.
     """
 
-    def __init__(self, keepdims: bool = False, input_NTC: bool = True):
+    def __init__(self, keepdims: bool = False, axis: int = 1):
 
         super().__init__()
         self.keepdims = keepdims
-        self.axis = 1 if input_NTC else 2
+        self.axis = axis
 
     def compute_scale(self, F, data: Tensor, observed_indicator: Tensor):
         """
@@ -52,7 +52,7 @@ class Scaler(nn.HybridBlock):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) or (N, C, T) containing the data to be scaled.
+            tensor containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
@@ -73,7 +73,7 @@ class Scaler(nn.HybridBlock):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) or (N, C, T) containing the data to be scaled.
+            tensor containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
@@ -83,7 +83,7 @@ class Scaler(nn.HybridBlock):
         Returns
         -------
         Tensor
-            Tensor containing the "scaled" data, shape: (N, T, C) or (N, C, T).
+            Tensor containing the "scaled" data.
         Tensor
             Tensor containing the scale, of shape (N, C) if ``keepdims == False``, and shape
             (N, 1, C) if ``keepdims == True``.
@@ -95,7 +95,10 @@ class Scaler(nn.HybridBlock):
             scale = scale.expand_dims(axis=self.axis)
             return F.broadcast_div(data, scale), scale
         else:
-            return F.broadcast_div(data, scale.expand_dims(axis=self.axis)), scale
+            return (
+                F.broadcast_div(data, scale.expand_dims(axis=self.axis)),
+                scale,
+            )
 
 
 class MeanScaler(Scaler):
@@ -118,7 +121,10 @@ class MeanScaler(Scaler):
         self.minimum_scale = minimum_scale
 
     def compute_scale(
-        self, F, data: Tensor, observed_indicator: Tensor  # shapes (N, T, C) or (N, C, T)
+        self,
+        F,
+        data: Tensor,
+        observed_indicator: Tensor,  # shapes (N, T, C) or (N, C, T)
     ) -> Tensor:
         """
         Parameters
@@ -128,7 +134,7 @@ class MeanScaler(Scaler):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) or (N, C, T) containing the data to be scaled.
+            tensor containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
@@ -189,7 +195,7 @@ class NOPScaler(Scaler):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) or (N, T, C) containing the data to be scaled.
+            tensor containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
