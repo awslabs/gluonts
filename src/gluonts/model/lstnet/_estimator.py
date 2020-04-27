@@ -43,7 +43,7 @@ class LSTNetEstimator(GluonEstimator):
     The model has been described in this paper:
     https://arxiv.org/abs/1703.07015
 
-    Note that this implementation will change over time and we furthre work on
+    Note that this implementation will change over time as we further work on
     this method.
 
     Parameters
@@ -52,17 +52,17 @@ class LSTNetEstimator(GluonEstimator):
         Frequency of the data to train and predict
     context_length
         The maximum number of steps to unroll the RNN for computing the predictions
-        (Note that it is constraints by the Conv1D output size)
+        (Note that it is constraints by the Conv2D output size)
     num_series
-        Number of time-series (variats)
+        Number of time-series (variants)
     skip_size
         Skip size for the skip RNN layer
     ar_window
         Auto-regressive window size for the linear part
     channels
-        Number of channels for first layer Conv1D
+        Number of channels for first layer Conv2D
     kernel_size
-        Kernel size for first layer Conv1D (default: 6)
+        Kernel size for first layer Conv2D (default: 6)
     prediction_length
         Length of the prediction p where given `(y_1, ..., y_t)` the model predicts
         `(y_{t+1}, ..., y_{t+p})` (default: None)
@@ -76,7 +76,7 @@ class LSTNetEstimator(GluonEstimator):
         Dropout regularization parameter (default: 0.2)
     output_activation
         The last activation to be used for output.
-        Accepts either `None` (default no activation), `sigmoid` or `tahn`
+        Accepts either `None` (default no activation), `sigmoid` or `tanh`
     rnn_cell_type
         Type of the RNN cell. Either `lstm` or `gru` (default: `gru`)
     rnn_num_layers
@@ -112,9 +112,11 @@ class LSTNetEstimator(GluonEstimator):
         dropout_rate: Optional[float] = 0.2,
         output_activation: Optional[str] = None,
         rnn_cell_type: str = "gru",
-        rnn_num_layers: int = 10,
+        rnn_num_cells: int = 100,
+        rnn_num_layers: int = 3,
         skip_rnn_cell_type: str = "gru",
-        skip_rnn_num_layers: int = 5,
+        skip_rnn_num_layers: int = 1,
+        skip_rnn_num_cells: int = 10,
         scaling: bool = True,
         dtype: DType = np.float32,
     ) -> None:
@@ -135,8 +137,10 @@ class LSTNetEstimator(GluonEstimator):
         self.output_activation = output_activation
         self.rnn_cell_type = rnn_cell_type
         self.rnn_num_layers = rnn_num_layers
+        self.rnn_num_cells = rnn_num_cells
         self.skip_rnn_cell_type = skip_rnn_cell_type
         self.skip_rnn_num_layers = skip_rnn_num_layers
+        self.skip_rnn_num_cells = skip_rnn_num_cells
         self.scaling = scaling
         self.dtype = dtype
 
@@ -160,7 +164,7 @@ class LSTNetEstimator(GluonEstimator):
                     time_series_fields=[FieldName.OBSERVED_VALUES],
                     past_length=self.context_length,
                     future_length=self.future_length,
-                    output_NTC=False,  # output NCT for first layer conv1d
+                    output_NTC=False,  # output NCT for first layer conv2d
                 ),
             ]
         )
@@ -172,8 +176,10 @@ class LSTNetEstimator(GluonEstimator):
             kernel_size=self.kernel_size,
             rnn_cell_type=self.rnn_cell_type,
             rnn_num_layers=self.rnn_num_layers,
+            rnn_num_cells=self.rnn_num_cells,
             skip_rnn_cell_type=self.skip_rnn_cell_type,
             skip_rnn_num_layers=self.skip_rnn_num_layers,
+            skip_rnn_num_cells=self.skip_rnn_num_cells,
             skip_size=self.skip_size,
             ar_window=self.ar_window,
             context_length=self.context_length,
@@ -194,8 +200,10 @@ class LSTNetEstimator(GluonEstimator):
             kernel_size=self.kernel_size,
             rnn_cell_type=self.rnn_cell_type,
             rnn_num_layers=self.rnn_num_layers,
+            rnn_num_cells=self.rnn_num_cells,
             skip_rnn_cell_type=self.skip_rnn_cell_type,
             skip_rnn_num_layers=self.skip_rnn_num_layers,
+            skip_rnn_num_cells=self.skip_rnn_num_cells,
             skip_size=self.skip_size,
             ar_window=self.ar_window,
             context_length=self.context_length,

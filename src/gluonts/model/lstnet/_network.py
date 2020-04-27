@@ -34,8 +34,10 @@ class LSTNetBase(nn.HybridBlock):
         kernel_size: int,
         rnn_cell_type: str,
         rnn_num_layers: int,
+        rnn_num_cells: int,
         skip_rnn_cell_type: str,
         skip_rnn_num_layers: int,
+        skip_rnn_num_cells: int,
         skip_size: int,
         ar_window: int,
         context_length: int,
@@ -53,7 +55,7 @@ class LSTNetBase(nn.HybridBlock):
         self.channels = channels
         assert (
             channels % skip_size == 0
-        ), "number of conv1d `channels` must be divisible by the `skip_size`"
+        ), "number of conv2d `channels` must be divisible by the `skip_size`"
         self.skip_size = skip_size
         assert (
             ar_window > 0
@@ -86,31 +88,34 @@ class LSTNetBase(nn.HybridBlock):
             "gru",
             "lstm",
         ], "`skip_rnn_cell_type` must be either 'gru' or 'lstm' "
-        self.conv_out = context_length - kernel_size + 1
+        self.conv_out = context_length - kernel_size
         conv_skip = self.conv_out // skip_size
         assert conv_skip > 0, (
-            "conv1d output size must be greater than or equal to `skip_size`\n"
+            "conv2d output size must be greater than or equal to `skip_size`\n"
             "Choose a smaller `kernel_size` or bigger `context_length`"
         )
         self.channel_skip_count = conv_skip * skip_size
         self.skip_rnn_c_dim = channels * skip_size
         self.dtype = dtype
         with self.name_scope():
-            self.cnn = nn.Conv1D(
+            self.cnn = nn.Conv2D(
                 channels,
-                kernel_size,
+                (num_series, kernel_size),
                 activation="relu",
-                layout="NCW",
-                in_channels=num_series,
+                layout="NCHW",
+                in_channels=1,
             )  # NCT
             self.cnn.cast(dtype)
             self.dropout = nn.Dropout(dropout_rate)
             self.rnn = self._create_rnn_layer(
-                channels, rnn_num_layers, rnn_cell_type, dropout_rate
+                rnn_num_cells, rnn_num_layers, rnn_cell_type, dropout_rate
             )  # NTC
             self.rnn.cast(dtype)
             self.skip_rnn = self._create_rnn_layer(
-                channels, skip_rnn_num_layers, skip_rnn_cell_type, dropout_rate
+                skip_rnn_num_cells,
+                skip_rnn_num_layers,
+                skip_rnn_cell_type,
+                dropout_rate,
             )  # NTC
             self.skip_rnn.cast(dtype)
             # TODO: add temporal attention option
@@ -122,9 +127,9 @@ class LSTNetBase(nn.HybridBlock):
                     prediction_length, dtype=dtype, flatten=False
                 )
             if scaling:
-                self.scaler = MeanScaler()
+                self.scaler = MeanScaler(axis=2)
             else:
-                self.scaler = NOPScaler()
+                self.scaler = NOPScaler(axis=2)
 
     @staticmethod
     def _create_rnn_layer(
@@ -212,7 +217,7 @@ class LSTNetBase(nn.HybridBlock):
             
         """
 
-        scaled_past_target, _ = self.scaler(
+        scaled_past_target, scale = self.scaler(
             past_target.slice_axis(
                 axis=2, begin=-self.context_length, end=None
             ),
@@ -220,9 +225,9 @@ class LSTNetBase(nn.HybridBlock):
                 axis=2, begin=-self.context_length, end=None
             ),
         )
-        c = self.cnn(scaled_past_target)
+        c = self.cnn(scaled_past_target.expand_dims(axis=1))
         c = self.dropout(c)
-        c = F.transpose(c, axes=(0, 2, 1))  # NTC
+        c = F.transpose(F.squeeze(c), axes=(2, 0, 1))  # TNC
 
         if F is mx.ndarray:
             ctx = (
@@ -260,11 +265,14 @@ class LSTNetBase(nn.HybridBlock):
         ar = self._ar_highway(F, past_target)
         out = fc + ar
         if self.output_activation is None:
-            return out
+            return out, scale
         return (
-            F.sigmoid(out)
-            if self.output_activation == "sigmoid"
-            else F.tanh(out)
+            (
+                F.sigmoid(out)
+                if self.output_activation == "sigmoid"
+                else F.tanh(out)
+            ),
+            scale,
         )
 
 
@@ -303,13 +311,15 @@ class LSTNetTrain(LSTNetBase):
             Loss values of shape (batch_size,)
         """
 
-        ret = super().hybrid_forward(F, past_target, past_observed_values)
+        ret, scale = super().hybrid_forward(
+            F, past_target, past_observed_values
+        )
         if self.horizon:
             # get the last time horizon
             future_target = F.slice_axis(
                 future_target, axis=2, begin=-1, end=None
             )
-        loss = self.loss_fn(ret, future_target)
+        loss = self.loss_fn(ret * scale, future_target)
         return loss
 
 
@@ -336,6 +346,8 @@ class LSTNetPredict(LSTNetBase):
             when providing `prediction_length`
         """
 
-        ret = super().hybrid_forward(F, past_target, past_observed_values)
-        ret = F.swapaxes(ret, 1, 2)
+        ret, scale = super().hybrid_forward(
+            F, past_target, past_observed_values
+        )
+        ret = F.swapaxes(ret * scale, 1, 2)
         return ret.expand_dims(axis=1)
