@@ -210,4 +210,4 @@ def test_nopscaler(target, observed):
     target_scaled, scale = s(target, observed)
 
     assert mx.nd.norm(target - target_scaled) == 0
-    assert mx.nd.norm(mx.nd.ones_like(target).mean(axis=1) - scale) == 0
+    assert mx.nd.norm(mx.nd.ones_like(target).mean(axis=s.axis) - scale) == 0
