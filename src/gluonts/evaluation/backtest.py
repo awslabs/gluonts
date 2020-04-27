@@ -64,6 +64,7 @@ def make_evaluation_predictions(
 
     prediction_length = predictor.prediction_length
     freq = predictor.freq
+    lead_time = predictor.lead_time
 
     def add_ts_dataframe(
         data_iterator: Iterator[DataEntry],
@@ -90,7 +91,7 @@ def make_evaluation_predictions(
         assert (
             target.shape[-1] >= prediction_length
         )  # handles multivariate case (target_dim, history_length)
-        data["target"] = target[..., :-prediction_length]
+        data["target"] = target[..., : -prediction_length - lead_time]
         return data
 
     # TODO filter out time series with target shorter than prediction length

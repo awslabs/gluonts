@@ -30,12 +30,16 @@ class Scaler(nn.HybridBlock):
     ----------
     keepdims
         toggle to keep the dimension of the input tensor.
+    axis
+        specify the axis over which to scale. Default is 1 for (N, T, C)
+        shaped input tensor.
     """
 
-    def __init__(self, keepdims: bool = False):
+    def __init__(self, keepdims: bool = False, axis: int = 1):
 
         super().__init__()
         self.keepdims = keepdims
+        self.axis = axis
 
     def compute_scale(self, F, data: Tensor, observed_indicator: Tensor):
         """
@@ -48,7 +52,7 @@ class Scaler(nn.HybridBlock):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) containing the data to be scaled
+            tensor containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
@@ -69,7 +73,7 @@ class Scaler(nn.HybridBlock):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) containing the data to be scaled
+            tensor containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
@@ -79,19 +83,24 @@ class Scaler(nn.HybridBlock):
         Returns
         -------
         Tensor
-            Tensor containing the "scaled" data, shape: (N, T, C).
+            Tensor containing the "scaled" data.
         Tensor
-            Tensor containing the scale, of shape (N, C) if ``keepdims == False``, and shape
-            (N, 1, C) if ``keepdims == True``.
+            Tensor containing the scale: this has the same shape as the data, except for the axis ``axis``
+            along which the scale is computed, which is removed if ``keepdims == False``, and kept with
+            length 1 otherwise. For example, if ``data`` has shape ``(N, T, C)`` and ``axis ==1 ``, then
+            ``scale`` has shape ``(N, C)`` if ``keepdims == False``, and ``(N, 1, C)`` otherwise.
 
         """
         scale = self.compute_scale(F, data, observed_indicator)
 
         if self.keepdims:
-            scale = scale.expand_dims(axis=1)
+            scale = scale.expand_dims(axis=self.axis)
             return F.broadcast_div(data, scale), scale
         else:
-            return F.broadcast_div(data, scale.expand_dims(axis=1)), scale
+            return (
+                F.broadcast_div(data, scale.expand_dims(axis=self.axis)),
+                scale,
+            )
 
 
 class MeanScaler(Scaler):
@@ -114,7 +123,10 @@ class MeanScaler(Scaler):
         self.minimum_scale = minimum_scale
 
     def compute_scale(
-        self, F, data: Tensor, observed_indicator: Tensor  # shapes (N, T, C)
+        self,
+        F,
+        data: Tensor,
+        observed_indicator: Tensor,  # shapes (N, T, C) or (N, C, T)
     ) -> Tensor:
         """
         Parameters
@@ -124,7 +136,7 @@ class MeanScaler(Scaler):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) containing the data to be scaled
+            tensor containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
@@ -139,8 +151,8 @@ class MeanScaler(Scaler):
         """
 
         # these will have shape (N, C)
-        num_observed = F.sum(observed_indicator, axis=1)
-        sum_observed = (data.abs() * observed_indicator).sum(axis=1)
+        num_observed = F.sum(observed_indicator, axis=self.axis)
+        sum_observed = (data.abs() * observed_indicator).sum(axis=self.axis)
 
         # first compute a global scale per-dimension
         total_observed = num_observed.sum(axis=0)
@@ -185,7 +197,7 @@ class NOPScaler(Scaler):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) containing the data to be scaled
+            tensor containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
@@ -197,4 +209,4 @@ class NOPScaler(Scaler):
         Tensor
             shape (N, C), identically equal to 1.
         """
-        return F.ones_like(data).mean(axis=1)
+        return F.ones_like(data).mean(axis=self.axis)
