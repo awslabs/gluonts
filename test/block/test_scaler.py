@@ -147,9 +147,9 @@ test_cases = [
     ),
     (
         scaler.MeanScaler(axis=2),
-        mx.nd.random.normal(shape=(5, 1, 30)),
-        mx.nd.zeros(shape=(5, 30)),
-        1e-10 * mx.nd.ones(shape=(5,)),
+        mx.nd.random.normal(shape=(5, 3, 30)),
+        mx.nd.zeros(shape=(5, 3, 30)),
+        1e-12 * mx.nd.ones(shape=(5, 3)),
     ),
     (
         scaler.MeanScaler(minimum_scale=1e-6),
