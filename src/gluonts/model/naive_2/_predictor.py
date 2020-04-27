@@ -103,12 +103,12 @@ def naive_2(
             prediction_length
         )  # i.e. no seasonality component
 
-    # calculate naive 1 forecast: (last value prediction_length times)
-    naive_1_forecast = (
+    # calculate naive forecast: (last value prediction_length times)
+    naive_forecast = (
         np.ones(prediction_length) * seasonality_normed_context[-1]
     )
 
-    forecast = np.mean(naive_1_forecast) * multiplicative_seasonal_component
+    forecast = np.mean(naive_forecast) * multiplicative_seasonal_component
 
     return forecast
 
