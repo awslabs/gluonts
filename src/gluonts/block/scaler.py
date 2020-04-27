@@ -31,8 +31,8 @@ class Scaler(nn.HybridBlock):
     keepdims
         toggle to keep the dimension of the input tensor.
     input_NTC
-        toggle the shape of the input tensors from the default (N, T, C)
-        to (N, C, T) when this is False.
+        specify the shape of the input tensors either the default (N, T, C)
+        or (N, C, T) when this is False.
     """
 
     def __init__(self, keepdims: bool = False, input_NTC: bool = True):
@@ -52,7 +52,7 @@ class Scaler(nn.HybridBlock):
             API in MXNet.
 
         data
-            tensor of shape (N, T, C) containing the data to be scaled
+            tensor of shape (N, T, C) or (N, C, T) containing the data to be scaled.
 
         observed_indicator
             observed_indicator: binary tensor with the same shape as
