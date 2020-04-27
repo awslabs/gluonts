@@ -54,7 +54,7 @@ class LSTNetEstimator(GluonEstimator):
         The maximum number of steps to unroll the RNN for computing the predictions
         (Note that it is constraints by the Conv2D output size)
     num_series
-        Number of time-series (variants)
+        Number of time-series (covariates)
     skip_size
         Skip size for the skip RNN layer
     ar_window
