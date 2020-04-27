@@ -31,8 +31,8 @@ class Scaler(nn.HybridBlock):
     keepdims
         toggle to keep the dimension of the input tensor.
     input_NTC
-        specify the shape of the input tensors to the default (N, T, C)
-        or (N, C, T) when this is False.
+        toggle the shape of the input tensors from the default (N, T, C)
+        to (N, C, T) when this is False.
     """
 
     def __init__(self, keepdims: bool = False, input_NTC: bool = True):
