@@ -63,7 +63,7 @@ def test_lstnet(
     estimator = LSTNetEstimator(
         skip_size=skip_size,
         ar_window=ar_window,
-        num_series=NUM_SAMPLES,
+        num_series=NUM_SERIES,
         channels=6,
         kernel_size=2,
         context_length=4,
