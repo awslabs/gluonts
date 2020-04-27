@@ -170,7 +170,7 @@ class LSTNetBase(nn.HybridBlock):
 
         s, _ = self.skip_rnn.unroll(
             inputs=skip_c,
-            length=self.channel_skip_count,
+            length=self.conv_skip,
             layout="TNC",
             merge_outputs=True,
             begin_state=begin_state,
@@ -210,8 +210,7 @@ class LSTNetBase(nn.HybridBlock):
         Tensor
             Shape (batch_size, num_series, 1) if `horizon` was specified
             and of shape (batch_size, num_series, prediction_length)
-            if `prediction_length` was provided
-            
+            if `prediction_length` was provided           
         """
 
         scaled_past_target, scale = self.scaler(
