@@ -16,7 +16,7 @@ from .global_relative_binning import GlobalRelativeBinning
 from .local_absolute_binning import LocalAbsoluteBinning
 
 # Standard library imports
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, List
 
 from mxnet.gluon import nn
 
@@ -93,15 +93,15 @@ class DiscretePIT(Representation):
         data: Tensor,
         observed_indicator: Tensor,
         scale: Optional[Tensor],
-    ) -> Tuple[Tensor, Tensor]:
-        repr_data, scale = self.learned_binning(
-            data, observed_indicator, scale
+        rep_params: List[Tensor],
+    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
+        repr_data, scale, rep_params = self.learned_binning(
+            data, observed_indicator, scale, rep_params,
         )
 
         repr_data = repr_data / self.num_bins
         if self.mlp_transf:
             repr_data = F.expand_dims(repr_data, axis=-1)
             repr_data = self.mlp(repr_data).swapaxes(1, 2)
-            return repr_data, scale
-        else:
-            return repr_data, scale
+
+        return repr_data, scale, rep_params

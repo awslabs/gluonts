@@ -17,7 +17,7 @@ from .global_relative_binning import GlobalRelativeBinning
 from .local_absolute_binning import LocalAbsoluteBinning
 
 # Standard library imports
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, List
 
 from mxnet.gluon import nn
 
@@ -71,10 +71,13 @@ class Embedding(Representation):
         data: Tensor,
         observed_indicator: Tensor,
         scale: Optional[Tensor],
-    ) -> Tuple[Tensor, Tensor]:
-        repr_data, scale = self.binning(data, observed_indicator, scale)
+        rep_params: List[Tensor],
+    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
+        repr_data, scale, rep_params = self.binning(
+            data, observed_indicator, scale, rep_params
+        )
 
         emb_data = self.embedding(repr_data)
         emb_data = emb_data.swapaxes(1, 2)
 
-        return emb_data, scale
+        return emb_data, scale, rep_params

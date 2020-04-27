@@ -18,7 +18,7 @@ from .binning_helpers import (
 )
 
 # Standard library imports
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 # Third-party imports
 import numpy as np
@@ -69,14 +69,11 @@ class GlobalRelativeBinning(Representation):
         self.num_bins = num_bins
         self.is_quantile = is_quantile
 
-        self.bin_centers_hyb = np.array([])
-
         self.linear_scaling_limit = linear_scaling_limit
         self.quantile_scaling_limit = quantile_scaling_limit
 
         self.bin_centers = np.array([])
         self.bin_edges = np.array([])
-        self.scale = np.array([])
 
     def initialize_from_dataset(self, input_dataset: Dataset):
         # Rescale all time series in training set.
@@ -116,7 +113,8 @@ class GlobalRelativeBinning(Representation):
         data: Tensor,
         observed_indicator: Tensor,
         scale: Optional[Tensor],
-    ) -> Tuple[Tensor, Tensor]:
+        rep_params: List[Tensor],
+    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         # Calculate local scale if scale is not already supplied.
         if scale is None:
             scale = F.expand_dims(
@@ -124,11 +122,10 @@ class GlobalRelativeBinning(Representation):
             )
             # Clip scale on the bottom to prevent division by zero.
             scale = F.clip(scale, 1e-20, np.inf)
-        self.scale = scale.asnumpy()
 
         # Rescale the data.
         data_rescaled = data.asnumpy() / np.repeat(
-            self.scale, data.shape[1], axis=1
+            scale.asnumpy(), data.shape[1], axis=1
         )
 
         # Discretize the data.
@@ -140,22 +137,29 @@ class GlobalRelativeBinning(Representation):
         data = F.array(data_binned)
 
         # Store bin centers for later usage in post_transform.
-        self.bin_centers_hyb = np.repeat(
-            np.swapaxes(np.expand_dims(self.bin_centers, axis=-1), 0, 1),
-            len(data),
-            axis=0,
+        bin_centers_hyb = F.array(
+            np.repeat(
+                np.swapaxes(np.expand_dims(self.bin_centers, axis=-1), 0, 1),
+                len(data),
+                axis=0,
+            )
         )
 
-        return data, scale
+        return data, scale, [bin_centers_hyb]
 
-    def post_transform(self, F, x: Tensor):
-        bin_cent = F.array(self.bin_centers_hyb)
-        x_oh = F.one_hot(F.squeeze(x), self.num_bins)
+    def post_transform(
+        self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]
+    ) -> Tensor:
+        bin_centers_hyb = rep_params[0]
+
+        transf_samples = F.one_hot(F.squeeze(samples), self.num_bins)
 
         # Pick corresponding bin centers for all samples
-        x = F.sum(bin_cent * x_oh, axis=1).expand_dims(-1)
+        transf_samples = F.sum(
+            bin_centers_hyb * transf_samples, axis=1
+        ).expand_dims(-1)
 
         # Transform bin centers back to the oiginal scale
-        x = F.broadcast_mul(F.array(self.scale), x)
+        x = F.broadcast_mul(scale, transf_samples)
 
         return x

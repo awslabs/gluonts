@@ -15,11 +15,10 @@ from .representation import Representation
 from .binning_helpers import bin_edges_from_bin_centers
 
 # Standard library imports
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 # Third-party imports
 import numpy as np
-from mxnet.gluon import nn
 
 # First-party imports
 from gluonts.core.component import validated
@@ -44,9 +43,6 @@ class CustomBinning(Representation):
         self.bin_centers = bin_centers
         self.bin_edges = bin_edges_from_bin_centers(bin_centers)
         self.num_bins = len(bin_centers)
-        self.scale = np.array([])
-
-        self.bin_centers_hyb = np.array([])
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
@@ -55,7 +51,8 @@ class CustomBinning(Representation):
         data: Tensor,
         observed_indicator: Tensor,
         scale: Optional[Tensor],
-    ) -> Tuple[Tensor, Tensor]:
+        rep_params: List[Tensor],
+    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         # Calculate local scale if scale is not already supplied.
         if scale is None:
             scale = F.expand_dims(
@@ -73,19 +70,26 @@ class CustomBinning(Representation):
         data = F.array(data_binned)
 
         # Store bin centers for later usage in post_transform.
-        self.bin_centers_hyb = np.repeat(
-            np.swapaxes(np.expand_dims(self.bin_centers, axis=-1), 0, 1),
-            len(data),
-            axis=0,
+        bin_centers_hyb = F.array(
+            np.repeat(
+                np.swapaxes(np.expand_dims(self.bin_centers, axis=-1), 0, 1),
+                len(data),
+                axis=0,
+            )
         )
 
-        return data, scale
+        return data, scale, [bin_centers_hyb]
 
-    def post_transform(self, F, x: Tensor):
-        bin_cent = F.array(self.bin_centers_hyb)
-        x_oh = F.one_hot(F.squeeze(x), self.num_bins)
+    def post_transform(
+        self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]
+    ) -> Tensor:
+        bin_centers_hyb = rep_params[0]
+
+        transf_samples = F.one_hot(F.squeeze(samples), self.num_bins)
 
         # Pick corresponding bin centers for all samples
-        x = F.sum(bin_cent * x_oh, axis=1).expand_dims(-1)
+        transf_samples = F.sum(
+            bin_centers_hyb * transf_samples, axis=1
+        ).expand_dims(-1)
 
-        return x
+        return transf_samples

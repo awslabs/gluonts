@@ -18,7 +18,7 @@ from .binning_helpers import (
 )
 
 # Standard library imports
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 # Third-party imports
 import numpy as np
@@ -55,9 +55,6 @@ class LocalAbsoluteBinning(Representation):
         self.num_bins = num_bins
         self.is_quantile = is_quantile
 
-        self.bin_edges_hyb = np.array([])
-        self.bin_centers_hyb = np.array([])
-
     # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
@@ -65,7 +62,8 @@ class LocalAbsoluteBinning(Representation):
         data: Tensor,
         observed_indicator: Tensor,
         scale: Optional[Tensor],
-    ) -> Tuple[Tensor, Tensor]:
+        rep_params: List[Tensor],
+    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         data_np = data.asnumpy()
         observed_indicator_np = observed_indicator.astype("int32").asnumpy()
 
@@ -75,8 +73,8 @@ class LocalAbsoluteBinning(Representation):
                 F.sum(data, axis=-1) / F.sum(observed_indicator, axis=-1), -1
             )
 
-            self.bin_centers_hyb = np.ones((len(data), self.num_bins)) * (-1)
-            self.bin_edges_hyb = np.ones((len(data), self.num_bins + 1)) * (-1)
+            bin_centers_hyb = np.ones((len(data), self.num_bins)) * (-1)
+            bin_edges_hyb = np.ones((len(data), self.num_bins + 1)) * (-1)
 
             # Every time series needs to be binned individually
             for i in range(len(data_np)):
@@ -97,16 +95,16 @@ class LocalAbsoluteBinning(Representation):
                             np.max(data_obs_loc),
                             self.num_bins,
                         )
-                    self.bin_centers_hyb[i] = ensure_binning_monotonicity(
+                    bin_centers_hyb[i] = ensure_binning_monotonicity(
                         bin_centers_loc
                     )
-                    self.bin_edges_hyb[i] = bin_edges_from_bin_centers(
-                        self.bin_centers_hyb[i]
+                    bin_edges_hyb[i] = bin_edges_from_bin_centers(
+                        bin_centers_hyb[i]
                     )
 
                     # Bin the time series.
                     data_obs_loc_binned = np.digitize(
-                        data_obs_loc, bins=self.bin_edges_hyb[i], right=False
+                        data_obs_loc, bins=bin_edges_hyb[i], right=False
                     )
                 else:
                     data_obs_loc_binned = []
@@ -114,16 +112,16 @@ class LocalAbsoluteBinning(Representation):
                 # Write the binned time series back into the data array.
                 data_loc[observed_indicator_loc == 1] = data_obs_loc_binned
                 data_np[i] = data_loc
+
         else:
-            self.bin_edges_hyb = np.repeat(
-                self.bin_edges_hyb,
-                len(data_np) / len(self.bin_edges_hyb),
-                axis=0,
+            bin_centers_hyb = rep_params[0].asnumpy()
+            bin_edges_hyb = rep_params[1].asnumpy()
+
+            bin_edges_hyb = np.repeat(
+                bin_edges_hyb, len(data_np) / len(bin_edges_hyb), axis=0,
             )
-            self.bin_centers_hyb = np.repeat(
-                self.bin_centers_hyb,
-                len(data_np) / len(self.bin_centers_hyb),
-                axis=0,
+            bin_centers_hyb = np.repeat(
+                bin_centers_hyb, len(data_np) / len(bin_centers_hyb), axis=0,
             )
 
             for i in range(len(data_np)):
@@ -133,21 +131,29 @@ class LocalAbsoluteBinning(Representation):
 
                 # Bin the time series based on previously computed bin edges.
                 data_obs_loc_binned = np.digitize(
-                    data_obs_loc, bins=self.bin_edges_hyb[i], right=False
+                    data_obs_loc, bins=bin_edges_hyb[i], right=False
                 )
 
                 data_loc[observed_indicator_loc == 1] = data_obs_loc_binned
                 data_np[i] = data_loc
 
+        bin_centers_hyb = F.array(bin_centers_hyb)
+        bin_edges_hyb = F.array(bin_edges_hyb)
+
         data = mx.nd.array(data_np)
 
-        return data, scale
+        return data, scale, [bin_centers_hyb, bin_edges_hyb]
 
-    def post_transform(self, F, x: Tensor):
-        bin_cent = mx.nd.array(self.bin_centers_hyb)
-        x_oh = F.one_hot(F.squeeze(x), self.num_bins)
+    def post_transform(
+        self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]
+    ) -> Tensor:
+        bin_centers_hyb = rep_params[0]
+
+        transf_samples = F.one_hot(F.squeeze(samples), self.num_bins)
 
         # Pick corresponding bin centers for all samples
-        x = F.sum(bin_cent * x_oh, axis=1).expand_dims(-1)
+        transf_samples = F.sum(
+            bin_centers_hyb * transf_samples, axis=1
+        ).expand_dims(-1)
 
-        return x
+        return transf_samples

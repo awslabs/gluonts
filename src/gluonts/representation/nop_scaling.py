@@ -14,7 +14,7 @@
 from .representation import Representation
 
 # Standard library imports
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -38,11 +38,12 @@ class NOPScaling(Representation):
         data: Tensor,
         observed_indicator: Tensor,
         scale: Optional[Tensor],
-    ) -> Tuple[Tensor, Tensor]:
+        rep_params: List[Tensor],
+    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         data = F.cast(data, dtype="float32")
 
         if scale is None:
             scale = F.ones_like(data)
             scale = scale.expand_dims(axis=1)
 
-        return data, scale
+        return data, scale, []

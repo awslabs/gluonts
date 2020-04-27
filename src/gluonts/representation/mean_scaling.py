@@ -17,7 +17,7 @@ import mxnet as mx
 
 
 # Standard library imports
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -46,7 +46,6 @@ class MeanScaling(Representation):
         super().__init__(*args, **kwargs)
         self.scale_min = scale_min
         self.clip_max = clip_max
-        self.means = mx.ndarray.array([])
 
     def compute_scale(
         self, F, data: Tensor, observed_indicator: Tensor  # shapes (N, T, C)
@@ -82,21 +81,23 @@ class MeanScaling(Representation):
         data: Tensor,
         observed_indicator: Tensor,
         scale: Optional[Tensor],
-    ) -> Tuple[Tensor, Tensor]:
+        rep_params: List[Tensor],
+    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         data = F.cast(data, dtype="float32")
 
         if scale is None:
             scale = self.compute_scale(F, data, observed_indicator)
             scale = scale.expand_dims(axis=1)
-        self.means = scale
 
         scaled_data = F.broadcast_div(data, scale)
 
         if self.clip_max != -1:
             scaled_data = F.clip(scaled_data, -self.clip_max, self.clip_max)
 
-        return scaled_data, scale
+        return scaled_data, scale, []
 
-    def post_transform(self, F, x: Tensor):
-        transf = F.broadcast_mul(x, self.means)
-        return transf
+    def post_transform(
+        self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]
+    ) -> Tensor:
+        transf_samples = F.broadcast_mul(samples, scale)
+        return transf_samples
