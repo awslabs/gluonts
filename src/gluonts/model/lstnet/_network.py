@@ -83,14 +83,13 @@ class LSTNetBase(nn.HybridBlock):
             "gru",
             "lstm",
         ], "`skip_rnn_cell_type` must be either 'gru' or 'lstm' "
-        self.conv_out = context_length - kernel_size
+        self.conv_out = context_length - kernel_size + 1
         self.conv_skip = self.conv_out // skip_size
         assert self.conv_skip > 0, (
             "conv2d output size must be greater than or equal to `skip_size`\n"
             "Choose a smaller `kernel_size` or bigger `context_length`"
         )
         self.channel_skip_count = self.conv_skip * skip_size
-        self.skip_rnn_c_dim = channels * skip_size
         self.dtype = dtype
         with self.name_scope():
             self.cnn = nn.Conv2D(
@@ -106,6 +105,7 @@ class LSTNetBase(nn.HybridBlock):
                 rnn_num_cells, rnn_num_layers, rnn_cell_type, dropout_rate
             )  # NTC
             self.rnn.cast(dtype)
+            self.skip_rnn_num_cells = skip_rnn_num_cells
             self.skip_rnn = self._create_rnn_layer(
                 skip_rnn_num_cells,
                 skip_rnn_num_layers,
@@ -147,12 +147,12 @@ class LSTNetBase(nn.HybridBlock):
             x, axis=2, begin=-self.channel_skip_count, end=None  # NCT
         )
         skip_c = F.reshape(
-            skip_c, shape=(-1, self.channels, self.conv_skip, self.skip_size)
-        )  # NTCxskip
-        skip_c = F.transpose(skip_c, axes=(2, 0, 3, 1))  # NxskipxTxC
+            skip_c, shape=(0, 0, -1, self.skip_size)
+        )  # NCTxskip
+        skip_c = F.transpose(skip_c, axes=(2, 0, 3, 1))  # TNxskipxC
         skip_c = F.reshape(
             skip_c, shape=(self.conv_skip, -1, self.channels)
-        )  # (Nxskip)TC
+        )  # T(Nxskip)C
         if F is mx.ndarray:
             ctx = (
                 skip_c.context
@@ -161,7 +161,7 @@ class LSTNetBase(nn.HybridBlock):
             )
             with ctx:
                 begin_state = self.skip_rnn.begin_state(
-                    func=F.zeros, dtype=self.dtype, batch_size=skip_c.shape[0]
+                    func=F.zeros, dtype=self.dtype, batch_size=skip_c.shape[1]
                 )
         else:
             begin_state = self.skip_rnn.begin_state(
@@ -170,15 +170,17 @@ class LSTNetBase(nn.HybridBlock):
 
         s, _ = self.skip_rnn.unroll(
             inputs=skip_c,
-            length=min(self.channel_skip_count, self.context_length),
+            length=self.channel_skip_count,
             layout="TNC",
             merge_outputs=True,
             begin_state=begin_state,
         )
         s = F.squeeze(
-            F.slice_axis(s, axis=1, begin=-1, end=None), axis=1
+            F.slice_axis(s, axis=0, begin=-1, end=None), axis=0
         )  # (Nxskip)xC
-        s = F.reshape(s, shape=(-1, self.skip_rnn_c_dim))  # Nx(skipxC)
+        s = F.reshape(
+            s, shape=(-1, self.skip_size * self.skip_rnn_num_cells)
+        )  # Nx(skipxC)
         return s
 
     def _ar_highway(self, F, x: Tensor) -> Tensor:
@@ -224,31 +226,31 @@ class LSTNetBase(nn.HybridBlock):
         c = self.dropout(c)
         c = F.squeeze(c, axis=2)  # NCT
 
+        r = F.transpose(c, axes=(2, 0, 1))  # TNC
         if F is mx.ndarray:
             ctx = (
-                c.context
-                if isinstance(c, mx.gluon.tensor_types)
-                else c[0].context
+                r.context
+                if isinstance(r, mx.gluon.tensor_types)
+                else r[0].context
             )
             with ctx:
                 rnn_begin_state = self.rnn.begin_state(
-                    func=F.zeros, dtype=self.dtype, batch_size=c.shape[0]
+                    func=F.zeros, dtype=self.dtype, batch_size=r.shape[1]
                 )
         else:
             rnn_begin_state = self.rnn.begin_state(
                 func=F.zeros, dtype=self.dtype, batch_size=0
             )
-        r = F.transpose(c, axes=(2, 0, 1))  # TNC
 
         r, _ = self.rnn.unroll(
             inputs=r,
-            length=min(self.conv_out, self.context_length),
+            length=self.conv_out,
             layout="TNC",
             merge_outputs=True,
             begin_state=rnn_begin_state,
         )
         r = F.squeeze(
-            F.slice_axis(r, axis=1, begin=-1, end=None), axis=0
+            F.slice_axis(r, axis=0, begin=-1, end=None), axis=0
         )  # NC
         s = self._skip_rnn_layer(F, c)
         # make fc broadcastable for output
@@ -307,8 +309,12 @@ class LSTNetTrain(LSTNetBase):
             Loss values of shape (batch_size,)
         """
 
-        pred, scale = super().hybrid_forward(F, past_target, past_observed_values)
-        loss = self.loss_fn(pred*scale, future_target)
+        pred, scale = super().hybrid_forward(
+            F, past_target, past_observed_values
+        )
+        loss = self.loss_fn(
+            F.broadcast_mul(pred, scale.expand_dims(axis=-1)), future_target
+        )
         return loss
 
 
@@ -334,6 +340,10 @@ class LSTNetPredict(LSTNetBase):
             Predicted samples of shape (batch_size, num_samples, prediction_length, num_series)
         """
 
-        ret, scale = super().hybrid_forward(F, past_target, past_observed_values)
-        ret = F.swapaxes(ret * scale, 1, 2)
+        ret, scale = super().hybrid_forward(
+            F, past_target, past_observed_values
+        )
+        ret = F.swapaxes(
+            F.broadcast_mul(ret, scale.expand_dims(axis=-1)), 1, 2
+        )
         return ret.expand_dims(axis=1)  # add the "sample" axis
