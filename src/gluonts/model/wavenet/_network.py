@@ -13,7 +13,7 @@
 
 # Standard library imports
 import math
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import mxnet as mx
@@ -22,8 +22,8 @@ from mxnet.gluon import nn
 
 # First-party imports
 from gluonts.block.feature import FeatureEmbedder
-from gluonts.model.common import Tensor
 from gluonts.core.component import validated
+from gluonts.model.common import Tensor
 
 
 class LookupValues(gluon.HybridBlock):
@@ -136,7 +136,7 @@ class WaveNet(nn.HybridBlock):
 
         self.dilation_depth = dilation_depth
         self.pred_length = pred_length
-
+        self.bin_values = bin_values
         self.mu = len(bin_values)
         self.dilations = WaveNet._get_dilations(
             dilation_depth=dilation_depth, n_stacks=n_stacks
@@ -297,7 +297,9 @@ class WaveNet(nn.HybridBlock):
         o = self.conv_project(o)
         return o
 
-    def base_net(self, F, inputs, one_step_prediction=False, queues=None):
+    def base_net(
+        self, F, inputs, one_step_prediction=False, queues=None
+    ) -> Tuple[Tensor, List]:
         """
         Forward pass through the network.
 
@@ -423,48 +425,26 @@ class WaveNet(nn.HybridBlock):
         return loss
 
 
-class WaveNetSampler(WaveNet):
+class WaveNetPredictor(WaveNet):
     """
-    Runs Wavenet generation in an auto-regressive manner using caching for
+    Base class for wavenet prediction. Runs Wavenet generation in an auto-regressive manner using caching for
     speedup [PKC+16]_.
 
     Same arguments as WaveNet. In addition
 
     Parameters
     ----------
-    pred_length
-        Length of the prediction horizon
-    num_samples
-        Number of sample paths to generate in parallel in the graph
     temperature
         If set to 1.0 (default), sample according to estimated probabilities, if set to 0.0
         most likely sample at each step is chosen.
-    post_transform
-        An optional post transform that will be applied to the samples
     """
 
     @validated()
     def __init__(
-        self,
-        bin_values: List[float],
-        num_samples: int,
-        temperature: float = 1.0,
-        **kwargs,
+        self, temperature: float = 1.0, **kwargs,
     ):
-        """
-        Same arguments as WaveNet. In addition
-        :param pred_length: prediction length
-        :param num_samples: number of sample paths to generate in parallel in the graph
-        :param temperature: if set to 1.0 (default), sample according to estimated probabilities
--         if set to 0.0 most likely sample at each step is chosen.
-        :param post_transform: An optional post transform that will be applied to the samples.
-        """
-        super().__init__(bin_values=bin_values, **kwargs)
-        self.num_samples = num_samples
+        super().__init__(**kwargs)
         self.temperature = temperature
-
-        with self.name_scope():
-            self.post_transform = LookupValues(mx.nd.array(bin_values))
 
     def get_initial_conv_queues(self, F, past_target, features):
         """
@@ -495,7 +475,54 @@ class WaveNetSampler(WaveNet):
             queues.append(o_chunk)
         return queues
 
-    def hybrid_forward(
+    def _predict_one_step(self, F, past_target, features, queues):
+        """
+        Computes prediction for one step.
+
+        Parameters
+        ----------
+        F
+        past_target
+            Past target with shape (batch_size, 2)
+        features
+            Features with shape (batch_size, num_features, 2)
+        queues
+            List of convolutional queues for each layer. The queue corresponding to layer `l` has
+            shape: (batch_size, n_residue, 2^l).
+
+        Returns
+        -------
+        Tuple containing
+            a prediction sample for the next time step with shape (batch_size, 1)
+            bin probabilities of the forecast distribution for the next time step with shape (batch_size, 1, num_bins)
+            queues updated after propagating the network for one time step.
+
+        Note: `temperature` only affects the way samples are drawn at each time step (as input to the next time step).
+        The bin probabilities returned are not affected by `temperature`.
+
+        """
+        embedding = self.target_feature_embedding(
+            F, target=past_target, features=features,
+        )
+
+        # (batch_size, 1, num_bins) where 1 corresponds to the time axis.
+        unnormalized_outputs, queues = self.base_net(
+            F, embedding, one_step_prediction=True, queues=queues
+        )
+        # (batch_size, 1, num_bins) where 1 corresponds to the time axis.
+        bin_probs = F.softmax(unnormalized_outputs, axis=-1)
+        if self.temperature > 0:
+            # (batch_size, 1, num_bins) where 1 corresponds to the time axis.
+            probs = F.softmax(unnormalized_outputs / self.temperature, axis=-1)
+            # (batch_size, 1)
+            sample = F.sample_multinomial(probs)
+        else:
+            # (batch_size, 1)
+            sample = F.argmax(unnormalized_outputs, axis=-1)
+
+        return sample, bin_probs, queues
+
+    def predict(
         self,
         F,
         feat_static_cat: Tensor,
@@ -504,9 +531,11 @@ class WaveNetSampler(WaveNet):
         past_time_feat: Tensor,
         future_time_feat: Tensor,
         scale: Tensor,
+        num_samples: int,
+        sample_based_forecast: bool,
     ) -> Tensor:
         """
-        Computes the training loss for the wavenet model.
+        Computes predictions from the trained wavenet model.
 
         Parameters
         ----------
@@ -523,18 +552,27 @@ class WaveNetSampler(WaveNet):
             Future time features: (batch_size, num_time_features, pred_length)
         scale
             scale of the time series: (batch_size, 1)
+        num_samples
+            Number of samples to draw at each time step in the prediction range.
+        sample_based_forecast
+            Flag to indicate whether to output sample forecasts or bin probabilities of the forecast distribution.
 
         Returns
         -------
         Tensor
-            Prediction samples with shape (batch_size, num_samples, pred_length)
+            Prediction samples with shape (batch_size, num_samples, pred_length), if `sample_based_forecast` = True,
+            Bin probabilities for the prediction range with shape (batch_size, pred_length, num_bins), otherwise.
         """
+        if not sample_based_forecast:
+            assert (
+                num_samples == 1
+            ), "Number of samples must be 1 since the forecast is not sample based."
 
         def blow_up(u):
             """
             Expand to (batch_size x num_samples)
             """
-            return F.repeat(u, repeats=self.num_samples, axis=0)
+            return F.repeat(u, repeats=num_samples, axis=0)
 
         past_target = past_target.astype("int32")
         full_features = self.get_full_features(
@@ -568,40 +606,184 @@ class WaveNetSampler(WaveNet):
 
         res = F.slice_axis(past_target, begin=-2, end=None, axis=-1)
         res = blow_up(res)
+
+        future_bin_probs = []
         for n in range(self.pred_length):
             # Generate one-step ahead predictions. The input consists of target and features
             # corresponding to the last two time steps.
-            current_target = F.slice_axis(res, begin=-2, end=None, axis=-1)
+            past_target = F.slice_axis(res, begin=-2, end=None, axis=-1)
             current_features = F.slice_axis(
                 full_features,
                 begin=self.receptive_field + n - 1,
                 end=self.receptive_field + n + 1,
                 axis=-1,
             )
-            embedding = self.target_feature_embedding(
-                F, target=current_target, features=blow_up(current_features),
+            sample, bin_probs, queues = self._predict_one_step(
+                F,
+                past_target=past_target,
+                features=blow_up(current_features),
+                queues=queues,
             )
+            sample = sample.astype("int32")
+            res = F.concat(res, sample, num_args=2, dim=-1)
+            if not sample_based_forecast:
+                future_bin_probs.append(bin_probs)
+        if sample_based_forecast:
+            samples = F.slice_axis(
+                res, begin=-self.pred_length, end=None, axis=-1
+            )
+            samples = samples.reshape(
+                shape=(-1, num_samples, self.pred_length)
+            )
+            return samples
+        else:
+            return F.concat(*future_bin_probs, dim=1)
 
-            # (batch_size, 1, num_bins) where 1 corresponds to the time axis.
-            unnormalized_outputs, queues = self.base_net(
-                F, embedding, one_step_prediction=True, queues=queues
-            )
-            if self.temperature > 0:
-                # (batch_size, 1, num_bins) where 1 corresponds to the time axis.
-                probs = F.softmax(
-                    unnormalized_outputs / self.temperature, axis=-1
-                )
-                # (batch_size, 1)
-                y = F.sample_multinomial(probs)
-            else:
-                # (batch_size, 1)
-                y = F.argmax(unnormalized_outputs, axis=-1)
-            y = y.astype("int32")
-            res = F.concat(res, y, num_args=2, dim=-1)
-        samples = F.slice_axis(res, begin=-self.pred_length, end=None, axis=-1)
-        samples = samples.reshape(
-            shape=(-1, self.num_samples, self.pred_length)
+
+class WaveNetSampler(WaveNetPredictor):
+    """
+    Runs Wavenet generation in an auto-regressive manner using caching for
+    speedup [PKC+16]_ to produce sample forecast.
+
+    Same arguments as WaveNet. In addition
+
+    Parameters
+    ----------
+    num_samples
+        Number of sample paths to generate in parallel in the graph
+    temperature
+        If set to 1.0 (default), sample according to estimated probabilities, if set to 0.0
+        most likely sample at each step is chosen.
+    """
+
+    @validated()
+    def __init__(
+        self, num_samples: int, temperature: float = 1.0, **kwargs,
+    ):
+        super().__init__(temperature=temperature, **kwargs)
+        self.num_samples = num_samples
+
+        with self.name_scope():
+            self.post_transform = LookupValues(mx.nd.array(self.bin_values))
+
+    def hybrid_forward(
+        self,
+        F,
+        feat_static_cat: Tensor,
+        past_target: Tensor,
+        past_observed_values: Tensor,
+        past_time_feat: Tensor,
+        future_time_feat: Tensor,
+        scale: Tensor,
+    ) -> Tensor:
+        """
+        Generates prediction samples from the trained wavenet model.
+
+        Parameters
+        ----------
+        F
+        feat_static_cat
+            Static categorical features: (batch_size, num_cat_features)
+        past_target
+            Past target: (batch_size, receptive_field)
+        past_observed_values
+            Observed value indicator for the past target: (batch_size, receptive_field)
+        past_time_feat
+            Past time features: (batch_size, num_time_features, receptive_field)
+        future_time_feat
+            Future time features: (batch_size, num_time_features, pred_length)
+        scale
+            scale of the time series: (batch_size, 1)
+
+        Returns
+        -------
+        Tensor
+            Prediction samples with shape (batch_size, num_samples, pred_length)
+        """
+
+        samples_bin_ix = self.predict(
+            F,
+            feat_static_cat=feat_static_cat,
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            past_time_feat=past_time_feat,
+            future_time_feat=future_time_feat,
+            scale=scale,
+            num_samples=self.num_samples,
+            sample_based_forecast=True,
         )
-        samples = self.post_transform(samples)
+        samples = self.post_transform(samples_bin_ix)
         samples = F.broadcast_mul(scale.expand_dims(axis=1), samples)
         return samples
+
+
+class WaveNetDistributionPredictor(WaveNetPredictor):
+    """
+    Runs Wavenet generation in an auto-regressive manner using caching for
+    speedup [PKC+16]_ to produce (parametric) distribution forecast.
+
+    Same arguments as `WaveNetPredictor`.
+    """
+
+    def hybrid_forward(
+        self,
+        F,
+        feat_static_cat: Tensor,
+        past_target: Tensor,
+        past_observed_values: Tensor,
+        past_time_feat: Tensor,
+        future_time_feat: Tensor,
+        scale: Tensor,
+    ) -> Tuple[Tuple[Tensor, Tensor], Tensor, Tensor]:
+        """
+        Computes the forecast distribution from the trained wavenet model.
+
+        Parameters
+        ----------
+        F
+        feat_static_cat
+            Static categorical features: (batch_size, num_cat_features)
+        past_target
+            Past target: (batch_size, receptive_field)
+        past_observed_values
+            Observed value indicator for the past target: (batch_size, receptive_field)
+        past_time_feat
+            Past time features: (batch_size, num_time_features, receptive_field)
+        future_time_feat
+            Future time features: (batch_size, num_time_features, pred_length)
+        scale
+            scale of the time series: (batch_size, 1)
+
+        Returns
+        -------
+        Tuple containing `dist_args`, `loc` and `scale`.
+
+            `dist_args` is a pair of tensors containing logarithm of bin probabilities with shape
+            (batch_size, pred_length, num_bins) and bin centers with shape (batch_size, num_bins).
+
+            `loc` is a Tensor with shape (batch_size, 1).
+
+            `scale` is a Tensor with shape (batch_size, 1).
+        """
+
+        bin_probs = self.predict(
+            F,
+            feat_static_cat=feat_static_cat,
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            past_time_feat=past_time_feat,
+            future_time_feat=future_time_feat,
+            scale=scale,
+            num_samples=1,
+            sample_based_forecast=False,
+        )
+
+        # get the batch shape right
+        scale = F.broadcast_add(scale, F.zeros_like(feat_static_cat))
+        loc = F.zeros_like(scale)
+        bin_centers = F.broadcast_add(
+            F.array(self.bin_values), F.zeros_like(feat_static_cat)
+        )
+
+        dist_args = F.log(bin_probs), bin_centers
+        return dist_args, loc, scale
