@@ -41,8 +41,8 @@ class LSTNetBase(nn.HybridBlock):
         skip_size: int,
         ar_window: int,
         context_length: int,
-        horizon: Optional[int],
-        prediction_length: Optional[int],
+        lead_time: int,
+        prediction_length: int,
         dropout_rate: float,
         output_activation: Optional[str],
         scaling: bool,
@@ -61,17 +61,12 @@ class LSTNetBase(nn.HybridBlock):
             ar_window > 0
         ), "auto-regressive window must be a positive integer"
         self.ar_window = ar_window
-        assert not ((horizon is None)) == (
-            prediction_length is None
-        ), "Exactly one of `horizon` and `prediction_length` must be set at a time"
+        assert lead_time >= 0, "`lead_time` must be greater than zero"
         assert (
-            horizon is None or horizon > 0
-        ), "`horizon` must be greater than zero"
-        assert (
-            prediction_length is None or prediction_length > 0
+            prediction_length > 0
         ), "`prediction_length` must be greater than zero"
         self.prediction_length = prediction_length
-        self.horizon = horizon
+        self.horizon = lead_time
         assert context_length > 0, "`context_length` must be greater than zero"
         self.context_length = context_length
         if output_activation is not None:
@@ -120,12 +115,9 @@ class LSTNetBase(nn.HybridBlock):
             self.skip_rnn.cast(dtype)
             # TODO: add temporal attention option
             self.fc = nn.Dense(num_series, dtype=dtype)
-            if self.horizon:
-                self.ar_fc = nn.Dense(1, dtype=dtype, flatten=False)
-            else:
-                self.ar_fc = nn.Dense(
-                    prediction_length, dtype=dtype, flatten=False
-                )
+            self.ar_fc = nn.Dense(
+                prediction_length, dtype=dtype, flatten=False
+            )
             if scaling:
                 self.scaler = MeanScaler(axis=2)
             else:
@@ -194,6 +186,7 @@ class LSTNetBase(nn.HybridBlock):
         ar = self.ar_fc(ar_x)  # NxCx(1 or prediction_length)
         return ar
 
+    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self, F, past_target: Tensor, past_observed_values: Tensor
     ) -> Tensor:
@@ -286,6 +279,7 @@ class LSTNetTrain(LSTNetBase):
         super().__init__(*args, **kwargs)
         self.loss_fn = loss.L1Loss()
 
+    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -305,9 +299,7 @@ class LSTNetTrain(LSTNetBase):
         past_observed_values
             Tensor of shape (batch_size, num_series, context_length)
         future_target
-            Tensor of shape (batch_size, num_series, 1) if `horizon` was specified
-            and of shape (batch_size, num_series, prediction_length)
-            if `prediction_length` was provided
+            Tensor of shape (batch_size, num_series, prediction_length)
 
         Returns
         -------
@@ -315,19 +307,13 @@ class LSTNetTrain(LSTNetBase):
             Loss values of shape (batch_size,)
         """
 
-        ret, scale = super().hybrid_forward(
-            F, past_target, past_observed_values
-        )
-        if self.horizon:
-            # get the last time horizon
-            future_target = F.slice_axis(
-                future_target, axis=2, begin=-1, end=None
-            )
-        loss = self.loss_fn(ret * scale, future_target)
+        pred, scale = super().hybrid_forward(F, past_target, past_observed_values)
+        loss = self.loss_fn(pred*scale, future_target)
         return loss
 
 
 class LSTNetPredict(LSTNetBase):
+    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self, F, past_target: Tensor, past_observed_values: Tensor
     ) -> Tensor:
@@ -345,13 +331,9 @@ class LSTNetPredict(LSTNetBase):
         Returns
         -------
         Tensor
-            Predicted samples of shape (num_samples, 1, num_series) when using `horizon`
-            and of shape (num_samples, prediction_length, num_series)
-            when providing `prediction_length`
+            Predicted samples of shape (batch_size, num_samples, prediction_length, num_series)
         """
 
-        ret, scale = super().hybrid_forward(
-            F, past_target, past_observed_values
-        )
+        ret, scale = super().hybrid_forward(F, past_target, past_observed_values)
         ret = F.swapaxes(ret * scale, 1, 2)
-        return ret.expand_dims(axis=1)
+        return ret.expand_dims(axis=1)  # add the "sample" axis

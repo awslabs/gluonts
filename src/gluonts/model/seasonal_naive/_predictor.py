@@ -56,7 +56,7 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         prediction_length: int,
         season_length: Optional[int] = None,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         assert (
             season_length is None or season_length > 0
