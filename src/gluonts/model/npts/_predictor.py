@@ -167,11 +167,9 @@ class NPTSPredictor(RepresentablePredictor):
         num_default_time_features: int = 1,
         feature_scale: float = 1000.0,
     ) -> None:
-        self.prediction_length = prediction_length
-        self.freq = freq
-        # Similar to lag upper bound in AR2N2 we limit the context length to
-        # some maximum value instead of looking at the whole history which
-        # might be too large.
+        super().__init__(freq=freq, prediction_length=prediction_length)
+        # We limit the context length to some maximum value instead of
+        # looking at the whole history which might be too large.
         self.context_length = (
             context_length if context_length is not None else 1100
         )

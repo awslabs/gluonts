@@ -46,7 +46,7 @@ class IdentityPredictor(RepresentablePredictor):
     def __init__(
         self, prediction_length: int, freq: str, num_samples: int
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         assert num_samples > 0, "The value of `num_samples` should be > 0"
 

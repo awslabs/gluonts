@@ -44,6 +44,14 @@ class Estimator:
 
     prediction_length: int
     freq: str
+    lead_time: int
+
+    def __init__(self, lead_time: int = 0, **kwargs) -> None:
+        # TODO validation of prediction_length and freq could also
+        # TODO be bubbled-up here from subclasses classes
+        assert lead_time >= 0, "The value of `lead_time` should be >= 0"
+
+        self.lead_time = lead_time
 
     def train(
         self, training_data: Dataset, validation_data: Optional[Dataset] = None
@@ -85,6 +93,7 @@ class DummyEstimator(Estimator):
 
     @validated()
     def __init__(self, predictor_cls: type, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.predictor = predictor_cls(**kwargs)
 
     def train(
@@ -110,7 +119,10 @@ class GluonEstimator(Estimator):
     """
 
     @validated()
-    def __init__(self, trainer: Trainer, dtype: DType = np.float32) -> None:
+    def __init__(
+        self, trainer: Trainer, lead_time: int = 0, dtype: DType = np.float32
+    ) -> None:
+        super().__init__(lead_time=lead_time)
         self.trainer = trainer
         self.dtype = dtype
 

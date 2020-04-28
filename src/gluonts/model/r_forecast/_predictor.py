@@ -49,13 +49,13 @@ class RForecastPredictor(RepresentablePredictor):
 
     Parameters
     ----------
+    freq
+        The granularity of the time series (e.g. '1H')
+    prediction_length
+        Number of time points to be predicted.
     method
         The method from rforecast to be used one of
         "ets", "arima", "tbats", "croston", "mlp".
-    prediction_length
-        Number of time points to be predicted.
-    freq
-        The granularity of the time series (e.g. '1H')
     period
         The period to be used (this is called `frequency` in the R forecast
         package), result to a tentative reasonable default if not specified
@@ -78,6 +78,8 @@ class RForecastPredictor(RepresentablePredictor):
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
+        super().__init__(freq=freq, prediction_length=prediction_length)
+
         try:
             from rpy2 import robjects, rinterface
             import rpy2.robjects.packages as rpackages
