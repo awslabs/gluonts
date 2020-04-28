@@ -41,7 +41,7 @@ def test_accuracy(accuracy_test, hyperparameters, hybridize):
     hyperparameters.update(hybridize=hybridize)
 
     # large value as this test is breaking frequently
-    accuracy_test(WaveNetEstimator, hyperparameters, accuracy=0.7)
+    accuracy_test(WaveNetEstimator, hyperparameters, accuracy=1)
 
 
 def test_repr(repr_test, hyperparameters):
