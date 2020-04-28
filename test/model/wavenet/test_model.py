@@ -33,9 +33,6 @@ def hyperparameters(dsinfo):
     )
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32", reason="test times out for some reason"
-)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_accuracy(accuracy_test, hyperparameters, hybridize):
     hyperparameters.update(hybridize=hybridize)
