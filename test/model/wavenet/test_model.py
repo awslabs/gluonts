@@ -27,7 +27,7 @@ def hyperparameters(dsinfo):
         num_cells=2,
         num_layers=1,
         context_length=2,
-        num_batches_per_epoch=5,
+        num_batches_per_epoch=3,
         use_symbol_block_predictor=False,
         cardinality=[dsinfo.cardinality],
     )
