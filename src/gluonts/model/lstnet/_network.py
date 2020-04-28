@@ -119,9 +119,9 @@ class LSTNetBase(nn.HybridBlock):
                 prediction_length, dtype=dtype, flatten=False
             )
             if scaling:
-                self.scaler = MeanScaler(axis=2)
+                self.scaler = MeanScaler(axis=2, keepdims=True)
             else:
-                self.scaler = NOPScaler(axis=2)
+                self.scaler = NOPScaler(axis=2, keepdims=True)
 
     @staticmethod
     def _create_rnn_layer(
@@ -311,9 +311,7 @@ class LSTNetTrain(LSTNetBase):
         pred, scale = super().hybrid_forward(
             F, past_target, past_observed_values
         )
-        return self.loss_fn(
-            F.broadcast_mul(pred, scale.expand_dims(axis=-1)), future_target
-        )
+        return self.loss_fn(F.broadcast_mul(pred, scale), future_target)
 
 
 class LSTNetPredict(LSTNetBase):
@@ -341,7 +339,5 @@ class LSTNetPredict(LSTNetBase):
         ret, scale = super().hybrid_forward(
             F, past_target, past_observed_values
         )
-        ret = F.swapaxes(
-            F.broadcast_mul(ret, scale.expand_dims(axis=-1)), 1, 2
-        )
+        ret = F.swapaxes(F.broadcast_mul(ret, scale), 1, 2)
         return ret.expand_dims(axis=1)  # add the "sample" axis
