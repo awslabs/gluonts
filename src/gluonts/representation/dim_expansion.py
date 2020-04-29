@@ -32,7 +32,7 @@ class DimExpansion(Representation):
         The underlying representation.
     axis
         Axis on which to expand the tensor.
-        (default: 1)
+        (default: -1)
     """
 
     @validated()
