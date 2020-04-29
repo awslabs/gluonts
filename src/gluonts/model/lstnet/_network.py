@@ -98,7 +98,7 @@ class LSTNetBase(nn.HybridBlock):
                 activation="relu",
                 layout="NCHW",
                 in_channels=1,
-            )  # NCT
+            )  # NC1T
             self.cnn.cast(dtype)
             self.dropout = nn.Dropout(dropout_rate)
             self.rnn = self._create_rnn_layer(
