@@ -44,13 +44,15 @@ class Embedding(Representation):
     """
 
     @validated()
-    def __init__(self, binning: Binning, size: int = -1, *args, **kwargs):
+    def __init__(
+        self, binning: Binning, size: Optional[int] = None, *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.binning = binning
         self.register_child(binning)
         self.num_bins = binning.num_bins
 
-        if size == -1:
+        if size is None:
             # Embedding size heuristic that seems to work well in practice. For reference see:
             # https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
             self.size = round(self.num_bins ** (1 / 4))
