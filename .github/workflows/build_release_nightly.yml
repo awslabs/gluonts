@@ -36,4 +36,6 @@ jobs:
         pip install -r requirements/requirements-test.txt
     - name: Test with pytest
       run: |
+        ls
+        cd gluon-ts
         pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test
