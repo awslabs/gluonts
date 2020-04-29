@@ -15,27 +15,30 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7]
-        platform: [ubuntu-latest, windows-latest]
+        platform: [windows-latest]
 
     runs-on: ${{ matrix.platform }}
-
+convert
     steps:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Calculate tag
+      run:
+        $tmp=(Invoke-WebRequest -Uri https://api.github.com/repos/awslabs/gluon-ts/releases/latest).Content |
+          ConvertFrom-Json |
+          Select-Object tag_name
+        $tmp=$tmp.psobject.properties.value.trim() 
     - name: Install dependencies
       run: |
-        git clone https://github.com/awslabs/gluon-ts --branch $(curl https://api.github.com/repos/awslabs/gluon-ts/releases/latest | grep tag_name | cut -d : -f 2,3 | tr -d \"\ | tr -d \,\ )
-        ls
+        git clone https://github.com/awslabs/gluon-ts --branch $tmp
         cd gluon-ts
-        ls
         python -m pip install --upgrade pip
         pip install -r requirements/requirements-mxnet.txt
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
     - name: Test with pytest
       run: |
-        ls
         cd gluon-ts
         pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test
