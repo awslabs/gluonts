@@ -63,9 +63,9 @@ def test_lstnet(
     estimator = LSTNetEstimator(
         skip_size=skip_size,
         ar_window=ar_window,
-        num_series=10,
+        num_series=NUM_SERIES,
         channels=6,
-        kernel_size=3,
+        kernel_size=2,
         context_length=4,
         freq=freq,
         lead_time=lead_time,
@@ -106,4 +106,4 @@ def test_lstnet(
     agg_metrics, item_metrics = evaluator(
         iter(tss), iter(forecasts), num_series=len(dataset.test)
     )
-    assert agg_metrics["ND"] < 1.5
+    assert agg_metrics["ND"] < 0.5
