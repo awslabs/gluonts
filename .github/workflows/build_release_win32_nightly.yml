@@ -1,11 +1,10 @@
 name: Build nightly Windows
 
 on:
-  push
-  #schedule:
+  schedule:
     # * is a special character in YAML so you have to quote this string
     # nightly:
-    #- cron:  '0 0 * * *'
+    - cron:  '0 0 * * *'
 
 jobs:
   build:
@@ -23,7 +22,7 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Clone and install dependencies
       run: |
         $tmp=(Invoke-WebRequest -Uri https://api.github.com/repos/awslabs/gluon-ts/releases/latest).Content | ConvertFrom-Json | Select-Object tag_name
         $tmp=$tmp.psobject.properties.value.trim() 

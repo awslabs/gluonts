@@ -1,11 +1,10 @@
-name: Build nightly Unix
+name: Build nightly Ubuntu
 
 on:
-  push
-  #schedule:
+  schedule:
     # * is a special character in YAML so you have to quote this string
     # nightly:
-    #- cron:  '0 0 * * *'
+    - cron:  '0 0 * * *'
 
 jobs:
   build:
@@ -23,7 +22,7 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Clone and install dependencies
       run: |
         git clone https://github.com/awslabs/gluon-ts --branch $(curl https://api.github.com/repos/awslabs/gluon-ts/releases/latest | grep tag_name | cut -d : -f 2,3 | tr -d \"\ | tr -d \,\ )
         cd gluon-ts
