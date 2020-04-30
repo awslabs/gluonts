@@ -1,11 +1,10 @@
 name: Test latest release nightly Ubuntu
 
 on:
-  #schedule:
+  schedule:
     # * is a special character in YAML so you have to quote this string
     # nightly:
-    #- cron:  '0 0 * * *'
-    push
+    - cron:  '0 0 * * *'
 
 jobs:
   build:
