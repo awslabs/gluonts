@@ -127,7 +127,7 @@ class ProphetPredictor(RepresentablePredictor):
         prophet_params: Optional[Dict] = None,
         init_model: Callable = lambda m: m,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         if not PROPHET_IS_INSTALLED:
             raise ImportError(USAGE_MESSAGE)
