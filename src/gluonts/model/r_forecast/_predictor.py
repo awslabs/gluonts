@@ -21,6 +21,7 @@ import pandas as pd
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.support.pandas import forecast_start
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import get_seasonality
 from gluonts.model.forecast import SampleForecast
@@ -189,10 +190,6 @@ class RForecastPredictor(RepresentablePredictor):
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )
-            forecast_start = (
-                pd.Timestamp(data["start"], freq=self.freq)
-                + data["target"].shape[0]
-            )
 
             samples = np.array(forecast_dict["samples"])
             expected_shape = (params["num_samples"], self.prediction_length)
@@ -205,5 +202,5 @@ class RForecastPredictor(RepresentablePredictor):
                 else None
             )
             yield SampleForecast(
-                samples, forecast_start, forecast_start.freqstr, info=info
+                samples, forecast_start(data), self.freq, info=info
             )
