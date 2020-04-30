@@ -18,7 +18,6 @@ jobs:
         platform: [ubuntu-latest]
 
     runs-on: ${{ matrix.platform }}
-convert
     steps:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
@@ -27,15 +26,12 @@ convert
     - name: Install dependencies
       run: |
         git clone https://github.com/awslabs/gluon-ts --branch $(curl https://api.github.com/repos/awslabs/gluon-ts/releases/latest | grep tag_name | cut -d : -f 2,3 | tr -d \"\ | tr -d \,\ )
-        ls
         cd gluon-ts
-        ls
         python -m pip install --upgrade pip
         pip install -r requirements/requirements-mxnet.txt
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
     - name: Test with pytest
       run: |
-        ls
         cd gluon-ts
         pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test

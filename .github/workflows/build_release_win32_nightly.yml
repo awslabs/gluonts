@@ -18,14 +18,13 @@ jobs:
         platform: [windows-latest]
 
     runs-on: ${{ matrix.platform }}
-convert
     steps:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
     - name: Calculate tag
-      run: |
+      run:
         $tmp=(Invoke-WebRequest -Uri https://api.github.com/repos/awslabs/gluon-ts/releases/latest).Content |
           ConvertFrom-Json |
           Select-Object tag_name
