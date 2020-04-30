@@ -1,4 +1,4 @@
-name: MXNet nightly
+name: Build nightly Windows
 
 on:
   push
@@ -30,8 +30,9 @@ jobs:
         Select-Object tag_name
       shell: powershell
     - name: Cleanup version tag for use with Git
-      run: $tmp=$tmp.psobject.properties.value.trim() 
-      shell:
+      run: |
+        $tmp=$tmp.psobject.properties.value.trim() 
+      shell: powershell
     - name: Install dependencies
       run: |
         git clone https://github.com/awslabs/gluon-ts --branch $tmp

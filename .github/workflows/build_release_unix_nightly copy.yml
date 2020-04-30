@@ -1,4 +1,4 @@
-name: MXNet nightly
+name: Build nightly Unix
 
 on:
   push
