@@ -189,9 +189,9 @@ class RForecastPredictor(RepresentablePredictor):
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )
-            forecast_start = (
-                pd.Timestamp(data["start"], freq=self.freq)
-                + data["target"].shape[0]
+            forecast_start = pd.Timestamp(data["start"], freq=self.freq)
+            forecast_starts = (
+                forecast_start + data["target"].shape[0] * forecast_start.freq
             )
 
             samples = np.array(forecast_dict["samples"])
@@ -205,5 +205,5 @@ class RForecastPredictor(RepresentablePredictor):
                 else None
             )
             yield SampleForecast(
-                samples, forecast_start, forecast_start.freqstr, info=info
+                samples, forecast_starts, forecast_starts.freqstr, info=info
             )
