@@ -1,10 +1,10 @@
-name: Build nightly Ubuntu
+name: Test latest release nightly Ubuntu
 
 on:
-  schedule:
+  #schedule:
     # * is a special character in YAML so you have to quote this string
     # nightly:
-    - cron:  '0 0 * * *'
+    #- cron:  '0 0 * * *'
 
 jobs:
   build:
@@ -14,9 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7]
-        platform: [ubuntu-latest]
 
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-latest
     steps:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
@@ -28,7 +27,7 @@ jobs:
         cd gluon-ts
         python -m pip install --upgrade pip
         pip install -r requirements/requirements-mxnet.txt
-        pip install -e ".[shell]"
+        pip install gluonts
         pip install -r requirements/requirements-test.txt
     - name: Test with pytest
       run: |
