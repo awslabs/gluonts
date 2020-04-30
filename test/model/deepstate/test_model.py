@@ -27,7 +27,6 @@ def hyperparameters(dsinfo):
         num_layers=1,
         context_length=2,
         past_length=dsinfo.prediction_length,
-        cardinality=[1],
         use_feat_static_cat=False,
         num_batches_per_epoch=1,
         use_symbol_block_predictor=False,

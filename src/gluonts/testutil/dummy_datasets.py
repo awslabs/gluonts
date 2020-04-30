@@ -14,7 +14,7 @@
 # Standard library imports
 from functools import partial
 from random import randint
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 # Third-party imports
 import numpy as np
@@ -32,7 +32,7 @@ def make_dummy_datasets_with_features(
     min_length: int = 5,
     max_length: int = 10,
     prediction_length: int = 3,
-    cardinality: List[int] = [],
+    cardinality: Optional[List[int]] = None,
     num_feat_dynamic_real: int = 0,
 ) -> Tuple[ListDataset, ListDataset]:
 
@@ -45,7 +45,7 @@ def make_dummy_datasets_with_features(
             FieldName.START: start,
             FieldName.TARGET: [0.0] * ts_length,
         }
-        if len(cardinality) > 0:
+        if cardinality is not None:
             data_entry_train[FieldName.FEAT_STATIC_CAT] = [
                 randint(0, c) for c in cardinality
             ]

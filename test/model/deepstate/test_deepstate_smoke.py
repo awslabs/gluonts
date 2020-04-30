@@ -42,7 +42,6 @@ common_estimator_hps = dict(
             partial(
                 DeepStateEstimator,
                 **common_estimator_hps,
-                cardinality=[1],
                 use_feat_static_cat=False,
             ),
             make_dummy_datasets_with_features(),
@@ -76,7 +75,6 @@ common_estimator_hps = dict(
             partial(
                 DeepStateEstimator,
                 **common_estimator_hps,
-                cardinality=[1],
                 use_feat_static_cat=False,
                 use_feat_dynamic_real=True,
             ),
@@ -87,7 +85,6 @@ common_estimator_hps = dict(
             partial(
                 DeepStateEstimator,
                 **common_estimator_hps,
-                cardinality=[1],
                 use_feat_static_cat=False,
                 use_feat_dynamic_real=True,
             ),
@@ -98,7 +95,6 @@ common_estimator_hps = dict(
             partial(
                 DeepStateEstimator,
                 **common_estimator_hps,
-                cardinality=[1],
                 use_feat_static_cat=False,
             ),
             make_dummy_datasets_with_features(num_feat_dynamic_real=3),

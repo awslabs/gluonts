@@ -153,7 +153,7 @@ class DeepStateEstimator(GluonEstimator):
         self,
         freq: str,
         prediction_length: int,
-        cardinality: List[int],
+        cardinality: Optional[List[int]] = None,
         add_trend: bool = False,
         past_length: Optional[int] = None,
         num_periods_to_train: int = 4,
@@ -189,7 +189,8 @@ class DeepStateEstimator(GluonEstimator):
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert not use_feat_static_cat or any(c > 1 for c in cardinality), (
+        assert use_feat_static_cat == (cardinality is not None)
+        assert cardinality is None or any(c > 1 for c in cardinality), (
             f"Cardinality of at least one static categorical feature must be larger than 1 "
             f"if `use_feat_static_cat=True`. But cardinality provided is: {cardinality}"
         )
@@ -218,9 +219,7 @@ class DeepStateEstimator(GluonEstimator):
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
-        self.cardinality = (
-            cardinality if cardinality and use_feat_static_cat else [1]
-        )
+        self.cardinality = [1] if cardinality is None else cardinality
         self.embedding_dimension = (
             embedding_dimension
             if embedding_dimension is not None
