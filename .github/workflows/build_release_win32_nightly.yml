@@ -25,10 +25,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Calculate tag
       run:
-        $tmp=(Invoke-WebRequest -Uri https://api.github.com/repos/awslabs/gluon-ts/releases/latest).Content |
-          ConvertFrom-Json |
-          Select-Object tag_name &&
+        $tmp=(Invoke-WebRequest -Uri https://api.github.com/repos/awslabs/gluon-ts/releases/latest).Content | 
+        ConvertFrom-Json |
+        Select-Object tag_name
         $tmp=$tmp.psobject.properties.value.trim() 
+      shell: powershell
     - name: Install dependencies
       run: |
         git clone https://github.com/awslabs/gluon-ts --branch $tmp
