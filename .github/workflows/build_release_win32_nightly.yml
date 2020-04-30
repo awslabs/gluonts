@@ -23,13 +23,15 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Calculate tag
-      run:
+    - name: Extract release version tag
+      run: |
         $tmp=(Invoke-WebRequest -Uri https://api.github.com/repos/awslabs/gluon-ts/releases/latest).Content | 
         ConvertFrom-Json |
         Select-Object tag_name
-        $tmp=$tmp.psobject.properties.value.trim() 
       shell: powershell
+    - name: Cleanup version tag for use with Git
+      run: $tmp=$tmp.psobject.properties.value.trim() 
+      shell:
     - name: Install dependencies
       run: |
         git clone https://github.com/awslabs/gluon-ts --branch $tmp
