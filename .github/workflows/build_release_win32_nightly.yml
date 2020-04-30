@@ -27,7 +27,7 @@ jobs:
       run:
         $tmp=(Invoke-WebRequest -Uri https://api.github.com/repos/awslabs/gluon-ts/releases/latest).Content |
           ConvertFrom-Json |
-          Select-Object tag_name
+          Select-Object tag_name &&
         $tmp=$tmp.psobject.properties.value.trim() 
     - name: Install dependencies
       run: |
