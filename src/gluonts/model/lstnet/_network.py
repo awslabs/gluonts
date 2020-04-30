@@ -170,7 +170,7 @@ class LSTNetBase(nn.HybridBlock):
 
         s, _ = self.skip_rnn.unroll(
             inputs=skip_c,
-            length=self.conv_skip,
+            length=min(self.conv_skip, self.context_length),
             layout="TNC",
             merge_outputs=True,
             begin_state=begin_state,
@@ -243,7 +243,7 @@ class LSTNetBase(nn.HybridBlock):
 
         r, _ = self.rnn.unroll(
             inputs=r,
-            length=self.conv_out,
+            length=min(self.conv_out, self.context_length),
             layout="TNC",
             merge_outputs=True,
             begin_state=rnn_begin_state,
