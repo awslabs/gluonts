@@ -30,6 +30,7 @@ jobs:
         pip install -r requirements/requirements-mxnet.txt
         pip install gluonts
         pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-extras-shell.txt
     - name: Test with pytest
       run: |
         cd gluon-ts
