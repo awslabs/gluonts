@@ -40,6 +40,7 @@ TEST_VALUES = {
     ],
     "use_prediction_features": [True, False],
     "allow_target_padding": [True, False],
+    "lead_time": [0, 1, 10, 20],
 }
 
 
@@ -182,8 +183,9 @@ def test_AddAgeFeatures(start, target, is_train: bool):
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
+@pytest.mark.parametrize("lead_time", TEST_VALUES["lead_time"])
 def test_InstanceSplitter(
-    start, target, is_train: bool, pick_incomplete: bool
+    start, target, lead_time: int, is_train: bool, pick_incomplete: bool
 ):
     train_length = 100
     pred_length = 13
@@ -195,6 +197,7 @@ def test_InstanceSplitter(
         train_sampler=transform.UniformSplitSampler(p=1.0),
         past_length=train_length,
         future_length=pred_length,
+        lead_time=lead_time,
         time_series_fields=["some_time_feature"],
         pick_incomplete=pick_incomplete,
     )
@@ -221,6 +224,7 @@ def test_InstanceSplitter(
             0,
             len(target)
             - pred_length
+            - lead_time
             + 1
             - (0 if pick_incomplete else train_length),
         )
