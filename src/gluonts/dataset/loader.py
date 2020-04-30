@@ -133,7 +133,7 @@ class TrainDataLoader(DataLoader):
         Note that using large prefetching batch will provide smoother bootstrapping performance,
         but will consume more shared_memory. Using smaller number may forfeit the purpose of using
         multiple worker processes, try reduce `num_workers` in this case.
-        By default it defaults to `num_workers * 2`.
+        By default `num_workers * 2`.
     dtype
         Floating point type to use. Default is np.float32.
     shuffle_for_training
@@ -141,6 +141,7 @@ class TrainDataLoader(DataLoader):
     num_batches_for_shuffling
         The effective number of batches among which samples are shuffled. If num_batches_for_shuffling = 8 and
         batch_size = 8 then the next batch will be randomly sampled from about 64 samples.
+        By default 1, since this can have a hit on throughput.
     """
 
     def __init__(
@@ -154,7 +155,7 @@ class TrainDataLoader(DataLoader):
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
         shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 8,
+        num_batches_for_shuffling: int = 1,
         **kwargs
     ) -> None:
         assert dataset, "empty dataset"

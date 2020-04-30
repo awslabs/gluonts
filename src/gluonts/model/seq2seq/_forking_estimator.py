@@ -195,9 +195,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         chain.extend(
             [
                 RemoveFields(field_names=remove_field_names),
-                AsNumpyArray(
-                    field=FieldName.TARGET, expected_ndim=1, dtype=self.dtype
-                ),
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
@@ -268,15 +265,11 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
         if not self.use_feat_static_cat:
             chain.append(
-                SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0]),
+                SetField(
+                    output_field=FieldName.FEAT_STATIC_CAT,
+                    value=np.array([0.0]),
+                ),
             )
-        chain.append(
-            AsNumpyArray(
-                field=FieldName.FEAT_STATIC_CAT,
-                expected_ndim=1,
-                dtype=self.dtype,
-            ),
-        )
 
         # --- SAMPLE AND CUT THE TIME-SERIES ---
 

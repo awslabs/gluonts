@@ -116,6 +116,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             # ensure start index is not negative
             start_idx = max(0, sampling_idx - self.enc_len)
 
+            # irrelevant data should have been removed by now in the
+            # transformation chain, so copying everything is ok
             out = data.copy()
 
             for ts_field in list(ts_fields_counter.keys()):
@@ -149,6 +151,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                     )
 
                     skip = max(0, self.enc_len - sampling_idx)
+                    # This section takes by far the longest time computationally:
+                    # This scales linearly in self.enc_len and linearly in self.dec_len
                     for dec_field, idx in zip(
                         forking_dec_field[skip:],
                         range(start_idx + 1, start_idx + self.enc_len + 1),

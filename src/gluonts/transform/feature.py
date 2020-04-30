@@ -68,15 +68,15 @@ class AddObservedValuesIndicator(SimpleTransformation):
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
-        nan_indices = np.where(np.isnan(value))
         nan_entries = np.isnan(value)
 
         if self.convert_nans:
-            value[nan_indices] = self.dummy_value
+            value[np.where(nan_entries)] = self.dummy_value
+            data[self.target_field] = value
 
-        data[self.target_field] = value
-        # Invert bool array so that missing values are zeros and store as float
-        data[self.output_field] = np.invert(nan_entries).astype(self.dtype)
+        data[self.output_field] = np.invert(
+            nan_entries, out=nan_entries
+        ).astype(self.dtype, copy=False)
         return data
 
 
