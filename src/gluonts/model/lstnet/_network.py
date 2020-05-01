@@ -90,6 +90,7 @@ class LSTNetBase(nn.HybridBlock):
             "Choose a smaller `kernel_size` or bigger `context_length`"
         )
         self.channel_skip_count = self.conv_skip * skip_size
+        self.scaling = scaling
         self.dtype = dtype
         with self.name_scope():
             self.cnn = nn.Conv2D(
@@ -118,10 +119,8 @@ class LSTNetBase(nn.HybridBlock):
             self.ar_fc = nn.Dense(
                 prediction_length, dtype=dtype, flatten=False
             )
-            if scaling:
-                self.scaler = MeanScaler(axis=2, keepdims=True)
-            else:
-                self.scaler = NOPScaler(axis=2, keepdims=True)
+            self.mean_scaler = MeanScaler(axis=2, keepdims=True)
+            self.nop_scaler = NOPScaler(axis=2, keepdims=True)
 
     @staticmethod
     def _create_rnn_layer(
@@ -188,7 +187,6 @@ class LSTNetBase(nn.HybridBlock):
         ar = self.ar_fc(ar_x)  # NxCx(1 or prediction_length)
         return ar
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self, F, past_target: Tensor, past_observed_values: Tensor
     ) -> Tensor:
@@ -212,8 +210,8 @@ class LSTNetBase(nn.HybridBlock):
             and of shape (batch_size, num_series, prediction_length)
             if `prediction_length` was provided
         """
-
-        scaled_past_target, scale = self.scaler(
+        # FIXME: circumventing the known mxnet bug https://github.com/apache/incubator-mxnet/issues/14373
+        mean_scaled_past_target, mean_scale = self.mean_scaler(
             past_target.slice_axis(
                 axis=2, begin=-self.context_length, end=None
             ),
@@ -221,6 +219,29 @@ class LSTNetBase(nn.HybridBlock):
                 axis=2, begin=-self.context_length, end=None
             ),
         )
+        nop_scaled_past_target, nop_scale = self.nop_scaler(
+            past_target.slice_axis(
+                axis=2, begin=-self.context_length, end=None
+            ),
+            past_observed_values.slice_axis(
+                axis=2, begin=-self.context_length, end=None
+            ),
+        )
+        scaled_past_cond = (
+            F.ones_like(mean_scaled_past_target)
+            if self.scaling
+            else F.zeros_like(mean_scaled_past_target)
+        )
+        scale_cond = (
+            F.ones_like(mean_scale)
+            if self.scaling
+            else F.zeros_like(mean_scale)
+        )
+        scaled_past_target = F.where(
+            scaled_past_cond, mean_scaled_past_target, nop_scaled_past_target
+        )
+        scale = F.where(scale_cond, mean_scale, nop_scale)
+
         c = self.cnn(scaled_past_target.expand_dims(axis=1))
         c = self.dropout(c)
         c = F.squeeze(c, axis=2)  # NCT
