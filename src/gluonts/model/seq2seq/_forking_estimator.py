@@ -281,6 +281,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
                 encoder_series_fields=[FieldName.FEAT_DYNAMIC],
+                # decoder_series_fileds=[FieldName.FEAT_TIME],
                 shared_series_fields=[FieldName.OBSERVED_VALUES],
             ),
         )

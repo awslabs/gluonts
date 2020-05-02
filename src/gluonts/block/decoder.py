@@ -138,6 +138,102 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         return mlp_output
 
 
+class ForkingMLPDecoderWithFutureFeat(Seq2SeqDecoder):
+    """
+    Multilayer perceptron decoder for sequence-to-sequence models.
+
+    See [WTN+17]_ for details.
+
+    Parameters
+    ----------
+    dec_len
+        length of the decoder (usually the number of forecasted time steps).
+
+    final_dim
+        dimensionality of the output per time step (number of predicted
+        quantiles).
+
+    hidden_dimension_sequence
+        number of hidden units for each MLP layer.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        dec_len: int,
+        final_dim: int,
+        hidden_dimension_sequence: List[int] = list([]),
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+
+        self.dec_len = dec_len
+        self.final_dims = final_dim
+
+        with self.name_scope():
+            self.model = nn.HybridSequential()
+
+            for layer_no, layer_dim in enumerate(hidden_dimension_sequence):
+                layer = nn.Dense(
+                    dec_len * layer_dim,
+                    flatten=False,
+                    activation="relu",
+                    prefix=f"mlp_{layer_no:#02d}'_",
+                )
+                self.model.add(layer)
+
+            layer = nn.Dense(
+                dec_len * final_dim,
+                flatten=False,
+                activation="softrelu",
+                prefix=f"mlp_{len(hidden_dimension_sequence):#02d}'_",
+            )
+            self.model.add(layer)
+
+    # TODO: add support for static input at some point
+    def hybrid_forward(
+        self,
+        F,
+        dynamic_input: Tensor,
+        dynamic_input_decode: Tensor,
+        static_input: Tensor = None,
+    ) -> Tensor:
+        """
+        ForkingMLPDecoder forward call.
+
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        dynamic_input
+            dynamic_features, shape (batch_size, encoder_length, num_features)
+            or (N, T, C).
+
+        dynamic_input
+            dynamic_features, shape (batch_size, encoder_length, decoder_length, num_features)
+            or (N, T, T, C).
+
+        static_input
+            not used in this decoder.
+
+        Returns
+        -------
+        Tensor
+            mlp output, shape (batch_size, encoder_length, dec_len, final_dims).
+
+        """
+        mlp_output = self.model(dynamic_input)
+        mlp_output = mlp_output.reshape(
+            shape=(0, 0, self.dec_len, self.final_dims)
+        )
+        mlp_output = F.concat(
+            mlp_output, dynamic_input_decode, dim=-1
+        )  # TODO: would -1 work?
+        return mlp_output
+
+
 class OneShotDecoder(Seq2SeqDecoder):
     """
     OneShotDecoder.
