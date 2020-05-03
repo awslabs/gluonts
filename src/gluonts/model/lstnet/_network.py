@@ -97,7 +97,7 @@ class LSTNetBase(nn.HybridBlock):
                 (num_series, kernel_size),
                 activation="relu",
                 layout="NCHW",
-                in_channels=1,
+                in_channels=2,
             )  # NC1T
             self.cnn.cast(dtype)
             self.dropout = nn.Dropout(dropout_rate)
@@ -183,9 +183,13 @@ class LSTNetBase(nn.HybridBlock):
         )  # Nx(skipxC)
         return s
 
-    def _ar_highway(self, F, x: Tensor) -> Tensor:
+    def _ar_highway(self, F, x: Tensor, observed: Tensor) -> Tensor:
         ar_x = F.slice_axis(x, axis=2, begin=-self.ar_window, end=None)  # NCT
-        ar = self.ar_fc(ar_x)  # NxCx(1 or prediction_length)
+        ar_observed = F.slice_axis(
+            observed, axis=2, begin=-self.ar_window, end=None
+        )  # NCT
+        ar_fc_inputs = F.concat(ar_x, ar_observed, dim=-1)
+        ar = self.ar_fc(ar_fc_inputs)  # NxCx(1 or prediction_length)
         return ar
 
     # noinspection PyMethodOverriding,PyPep8Naming
@@ -212,16 +216,20 @@ class LSTNetBase(nn.HybridBlock):
             and of shape (batch_size, num_series, prediction_length)
             if `prediction_length` was provided
         """
-
-        scaled_past_target, scale = self.scaler(
-            past_target.slice_axis(
-                axis=2, begin=-self.context_length, end=None
-            ),
-            past_observed_values.slice_axis(
-                axis=2, begin=-self.context_length, end=None
-            ),
+        context_target = past_target.slice_axis(
+            axis=2, begin=-self.context_length, end=None
         )
-        c = self.cnn(scaled_past_target.expand_dims(axis=1))
+        context_observed = past_observed_values.slice_axis(
+            axis=2, begin=-self.context_length, end=None
+        )
+
+        scaled_context, scale = self.scaler(context_target, context_observed)
+        cnn_inputs = F.concat(
+            scaled_context.expand_dims(axis=1),
+            context_observed.expand_dims(axis=1),
+            dim=1,
+        )
+        c = self.cnn(cnn_inputs)
         c = self.dropout(c)
         c = F.squeeze(c, axis=2)  # NCT
 
@@ -260,7 +268,7 @@ class LSTNetBase(nn.HybridBlock):
             fc = F.tile(
                 fc, reps=(1, 1, self.prediction_length)
             )  # N x num_series x prediction_length
-        ar = self._ar_highway(F, scaled_past_target)
+        ar = self._ar_highway(F, scaled_context, context_observed)
         out = fc + ar
         if self.output_activation is None:
             return out, scale
