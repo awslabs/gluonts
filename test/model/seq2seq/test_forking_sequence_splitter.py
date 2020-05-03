@@ -48,12 +48,7 @@ def test_forking_sequence_splitter() -> None:
                 output_field="age",
                 pred_length=10,
             ),
-            ForkingSequenceSplitter(
-                train_sampler=TSplitSampler(),
-                time_series_fields=["age"],
-                enc_len=5,
-                dec_len=3,
-            ),
+            ForkingSequenceSplitter(train_sampler=TSplitSampler(), enc_len=5, dec_len=3, encoder_series_fields=["age"]),
         ]
     )
 
@@ -82,12 +77,8 @@ def test_forking_sequence_splitter() -> None:
                 output_field="age",
                 pred_length=10,
             ),
-            ForkingSequenceSplitter(
-                train_sampler=TSplitSampler(),
-                time_series_fields=["age"],
-                enc_len=20,
-                dec_len=20,
-            ),
+            ForkingSequenceSplitter(train_sampler=TSplitSampler(), enc_len=20, dec_len=20,
+                                    encoder_series_fields=["age"]),
         ]
     )
 

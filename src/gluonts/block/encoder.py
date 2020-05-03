@@ -93,7 +93,7 @@ class Seq2SeqEncoder(nn.HybridBlock):
 
         target
             target time series,
-            shape (batch_size, sequence_length)
+            shape (batch_size, sequence_length, 1)
 
         static_features
             static features,
@@ -111,7 +111,6 @@ class Seq2SeqEncoder(nn.HybridBlock):
                    num_static_features + num_dynamic_features + 1)
 
         """
-        target = target.expand_dims(axis=-1)  # (N, T, 1)
 
         helper_ones = F.ones_like(target)  # Ones of (N, T, 1)
         tiled_static_features = F.batch_dot(
@@ -156,7 +155,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         kernel_size_seq: List[int],
         channels_seq: List[int],
         use_residual: bool = False,
-        use_covariates: bool = False,
+        use_static_feat: bool = False,
+        use_dynamic_feat: bool = False,
         **kwargs,
     ) -> None:
         assert all(
@@ -172,7 +172,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         super().__init__(**kwargs)
 
         self.use_residual = use_residual
-        self.use_covariates = use_covariates
+        self.use_static_feat = use_static_feat
+        self.use_dynamic_feat = use_dynamic_feat
         self.cnn = nn.HybridSequential()
 
         it = zip(channels_seq, kernel_size_seq, dilation_seq)
@@ -203,7 +204,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
 
         target
             target time series,
-            shape (batch_size, sequence_length)
+            shape (batch_size, sequence_length, 1)
 
         static_features
             static features,
@@ -224,13 +225,17 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
             shape (batch_size, sequence_length, num_dynamic_features)
         """
 
-        if self.use_covariates:
+        if self.use_dynamic_feat and self.use_static_feat:
             inputs = Seq2SeqEncoder._assemble_inputs(
                 F,
                 target=target,
                 static_features=static_features,
                 dynamic_features=dynamic_features,
             )
+        elif self.use_dynamic_feat:
+            inputs = F.concat(
+            target, dynamic_features, dim=2
+        )  # (N, T, C)
         else:
             inputs = target
 
@@ -302,7 +307,7 @@ class RNNEncoder(Seq2SeqEncoder):
 
         target
             target time series,
-            shape (batch_size, sequence_length)
+            shape (batch_size, sequence_length, 1)
 
         static_features
             static features,
@@ -442,7 +447,7 @@ class RNNCovariateEncoder(Seq2SeqEncoder):
 
         target
             target time series,
-            shape (batch_size, sequence_length)
+            shape (batch_size, sequence_length, 1)
 
         static_features
             static features,

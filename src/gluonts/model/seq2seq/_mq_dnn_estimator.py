@@ -15,6 +15,7 @@
 from typing import List, Optional
 
 # First-party imports
+from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.block.decoder import ForkingMLPDecoder
 from gluonts.block.encoder import (
     HierarchicalCausalConv1DEncoder,
@@ -26,7 +27,9 @@ from gluonts.core.component import validated
 from gluonts.trainer import Trainer
 
 # Relative imports
-from ._forking_estimator import ForkingSeq2SeqEstimator
+from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
+import numpy as np
+import mxnet as mx
 
 
 class MQDNNEstimator(ForkingSeq2SeqEstimator):
@@ -44,9 +47,7 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
         context_length: Optional[int],
         prediction_length: int,
         freq: str,
-        # FIXME: why do we have two parameters here?
-        mlp_final_dim: int = 20,
-        mlp_hidden_dimension_seq: List[int] = list(),
+        decoder_mlp_dim_seq: List[int] = [20],
         quantiles: List[float] = list(),
         trainer: Trainer = Trainer(),
     ) -> None:
@@ -54,13 +55,13 @@ class MQDNNEstimator(ForkingSeq2SeqEstimator):
             prediction_length if context_length is None else context_length
         )
         assert all(
-            [d > 0 for d in mlp_hidden_dimension_seq]
+            [d > 0 for d in decoder_mlp_dim_seq]
         ), "Elements of `mlp_hidden_dimension_seq` should be > 0"
 
         decoder = ForkingMLPDecoder(
             dec_len=prediction_length,
-            final_dim=mlp_final_dim,
-            hidden_dimension_sequence=mlp_hidden_dimension_seq,
+            final_dim=decoder_mlp_dim_seq[-1],
+            hidden_dimension_sequence=decoder_mlp_dim_seq[:-1],
             prefix="decoder_",
         )
 
@@ -89,25 +90,40 @@ class MQCNNEstimator(MQDNNEstimator):
         prediction_length: int,
         freq: str,
         context_length: Optional[int] = None,
-        # FIXME: prefix those so clients know that these are decoder params
-        mlp_final_dim: int = 20,
-        mlp_hidden_dimension_seq: List[int] = list(),
+        seed: Optional[int] = None,
+        decoder_mlp_dim_seq: List[int] = [20],
+        channels_seq: List[int] = [30, 30, 30],
+        dilation_seq: List[int] = [1, 3, 9],
+        kernel_size_seq: List[int] = [3, 3, 3],
+        use_residual: bool = True,
         quantiles: List[float] = list(
             [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         ),
         trainer: Trainer = Trainer(),
     ) -> None:
+
+        if seed:
+            np.random.seed(seed)
+            mx.random.seed(seed)
+
+        assert (
+            len(channels_seq) == len(dilation_seq) == len(kernel_size_seq)
+        ), (
+            f"mismatch CNN configurations: {len(channels_seq)} vs. "
+            f"{len(dilation_seq)} vs. {len(kernel_size_seq)}"
+        )
+
         encoder = HierarchicalCausalConv1DEncoder(
-            dilation_seq=[1, 3, 9],
-            kernel_size_seq=([3] * len([30, 30, 30])),
-            channels_seq=[30, 30, 30],
-            use_residual=True,
+            dilation_seq=dilation_seq,
+            kernel_size_seq=channels_seq,
+            channels_seq=kernel_size_seq,
+            use_residual=use_residual,
+            use_dynamic_feat=True,
             prefix="encoder_",
         )
         super(MQCNNEstimator, self).__init__(
             encoder=encoder,
-            mlp_final_dim=mlp_final_dim,
-            mlp_hidden_dimension_seq=mlp_hidden_dimension_seq,
+            decoder_mlp_dim_seq=decoder_mlp_dim_seq,
             freq=freq,
             prediction_length=prediction_length,
             trainer=trainer,
@@ -128,9 +144,7 @@ class MQRNNEstimator(MQDNNEstimator):
         prediction_length: int,
         freq: str,
         context_length: Optional[int] = None,
-        # FIXME: prefix those so clients know that these are decoder params
-        mlp_final_dim: int = 20,
-        mlp_hidden_dimension_seq: List[int] = list(),
+        decoder_mlp_dim_seq: List[int] = [20],
         trainer: Trainer = Trainer(),
         quantiles: List[float] = list([0.1, 0.5, 0.9]),
     ) -> None:
@@ -143,8 +157,7 @@ class MQRNNEstimator(MQDNNEstimator):
         )
         super(MQRNNEstimator, self).__init__(
             encoder=encoder,
-            mlp_final_dim=mlp_final_dim,
-            mlp_hidden_dimension_seq=mlp_hidden_dimension_seq,
+            decoder_mlp_dim_seq=decoder_mlp_dim_seq,
             freq=freq,
             prediction_length=prediction_length,
             trainer=trainer,
