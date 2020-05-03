@@ -295,6 +295,7 @@ class LSTNetTrain(LSTNetBase):
         past_target: Tensor,
         past_observed_values: Tensor,
         future_target: Tensor,
+        future_observed_values: Tensor,
     ) -> Tensor:
         """
         Computes the training l1 loss for LSTNet for multivariate time-series.
@@ -309,6 +310,8 @@ class LSTNetTrain(LSTNetBase):
             Tensor of shape (batch_size, num_series, context_length)
         future_target
             Tensor of shape (batch_size, num_series, prediction_length)
+        future_observed_values
+            Tensor of shape (batch_size, num_series, prediction_length)
 
         Returns
         -------
@@ -319,7 +322,11 @@ class LSTNetTrain(LSTNetBase):
         pred, scale = super().hybrid_forward(
             F, past_target, past_observed_values
         )
-        return self.loss_fn(F.broadcast_mul(pred, scale), future_target)
+        return self.loss_fn(
+            F.broadcast_mul(pred, scale),
+            future_target,
+            future_observed_values,
+        )
 
 
 class LSTNetPredict(LSTNetBase):
