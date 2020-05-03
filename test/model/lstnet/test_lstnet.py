@@ -45,8 +45,8 @@ dataset = load_multivariate_constant_dataset()
 freq = dataset.metadata.metadata.freq
 
 
-@pytest.mark.parametrize("skip_size", [1, 2])
-@pytest.mark.parametrize("ar_window", [1, 2])
+@pytest.mark.parametrize("skip_size", [2])
+@pytest.mark.parametrize("ar_window", [3])
 @pytest.mark.parametrize(
     "lead_time, prediction_length",
     [
