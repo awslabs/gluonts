@@ -87,13 +87,17 @@ class Predictor:
 
     __version__: str = gluonts.__version__
 
-    def __init__(self, prediction_length: int, freq: str) -> None:
+    def __init__(
+        self, prediction_length: int, freq: str, lead_time: int = 0
+    ) -> None:
         assert (
             prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
+        assert lead_time >= 0, "The value of `lead_time` should be >= 0"
 
         self.prediction_length = prediction_length
         self.freq = freq
+        self.lead_time = lead_time
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         """
@@ -185,8 +189,12 @@ class RepresentablePredictor(Predictor):
     """
 
     @validated()
-    def __init__(self, prediction_length: int, freq: str) -> None:
-        super().__init__(prediction_length, freq)
+    def __init__(
+        self, prediction_length: int, freq: str, lead_time: int = 0
+    ) -> None:
+        super().__init__(
+            freq=freq, lead_time=lead_time, prediction_length=prediction_length
+        )
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         for item in dataset:
@@ -253,11 +261,16 @@ class GluonPredictor(Predictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
+        lead_time: int = 0,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         dtype: DType = np.float32,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(
+            freq=freq,
+            lead_time=lead_time,
+            prediction_length=prediction_length,
+        )
 
         self.input_names = input_names
         self.prediction_net = prediction_net
@@ -450,6 +463,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
+        lead_time: int = 0,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
@@ -464,6 +478,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             freq=freq,
             ctx=ctx,
             input_transform=input_transform,
+            lead_time=lead_time,
             forecast_generator=forecast_generator,
             output_transform=output_transform,
             dtype=dtype,
@@ -486,6 +501,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             freq=self.freq,
             ctx=self.ctx,
             input_transform=self.input_transform,
+            lead_time=self.lead_time,
             forecast_generator=self.forecast_generator,
             output_transform=self.output_transform,
             dtype=self.dtype,
@@ -597,7 +613,11 @@ class ParallelizedPredictor(Predictor):
         num_workers: Optional[int] = None,
         chunk_size=1,
     ) -> None:
-        super().__init__(base_predictor.prediction_length, base_predictor.freq)
+        super().__init__(
+            freq=base_predictor.freq,
+            lead_time=base_predictor.lead_time,
+            prediction_length=base_predictor.prediction_length,
+        )
 
         self._base_predictor = base_predictor
         self._num_workers = (
@@ -720,7 +740,11 @@ class Localizer(Predictor):
     """
 
     def __init__(self, estimator: "Estimator"):
-        super().__init__(estimator.prediction_length, estimator.freq)
+        super().__init__(
+            freq=estimator.freq,
+            lead_time=estimator.lead_time,
+            prediction_length=estimator.prediction_length,
+        )
         self.estimator = estimator
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:

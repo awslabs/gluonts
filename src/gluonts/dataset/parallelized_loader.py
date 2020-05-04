@@ -14,6 +14,7 @@
 
 # Standard library imports
 import collections
+import functools
 import itertools
 import logging
 import pathlib
@@ -25,7 +26,7 @@ import time
 
 from collections.abc import Sized
 from multiprocessing.managers import SyncManager
-from typing import Callable, Iterable, Optional, List, Iterator
+from typing import Callable, Iterable, Optional, List, Iterator, Union, Any
 
 import multiprocessing
 import multiprocessing.queues
@@ -84,16 +85,77 @@ else:
 ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
+def _is_stackable(
+    arrays: List[Union[np.ndarray, mx.nd.NDArray, Any]], axis: int = 0,
+) -> bool:
+    """
+    Check if elements are scalars, have too few dimensions, or their
+    target axes have equal length; i.e. they are directly `stack` able.
+    """
+    if isinstance(arrays[0], (mx.nd.NDArray, np.ndarray)):
+        s = set(arr.shape[axis] for arr in arrays)
+        return len(s) <= 1 and arrays[0].shape[axis] != 0
+    return True
+
+
+def _pad_arrays(
+    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0,
+) -> List[Union[np.ndarray, mx.nd.NDArray]]:
+    assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
+    is_mx = isinstance(data[0], mx.nd.NDArray)
+
+    # MxNet causes a segfault when persisting 0-length arrays. As such,
+    # we add a dummy pad of length 1 to 0-length dims.
+    max_len = max(1, functools.reduce(max, (x.shape[axis] for x in data)))
+    padded_data = []
+
+    for x in data:
+        # MxNet lacks the functionality to pad n-D arrays consistently.
+        # We fall back to numpy if x is an mx.nd.NDArray.
+        if is_mx:
+            x = x.asnumpy()
+
+        pad_size = max_len - x.shape[axis]
+        pad_lengths = [(0, 0)] * x.ndim
+        pad_lengths[axis] = (0, pad_size)
+        x_padded = np.pad(x, mode="constant", pad_width=pad_lengths)
+
+        padded_data.append(x_padded if not is_mx else mx.nd.array(x_padded))
+
+    return padded_data
+
+
 def stack(
     data,
     multi_processing: bool,
     dtype: DType,
     single_process_ctx: Optional[mx.Context] = None,
+    variable_length: bool = False,
 ):
-    """Stack a list of data.
-        Used when creating a single batch from list of dicts
-        depending on whether multiprocessing is turned on, the batches will be
-        constructed using different memory allocation techniques"""
+    """
+    Stack a list of data. Used when creating a single batch from list of dicts
+    depending on whether multiprocessing is turned on, the batches will be
+    constructed using different memory allocation techniques. If `variable_length`
+    is specified, the data will be 'padded' with zeros along the first axis.
+
+    Parameters
+    ----------
+    data: List
+        Lists of array-like, stacked into data batches and loaded to appropriate
+        memory (according to whether `multi_processing` is specified).
+    multi_processing: bool
+        If True, data will be loaded to mxnet ndarrays on shared CPU memory.
+    dtype: DType
+    single_process_ctx: Optional[mx.Context]
+    variable_length: bool
+        If True, the function will check if the list of data are "stackable",
+        i.e., they have matching axes. If not, it will assume that the first
+        dimension of each array is heterogeneous (i.e., ragged) and will pad
+        this axis before stacking.
+    """
+    if variable_length and not _is_stackable(data):
+        data = _pad_arrays(data, axis=0)
+
     if isinstance(data[0], mx.nd.NDArray):
         if multi_processing:
             out = nd.empty(
@@ -131,11 +193,12 @@ def stack(
     return data
 
 
-def _batchify_fn(
+def batchify(
     data: List[dict],
     dtype: DType,
     multi_processing: bool,
     single_process_ctx: Optional[mx.Context] = None,
+    variable_length: bool = False,
 ) -> DataBatch:
     """reduce the list of dictionaries to a single dictionary, where values
         referenced by identical key are reduced using the stack function"""
@@ -145,6 +208,7 @@ def _batchify_fn(
             multi_processing=multi_processing,
             dtype=dtype,
             single_process_ctx=single_process_ctx,
+            variable_length=variable_length,
         )
         for key in data[0].keys()
     }
@@ -173,31 +237,11 @@ def _sequential_sample_generator(
     transformation: Transformation,
     is_train: bool,
     cyclic: bool,
-    num_batches_for_shuffling: int,
 ) -> Iterator[DataEntry]:
-    # Approximate shuffling `num_batches_for_shuffling` probabilistically
-    def skip_data_iter(data: Dataset):
-        for data_entry in data:
-            if (
-                random.randint(1, num_batches_for_shuffling)
-                == num_batches_for_shuffling
-            ):
-                yield data_entry
-
-    # sanity check: since `num_batches_for_shuffling` works by skipping
-    # entries, this should not be used for non cyclic datasets
-    assert (
-        cyclic or num_batches_for_shuffling == 1
-    ), "Setting num_batches_for_shuffling >= 1 only makes sense in the context of cyclic datasets currently."
-
     while True:
-        for sample in transformation(
-            data_it=skip_data_iter(dataset)
-            if num_batches_for_shuffling > 1
-            else dataset,
-            is_train=is_train,
-        ):
-            yield sample
+        yield from transformation(
+            data_it=dataset, is_train=is_train,
+        )
         # Dont cycle if not training time
         if not cyclic:
             return
@@ -221,10 +265,7 @@ class _WorkerData:
 
 # needed because some iterators are not cyclic
 def _worker_reset_iterator(
-    is_train: bool,
-    cyclic: bool,
-    cycle_num: int,
-    num_batches_for_shuffling: int,
+    is_train: bool, cyclic: bool, cycle_num: int,
 ) -> None:
     """Initialize or reset iterators of workers."""
 
@@ -233,7 +274,6 @@ def _worker_reset_iterator(
         transformation=_WorkerData.transformation,
         is_train=is_train,
         cyclic=cyclic,
-        num_batches_for_shuffling=num_batches_for_shuffling,
     )
 
     _WorkerData.iterator_latest_reset_cycle = cycle_num
@@ -266,8 +306,6 @@ def _worker_fn(
     batchify_fn: Callable,
     dtype: DType,
     is_train: bool,
-    shuffle: bool,
-    num_batches_for_shuffling: int,
     cyclic: bool,
     cycle_num: int,
 ):
@@ -277,16 +315,12 @@ def _worker_fn(
     if (_WorkerData.iterator_latest_reset_cycle < cycle_num) and (
         _WorkerData.iterator_latest_reset_cycle == 0 or not cyclic
     ):
-        _worker_reset_iterator(
-            is_train, cyclic, cycle_num, num_batches_for_shuffling
-        )
+        _worker_reset_iterator(is_train, cyclic, cycle_num)
 
     # retrieve the samples that will be batched
     batch_samples = list(
         itertools.islice(_WorkerData.dataset_iterator, batch_size)
     )
-    if shuffle:
-        random.shuffle(batch_samples)
 
     # batch the samples, if there were any
     if batch_samples:
@@ -324,8 +358,6 @@ class _MultiWorkerIter(object):
         is_train: bool,
         num_workers: int,
         batch_size: int,
-        shuffle: bool,
-        num_batches_for_shuffling: int,
         cyclic: bool,
         cycle_num: int,
         num_prefetch: int,
@@ -352,8 +384,6 @@ class _MultiWorkerIter(object):
         self._exhausted_iterators: set = set()
         self._num_workers = num_workers
         self._batch_size = batch_size
-        self._shuffle = shuffle
-        self._num_batches_for_shuffling = num_batches_for_shuffling
         self._dataset_len = dataset_len
 
         # pre-fetch batches
@@ -375,8 +405,6 @@ class _MultiWorkerIter(object):
                 self._batchify_fn,
                 self._dtype,
                 self._is_train,
-                self._shuffle,
-                self._num_batches_for_shuffling,
                 self._cyclic,
                 self._cycle_num,
             ),
@@ -476,11 +504,6 @@ class ParallelDataLoader(object):
         MXNet context to use to store data.
     dtype
         Floating point type to use.
-    shuffle
-        Whether to shuffle the samples.
-    num_batches_for_shuffling
-        The effective number of batches among which samples are shuffled. If num_batches_for_shuffling = 8 and
-        batch_size = 8 then the next batch will be randomly sampled from about 64 samples.
     num_workers
         The number of multiprocessing workers to use for data preprocessing.
         By default 0, in which case no multiprocessing will be utilized.
@@ -503,8 +526,7 @@ class ParallelDataLoader(object):
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
-        shuffle: bool = False,
-        num_batches_for_shuffling: Optional[int] = None,
+        batchify_fn: Callable = batchify,
         num_prefetch: Optional[int] = None,
         num_workers: Optional[int] = None,
     ):
@@ -529,9 +551,6 @@ class ParallelDataLoader(object):
             batch_size > 0
         ), "Batch size has to be a strictly positive integer."
         assert (
-            num_batches_for_shuffling is None or num_batches_for_shuffling >= 1
-        ), "Number of batches for shuffling has to be an integer >= 1."
-        assert (
             num_workers is None or 0 <= num_workers
         ), "Num workers has to be >= 0."
         assert (
@@ -553,14 +572,9 @@ class ParallelDataLoader(object):
         self.is_train = is_train
         self.batch_size = batch_size
         self.ctx = ctx
+        self.batchify_fn = batchify_fn
 
         self.dtype = dtype
-        self.shuffle = shuffle
-        self.num_batches_for_shuffling = (
-            num_batches_for_shuffling
-            if num_batches_for_shuffling is not None
-            else 1
-        )
 
         # TODO: switch to default multiprocessing.cpu_count() here
         default_num_workers = 0
@@ -611,11 +625,7 @@ class ParallelDataLoader(object):
         self.cycle_num += 1
         if self.num_workers == 0:
             generator = _sequential_sample_generator(
-                self.dataset,
-                self.transformation,
-                self.is_train,
-                self.cyclic,
-                self.num_batches_for_shuffling,
+                self.dataset, self.transformation, self.is_train, self.cyclic,
             )
 
             def same_process_iter():
@@ -625,22 +635,17 @@ class ParallelDataLoader(object):
                         itertools.islice(generator, self.batch_size)
                     )
 
-                    # shuffle data if appropriate and prepare for batching
-                    if self.shuffle:
-                        random.shuffle(batch_samples)
-
                     # terminate if no more batches to be dealt with
                     if len(batch_samples) == 0:
                         return
 
                     # make them into a single batch
-                    batch = _batchify_fn(
+                    batch = self.batchify_fn(
                         data=batch_samples,
                         multi_processing=False,
                         dtype=self.dtype,
                         single_process_ctx=self.ctx,
                     )
-
                     yield batch
 
             return same_process_iter()
@@ -655,9 +660,7 @@ class ParallelDataLoader(object):
                     worker_pool=self.worker_pool,
                     num_workers=self.num_workers,
                     batch_size=self.batch_size,
-                    shuffle=self.shuffle,
-                    num_batches_for_shuffling=self.num_batches_for_shuffling,
-                    batchify_fn=_batchify_fn,
+                    batchify_fn=self.batchify_fn,
                     dtype=self.dtype,
                     ctx=self.ctx,
                     is_train=self.is_train,

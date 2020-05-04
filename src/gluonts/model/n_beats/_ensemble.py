@@ -77,7 +77,7 @@ class NBEATSEnsemblePredictor(Predictor):
         predictors: List[RepresentableBlockPredictor],
         aggregation_method: Optional[str] = "median",
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         assert aggregation_method in AGGREGATION_METHODS
 
