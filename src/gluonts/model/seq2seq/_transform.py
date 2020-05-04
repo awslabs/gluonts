@@ -32,7 +32,7 @@ def pad_to_size(xs, size):
         return xs
 
     pad_width = ([(0, 0)] * (xs.ndim - 1)) + [(pad_length, 0)]
-    return np.pad(xs, pad_width)
+    return np.pad(xs, mode="constant", pad_width=pad_width)
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
