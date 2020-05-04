@@ -195,7 +195,7 @@ class FileDataset(Dataset):
         path: Path,
         freq: str,
         one_dim_target: bool = True,
-        # FIXME: only changed this temporarily
+        # FIXME: switched permanently on for MQCNN
         cache: bool = True,
     ) -> None:
         self.cache = cache
