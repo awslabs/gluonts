@@ -195,7 +195,8 @@ class FileDataset(Dataset):
         path: Path,
         freq: str,
         one_dim_target: bool = True,
-        cache: bool = False,
+        # FIXME: only changed this temporarily
+        cache: bool = True,
     ) -> None:
         self.cache = cache
         self.path = path
