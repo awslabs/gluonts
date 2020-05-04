@@ -226,7 +226,7 @@ class Trainer:
                     tic = time.time()
 
                     epoch_loss = mx.metric.Loss()
-
+                    global lv
                     with tqdm(batch_iter) as it:
                         for batch_no, data_entry in enumerate(it, start=1):
                             if self.halt:
