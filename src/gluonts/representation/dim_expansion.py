@@ -55,6 +55,7 @@ class DimExpansion(Representation):
         observed_indicator: Tensor,
         scale: Optional[Tensor],
         rep_params: List[Tensor],
+        **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         repr_data, scale, rep_params = self.representation(
             data, observed_indicator, scale, rep_params

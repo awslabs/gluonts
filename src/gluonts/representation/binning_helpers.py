@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import numpy as np
+import mxnet as mx
 
 # Workaround needed due to a known issue with np.quantile(inp, quant) returning unsorted values.
 # We fix this by ensuring that the obtained bin_centers are monotonically increasing.
@@ -36,3 +37,35 @@ def bin_edges_from_bin_centers(bin_centers: np.ndarray):
         ]
     )
     return bin_edges
+
+
+class Digitize(mx.operator.CustomOp):
+    def forward(self, is_train, req, in_data, out_data, aux):
+        data = in_data[0].asnumpy()
+        bins = in_data[1].asnumpy()
+        data_binned = np.digitize(data, bins=bins, right=False)
+        self.assign(out_data[0], req[0], mx.nd.array(data_binned))
+
+    def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
+        return
+
+
+@mx.operator.register("digitize")
+class DigitizeProp(mx.operator.CustomOpProp):
+    def __init__(self):
+        super(DigitizeProp, self).__init__(True)
+
+    def list_arguments(self):
+        return ["data", "bins"]
+
+    def list_outputs(self):
+        return ["output"]
+
+    def infer_shape(self, in_shapes):
+        data_shape = in_shapes[0]
+        bin_shape = in_shapes[1]
+        output_shape = data_shape
+        return (data_shape, bin_shape), (output_shape,), ()
+
+    def create_operator(self, ctx, in_shapes, in_dtypes):
+        return Digitize()

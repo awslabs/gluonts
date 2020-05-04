@@ -54,7 +54,7 @@ class DiscretePIT(Representation):
         mlp_transf: bool = False,
         embedding_size: int = -1,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
@@ -94,6 +94,7 @@ class DiscretePIT(Representation):
         observed_indicator: Tensor,
         scale: Optional[Tensor],
         rep_params: List[Tensor],
+        **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         repr_data, scale, rep_params = self.learned_binning(
             data, observed_indicator, scale, rep_params,

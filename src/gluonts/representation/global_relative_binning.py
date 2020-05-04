@@ -22,9 +22,10 @@ from typing import Tuple, Optional, List
 
 # Third-party imports
 import numpy as np
+import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, get_mxnet_context
 from gluonts.model.common import Tensor
 from gluonts.dataset.common import Dataset
 
@@ -62,7 +63,7 @@ class GlobalRelativeBinning(Representation):
         linear_scaling_limit: int = 10,
         quantile_scaling_limit: float = 0.99,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
@@ -72,8 +73,12 @@ class GlobalRelativeBinning(Representation):
         self.linear_scaling_limit = linear_scaling_limit
         self.quantile_scaling_limit = quantile_scaling_limit
 
-        self.bin_centers = np.array([])
-        self.bin_edges = np.array([])
+        self.bin_edges = self.params.get_constant(
+            "bin_edges", mx.nd.zeros(self.num_bins + 1)
+        )
+        self.bin_centers = self.params.get_constant(
+            "bin_centers", mx.nd.zeros(self.num_bins)
+        )
 
     def initialize_from_dataset(self, input_dataset: Dataset):
         # Rescale all time series in training set.
@@ -103,8 +108,11 @@ class GlobalRelativeBinning(Representation):
         bin_edges = bin_edges_from_bin_centers(bin_centers)
 
         # Store bin centers and edges since their are globally applicable to all time series.
-        self.bin_centers = bin_centers
-        self.bin_edges = bin_edges
+        with get_mxnet_context():
+            self.bin_edges.initialize()
+            self.bin_centers.initialize()
+        self.bin_edges.set_data(mx.nd.array(bin_edges))
+        self.bin_centers.set_data(mx.nd.array(bin_centers))
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
@@ -114,8 +122,15 @@ class GlobalRelativeBinning(Representation):
         observed_indicator: Tensor,
         scale: Optional[Tensor],
         rep_params: List[Tensor],
+        # bin_edges: Tensor,
+        # bin_centers: Tensor,
+        **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         # Calculate local scale if scale is not already supplied.
+
+        bin_edges = kwargs["bin_edges"]
+        bin_centers = kwargs["bin_centers"]
+
         if scale is None:
             scale = F.expand_dims(
                 F.sum(data, axis=-1) / F.sum(observed_indicator, axis=-1), -1
@@ -124,25 +139,14 @@ class GlobalRelativeBinning(Representation):
             scale = F.clip(scale, 1e-20, np.inf)
 
         # Rescale the data.
-        data_rescaled = data.asnumpy() / np.repeat(
-            scale.asnumpy(), data.shape[1], axis=1
-        )
+        data_rescaled = F.broadcast_div(data, scale)
 
         # Discretize the data.
-        # Note: Replace this once there is a clean way to do this in MXNet.
-        data_binned = np.digitize(
-            data_rescaled, bins=self.bin_edges, right=False
-        )
+        data = F.Custom(data_rescaled, bin_edges, op_type="digitize")
 
-        data = F.array(data_binned)
-
-        # Store bin centers for later usage in post_transform.
-        bin_centers_hyb = F.array(
-            np.repeat(
-                np.swapaxes(np.expand_dims(self.bin_centers, axis=-1), 0, 1),
-                len(data),
-                axis=0,
-            )
+        # Bin centers for later usage in post_transform.
+        bin_centers_hyb = F.repeat(
+            F.expand_dims(bin_centers, axis=0), len(data), axis=0
         )
 
         return data, scale, [bin_centers_hyb]

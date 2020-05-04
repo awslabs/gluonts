@@ -63,6 +63,7 @@ class Representation(nn.HybridBlock):
         observed_indicator: Tensor,
         scale: Optional[Tensor],
         rep_params: List[Tensor],
+        **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         r"""
         Transform the data into the desired representation.
@@ -78,6 +79,8 @@ class Representation(nn.HybridBlock):
             Pre-computed scale.
         rep_params
             Additional pre-computed representation parameters.
+        **kwargs,
+            Additional block-specfic parameters.
 
         Returns
         -------

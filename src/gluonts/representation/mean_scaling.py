@@ -46,7 +46,7 @@ class MeanScaling(Representation):
         scale_min: float = 1e-10,
         clip_max: Optional[float] = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.scale_min = scale_min
@@ -87,6 +87,7 @@ class MeanScaling(Representation):
         observed_indicator: Tensor,
         scale: Optional[Tensor],
         rep_params: List[Tensor],
+        **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         data = F.cast(data, dtype="float32")
 

@@ -39,6 +39,7 @@ class NOPScaling(Representation):
         observed_indicator: Tensor,
         scale: Optional[Tensor],
         rep_params: List[Tensor],
+        **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         data = F.cast(data, dtype="float32")
 

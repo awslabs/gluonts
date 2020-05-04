@@ -52,6 +52,7 @@ class CustomBinning(Representation):
         observed_indicator: Tensor,
         scale: Optional[Tensor],
         rep_params: List[Tensor],
+        **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         # Calculate local scale if scale is not already supplied.
         if scale is None:
