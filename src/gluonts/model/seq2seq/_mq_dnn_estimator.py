@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import multiprocessing
 from typing import List, Optional
 
 # Third-party imports
@@ -19,6 +20,7 @@ import numpy as np
 import mxnet as mx
 
 # First-party imports
+from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.block.decoder import ForkingMLPDecoder
 from gluonts.block.encoder import HierarchicalCausalConv1DEncoder, RNNEncoder
@@ -153,6 +155,35 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             "use_feat_static_cat": bool(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
+
+    # FIXME: for now we always want the dataset to be cached and utilize multiprocessing.
+    def train(
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        **kwargs,
+    ):
+        cached_train_data = ListDataset(
+            data_iter=list(training_data), freq=self.freq
+        )
+        cached_validation_data = (
+            None
+            if validation_data is None
+            else ListDataset(data_iter=list(validation_data), freq=self.freq)
+        )
+        num_workers = (
+            num_workers
+            if num_workers is not None
+            else int(multiprocessing.cpu_count() * (1 / 2))
+        )
+
+        return super().train(
+            training_data=cached_train_data,
+            validation_data=cached_validation_data,
+            num_workers=num_workers,
+            **kwargs,
+        )
 
 
 class MQRNNEstimator(ForkingSeq2SeqEstimator):

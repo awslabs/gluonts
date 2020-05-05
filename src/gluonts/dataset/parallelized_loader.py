@@ -576,8 +576,8 @@ class ParallelDataLoader(object):
 
         self.dtype = dtype
 
-        # FIXME: switched permanently on for MQCNN
-        default_num_workers = int(multiprocessing.cpu_count() * (3 / 5))
+        # TODO: switch to default multiprocessing.cpu_count() here
+        default_num_workers = 0
         self.num_workers = (
             num_workers
             if num_workers is not None

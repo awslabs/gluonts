@@ -31,6 +31,7 @@ def hyperparameters(dsinfo):
         num_batches_per_epoch=1,
         quantiles=[0.1, 0.5, 0.9],
         use_symbol_block_predictor=True,
+        num_workers=0,
     )
 
 
@@ -71,6 +72,7 @@ def test_mqcnn_covariate_smoke_test(
         "add_time_feature": add_time_feature,
         "add_age_feature": add_age_feature,
         "hybridize": hybridize,
+        "num_workers": 0,
     }
 
     dataset_train, dataset_test = make_dummy_datasets_with_features(
@@ -103,6 +105,7 @@ def test_backwards_compatibility():
         "epochs": 3,
         "num_batches_per_epoch": 3,
         "use_feat_dynamic_real": True,
+        "num_workers": 0,
     }
 
     dataset_train, dataset_test = make_dummy_datasets_with_features(

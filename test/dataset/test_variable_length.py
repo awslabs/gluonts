@@ -100,9 +100,11 @@ def loader_factory():
         kwargs.update(override_args)
 
         if is_train:
-            return TrainDataLoader(num_batches_per_epoch=22, **kwargs)
+            return TrainDataLoader(
+                num_batches_per_epoch=22, num_workers=0, **kwargs
+            )
         else:
-            return InferenceDataLoader(**kwargs)
+            return InferenceDataLoader(num_workers=0, **kwargs)
 
     return train_loader
 
