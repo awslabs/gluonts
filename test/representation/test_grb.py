@@ -235,15 +235,23 @@ gr_binning_cases = [
 def test_gr_binning(
     r, dataset, target, observed, exp_bin_edges, exp_bin_centers, expected_repr
 ):
-    r.initialize_from_array(dataset.asnumpy())
-    target_transf, _, _ = r(target, observed, None, [])
+    r.initialize_from_array(dataset.asnumpy(), mx.context.cpu())
+    target_transf, _, rep_params = r(target, observed, None, [])
+    bin_centers_hyb = rep_params[0]
+    bin_edges = rep_params[1]
+
+    exp_bin_centers = mx.nd.repeat(
+        mx.nd.expand_dims(exp_bin_centers, axis=0),
+        len(bin_centers_hyb),
+        axis=0,
+    )
 
     assert np.allclose(
-        exp_bin_edges.asnumpy(), r.bin_edges
-    ), f"Bin edges mismatch. Expected: {exp_bin_edges} VS Actual: {r.bin_edges}."
+        exp_bin_edges.asnumpy(), bin_edges.asnumpy()
+    ), f"Bin edges mismatch. Expected: {exp_bin_edges} VS Actual: {bin_edges.asnumpy()}."
     assert np.allclose(
-        exp_bin_centers.asnumpy(), r.bin_centers
-    ), f"Bin centers mismatch. Expected: {exp_bin_centers} VS Actual: {r.bin_centers}."
+        exp_bin_centers.asnumpy(), bin_centers_hyb.asnumpy()
+    ), f"Bin centers mismatch. Expected: {exp_bin_centers} VS Actual: {bin_centers_hyb.asnumpy()}."
     assert np.allclose(
         expected_repr.asnumpy(), target_transf.asnumpy()
     ), f"Representation mismatch. Expected: {expected_repr} VS Actual: {target_transf}."
