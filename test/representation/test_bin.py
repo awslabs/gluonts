@@ -106,11 +106,13 @@ binning_cases = [
     "r, target, observed, exp_bin_edges, expected_repr", binning_cases,
 )
 def test_binning(r, target, observed, exp_bin_edges, expected_repr):
-    target_transf, _, _ = r(target, observed, None, [])
+    r.initialize_from_array(np.array([]), mx.context.cpu())
+    target_transf, _, rep_params = r(target, observed, None, [])
+    bin_edges = rep_params[1]
 
     assert np.allclose(
-        exp_bin_edges.asnumpy(), r.bin_edges
-    ), f"Bin edges mismatch. Expected: {exp_bin_edges} VS Actual: {r.bin_edges}."
+        exp_bin_edges.asnumpy(), bin_edges.asnumpy()
+    ), f"Bin edges mismatch. Expected: {exp_bin_edges} VS Actual: {bin_edges.asnumpy()}."
     assert np.allclose(
         expected_repr.asnumpy(), target_transf.asnumpy()
     ), f"Representation mismatch. Expected: {expected_repr} VS Actual: {target_transf}."

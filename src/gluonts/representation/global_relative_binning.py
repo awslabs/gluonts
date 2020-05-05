@@ -130,11 +130,10 @@ class GlobalRelativeBinning(Representation):
         # bin_centers: Tensor,
         **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
-        # Calculate local scale if scale is not already supplied.
-
         bin_edges = kwargs["bin_edges"]
         bin_centers = kwargs["bin_centers"]
 
+        # Calculate local scale if scale is not already supplied.
         if scale is None:
             scale = F.expand_dims(
                 F.sum(data, axis=-1) / F.sum(observed_indicator, axis=-1), -1

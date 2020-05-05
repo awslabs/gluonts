@@ -19,10 +19,12 @@ from typing import Tuple, Optional, List
 
 # Third-party imports
 import numpy as np
+import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, get_mxnet_context
 from gluonts.model.common import Tensor
+from gluonts.dataset.common import Dataset
 
 
 class CustomBinning(Representation):
@@ -40,9 +42,26 @@ class CustomBinning(Representation):
     def __init__(self, bin_centers: np.ndarray, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.bin_centers = bin_centers
-        self.bin_edges = bin_edges_from_bin_centers(bin_centers)
+        self.bin_edges = self.params.get_constant(
+            "bin_edges", mx.nd.array(bin_edges_from_bin_centers(bin_centers))
+        )
+        self.bin_centers = self.params.get_constant(
+            "bin_centers", mx.nd.array(bin_centers)
+        )
+
         self.num_bins = len(bin_centers)
+
+    def initialize_from_dataset(
+        self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
+    ):
+        self.initialize_from_array(np.array([]), ctx)
+
+    def initialize_from_array(
+        self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
+    ):
+        with ctx:
+            self.bin_edges.initialize()
+            self.bin_centers.initialize()
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
@@ -54,6 +73,9 @@ class CustomBinning(Representation):
         rep_params: List[Tensor],
         **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
+        bin_edges = kwargs["bin_edges"]
+        bin_centers = kwargs["bin_centers"]
+
         # Calculate local scale if scale is not already supplied.
         if scale is None:
             scale = F.expand_dims(
@@ -64,22 +86,14 @@ class CustomBinning(Representation):
 
         # Discretize the data.
         # Note: Replace this once there is a clean way to do this in MXNet.
-        data_binned = np.digitize(
-            data.asnumpy(), bins=self.bin_edges, right=False
-        )
-
-        data = F.array(data_binned)
+        data = F.Custom(data, bin_edges, op_type="digitize")
 
         # Store bin centers for later usage in post_transform.
-        bin_centers_hyb = F.array(
-            np.repeat(
-                np.swapaxes(np.expand_dims(self.bin_centers, axis=-1), 0, 1),
-                len(data),
-                axis=0,
-            )
+        bin_centers_hyb = F.repeat(
+            F.expand_dims(bin_centers, axis=0), len(data), axis=0
         )
 
-        return data, scale, [bin_centers_hyb]
+        return data, scale, [bin_centers_hyb, bin_edges]
 
     def post_transform(
         self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]
