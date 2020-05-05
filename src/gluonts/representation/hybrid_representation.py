@@ -15,9 +15,10 @@ from .representation import Representation
 
 # Standard library imports
 from typing import Tuple, Optional, List
+import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, get_mxnet_context
 from gluonts.model.common import Tensor
 from gluonts.dataset.common import Dataset
 
@@ -40,9 +41,11 @@ class HybridRepresentation(Representation):
         for representation in self.representations:
             self.register_child(representation)
 
-    def initialize_from_dataset(self, input_dataset: Dataset):
+    def initialize_from_dataset(
+        self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
+    ):
         for representation in self.representations:
-            representation.initialize_from_dataset(input_dataset)
+            representation.initialize_from_dataset(input_dataset, ctx)
 
     # noinspection PyMethodOverriding
     def hybrid_forward(

@@ -18,11 +18,11 @@ from .local_absolute_binning import LocalAbsoluteBinning
 
 # Standard library imports
 from typing import Tuple, Optional, Union, List
-
+import mxnet as mx
 from mxnet.gluon import nn
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, get_mxnet_context
 from gluonts.model.common import Tensor
 from gluonts.dataset.common import Dataset
 
@@ -63,8 +63,10 @@ class Embedding(Representation):
             input_dim=self.num_bins, output_dim=self.size
         )
 
-    def initialize_from_dataset(self, input_dataset: Dataset):
-        self.binning.initialize_from_dataset(input_dataset)
+    def initialize_from_dataset(
+        self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
+    ):
+        self.binning.initialize_from_dataset(input_dataset, ctx)
 
     # noinspection PyMethodOverriding
     def hybrid_forward(

@@ -80,7 +80,9 @@ class GlobalRelativeBinning(Representation):
             "bin_centers", mx.nd.zeros(self.num_bins)
         )
 
-    def initialize_from_dataset(self, input_dataset: Dataset):
+    def initialize_from_dataset(
+        self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
+    ):
         # Rescale all time series in training set.
         train_target_sequence = np.array([])
         for train_entry in input_dataset:
@@ -90,9 +92,11 @@ class GlobalRelativeBinning(Representation):
             train_target_sequence = np.concatenate(
                 [train_target_sequence, train_entry_target]
             )
-        self.initialize_from_array(train_target_sequence)
+        self.initialize_from_array(train_target_sequence, ctx)
 
-    def initialize_from_array(self, input_array: np.ndarray):
+    def initialize_from_array(
+        self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
+    ):
         # Calculate bin centers and bin edges using linear or quantile binning..
         if self.is_quantile:
             bin_centers = np.quantile(
@@ -108,7 +112,7 @@ class GlobalRelativeBinning(Representation):
         bin_edges = bin_edges_from_bin_centers(bin_centers)
 
         # Store bin centers and edges since their are globally applicable to all time series.
-        with get_mxnet_context():
+        with ctx:
             self.bin_edges.initialize()
             self.bin_centers.initialize()
         self.bin_edges.set_data(mx.nd.array(bin_edges))
@@ -149,7 +153,7 @@ class GlobalRelativeBinning(Representation):
             F.expand_dims(bin_centers, axis=0), len(data), axis=0
         )
 
-        return data, scale, [bin_centers_hyb]
+        return data, scale, [bin_centers_hyb, bin_edges]
 
     def post_transform(
         self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]

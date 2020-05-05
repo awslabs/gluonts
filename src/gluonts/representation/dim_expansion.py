@@ -15,9 +15,10 @@ from .representation import Representation
 
 # Standard library imports
 from typing import Tuple, Optional, List
+import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, get_mxnet_context
 from gluonts.model.common import Tensor
 from gluonts.dataset.common import Dataset
 
@@ -44,8 +45,10 @@ class DimExpansion(Representation):
         self.register_child(representation)
         self.axis = axis
 
-    def initialize_from_dataset(self, input_dataset: Dataset):
-        self.representation.initialize_from_dataset(input_dataset)
+    def initialize_from_dataset(
+        self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
+    ):
+        self.representation.initialize_from_dataset(input_dataset, ctx)
 
     # noinspection PyMethodOverriding
     def hybrid_forward(

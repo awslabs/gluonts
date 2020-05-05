@@ -17,9 +17,10 @@ import numpy as np
 
 # Standard library imports
 from typing import Tuple, Optional, List
+import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, get_mxnet_context
 from gluonts.model.common import Tensor
 from gluonts.dataset.common import Dataset
 
@@ -33,7 +34,9 @@ class Representation(nn.HybridBlock):
     def __init__(self):
         super().__init__()
 
-    def initialize_from_dataset(self, input_dataset: Dataset):
+    def initialize_from_dataset(
+        self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
+    ):
         r"""
         Initialize the representation based on an entire dataset.
 
@@ -41,10 +44,14 @@ class Representation(nn.HybridBlock):
         ----------
         input_dataset
             GluonTS dataset.
+        ctx
+            MXNet context.
         """
         pass
 
-    def initialize_from_array(self, input_array: np.ndarray):
+    def initialize_from_array(
+        self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
+    ):
         r"""
         Initialize the representation based on a numpy array.
 
@@ -52,6 +59,8 @@ class Representation(nn.HybridBlock):
         ----------
         input_array
             Numpy array.
+        ctx
+            MXNet context.
         """
         pass
 

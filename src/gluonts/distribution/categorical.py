@@ -58,6 +58,8 @@ class Categorical(Distribution):
 
     @property
     def batch_shape(self) -> Tuple:
+        print(self.log_probs.shape[:-1])
+        exit(0)
         return self.log_probs.shape[:-1]
 
     @property
