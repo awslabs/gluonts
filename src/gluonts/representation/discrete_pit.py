@@ -17,6 +17,7 @@ from .local_absolute_binning import LocalAbsoluteBinning
 
 # Standard library imports
 from typing import Tuple, Optional, Union, List
+import numpy as np
 import mxnet as mx
 from mxnet.gluon import nn
 
@@ -87,6 +88,11 @@ class DiscretePIT(Representation):
         self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
     ):
         self.learned_binning.initialize_from_dataset(input_dataset, ctx)
+
+    def initialize_from_array(
+        self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
+    ):
+        self.learned_binning.initialize_from_array(input_array, ctx)
 
     # noinspection PyMethodOverriding
     def hybrid_forward(

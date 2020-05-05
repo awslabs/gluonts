@@ -15,6 +15,7 @@ from .representation import Representation
 
 # Standard library imports
 from typing import Tuple, Optional, List
+import numpy as np
 import mxnet as mx
 
 # First-party imports
@@ -49,6 +50,11 @@ class DimExpansion(Representation):
         self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
     ):
         self.representation.initialize_from_dataset(input_dataset, ctx)
+
+    def initialize_from_array(
+        self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
+    ):
+        self.representation.initialize_from_array(input_array, ctx)
 
     # noinspection PyMethodOverriding
     def hybrid_forward(

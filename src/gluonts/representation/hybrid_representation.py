@@ -14,6 +14,7 @@
 from .representation import Representation
 
 # Standard library imports
+import numpy as np
 from typing import Tuple, Optional, List
 import mxnet as mx
 
@@ -46,6 +47,12 @@ class HybridRepresentation(Representation):
     ):
         for representation in self.representations:
             representation.initialize_from_dataset(input_dataset, ctx)
+
+    def initialize_from_array(
+        self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
+    ):
+        for representation in self.representations:
+            representation.initialize_from_array(input_array, ctx)
 
     # noinspection PyMethodOverriding
     def hybrid_forward(

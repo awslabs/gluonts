@@ -180,6 +180,7 @@ hyb_cases = [
     "r, target, observed, expected_repr", hyb_cases,
 )
 def test_hyb(r, target, observed, expected_repr):
+    r.initialize_from_array(np.array([]), mx.context.cpu())
     target_transf, _, _ = r(target, observed, None, [])
 
     for i in range(len(expected_repr)):
