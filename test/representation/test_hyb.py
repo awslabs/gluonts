@@ -20,6 +20,7 @@ from gluonts.representation import (
     CustomBinning,
     LocalAbsoluteBinning,
     DimExpansion,
+    RepresentationChain,
 )
 
 
@@ -27,11 +28,17 @@ hyb_cases = [
     (
         HybridRepresentation(
             representations=[
-                DimExpansion(
-                    CustomBinning(bin_centers=np.linspace(-1, 10, 5))
+                RepresentationChain(
+                    chain=[
+                        CustomBinning(bin_centers=np.linspace(-1, 10, 5)),
+                        DimExpansion(),
+                    ]
                 ),
-                DimExpansion(
-                    CustomBinning(bin_centers=np.linspace(-10, 10, 8))
+                RepresentationChain(
+                    chain=[
+                        CustomBinning(bin_centers=np.linspace(-10, 10, 8)),
+                        DimExpansion(),
+                    ]
                 ),
             ]
         ),
@@ -81,11 +88,17 @@ hyb_cases = [
     (
         HybridRepresentation(
             representations=[
-                DimExpansion(
-                    CustomBinning(bin_centers=np.linspace(-1, 10, 5))
+                RepresentationChain(
+                    chain=[
+                        CustomBinning(bin_centers=np.linspace(-1, 10, 5)),
+                        DimExpansion(),
+                    ]
                 ),
-                DimExpansion(
-                    LocalAbsoluteBinning(num_bins=6, is_quantile=True,)
+                RepresentationChain(
+                    chain=[
+                        LocalAbsoluteBinning(num_bins=6, is_quantile=True),
+                        DimExpansion(),
+                    ]
                 ),
             ]
         ),
@@ -135,8 +148,11 @@ hyb_cases = [
     (
         HybridRepresentation(
             representations=[
-                DimExpansion(
-                    LocalAbsoluteBinning(num_bins=6, is_quantile=True,)
+                RepresentationChain(
+                    chain=[
+                        LocalAbsoluteBinning(num_bins=6, is_quantile=True),
+                        DimExpansion(),
+                    ]
                 ),
             ]
         ),
