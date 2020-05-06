@@ -21,6 +21,7 @@ import pandas as pd
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.support.pandas import forecast_start
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import get_seasonality
 from gluonts.model.forecast import SampleForecast
@@ -49,13 +50,13 @@ class RForecastPredictor(RepresentablePredictor):
 
     Parameters
     ----------
+    freq
+        The granularity of the time series (e.g. '1H')
+    prediction_length
+        Number of time points to be predicted.
     method
         The method from rforecast to be used one of
         "ets", "arima", "tbats", "croston", "mlp".
-    prediction_length
-        Number of time points to be predicted.
-    freq
-        The granularity of the time series (e.g. '1H')
     period
         The period to be used (this is called `frequency` in the R forecast
         package), result to a tentative reasonable default if not specified
@@ -78,6 +79,8 @@ class RForecastPredictor(RepresentablePredictor):
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
+        super().__init__(freq=freq, prediction_length=prediction_length)
+
         try:
             from rpy2 import robjects, rinterface
             import rpy2.robjects.packages as rpackages
@@ -187,10 +190,6 @@ class RForecastPredictor(RepresentablePredictor):
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )
-            forecast_start = (
-                pd.Timestamp(data["start"], freq=self.freq)
-                + data["target"].shape[0]
-            )
 
             samples = np.array(forecast_dict["samples"])
             expected_shape = (params["num_samples"], self.prediction_length)
@@ -203,5 +202,5 @@ class RForecastPredictor(RepresentablePredictor):
                 else None
             )
             yield SampleForecast(
-                samples, forecast_start, forecast_start.freqstr, info=info
+                samples, forecast_start(data), self.freq, info=info
             )

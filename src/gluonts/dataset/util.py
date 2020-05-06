@@ -24,6 +24,7 @@ from typing import (
     List,
     Tuple,
     TypeVar,
+    NamedTuple,
 )
 
 # Third-party imports
@@ -50,6 +51,29 @@ class MPWorkerInfo(object):
             worker_id,
             worker_process,
         )
+
+
+class DataLoadingBounds(NamedTuple):
+    lower: int
+    upper: int
+
+
+def get_bounds_for_mp_data_loading(dataset_len: int) -> DataLoadingBounds:
+    """
+    Utility function that returns the bounds for which part of the dataset
+    should be loaded in this worker.
+    """
+    if not MPWorkerInfo.worker_process:
+        return DataLoadingBounds(0, dataset_len)
+
+    segment_size = int(dataset_len / MPWorkerInfo.num_workers)
+    lower = MPWorkerInfo.worker_id * segment_size
+    upper = (
+        (MPWorkerInfo.worker_id + 1) * segment_size
+        if MPWorkerInfo.worker_id + 1 != MPWorkerInfo.num_workers
+        else dataset_len
+    )
+    return DataLoadingBounds(lower=lower, upper=upper)
 
 
 def _split(

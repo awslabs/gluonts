@@ -18,10 +18,11 @@ from typing import NamedTuple
 
 # Third-party imports
 import ujson as json
+import numpy as np
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset.util import MPWorkerInfo
+from gluonts.dataset.util import get_bounds_for_mp_data_loading
 
 
 def load(file_obj):
@@ -55,28 +56,34 @@ class JsonLinesFile:
         JSON Lines file.
     """
 
-    def __init__(self, path) -> None:
+    def __init__(self, path: Path, cache: bool = False) -> None:
         self.path = path
+        self.cache = cache
         self._len = None
-        # TODO: implement caching here
+        self._data_cache: list = []
 
     def __iter__(self):
-        with open(self.path) as jsonl_file:
-            for line_number, raw in enumerate(jsonl_file):
-                # The dataset is equally distributed among the workers
-                if not (
-                    line_number % MPWorkerInfo.num_workers
-                    == MPWorkerInfo.worker_id
-                ):
-                    continue
+        # Basic idea is to split the dataset into roughly equally sized segments
+        # with lower and upper bound, where each worker is assigned one segment
+        bounds = get_bounds_for_mp_data_loading(len(self))
+        if not self.cache or (self.cache and not self._data_cache):
+            with open(self.path) as jsonl_file:
+                for line_number, raw in enumerate(jsonl_file):
+                    if not bounds.lower <= line_number < bounds.upper:
+                        continue
 
-                span = Span(path=self.path, line=line_number)
-                try:
-                    yield Line(json.loads(raw), span=span)
-                except ValueError:
-                    raise GluonTSDataError(
-                        f"Could not read json line {line_number}, {raw}"
-                    )
+                    span = Span(path=self.path, line=line_number)
+                    try:
+                        parsed_line = Line(json.loads(raw), span=span)
+                        if self.cache:
+                            self._data_cache.append(parsed_line)
+                        yield parsed_line
+                    except ValueError:
+                        raise GluonTSDataError(
+                            f"Could not read json line {line_number}, {raw}"
+                        )
+        else:
+            yield from self._data_cache
 
     def __len__(self):
         if self._len is None:
