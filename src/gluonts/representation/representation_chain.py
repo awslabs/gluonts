@@ -36,22 +36,22 @@ class RepresentationChain(Representation):
     """
 
     @validated()
-    def __init__(self, representations: List, *args, **kwargs):
+    def __init__(self, chain: List, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.representations = representations
-        for representation in self.representations:
+        self.chain = chain
+        for representation in self.chain:
             self.register_child(representation)
 
     def initialize_from_dataset(
         self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
     ):
-        for representation in self.representations:
+        for representation in self.chain:
             representation.initialize_from_dataset(input_dataset, ctx)
 
     def initialize_from_array(
         self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
     ):
-        for representation in self.representations:
+        for representation in self.chain:
             representation.initialize_from_array(input_array, ctx)
 
     # noinspection PyMethodOverriding
@@ -64,7 +64,7 @@ class RepresentationChain(Representation):
         rep_params: List[Tensor],
         **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
-        for representation in self.representations:
+        for representation in self.chain:
             data, scale, rep_params = representation(
                 data, observed_indicator, scale, rep_params,
             )
