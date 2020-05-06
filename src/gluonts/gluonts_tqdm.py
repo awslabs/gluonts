@@ -22,10 +22,17 @@ from tqdm import tqdm as _tqdm
 # from tqdm.auto import tqdm as _tqdm
 
 
+USE_TQDM = True
+
+
 @functools.wraps(_tqdm)
-def tqdm(*args, **kwargs):
+def tqdm(it, *args, **kwargs):
+    # we want to be able to disable TQDM, for example when running in sagemaker
+    if not USE_TQDM:
+        return it
+
     kwargs = kwargs.copy()
     if not sys.stdout.isatty():
         kwargs.update(mininterval=10.0)
 
-    return _tqdm(*args, **kwargs)
+    return _tqdm(it, *args, **kwargs)
