@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 from .representation import Representation
-from .global_relative_binning import GlobalRelativeBinning
-from .local_absolute_binning import LocalAbsoluteBinning
 
 # Standard library imports
 from typing import Tuple, Optional, Union, List
@@ -27,17 +25,18 @@ from gluonts.model.common import Tensor
 from gluonts.dataset.common import Dataset
 
 
-LearnedBinning = Union[GlobalRelativeBinning, LocalAbsoluteBinning]
+# LearnedBinning = Union[GlobalRelativeBinning, LocalAbsoluteBinning]
 
 
 class DiscretePIT(Representation):
     """
-    A class representing a discrete probability integral transform of a given quantile-based learned binning.
+    A class representing a discrete probability integral transform of a given quantile-based learned binning. 
+    Note that this representation is intended to be applied on top of a quantile-based binning representation.
 
     Parameters
     ----------
-    learned_binning
-        The underlying binning. This needs to be quantile-based, i.e. is_quantile needs to be True.    
+    num_bins
+        Number of bins used by the data on which this representation is applied.
     mlp_tranf
         Whether we want to post-process the pit-transformed valued using a MLP which can learn an appropriate
         binning, which would ensure that pit models have the same expressiveness as standard quantile binning with
@@ -51,24 +50,18 @@ class DiscretePIT(Representation):
     @validated()
     def __init__(
         self,
-        learned_binning: LearnedBinning,
+        num_bins: int,
         mlp_transf: bool = False,
-        embedding_size: int = -1,
+        embedding_size: Optional[int] = None,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
-        assert (
-            learned_binning.is_quantile
-        ), "PIT requires CDF-transformed values."
-
-        self.learned_binning = learned_binning
-        self.register_child(learned_binning)
-        self.num_bins = learned_binning.num_bins
+        self.num_bins = num_bins
         self.mlp_transf = mlp_transf
 
-        if embedding_size == -1:
+        if embedding_size is None:
             # Embedding size heuristic that seems to work well in practice. For reference see:
             # https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
             self.embedding_size = round(self.num_bins ** (1 / 4))
@@ -84,16 +77,6 @@ class DiscretePIT(Representation):
         else:
             self.mlp = None
 
-    def initialize_from_dataset(
-        self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
-    ):
-        self.learned_binning.initialize_from_dataset(input_dataset, ctx)
-
-    def initialize_from_array(
-        self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
-    ):
-        self.learned_binning.initialize_from_array(input_array, ctx)
-
     # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
@@ -104,13 +87,8 @@ class DiscretePIT(Representation):
         rep_params: List[Tensor],
         **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
-        repr_data, scale, rep_params = self.learned_binning(
-            data, observed_indicator, scale, rep_params,
-        )
-
-        repr_data = repr_data / self.num_bins
+        data = data / self.num_bins
         if self.mlp_transf:
-            repr_data = F.expand_dims(repr_data, axis=-1)
-            repr_data = self.mlp(repr_data)
-
-        return repr_data, scale, rep_params
+            data = F.expand_dims(data, axis=-1)
+            data = self.mlp(data)
+        return data, scale, rep_params

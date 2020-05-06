@@ -22,6 +22,7 @@ from .nop_scaling import NOPScaling
 from .dim_expansion import DimExpansion
 from .embedding import Embedding
 from .discrete_pit import DiscretePIT
+from .representation_chain import RepresentationChain
 
 __all__ = [
     "Representation",
@@ -34,6 +35,7 @@ __all__ = [
     "DimExpansion",
     "Embedding",
     "DiscretePIT",
+    "RepresentationChain",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

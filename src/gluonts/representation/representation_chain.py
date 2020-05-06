@@ -14,8 +14,8 @@
 from .representation import Representation
 
 # Standard library imports
-from typing import Tuple, Optional, List
 import numpy as np
+from typing import Tuple, Optional, List
 import mxnet as mx
 
 # First-party imports
@@ -24,21 +24,35 @@ from gluonts.model.common import Tensor
 from gluonts.dataset.common import Dataset
 
 
-class DimExpansion(Representation):
+class RepresentationChain(Representation):
     """
-    A class representing a dimension expansion operation along a specified axis.
+    A class representing a hybrid approach of combining multiple representations into a single representation.
+    Representations will be combined by concatenating them on dim=-1.
 
     Parameters
     ----------
-    axis
-        Axis on which to expand the tensor.
-        (default: -1)
+    representations
+        A list of representations. Elements must be of type Representation.
     """
 
     @validated()
-    def __init__(self, axis: int = -1, *args, **kwargs):
+    def __init__(self, representations: List, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.axis = axis
+        self.representations = representations
+        for representation in self.representations:
+            self.register_child(representation)
+
+    def initialize_from_dataset(
+        self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
+    ):
+        for representation in self.representations:
+            representation.initialize_from_dataset(input_dataset, ctx)
+
+    def initialize_from_array(
+        self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
+    ):
+        for representation in self.representations:
+            representation.initialize_from_array(input_array, ctx)
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
@@ -50,5 +64,8 @@ class DimExpansion(Representation):
         rep_params: List[Tensor],
         **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
-        data = F.expand_dims(data, axis=self.axis)
+        for representation in self.representations:
+            data, scale, rep_params = representation(
+                data, observed_indicator, scale, rep_params,
+            )
         return data, scale, rep_params

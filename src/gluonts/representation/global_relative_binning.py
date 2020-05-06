@@ -126,8 +126,6 @@ class GlobalRelativeBinning(Representation):
         observed_indicator: Tensor,
         scale: Optional[Tensor],
         rep_params: List[Tensor],
-        # bin_edges: Tensor,
-        # bin_centers: Tensor,
         **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         bin_edges = kwargs["bin_edges"]
