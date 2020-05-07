@@ -92,3 +92,12 @@ class DiscretePIT(Representation):
             data = F.expand_dims(data, axis=-1)
             data = self.mlp(data)
         return data, scale, rep_params
+
+    def post_transform(
+        self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]
+    ) -> Tensor:
+        samples = samples * F.full(1, self.num_bins)
+        samples = F.Custom(
+            samples, F.arange(self.num_bins), op_type="digitize"
+        )
+        return samples

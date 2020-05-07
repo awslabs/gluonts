@@ -69,3 +69,12 @@ class RepresentationChain(Representation):
                 data, observed_indicator, scale, rep_params,
             )
         return data, scale, rep_params
+
+    def post_transform(
+        self, F, samples: Tensor, scale: Tensor, rep_params: List[Tensor]
+    ) -> Tensor:
+        for representation in self.chain[::-1]:
+            samples = representation.post_transform(
+                F, samples, scale, rep_params,
+            )
+        return samples
