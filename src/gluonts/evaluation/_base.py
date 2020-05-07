@@ -13,7 +13,11 @@
 
 # Standard library imports
 import logging
+import multiprocessing
 import re
+import sys
+
+from collections import Sized
 from functools import lru_cache
 from itertools import chain, tee
 from typing import (
@@ -90,6 +94,14 @@ class Evaluator:
         which is computationally expensive to evaluate and thus slows
         down the evaluation process considerably.
         By default False.
+    num_workers
+        The number of multiprocessing workers that will be used to process
+        the data in parallel.
+        Default is multiprocessing.cpu_count().
+        Setting it to 0 means no multiprocessing.
+    chunk_size
+        Controls the approximate chunk size each workers handles at a time.
+        Default is 32.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -100,11 +112,20 @@ class Evaluator:
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
         calculate_owa: bool = False,
+        num_workers: Optional[int] = None,
+        chunk_size: Optional[int] = None,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
         self.calculate_owa = calculate_owa
+
+        self.num_workers = (
+            num_workers
+            if num_workers is not None
+            else multiprocessing.cpu_count()
+        )
+        self.chunk_size = chunk_size if chunk_size is not None else 32
 
     def __call__(
         self,
@@ -142,8 +163,20 @@ class Evaluator:
             total=num_series,
             desc="Running evaluation",
         ) as it, np.errstate(invalid="ignore"):
-            for ts, forecast in it:
-                rows.append(self.get_metrics_per_ts(ts, forecast))
+            if self.num_workers > 0 and not sys.platform == "win32":
+                mp_pool = multiprocessing.Pool(
+                    initializer=_worker_init(self), processes=self.num_workers
+                )
+                rows = mp_pool.map(
+                    func=_worker_fun,
+                    iterable=iter(it),
+                    chunksize=self.chunk_size,
+                )
+                mp_pool.close()
+                mp_pool.join()
+            else:
+                for ts, forecast in it:
+                    rows.append(self.get_metrics_per_ts(ts, forecast))
 
         assert not any(
             True for _ in ts_iterator
@@ -470,7 +503,7 @@ class Evaluator:
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
         # avoid import error due to circular dependency
-        from gluonts.model.baseline import naive_2
+        from gluonts.model.naive_2 import naive_2
 
         # calculate the forecast of the seasonal naive predictor
         naive_median_fcst = naive_2(
@@ -758,3 +791,21 @@ class MultivariateEvaluator(Evaluator):
                     all_agg_metrics[prefix + metric] = value
 
         return all_agg_metrics, all_metrics_per_ts
+
+
+# This is required for the multiprocessing to work.
+_worker_evaluator: Optional[Evaluator] = None
+
+
+def _worker_init(evaluator: Evaluator):
+    global _worker_evaluator
+    _worker_evaluator = evaluator
+
+
+def _worker_fun(inp: tuple):
+    ts, forecast = inp
+    global _worker_evaluator
+    assert isinstance(
+        _worker_evaluator, Evaluator
+    ), "Something went wrong with the worker initialization."
+    return _worker_evaluator.get_metrics_per_ts(ts, forecast)

@@ -67,6 +67,10 @@ def load_file_dataset(path: Path, freq: str) -> Iterator[Any]:
     return iter(FileDataset(path, freq))
 
 
+def load_file_dataset_cached(path: Path, freq: str) -> Iterator[Any]:
+    return iter(FileDataset(path, freq, cache=True))
+
+
 def load_file_dataset_numpy(path: Path, freq: str) -> Iterator[Any]:
     for item in FileDataset(path, freq):
         item["start"] = pd.Timestamp(item["start"])
@@ -86,7 +90,7 @@ def load_list_dataset(path: Path, freq: str) -> Iterator[Any]:
     return iter(ListDataset(lines, freq))
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_io_speed() -> None:
     exp_size = 250
     act_size = 0
@@ -103,14 +107,15 @@ def test_io_speed() -> None:
         ).generate()
     print(f"Test data generation took {timer.interval} seconds")
 
-    # name of method, loading function and maximum slowdown expected
+    # name of method, loading function and min allowed throughput
     fixtures = [
-        ("baseline", baseline, 100_000),
+        ("baseline", baseline, 70_000),
         # ('json.loads', load_json, xxx),
-        ("ujson.loads", load_ujson, 20000),
-        ("JsonLinesFile", load_json_lines_file, 20000),
+        ("ujson.loads", load_ujson, 20_000),
+        ("JsonLinesFile", load_json_lines_file, 10_000),
         ("ListDataset", load_list_dataset, 500),
         ("FileDataset", load_file_dataset, 500),
+        ("FileDatasetCached", load_file_dataset_cached, 500),
         ("FileDatasetNumpy", load_file_dataset_numpy, 500),
         ("ParsedDataset", load_parsed_dataset, 500),
     ]
@@ -141,8 +146,7 @@ def test_io_speed() -> None:
                 f"{exp_size} lines"
             )
 
-        # for each loader, assert that the slowdown w.r.t. the baseline loader
-        # is not above the max. tolerated value
+        # for each loader, assert that throughput is above threshold
         for name, _, min_rate in fixtures:
             assert min_rate <= rates[name], (
                 f"The throughput of {name} ({rates[name]} lines/second) "
@@ -155,8 +159,9 @@ def test_loader_multivariate() -> None:
         tmp_path = Path(tmp_folder)
 
         lines = [
-            """{"start": "2014-09-07", "target": [[1, 2, 3]]}""",
-            """{"start": "2014-09-07", "target": [[-1, -2, 3], [2, 4, 81]]}""",
+            """{"start": "2014-09-07", "target": [[1, 2, 3]]}
+                {"start": "2014-09-07", "target": [[-1, -2, 3], [2, 4, 81]]}
+            """,
         ]
         with open(tmp_path / "dataset.json", "w") as f:
             f.write("\n".join(lines))

@@ -15,6 +15,7 @@
 import itertools
 import logging
 from typing import Any, Dict, Iterable, Iterator, Optional
+import multiprocessing as mp
 
 # Third-party imports
 import mxnet as mx
@@ -22,11 +23,9 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import DataEntry, Dataset, DataBatch
 from gluonts.dataset.parallelized_loader import ParallelDataLoader
 from gluonts.transform import Transformation
-
-DataBatch = Dict[str, Any]
 
 
 class DataLoader(Iterable[DataEntry]):
@@ -67,14 +66,14 @@ class DataLoader(Iterable[DataEntry]):
         dataset: Dataset,
         *,
         transform: Transformation,
+        cyclic: bool,
         is_train: bool,
         batch_size: int,
         ctx: mx.Context,
         dtype: DType = np.float32,
-        cyclic: bool = False,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.batch_size = batch_size
         self.ctx = ctx
@@ -82,6 +81,14 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
         self.cyclic = cyclic
+        self.logger = logging.getLogger(__name__)
+        if num_workers is not None and num_workers > mp.cpu_count():
+            self.logger.warning(
+                f"num_workers is set to {num_workers}, but there are only {mp.cpu_count()} cpus "
+                f"please reduce the number of workers"
+            )
+        self.num_workers = num_workers
+        self.num_prefetch = num_prefetch
 
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
@@ -89,10 +96,10 @@ class DataLoader(Iterable[DataEntry]):
             cyclic=self.cyclic,
             is_train=self.is_train,
             batch_size=self.batch_size,
-            ctx=ctx,
+            ctx=self.ctx,
             dtype=self.dtype,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
+            num_workers=self.num_workers,
+            num_prefetch=self.num_prefetch,
             **kwargs,
         )
 
@@ -132,7 +139,7 @@ class TrainDataLoader(DataLoader):
         multiple worker processes, try reduce `num_workers` in this case.
         By default it defaults to `num_workers * 2`.
     dtype
-        Floating point type to use.
+        Floating point type to use. Default is np.float32.
     """
 
     def __init__(
@@ -145,9 +152,7 @@ class TrainDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 10,  # TODO: this does not work currently
-        **kwargs
+        **kwargs,
     ) -> None:
         assert dataset, "empty dataset"
 
@@ -158,7 +163,6 @@ class TrainDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             is_train=True,
-            shuffle=shuffle_for_training,
             cyclic=True,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
@@ -166,17 +170,20 @@ class TrainDataLoader(DataLoader):
         )
 
         self.num_batches_per_epoch = num_batches_per_epoch
-        self.shuffle_for_training = shuffle_for_training
-        self.num_batches_for_shuffling = num_batches_for_shuffling
+        self._it = iter(self.parallel_data_loader)
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
 
     def __iter__(self) -> Iterator[DataBatch]:
-        # take num_batches of batches for one epoch
-        return itertools.islice(
-            self.parallel_data_loader, self.num_batches_per_epoch
-        )
+        i = 0
+        while True:
+            for batch in self._it:
+                yield batch
+                i += 1
+                if i == self.num_batches_per_epoch:
+                    return
+            self._it = iter(self.parallel_data_loader)
 
 
 class ValidationDataLoader(DataLoader):
@@ -190,7 +197,7 @@ class ValidationDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             dataset=dataset,
@@ -217,7 +224,7 @@ class InferenceDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             dataset=dataset,

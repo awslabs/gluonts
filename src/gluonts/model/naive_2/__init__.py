@@ -11,24 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pytest
-import pandas as pd
+# Relative imports
+from ._predictor import naive_2, Naive2Predictor
 
-from gluonts.dataset.common import ProcessStartField, ListDataset
+__all__ = ["naive_2", "Naive2Predictor"]
 
-
-@pytest.mark.parametrize(
-    "freq, expected",
-    [
-        ("B", "2019-11-01"),
-        ("W", "2019-11-03"),
-        ("M", "2019-11-30"),
-        ("12M", "2019-11-30"),
-        ("A-DEC", "2019-12-31"),
-    ],
-)
-def test_process_start_field(freq, expected):
-    process = ProcessStartField.process
-    given = "2019-11-01 12:34:56"
-
-    assert process(given, freq) == pd.Timestamp(expected, freq)
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)
