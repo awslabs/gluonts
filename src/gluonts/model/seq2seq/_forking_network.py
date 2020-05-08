@@ -145,8 +145,11 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         )
 
         # arguments: dynamic_input, static_input
+        # TODO: optimize what we pass to the decoder for the prediction case,
+        #  where we we only need to pass the encoder output for the last time step
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
 
+        # the output shape should be: (batch_size, enc_len, dec_len, final_dims)
         return dec_output
 
 
@@ -159,7 +162,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         past_target: Tensor,
         past_feat_dynamic: Tensor,
         feat_static_cat: Tensor,
-        past_observed_values: Tensor,  # FOR SOME REASON NOT USED???
+        past_observed_values: Tensor,
         future_observed_values: Tensor,
     ) -> Tensor:
         """
@@ -175,6 +178,9 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
             shape (batch_size, encoder_length, num_feature_static_cat)
         past_feat_dynamic
             shape (batch_size, encoder_length, num_feature_dynamic)
+        future_feat_dynamic
+            shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
+            # or shape (batch_size, decoder_length, num_feature_dynamic) replicated for each of the encoder steps
         past_observed_values: Tensor
             shape (batch_size, encoder_length, 1)
         future_observed_values: Tensor
@@ -240,8 +246,10 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
             past_observed_values,
         )
 
+        # We only care about the output of the decoder for the last time step
         fcst_output = F.slice_axis(dec_output, axis=1, begin=-1, end=None)
         fcst_output = F.squeeze(fcst_output, axis=1)
+
         predictions = self.quantile_proj(fcst_output).swapaxes(2, 1)
 
         return predictions

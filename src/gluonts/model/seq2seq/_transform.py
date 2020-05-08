@@ -142,6 +142,11 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 if not is_train and (ts_field in self.shared_series_fields):
                     continue
 
+                # TODO: do the same to the future dynamic feat as we do to the target
+
+                # This is were some of the forking magic happens:
+                # For each of the encoder_len time-steps at which the decoder is applied we slice the
+                # corresponding inputs called decoder_fields to the appropriate dec_len
                 if ts_field in decoder_fields:
                     d3: Any = () if ts_field in self.shared_series_fields else (
                         len(ts),

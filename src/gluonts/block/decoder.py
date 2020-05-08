@@ -77,7 +77,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         self,
         dec_len: int,
         final_dim: int,
-        hidden_dimension_sequence: List[int] = list([]),
+        hidden_dimension_sequence: List[int] = [],
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -117,11 +117,10 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
         dynamic_input
-            dynamic_features, shape (batch_size, sequence_length, num_features)
-            or (N, T, C).
-
+            dynamic_features, shape (batch_size, sequence_length, num_features) or (N, T, C)
+            where sequence_length is equal to the encoder length, and num_features is equal
+            to channel_seq[-1] for the MQCNN for example.
         static_input
             not used in this decoder.
 
@@ -162,7 +161,7 @@ class ForkingMLPDecoderWithFutureFeat(Seq2SeqDecoder):
         self,
         dec_len: int,
         final_dim: int,
-        hidden_dimension_sequence: List[int] = list([]),
+        hidden_dimension_sequence: List[int] = [],
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -194,9 +193,9 @@ class ForkingMLPDecoderWithFutureFeat(Seq2SeqDecoder):
     def hybrid_forward(
         self,
         F,
+        dynamic_output_encoder: Tensor,
         dynamic_input: Tensor,
-        dynamic_input_decode: Tensor,
-        static_input: Tensor = None,
+        static_output_encoder: Tensor = None,
     ) -> Tensor:
         """
         ForkingMLPDecoder forward call.
@@ -206,16 +205,14 @@ class ForkingMLPDecoderWithFutureFeat(Seq2SeqDecoder):
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
+        dynamic_input_encoder
+            dynamic_features, shape (batch_size, sequence_length, num_features) or (N, T, C)
+            where sequence_length is equal to the encoder length, and num_features is equal
+            to channel_seq[-1] for the MQCNN for example.
         dynamic_input
-            dynamic_features, shape (batch_size, encoder_length, num_features)
+            dynamic_features, shape (batch_size, encoder_length, decoder_length, num_features_02)
             or (N, T, C).
-
-        dynamic_input
-            dynamic_features, shape (batch_size, encoder_length, decoder_length, num_features)
-            or (N, T, T, C).
-
-        static_input
+        static_input_encoder
             not used in this decoder.
 
         Returns
@@ -224,13 +221,13 @@ class ForkingMLPDecoderWithFutureFeat(Seq2SeqDecoder):
             mlp output, shape (batch_size, encoder_length, dec_len, final_dims).
 
         """
-        mlp_output = self.model(dynamic_input)
+        mlp_output = self.model(dynamic_output_encoder)
         mlp_output = mlp_output.reshape(
             shape=(0, 0, self.dec_len, self.final_dims)
         )
-        mlp_output = F.concat(
-            mlp_output, dynamic_input_decode, dim=-1
-        )  # TODO: would -1 work?
+        # mlp_output = F.concat(
+        #     mlp_output, dynamic_input, dim=-1
+        # )  # TODO: would -1 work?
         return mlp_output
 
 

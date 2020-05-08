@@ -115,13 +115,17 @@ def test_backwards_compatibility():
         prediction_length=hps["prediction_length"],
     )
 
-    for entry in dataset_train:
-        entry["dynamic_feat"] = entry["feat_dynamic_real"]
-        del entry["feat_dynamic_real"]
+    for i in range(len(dataset_train)):
+        dataset_train.list_data[i]["dynamic_feat"] = dataset_train.list_data[
+            i
+        ]["feat_dynamic_real"]
+        del dataset_train.list_data[i]["feat_dynamic_real"]
 
-    for entry in dataset_test:
-        entry["dynamic_feat"] = entry["feat_dynamic_real"]
-        del entry["feat_dynamic_real"]
+    for i in range(len(dataset_test)):
+        dataset_test.list_data[i]["dynamic_feat"] = dataset_test.list_data[i][
+            "feat_dynamic_real"
+        ]
+        del dataset_test.list_data[i]["feat_dynamic_real"]
 
     estimator = MQCNNEstimator.from_inputs(dataset_train, **hps)
 
