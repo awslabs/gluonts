@@ -109,7 +109,7 @@ def test_io_speed() -> None:
 
     # name of method, loading function and min allowed throughput
     fixtures = [
-        ("baseline", baseline, 70_000),
+        ("baseline", baseline, 65_000),
         # ('json.loads', load_json, xxx),
         ("ujson.loads", load_ujson, 20_000),
         ("JsonLinesFile", load_json_lines_file, 10_000),

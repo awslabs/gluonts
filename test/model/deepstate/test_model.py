@@ -20,7 +20,7 @@ from gluonts.model.deepstate import DeepStateEstimator
 def hyperparameters(dsinfo):
     return dict(
         ctx="cpu",
-        epochs=3,
+        epochs=1,
         learning_rate=1e-2,
         hybridize=False,
         num_cells=2,
@@ -37,7 +37,7 @@ def hyperparameters(dsinfo):
 def test_accuracy(accuracy_test, hyperparameters):
     hyperparameters.update(num_batches_per_epoch=100)
 
-    accuracy_test(DeepStateEstimator, hyperparameters, accuracy=0.5)
+    accuracy_test(DeepStateEstimator, hyperparameters, accuracy=0.75)
 
 
 def test_repr(repr_test, hyperparameters):
