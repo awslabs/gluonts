@@ -130,7 +130,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         embedding_dimension: List[int] = None,
         add_time_feature: bool = False,
         add_age_feature: bool = False,
-        enable_decoder_dynamic_feature: bool = True,
+        enable_decoder_dynamic_feature: bool = False,
         trainer: Trainer = Trainer(),
         dtype: DType = np.float32,
     ) -> None:

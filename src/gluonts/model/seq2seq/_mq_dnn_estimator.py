@@ -48,7 +48,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         embedding_dimension: List[int] = None,
         add_time_feature: bool = False,
         add_age_feature: bool = False,
-        enable_decoder_dynamic_feature: bool = True,
+        enable_decoder_dynamic_feature: bool = False,
         seed: Optional[int] = None,
         decoder_mlp_dim_seq: Optional[List[int]] = None,
         channels_seq: Optional[List[int]] = None,
