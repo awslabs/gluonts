@@ -19,7 +19,10 @@ import numpy as np
 
 # First-party imports
 from gluonts.block.decoder import Seq2SeqDecoder
-from gluonts.block.enc2dec import PassThroughEnc2Dec
+from gluonts.block.enc2dec import (
+    PassThroughEnc2Dec,
+    FutureFeatIntegratorEnc2Dec,
+)
 from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated, DType
@@ -127,6 +130,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         embedding_dimension: List[int] = None,
         add_time_feature: bool = False,
         add_age_feature: bool = False,
+        enable_decoder_dynamic_feature: bool = True,
         trainer: Trainer = Trainer(),
         dtype: DType = np.float32,
     ) -> None:
@@ -173,6 +177,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.use_dynamic_feat = (
             use_feat_dynamic_real or add_age_feature or add_time_feature
         )
+        self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
         self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
@@ -283,10 +288,12 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     FieldName.OBSERVED_VALUES,
                     FieldName.FEAT_DYNAMIC,
                 ],
-                decoder_series_fields=[
-                    FieldName.OBSERVED_VALUES,
-                    FieldName.FEAT_DYNAMIC,
-                ],
+                decoder_series_fields=[FieldName.OBSERVED_VALUES]
+                + (
+                    [FieldName.FEAT_DYNAMIC]
+                    if self.enable_decoder_dynamic_feature
+                    else []
+                ),
                 prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
             ),
         )
@@ -296,7 +303,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
         return ForkingSeq2SeqTrainingNetwork(
             encoder=self.encoder,
-            enc2dec=PassThroughEnc2Dec(),
+            enc2dec=FutureFeatIntegratorEnc2Dec(),
             decoder=self.decoder,
             quantile_output=self.quantile_output,
             context_length=self.context_length,

@@ -141,24 +141,14 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         )
 
         # arguments: encoder_output_static, encoder_output_dynamic, future_features
-        dec_input_static, dec_input_dynamic, _ = self.enc2dec(
-            enc_output_static, enc_output_dynamic, F.zeros(shape=(1,))
-        )
-
-        # flatten the last two dimensions:
-        # => (batch_size, encoder_length, decoder_length * num_feature_dynamic)
-        future_feat_dynamic = F.reshape(future_feat_dynamic, shape=(0, 0, -1))
-
-        # concatenate output of decoder and future_feat_dynamic covariates:
-        # => (batch_size, encoder_length, num_dec_input_dynamic + num_future_feat_dynamic)
-        total_dec_input_dynamic = F.concat(
-            dec_input_dynamic, future_feat_dynamic, dim=2
+        dec_input_static, dec_input_dynamic = self.enc2dec(
+            enc_output_static, enc_output_dynamic, future_feat_dynamic
         )
 
         # arguments: dynamic_input, static_input
         # TODO: optimize what we pass to the decoder for the prediction case,
         #  where we we only need to pass the encoder output for the last time step
-        dec_output = self.decoder(total_dec_input_dynamic, dec_input_static)
+        dec_output = self.decoder(dec_input_dynamic, dec_input_static)
 
         # the output shape should be: (batch_size, enc_len, dec_len, final_dims)
         return dec_output

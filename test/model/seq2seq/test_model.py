@@ -56,9 +56,14 @@ def test_accuracy(
 @pytest.mark.parametrize("use_feat_dynamic_real", [True, False])
 @pytest.mark.parametrize("add_time_feature", [True, False])
 @pytest.mark.parametrize("add_age_feature", [True, False])
+@pytest.mark.parametrize("enable_decoder_dynamic_feature", [True, False])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_mqcnn_covariate_smoke_test(
-    use_feat_dynamic_real, add_time_feature, add_age_feature, hybridize
+    use_feat_dynamic_real,
+    add_time_feature,
+    add_age_feature,
+    enable_decoder_dynamic_feature,
+    hybridize,
 ):
     hps = {
         "seed": 42,
@@ -70,6 +75,7 @@ def test_mqcnn_covariate_smoke_test(
         "use_feat_dynamic_real": use_feat_dynamic_real,
         "add_time_feature": add_time_feature,
         "add_age_feature": add_age_feature,
+        "enable_decoder_dynamic_feature": enable_decoder_dynamic_feature,
         "hybridize": hybridize,
     }
 

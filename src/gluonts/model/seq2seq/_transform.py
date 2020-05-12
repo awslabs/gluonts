@@ -70,10 +70,17 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             if decoder_series_fields is not None
             else [self.target_field]
         )
+
+        # Fields that are not used at prediction time for the decoder
         self.prediction_time_decoder_exclude = (
             prediction_time_decoder_exclude + [self.target_field]
             if prediction_time_decoder_exclude is not None
             else [self.target_field]
+        )
+
+        # Fields that are disabled for the decoder (dummy fields still created)
+        self.decoder_disabled_fields = list(
+            set(self.encoder_series_fields) - set(self.decoder_series_fields)
         )
 
         self.is_pad_out = is_pad_out
@@ -144,19 +151,25 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 # This is were some of the forking magic happens:
                 # For each of the encoder_len time-steps at which the decoder is applied we slice the
                 # corresponding inputs called decoder_fields to the appropriate dec_len
-                if ts_field in self.decoder_series_fields:
+                if (
+                    ts_field
+                    in self.decoder_series_fields
+                    + self.decoder_disabled_fields
+                ):
                     forking_dec_field = np.zeros(
                         shape=(self.enc_len, self.dec_len, len(ts))
                     )
 
-                    skip = max(0, self.enc_len - sampling_idx)
-                    # This section takes by far the longest time computationally:
-                    # This scales linearly in self.enc_len and linearly in self.dec_len
-                    for dec_field, idx in zip(
-                        forking_dec_field[skip:],
-                        range(start_idx + 1, start_idx + self.enc_len + 1),
-                    ):
-                        dec_field[:] = ts[:, idx : idx + self.dec_len].T
+                    # in case it's not disabled we copy the actual values
+                    if ts_field not in self.decoder_disabled_fields:
+                        skip = max(0, self.enc_len - sampling_idx)
+                        # This section takes by far the longest time computationally:
+                        # This scales linearly in self.enc_len and linearly in self.dec_len
+                        for dec_field, idx in zip(
+                            forking_dec_field[skip:],
+                            range(start_idx + 1, start_idx + self.enc_len + 1),
+                        ):
+                            dec_field[:] = ts[:, idx : idx + self.dec_len].T
 
                     out[self._future(ts_field)] = np.squeeze(forking_dec_field)
 
