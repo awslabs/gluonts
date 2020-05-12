@@ -17,7 +17,7 @@ import os
 import tempfile
 import time
 import uuid
-from typing import Any, List, NamedTuple, Optional, Union
+from typing import Any, List, Optional, Union
 
 # Third-party imports
 import mxnet as mx
@@ -34,6 +34,7 @@ from gluonts.gluonts_tqdm import tqdm
 
 # Relative imports
 from . import learning_rate_scheduler as lrs
+from . import model_averaging as ma
 
 logger = logging.getLogger("gluonts").getChild("trainer")
 
@@ -55,12 +56,6 @@ def check_loss_finite(val: float) -> None:
 
 def loss_value(loss: mx.metric.Loss) -> float:
     return loss.get_name_value()[0][1]
-
-
-class BestEpochInfo(NamedTuple):
-    params_path: str
-    epoch_no: int
-    metric_value: float
 
 
 class Trainer:
@@ -114,6 +109,7 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
+        num_averaged_models: int = None,
     ) -> None:
 
         assert (
@@ -136,6 +132,12 @@ class Trainer:
         assert 0 < clip_gradient, "The value of `clip_gradient` should be > 0"
         assert 0 <= weight_decay, "The value of `weight_decay` should be => 0"
 
+        if num_averaged_models is not None:
+            assert (
+                isinstance(num_averaged_models, int)
+                and num_averaged_models > 0
+            ), "The value of 'num_averaged_models' should be a positive integer"
+
         self.epochs = epochs
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
@@ -147,6 +149,7 @@ class Trainer:
         self.weight_decay = weight_decay
         self.init = init
         self.hybridize = hybridize
+        self.num_averaged_models = num_averaged_models
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
 
@@ -194,11 +197,11 @@ class Trainer:
             ):
                 batch_size = train_iter.batch_size
 
-                best_epoch_info = BestEpochInfo(
-                    params_path="%s-%s.params" % (base_path(), "init"),
-                    epoch_no=-1,
-                    metric_value=np.Inf,
-                )
+                best_epoch_info = {
+                    "params_path": "%s-%s.params" % (base_path(), "init"),
+                    "epoch_no": -1,
+                    "score": np.Inf,
+                }
 
                 lr_scheduler = lrs.MetricAttentiveScheduler(
                     objective="min",
@@ -311,43 +314,59 @@ class Trainer:
                         logger.info("Stopping training")
                         break
 
-                    if loss_value(epoch_loss) < best_epoch_info.metric_value:
-                        best_epoch_info = BestEpochInfo(
-                            params_path="%s-%04d.params"
-                            % (base_path(), epoch_no),
-                            epoch_no=epoch_no,
-                            metric_value=loss_value(epoch_loss),
-                        )
+                    if loss_value(epoch_loss) < best_epoch_info["score"]:
+                        bp = base_path()
+                        best_epoch_info = {
+                            "params_path": f"{bp}-0000.params",
+                            "epoch_no": epoch_no,
+                            "score": loss_value(epoch_loss),
+                        }
+
                         net.save_parameters(
-                            best_epoch_info.params_path
+                            best_epoch_info["params_path"]
                         )  # TODO: handle possible exception
 
+                        if self.num_averaged_models is not None:
+                            ma.save_epoch_info(bp, best_epoch_info)
+
                     if not trainer.learning_rate == curr_lr:
-                        if best_epoch_info.epoch_no == -1:
+                        if best_epoch_info["epoch_no"] == -1:
                             raise GluonTSUserError(
                                 "Got NaN in first epoch. Try reducing initial learning rate."
                             )
 
                         logger.info(
                             f"Loading parameters from best epoch "
-                            f"({best_epoch_info.epoch_no})"
+                            f"({best_epoch_info['epoch_no']})"
                         )
                         net.load_parameters(
-                            best_epoch_info.params_path, self.ctx
+                            best_epoch_info["params_path"], self.ctx
                         )
 
-                logger.info(
-                    f"Loading parameters from best epoch "
-                    f"({best_epoch_info.epoch_no})"
-                )
-                net.load_parameters(best_epoch_info.params_path, self.ctx)
+                if self.num_averaged_models is None:
+                    logger.info(
+                        f"Loading parameters from best epoch "
+                        f"({best_epoch_info['epoch_no']})"
+                    )
+                    net.load_parameters(
+                        best_epoch_info["params_path"], self.ctx
+                    )
 
-                logger.info(
-                    f"Final loss: {best_epoch_info.metric_value} "
-                    f"(occurred at epoch {best_epoch_info.epoch_no})"
-                )
+                    logger.info(
+                        f"Final loss: {best_epoch_info['score']} "
+                        f"(occurred at epoch {best_epoch_info['epoch_no']})"
+                    )
 
-                # save net parameters
-                net.save_parameters(best_epoch_info.params_path)
+                    # # save net parameters
+                    # net.save_parameters(best_epoch_info['params_path'])
+
+                else:
+                    logging.info("Computing averaged parameters.")
+                    averaged_params_path = ma.average_parameters(
+                        gluonts_temp, num_models=self.num_averaged_models
+                    )
+
+                    logging.info("Loading averaged parameters.")
+                    net.load_parameters(averaged_params_path, self.ctx)
 
                 logger.info("End model training")
