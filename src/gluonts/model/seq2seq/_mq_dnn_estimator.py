@@ -157,6 +157,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         }
 
     # FIXME: for now we always want the dataset to be cached and utilize multiprocessing.
+    # TODO it properly: Enable caching of the dataset in the `_load_datasets` function of the shell,
+    #  and pass `num_workers` from train_env in the `run_train_and_test` method to `run_train`,
+    #  which in turn has to pass it to train(...)
     def train(
         self,
         training_data: Dataset,
@@ -176,7 +179,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         num_workers = (
             num_workers
             if num_workers is not None
-            else int(multiprocessing.cpu_count() * (1 / 2))
+            else int(np.ceil(np.sqrt(multiprocessing.cpu_count())))
         )
 
         return super().train(

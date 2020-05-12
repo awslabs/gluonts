@@ -41,7 +41,6 @@ from gluonts.transform import (
     RenameFields,
     AddConstFeature,
     RemoveFields,
-    AsNumpyArray,
     AddObservedValuesIndicator,
     SetField,
 )
@@ -280,9 +279,15 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 train_sampler=TestSplitSampler(),
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
-                encoder_series_fields=[FieldName.FEAT_DYNAMIC],
-                # decoder_series_fileds=[FieldName.FEAT_TIME],
-                shared_series_fields=[FieldName.OBSERVED_VALUES],
+                encoder_series_fields=[
+                    FieldName.OBSERVED_VALUES,
+                    FieldName.FEAT_DYNAMIC,
+                ],
+                decoder_series_fields=[
+                    FieldName.OBSERVED_VALUES,
+                    FieldName.FEAT_DYNAMIC,
+                ],
+                prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
             ),
         )
 

@@ -111,6 +111,7 @@ class Seq2SeqEncoder(nn.HybridBlock):
         return inputs
 
 
+# TODO: fix handling of static features
 class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
     """
     Defines a stack of dilated convolutions as the encoder.
@@ -216,6 +217,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         elif self.use_dynamic_feat:
             inputs = F.concat(target, dynamic_features, dim=2)  # (N, T, C)
         else:
+            # For now, static features only used when dynamic feat enabled
             inputs = target
 
         # NTC -> NCT (or NCW)

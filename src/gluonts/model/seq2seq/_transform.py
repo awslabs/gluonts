@@ -47,7 +47,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         target_field=FieldName.TARGET,
         encoder_series_fields: Optional[List[str]] = None,
         decoder_series_fields: Optional[List[str]] = None,
-        shared_series_fields: Optional[List[str]] = None,
+        prediction_time_decoder_exclude: Optional[List[str]] = None,
         is_pad_out: str = "is_pad",
         start_input_field: str = "start",
     ) -> None:
@@ -61,16 +61,18 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         self.target_field = target_field
 
         self.encoder_series_fields = (
-            encoder_series_fields if encoder_series_fields is not None else []
+            encoder_series_fields + [self.target_field]
+            if encoder_series_fields is not None
+            else [self.target_field]
         )
         self.decoder_series_fields = (
-            decoder_series_fields if decoder_series_fields is not None else []
+            decoder_series_fields + [self.target_field]
+            if decoder_series_fields is not None
+            else [self.target_field]
         )
-        # defines the fields that are shared among encoder and decoder,
-        # this includes the target by default
-        self.shared_series_fields = (
-            shared_series_fields + [self.target_field]
-            if shared_series_fields is not None
+        self.prediction_time_decoder_exclude = (
+            prediction_time_decoder_exclude + [self.target_field]
+            if prediction_time_decoder_exclude is not None
             else [self.target_field]
         )
 
@@ -102,14 +104,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         else:
             sampling_indices = [len(target)]
 
-        decoder_fields = set(
-            self.shared_series_fields + self.decoder_series_fields
-        )
-
         ts_fields_counter = Counter(
-            self.encoder_series_fields
-            + self.shared_series_fields
-            + self.decoder_series_fields
+            set(self.encoder_series_fields + self.decoder_series_fields)
         )
 
         for sampling_idx in sampling_indices:
@@ -138,21 +134,19 @@ class ForkingSequenceSplitter(FlatMapTransformation):
 
                 out[self._past(ts_field)] = past_piece.transpose()
 
-                # in prediction mode, don't provide decode-values
-                if not is_train and (ts_field in self.shared_series_fields):
+                # exclude some fields at prediction time
+                if (
+                    not is_train
+                    and ts_field in self.prediction_time_decoder_exclude
+                ):
                     continue
-
-                # TODO: do the same to the future dynamic feat as we do to the target
 
                 # This is were some of the forking magic happens:
                 # For each of the encoder_len time-steps at which the decoder is applied we slice the
                 # corresponding inputs called decoder_fields to the appropriate dec_len
-                if ts_field in decoder_fields:
-                    d3: Any = () if ts_field in self.shared_series_fields else (
-                        len(ts),
-                    )
+                if ts_field in self.decoder_series_fields:
                     forking_dec_field = np.zeros(
-                        shape=(self.enc_len, self.dec_len) + d3
+                        shape=(self.enc_len, self.dec_len, len(ts))
                     )
 
                     skip = max(0, self.enc_len - sampling_idx)
@@ -162,9 +156,9 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                         forking_dec_field[skip:],
                         range(start_idx + 1, start_idx + self.enc_len + 1),
                     ):
-                        dec_field[:] = ts[:, idx : idx + self.dec_len]
+                        dec_field[:] = ts[:, idx : idx + self.dec_len].T
 
-                    out[self._future(ts_field)] = forking_dec_field
+                    out[self._future(ts_field)] = np.squeeze(forking_dec_field)
 
             # So far pad indicator not in use
             pad_indicator = np.zeros(self.enc_len)

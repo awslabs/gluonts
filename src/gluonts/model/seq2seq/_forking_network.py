@@ -104,6 +104,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         F,
         past_target: Tensor,
         past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
         feat_static_cat: Tensor,
         past_observed_values: Tensor,
     ) -> Tensor:
@@ -144,10 +145,20 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             enc_output_static, enc_output_dynamic, F.zeros(shape=(1,))
         )
 
+        # flatten the last two dimensions:
+        # => (batch_size, encoder_length, decoder_length * num_feature_dynamic)
+        future_feat_dynamic = F.reshape(future_feat_dynamic, shape=(0, 0, -1))
+
+        # concatenate output of decoder and future_feat_dynamic covariates:
+        # => (batch_size, encoder_length, num_dec_input_dynamic + num_future_feat_dynamic)
+        total_dec_input_dynamic = F.concat(
+            dec_input_dynamic, future_feat_dynamic, dim=2
+        )
+
         # arguments: dynamic_input, static_input
         # TODO: optimize what we pass to the decoder for the prediction case,
         #  where we we only need to pass the encoder output for the last time step
-        dec_output = self.decoder(dec_input_dynamic, dec_input_static)
+        dec_output = self.decoder(total_dec_input_dynamic, dec_input_static)
 
         # the output shape should be: (batch_size, enc_len, dec_len, final_dims)
         return dec_output
@@ -158,9 +169,10 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
     def hybrid_forward(
         self,
         F,
-        future_target: Tensor,
         past_target: Tensor,
+        future_target: Tensor,
         past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
         feat_static_cat: Tensor,
         past_observed_values: Tensor,
         future_observed_values: Tensor,
@@ -170,17 +182,16 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         ----------
         F: mx.symbol or mx.ndarray
             Gluon function space
-        future_target: Tensor
-            shape (batch_size, encoder_length, decoder_length)
         past_target: Tensor
             shape (batch_size, encoder_length, 1)
-        feat_static_cat
-            shape (batch_size, encoder_length, num_feature_static_cat)
+        future_target: Tensor
+            shape (batch_size, encoder_length, decoder_length)
         past_feat_dynamic
             shape (batch_size, encoder_length, num_feature_dynamic)
         future_feat_dynamic
             shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
-            # or shape (batch_size, decoder_length, num_feature_dynamic) replicated for each of the encoder steps
+        feat_static_cat
+            shape (batch_size, encoder_length, num_feature_static_cat)
         past_observed_values: Tensor
             shape (batch_size, encoder_length, 1)
         future_observed_values: Tensor
@@ -194,6 +205,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
             F,
             past_target,
             past_feat_dynamic,
+            future_feat_dynamic,
             feat_static_cat,
             past_observed_values,
         )
@@ -216,6 +228,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         F,
         past_target: Tensor,
         past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
         feat_static_cat: Tensor,
         past_observed_values: Tensor,
     ) -> Tensor:
@@ -230,6 +243,8 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
             shape (batch_size, encoder_length, num_feature_static_cat)
         past_feat_dynamic
             shape (batch_size, encoder_length, num_feature_dynamic)
+        future_feat_dynamic
+            shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
         past_observed_values: Tensor
             shape (batch_size, encoder_length, 1)
 
@@ -242,6 +257,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
             F,
             past_target,
             past_feat_dynamic,
+            future_feat_dynamic,
             feat_static_cat,
             past_observed_values,
         )
