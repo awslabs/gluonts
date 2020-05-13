@@ -43,7 +43,7 @@ class LSTNetEstimator(GluonEstimator):
     The model has been described in this paper:
     https://arxiv.org/abs/1703.07015
 
-    Note that this implementation will change over time and we furthre work on
+    Note that this implementation will change over time as we further work on
     this method.
 
     Parameters
@@ -56,35 +56,39 @@ class LSTNetEstimator(GluonEstimator):
     context_length
         The maximum number of steps to unroll the RNN for computing the
         predictions
-        (Note that it is constraints by the Conv1D output size)
+        (Note that it is constraints by the Conv2D output size)
     num_series
-        Number of time-series (variats)
+        Number of time-series (covariates)
     skip_size
         Skip size for the skip RNN layer
     ar_window
         Auto-regressive window size for the linear part
     channels
-        Number of channels for first layer Conv1D
+        Number of channels for first layer Conv2D
     lead_time
         Lead time (default: 0)
     kernel_size
-        Kernel size for first layer Conv1D (default: 6)
+        Kernel size for first layer Conv2D (default: 6)
     trainer
         Trainer object to be used (default: Trainer())
     dropout_rate
         Dropout regularization parameter (default: 0.2)
     output_activation
         The last activation to be used for output.
-        Accepts either `None` (default no activation), `sigmoid` or `tahn`
+        Accepts either `None` (default no activation), `sigmoid` or `tanh`
     rnn_cell_type
         Type of the RNN cell. Either `lstm` or `gru` (default: `gru`)
     rnn_num_layers
         Number of RNN layers to be used
+    rnn_num_cells
+        Number of RNN cells for each layer (default: 100)
     skip_rnn_cell_type
         Type of the RNN cell for the skip layer. Either `lstm` or `gru` (
         default: `gru`)
     skip_rnn_num_layers
         Number of RNN layers to be used for skip part
+    skip_rnn_num_cells
+        Number of RNN cells for each layer for skip part (default: 10)
     scaling
         Whether to automatically scale the target values (default: True)
     dtype
@@ -107,9 +111,11 @@ class LSTNetEstimator(GluonEstimator):
         dropout_rate: Optional[float] = 0.2,
         output_activation: Optional[str] = None,
         rnn_cell_type: str = "gru",
-        rnn_num_layers: int = 10,
+        rnn_num_cells: int = 100,
+        rnn_num_layers: int = 3,
         skip_rnn_cell_type: str = "gru",
-        skip_rnn_num_layers: int = 5,
+        skip_rnn_num_layers: int = 1,
+        skip_rnn_num_cells: int = 10,
         scaling: bool = True,
         dtype: DType = np.float32,
     ) -> None:
@@ -126,8 +132,10 @@ class LSTNetEstimator(GluonEstimator):
         self.output_activation = output_activation
         self.rnn_cell_type = rnn_cell_type
         self.rnn_num_layers = rnn_num_layers
+        self.rnn_num_cells = rnn_num_cells
         self.skip_rnn_cell_type = skip_rnn_cell_type
         self.skip_rnn_num_layers = skip_rnn_num_layers
+        self.skip_rnn_num_cells = skip_rnn_num_cells
         self.scaling = scaling
         self.dtype = dtype
 
@@ -152,7 +160,7 @@ class LSTNetEstimator(GluonEstimator):
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     lead_time=self.lead_time,
-                    output_NTC=False,  # output NCT for first layer conv1d
+                    output_NTC=False,  # output NCT for first layer conv2d
                 ),
             ]
         )
@@ -164,8 +172,10 @@ class LSTNetEstimator(GluonEstimator):
             kernel_size=self.kernel_size,
             rnn_cell_type=self.rnn_cell_type,
             rnn_num_layers=self.rnn_num_layers,
+            rnn_num_cells=self.rnn_num_cells,
             skip_rnn_cell_type=self.skip_rnn_cell_type,
             skip_rnn_num_layers=self.skip_rnn_num_layers,
+            skip_rnn_num_cells=self.skip_rnn_num_cells,
             skip_size=self.skip_size,
             ar_window=self.ar_window,
             context_length=self.context_length,
@@ -186,8 +196,10 @@ class LSTNetEstimator(GluonEstimator):
             kernel_size=self.kernel_size,
             rnn_cell_type=self.rnn_cell_type,
             rnn_num_layers=self.rnn_num_layers,
+            rnn_num_cells=self.rnn_num_cells,
             skip_rnn_cell_type=self.skip_rnn_cell_type,
             skip_rnn_num_layers=self.skip_rnn_num_layers,
+            skip_rnn_num_cells=self.skip_rnn_num_cells,
             skip_size=self.skip_size,
             ar_window=self.ar_window,
             context_length=self.context_length,
