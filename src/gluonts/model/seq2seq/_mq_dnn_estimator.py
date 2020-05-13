@@ -18,6 +18,7 @@ from typing import List, Optional
 # Third-party imports
 import numpy as np
 import mxnet as mx
+import logging
 
 # First-party imports
 from gluonts.dataset.common import Dataset, ListDataset
@@ -106,6 +107,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             f"{len(self.dilation_seq)} vs. {len(self.kernel_size_seq)}"
         )
 
+        print("Use dynamic real", use_feat_dynamic_real)
+
         if seed:
             np.random.seed(seed)
             mx.random.seed(seed)
@@ -181,8 +184,11 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         num_workers = (
             num_workers
             if num_workers is not None
-            else int(np.ceil(np.sqrt(multiprocessing.cpu_count())))
+            else min(4, int(np.ceil(np.sqrt(multiprocessing.cpu_count()))))
         )
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"gluonts[multiprocessing]: num_workers={num_workers}")
 
         return super().train(
             training_data=cached_train_data,
@@ -191,6 +197,39 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             num_prefetch=num_prefetch,
             **kwargs,
         )
+
+    @classmethod
+    def from_inputs(cls, train_iter, **params):
+        # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
+        auto_params = cls.derive_auto_fields(train_iter)
+
+        # user defined arguments become implications
+        if (
+            "use_feat_dynamic_real" in params.keys()
+            and params["use_feat_dynamic_real"]
+            and not auto_params["use_feat_dynamic_real"]
+        ):
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"gluonts[from_inputs]: use_feat_dynamic_real set to False since it is not present in the data."
+            )
+            params["use_feat_dynamic_real"] = False
+
+        if (
+            "use_feat_static_cat" in params.keys()
+            and params["use_feat_static_cat"]
+            and not auto_params["use_feat_static_cat"]
+        ):
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"gluonts[from_inputs]: use_feat_static_cat set to False since it is not present in the data."
+            )
+            params["use_feat_static_cat"] = False
+            params["cardinality"] = None
+
+        # user specified 'params' will take precedence:
+        params = {**auto_params, **params}
+        return cls.from_hyperparameters(**params)
 
 
 class MQRNNEstimator(ForkingSeq2SeqEstimator):
