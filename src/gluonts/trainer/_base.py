@@ -110,6 +110,7 @@ class Trainer:
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
         num_averaged_models: int = None,
+        averaged_models_weight: str = "average",
     ) -> None:
 
         assert (
@@ -150,6 +151,7 @@ class Trainer:
         self.init = init
         self.hybridize = hybridize
         self.num_averaged_models = num_averaged_models
+        self.averaged_models_weight = averaged_models_weight
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
 
@@ -364,7 +366,7 @@ class Trainer:
                         num_models=self.num_averaged_models,
                         metric="score",
                         maximize=False,
-                        weight="exp-metric",
+                        weight=self.averaged_models_weight,
                     )
 
                     logging.info("Loading averaged parameters.")
