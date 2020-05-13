@@ -4,6 +4,7 @@ import json
 
 # Third-party imports
 import mxnet as mx
+import numpy as np
 
 EPOCH_INFO_STRING = "epoch-info"
 
@@ -19,7 +20,7 @@ def save_epoch_info(tmp_path, epoch_info):
 
 
 def average_parameters(
-    model_path, num_models=5, metric="score", maximize=False
+    model_path, num_models=5, metric="score", maximize=False, weight="average"
 ):
     """
     Averages model parameters of serialized models based on the selected model strategy and metric.
@@ -31,11 +32,24 @@ def average_parameters(
     :param metric: str, metric which is used to average models.
     :param maximize: boolean, flag to indicate whether the metric should be maximized or minimized (important for some
                      strategies, such as best).
+    :param weight: str, weights for the parameter average.
     :return: str, path to file with averaged model
     """
     checkpoints = load_checkpoints(model_path, num_models, metric, maximize)
     checkpoint_paths = [checkpoint[1] for checkpoint in checkpoints]
-    average_parms = average(checkpoint_paths)
+
+    if weight == "average":
+        weights = [1 / len(checkpoints)] * len(checkpoints)
+    elif weight == "exp-metric":
+        weights = [
+            np.exp(checkpoint[0]) if maximize else np.exp(-checkpoint[0])
+            for checkpoint in checkpoints
+        ]
+        weights = [x / sum(weights) for x in weights]
+    else:
+        raise ValueError("Unknown value for 'weight'.")
+
+    average_parms = average(checkpoint_paths, weights)
 
     average_parms_path = model_path + "/averaged_model-0000.params"
     mx.nd.save(average_parms_path, average_parms)
@@ -86,10 +100,11 @@ def get_checkpoint_information(model_path):
     return all_checkpoint_info
 
 
-def average(param_paths):
+def average(param_paths, weight):
     """
     Averages parameters from a list of .params file paths.
     :param param_paths: List of paths to parameter files.
+    :param weight: str, weights for the parameter average.
     :return: Averaged parameter dictionary.
     """
     all_arg_params = []
@@ -102,14 +117,15 @@ def average(param_paths):
     avg_params = {}
     for k in all_arg_params[0]:
         arrays = [p[k] for p in all_arg_params]
-        avg_params[k] = average_arrays(arrays)
+        avg_params[k] = average_arrays(arrays, weight)
     return avg_params
 
 
-def average_arrays(arrays):
+def average_arrays(arrays, weight):
     """
     Take a list of arrays of the same shape and take the element wise average.
     :param arrays: A list of NDArrays with the same shape that will be averaged.
+    :param weight: str, weights for the parameter average.
     :return: The average of the NDArrays in the same context as arrays[0].
     """
 
@@ -127,7 +143,7 @@ def average_arrays(arrays):
         raise ValueError("arrays is empty.")
     if len(arrays) == 1:
         return arrays[0]
-    return mx.nd.add_n(*arrays) / float(len(arrays))
+    return mx.nd.add_n(*[a * w for a, w in zip(arrays, weight)])
 
 
 def _strategy_best(checkpoints, num_models, maximize):
