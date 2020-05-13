@@ -357,9 +357,6 @@ class Trainer:
                         f"(occurred at epoch {best_epoch_info['epoch_no']})"
                     )
 
-                    # # save net parameters
-                    # net.save_parameters(best_epoch_info['params_path'])
-
                 else:
                     logging.info("Computing averaged parameters.")
                     averaged_params_path = ma.average_parameters(
