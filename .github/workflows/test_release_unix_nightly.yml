@@ -1,7 +1,7 @@
 name: Test latest release nightly Ubuntu
 
 on:
-push
+  push
   #schedule:
     # * is a special character in YAML so you have to quote this string
     # nightly:
