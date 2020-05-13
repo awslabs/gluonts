@@ -1,10 +1,11 @@
 name: Test latest release nightly Windows
 
 on:
-  schedule:
+push
+  #schedule:
     # * is a special character in YAML so you have to quote this string
     # nightly:
-    - cron:  '0 0 * * *'
+    #- cron:  '0 0 * * *'
 
 jobs:
   build:
@@ -31,6 +32,8 @@ jobs:
         pip install -r requirements/requirements-mxnet.txt
         pip install gluonts
         pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-extras-sagemaker-sdk.txt
+        pip install -r requirements/requirements-extras-m-competitions.txt
       shell: powershell
     - name: Test with pytest
       run: |
