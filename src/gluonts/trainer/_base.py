@@ -360,7 +360,11 @@ class Trainer:
                 else:
                     logging.info("Computing averaged parameters.")
                     averaged_params_path = ma.average_parameters(
-                        gluonts_temp, num_models=self.num_averaged_models
+                        gluonts_temp,
+                        num_models=self.num_averaged_models,
+                        metric="score",
+                        maximize=False,
+                        weight="exp-metric",
                     )
 
                     logging.info("Loading averaged parameters.")
