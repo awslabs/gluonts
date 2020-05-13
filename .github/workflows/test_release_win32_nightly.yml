@@ -1,11 +1,10 @@
 name: Test latest release nightly Windows
 
 on:
-  push
-  #schedule:
+  schedule:
     # * is a special character in YAML so you have to quote this string
     # nightly:
-    #- cron:  '0 0 * * *'
+    - cron:  '0 0 * * *'
 
 jobs:
   build:
