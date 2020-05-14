@@ -13,48 +13,74 @@
 
 # Third-party imports
 import mxnet as mx
+import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.trainer import model_averaging as ma
+from gluonts.trainer.model_averaging import (
+    SimpleAveraging,
+    ExpMetricValueWeightAveraging,
+)
 
 
-@pytest.mark.parametrize("weight", ["average", "exp-metric"])
-def tst_model_averaging(weight):
+@pytest.mark.parametrize(
+    "strategy", [SimpleAveraging, ExpMetricValueWeightAveraging]
+)
+@pytest.mark.parametrize("num_models", [1, 2])
+def tst_model_averaging(strategy, num_models):
+    total_models = 2
+
+    # model 1
     param_1 = {
         "arg1": mx.nd.array([[1, 2, 3], [1, 2, 3]]),
         "arg2": mx.nd.array([[1, 2], [1, 2]]),
     }
+    loss_1 = 1
+
+    # model 2
     param_2 = {
         "arg1": mx.nd.array([[1, 1, 1], [1, 1, 1]]),
         "arg2": mx.nd.array([[1, 1], [1, 1]]),
     }
+    loss_2 = 1.5
+    assert (
+        loss_1 < loss_2
+    )  # to keep it simple we assume that the first model has lower loss than the second
 
+    # combine models
     all_arg_params = [param_1, param_2]
+    dummy_checkpoints = [(loss_1, "dummy_path"), (loss_2, "dummy_path")]
 
-    if weight == "average":
-        weights = [0.5, 0.5]
-        exp_output = {
-            "arg1": 0.5 * mx.nd.array([[1, 2, 3], [1, 2, 3]])
-            + 0.5 * mx.nd.array([[1, 1, 1], [1, 1, 1]]),
-            "arg2": 0.5 * mx.nd.array([[1, 2], [1, 2]])
-            + 0.5 * mx.nd.array([[1, 1], [1, 1]]),
-        }
-    elif weight == "exp-metric":
-        weights = [0.25, 0.75]
-        exp_output = {
-            "arg1": 0.25 * mx.nd.array([[1, 2, 3], [1, 2, 3]])
-            + 0.75 * mx.nd.array([[1, 1, 1], [1, 1, 1]]),
-            "arg2": 0.25 * mx.nd.array([[1, 2], [1, 2]])
-            + 0.75 * mx.nd.array([[1, 1], [1, 1]]),
-        }
-    else:
-        raise ValueError("Unknown value for 'weight'.")
+    # compute expected weights
+    avg = strategy(num_models=num_models)
+    weights = avg.compute_weights(dummy_checkpoints)
+    assert len(weights) == num_models
+
+    if isinstance(avg, SimpleAveraging):
+        exp_weights = [1 / num_models for _ in range(num_models)]
+        assert weights == exp_weights
+    elif isinstance(avg, ExpMetricValueWeightAveraging):
+        exp_weights = [
+            np.exp(-checkpoint[0]) for checkpoint in dummy_checkpoints
+        ][:num_models]
+        exp_weights = [x / sum(exp_weights) for x in exp_weights]
+        assert weights == exp_weights
+
+    # compute expected output
+    weights = weights + [0] * (
+        total_models - num_models
+    )  # include 0 weights for the models that are not averaged
+    exp_output = {
+        "arg1": weights[0] * mx.nd.array([[1, 2, 3], [1, 2, 3]])
+        + weights[1] * mx.nd.array([[1, 1, 1], [1, 1, 1]]),
+        "arg2": weights[0] * mx.nd.array([[1, 2], [1, 2]])
+        + weights[1] * mx.nd.array([[1, 1], [1, 1]]),
+    }
 
     avg_params = {}
     for k in all_arg_params[0]:
         arrays = [p[k] for p in all_arg_params]
-        avg_params[k] = ma.average_arrays(arrays, weights)
+        avg_params[k] = avg.average_arrays(arrays, weights)
 
     for k in all_arg_params[0]:
         assert all_arg_params[0][k].shape == exp_output[k].shape
