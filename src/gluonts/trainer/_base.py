@@ -36,7 +36,7 @@ from gluonts.gluonts_tqdm import tqdm
 from . import learning_rate_scheduler as lrs
 from .model_averaging import (
     AveragingStrategy,
-    SimpleAveraging,
+    SelectNBestMean,
     save_epoch_info,
 )
 
@@ -113,7 +113,7 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        avg_strategy: AveragingStrategy = SimpleAveraging(num_models=1),
+        avg_strategy: AveragingStrategy = SelectNBestMean(num_models=1),
     ) -> None:
 
         assert (

@@ -83,39 +83,15 @@ class AveragingStrategy:
         -------
         Path to file with the averaged model.
         """
-        checkpoints = self.load_top_checkpoints(model_path)
-        weights = self.compute_weights(checkpoints)
+        checkpoints = self.get_checkpoint_information(model_path)
 
-        checkpoint_paths = [checkpoint[1] for checkpoint in checkpoints]
+        checkpoint_paths, weights = self.select_checkpoints(checkpoints)
 
         average_parms = self.average(checkpoint_paths, weights)
 
         average_parms_path = model_path + "/averaged_model-0000.params"
         mx.nd.save(average_parms_path, average_parms)
         return average_parms_path
-
-    def load_top_checkpoints(self, model_path: str) -> List[Tuple[Any, str]]:
-        r"""
-        Load checkpoints with serialized model information.
-
-        Parameters
-        ----------
-        model_path
-            Path to the models directory.
-
-        Returns
-        -------
-        Top checkpoints, selected by chosen strategy.
-        """
-        all_checkpoint_info = self.get_checkpoint_information(model_path)
-
-        checkpoints = [
-            (checkpoint_info[self.metric], checkpoint_info["params_path"])
-            for checkpoint_info in all_checkpoint_info
-        ]
-        top_checkpoints = self.strategy_best(checkpoints)
-
-        return top_checkpoints
 
     @staticmethod
     def get_checkpoint_information(model_path: str) -> List[Dict]:
@@ -128,7 +104,7 @@ class AveragingStrategy:
 
         Returns
         -------
-        List of checkpoint information tuples (metric, checkpoint path).
+        List of checkpoint information dictionaries (metric, epoch_no, checkpoint path).
         """
         epoch_info_files = glob.glob(
             "{}/*-{}.json".format(model_path, EPOCH_INFO_STRING)
@@ -144,27 +120,20 @@ class AveragingStrategy:
                 all_checkpoint_info.append(json.load(f))
         return all_checkpoint_info
 
-    def strategy_best(
-        self, checkpoints: List[Tuple[Any, str]]
-    ) -> List[Tuple[Any, str]]:
+    def select_checkpoints(
+        self, checkpoints: List[Dict]
+    ) -> Tuple[List[str], List[float]]:
         r"""
-        Sorts the checkpoints by metric value and returns the 'num_models' best.
+        Selects checkpoints and computes weights for the selected checkpoints.
 
         Parameters
         ----------
         checkpoints
-            List of tuples with the metric value and path for each model.
-
+            List of checkpoint information dictionaries.
         Returns
         -------
-        List of tuples with the metric value and path for the top models.
+            List of selected checkpoint paths and list of corresponding weights.
         """
-        top_n = sorted(checkpoints, reverse=self.maximize)[: self.num_models]
-        return top_n
-
-    def compute_weights(
-        self, checkpoints: List[Tuple[Any, str]]
-    ) -> List[float]:
         raise NotImplementedError()
 
     def average(self, param_paths: List[str], weights: List[float]) -> Dict:
@@ -230,21 +199,73 @@ class AveragingStrategy:
         return mx.nd.add_n(*[a * w for a, w in zip(arrays, weights)])
 
 
-class ExpMetricValueWeightAveraging(AveragingStrategy):
-    def compute_weights(
-        self, checkpoints: List[Tuple[Any, str]]
-    ) -> List[float]:
+class SelectNBestSoftmax(AveragingStrategy):
+    def select_checkpoints(
+        self, checkpoints: List[Dict]
+    ) -> Tuple[List[str], List[float]]:
+        r"""
+        Selects the checkpoints with the best metric values.
+        The weights are the softmax of the metric values, i.e.,
+        w_i = exp(v_i) / sum(exp(v_j)) if maximize=True
+        w_i = exp(-v_i) / sum(exp(-v_j)) if maximize=False
+
+        Parameters
+        ----------
+        checkpoints
+            List of checkpoint information dictionaries.
+        Returns
+        -------
+            List of selected checkpoint paths and list of corresponding weights.
+        """
+
+        metric_path_tuple = [
+            (c[self.metric], c["params_path"]) for c in checkpoints
+        ]
+        top_checkpoints = sorted(metric_path_tuple, reverse=self.maximize)[
+            : self.num_models
+        ]
+
+        # weights of top checkpoints
         weights = [
-            np.exp(checkpoint[0]) if self.maximize else np.exp(-checkpoint[0])
-            for checkpoint in checkpoints
+            np.exp(c[0]) if self.maximize else np.exp(-c[0])
+            for c in top_checkpoints
         ]
         weights = [x / sum(weights) for x in weights]
-        return weights
+
+        # paths of top checkpoints
+        checkpoint_paths = [c[1] for c in top_checkpoints]
+
+        return checkpoint_paths, weights
 
 
-class SimpleAveraging(AveragingStrategy):
-    def compute_weights(
-        self, checkpoints: List[Tuple[Any, str]]
-    ) -> List[float]:
-        weights = [1 / len(checkpoints)] * len(checkpoints)
-        return weights
+class SelectNBestMean(AveragingStrategy):
+    def select_checkpoints(
+        self, checkpoints: List[Dict]
+    ) -> Tuple[List[str], List[float]]:
+        r"""
+        Selects the checkpoints with the best metric values.
+        The weights are equal for all checkpoints, i.e., w_i = 1/N.
+
+        Parameters
+        ----------
+        checkpoints
+            List of checkpoint information dictionaries.
+        Returns
+        -------
+            List of selected checkpoint paths and list of corresponding weights.
+        """
+
+        metric_path_tuple = [
+            (c[self.metric], c["params_path"]) for c in checkpoints
+        ]
+        top_checkpoints = sorted(metric_path_tuple, reverse=self.maximize)[
+            : self.num_models
+        ]
+
+        # weights of top checkpoints
+        weights = [1 / len(top_checkpoints)] * len(top_checkpoints)
+
+        # paths of top checkpoints
+        checkpoint_paths = [c[1] for c in top_checkpoints]
+
+        return checkpoint_paths, weights

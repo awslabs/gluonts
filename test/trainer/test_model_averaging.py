@@ -18,14 +18,12 @@ import pytest
 
 # First-party imports
 from gluonts.trainer.model_averaging import (
-    SimpleAveraging,
-    ExpMetricValueWeightAveraging,
+    SelectNBestMean,
+    SelectNBestSoftmax,
 )
 
 
-@pytest.mark.parametrize(
-    "strategy", [SimpleAveraging, ExpMetricValueWeightAveraging]
-)
+@pytest.mark.parametrize("strategy", [SelectNBestMean, SelectNBestSoftmax])
 @pytest.mark.parametrize("num_models", [1, 2])
 def test_model_averaging(strategy, num_models):
     total_models = 2
@@ -49,20 +47,23 @@ def test_model_averaging(strategy, num_models):
 
     # combine models
     all_arg_params = [param_1, param_2]
-    dummy_checkpoints = [(loss_1, "dummy_path"), (loss_2, "dummy_path")]
+    dummy_checkpoints = [
+        {"params_path": "dummy_path", "epoch_no": 0, "score": loss_1,},
+        {"params_path": "dummy_path", "epoch_no": 0, "score": loss_2,},
+    ]
 
     # compute expected weights
     avg = strategy(num_models=num_models)
-    weights = avg.compute_weights(dummy_checkpoints[:num_models])
+    _, weights = avg.select_checkpoints(dummy_checkpoints)
     assert len(weights) == num_models
 
-    if isinstance(avg, SimpleAveraging):
+    if isinstance(avg, SelectNBestMean):
         exp_weights = [1 / num_models for _ in range(num_models)]
         assert weights == exp_weights
-    elif isinstance(avg, ExpMetricValueWeightAveraging):
-        exp_weights = [
-            np.exp(-checkpoint[0]) for checkpoint in dummy_checkpoints
-        ][:num_models]
+    elif isinstance(avg, SelectNBestSoftmax):
+        losses = [c["score"] for c in dummy_checkpoints]
+        losses = sorted(losses)[:num_models]
+        exp_weights = [np.exp(-l) for l in losses]
         exp_weights = [x / sum(exp_weights) for x in exp_weights]
         assert weights == exp_weights
 
