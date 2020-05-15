@@ -162,7 +162,9 @@ class AveragingStrategy:
         top_n = sorted(checkpoints, reverse=self.maximize)[: self.num_models]
         return top_n
 
-    def compute_weights(self, checkpoints) -> List:
+    def compute_weights(
+        self, checkpoints: List[Tuple[Any, str]]
+    ) -> List[float]:
         raise NotImplementedError()
 
     def average(self, param_paths: List[str], weights: List[float]) -> Dict:
@@ -229,7 +231,9 @@ class AveragingStrategy:
 
 
 class ExpMetricValueWeightAveraging(AveragingStrategy):
-    def compute_weights(self, checkpoints):
+    def compute_weights(
+        self, checkpoints: List[Tuple[Any, str]]
+    ) -> List[float]:
         weights = [
             np.exp(checkpoint[0]) if self.maximize else np.exp(-checkpoint[0])
             for checkpoint in checkpoints
@@ -239,6 +243,8 @@ class ExpMetricValueWeightAveraging(AveragingStrategy):
 
 
 class SimpleAveraging(AveragingStrategy):
-    def compute_weights(self, checkpoints):
+    def compute_weights(
+        self, checkpoints: List[Tuple[Any, str]]
+    ) -> List[float]:
         weights = [1 / len(checkpoints)] * len(checkpoints)
         return weights
