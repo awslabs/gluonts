@@ -195,6 +195,12 @@ class Trainer:
             ):
                 batch_size = train_iter.batch_size
 
+                best_epoch_info = {
+                    "params_path": "%s-%s.params" % (base_path(), "init"),
+                    "epoch_no": -1,
+                    "score": np.Inf,
+                }
+
                 lr_scheduler = lrs.MetricAttentiveScheduler(
                     objective="min",
                     patience=self.patience,
@@ -308,17 +314,21 @@ class Trainer:
 
                     # save model and epoch info
                     bp = base_path()
-                    best_epoch_info = {
+                    epoch_info = {
                         "params_path": f"{bp}-0000.params",
                         "epoch_no": epoch_no,
                         "score": loss_value(epoch_loss),
                     }
 
                     net.save_parameters(
-                        best_epoch_info["params_path"]
+                        epoch_info["params_path"]
                     )  # TODO: handle possible exception
 
-                    save_epoch_info(bp, best_epoch_info)
+                    save_epoch_info(bp, epoch_info)
+
+                    # update best epoch info - needed for the learning rate scheduler
+                    if loss_value(epoch_loss) < best_epoch_info["score"]:
+                        best_epoch_info = epoch_info.copy()
 
                     if not trainer.learning_rate == curr_lr:
                         if best_epoch_info["epoch_no"] == -1:
