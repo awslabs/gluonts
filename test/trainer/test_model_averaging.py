@@ -27,7 +27,7 @@ from gluonts.trainer.model_averaging import (
     "strategy", [SimpleAveraging, ExpMetricValueWeightAveraging]
 )
 @pytest.mark.parametrize("num_models", [1, 2])
-def tst_model_averaging(strategy, num_models):
+def test_model_averaging(strategy, num_models):
     total_models = 2
 
     # model 1
@@ -53,7 +53,7 @@ def tst_model_averaging(strategy, num_models):
 
     # compute expected weights
     avg = strategy(num_models=num_models)
-    weights = avg.compute_weights(dummy_checkpoints)
+    weights = avg.compute_weights(dummy_checkpoints[:num_models])
     assert len(weights) == num_models
 
     if isinstance(avg, SimpleAveraging):

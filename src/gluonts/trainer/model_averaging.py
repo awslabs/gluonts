@@ -20,6 +20,9 @@ import json
 import numpy as np
 import mxnet as mx
 
+# First-party imports
+from gluonts.core.component import validated
+
 EPOCH_INFO_STRING = "epoch-info"
 
 
@@ -44,6 +47,7 @@ def save_epoch_info(tmp_path: str, epoch_info: dict) -> None:
 
 
 class AveragingStrategy:
+    @validated()
     def __init__(
         self,
         num_models: int = 5,
