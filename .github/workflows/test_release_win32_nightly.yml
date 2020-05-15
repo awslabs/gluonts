@@ -31,6 +31,8 @@ jobs:
         pip install -r requirements/requirements-mxnet.txt
         pip install gluonts
         pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-extras-sagemaker-sdk.txt
+        pip install -r requirements/requirements-extras-m-competitions.txt
       shell: powershell
     - name: Test with pytest
       run: |
