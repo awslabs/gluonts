@@ -160,6 +160,18 @@ class Predictor:
     def from_hyperparameters(cls, **hyperparameters):
         return from_hyperparameters(cls, **hyperparameters)
 
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        return {}
+
+    @classmethod
+    def from_inputs(cls, train_iter, **params):
+        # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
+        auto_params = cls.derive_auto_fields(train_iter)
+        # user specified 'params' will take precedence:
+        params = {**auto_params, **params}
+        return cls.from_hyperparameters(**params)
+
 
 class RepresentablePredictor(Predictor):
     """

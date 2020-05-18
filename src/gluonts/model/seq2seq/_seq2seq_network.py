@@ -89,7 +89,7 @@ class Seq2SeqNetworkBase(mx.gluon.HybridBlock):
         encoder_output_static, encoder_output_dynamic = self.encoder(
             scaled_target, embedded_cat, past_feat_dynamic_real
         )
-        decoder_input_static, _, decoder_input_dynamic = self.enc2dec(
+        decoder_input_static, decoder_input_dynamic = self.enc2dec(
             encoder_output_static,
             encoder_output_dynamic,
             future_feat_dynamic_real,
