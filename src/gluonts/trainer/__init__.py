@@ -14,8 +14,9 @@
 # Relative imports
 from . import learning_rate_scheduler as lrs
 from ._base import Trainer
+from . import model_averaging
 
-__all__ = ["lrs", "Trainer"]
+__all__ = ["lrs", "Trainer", "model_averaging"]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:
