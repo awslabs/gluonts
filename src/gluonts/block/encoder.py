@@ -238,7 +238,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
 
 class RNNEncoder(Seq2SeqEncoder):
     """
-     Defines RNN encoder that uses covariates and target as input to the RNN if desired.
+    Defines RNN encoder that uses covariates and target as input to the RNN if desired.
 
     Parameters
     ----------

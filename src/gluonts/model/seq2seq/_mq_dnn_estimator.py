@@ -35,6 +35,65 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
     """
     An :class:`MQDNNEstimator` with a Convolutional Neural Network (CNN) as an
     encoder and a multi-quantile MLP as a decoder. Implements the MQ-CNN Forecaster, proposed in [WTN+17]_.
+
+    Parameters
+    ----------
+    freq
+        Time granularity of the data.
+    prediction_length
+        Length of the prediction, also known as 'horizon'.
+    context_length
+        Number of time units that condition the predictions, also known as 'lookback period'.
+        (default: 4 * prediction_length)
+    use_feat_dynamic_real
+        Whether to use the ``feat_dynamic_real`` field from the data. (default: False)
+        Automatically inferred when creating the MQCNNEstimator with the `from_inputs` class method.
+    use_feat_static_cat:
+        Whether to use the ``feat_static_cat`` field from the data. (default: False)
+        Automatically inferred when creating the MQCNNEstimator with the `from_inputs` class method.
+    cardinality:
+        Number of values of each categorical feature.
+        This must be set if ``use_feat_static_cat == True`` (default: None)
+        Automatically inferred when creating the MQCNNEstimator with the `from_inputs` class method.
+    embedding_dimension:
+        Dimension of the embeddings for categorical features. (default: [min(50, (cat+1)//2) for cat in cardinality])
+    add_time_feature
+        Adds a set of time features. (default: False)
+    add_age_feature
+        Adds an age feature. (default: False)
+        The age feature starts with a small value at the start of the time series and grows over time.
+    enable_decoder_dynamic_feature
+        Whether the decoder should also be provided with the dynamic features (``age``, ``time``
+        and ``feat_dynamic_real`` if enabled respectively). (default: True)
+        It makes sense to disable this, if you dont have ``feat_dynamic_real`` for the prediction range.
+    seed
+        Will set the specified int seed for numpy anc MXNet if specified. (default: None)
+    decoder_mlp_dim_seq
+        The dimensionalities of the Multi Layer Perceptron layers of the decoder.
+        (default: [30])
+    channels_seq
+        The number of channels (i.e. filters or convolutions) for each layer of the HierarchicalCausalConv1DEncoder.
+        More channels usually correspond to better performance and larger network size.
+        (default: [30, 30, 30])
+    dilation_seq
+        The dilation of the convolutions in each layer of the HierarchicalCausalConv1DEncoder.
+        Greater numbers correspond to a greater receptive field of the network, which is usually
+        better with longer context_length. (Same length as channels_seq) (default: [1, 3, 5])
+    kernel_size_seq
+        The kernel sizes (i.e. window size) of the convolutions in each layer of the HierarchicalCausalConv1DEncoder.
+        (Same length as channels_seq) (default: [7, 3, 3])
+    use_residual
+        Whether the hierarchical encoder should additionally pass the unaltered
+        past target to the decoder. (default: True)
+    quantiles
+        The list of quantiles that will be optimized for, and predicted by, the model.
+        Optimizing for more quantiles than are of direct interest to you can result
+        in improved performance due to a regularizing effect.
+        (default: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    trainer
+        The GluonTS trainer to use for training. (default: Trainer())
+    scaling
+        Whether to automatically scale the target values. (default: False)
     """
 
     @validated()
@@ -58,6 +117,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         use_residual: bool = True,
         quantiles: Optional[List[float]] = None,
         trainer: Trainer = Trainer(),
+        scaling: bool = False,
     ) -> None:
 
         assert (
@@ -81,16 +141,16 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         ), "Elements of `quantiles` should be >= 0 and <= 1"
 
         self.decoder_mlp_dim_seq = (
-            decoder_mlp_dim_seq if decoder_mlp_dim_seq is not None else [20]
+            decoder_mlp_dim_seq if decoder_mlp_dim_seq is not None else [30]
         )
         self.channels_seq = (
             channels_seq if channels_seq is not None else [30, 30, 30]
         )
         self.dilation_seq = (
-            dilation_seq if dilation_seq is not None else [1, 3, 9]
+            dilation_seq if dilation_seq is not None else [1, 3, 5]
         )
         self.kernel_size_seq = (
-            kernel_size_seq if kernel_size_seq is not None else [3, 3, 3]
+            kernel_size_seq if kernel_size_seq is not None else [7, 3, 3]
         )
         self.quantiles = (
             quantiles
@@ -106,8 +166,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             f"mismatch CNN configurations: {len(self.channels_seq)} vs. "
             f"{len(self.dilation_seq)} vs. {len(self.kernel_size_seq)}"
         )
-
-        print("Use dynamic real", use_feat_dynamic_real)
 
         if seed:
             np.random.seed(seed)
@@ -149,87 +207,25 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             add_time_feature=add_time_feature,
             add_age_feature=add_age_feature,
             trainer=trainer,
+            scaling=scaling,
         )
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
         stats = calculate_dataset_statistics(train_iter)
 
-        return {
+        auto_fields = {
             "use_feat_dynamic_real": stats.num_feat_dynamic_real > 0,
             "use_feat_static_cat": bool(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
 
-    # FIXME: for now we always want the dataset to be cached and utilize multiprocessing.
-    # TODO it properly: Enable caching of the dataset in the `_load_datasets` function of the shell,
-    #  and pass `num_workers` from train_env in the `run_train_and_test` method to `run_train`,
-    #  which in turn has to pass it to train(...)
-    def train(
-        self,
-        training_data: Dataset,
-        validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        **kwargs,
-    ):
-        cached_train_data = ListDataset(
-            data_iter=list(training_data), freq=self.freq
-        )
-        cached_validation_data = (
-            None
-            if validation_data is None
-            else ListDataset(data_iter=list(validation_data), freq=self.freq)
-        )
-        num_workers = (
-            num_workers
-            if num_workers is not None
-            else min(4, int(np.ceil(np.sqrt(multiprocessing.cpu_count()))))
-        )
-
         logger = logging.getLogger(__name__)
-        logger.info(f"gluonts[multiprocessing]: num_workers={num_workers}")
-
-        return super().train(
-            training_data=cached_train_data,
-            validation_data=cached_validation_data,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            **kwargs,
+        logger.info(
+            f"gluonts[from_inputs]: use_feat_dynamic_real set to '{auto_fields['use_feat_dynamic_real']}', and use use_feat_static_cat to '{auto_fields['use_feat_static_cat']}' with cardinality of '{auto_fields['cardinality']}'"
         )
 
-    @classmethod
-    def from_inputs(cls, train_iter, **params):
-        # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
-        auto_params = cls.derive_auto_fields(train_iter)
-
-        # user defined arguments become implications
-        if (
-            "use_feat_dynamic_real" in params.keys()
-            and params["use_feat_dynamic_real"]
-            and not auto_params["use_feat_dynamic_real"]
-        ):
-            logger = logging.getLogger(__name__)
-            logger.warning(
-                f"gluonts[from_inputs]: use_feat_dynamic_real set to False since it is not present in the data."
-            )
-            params["use_feat_dynamic_real"] = False
-
-        if (
-            "use_feat_static_cat" in params.keys()
-            and params["use_feat_static_cat"]
-            and not auto_params["use_feat_static_cat"]
-        ):
-            logger = logging.getLogger(__name__)
-            logger.warning(
-                f"gluonts[from_inputs]: use_feat_static_cat set to False since it is not present in the data."
-            )
-            params["use_feat_static_cat"] = False
-            params["cardinality"] = None
-
-        # user specified 'params' will take precedence:
-        params = {**auto_params, **params}
-        return cls.from_hyperparameters(**params)
+        return auto_fields
 
 
 class MQRNNEstimator(ForkingSeq2SeqEstimator):
@@ -247,6 +243,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         decoder_mlp_dim_seq: List[int] = None,
         trainer: Trainer = Trainer(),
         quantiles: List[float] = None,
+        scaling: bool = True,
     ) -> None:
 
         assert (
@@ -260,10 +257,12 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         ), "Elements of `quantiles` should be >= 0 and <= 1"
 
         self.decoder_mlp_dim_seq = (
-            decoder_mlp_dim_seq if decoder_mlp_dim_seq is not None else [20]
+            decoder_mlp_dim_seq if decoder_mlp_dim_seq is not None else [30]
         )
         self.quantiles = (
-            quantiles if quantiles is not None else [0.1, 0.5, 0.9]
+            quantiles
+            if quantiles is not None
+            else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         )
 
         # `use_static_feat` and `use_dynamic_feat` always True because network
@@ -295,4 +294,5 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             prediction_length=prediction_length,
             context_length=context_length,
             trainer=trainer,
+            scaling=scaling,
         )

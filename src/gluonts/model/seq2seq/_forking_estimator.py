@@ -19,10 +19,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.block.decoder import Seq2SeqDecoder
-from gluonts.block.enc2dec import (
-    PassThroughEnc2Dec,
-    FutureFeatIntegratorEnc2Dec,
-)
+from gluonts.block.enc2dec import FutureFeatIntegratorEnc2Dec
 from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated, DType
@@ -89,11 +86,11 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     quantile_output
         quantile output
     freq
-        frequency of the time series
+        frequency of the time series.
     prediction_length
-        length of the decoding sequence
+        length of the decoding sequence.
     context_length
-        length of the encoding sequence (prediction_length is used if None)
+        length of the encoding sequence (default: 4 * prediction_length)
     use_feat_dynamic_real
         Whether to use the ``feat_dynamic_real`` field from the data (default: False)
     use_feat_static_cat:
@@ -105,12 +102,18 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         Dimension of the embeddings for categorical features
         (default: [min(50, (cat+1)//2) for cat in cardinality])
     add_time_feature
-        Adds a set of time features.
+        Adds a set of time features.  (default: False)
     add_age_feature
-        Adds an age feature.
+        Adds an age feature. (default: False)
         The age feature starts with a small value at the start of the time series and grows over time.
+    enable_decoder_dynamic_feature
+        Whether the decoder should also be provided with the dynamic features (``age``, ``time``
+        and ``feat_dynamic_real`` if enabled respectively). (default: True)
+        It makes sense to disable this, if you dont have ``feat_dynamic_real`` for the prediction range.
     trainer
         trainer (default: Trainer())
+    scaling
+        Whether to automatically scale the target values (default: False)
     dtype
         (default: np.float32)
     """
@@ -128,10 +131,11 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         use_feat_static_cat: bool = False,
         cardinality: List[int] = None,
         embedding_dimension: List[int] = None,
-        add_time_feature: bool = False,
-        add_age_feature: bool = False,
-        enable_decoder_dynamic_feature: bool = False,
+        add_time_feature: bool = True,
+        add_age_feature: bool = True,
+        enable_decoder_dynamic_feature: bool = True,
         trainer: Trainer = Trainer(),
+        scaling: bool = False,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer)
@@ -160,7 +164,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.context_length = (
             context_length
             if context_length is not None
-            else self.prediction_length
+            else 4 * self.prediction_length
         )
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
@@ -178,6 +182,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             use_feat_dynamic_real or add_age_feature or add_time_feature
         )
         self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
+        self.scaling = scaling
         self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
@@ -235,7 +240,11 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         if self.use_feat_dynamic_real:
             # Backwards compatibility:
             chain.append(
-                RenameFields({"dynamic_feat": FieldName.FEAT_DYNAMIC_REAL})
+                RenameFields(
+                    {
+                        FieldName.FEAT_DYNAMIC_REAL_LEGACY: FieldName.FEAT_DYNAMIC_REAL
+                    }
+                )
             )
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
@@ -309,6 +318,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             context_length=self.context_length,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
+            scaling=self.scaling,
             dtype=self.dtype,
         )
 
@@ -331,6 +341,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             context_length=self.context_length,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
+            scaling=self.scaling,
             dtype=self.dtype,
         )
 

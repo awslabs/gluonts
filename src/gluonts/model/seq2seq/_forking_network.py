@@ -52,6 +52,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         number of values of each categorical feature.
     embedding_dimension: List[int],
         dimension of the embeddings for categorical features
+    scaling
+        Whether to automatically scale the target values (default: True)
     dtype
         (default: np.float32)
     kwargs: dict
@@ -68,6 +70,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         context_length: int,
         cardinality: List[int],
         embedding_dimension: List[int],
+        scaling: bool = True,
         dtype: DType = np.float32,
         **kwargs,
     ) -> None:
@@ -80,11 +83,10 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         self.context_length = context_length
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
+        self.scaling = scaling
         self.dtype = dtype
 
-        # TODO: implement scaling
-        scaling = False
-        if scaling:
+        if self.scaling:
             self.scaler = MeanScaler(keepdims=True)
         else:
             self.scaler = NOPScaler(keepdims=True)
@@ -111,7 +113,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
         # scale is computed on the context length last units of the past target
         # scale shape is (batch_size, 1, *target_shape)
-        _, scale = self.scaler(
+        scaled_past_target, scale = self.scaler(
             past_target.slice_axis(
                 axis=1, begin=-self.context_length, end=None
             ),
@@ -137,7 +139,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
         # arguments: target, static_features, dynamic_features
         enc_output_static, enc_output_dynamic = self.encoder(
-            past_target, feat_static_real, past_feat_dynamic_extended
+            scaled_past_target, feat_static_real, past_feat_dynamic_extended
         )
 
         # arguments: encoder_output_static, encoder_output_dynamic, future_features
