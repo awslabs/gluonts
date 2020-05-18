@@ -238,14 +238,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             dynamic_feat_fields.append(FieldName.FEAT_AGE)
 
         if self.use_feat_dynamic_real:
-            # Backwards compatibility:
-            chain.append(
-                RenameFields(
-                    {
-                        FieldName.FEAT_DYNAMIC_REAL_LEGACY: FieldName.FEAT_DYNAMIC_REAL
-                    }
-                )
-            )
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
         # we need to make sure that there is always some dynamic input

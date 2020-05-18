@@ -300,8 +300,6 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
             feat_dynamic_real = None
             if FieldName.FEAT_DYNAMIC_REAL in ts:
                 feat_dynamic_real = ts[FieldName.FEAT_DYNAMIC_REAL]
-            elif FieldName.FEAT_DYNAMIC_REAL_LEGACY in ts:
-                feat_dynamic_real = ts[FieldName.FEAT_DYNAMIC_REAL_LEGACY]
 
             if feat_dynamic_real is None:
                 # feat_dynamic_real not found, check it was the first ts we encounter or

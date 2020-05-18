@@ -27,7 +27,6 @@ class FieldName:
     FEAT_STATIC_REAL = "feat_static_real"
     FEAT_DYNAMIC_CAT = "feat_dynamic_cat"
     FEAT_DYNAMIC_REAL = "feat_dynamic_real"
-    FEAT_DYNAMIC_REAL_LEGACY = "dynamic_feat"
 
     FEAT_DYNAMIC = "feat_dynamic"
 

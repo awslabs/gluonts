@@ -222,7 +222,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
 
         logger = logging.getLogger(__name__)
         logger.info(
-            f"gluonts[from_inputs]: use_feat_dynamic_real set to '{auto_fields['use_feat_dynamic_real']}', and use use_feat_static_cat to '{auto_fields['use_feat_static_cat']}' with cardinality of '{auto_fields['cardinality']}'"
+            f"gluonts[from_inputs]: use_feat_dynamic_real set to "
+            f"'{auto_fields['use_feat_dynamic_real']}', and use use_feat_static_cat to "
+            f"'{auto_fields['use_feat_static_cat']}' with cardinality of '{auto_fields['cardinality']}'"
         )
 
         return auto_fields
