@@ -27,7 +27,8 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.evaluation import Evaluator
 from gluonts.model.predictor import Predictor
-from gluonts.model.baseline import Naive2Predictor, SeasonalNaivePredictor
+from gluonts.model.naive_2 import Naive2Predictor
+from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.dataset.common import Dataset
 from gluonts.support.pandas import forecast_start
 
@@ -57,7 +58,7 @@ NUM_TS = 10
 @pytest.mark.parametrize(
     "freq", ["1min", "15min", "30min", "1H", "2H", "12H", "7D", "1W", "1M"]
 )
-def test_seasonal_naive(predictor_cls, freq: str):
+def test_predictor(predictor_cls, freq: str):
     predictor = predictor_cls(
         freq=freq,
         prediction_length=PREDICTION_LENGTH,

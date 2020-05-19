@@ -43,91 +43,88 @@ class LSTNetEstimator(GluonEstimator):
     The model has been described in this paper:
     https://arxiv.org/abs/1703.07015
 
-    Note that this implementation will change over time and we furthre work on
+    Note that this implementation will change over time as we further work on
     this method.
 
     Parameters
     ----------
     freq
         Frequency of the data to train and predict
+    prediction_length
+        Length of the prediction p where given `(y_1, ..., y_t)` the model
+        predicts `(y_{t+l+1}, ..., y_{t+l+p})`, where l is `lead_time`
     context_length
-        The maximum number of steps to unroll the RNN for computing the predictions
-        (Note that it is constraints by the Conv1D output size)
+        The maximum number of steps to unroll the RNN for computing the
+        predictions
+        (Note that it is constraints by the Conv2D output size)
     num_series
-        Number of time-series (variats)
+        Number of time-series (covariates)
     skip_size
         Skip size for the skip RNN layer
     ar_window
         Auto-regressive window size for the linear part
     channels
-        Number of channels for first layer Conv1D
+        Number of channels for first layer Conv2D
+    lead_time
+        Lead time (default: 0)
     kernel_size
-        Kernel size for first layer Conv1D (default: 6)
-    prediction_length
-        Length of the prediction p where given `(y_1, ..., y_t)` the model predicts
-        `(y_{t+1}, ..., y_{t+p})` (default: None)
-    horizon
-        Length of the prediction horizon `h` where given `(y_1, ..., y_t)` the model
-        predicts `y_{t+h}` (default: None)
-        Cannot use both `prediction_length` and `horizon` at the same time
+        Kernel size for first layer Conv2D (default: 6)
     trainer
         Trainer object to be used (default: Trainer())
     dropout_rate
         Dropout regularization parameter (default: 0.2)
     output_activation
         The last activation to be used for output.
-        Accepts either `None` (default no activation), `sigmoid` or `tahn`
+        Accepts either `None` (default no activation), `sigmoid` or `tanh`
     rnn_cell_type
         Type of the RNN cell. Either `lstm` or `gru` (default: `gru`)
     rnn_num_layers
         Number of RNN layers to be used
+    rnn_num_cells
+        Number of RNN cells for each layer (default: 100)
     skip_rnn_cell_type
-        Type of the RNN cell for the skip layer. Either `lstm` or `gru` (default: `gru`)
+        Type of the RNN cell for the skip layer. Either `lstm` or `gru` (
+        default: `gru`)
     skip_rnn_num_layers
         Number of RNN layers to be used for skip part
+    skip_rnn_num_cells
+        Number of RNN cells for each layer for skip part (default: 10)
     scaling
         Whether to automatically scale the target values (default: True)
     dtype
         Data type (default: np.float32)
-
-    Notes
-    -----
-    `horizon` and `prediction_length` cannot be used at the same time. Only one of them
-    must be provided.
     """
 
     @validated()
     def __init__(
         self,
         freq: str,
+        prediction_length: int,
         context_length: int,
         num_series: int,
         skip_size: int,
         ar_window: int,
         channels: int,
+        lead_time: int = 0,
         kernel_size: int = 6,
-        prediction_length: Optional[int] = None,
-        horizon: Optional[int] = None,
         trainer: Trainer = Trainer(),
         dropout_rate: Optional[float] = 0.2,
         output_activation: Optional[str] = None,
         rnn_cell_type: str = "gru",
-        rnn_num_layers: int = 10,
+        rnn_num_cells: int = 100,
+        rnn_num_layers: int = 3,
         skip_rnn_cell_type: str = "gru",
-        skip_rnn_num_layers: int = 5,
+        skip_rnn_num_layers: int = 1,
+        skip_rnn_num_cells: int = 10,
         scaling: bool = True,
         dtype: DType = np.float32,
     ) -> None:
-        super().__init__(trainer=trainer, dtype=dtype)
+        super().__init__(trainer=trainer, lead_time=lead_time, dtype=dtype)
         self.freq = freq
         self.num_series = num_series
         self.skip_size = skip_size
         self.ar_window = ar_window
-        self.horizon = horizon
         self.prediction_length = prediction_length
-        self.future_length = (
-            horizon if horizon is not None else prediction_length
-        )
         self.context_length = context_length
         self.channels = channels
         self.kernel_size = kernel_size
@@ -135,8 +132,10 @@ class LSTNetEstimator(GluonEstimator):
         self.output_activation = output_activation
         self.rnn_cell_type = rnn_cell_type
         self.rnn_num_layers = rnn_num_layers
+        self.rnn_num_cells = rnn_num_cells
         self.skip_rnn_cell_type = skip_rnn_cell_type
         self.skip_rnn_num_layers = skip_rnn_num_layers
+        self.skip_rnn_num_cells = skip_rnn_num_cells
         self.scaling = scaling
         self.dtype = dtype
 
@@ -159,8 +158,9 @@ class LSTNetEstimator(GluonEstimator):
                     train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     time_series_fields=[FieldName.OBSERVED_VALUES],
                     past_length=self.context_length,
-                    future_length=self.future_length,
-                    output_NTC=False,  # output NCT for first layer conv1d
+                    future_length=self.prediction_length,
+                    lead_time=self.lead_time,
+                    output_NTC=False,  # output NCT for first layer conv2d
                 ),
             ]
         )
@@ -172,12 +172,14 @@ class LSTNetEstimator(GluonEstimator):
             kernel_size=self.kernel_size,
             rnn_cell_type=self.rnn_cell_type,
             rnn_num_layers=self.rnn_num_layers,
+            rnn_num_cells=self.rnn_num_cells,
             skip_rnn_cell_type=self.skip_rnn_cell_type,
             skip_rnn_num_layers=self.skip_rnn_num_layers,
+            skip_rnn_num_cells=self.skip_rnn_num_cells,
             skip_size=self.skip_size,
             ar_window=self.ar_window,
             context_length=self.context_length,
-            horizon=self.horizon,
+            lead_time=self.lead_time,
             prediction_length=self.prediction_length,
             dropout_rate=self.dropout_rate,
             output_activation=self.output_activation,
@@ -194,12 +196,14 @@ class LSTNetEstimator(GluonEstimator):
             kernel_size=self.kernel_size,
             rnn_cell_type=self.rnn_cell_type,
             rnn_num_layers=self.rnn_num_layers,
+            rnn_num_cells=self.rnn_num_cells,
             skip_rnn_cell_type=self.skip_rnn_cell_type,
             skip_rnn_num_layers=self.skip_rnn_num_layers,
+            skip_rnn_num_cells=self.skip_rnn_num_cells,
             skip_size=self.skip_size,
             ar_window=self.ar_window,
             context_length=self.context_length,
-            horizon=self.horizon,
+            lead_time=self.lead_time,
             prediction_length=self.prediction_length,
             dropout_rate=self.dropout_rate,
             output_activation=self.output_activation,
@@ -214,7 +218,8 @@ class LSTNetEstimator(GluonEstimator):
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
             freq=self.freq,
-            prediction_length=self.horizon or self.prediction_length,
+            prediction_length=self.prediction_length,
+            lead_time=self.lead_time,
             ctx=self.trainer.ctx,
             dtype=self.dtype,
         )

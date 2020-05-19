@@ -15,6 +15,7 @@
 import itertools
 import logging
 from typing import Any, Dict, Iterable, Iterator, Optional
+import multiprocessing as mp
 
 # Third-party imports
 import mxnet as mx
@@ -72,8 +73,7 @@ class DataLoader(Iterable[DataEntry]):
         dtype: DType = np.float32,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        num_batches_for_shuffling: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.batch_size = batch_size
         self.ctx = ctx
@@ -81,9 +81,14 @@ class DataLoader(Iterable[DataEntry]):
         self.is_train = is_train
         self.transform = transform
         self.cyclic = cyclic
+        self.logger = logging.getLogger(__name__)
+        if num_workers is not None and num_workers > mp.cpu_count():
+            self.logger.warning(
+                f"num_workers is set to {num_workers}, but there are only {mp.cpu_count()} cpus "
+                f"please reduce the number of workers"
+            )
         self.num_workers = num_workers
         self.num_prefetch = num_prefetch
-        self.num_batches_for_shuffling = num_batches_for_shuffling
 
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
@@ -95,7 +100,6 @@ class DataLoader(Iterable[DataEntry]):
             dtype=self.dtype,
             num_workers=self.num_workers,
             num_prefetch=self.num_prefetch,
-            num_batches_for_shuffling=self.num_batches_for_shuffling,
             **kwargs,
         )
 
@@ -133,14 +137,9 @@ class TrainDataLoader(DataLoader):
         Note that using large prefetching batch will provide smoother bootstrapping performance,
         but will consume more shared_memory. Using smaller number may forfeit the purpose of using
         multiple worker processes, try reduce `num_workers` in this case.
-        By default it defaults to `num_workers * 2`.
+        By default `num_workers * 2`.
     dtype
         Floating point type to use. Default is np.float32.
-    shuffle_for_training
-        Whether to shuffle the samples.
-    num_batches_for_shuffling
-        The effective number of batches among which samples are shuffled. If num_batches_for_shuffling = 8 and
-        batch_size = 8 then the next batch will be randomly sampled from about 64 samples.
     """
 
     def __init__(
@@ -153,9 +152,7 @@ class TrainDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 8,
-        **kwargs
+        **kwargs,
     ) -> None:
         assert dataset, "empty dataset"
 
@@ -166,26 +163,27 @@ class TrainDataLoader(DataLoader):
             ctx=ctx,
             dtype=dtype,
             is_train=True,
-            shuffle=shuffle_for_training,
             cyclic=True,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
-            num_batches_for_shuffling=num_batches_for_shuffling,
             **kwargs,
         )
 
         self.num_batches_per_epoch = num_batches_per_epoch
-        self.shuffle_for_training = shuffle_for_training
-        self.num_batches_for_shuffling = num_batches_for_shuffling
+        self._it = iter(self.parallel_data_loader)
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
 
     def __iter__(self) -> Iterator[DataBatch]:
-        # take num_batches of batches for one epoch
-        return itertools.islice(
-            self.parallel_data_loader, self.num_batches_per_epoch
-        )
+        i = 0
+        while True:
+            for batch in self._it:
+                yield batch
+                i += 1
+                if i == self.num_batches_per_epoch:
+                    return
+            self._it = iter(self.parallel_data_loader)
 
 
 class ValidationDataLoader(DataLoader):
@@ -199,7 +197,7 @@ class ValidationDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             dataset=dataset,
@@ -226,7 +224,7 @@ class InferenceDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         dtype: DType = np.float32,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             dataset=dataset,

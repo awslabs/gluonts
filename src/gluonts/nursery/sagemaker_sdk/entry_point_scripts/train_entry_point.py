@@ -73,7 +73,7 @@ def train(arguments):
     evaluator = Evaluator(quantiles=eval(arguments.quantiles))
 
     agg_metrics, item_metrics = evaluator(
-        ts_it, forecast_it, num_series=len(dataset.test)
+        ts_it, forecast_it, num_series=len(list(dataset.test))
     )
 
     # required for metric tracking.

@@ -103,12 +103,12 @@ def naive_2(
             prediction_length
         )  # i.e. no seasonality component
 
-    # calculate naive 1 forecast: (last value prediction_length times)
-    naive_1_forecast = (
+    # calculate naive forecast: (last value prediction_length times)
+    naive_forecast = (
         np.ones(prediction_length) * seasonality_normed_context[-1]
     )
 
-    forecast = np.mean(naive_1_forecast) * multiplicative_seasonal_component
+    forecast = np.mean(naive_forecast) * multiplicative_seasonal_component
 
     return forecast
 
@@ -138,7 +138,7 @@ class Naive2Predictor(RepresentablePredictor):
         prediction_length: int,
         season_length: Optional[int] = None,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         assert (
             season_length is None or season_length > 0

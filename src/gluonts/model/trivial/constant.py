@@ -78,7 +78,7 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         # line on default
         num_samples: int = 1,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
         self.value = value
         self.num_samples = num_samples
 
