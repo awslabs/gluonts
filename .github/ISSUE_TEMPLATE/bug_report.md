@@ -27,5 +27,6 @@ put error or undesired output here
 - Operating system:
 - Python version:
 - GluonTS version:
+- MXNet version:
 
 (Add as much information about your environment as possible, e.g. dependencies versions.)
