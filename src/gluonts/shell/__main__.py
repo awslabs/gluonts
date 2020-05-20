@@ -179,6 +179,12 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
 
 if __name__ == "__main__":
     import logging
+    import os
+
+    from gluonts import gluonts_tqdm
+
+    if "TRAINING_JOB_NAME" in os.environ:
+        gluonts_tqdm.USE_TQDM = False
 
     logging.basicConfig(
         level=logging.INFO,

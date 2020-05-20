@@ -11,28 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-import functools
-import sys
-
-# Third-party imports
-from tqdm import tqdm as _tqdm
-
-# TODO: when we have upgraded this will give notebook progress bars
-# from tqdm.auto import tqdm as _tqdm
+from .forecast import PointProcessSampleForecast
+from .predictor import PointProcessGluonPredictor
 
 
-USE_TQDM = True
+__all__ = ["PointProcessGluonPredictor", "PointProcessSampleForecast"]
 
 
-@functools.wraps(_tqdm)
-def tqdm(it, *args, **kwargs):
-    # we want to be able to disable TQDM, for example when running in sagemaker
-    if not USE_TQDM:
-        return it
-
-    kwargs = kwargs.copy()
-    if not sys.stdout.isatty():
-        kwargs.update(mininterval=10.0)
-
-    return _tqdm(it, *args, **kwargs)
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

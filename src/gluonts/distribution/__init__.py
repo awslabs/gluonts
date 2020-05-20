@@ -48,7 +48,7 @@ from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
-
+from .logit_normal import LogitNormal, LogitNormalOutput
 from .gamma import Gamma, GammaOutput
 from .poisson import Poisson, PoissonOutput
 
@@ -93,6 +93,8 @@ __all__ = [
     "DirichletMultinomialOutput",
     "Categorical",
     "CategoricalOutput",
+    "LogitNormal",
+    "LogitNormalOutput",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
