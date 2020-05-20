@@ -71,7 +71,9 @@ class LocalAbsoluteBinning(Representation):
         if scale is None:
             # Even though local binning implicitly scales the data, we still return the scale as an input to the model.
             scale = F.expand_dims(
-                F.sum(data, axis=-1) / F.sum(observed_indicator, axis=-1), -1
+                F.sum(data * observed_indicator, axis=-1)
+                / F.sum(observed_indicator, axis=-1),
+                -1,
             )
 
             bin_centers_hyb = np.ones((len(data), self.num_bins)) * (-1)

@@ -134,7 +134,9 @@ class GlobalRelativeBinning(Representation):
         # Calculate local scale if scale is not already supplied.
         if scale is None:
             scale = F.expand_dims(
-                F.sum(data, axis=-1) / F.sum(observed_indicator, axis=-1), -1
+                F.sum(data * observed_indicator, axis=-1)
+                / F.sum(observed_indicator, axis=-1),
+                -1,
             )
             # Clip scale on the bottom to prevent division by zero.
             scale = F.clip(scale, 1e-20, np.inf)
