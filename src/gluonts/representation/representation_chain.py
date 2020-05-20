@@ -31,7 +31,7 @@ class RepresentationChain(Representation):
 
     Parameters
     ----------
-    representations
+    chain
         A list of representations. Elements must be of type Representation.
     """
 

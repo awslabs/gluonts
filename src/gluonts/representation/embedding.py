@@ -35,7 +35,8 @@ class Embedding(Representation):
     num_bins
         The number of categories/bins of the data on which this representation is applied.
     size
-        The desired embedding size.
+        The desired embedding size. By default, the following heuristic is used:
+        https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
         (default: round(num_bins**(1/4)))
     """
 
@@ -47,8 +48,6 @@ class Embedding(Representation):
         self.num_bins = num_bins
 
         if size is None:
-            # Embedding size heuristic that seems to work well in practice. For reference see:
-            # https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
             self.size = round(self.num_bins ** (1 / 4))
         else:
             self.size = size
