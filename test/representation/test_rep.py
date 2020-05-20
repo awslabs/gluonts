@@ -15,10 +15,10 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.representation import NOPScaling
+from gluonts.representation import Representation
 
 
-nop_cases = [
+cases = [
     (
         mx.nd.array(
             [
@@ -61,9 +61,9 @@ nop_cases = [
 ]
 
 
-@pytest.mark.parametrize("target, observed", nop_cases)
-def test_nop(target, observed):
-    s = NOPScaling()
+@pytest.mark.parametrize("target, observed", cases)
+def test_rep(target, observed):
+    s = Representation()
     target_scaled, scale, _ = s(target, observed, None, [])
 
     assert mx.nd.norm(target - target_scaled) == 0

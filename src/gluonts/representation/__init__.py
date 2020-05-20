@@ -18,7 +18,6 @@ from .global_relative_binning import GlobalRelativeBinning
 from .local_absolute_binning import LocalAbsoluteBinning
 from .hybrid_representation import HybridRepresentation
 from .mean_scaling import MeanScaling
-from .nop_scaling import NOPScaling
 from .dim_expansion import DimExpansion
 from .embedding import Embedding
 from .discrete_pit import DiscretePIT
@@ -31,7 +30,6 @@ __all__ = [
     "LocalAbsoluteBinning",
     "HybridRepresentation",
     "MeanScaling",
-    "NOPScaling",
     "DimExpansion",
     "Embedding",
     "DiscretePIT",
