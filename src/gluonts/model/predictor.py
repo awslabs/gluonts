@@ -247,7 +247,7 @@ class GluonPredictor(Predictor):
     ctx
         MXNet context to use for computation
     forecast_generator
-        Class to generate forecasts from network ouputs
+        Class to generate forecasts from network outputs
     """
 
     BlockType = mx.gluon.Block
