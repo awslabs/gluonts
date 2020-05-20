@@ -43,7 +43,8 @@ class DiscretePIT(Representation):
         embedding.
         (default: False)
     embedding_size
-        The desired layer output size if mlp_tranf=True.
+        The desired layer output size if mlp_tranf=True. By default, the following heuristic is used:
+        https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
         (default: round(num_bins**(1/4)))
     """
 
@@ -62,8 +63,6 @@ class DiscretePIT(Representation):
         self.mlp_transf = mlp_transf
 
         if embedding_size is None:
-            # Embedding size heuristic that seems to work well in practice. For reference see:
-            # https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
             self.embedding_size = round(self.num_bins ** (1 / 4))
         else:
             self.embedding_size = embedding_size
