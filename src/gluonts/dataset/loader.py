@@ -137,7 +137,7 @@ class TrainDataLoader(DataLoader):
         Note that using large prefetching batch will provide smoother bootstrapping performance,
         but will consume more shared_memory. Using smaller number may forfeit the purpose of using
         multiple worker processes, try reduce `num_workers` in this case.
-        By default it defaults to `num_workers * 2`.
+        By default `num_workers * 2`.
     dtype
         Floating point type to use. Default is np.float32.
     """

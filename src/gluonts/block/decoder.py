@@ -52,6 +52,7 @@ class Seq2SeqDecoder(nn.HybridBlock):
         pass
 
 
+# TODO: add support for static variables at some point
 class ForkingMLPDecoder(Seq2SeqDecoder):
     """
     Multilayer perceptron decoder for sequence-to-sequence models.
@@ -76,7 +77,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         self,
         dec_len: int,
         final_dim: int,
-        hidden_dimension_sequence: List[int] = list([]),
+        hidden_dimension_sequence: List[int] = [],
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -104,6 +105,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
             )
             self.model.add(layer)
 
+    # TODO: add support for static input at some point
     def hybrid_forward(
         self, F, dynamic_input: Tensor, static_input: Tensor = None
     ) -> Tensor:
@@ -115,11 +117,10 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
         dynamic_input
-            dynamic_features, shape (batch_size, sequence_length, num_features)
-            or (N, T, C).
-
+            dynamic_features, shape (batch_size, sequence_length, num_features) or (N, T, C)
+            where sequence_length is equal to the encoder length, and num_features is equal
+            to channel_seq[-1] for the MQCNN for example.
         static_input
             not used in this decoder.
 

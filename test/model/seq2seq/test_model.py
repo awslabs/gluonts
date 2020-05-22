@@ -16,8 +16,8 @@ import pytest
 from gluonts.model.seq2seq import (
     MQCNNEstimator,
     MQRNNEstimator,
-    Seq2SeqEstimator,
 )
+from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 
 @pytest.fixture()
@@ -41,11 +41,83 @@ def Estimator(request):
     return request.param
 
 
+@pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_accuracy(Estimator, accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize)
+def test_accuracy(
+    Estimator, accuracy_test, hyperparameters, hybridize, quantiles
+):
+    hyperparameters.update(
+        num_batches_per_epoch=100, hybridize=hybridize, quantiles=quantiles
+    )
 
-    accuracy_test(Estimator, hyperparameters, accuracy=0.2)
+    accuracy_test(Estimator, hyperparameters, accuracy=0.20)
+
+
+@pytest.mark.parametrize("use_feat_dynamic_real", [True, False])
+@pytest.mark.parametrize("add_time_feature", [True, False])
+@pytest.mark.parametrize("add_age_feature", [True, False])
+@pytest.mark.parametrize("enable_decoder_dynamic_feature", [True, False])
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_mqcnn_covariate_smoke_test(
+    use_feat_dynamic_real,
+    add_time_feature,
+    add_age_feature,
+    enable_decoder_dynamic_feature,
+    hybridize,
+):
+    hps = {
+        "seed": 42,
+        "freq": "D",
+        "prediction_length": 3,
+        "quantiles": [0.5, 0.1],
+        "epochs": 3,
+        "num_batches_per_epoch": 3,
+        "use_feat_dynamic_real": use_feat_dynamic_real,
+        "add_time_feature": add_time_feature,
+        "add_age_feature": add_age_feature,
+        "enable_decoder_dynamic_feature": enable_decoder_dynamic_feature,
+        "hybridize": hybridize,
+    }
+
+    dataset_train, dataset_test = make_dummy_datasets_with_features(
+        cardinality=[3, 10],
+        num_feat_dynamic_real=2,
+        freq=hps["freq"],
+        prediction_length=hps["prediction_length"],
+    )
+
+    estimator = MQCNNEstimator.from_hyperparameters(**hps)
+
+    predictor = estimator.train(dataset_train, num_workers=0)
+    forecasts = list(predictor.predict(dataset_test))
+    assert len(forecasts) == len(dataset_test)
+
+
+# Test scaling and from inputs
+@pytest.mark.parametrize("scaling", [True, False])
+def test_mqcnn_scaling_smoke_test(scaling):
+    hps = {
+        "seed": 42,
+        "freq": "D",
+        "prediction_length": 3,
+        "quantiles": [0.5, 0.1],
+        "epochs": 3,
+        "num_batches_per_epoch": 3,
+        "scaling": scaling,
+    }
+
+    dataset_train, dataset_test = make_dummy_datasets_with_features(
+        cardinality=[3, 10],
+        num_feat_dynamic_real=2,
+        freq=hps["freq"],
+        prediction_length=hps["prediction_length"],
+    )
+
+    estimator = MQCNNEstimator.from_inputs(dataset_train, **hps)
+
+    predictor = estimator.train(dataset_train, num_workers=0)
+    forecasts = list(predictor.predict(dataset_test))
+    assert len(forecasts) == len(dataset_test)
 
 
 def test_repr(Estimator, repr_test, hyperparameters):

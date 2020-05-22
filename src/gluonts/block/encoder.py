@@ -32,10 +32,6 @@ class Seq2SeqEncoder(nn.HybridBlock):
     a dynamic latent code with the same length as the `target` sequence.
     """
 
-    @validated()
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
@@ -47,39 +43,36 @@ class Seq2SeqEncoder(nn.HybridBlock):
         """
         Parameters
         ----------
-
         F:
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
         target
             target time series,
             shape (batch_size, sequence_length)
-
         static_features
             static features,
             shape (batch_size, num_static_features)
-
         dynamic_features
             dynamic_features,
             shape (batch_size, sequence_length, num_dynamic_features)
-
 
         Returns
         -------
         Tensor
             static code,
             shape (batch_size, num_static_features)
-
         Tensor
             dynamic code,
             shape (batch_size, sequence_length, num_dynamic_features)
         """
         raise NotImplementedError
 
-    @staticmethod
     def _assemble_inputs(
-        F, target: Tensor, static_features: Tensor, dynamic_features: Tensor
+        self,
+        F,
+        target: Tensor,
+        static_features: Tensor,
+        dynamic_features: Tensor,
     ) -> Tensor:
         """
         Assemble features from target, static features, and the dynamic
@@ -90,15 +83,12 @@ class Seq2SeqEncoder(nn.HybridBlock):
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
         target
             target time series,
-            shape (batch_size, sequence_length)
-
+            shape (batch_size, sequence_length, 1)
         static_features
             static features,
             shape (batch_size, num_static_features)
-
         dynamic_features
             dynamic_features,
             shape (batch_size, sequence_length, num_dynamic_features)
@@ -109,9 +99,7 @@ class Seq2SeqEncoder(nn.HybridBlock):
             combined features,
             shape (batch_size, sequence_length,
                    num_static_features + num_dynamic_features + 1)
-
         """
-        target = target.expand_dims(axis=-1)  # (N, T, 1)
 
         helper_ones = F.ones_like(target)  # Ones of (N, T, 1)
         tiled_static_features = F.batch_dot(
@@ -123,6 +111,7 @@ class Seq2SeqEncoder(nn.HybridBlock):
         return inputs
 
 
+# TODO: fix handling of static features
 class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
     """
     Defines a stack of dilated convolutions as the encoder.
@@ -135,18 +124,16 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
     ----------
     dilation_seq
         dilation for each convolution in the stack.
-
     kernel_size_seq
         kernel size for each convolution in the stack.
-
     channels_seq
         number of channels for each convolution in the stack.
-
     use_residual
         flag to toggle using residual connections.
-
-    use_covariates
-        flag to toggle whether to use coveriates as input to the encoder
+    use_static_feat
+        flag to toggle whether to use use_static_feat as input to the encoder
+    use_dynamic_feat
+        flag to toggle whether to use use_dynamic_feat as input to the encoder
     """
 
     @validated()
@@ -156,7 +143,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         kernel_size_seq: List[int],
         channels_seq: List[int],
         use_residual: bool = False,
-        use_covariates: bool = False,
+        use_static_feat: bool = False,
+        use_dynamic_feat: bool = False,
         **kwargs,
     ) -> None:
         assert all(
@@ -172,7 +160,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         super().__init__(**kwargs)
 
         self.use_residual = use_residual
-        self.use_covariates = use_covariates
+        self.use_static_feat = use_static_feat
+        self.use_dynamic_feat = use_dynamic_feat
         self.cnn = nn.HybridSequential()
 
         it = zip(channels_seq, kernel_size_seq, dilation_seq)
@@ -196,42 +185,39 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         """
         Parameters
         ----------
-
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
         target
             target time series,
-            shape (batch_size, sequence_length)
-
+            shape (batch_size, sequence_length, 1)
         static_features
             static features,
             shape (batch_size, num_static_features)
-
         dynamic_features
             dynamic_features,
             shape (batch_size, sequence_length, num_dynamic_features)
-
         Returns
         -------
         Tensor
             static code,
             shape (batch_size, num_static_features)
-
         Tensor
             dynamic code,
             shape (batch_size, sequence_length, num_dynamic_features)
         """
 
-        if self.use_covariates:
-            inputs = Seq2SeqEncoder._assemble_inputs(
+        if self.use_dynamic_feat and self.use_static_feat:
+            inputs = self._assemble_inputs(
                 F,
                 target=target,
                 static_features=static_features,
                 dynamic_features=dynamic_features,
             )
+        elif self.use_dynamic_feat:
+            inputs = F.concat(target, dynamic_features, dim=2)  # (N, T, C)
         else:
+            # For now, static features only used when dynamic feat enabled
             inputs = target
 
         # NTC -> NCT (or NCW)
@@ -246,27 +232,29 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         # return the last state as the static code
         static_code = F.slice_axis(ct, axis=1, begin=-1, end=None)
         static_code = F.squeeze(static_code, axis=1)
+
         return static_code, ct
 
 
 class RNNEncoder(Seq2SeqEncoder):
     """
-    Defines an RNN as the encoder.
+    Defines RNN encoder that uses covariates and target as input to the RNN if desired.
 
     Parameters
     ----------
     mode
         type of the RNN. Can be either: rnn_relu (RNN with relu activation),
         rnn_tanh, (RNN with tanh activation), lstm or gru.
-
     hidden_size
         number of units per hidden layer.
-
     num_layers
         number of hidden layers.
-
     bidirectional
         toggle use of bi-directional RNN as encoder.
+    use_static_feat
+        flag to toggle whether to use use_static_feat as input to the encoder
+    use_dynamic_feat
+        flag to toggle whether to use use_dynamic_feat as input to the encoder
     """
 
     @validated()
@@ -276,12 +264,21 @@ class RNNEncoder(Seq2SeqEncoder):
         hidden_size: int,
         num_layers: int,
         bidirectional: bool,
+        use_static_feat: bool = False,
+        use_dynamic_feat: bool = False,
         **kwargs,
     ) -> None:
         assert num_layers > 0, "`num_layers` value must be greater than zero"
         assert hidden_size > 0, "`hidden_size` value must be greater than zero"
 
         super().__init__(**kwargs)
+
+        self.mode = mode
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.bidirectional = bidirectional
+        self.use_static_feat = use_static_feat
+        self.use_dynamic_feat = use_dynamic_feat
 
         with self.name_scope():
             self.rnn = RNN(mode, hidden_size, num_layers, bidirectional)
@@ -299,15 +296,12 @@ class RNNEncoder(Seq2SeqEncoder):
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
         target
             target time series,
-            shape (batch_size, sequence_length)
-
+            shape (batch_size, sequence_length, 1)
         static_features
             static features,
             shape (batch_size, num_static_features)
-
         dynamic_features
             dynamic_features,
             shape (batch_size, sequence_length, num_dynamic_features)
@@ -317,12 +311,23 @@ class RNNEncoder(Seq2SeqEncoder):
         Tensor
             static code,
             shape (batch_size, num_static_features)
-
         Tensor
             dynamic code,
             shape (batch_size, sequence_length, num_dynamic_features)
         """
-        dynamic_code = self.rnn(target)
+        if self.use_dynamic_feat and self.use_static_feat:
+            inputs = self._assemble_inputs(
+                F,
+                target=target,
+                static_features=static_features,
+                dynamic_features=dynamic_features,
+            )
+        elif self.use_dynamic_feat:
+            inputs = F.concat(target, dynamic_features, dim=2)  # (N, T, C)
+        else:
+            inputs = target
+
+        dynamic_code = self.rnn(inputs)
         static_code = F.slice_axis(dynamic_code, axis=1, begin=-1, end=None)
         return static_code, dynamic_code
 
@@ -356,15 +361,12 @@ class MLPEncoder(Seq2SeqEncoder):
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
         target
             target time series,
             shape (batch_size, sequence_length)
-
         static_features
             static features,
             shape (batch_size, num_static_features)
-
         dynamic_features
             dynamic_features,
             shape (batch_size, sequence_length, num_dynamic_features)
@@ -374,13 +376,12 @@ class MLPEncoder(Seq2SeqEncoder):
         Tensor
             static code,
             shape (batch_size, num_static_features)
-
         Tensor
             dynamic code,
             shape (batch_size, sequence_length, num_dynamic_features)
         """
 
-        inputs = Seq2SeqEncoder._assemble_inputs(
+        inputs = self._assemble_inputs(
             F, target, static_features, dynamic_features
         )
         static_code = self.model(inputs)
@@ -388,89 +389,20 @@ class MLPEncoder(Seq2SeqEncoder):
         return static_code, dynamic_code
 
 
-class RNNCovariateEncoder(Seq2SeqEncoder):
+class RNNCovariateEncoder(RNNEncoder):
     """
-    Defines RNN encoder that uses covariates and target as input to the RNN.
-
-    Parameters
-    ----------
-    mode
-        type of the RNN. Can be either: rnn_relu (RNN with relu activation),
-        rnn_tanh, (RNN with tanh activation), lstm or gru.
-
-    hidden_size
-        number of units per hidden layer.
-
-    num_layers
-        number of hidden layers.
-
-    bidirectional
-        toggle use of bi-directional RNN as encoder.
+    Deprecated class only for compatibility; use RNNEncoder instead.
     """
 
     @validated()
     def __init__(
         self,
-        mode: str,
-        hidden_size: int,
-        num_layers: int,
-        bidirectional: bool,
+        use_static_feat: bool = True,
+        use_dynamic_feat: bool = True,
         **kwargs,
     ) -> None:
-
-        assert num_layers > 0, "`num_layers` value must be greater than zero"
-        assert hidden_size > 0, "`hidden_size` value must be greater than zero"
-
-        super().__init__(**kwargs)
-
-        with self.name_scope():
-            self.rnn = RNN(mode, hidden_size, num_layers, bidirectional)
-
-    def hybrid_forward(
-        self,
-        F,
-        target: Tensor,
-        static_features: Tensor,
-        dynamic_features: Tensor,
-    ) -> Tuple[Tensor, Tensor]:
-        """
-        Parameters
-        ----------
-        F
-            A module that can either refer to the Symbol API or the NDArray
-            API in MXNet.
-
-        target
-            target time series,
-            shape (batch_size, sequence_length)
-
-        static_features
-            static features,
-            shape (batch_size, num_static_features)
-
-        dynamic_features
-            dynamic_features,
-            shape (batch_size, sequence_length, num_dynamic_features)
-
-        Returns
-        -------
-        Tensor
-            static code,
-            shape (batch_size, num_static_features)
-
-        Tensor
-            dynamic code,
-            shape (batch_size, sequence_length, num_dynamic_features)
-        """
-        inputs = Seq2SeqEncoder._assemble_inputs(
-            F, target, static_features, dynamic_features
+        super().__init__(
+            use_static_feat=use_static_feat,
+            use_dynamic_feat=use_dynamic_feat,
+            **kwargs,
         )
-        dynamic_code = self.rnn(inputs)
-
-        # using the last state as the static code,
-        # but not working as well as the concat of all the previous states
-        static_code = F.squeeze(
-            F.slice_axis(dynamic_code, axis=1, begin=-1, end=None), axis=1
-        )
-
-        return static_code, dynamic_code

@@ -37,7 +37,7 @@ def hyperparameters(dsinfo):
 def test_accuracy(accuracy_test, hyperparameters):
     hyperparameters.update(num_batches_per_epoch=100)
 
-    accuracy_test(DeepStateEstimator, hyperparameters, accuracy=0.5)
+    accuracy_test(DeepStateEstimator, hyperparameters, accuracy=0.75)
 
 
 def test_repr(repr_test, hyperparameters):
