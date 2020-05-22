@@ -16,6 +16,7 @@ from typing import Tuple, List
 
 # Third-party imports
 import numpy as np
+import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
@@ -102,14 +103,18 @@ class CategoricalOutput(DistributionOutput):
     distr_cls: type = Categorical
 
     @validated()
-    def __init__(self, num_cats: int) -> None:
+    def __init__(self, num_cats: int, temperature: float = 1.0) -> None:
         super().__init__()
         assert num_cats > 1, "Number of categories must be larger than one."
+        assert temperature > 0, "Temperature must be larger than zero."
         self.args_dim = {"num_cats": num_cats}
         self.distr_cls = Categorical
         self.num_cats = num_cats
+        self.temperature = temperature
 
     def domain_map(self, F, probs):
+        if not mx.autograd.is_training():
+            probs = probs / self.temperature
         log_probs_s = F.log_softmax(probs)
         return log_probs_s
 
