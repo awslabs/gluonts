@@ -89,8 +89,6 @@ class MeanScaling(Representation):
         rep_params: List[Tensor],
         **kwargs,
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
-        data = F.cast(data, dtype="float32")
-
         if scale is None:
             scale = self.compute_scale(F, data, observed_indicator)
             scale = scale.expand_dims(axis=1)
