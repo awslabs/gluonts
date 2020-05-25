@@ -45,6 +45,12 @@ class AddObservedValuesIndicator(SimpleTransformation):
         Field name to use for the indicator
     dummy_value
         Value to use for replacing missing values.
+    imputation_method
+        Select the method to replace the missing values.
+            - "standard" to just replace them with the dummy_value
+            - "mean" to replace them with the mean of the array
+            - "median" to replace them with the median of the array
+            _ "last_val" to replace them with the last non missing value
     convert_nans
         If set to true (default) missing values will be replaced. Otherwise
         they will not be replaced. In any case the indicator is included in the
@@ -57,21 +63,54 @@ class AddObservedValuesIndicator(SimpleTransformation):
         target_field: str,
         output_field: str,
         dummy_value: float = 0.0,
+        imputation_method: str = "standard",
         convert_nans: bool = True,
         dtype: DType = np.float32,
     ) -> None:
         self.dummy_value = dummy_value
         self.target_field = target_field
         self.output_field = output_field
+        self.imputation_method = imputation_method
         self.convert_nans = convert_nans
         self.dtype = dtype
+
+    def _dummy_impute_missing(self, value: np.ndarray) -> np.ndarray:
+        nan_indices = np.where(np.isnan(value))
+        value[nan_indices] = self.dummy_value
+        return value
+
+    def _mean_impute_missing(self, value: np.ndarray) -> np.ndarray:
+        nan_indices = np.where(np.isnan(value))
+        value[nan_indices] = np.nanmean(value)
+        return value
+
+    def _median_impute_missing(self, value: np.ndarray) -> np.ndarray:
+        nan_indices = np.where(np.isnan(value))
+        value[nan_indices] = np.nanmedian(value)
+        return value
+
+    def _last_missing_values(self, value: np.ndarray) -> np.ndarray:
+        value = np.expand_dims(value, axis=0)
+
+        mask = np.isnan(value)
+        idx = np.where(~mask, np.arange(mask.shape[1]), 0)
+        np.maximum.accumulate(idx, axis=1, out=idx)
+        out = value[np.arange(idx.shape[0])[:, None], idx]
+
+        return np.squeeze(out)
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
         nan_entries = np.isnan(value)
 
         if self.convert_nans:
-            value[np.where(nan_entries)] = self.dummy_value
+            dic_imput_methods = {
+                "standard": self._dummy_impute_missing,
+                "mean" : self._mean_impute_missing,
+                "median" : self._median_impute_missing,
+                "last_val" : self._last_missing_values
+            }
+            value = dic_imput_methods[self.imputation_method](value)
             data[self.target_field] = value
 
         data[self.output_field] = np.invert(
