@@ -20,6 +20,7 @@ from mxnet.gluon import HybridBlock
 
 # First-party imports
 from gluonts.core.component import DType, validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.distribution import DistributionOutput, StudentTOutput
@@ -44,6 +45,12 @@ from gluonts.transform import (
     SetField,
     Transformation,
     VstackFeatures,
+)
+from gluonts.representation import (
+    Representation,
+    MeanScaling,
+    DimExpansion,
+    RepresentationChain,
 )
 
 # Relative imports
@@ -96,11 +103,15 @@ class DeepAREstimator(GluonEstimator):
     embedding_dimension
         Dimension of the embeddings for categorical features
         (default: [min(50, (cat+1)//2) for cat in cardinality])
+    input_repr
+        Representation for the model inputs.
+        (default: DimExpansion(MeanScaling()))
+    output_repr
+        Representation for the model outputs.
+        (default: Representation())
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput())
-    scaling
-        Whether to automatically scale the target values (default: true)
     lags_seq
         Indices of the lagged target values to use as inputs of the RNN
         (default: None, in which case these are automatically determined
@@ -129,8 +140,11 @@ class DeepAREstimator(GluonEstimator):
         use_feat_static_real: bool = False,
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
+        input_repr: Representation = RepresentationChain(
+            chain=[MeanScaling(), DimExpansion()]
+        ),
+        output_repr: Representation = Representation(),
         distr_output: DistributionOutput = StudentTOutput(),
-        scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
@@ -165,6 +179,8 @@ class DeepAREstimator(GluonEstimator):
             context_length if context_length is not None else prediction_length
         )
         self.prediction_length = prediction_length
+        self.input_repr = input_repr
+        self.output_repr = output_repr
         self.distr_output = distr_output
         self.distr_output.dtype = dtype
         self.num_layers = num_layers
@@ -182,7 +198,6 @@ class DeepAREstimator(GluonEstimator):
             if embedding_dimension is not None
             else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         )
-        self.scaling = scaling
         self.lags_seq = (
             lags_seq
             if lags_seq is not None
@@ -207,6 +222,18 @@ class DeepAREstimator(GluonEstimator):
             "use_feat_static_cat": bool(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
+
+    def train(
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        **kwargs,
+    ) -> Predictor:
+        self.input_repr.initialize_from_dataset(training_data)
+        self.output_repr.initialize_from_dataset(training_data)
+        return super().train(training_data)
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
@@ -302,12 +329,13 @@ class DeepAREstimator(GluonEstimator):
             history_length=self.history_length,
             context_length=self.context_length,
             prediction_length=self.prediction_length,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
             distr_output=self.distr_output,
             dropout_rate=self.dropout_rate,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
-            scaling=self.scaling,
             dtype=self.dtype,
         )
 
@@ -322,12 +350,13 @@ class DeepAREstimator(GluonEstimator):
             history_length=self.history_length,
             context_length=self.context_length,
             prediction_length=self.prediction_length,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
             distr_output=self.distr_output,
             dropout_rate=self.dropout_rate,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
-            scaling=self.scaling,
             dtype=self.dtype,
         )
 

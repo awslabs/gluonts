@@ -19,6 +19,7 @@ from mxnet.gluon import HybridBlock
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import StudentTOutput, DistributionOutput
 from gluonts.model.estimator import GluonEstimator
@@ -42,6 +43,12 @@ from gluonts.transform import (
     SetField,
     Transformation,
     VstackFeatures,
+)
+from gluonts.representation import (
+    Representation,
+    MeanScaling,
+    DimExpansion,
+    RepresentationChain,
 )
 
 # Relative imports
@@ -81,6 +88,12 @@ class TransformerEstimator(GluonEstimator):
         embedding_dimension
             Dimension of the embeddings for categorical features (the same
             dimension is used for all embeddings, default: 5)
+        input_repr
+            Representation for the model inputs.
+            (default: DimExpansion(MeanScaling()))
+        output_repr
+            Representation for the model outputs.
+            (default: Representation())
         distr_output
             Distribution to use to evaluate observations and sample predictions
             (default: StudentTOutput())
@@ -103,8 +116,6 @@ class TransformerEstimator(GluonEstimator):
             Activation type of the transformer network (default: 'softrelu')
         num_heads
             Number of heads in the multi-head attention (default: 8)
-        scaling
-            Whether to automatically scale the target values (default: true)
         lags_seq
             Indices of the lagged target values to use as inputs of the RNN
             (default: None, in which case these are automatically determined
@@ -127,6 +138,10 @@ class TransformerEstimator(GluonEstimator):
         dropout_rate: float = 0.1,
         cardinality: Optional[List[int]] = None,
         embedding_dimension: int = 20,
+        input_repr: Representation = RepresentationChain(
+            chain=[MeanScaling(), DimExpansion()]
+        ),
+        output_repr: Representation = Representation(),
         distr_output: DistributionOutput = StudentTOutput(),
         model_dim: int = 32,
         inner_ff_dim_scale: int = 4,
@@ -134,7 +149,6 @@ class TransformerEstimator(GluonEstimator):
         post_seq: str = "drn",
         act_type: str = "softrelu",
         num_heads: int = 8,
-        scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         use_feat_dynamic_real: bool = False,
@@ -168,6 +182,8 @@ class TransformerEstimator(GluonEstimator):
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
+        self.input_repr = input_repr
+        self.output_repr = output_repr
         self.distr_output = distr_output
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
@@ -186,7 +202,6 @@ class TransformerEstimator(GluonEstimator):
             else time_features_from_frequency_str(self.freq)
         )
         self.history_length = self.context_length + max(self.lags_seq)
-        self.scaling = scaling
 
         self.config = {
             "model_dim": model_dim,
@@ -204,6 +219,11 @@ class TransformerEstimator(GluonEstimator):
         self.decoder = TransformerDecoder(
             self.prediction_length, self.config, prefix="dec_"
         )
+
+    def train(self, training_data: Dataset) -> Predictor:
+        self.input_repr.initialize_from_dataset(training_data)
+        self.output_repr.initialize_from_dataset(training_data)
+        return super().train(training_data)
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -277,11 +297,12 @@ class TransformerEstimator(GluonEstimator):
             history_length=self.history_length,
             context_length=self.context_length,
             prediction_length=self.prediction_length,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
             distr_output=self.distr_output,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
-            scaling=True,
         )
 
         return training_network
@@ -296,11 +317,12 @@ class TransformerEstimator(GluonEstimator):
             history_length=self.history_length,
             context_length=self.context_length,
             prediction_length=self.prediction_length,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
             distr_output=self.distr_output,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
-            scaling=True,
             num_parallel_samples=self.num_parallel_samples,
         )
 

@@ -19,6 +19,7 @@ from mxnet.gluon import HybridBlock
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
@@ -29,6 +30,12 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
+)
+from gluonts.representation import (
+    Representation,
+    MeanScaling,
+    DimExpansion,
+    RepresentationChain,
 )
 
 # Relative imports
@@ -79,13 +86,16 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     context_length
         Number of time units that condition the predictions
         (default: None, in which case context_length = prediction_length)
+    input_repr
+        Representation for the model inputs.
+        (default: DimExpansion(MeanScaling()))
+    output_repr
+        Representation for the model outputs.
+        (default: Representation())
     distr_output
         Distribution to fit (default: StudentTOutput())
     batch_normalization
         Whether to use batch normalization (default: False)
-    mean_scaling
-        Scale the network input by the data mean and the network output by
-        its inverse (default: True)
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
@@ -103,9 +113,12 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         trainer: Trainer = Trainer(),
         num_hidden_dimensions: Optional[List[int]] = None,
         context_length: Optional[int] = None,
+        input_repr: Representation = RepresentationChain(
+            chain=[MeanScaling(), DimExpansion()]
+        ),
+        output_repr: Representation = Representation(),
         distr_output: DistributionOutput = StudentTOutput(),
         batch_normalization: bool = False,
-        mean_scaling: bool = True,
         num_parallel_samples: int = 100,
     ) -> None:
         """
@@ -136,10 +149,23 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             context_length if context_length is not None else prediction_length
         )
         self.freq = freq
+        self.input_repr = input_repr
+        self.output_repr = output_repr
         self.distr_output = distr_output
         self.batch_normalization = batch_normalization
-        self.mean_scaling = mean_scaling
         self.num_parallel_samples = num_parallel_samples
+
+    def train(
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        **kwargs,
+    ) -> Predictor:
+        self.input_repr.initialize_from_dataset(training_data)
+        self.output_repr.initialize_from_dataset(training_data)
+        return super().train(training_data)
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -171,9 +197,10 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             num_hidden_dimensions=self.num_hidden_dimensions,
             prediction_length=self.prediction_length,
             context_length=self.context_length,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
             distr_output=self.distr_output,
             batch_normalization=self.batch_normalization,
-            mean_scaling=self.mean_scaling,
         )
 
     # we now define how the prediction happens given that we are provided a
@@ -185,9 +212,10 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             num_hidden_dimensions=self.num_hidden_dimensions,
             prediction_length=self.prediction_length,
             context_length=self.context_length,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
             distr_output=self.distr_output,
             batch_normalization=self.batch_normalization,
-            mean_scaling=self.mean_scaling,
             params=trained_network.collect_params(),
             num_parallel_samples=self.num_parallel_samples,
         )
