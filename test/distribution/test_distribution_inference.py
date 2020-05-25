@@ -826,7 +826,7 @@ def test_categorical_likelihood(
     cat_prob = mx.nd.array(cat_probs)
     cat_probs = mx.nd.zeros((NUM_SAMPLES, num_cats)) + cat_prob
 
-    distr = Categorical(cat_probs.log())
+    distr = Categorical(cat_probs.log(), num_cats)
     samples = distr.sample()
 
     cat_prob_init = mx.nd.random_uniform(1 - TOL, 1 + TOL, num_cats) * cat_prob
