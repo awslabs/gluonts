@@ -36,7 +36,7 @@ def hyperparameters(dsinfo):
 def test_accuracy(accuracy_test, hyperparameters, hybridize):
     hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize)
 
-    accuracy_test(GaussianProcessEstimator, hyperparameters, accuracy=0.2)
+    accuracy_test(GaussianProcessEstimator, hyperparameters, accuracy=0.3)
 
 
 def test_repr(repr_test, hyperparameters):
