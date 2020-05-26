@@ -123,6 +123,13 @@ class GPVAREstimator(GluonEstimator):
     use_marginal_transformation
         Whether marginal (CDFtoGaussianTransform) transformation is used by the
         model
+    imputation_method
+        Select the method to replace the missing values.
+        - "standard" to just replace them with the dummy_value
+        - "mean" to replace them with the mean
+        - "median" to replace them with the median
+        - "last_val" to replace them with the last non missing value
+        (default: "standard")
     """
 
     @validated()
@@ -149,6 +156,7 @@ class GPVAREstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 100,
         use_marginal_transformation: bool = False,
+        imputation_method: str = "standard",
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -207,6 +215,7 @@ class GPVAREstimator(GluonEstimator):
             self.output_transform = cdf_to_gaussian_forward_transform
         else:
             self.output_transform = None
+        self.imputation_method = imputation_method
 
     def create_transformation(self) -> Transformation:
         def use_marginal_transformation(
@@ -242,6 +251,7 @@ class GPVAREstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,

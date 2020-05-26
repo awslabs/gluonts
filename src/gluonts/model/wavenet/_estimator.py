@@ -144,6 +144,13 @@ class WaveNetEstimator(GluonEstimator):
         num_parallel_samples
             Number of evaluation samples per time series to increase parallelism during inference.
             This is a model optimization that does not affect the accuracy (default: 200)
+        imputation_method
+            Select the method to replace the missing values.
+            - "standard" to just replace them with the dummy_value
+            - "mean" to replace them with the mean
+            - "median" to replace them with the median
+            - "last_val" to replace them with the last non missing value
+            (default: "standard")
     """
 
     @validated()
@@ -170,6 +177,7 @@ class WaveNetEstimator(GluonEstimator):
         temperature: float = 1.0,
         act_type: str = "elu",
         num_parallel_samples: int = 200,
+        imputation_method: str = "standard",
     ) -> None:
         """
         Model with Wavenet architecture and quantized target.
@@ -197,6 +205,13 @@ class WaveNetEstimator(GluonEstimator):
         :param act_type: Activation type used after before output layer.
           Can be any of
               'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'
+        :param imputation_method
+            Select the method to replace the missing values.
+            - "standard" to just replace them with the dummy_value
+            - "mean" to replace them with the mean
+            - "median" to replace them with the median
+            - "last_val" to replace them with the last non missing value
+            (default: "standard")
         """
 
         super().__init__(trainer=trainer)
@@ -258,6 +273,7 @@ class WaveNetEstimator(GluonEstimator):
         self.logger.info(
             f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
         )
+        self.imputation_method = imputation_method
 
     def train(
         self,
@@ -339,6 +355,7 @@ class WaveNetEstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,

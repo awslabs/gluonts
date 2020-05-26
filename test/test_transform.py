@@ -879,6 +879,45 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         assert np.prod(np.shape(d["future_target"])) == 0
 
 
+def test_AddObservedIndicator():
+    """
+    Tests the different methods to impute missing values.
+    """
+
+    array_value = np.array(
+        [np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]
+    )
+
+    l_methods = ["standard", "mean", "median", "last_val"]
+
+    d_expected_result = {
+        "standard": np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
+        "mean": np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
+        "median": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0]),
+        "last_val": np.array([1.25, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+    }
+
+    expected_missindicator = np.array([0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0])
+
+    for method in l_methods:
+        transfo = transform.AddObservedValuesIndicator(
+            target_field=FieldName.TARGET,
+            output_field=FieldName.OBSERVED_VALUES,
+            imputation_method=method,
+        )
+
+        d = {"target": array_value.copy()}
+
+        res = transfo.transform(d)
+
+        print(res)
+
+    assert np.array_equal(d_expected_result[method], res["target"])
+    assert np.array_equal(
+        expected_missindicator, res[FieldName.OBSERVED_VALUES]
+    )
+
+
 def make_dataset(N, train_length):
     # generates 2 ** N - 1 timeseries with constant increasing values
     n = 2 ** N - 1

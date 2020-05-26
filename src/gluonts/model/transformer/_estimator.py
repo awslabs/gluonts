@@ -115,6 +115,13 @@ class TransformerEstimator(GluonEstimator):
         num_parallel_samples
             Number of evaluation samples per time series to increase parallelism during inference.
             This is a model optimization that does not affect the accuracy (default: 100)
+        imputation_method
+            Select the method to replace the missing values.
+            - "standard" to just replace them with the dummy_value
+            - "mean" to replace them with the mean
+            - "median" to replace them with the median
+            - "last_val" to replace them with the last non missing value
+            (default: "standard")
     """
 
     @validated()
@@ -140,6 +147,7 @@ class TransformerEstimator(GluonEstimator):
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
         num_parallel_samples: int = 100,
+        imputation_method: str = "standard",
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -204,6 +212,7 @@ class TransformerEstimator(GluonEstimator):
         self.decoder = TransformerDecoder(
             self.prediction_length, self.config, prefix="dec_"
         )
+        self.imputation_method = imputation_method
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -230,6 +239,7 @@ class TransformerEstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,

@@ -125,7 +125,7 @@ def pytest_runtest_makereport(item, call):
     setattr(item, "rep_" + rep.when, rep)
 
 
-@pytest.fixture(scope="function", autouse=True)
+# @pytest.fixture(scope="function", autouse=True)
 def function_scope_seed(request):
     """A function scope fixture that manages rng seeds.
 

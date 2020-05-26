@@ -47,10 +47,10 @@ class AddObservedValuesIndicator(SimpleTransformation):
         Value to use for replacing missing values.
     imputation_method
         Select the method to replace the missing values.
-            - "standard" to just replace them with the dummy_value
-            - "mean" to replace them with the mean of the array
-            - "median" to replace them with the median of the array
-            _ "last_val" to replace them with the last non missing value
+        - "standard" to just replace them with the dummy_value
+        - "mean" to replace them with the mean of the array
+        - "median" to replace them with the median of the array
+        _ "last_val" to replace them with the last non missing value
     convert_nans
         If set to true (default) missing values will be replaced. Otherwise
         they will not be replaced. In any case the indicator is included in the
@@ -90,6 +90,10 @@ class AddObservedValuesIndicator(SimpleTransformation):
         return value
 
     def _last_missing_values(self, value: np.ndarray) -> np.ndarray:
+        # we first get the mean of the array, in case we need to replace nan
+        # at the start of the array
+        self.dummy_value = np.nanmean(value)
+
         value = np.expand_dims(value, axis=0)
 
         mask = np.isnan(value)
@@ -97,7 +101,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         np.maximum.accumulate(idx, axis=1, out=idx)
         out = value[np.arange(idx.shape[0])[:, None], idx]
 
-        return np.squeeze(out)
+        return self._dummy_impute_missing(np.squeeze(out))
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
@@ -106,9 +110,9 @@ class AddObservedValuesIndicator(SimpleTransformation):
         if self.convert_nans:
             dic_imput_methods = {
                 "standard": self._dummy_impute_missing,
-                "mean" : self._mean_impute_missing,
-                "median" : self._median_impute_missing,
-                "last_val" : self._last_missing_values
+                "mean": self._mean_impute_missing,
+                "median": self._median_impute_missing,
+                "last_val": self._last_missing_values,
             }
             value = dic_imput_methods[self.imputation_method](value)
             data[self.target_field] = value

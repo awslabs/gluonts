@@ -111,6 +111,13 @@ class DeepAREstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
+    imputation_method
+        Select the method to replace the missing values.
+        - "standard" to just replace them with the dummy_value
+        - "mean" to replace them with the mean
+        - "median" to replace them with the median
+        - "last_val" to replace them with the last non missing value
+        (default: "standard")
     """
 
     @validated()
@@ -134,6 +141,7 @@ class DeepAREstimator(GluonEstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        imputation_method: str = "standard",
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
@@ -197,6 +205,7 @@ class DeepAREstimator(GluonEstimator):
         self.history_length = self.context_length + max(self.lags_seq)
 
         self.num_parallel_samples = num_parallel_samples
+        self.imputation_method = imputation_method
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -253,6 +262,7 @@ class DeepAREstimator(GluonEstimator):
                     output_field=FieldName.OBSERVED_VALUES,
                     dummy_value=self.distr_output.value_in_support,
                     dtype=self.dtype,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,
