@@ -116,9 +116,9 @@ def generate_rolling_datasets(
         
         return data
     
-    #TODO Test this
+    # generator to create rolling datasets
     def perform_roll(dataset):
-        for timseries in dataset:
+        for timeseries in dataset:
             windows_todo = _num_window_iterations
             window_start_date = end_time
             while windows_todo:
@@ -128,7 +128,7 @@ def generate_rolling_datasets(
                 target_length = len(_ts['target'])
 
                 # 2. calc new length of target
-                window_start_date = window_start_date - _freq*window_size
+                window_start_date = window_start_date - _freq * window_size
                 length_to_window = len(pd.date_range(start=_ts['start'], end=window_start_date, freq=_freq))
                 
                 # 3. if length of target < new length of target set flag "not touched" 
