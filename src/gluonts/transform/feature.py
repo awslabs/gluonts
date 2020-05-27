@@ -142,8 +142,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         nan_entries = np.isnan(value)
 
         if self.convert_nans:
-            value = ImputationStrategy.impute(value, self.imputation_method)
-            data[self.target_field] = value
+            data[self.target_field] = ImputationStrategy.impute(value, self.imputation_method)
 
         data[self.output_field] = np.invert(
             nan_entries, out=nan_entries
