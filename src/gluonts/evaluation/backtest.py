@@ -15,6 +15,7 @@
 import logging
 import re
 from typing import Dict, Iterator, NamedTuple, Optional, Tuple, Union
+from collections import namedtuple
 
 # Third-party imports
 import pandas as pd
@@ -44,7 +45,7 @@ def generate_rolling_datasets(
     window_size: int,
     start_time: pd.Timestamp,
     end_time: pd.Timestamp,
-) -> dict:
+) -> namedtuple:
     """
     Returns a dictionary containing two dataset generators for using when
     performing rolling origin evaluations.
@@ -187,7 +188,9 @@ def generate_rolling_datasets(
     dataset_rolled = perform_roll(dataset_without_remainder)
 
     # we now have the shortened test dataset and we need to generate the rolls
-    return {"to_predict": dataset_rolled, "to_evaluate": dataset_eval}
+    Rolling_datasets = namedtuple("datasets", "to_predict, to_evaluate")
+    d = Rolling_datasets(to_predict=dataset_rolled, to_evaluate=dataset_eval)
+    return d
 
 
 def make_evaluation_predictions(

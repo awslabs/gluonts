@@ -29,8 +29,8 @@ from gluonts.dataset.common import TimeSeriesItem
 
 
 def test_dataset_lengths(datasets):
-    ds_eval = iter(datasets["to_evaluate"])
-    ds_pred = iter(datasets["to_predict"])
+    ds_eval = iter(datasets.to_evaluate)
+    ds_pred = iter(datasets.to_predict)
 
     c = True
     ts1 = ts2 = None
@@ -51,7 +51,7 @@ def test_dataset_lengths(datasets):
 
 
 def test_ds_eval_targets(datasets):
-    ds_eval = iter(datasets["to_evaluate"])
+    ds_eval = iter(datasets.to_evaluate)
     for ts in ds_eval:
         tss = ts["target"]
         assert len(tss) == 25
@@ -69,7 +69,7 @@ def generate_expected_predict():
 
 
 def test_ds_pred_targets(datasets):
-    ds_pred = iter(datasets["to_predict"])
+    ds_pred = iter(datasets.to_predict)
 
     to_compare = generate_expected_predict()
     i = 0
