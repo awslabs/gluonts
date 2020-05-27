@@ -10,7 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
+from enum import Enum
 from typing import List
 
 import numpy as np
@@ -30,6 +30,66 @@ def target_transformation_length(
     return target.shape[-1] + (0 if is_train else pred_length)
 
 
+class ImputationStrategy:
+    none = "none"
+    dummy_value = "dummy_value"
+    mean = "mean"
+    median = "median"
+    last_value = "last_value"
+
+    @staticmethod
+    def impute(values: np.ndarray, method: str, dummy_value: float = 0.0) -> np.ndarray:
+        dic_imput_methods = {
+            ImputationStrategy.none: ImputationStrategy._dont_impute_missing,
+            ImputationStrategy.dummy_value: ImputationStrategy._dummy_impute_missing,
+            ImputationStrategy.mean: ImputationStrategy._mean_impute_missing,
+            ImputationStrategy.median: ImputationStrategy._median_impute_missing,
+            ImputationStrategy.last_value: ImputationStrategy._last_value_impute_missing,
+        }
+        values = dic_imput_methods[method](values, dummy_value)
+        return values
+
+    @staticmethod
+    def _dont_impute_missing(value: np.ndarray, dummy_value: float = 0.0) -> np.ndarray:
+        return value
+
+    @staticmethod
+    def _dummy_impute_missing(value: np.ndarray, dummy_value: float = 0.0) -> np.ndarray:
+        nan_indices = np.where(np.isnan(value))
+        value[nan_indices] = dummy_value
+        return value
+
+    @staticmethod
+    def _mean_impute_missing(value: np.ndarray, dummy_value: float = 0.0) -> np.ndarray:
+        nan_indices = np.where(np.isnan(value))
+        value[nan_indices] = np.nanmean(value)
+        return value
+
+    @staticmethod
+    def _median_impute_missing(value: np.ndarray, dummy_value: float = 0.0) -> np.ndarray:
+        nan_indices = np.where(np.isnan(value))
+        value[nan_indices] = np.nanmedian(value)
+        return value
+
+    @staticmethod
+    def _last_value_impute_missing(value: np.ndarray, dummy_value: float = 0.0) -> np.ndarray:
+
+        value = np.expand_dims(value, axis=0)
+
+        mask = np.isnan(value)
+        idx = np.where(~mask, np.arange(mask.shape[1]), 0)
+        np.maximum.accumulate(idx, axis=1, out=idx)
+        out = value[np.arange(idx.shape[0])[:, None], idx]
+
+        value = np.squeeze(out)
+
+        # in case we need to replace nan at the start of the array
+        mask = np.isnan(value)
+        value[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), value[~mask])
+
+        return value
+
+
 class AddObservedValuesIndicator(SimpleTransformation):
     """
     Replaces missing values in a numpy array (NaNs) with a dummy value and adds
@@ -46,11 +106,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
     dummy_value
         Value to use for replacing missing values.
     imputation_method
-        Select the method to replace the missing values.
-        - "standard" to just replace them with the dummy_value
-        - "mean" to replace them with the mean of the array
-        - "median" to replace them with the median of the array
-        _ "last_val" to replace them with the last non missing value
+        One of the methods from ImputationStrategy.
     convert_nans
         If set to true (default) missing values will be replaced. Otherwise
         they will not be replaced. In any case the indicator is included in the
@@ -63,7 +119,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         target_field: str,
         output_field: str,
         dummy_value: float = 0.0,
-        imputation_method: str = "standard",
+        imputation_method: str = ImputationStrategy.dummy_value,
         convert_nans: bool = True,
         dtype: DType = np.float32,
     ) -> None:
@@ -74,47 +130,12 @@ class AddObservedValuesIndicator(SimpleTransformation):
         self.convert_nans = convert_nans
         self.dtype = dtype
 
-    def _dummy_impute_missing(self, value: np.ndarray) -> np.ndarray:
-        nan_indices = np.where(np.isnan(value))
-        value[nan_indices] = self.dummy_value
-        return value
-
-    def _mean_impute_missing(self, value: np.ndarray) -> np.ndarray:
-        nan_indices = np.where(np.isnan(value))
-        value[nan_indices] = np.nanmean(value)
-        return value
-
-    def _median_impute_missing(self, value: np.ndarray) -> np.ndarray:
-        nan_indices = np.where(np.isnan(value))
-        value[nan_indices] = np.nanmedian(value)
-        return value
-
-    def _last_missing_values(self, value: np.ndarray) -> np.ndarray:
-        # we first get the mean of the array, in case we need to replace nan
-        # at the start of the array
-        self.dummy_value = np.nanmean(value)
-
-        value = np.expand_dims(value, axis=0)
-
-        mask = np.isnan(value)
-        idx = np.where(~mask, np.arange(mask.shape[1]), 0)
-        np.maximum.accumulate(idx, axis=1, out=idx)
-        out = value[np.arange(idx.shape[0])[:, None], idx]
-
-        return self._dummy_impute_missing(np.squeeze(out))
-
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
         nan_entries = np.isnan(value)
 
         if self.convert_nans:
-            dic_imput_methods = {
-                "standard": self._dummy_impute_missing,
-                "mean": self._mean_impute_missing,
-                "median": self._median_impute_missing,
-                "last_val": self._last_missing_values,
-            }
-            value = dic_imput_methods[self.imputation_method](value)
+            value = ImputationStrategy.impute(value, self.imputation_method)
             data[self.target_field] = value
 
         data[self.output_field] = np.invert(

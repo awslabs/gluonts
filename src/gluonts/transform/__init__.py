@@ -50,6 +50,7 @@ __all__ = [
     "Transformation",
     "UniformSplitSampler",
     "VstackFeatures",
+    "ImputationStrategy",
 ]
 
 from ._base import (
@@ -80,6 +81,7 @@ from .dataset import TransformedDataset
 
 from .feature import (
     target_transformation_length,
+    ImputationStrategy,
     AddObservedValuesIndicator,
     AddConstFeature,
     AddTimeFeatures,

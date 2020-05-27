@@ -34,6 +34,7 @@ from gluonts.time_feature import (
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddAgeFeature,
+    ImputationStrategy,
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
@@ -112,12 +113,7 @@ class DeepAREstimator(GluonEstimator):
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
     imputation_method
-        Select the method to replace the missing values.
-        - "standard" to just replace them with the dummy_value
-        - "mean" to replace them with the mean
-        - "median" to replace them with the median
-        - "last_val" to replace them with the last non missing value
-        (default: "standard")
+        One of the methods from ImputationStrategy
     """
 
     @validated()
@@ -141,7 +137,7 @@ class DeepAREstimator(GluonEstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
-        imputation_method: str = "standard",
+        imputation_method: str = ImputationStrategy.dummy_value,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)

@@ -888,13 +888,13 @@ def test_AddObservedIndicator():
         [np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]
     )
 
-    l_methods = ["standard", "mean", "median", "last_val"]
+    l_methods = ["dummy_value", "mean", "median", "last_value"]
 
     d_expected_result = {
-        "standard": np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
+        "dummy_value": np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
         "mean": np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
         "median": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0]),
-        "last_val": np.array([1.25, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+        "last_value": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
     }
 
     expected_missindicator = np.array([0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0])
