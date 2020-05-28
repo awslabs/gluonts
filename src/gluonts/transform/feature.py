@@ -30,71 +30,117 @@ def target_transformation_length(
     return target.shape[-1] + (0 if is_train else pred_length)
 
 
-class ImputationStrategy(str, Enum):
-    none = "none"
-    dummy_value = "dummy_value"
-    mean = "mean"
-    median = "median"
-    last_value = "last_value"
 
-    def impute(
-        self, values: np.ndarray, method: str, dummy_value: float = 0.0
-    ) -> np.ndarray:
-        dic_imput_methods = {
-            self.none: self._dont_impute_missing,
-            self.dummy_value: self._dummy_impute_missing,
-            self.mean: self._mean_impute_missing,
-            self.median: self._median_impute_missing,
-            self.last_value: self._last_value_impute_missing,
-        }
-        return dic_imput_methods[method](values, dummy_value)
+class MissingValueImputation:
+    """
+    The parent class for all the missing value imputation classes.
+    You can just implement your own inheriting this class.
+    """
+    def __init__(self) -> None:
+        pass
 
-    def _dont_impute_missing(
-        self, value: np.ndarray, dummy_value: float = 0.0
-    ) -> np.ndarray:
-        return value
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
 
-    def _dummy_impute_missing(
-        self, value: np.ndarray, dummy_value: float = 0.0
-    ) -> np.ndarray:
-        nan_indices = np.where(np.isnan(value))
-        value[nan_indices] = dummy_value
-        return value
 
-    def _mean_impute_missing(
-        self, value: np.ndarray, dummy_value: float = 0.0
-    ) -> np.ndarray:
-        nan_indices = np.where(np.isnan(value))
-        value[nan_indices] = np.nanmean(value)
-        return value
+class LeavesMissingValues(MissingValueImputation):
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        return values
 
-    def _median_impute_missing(
-        self, value: np.ndarray, dummy_value: float = 0.0
-    ) -> np.ndarray:
-        nan_indices = np.where(np.isnan(value))
-        value[nan_indices] = np.nanmedian(value)
-        return value
 
-    def _last_value_impute_missing(
-        self, value: np.ndarray, dummy_value: float = 0.0
-    ) -> np.ndarray:
+class DummyValueImputation(MissingValueImputation):
 
-        value = np.expand_dims(value, axis=0)
+    def __init__(self, dummy_value: float = 0.0) -> None:
+        self.dummy_value = dummy_value
 
-        mask = np.isnan(value)
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        nan_indices = np.where(np.isnan(values))
+        values[nan_indices] = self.dummy_value
+        return values
+
+
+class MeanValueImputation(MissingValueImputation):
+    """
+    Careful this is not a 'causal' method in the sense that it leaks information about the furture in the imputation.
+    You may prefer to use CausalMeanValueImputation instead.
+    """
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        nan_indices = np.where(np.isnan(values))
+        values[nan_indices] = np.nanmean(values)
+        return values
+
+
+class LastValueImputation(MissingValueImputation):
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        values = np.expand_dims(values, axis=0)
+
+        mask = np.isnan(values)
         idx = np.where(~mask, np.arange(mask.shape[1]), 0)
         np.maximum.accumulate(idx, axis=1, out=idx)
-        out = value[np.arange(idx.shape[0])[:, None], idx]
+        out = values[np.arange(idx.shape[0])[:, None], idx]
 
-        value = np.squeeze(out)
+        values = np.squeeze(out)
 
         # in case we need to replace nan at the start of the array
-        mask = np.isnan(value)
-        value[mask] = np.interp(
-            np.flatnonzero(mask), np.flatnonzero(~mask), value[~mask]
+        mask = np.isnan(values)
+        values[mask] = np.interp(
+            np.flatnonzero(mask), np.flatnonzero(~mask), values[~mask]
         )
 
-        return value
+        return values
+
+
+class CausalMeanValueImputation(MissingValueImputation):
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        mask = np.isnan(values)
+
+        # we cannot compute the mean with this method if there are nans
+        # so we do a temporary fix of the nan just for the mean computation using this:
+        last_value_imputation = LastValueImputation()
+        value_no_nans = last_value_imputation(values)
+
+        # We do the cumulative sum shifted by one indices:
+        adjusted_values_to_causality = np.concatenate((np.repeat(value_no_nans[0], 1), value_no_nans[:-1]))
+        cumsum = np.cumsum(adjusted_values_to_causality)
+
+        # We get the indices of the elements shifted by one indices:
+        indices = np.linspace(0, len(value_no_nans) - 1, len(value_no_nans))
+
+        ar_res = cumsum / indices.astype(float)
+        values[mask] = ar_res[mask]
+
+        # make sure that we do not leave the potential nan in the first position:
+        values[0] = value_no_nans[0]
+
+        return values
+
+
+class RollingMeanValueImputation(MissingValueImputation):
+
+    def __init__(self, window_size: int = 10) -> None:
+        self.window_size = 1 if window_size < 1 else window_size
+
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        mask = np.isnan(values)
+
+        # we cannot compute the mean with this method if there are nans
+        # so we do a temporary fix of the nan just for the mean computation using this:
+        last_value_imputation = LastValueImputation()
+        value_no_nans = last_value_imputation(values)
+
+        adjusted_values_to_causality = np.concatenate(
+            (np.repeat(value_no_nans[0], self.window_size + 1), value_no_nans[:-1]))
+
+        cumsum = np.cumsum(adjusted_values_to_causality)
+
+        ar_res = (cumsum[self.window_size:] - cumsum[:-self.window_size]) / float(self.window_size)
+
+        values[mask] = ar_res[mask]
+
+        # make sure that we do not leave the potential nan in the first position:
+        values[0] = value_no_nans[0]
+
+        return values
 
 
 class AddObservedValuesIndicator(SimpleTransformation):
@@ -126,28 +172,30 @@ class AddObservedValuesIndicator(SimpleTransformation):
         target_field: str,
         output_field: str,
         dummy_value: float = 0.0,
-        imputation_method: str = ImputationStrategy.dummy_value,
+        imputation_method: MissingValueImputation = None,
         convert_nans: bool = True,
         dtype: DType = np.float32,
     ) -> None:
         self.dummy_value = dummy_value
         self.target_field = target_field
         self.output_field = output_field
-        self.imputation_method = imputation_method
         self.convert_nans = convert_nans
         self.dtype = dtype
+
+        self.imputation_method = imputation_method if imputation_method is not None else DummyValueImputation(dummy_value)
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
         nan_entries = np.isnan(value)
 
         if self.convert_nans:
-            data[self.target_field] = ImputationStrategy.impute(value, self.imputation_method)
+            data[self.target_field] = self.imputation_method(value)
 
         data[self.output_field] = np.invert(
             nan_entries, out=nan_entries
         ).astype(self.dtype, copy=False)
         return data
+
 
 
 class AddConstFeature(MapTransformation):
