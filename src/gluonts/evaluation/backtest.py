@@ -16,6 +16,7 @@ import logging
 import re
 from typing import Dict, Iterator, NamedTuple, Optional, Tuple, Union
 from collections import namedtuple
+from math import floor
 
 # Third-party imports
 import pandas as pd
@@ -42,35 +43,27 @@ from mxnet.ndarray import NDArray
 
 def generate_rolling_datasets(
     dataset: Dataset,
-    window_size: int,
+    prediction_length: int,
     start_time: pd.Timestamp,
-    end_time: pd.Timestamp,
-) -> namedtuple:
+    end_time: Optional[pd.Timestamp],
+    use_unique_rolls: Optional[bool] = False,
+) -> Dataset:
     """
-    Returns a dictionary containing two dataset generators for using when
-    performing rolling origin evaluations.
-    dict['to_evaluate'] 
-    contains the data that predictions are to be compared with.
-    dict['to_predict'] 
-    contains the data that the predictor will use to generate forecasts. 
+    Returns a dataset generator for performing rolling origin evaluations.
     The target values of this dataset is of varying lengths depending on the
-    provided window size, start_time and end_time parameters.
-    
-    in case of a window size which is not a multiple of the range between the
-    start_time and the end_time will have a shorter window equal to the 
-    remainder.
-
-    Any target values after the end_time is removed from both the
-    'to_evaluate' and the 'to_predict' datasets.
+    provided prediction length, start_time and end_time parameters.
+    Any target values after the end_time is removed.
+    If no end time is passed as an argument, rolling forecasts will be generated 
+    for all timesteps after (and including) the start_time
 
     Parameters
     ----------
     dataset
         Dataset to generate the rolling forecasting datasets from
-    window_size
+    prediction_length
         Int which represents the amount of items in a timeseries should be
         forecasted and evaluated on. The prediction length of the predictor to
-        use is suitable as window_size.
+        use is suitable as prediction_length.
     start_time
         The start of the time period which rolling forecasts should be applied
     end_time
@@ -78,13 +71,13 @@ def generate_rolling_datasets(
 
     Returns
     -------
-    dict 
-        Contains the dataset to provide to the predictor and the dataset to
-        provide to the evaluator
+    Dataset 
+        The augmented dataset
     """
 
     assert dataset, "a dataset to perform rolling evaluation on is needed"
-    assert window_size, "window_size is needed"
+    assert prediction_length, "prediction_length is needed"
+    assert prediction_length > 0, "prediction length needs to be > 0"
     assert start_time, "a pandas Timestamp object is needed for the start time"
     assert end_time, "a pandas Timestamp object is needed for the end time"
     assert end_time > start_time, "end time has to be after the start time"
@@ -95,32 +88,9 @@ def generate_rolling_datasets(
     )
 
     # ensure that the window size is small enough to allow rolling
-    assert num_items_in_rolling > window_size, "window size is too large"
-
-    remainder = num_items_in_rolling % window_size
-    remainder_date = end_time - freq * remainder
-    num_window_iterations = int(
-        (num_items_in_rolling - remainder) / window_size
-    )
-
-    if remainder:
-        num_window_iterations = num_window_iterations + 1
-
-    # TODO test this
-    def remove_remainder(data):
-        data = data.copy()
-        start = data["start"]
-        target = data["target"]
-        end_date = start + freq * (len(target) - 1)
-
-        # delete all values after the remainder date
-        # to allow these to be evaluated
-        if end_date > remainder_date:
-            length_to_remainder = len(
-                pd.date_range(start=start, end=remainder_date, freq=freq)
-            )
-            data["target"] = target[:length_to_remainder]
-        return data
+    assert (
+        num_items_in_rolling > prediction_length
+    ), "timestamps to close for the prediction_length"
 
     # removes target values appearing after end_time
     def truncate_end(data):
@@ -130,74 +100,95 @@ def generate_rolling_datasets(
         # calc number datapoints needed from start of timeseries
         # until end of rolling test range
         timerange = pd.date_range(start=data["start"], end=end_time, freq=freq)
-
+        # print('length before cut:',len(data['target']))
         # keep values until end of test range
         data["target"] = data["target"][: len(timerange)]
+        # print('length after cut:',len(data['target']))
 
         return data
 
+    # helper function for choosing which variation to use
+    # based on the user provided flags
+    def variation_to_use(items_to_roll):
+        modifier = None
+        number_rolls = None
+
+        if use_unique_rolls:
+            # each roll covers unique values
+            modifier = prediction_length
+            number_rolls = floor(items_to_roll / prediction_length)
+        else:
+            # maximum amount of rolls each with one new target value
+            modifier = 1
+            number_rolls = items_to_roll - prediction_length + 1
+            if number_rolls < 0:
+                number_rolls = 0
+
+        # print('number_rolls:', number_rolls, '\nitems_to_roll:', items_to_roll, '\nmodifier:', modifier)
+
+        return number_rolls, modifier
+
     # generator to create rolling datasets
-    def perform_roll(dataset, for_evaluating=None):
-        for timeseries in dataset:
-            window_start_date = end_time
-            if for_evaluating:
-                window_start_date = window_start_date + freq
+    def perform_roll(dataset):
+        # in order to return num_series we need to create the generator,
+        # then iterate through it and then create the generator again.
+        # This is slow and should be avoided, especially when rolling large datasets
+        # Another method is to store the results of the calculations that
+        # is used to generate the rolled dataset.
+        # Through these calculations we can extract the total number of series
+        # without yet generating them, thus avoiding duplicate calculations
 
-            for _ in range(num_window_iterations):
-                ts = timeseries.copy()
+        for ts in dataset:
+            # print('target length', len(ts['target']), 'time start', ts['start'])
 
-                # calc new length of target
-                window_start_date = window_start_date - freq * window_size
-                length_to_window = len(
-                    pd.date_range(
-                        start=ts["start"], end=window_start_date, freq=freq
-                    )
-                )
+            # this means target starts after the provided end time
+            if len(ts["target"]) == 0:
+                continue
 
-                if len(ts["target"]) < length_to_window:
-                    # this avoids duplicate evaluations in the evaluator
-                    ts["not_touched"] = True
-                else:
-                    ts["target"] = ts["target"][:length_to_window]
+            # calculate end time of timeseries
+            end_time_ts = pd.date_range(
+                start=ts["start"], periods=len(ts["target"]), freq=freq,
+            )[-1]
 
-                yield ts
+            # discard timeseries that end prior to start_time
+            if end_time_ts <= start_time:
+                continue
 
-    # creates a generator for a evaluation dataset of the same
-    # number timeseries as the rolling set
-    def generate_test(dataset):
-        for timeseries in dataset:
-            ts = timeseries.copy()
-            for _ in range(num_window_iterations):
-                yield ts
+            # in case the timeseries starts in between the start and end time
+            start = start_time if start_time > ts["start"] else ts["start"]
+            # print(start, start_time, end_time_ts, end_time)
+            # calculate amount of target values to roll over
+            items_to_roll = len(
+                pd.date_range(start=start, end=end_time_ts, freq=freq)
+            )
 
-    # this will be the new dataset used for evaluating the rolled values
-    dataset_truncated_end = TransformedDataset(
-        dataset, transformations=[transform.AdhocTransform(truncate_end),]
-    )
-    dataset_eval = generate_test(dataset_truncated_end)
+            # precalculate the new target length
+            new_length = len(
+                pd.date_range(start=ts["start"], end=end_time_ts, freq=freq)
+            )
 
-    # this dataset contains all timeseries with all dates after the
-    # remainder_date being removed
-    dataset_without_remainder = TransformedDataset(
-        dataset_truncated_end,
-        transformations=[
-            transform.AdhocTransform(truncate_end),
-            transform.AdhocTransform(remove_remainder),
-        ],
-    )
-    dataset_rolled = perform_roll(dataset_without_remainder)
+            # get rolls and modifier based on the variation to use
+            number_rolls, modifier = variation_to_use(items_to_roll)
 
-    # we now have the shortened test dataset and we need to generate the rolls
-    Rolling_datasets = namedtuple("datasets", "to_predict, to_evaluate")
-    d = Rolling_datasets(to_predict=dataset_rolled, to_evaluate=dataset_eval)
-    return d
+            # perform the rolling
+            for _ in range(number_rolls):
+                ts_copy = ts.copy()
+                ts_copy["target"] = ts_copy["target"][:new_length]
+                new_length = new_length - modifier
+                yield ts_copy
+
+    dataset_to_roll = dataset
+    if end_time:
+        # we need to get rid of values appearing after end_time
+        dataset_to_roll = TransformedDataset(
+            dataset, transformations=[transform.AdhocTransform(truncate_end)]
+        )
+
+    return perform_roll(dataset_to_roll)
 
 
 def make_evaluation_predictions(
-    dataset: Dataset,
-    predictor: Predictor,
-    num_samples: int,
-    rolling_time_range: Optional[tuple] = None,  # (pd.Timestamp, pd.Timestamp)
+    dataset: Dataset, predictor: Predictor, num_samples: int,
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
     Return predictions on the last portion of predict_length time units of the
@@ -214,11 +205,6 @@ def make_evaluation_predictions(
         Model used to draw predictions.
     num_samples
         Number of samples to draw on the model when evaluating.
-    rolling_time_range
-        Optional parameter which, when set, causes rolling forecasting to be
-        used when predicting and evaluating accuracy. Should have the format
-        (start_time: pd.Timestamp, end_time: pd.Timestamp) and should describe
-        the time range on which rolling forecasts should be applied
     Returns
     -------
     """
@@ -259,15 +245,9 @@ def make_evaluation_predictions(
     # TODO or fix the evaluator so it supports missing values instead (all
     # TODO the test set may be gone otherwise with such a filtering)
 
-    if rolling_time_range:  # TODO Ensure this works
-        generate_rolling_datasets(
-            dataset, prediction_length, *rolling_time_range
-        )
-    else:
-        dataset_trunc = TransformedDataset(
-            dataset,
-            transformations=[transform.AdhocTransform(truncate_target)],
-        )
+    dataset_trunc = TransformedDataset(
+        dataset, transformations=[transform.AdhocTransform(truncate_target)],
+    )
 
     return (
         predictor.predict(dataset_trunc, num_samples=num_samples),
