@@ -1,9 +1,6 @@
 FROM rpy2/rpy2:2.9.x
 
-ADD . /gluonts
-
-RUN pip3 install /gluonts[shell]
-RUN pip3 install mxnet==1.6.0
+RUN pip3 install --upgrade mxnet==1.6 "gluonts[shell]"
 
 RUN R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
 
