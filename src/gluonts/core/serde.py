@@ -300,6 +300,7 @@ def load_code(c: str) -> Any:
 
 kind_type = "type"
 kind_inst = "instance"
+kind_serde = "serde"
 
 
 @singledispatch
@@ -435,6 +436,13 @@ def encode(v: Any) -> Any:
     if isinstance(v, type):
         return {"__kind__": kind_type, "class": fqname_for(v)}
 
+    if hasattr(v, "__encode__"):
+        return {
+            "__kind__": kind_serde,
+            "class": fqname_for(v.__class__),
+            "state": v.__encode__(),
+        }
+
     if hasattr(v, "__getnewargs_ex__"):
         args, kwargs = v.__getnewargs_ex__()  # mypy: ignore
         return {
@@ -555,6 +563,10 @@ def decode(r: Any) -> Any:
     encode
         Inverse function.
     """
+
+    if type(r) == dict and r.get("__kind__") == kind_serde:
+        cls = cast(Any, locate(r["class"]))
+        return cls.__decode__(state=r["state"])
 
     # structural recursion over the possible shapes of r
     # r = { 'class': ..., 'args': ... }
