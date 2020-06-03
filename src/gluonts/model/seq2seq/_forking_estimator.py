@@ -116,13 +116,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         Whether to automatically scale the target values (default: False)
     dtype
         (default: np.float32)
-    imputation_method
-        Select the method to replace the missing values.
-        - "standard" to just replace them with the dummy_value (default)
-        - "mean" to replace them with the mean
-        - "median" to replace them with the median
-        - "last_val" to replace them with the last non missing value
-        (default: "standard")
     """
 
     @validated()
@@ -144,7 +137,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         trainer: Trainer = Trainer(),
         scaling: bool = False,
         dtype: DType = np.float32,
-        imputation_method: str = "standard",
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -192,7 +184,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
         self.scaling = scaling
         self.dtype = dtype
-        self.imputation_method = imputation_method
 
     def create_transformation(self) -> Transformation:
         chain = []
@@ -217,7 +208,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
                     dtype=self.dtype,
-                    imputation_method=self.imputation_method,
                 ),
             ]
         )

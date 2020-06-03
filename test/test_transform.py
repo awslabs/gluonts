@@ -879,21 +879,39 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         assert np.prod(np.shape(d["future_target"])) == 0
 
 
+
+
 def test_AddObservedIndicator():
     """
     Tests the different methods to impute missing values.
     """
+    from gluonts.transform import (
+        MissingValueImputation,
+        LeavesMissingValues,
+        DummyValueImputation,
+        MeanValueImputation,
+        LastValueImputation,
+        CausalMeanValueImputation,
+        RollingMeanValueImputation,
+    )
 
     array_value = np.array(
         [np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]
     )
 
-    l_methods = ["dummy_value", "mean", "median", "last_value"]
+    l_methods = ["dummy_value", "mean", "causal_mean", "last_value"]
+
+    d_method_instances = {
+        "dummy_value": DummyValueImputation(),
+        "mean": MeanValueImputation(),
+        "causal_mean": CausalMeanValueImputation(),
+        "last_value": LastValueImputation(),
+    }
 
     d_expected_result = {
         "dummy_value": np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
         "mean": np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
-        "median": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0]),
+        "causal_mean": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9/7]),
         "last_value": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
     }
 
@@ -903,7 +921,7 @@ def test_AddObservedIndicator():
         transfo = transform.AddObservedValuesIndicator(
             target_field=FieldName.TARGET,
             output_field=FieldName.OBSERVED_VALUES,
-            imputation_method=method,
+            imputation_method=d_method_instances[method],
         )
 
         d = {"target": array_value.copy()}
@@ -912,10 +930,14 @@ def test_AddObservedIndicator():
 
         print(res)
 
-    assert np.array_equal(d_expected_result[method], res["target"])
-    assert np.array_equal(
-        expected_missindicator, res[FieldName.OBSERVED_VALUES]
-    )
+        assert np.array_equal(d_expected_result[method], res["target"])
+        assert np.array_equal(
+            expected_missindicator, res[FieldName.OBSERVED_VALUES]
+        )
+
+
+
+
 
 
 def make_dataset(N, train_length):

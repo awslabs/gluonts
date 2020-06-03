@@ -146,13 +146,6 @@ class DeepStateEstimator(GluonEstimator):
     innovation_bounds
         Lower and upper bounds for the standard deviation of the observation 
         noise
-    imputation_method
-        Select the method to replace the missing values.
-        - "standard" to just replace them with the dummy_value
-        - "mean" to replace them with the mean
-        - "median" to replace them with the median
-        - "last_val" to replace them with the last non missing value
-        (default: "standard")
     """
 
     @validated()
@@ -181,7 +174,6 @@ class DeepStateEstimator(GluonEstimator):
         noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         innovation_bounds: ParameterBounds = ParameterBounds(1e-6, 0.01),
-        imputation_method: str = "standard",
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -250,7 +242,6 @@ class DeepStateEstimator(GluonEstimator):
         self.noise_std_bounds = noise_std_bounds
         self.prior_cov_bounds = prior_cov_bounds
         self.innovation_bounds = innovation_bounds
-        self.imputation_method = imputation_method
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -275,7 +266,6 @@ class DeepStateEstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
-                    imputation_method=self.imputation_method,
                 ),
                 # Unnormalized seasonal features
                 AddTimeFeatures(

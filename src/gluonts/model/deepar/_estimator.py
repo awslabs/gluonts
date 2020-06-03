@@ -34,7 +34,6 @@ from gluonts.time_feature import (
 from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddAgeFeature,
-    ImputationStrategy,
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
@@ -48,7 +47,7 @@ from gluonts.transform import (
 )
 from gluonts.transform.feature import (
     MissingValueImputation,
-    DummyValueImputation
+    DummyValueImputation,
 )
 
 # Relative imports
@@ -141,7 +140,7 @@ class DeepAREstimator(GluonEstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
-        imputation_method: MissingValueImputation = None,
+        imputation_method: Optional[MissingValueImputation] = None,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
@@ -206,7 +205,11 @@ class DeepAREstimator(GluonEstimator):
 
         self.num_parallel_samples = num_parallel_samples
 
-        self.imputation_method = imputation_method if imputation_method is not None else DummyValueImputation(self.distr_output.value_in_support)
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(self.distr_output.value_in_support)
+        )
 
     @classmethod
     def derive_auto_fields(cls, train_iter):

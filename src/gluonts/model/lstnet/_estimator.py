@@ -93,13 +93,6 @@ class LSTNetEstimator(GluonEstimator):
         Whether to automatically scale the target values (default: True)
     dtype
         Data type (default: np.float32)
-    imputation_method
-        Select the method to replace the missing values.
-        - "standard" to just replace them with the dummy_value
-        - "mean" to replace them with the mean
-        - "median" to replace them with the median
-        - "last_val" to replace them with the last non missing value
-        (default: "standard")
     """
 
     @validated()
@@ -125,7 +118,6 @@ class LSTNetEstimator(GluonEstimator):
         skip_rnn_num_cells: int = 10,
         scaling: bool = True,
         dtype: DType = np.float32,
-        imputation_method: str = "standard",
     ) -> None:
         super().__init__(trainer=trainer, lead_time=lead_time, dtype=dtype)
         self.freq = freq
@@ -146,7 +138,6 @@ class LSTNetEstimator(GluonEstimator):
         self.skip_rnn_num_cells = skip_rnn_num_cells
         self.scaling = scaling
         self.dtype = dtype
-        self.imputation_method = imputation_method
 
     def create_transformation(self) -> Transformation:
         return Chain(
@@ -158,7 +149,6 @@ class LSTNetEstimator(GluonEstimator):
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
                     dtype=self.dtype,
-                    imputation_method=self.imputation_method,
                 ),
                 InstanceSplitter(
                     target_field=FieldName.TARGET,

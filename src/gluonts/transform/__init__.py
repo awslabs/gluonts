@@ -50,7 +50,13 @@ __all__ = [
     "Transformation",
     "UniformSplitSampler",
     "VstackFeatures",
-    "ImputationStrategy",
+    "MissingValueImputation",
+    "LeavesMissingValues",
+    "DummyValueImputation",
+    "MeanValueImputation",
+    "LastValueImputation",
+    "CausalMeanValueImputation",
+    "RollingMeanValueImputation",
 ]
 
 from ._base import (
@@ -81,11 +87,17 @@ from .dataset import TransformedDataset
 
 from .feature import (
     target_transformation_length,
-    ImputationStrategy,
     AddObservedValuesIndicator,
     AddConstFeature,
     AddTimeFeatures,
     AddAgeFeature,
+    MissingValueImputation,
+    LeavesMissingValues,
+    DummyValueImputation,
+    MeanValueImputation,
+    LastValueImputation,
+    CausalMeanValueImputation,
+    RollingMeanValueImputation,
 )
 
 from .field import (

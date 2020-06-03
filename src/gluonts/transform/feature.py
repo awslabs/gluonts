@@ -10,8 +10,8 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-from enum import Enum
-from typing import List
+
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -30,12 +30,12 @@ def target_transformation_length(
     return target.shape[-1] + (0 if is_train else pred_length)
 
 
-
 class MissingValueImputation:
     """
     The parent class for all the missing value imputation classes.
     You can just implement your own inheriting this class.
     """
+
     def __init__(self) -> None:
         pass
 
@@ -49,7 +49,6 @@ class LeavesMissingValues(MissingValueImputation):
 
 
 class DummyValueImputation(MissingValueImputation):
-
     def __init__(self, dummy_value: float = 0.0) -> None:
         self.dummy_value = dummy_value
 
@@ -64,6 +63,7 @@ class MeanValueImputation(MissingValueImputation):
     Careful this is not a 'causal' method in the sense that it leaks information about the furture in the imputation.
     You may prefer to use CausalMeanValueImputation instead.
     """
+
     def __call__(self, values: np.ndarray) -> np.ndarray:
         nan_indices = np.where(np.isnan(values))
         values[nan_indices] = np.nanmean(values)
@@ -100,7 +100,9 @@ class CausalMeanValueImputation(MissingValueImputation):
         value_no_nans = last_value_imputation(values)
 
         # We do the cumulative sum shifted by one indices:
-        adjusted_values_to_causality = np.concatenate((np.repeat(value_no_nans[0], 1), value_no_nans[:-1]))
+        adjusted_values_to_causality = np.concatenate(
+            (np.repeat(0.0, 1), value_no_nans[:-1])
+        )
         cumsum = np.cumsum(adjusted_values_to_causality)
 
         # We get the indices of the elements shifted by one indices:
@@ -116,7 +118,6 @@ class CausalMeanValueImputation(MissingValueImputation):
 
 
 class RollingMeanValueImputation(MissingValueImputation):
-
     def __init__(self, window_size: int = 10) -> None:
         self.window_size = 1 if window_size < 1 else window_size
 
@@ -129,11 +130,17 @@ class RollingMeanValueImputation(MissingValueImputation):
         value_no_nans = last_value_imputation(values)
 
         adjusted_values_to_causality = np.concatenate(
-            (np.repeat(value_no_nans[0], self.window_size + 1), value_no_nans[:-1]))
+            (
+                np.repeat(value_no_nans[0], self.window_size + 1),
+                value_no_nans[:-1],
+            )
+        )
 
         cumsum = np.cumsum(adjusted_values_to_causality)
 
-        ar_res = (cumsum[self.window_size:] - cumsum[:-self.window_size]) / float(self.window_size)
+        ar_res = (
+            cumsum[self.window_size :] - cumsum[: -self.window_size]
+        ) / float(self.window_size)
 
         values[mask] = ar_res[mask]
 
@@ -172,7 +179,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         target_field: str,
         output_field: str,
         dummy_value: float = 0.0,
-        imputation_method: MissingValueImputation = None,
+        imputation_method: Optional[MissingValueImputation] = None,
         convert_nans: bool = True,
         dtype: DType = np.float32,
     ) -> None:
@@ -182,7 +189,11 @@ class AddObservedValuesIndicator(SimpleTransformation):
         self.convert_nans = convert_nans
         self.dtype = dtype
 
-        self.imputation_method = imputation_method if imputation_method is not None else DummyValueImputation(dummy_value)
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(dummy_value)
+        )
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
@@ -195,7 +206,6 @@ class AddObservedValuesIndicator(SimpleTransformation):
             nan_entries, out=nan_entries
         ).astype(self.dtype, copy=False)
         return data
-
 
 
 class AddConstFeature(MapTransformation):

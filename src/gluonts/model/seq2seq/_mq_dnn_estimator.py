@@ -94,13 +94,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         The GluonTS trainer to use for training. (default: Trainer())
     scaling
         Whether to automatically scale the target values. (default: False)
-    imputation_method
-        Select the method to replace the missing values.
-        - "standard" to just replace them with the dummy_value (default)
-        - "mean" to replace them with the mean
-        - "median" to replace them with the median
-        - "last_val" to replace them with the last non missing value
-        (default: "standard")
     """
 
     @validated()
@@ -125,7 +118,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         quantiles: Optional[List[float]] = None,
         trainer: Trainer = Trainer(),
         scaling: bool = False,
-        imputation_method: str = "standard",
     ) -> None:
 
         assert (
@@ -216,7 +208,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             add_age_feature=add_age_feature,
             trainer=trainer,
             scaling=scaling,
-            imputation_method=imputation_method,
         )
 
     @classmethod
