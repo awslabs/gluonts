@@ -13,20 +13,17 @@
 
 
 # Standard library imports
-import collections
 import functools
 import itertools
 import logging
-import pathlib
 import pickle
 import io
-import random
 import sys
 import time
 
 from collections.abc import Sized
 from multiprocessing.managers import SyncManager
-from typing import Callable, Iterable, Optional, List, Iterator, Union, Any
+from typing import Callable, Optional, List, Iterator, Union, Any
 
 import multiprocessing
 import multiprocessing.queues
@@ -49,6 +46,9 @@ from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset, DataEntry, DataBatch, FileDataset
 from gluonts.transform import Transformation
 from gluonts.dataset.util import MPWorkerInfo
+
+# this is needed for pickle to be able to use numpy
+sys.modules["numpy"] = np
 
 # ForkingPickler related functions:
 if sys.platform == "darwin" or sys.platform == "win32":
@@ -474,17 +474,24 @@ class _MultiWorkerIter(object):
 
     def __del__(self):
         # Explicitly load the content from shared memory to delete it
-        # Unfortunately it seems the way the data is pickled prevents efficient implicit GarbageCollection
+        # Unfortunately it seems the way the data is pickled prevents
+        # efficient implicit garbage collection
         try:
             for k in list(self._data_buffer.keys()):
-                res = pickle.loads(self._data_buffer.pop(k).get(self._timeout))
-                del res
+                handle = self._data_buffer.pop(k)
+                # In some cases the workers might have been terminated
+                # before they finished their respective batch,
+                # in which case the results will never be available
+                if handle.ready():
+                    pickled = handle.get(self._timeout)
+                    res = pickle.loads(pickled)
+                    del res
         except FileNotFoundError:
             # The resources were already released
             pass
 
 
-class ParallelDataLoader(object):
+class ParallelDataLoader:
     """
     Loads data from a dataset and returns mini-batches of data.
 
