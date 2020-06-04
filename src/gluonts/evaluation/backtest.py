@@ -100,10 +100,9 @@ def generate_rolling_datasets(
         # calc number datapoints needed from start of timeseries
         # until end of rolling test range
         timerange = pd.date_range(start=data["start"], end=end_time, freq=freq)
-        # print('length before cut:',len(data['target']))
+
         # keep values until end of test range
         data["target"] = data["target"][: len(timerange)]
-        # print('length after cut:',len(data['target']))
 
         return data
 

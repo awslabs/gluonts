@@ -118,9 +118,24 @@ def generate_expected_dataset_varying_standard(prediction_length):
     return ds_list
 
 
-# TODO implement this
 def generate_expected_dataset_varying_unique(prediction_length):
-    return []
+    ds_list = None
+    if prediction_length == 2:
+        # tests 4,5,8,9 should all return empty timeseries, thus they are
+        # not part of the expected dataset
+        lengths = [
+            25,  # start test 1
+            23,
+            25,  # start test 2
+            23,
+            23,  # start test 3
+            5,  # start test 6
+            3,
+            3,  # start test 7
+            3,  # start test 10
+        ]
+        ds_list = [(float(0), length) for length in lengths]
+    return ds_list
 
 
 def check_target_values(ds, to_compare):
@@ -158,51 +173,57 @@ def generate_dataset(name):
     if name == "constant":
         _, _, dataset = constant_dataset()
     elif name == "varying":
-        f = "H"
-        # start of target is 2000-01-01 00:00:00
-        # start time is 2000-01-01 20:00:00
-        # end time is 2000-01-02 00:00:00
-        # end time of target is 2000-01-02 05:00:00
+        # Tests edge cases
+        # t0: start time of target
+        # ts: start time of desired range
+        # te: end time of desired range
+        # t1: end time of target
+        # ts < te, t0 <= t1
+        #
         # start time index of rolling window is 20
         # end time index of rolling window is 24
+        # ts = 2000-01-01 20:00:00
+        # te = 2000-01-02 00:00:00
+
+        f = "H"
         ds_list = [
-            {  # t1: ends after end time
+            {  # test 1: target ends after end time, te > t1
                 "target": [0.0 for i in range(30)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # t2: ends at the end time
+            {  # test 2: target ends at the end time, te == t1
                 "target": [0.0 for i in range(25)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # t3: ends in between start and end times
+            {  # test 3: target ends between start and end times, ts < t1 < te
                 "target": [0.0 for i in range(23)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # t4: end in the beginning of start time
+            {  # test 4: target ends on start time, ts == t1
                 "target": [0.0 for i in range(20)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # t5: ends before start time
+            {  # test 5: target ends before start time, t1 < ts
                 "target": [0.0 for i in range(15)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # t6: starts on start time
+            {  # test 6: target starts on start ends after end, ts == t0, te > t1
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 1, 20, 0),
             },
-            {  # t7: starts in between start time and end
+            {  # test 7: starts in between start time and end, ts < t0 < te < t1
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 1, 22, 0),
             },
-            {  # t8: starts on end time
+            {  # test 8: target starts on end time, te == t0
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 2, 0, 0),
             },
-            {  # t9: starts after end time
+            {  # test 9: starts after end time, te < t0
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 2, 1, 0),
             },
-            {  # t10: starts after start time and ends before end time
+            {  # test 10: starts after ts and ends before te, ts < t0 < t1 < te
                 "target": [0.0 for i in range(3)],
                 "start": pd.Timestamp(2000, 1, 1, 21, 0),
             },
@@ -234,11 +255,11 @@ def test_fails(prediction_length, unique):
 
 @pytest.mark.parametrize(
     "ds_name, prediction_length, unique",
-    [("varying", 2, False)]  # tests edge cases
-    + [
-        ("constant", p, u)  # tests basic functionality
-        for p in range(length_of_roll_window)
-        for u in [True, False]
+    [("varying", 2, False), ("varying", 2, True)]  # mostly tests edge cases
+    + [  # tests basic functionality
+        ("constant", prediction_length, unique)
+        for prediction_length in range(length_of_roll_window)
+        for unique in [True, False]
     ],
 )
 def test_successes(ds_name, prediction_length, unique):
