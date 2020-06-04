@@ -50,25 +50,85 @@ def generate_rolling_datasets(
     ignore_end: Optional[bool] = False,
 ) -> Dataset:
     """
-    Returns a dataset generator for performing rolling origin evaluations.
-    The target values of this dataset is of varying lengths depending on the
-    provided prediction length, start_time and end_time parameters.
-    Any target values after the end_time is removed.
-    If no end time is passed as an argument, rolling forecasts will be generated 
-    for all timesteps after (and including) the start_time
+    Returns an augmented version of the input dataset where each timeseries has 
+    been rolled upon based on the parameters supplied. See below for examples of
+    the behaviour of the function and what effect the parameters has on its output.
+
+    Below examples will be based on this one timeseries long dataset
+    dataset = [ 
+        {
+            target=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] 
+            start='2000-1-1-01'
+        }
+    ]
+    
+    applying generate_rolling_datasets with:
+
+    start_time = pd.Timestamp('2000-1-6', '1H')
+    end_time = pd.Timestamp('2000-1-10', '1H')
+    prediction_length = 2
+
+    returns a new dataset as follows (only target values shown for brevity):
+    [
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        [1, 2, 3, 4, 5, 6, 7, 8],
+        [1, 2, 3, 4, 5, 6, 7]
+    ]
+
+    i.e. maximum amount of rolls possible between the end_time and start_time.
+
+    If the ignore_end flag is set to True this would be the output.
+
+    [
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        [1, 2, 3, 4, 5, 6, 7, 8]
+        [1, 2, 3, 4, 5, 6, 7]
+    ]
+
+    Thus the rolling will be applied to all the values after the start date.
+
+    If the use_unique_rolls flag is instead set to True, fewer values will be
+    in the output as each roll will be of size prediction_length. See the
+    output below.
+    
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    [1, 2, 3, 4, 5, 6, 7, 8]
+
+    Setting ignore_end and use_unique_rolls to true would result in a dataset 
+    somewhere in between the two last examples as all values after the
+    start_time would be used while taking larger step sizes than one.
+
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    [1, 2, 3, 4, 5, 6, 7]
 
     Parameters
     ----------
     dataset
         Dataset to generate the rolling forecasting datasets from
     prediction_length
-        Int which represents the amount of items in a timeseries should be
-        forecasted and evaluated on. The prediction length of the predictor to
-        use is suitable as prediction_length.
+        Integer which represents the amount of items in a timeseries should be
+        forecasted and evaluated on. The prediction length of the predictor 
+        should be used as prediction_length.
     start_time
-        The start of the time period which rolling forecasts should be applied
+        The start of the time period where rolling forecasts should be applied
     end_time
-        The end of the time period which rolling forecasts should be applied
+        The end of the time period where rolling forecasts should be applied
+    use_unique_rolls
+        Set the step_size to the prediction_length to, for each roll, only 
+        expose new values
+    ignore_end
+        when set to true, performs rolling dataset generation on all values 
+        appearing after the start time
 
     Returns
     -------
