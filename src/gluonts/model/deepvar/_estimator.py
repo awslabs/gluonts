@@ -295,7 +295,6 @@ class DeepVAREstimator(GluonEstimator):
         else:
             self.output_transform = None
 
-
     def create_transformation(self) -> Transformation:
         def use_marginal_transformation(
             marginal_transformation: bool,

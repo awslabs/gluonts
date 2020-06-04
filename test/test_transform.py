@@ -879,8 +879,6 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         assert np.prod(np.shape(d["future_target"])) == 0
 
 
-
-
 def test_AddObservedIndicator():
     """
     Tests the different methods to impute missing values.
@@ -911,7 +909,7 @@ def test_AddObservedIndicator():
     d_expected_result = {
         "dummy_value": np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
         "mean": np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
-        "causal_mean": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9/7]),
+        "causal_mean": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9 / 7]),
         "last_value": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
     }
 
@@ -934,10 +932,6 @@ def test_AddObservedIndicator():
         assert np.array_equal(
             expected_missindicator, res[FieldName.OBSERVED_VALUES]
         )
-
-
-
-
 
 
 def make_dataset(N, train_length):

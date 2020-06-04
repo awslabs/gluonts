@@ -36,6 +36,7 @@ class MissingValueImputation:
     You can just implement your own inheriting this class.
     """
 
+    @validated()
     def __init__(self) -> None:
         pass
 
@@ -49,6 +50,7 @@ class LeavesMissingValues(MissingValueImputation):
 
 
 class DummyValueImputation(MissingValueImputation):
+    @validated()
     def __init__(self, dummy_value: float = 0.0) -> None:
         self.dummy_value = dummy_value
 
@@ -118,6 +120,7 @@ class CausalMeanValueImputation(MissingValueImputation):
 
 
 class RollingMeanValueImputation(MissingValueImputation):
+    @validated()
     def __init__(self, window_size: int = 10) -> None:
         self.window_size = 1 if window_size < 1 else window_size
 
