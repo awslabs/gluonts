@@ -130,17 +130,8 @@ def generate_rolling_datasets(
 
     # generator to create rolling datasets
     def perform_roll(dataset):
-        # in order to return num_series we need to create the generator,
-        # then iterate through it and then create the generator again.
-        # This is slow and should be avoided, especially when rolling large datasets
-        # Another method is to store the results of the calculations that
-        # is used to generate the rolled dataset.
-        # Through these calculations we can extract the total number of series
-        # without yet generating them, thus avoiding duplicate calculations
-
+        ds = []
         for ts in dataset:
-            # print('target length', len(ts['target']), 'time start', ts['start'])
-
             # this means target starts after the provided end time
             if len(ts["target"]) == 0:
                 continue
@@ -156,7 +147,7 @@ def generate_rolling_datasets(
 
             # in case the timeseries starts in between the start and end time
             start = start_time if start_time > ts["start"] else ts["start"]
-            # print(start, start_time, end_time_ts, end_time)
+
             # calculate amount of target values to roll over
             items_to_roll = len(
                 pd.date_range(start=start, end=end_time_ts, freq=freq)
@@ -175,7 +166,9 @@ def generate_rolling_datasets(
                 ts_copy = ts.copy()
                 ts_copy["target"] = ts_copy["target"][:new_length]
                 new_length = new_length - modifier
-                yield ts_copy
+                ds.append(ts_copy)
+
+        return ds
 
     dataset_to_roll = dataset
     if end_time:

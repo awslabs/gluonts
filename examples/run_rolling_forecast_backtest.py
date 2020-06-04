@@ -276,7 +276,7 @@ def test_fails():
 
 def test_successes():
     # test the inputs that should succeed
-    datasets_to_test = ["varying"]
+    datasets_to_test = ["varying", "constant"]
     t0, t1 = get_times()
     for ds_name in datasets_to_test:
         dataset = generate_dataset(ds_name)
@@ -307,3 +307,31 @@ def test_successes():
 if __name__ == "__main__":
     test_fails()
     test_successes()
+
+    dataset = get_dataset("constant", regenerate=False)
+
+    estimator = SimpleFeedForwardEstimator(
+        prediction_length=dataset.metadata.prediction_length,
+        freq=dataset.metadata.freq,
+        trainer=Trainer(epochs=5, num_batches_per_epoch=10),
+    )
+
+    predictor = estimator.train(dataset.train)
+
+    dataset_rolled = generate_rolling_datasets(
+        dataset=dataset.test,
+        prediction_length=dataset.metadata.prediction_length,
+        start_time=pd.Timestamp('2000-01-01-15', freq='1H'),
+        end_time=pd.Timestamp('2000-01-02-04', freq='1H'),
+        use_unique_rolls=True,
+    )
+
+    for ds in [dataset.test, dataset_rolled]:
+        forecast_it, ts_it = make_evaluation_predictions(
+            ds, predictor=predictor, num_samples=len(ds)
+        )
+
+        agg_metrics, item_metrics = Evaluator()(ts_it, forecast_it)
+
+        pprint.pprint(agg_metrics)
+        print('\n')
