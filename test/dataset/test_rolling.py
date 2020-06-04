@@ -187,35 +187,35 @@ def generate_dataset(name):
 
         f = "H"
         ds_list = [
-            {  # test 1: target ends after end time, te > t1
+            {  # test 1: ends after end time, te > t1
                 "target": [0.0 for i in range(30)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # test 2: target ends at the end time, te == t1
+            {  # test 2: ends at the end time, te == t1
                 "target": [0.0 for i in range(25)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # test 3: target ends between start and end times, ts < t1 < te
+            {  # test 3: ends between start and end times, ts < t1 < te
                 "target": [0.0 for i in range(23)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # test 4: target ends on start time, ts == t1
+            {  # test 4: ends on start time, ts == t1
                 "target": [0.0 for i in range(20)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # test 5: target ends before start time, t1 < ts
+            {  # test 5: ends before start time, t1 < ts
                 "target": [0.0 for i in range(15)],
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
-            {  # test 6: target starts on start ends after end, ts == t0, te > t1
+            {  # test 6: starts on start ends after end, ts == t0, te > t1
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 1, 20, 0),
             },
-            {  # test 7: starts in between start time and end, ts < t0 < te < t1
+            {  # test 7: starts in between ts and end, ts < t0 < te < t1
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 1, 22, 0),
             },
-            {  # test 8: target starts on end time, te == t0
+            {  # test 8: starts on end time, te == t0
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 2, 0, 0),
             },
@@ -223,7 +223,7 @@ def generate_dataset(name):
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 2, 1, 0),
             },
-            {  # test 10: starts after ts and ends before te, ts < t0 < t1 < te
+            {  # test 10: starts after ts & ends before te, ts < t0 < t1 < te
                 "target": [0.0 for i in range(3)],
                 "start": pd.Timestamp(2000, 1, 1, 21, 0),
             },
