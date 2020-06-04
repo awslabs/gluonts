@@ -321,8 +321,8 @@ if __name__ == "__main__":
     dataset_rolled = generate_rolling_datasets(
         dataset=dataset.test,
         prediction_length=dataset.metadata.prediction_length,
-        start_time=pd.Timestamp('2000-01-01-15', freq='1H'),
-        end_time=pd.Timestamp('2000-01-02-04', freq='1H'),
+        start_time=pd.Timestamp("2000-01-01-15", freq="1H"),
+        end_time=pd.Timestamp("2000-01-02-04", freq="1H"),
         use_unique_rolls=True,
     )
 
@@ -334,4 +334,4 @@ if __name__ == "__main__":
         agg_metrics, item_metrics = Evaluator()(ts_it, forecast_it)
 
         pprint.pprint(agg_metrics)
-        print('\n')
+        print("\n")
