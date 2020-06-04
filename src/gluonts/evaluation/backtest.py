@@ -45,8 +45,9 @@ def generate_rolling_datasets(
     dataset: Dataset,
     prediction_length: int,
     start_time: pd.Timestamp,
-    end_time: Optional[pd.Timestamp],
+    end_time: Optional[pd.Timestamp] = None,
     use_unique_rolls: Optional[bool] = False,
+    ignore_end: Optional[bool] = False,
 ) -> Dataset:
     """
     Returns a dataset generator for performing rolling origin evaluations.
@@ -79,18 +80,22 @@ def generate_rolling_datasets(
     assert prediction_length, "prediction_length is needed"
     assert prediction_length > 0, "prediction length needs to be > 0"
     assert start_time, "a pandas Timestamp object is needed for the start time"
-    assert end_time, "a pandas Timestamp object is needed for the end time"
-    assert end_time > start_time, "end time has to be after the start time"
 
     freq = start_time.freq
-    num_items_in_rolling = len(
-        pd.date_range(start=start_time, end=end_time, freq=freq)
-    )
+    if ignore_end:
+        end_time = None
+    else:
+        assert end_time, "a pandas Timestamp object is needed for the end time"
+        assert end_time > start_time, "end time has to be after the start time"
 
-    # ensure that the window size is small enough to allow rolling
-    assert (
-        num_items_in_rolling > prediction_length
-    ), "timestamps to close for the prediction_length"
+        num_items_in_rolling = len(
+            pd.date_range(start=start_time, end=end_time, freq=freq)
+        )
+
+        # ensure that the window size is small enough to allow rolling
+        assert (
+            num_items_in_rolling > prediction_length
+        ), "timestamps to close for the prediction_length"
 
     # removes target values appearing after end_time
     def truncate_end(data):

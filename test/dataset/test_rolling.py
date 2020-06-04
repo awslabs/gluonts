@@ -21,7 +21,7 @@ import pandas as pd
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import ListDataset
 import pytest
-
+import itertools
 
 len_to_truncate = 5
 length_of_roll_window = 5
@@ -89,72 +89,74 @@ def generate_expected_dataset_standard(prediction_length):
     return a
 
 
+def convert_to_expected(list_of_lists):
+    flattened = list(itertools.chain.from_iterable(list_of_lists))
+    return [(float(0), i) for i in flattened]
+
+
 def generate_expected_dataset_varying_standard(prediction_length):
-    ds_list = None
+    lengths = None
     if prediction_length == 2:
-        # tests 4,5,8,9 should all return empty timeseries, thus they are
-        # not part of the expected dataset
         lengths = [
-            25,  # start test 1
-            24,
-            23,
-            22,
-            25,  # start test 2
-            24,
-            23,
-            22,
-            23,  # start test 3
-            22,
-            5,  # start test 6
-            4,
-            3,
-            2,
-            3,  # start test 7
-            2,
-            3,  # start test 10
-            2,
+            [25 - i for i in range(4)],  # test 1
+            [25 - i for i in range(4)],  # test 2
+            [23, 22],  # test 3
+            [],  # test 4
+            [],  # test 5
+            [5 - i for i in range(4)],  # test 6
+            [3, 2],  # test 7
+            [],  # test 8
+            [],  # test 9
+            [3, 2],  # test 10
         ]
-        ds_list = [(float(0), length) for length in lengths]
-    return ds_list
+
+    return convert_to_expected(lengths)
 
 
 def generate_expected_dataset_varying_unique(prediction_length):
-    ds_list = None
+    lengths = None
     if prediction_length == 2:
-        # tests 4,5,8,9 should all return empty timeseries, thus they are
-        # not part of the expected dataset
         lengths = [
-            25,  # start test 1
-            23,
-            25,  # start test 2
-            23,
-            23,  # start test 3
-            5,  # start test 6
-            3,
-            3,  # start test 7
-            3,  # start test 10
+            [25, 23],  # test 1
+            [25, 23],  # test 2
+            [23],  # test 3
+            [],  # test 4
+            [],  # test 5
+            [5, 3],  # test 6
+            [3],  # test 7
+            [],  # test 8
+            [],  # test 9
+            [3],  # test 10
         ]
-        ds_list = [(float(0), length) for length in lengths]
-    return ds_list
+
+    return convert_to_expected(lengths)
 
 
-def check_target_values(ds, to_compare):
-    i = 0
-    for ts in ds:
-        assert (
-            len(ts["target"]) == to_compare[i][1]
-        ), "timeseries {} failed".format(i + 1)
-        for val in ts["target"]:
-            assert val == to_compare[i][0]
-        i = i + 1
+def generate_expected_dataset_varying_open_end(prediction_length):
+    lengths = None
+    if prediction_length == 3:
+        lengths = [
+            [30 - i for i in range(8)],  # test 1
+            [25 - i for i in range(3)],  # test 2
+            [23],  # test 3
+            [],  # test 4
+            [],  # test 5
+            [10 - i for i in range(8)],  # test 6
+            [10 - i for i in range(8)],  # test 7
+            [10 - i for i in range(8)],  # test 8
+            [10 - i for i in range(8)],  # test 9
+            [3],  # test 10
+        ]
 
-    assert len(to_compare) == i
+    return convert_to_expected(lengths)
 
 
-def generate_expected_rolled_dataset(pl, unique_rolls, ds_name):
+def generate_expected_rolled_dataset(pl, unique_rolls, ds_name, ignore_end):
     to_compare = None
 
-    if unique_rolls and ds_name == "constant":
+    if ignore_end:
+        to_compare = generate_expected_dataset_varying_open_end(pl)
+    elif unique_rolls and ds_name == "constant":
         to_compare = generate_expected_dataset_unique(pl)
     elif ds_name == "constant":
         to_compare = generate_expected_dataset_standard(pl)
@@ -185,7 +187,6 @@ def generate_dataset(name):
         # ts = 2000-01-01 20:00:00
         # te = 2000-01-02 00:00:00
 
-        f = "H"
         ds_list = [
             {  # test 1: ends after end time, te > t1
                 "target": [0.0 for i in range(30)],
@@ -211,7 +212,7 @@ def generate_dataset(name):
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 1, 20, 0),
             },
-            {  # test 7: starts in between ts and end, ts < t0 < te < t1
+            {  # test 7: starts in between ts and te, ts < t0 < te < t1
                 "target": [0.0 for i in range(10)],
                 "start": pd.Timestamp(2000, 1, 1, 22, 0),
             },
@@ -228,7 +229,7 @@ def generate_dataset(name):
                 "start": pd.Timestamp(2000, 1, 1, 21, 0),
             },
         ]
-        dataset = ListDataset(ds_list, f)
+        dataset = ListDataset(ds_list, "H")
     else:
         raise ValueError
     return dataset
@@ -246,6 +247,7 @@ def test_fails(prediction_length, unique):
             start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
             end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
             use_unique_rolls=unique,
+            ignore_end=False,
         )
         # program should have failed at this point
         raise RuntimeWarning
@@ -253,16 +255,33 @@ def test_fails(prediction_length, unique):
         pass
 
 
+def check_target_values(ds, to_compare):
+    i = 0
+    for ts in ds:
+        assert (
+            len(ts["target"]) == to_compare[i][1]
+        ), "timeseries {} failed".format(i + 1)
+        for val in ts["target"]:
+            assert val == to_compare[i][0]
+        i = i + 1
+
+    assert len(to_compare) == i
+
+
 @pytest.mark.parametrize(
-    "ds_name, prediction_length, unique",
-    [("varying", 2, False), ("varying", 2, True)]  # mostly tests edge cases
-    + [  # tests basic functionality
-        ("constant", prediction_length, unique)
+    "ds_name, prediction_length, unique, ignore_end",
+    [
+        ("varying", 2, False, False),
+        ("varying", 2, True, False),
+        ("varying", 3, False, True),
+    ]
+    + [
+        ("constant", prediction_length, unique, False)
         for prediction_length in range(length_of_roll_window)
         for unique in [True, False]
     ],
 )
-def test_successes(ds_name, prediction_length, unique):
+def test_successes(ds_name, prediction_length, unique, ignore_end):
     # prediction_length=0 should fail and is handled in test_fails(...)
     if prediction_length == 0:
         return
@@ -273,10 +292,11 @@ def test_successes(ds_name, prediction_length, unique):
         start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
         end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
         use_unique_rolls=unique,
+        ignore_end=ignore_end,
     )
 
     ds_expected = generate_expected_rolled_dataset(
-        prediction_length, unique, ds_name
+        prediction_length, unique, ds_name, ignore_end
     )
 
     check_target_values(rolled_ds, ds_expected)
