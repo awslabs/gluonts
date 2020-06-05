@@ -64,6 +64,7 @@ def simple_feedforward_estimator():
     )
 
 
+@pytest.mark.timeout(100)
 @pytest.mark.parametrize(
     "dataset_name, custom_dataset", [("m4_hourly", False), ("m4_hourly", True)]
 )
