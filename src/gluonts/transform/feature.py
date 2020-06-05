@@ -41,15 +41,32 @@ class MissingValueImputation:
         pass
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        """
+
+        Parameters
+        ----------
+        values : the array of values with or without nans
+
+        Returns
+        -------
+        values : the array of values with the nans replaced according to the method used.
+
+        """
         raise NotImplementedError()
 
 
 class LeavesMissingValues(MissingValueImputation):
+    """
+    Just leaves the missing values untouched.
+    """
     def __call__(self, values: np.ndarray) -> np.ndarray:
         return values
 
 
 class DummyValueImputation(MissingValueImputation):
+    """
+    This class replaces all the missing values with the same dummy value given in advance.
+    """
     @validated()
     def __init__(self, dummy_value: float = 0.0) -> None:
         self.dummy_value = dummy_value
@@ -62,6 +79,7 @@ class DummyValueImputation(MissingValueImputation):
 
 class MeanValueImputation(MissingValueImputation):
     """
+    This class replaces all the missing values with the mean of the non missing values.
     Careful this is not a 'causal' method in the sense that it leaks information about the furture in the imputation.
     You may prefer to use CausalMeanValueImputation instead.
     """
@@ -73,6 +91,10 @@ class MeanValueImputation(MissingValueImputation):
 
 
 class LastValueImputation(MissingValueImputation):
+    """
+    This class replaces each missing value with the last value that was not missing.
+    (If the first values are missing, they are replaced by the closest non missing value.)
+    """
     def __call__(self, values: np.ndarray) -> np.ndarray:
         values = np.expand_dims(values, axis=0)
 
@@ -93,6 +115,10 @@ class LastValueImputation(MissingValueImputation):
 
 
 class CausalMeanValueImputation(MissingValueImputation):
+    """
+    This class replaces each missing value with the average of all the values up to this point.
+    (If the first values are missing, they are replaced by the closest non missing value.)
+    """
     def __call__(self, values: np.ndarray) -> np.ndarray:
         mask = np.isnan(values)
 
@@ -120,6 +146,10 @@ class CausalMeanValueImputation(MissingValueImputation):
 
 
 class RollingMeanValueImputation(MissingValueImputation):
+    """
+    This class replaces each missing value with the average of all the last window_size (default=10) values.
+    (If the first values are missing, they are replaced by the closest non missing value.)
+    """
     @validated()
     def __init__(self, window_size: int = 10) -> None:
         self.window_size = 1 if window_size < 1 else window_size
