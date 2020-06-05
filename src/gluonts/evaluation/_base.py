@@ -84,11 +84,11 @@ class Evaluator:
         uses the default seasonality
         for the given series frequency as returned by `get_seasonality`
     alpha
-        parameter of the MSIS metric from M4 competition that
-        defines the confidence interval
-        for alpha=0.05 the 95% considered is considered in the metric,
-        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4
-        -Competitors-Guide.pdf for more detail on MSIS
+        Parameter of the MSIS metric from the M4 competition that
+        defines the confidence interval.
+        For alpha=0.05 (default) the 95% considered is considered in the metric,
+        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+        for more detail on MSIS
     calculate_owa
         Determines whether the OWA metric should also be calculated,
         which is computationally expensive to evaluate and thus slows
@@ -306,15 +306,6 @@ class Evaluator:
             mean_fcst = None
         median_fcst = forecast.quantile(0.5)
         seasonal_error = self.seasonal_error(past_data, forecast)
-        # For MSIS: alpha/2 quantile may not exist. Find the closest.
-        lower_q = min(
-            self.quantiles, key=lambda q: abs(q.value - self.alpha / 2)
-        )
-        upper_q = min(
-            reversed(self.quantiles),
-            key=lambda q: abs(q.value - (1 - self.alpha / 2)),
-        )
-
         metrics = {
             "item_id": forecast.item_id,
             "MSE": self.mse(pred_target, mean_fcst)
@@ -330,8 +321,8 @@ class Evaluator:
             "OWA": np.nan,  # by default not calculated
             "MSIS": self.msis(
                 pred_target,
-                forecast.quantile(lower_q.value),
-                forecast.quantile(upper_q.value),
+                forecast.quantile(self.alpha / 2),
+                forecast.quantile(1.0 - self.alpha / 2),
                 seasonal_error,
                 self.alpha,
             ),
