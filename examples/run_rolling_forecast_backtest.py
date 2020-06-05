@@ -22,6 +22,7 @@ from gluonts.evaluation.backtest import (
 )
 
 import pandas as pd
+import gluonts.dataset.rolling_dataset as rd
 
 if __name__ == "__main__":
     dataset = get_dataset("constant", regenerate=False)
@@ -35,12 +36,13 @@ if __name__ == "__main__":
     predictor = estimator.train(dataset.train)
 
     # create the rolled dataset to use for forecasting and evaluation
-    dataset_rolled = generate_rolling_datasets(
+    dataset_rolled = rd.generate_rolling_datasets(
         dataset=dataset.test,
-        prediction_length=dataset.metadata.prediction_length,
         start_time=pd.Timestamp("2000-01-01-15", freq="1H"),
         end_time=pd.Timestamp("2000-01-02-04", freq="1H"),
-        use_unique_rolls=True,
+        strategy=rd.basic_strategy(
+            prediction_length=dataset.metadata.prediction_length,
+        ),
     )
 
     forecast_it, ts_it = make_evaluation_predictions(

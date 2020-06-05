@@ -160,7 +160,6 @@ def generate_rolling_datasets(
     # removes target values appearing after end_time
     def truncate_end(data):
         data = data.copy()
-        data["rolling"] = (start_time, end_time)
 
         # calc number datapoints needed from start of timeseries
         # until end of rolling test range
@@ -234,14 +233,13 @@ def generate_rolling_datasets(
 
         return ds
 
-    dataset_to_roll = dataset
     if end_time:
         # we need to get rid of values appearing after end_time
-        dataset_to_roll = TransformedDataset(
+        dataset = TransformedDataset(
             dataset, transformations=[transform.AdhocTransform(truncate_end)]
         )
 
-    return perform_roll(dataset_to_roll)
+    return perform_roll(dataset)
 
 
 def make_evaluation_predictions(

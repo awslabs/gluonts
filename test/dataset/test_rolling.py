@@ -22,6 +22,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import ListDataset
 import pytest
 import itertools
+import gluonts.dataset.rolling_dataset as rd
 
 len_to_truncate = 5
 length_of_roll_window = 5
@@ -255,6 +256,25 @@ def test_fails(prediction_length, unique):
         pass
 
 
+@pytest.mark.parametrize(
+    "prediction_length, unique",
+    [(p, u) for p in [-1, 0] for u in [True, False]],
+)
+def test_fails_alternative(prediction_length, unique):
+    strat = rd.unique_strategy if unique else rd.basic_strategy
+    try:
+        rd.generate_rolling_datasets(
+            dataset=generate_dataset("constant"),
+            start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
+            end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
+            strategy=strat(prediction_length=prediction_length),
+        )
+        # program should have failed at this point
+        raise RuntimeWarning
+    except AssertionError:
+        pass
+
+
 def check_target_values(ds, to_compare):
     i = 0
     for ts in ds:
@@ -293,6 +313,41 @@ def test_successes(ds_name, prediction_length, unique, ignore_end):
         end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
         use_unique_rolls=unique,
         ignore_end=ignore_end,
+    )
+
+    ds_expected = generate_expected_rolled_dataset(
+        prediction_length, unique, ds_name, ignore_end
+    )
+
+    check_target_values(rolled_ds, ds_expected)
+
+
+@pytest.mark.parametrize(
+    "ds_name, prediction_length, unique, ignore_end",
+    [
+        ("varying", 2, False, False),
+        ("varying", 2, True, False),
+        ("varying", 3, False, True),
+    ]
+    + [
+        ("constant", prediction_length, unique, False)
+        for prediction_length in range(length_of_roll_window)
+        for unique in [True, False]
+    ],
+)
+def test_successes_alternative(ds_name, prediction_length, unique, ignore_end):
+    # prediction_length=0 should fail and is handled in test_fails(...)
+    if prediction_length == 0:
+        return
+
+    strat = rd.unique_strategy if unique else rd.basic_strategy
+    end = None if ignore_end else pd.Timestamp("2000-01-02-00", freq="1H")
+
+    rolled_ds = rd.generate_rolling_datasets(
+        dataset=generate_dataset(ds_name),
+        start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
+        end_time=end,
+        strategy=strat(prediction_length=prediction_length),
     )
 
     ds_expected = generate_expected_rolled_dataset(
