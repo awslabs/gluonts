@@ -17,8 +17,8 @@ def generate_rolling_datasets(
 
     assert dataset, "a dataset to perform rolling evaluation on is needed"
     assert start_time, "a pandas Timestamp object is needed for the start time"
-    assert strategy, '''a strategy to use when rolling is needed, consider
-        using gluonts.dataset.rolling_dataset.basic_strategy'''
+    assert strategy, """a strategy to use when rolling is needed, consider
+        using gluonts.dataset.rolling_dataset.basic_strategy"""
     if end_time:
         assert end_time > start_time, "end time has to be after the start time"
 
@@ -35,6 +35,7 @@ def generate_rolling_datasets(
 
     return ds
 
+
 def part_function(window, prediction_length, modifier):
     while len(window) >= prediction_length:
         yield window
@@ -44,11 +45,16 @@ def part_function(window, prediction_length, modifier):
 def basic_strategy(prediction_length):
     assert prediction_length, "prediction_length is needed"
     assert prediction_length > 0, "prediction length needs to be > 0"
-    return partial(part_function, prediction_length=prediction_length, modifier=1)
+    return partial(
+        part_function, prediction_length=prediction_length, modifier=1
+    )
 
 
 def unique_strategy(prediction_length):
     assert prediction_length, "prediction_length is needed"
     assert prediction_length > 0, "prediction length needs to be > 0"
-    return partial(part_function, prediction_length=prediction_length, modifier=prediction_length)
-
+    return partial(
+        part_function,
+        prediction_length=prediction_length,
+        modifier=prediction_length,
+    )
