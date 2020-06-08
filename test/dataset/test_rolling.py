@@ -16,7 +16,6 @@ This example shows how to fit a model and evaluate its predictions.
 """
 
 from math import floor
-from gluonts.evaluation.backtest import generate_rolling_datasets
 import pandas as pd
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import ListDataset
@@ -238,29 +237,9 @@ def generate_dataset(name):
 
 @pytest.mark.parametrize(
     "prediction_length, unique",
-    [(p, u) for p in [-1, 0, 5] for u in [True, False]],
-)
-def test_fails(prediction_length, unique):
-    try:
-        generate_rolling_datasets(
-            dataset=generate_dataset("constant"),
-            prediction_length=prediction_length,
-            start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
-            end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
-            use_unique_rolls=unique,
-            ignore_end=False,
-        )
-        # program should have failed at this point
-        raise RuntimeWarning
-    except AssertionError:
-        pass
-
-
-@pytest.mark.parametrize(
-    "prediction_length, unique",
     [(p, u) for p in [-1, 0] for u in [True, False]],
 )
-def test_fails_alternative(prediction_length, unique):
+def test_fails(prediction_length, unique):
     strat = rd.unique_strategy if unique else rd.basic_strategy
     try:
         rd.generate_rolling_datasets(
@@ -297,49 +276,11 @@ def check_target_values(ds, to_compare):
     ]
     + [
         ("constant", prediction_length, unique, False)
-        for prediction_length in range(length_of_roll_window)
+        for prediction_length in range(1, length_of_roll_window)
         for unique in [True, False]
     ],
 )
 def test_successes(ds_name, prediction_length, unique, ignore_end):
-    # prediction_length=0 should fail and is handled in test_fails(...)
-    if prediction_length == 0:
-        return
-
-    rolled_ds = generate_rolling_datasets(
-        dataset=generate_dataset(ds_name),
-        prediction_length=prediction_length,
-        start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
-        end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
-        use_unique_rolls=unique,
-        ignore_end=ignore_end,
-    )
-
-    ds_expected = generate_expected_rolled_dataset(
-        prediction_length, unique, ds_name, ignore_end
-    )
-
-    check_target_values(rolled_ds, ds_expected)
-
-
-@pytest.mark.parametrize(
-    "ds_name, prediction_length, unique, ignore_end",
-    [
-        ("varying", 2, False, False),
-        ("varying", 2, True, False),
-        ("varying", 3, False, True),
-    ]
-    + [
-        ("constant", prediction_length, unique, False)
-        for prediction_length in range(length_of_roll_window)
-        for unique in [True, False]
-    ],
-)
-def test_successes_alternative(ds_name, prediction_length, unique, ignore_end):
-    # prediction_length=0 should fail and is handled in test_fails(...)
-    if prediction_length == 0:
-        return
-
     strat = rd.unique_strategy if unique else rd.basic_strategy
     end = None if ignore_end else pd.Timestamp("2000-01-02-00", freq="1H")
 

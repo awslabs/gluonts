@@ -10,19 +10,20 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
 from pprint import pprint
+
+import pandas as pd
+
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.trainer import Trainer
 from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import (
-    make_evaluation_predictions,
+from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.dataset.rolling_dataset import (
+    basic_strategy,
+    unique_strategy,
     generate_rolling_datasets,
 )
-
-import pandas as pd
-import gluonts.dataset.rolling_dataset as rd
 
 if __name__ == "__main__":
     dataset = get_dataset("constant", regenerate=False)
@@ -36,11 +37,11 @@ if __name__ == "__main__":
     predictor = estimator.train(dataset.train)
 
     # create the rolled dataset to use for forecasting and evaluation
-    dataset_rolled = rd.generate_rolling_datasets(
+    dataset_rolled = generate_rolling_datasets(
         dataset=dataset.test,
         start_time=pd.Timestamp("2000-01-01-15", freq="1H"),
         end_time=pd.Timestamp("2000-01-02-04", freq="1H"),
-        strategy=rd.basic_strategy(
+        strategy=basic_strategy(
             prediction_length=dataset.metadata.prediction_length,
         ),
     )
