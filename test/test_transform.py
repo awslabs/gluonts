@@ -898,7 +898,14 @@ def test_AddObservedIndicator():
         [np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]
     )
 
-    l_methods = ["dummy_value", "mean", "causal_mean", "last_value", "rolling_mean1", "rolling_mean10"]
+    l_methods = [
+        "dummy_value",
+        "mean",
+        "causal_mean",
+        "last_value",
+        "rolling_mean1",
+        "rolling_mean10",
+    ]
 
     d_method_instances = {
         "dummy_value": DummyValueImputation(),

@@ -59,6 +59,7 @@ class LeavesMissingValues(MissingValueImputation):
     """
     Just leaves the missing values untouched.
     """
+
     def __call__(self, values: np.ndarray) -> np.ndarray:
         return values
 
@@ -67,6 +68,7 @@ class DummyValueImputation(MissingValueImputation):
     """
     This class replaces all the missing values with the same dummy value given in advance.
     """
+
     @validated()
     def __init__(self, dummy_value: float = 0.0) -> None:
         self.dummy_value = dummy_value
@@ -95,6 +97,7 @@ class LastValueImputation(MissingValueImputation):
     This class replaces each missing value with the last value that was not missing.
     (If the first values are missing, they are replaced by the closest non missing value.)
     """
+
     def __call__(self, values: np.ndarray) -> np.ndarray:
         values = np.expand_dims(values, axis=0)
 
@@ -119,6 +122,7 @@ class CausalMeanValueImputation(MissingValueImputation):
     This class replaces each missing value with the average of all the values up to this point.
     (If the first values are missing, they are replaced by the closest non missing value.)
     """
+
     def __call__(self, values: np.ndarray) -> np.ndarray:
         mask = np.isnan(values)
 
@@ -150,6 +154,7 @@ class RollingMeanValueImputation(MissingValueImputation):
     This class replaces each missing value with the average of all the last window_size (default=10) values.
     (If the first values are missing, they are replaced by the closest non missing value.)
     """
+
     @validated()
     def __init__(self, window_size: int = 10) -> None:
         self.window_size = 1 if window_size < 1 else window_size
