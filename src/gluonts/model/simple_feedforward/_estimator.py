@@ -99,6 +99,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
+        sampling: bool = True,
         freq: str,
         prediction_length: int,
         trainer: Trainer = Trainer(),
@@ -141,6 +142,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         self.batch_normalization = batch_normalization
         self.mean_scaling = mean_scaling
         self.num_parallel_samples = num_parallel_samples
+        self.sampling = sampling
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
