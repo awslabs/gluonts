@@ -22,6 +22,7 @@ import pandas as pd
 # First-party imports
 import gluonts  # noqa
 from gluonts import transform
+from gluonts.core.component import get_mxnet_context
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
@@ -35,10 +36,11 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import GluonPredictor, Predictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import TransformedDataset
+from mxnet.ndarray import NDArray
 
 
 def make_evaluation_predictions(
-    dataset: Dataset, predictor: Predictor, num_samples: int,
+    dataset: Dataset, predictor: Predictor, num_samples: int
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
     Return predictions on the last portion of predict_length time units of the
@@ -55,6 +57,7 @@ def make_evaluation_predictions(
         Model used to draw predictions.
     num_samples
         Number of samples to draw on the model when evaluating.
+
     Returns
     -------
     """
@@ -96,7 +99,7 @@ def make_evaluation_predictions(
     # TODO the test set may be gone otherwise with such a filtering)
 
     dataset_trunc = TransformedDataset(
-        dataset, transformations=[transform.AdhocTransform(truncate_target)],
+        dataset, transformations=[transform.AdhocTransform(truncate_target)]
     )
 
     return (
@@ -151,12 +154,11 @@ def backtest_metrics(
         By default 0, in which case no multiprocessing will be utilized.
     num_prefetch
         The number of prefetching batches only works if `num_workers` > 0.
-        If `prefetch` > 0, it allow worker process to prefetch certain batches
-        before acquiring data from iterators.
-        Note that using large prefetching batch will provide smoother
-        bootstrapping performance,but will consume more shared_memory. Using
-        smaller number may forfeit the purpose of using multiple worker
-        processes, try reduce `num_workers` in this case.
+        If `prefetch` > 0, it allow worker process to prefetch certain batches before
+        acquiring data from iterators.
+        Note that using large prefetching batch will provide smoother bootstrapping performance,
+        but will consume more shared_memory. Using smaller number may forfeit the purpose of using
+        multiple worker processes, try reduce `num_workers` in this case.
         By default it defaults to `num_workers * 2`.
 
     Returns
