@@ -45,6 +45,10 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
 )
+from gluonts.transform.feature import (
+    MissingValueImputation,
+    DummyValueImputation,
+)
 
 # Relative imports
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
@@ -111,6 +115,8 @@ class DeepAREstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
+    imputation_method
+        One of the methods from ImputationStrategy
     """
 
     @validated()
@@ -134,6 +140,7 @@ class DeepAREstimator(GluonEstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        imputation_method: Optional[MissingValueImputation] = None,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
@@ -198,6 +205,12 @@ class DeepAREstimator(GluonEstimator):
 
         self.num_parallel_samples = num_parallel_samples
 
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(self.distr_output.value_in_support)
+        )
+
     @classmethod
     def derive_auto_fields(cls, train_iter):
         stats = calculate_dataset_statistics(train_iter)
@@ -251,8 +264,8 @@ class DeepAREstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
-                    dummy_value=self.distr_output.value_in_support,
                     dtype=self.dtype,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,

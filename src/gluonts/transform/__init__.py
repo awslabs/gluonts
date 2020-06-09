@@ -50,6 +50,13 @@ __all__ = [
     "Transformation",
     "UniformSplitSampler",
     "VstackFeatures",
+    "MissingValueImputation",
+    "LeavesMissingValues",
+    "DummyValueImputation",
+    "MeanValueImputation",
+    "LastValueImputation",
+    "CausalMeanValueImputation",
+    "RollingMeanValueImputation",
 ]
 
 from ._base import (
@@ -84,6 +91,13 @@ from .feature import (
     AddConstFeature,
     AddTimeFeatures,
     AddAgeFeature,
+    MissingValueImputation,
+    LeavesMissingValues,
+    DummyValueImputation,
+    MeanValueImputation,
+    LastValueImputation,
+    CausalMeanValueImputation,
+    RollingMeanValueImputation,
 )
 
 from .field import (
