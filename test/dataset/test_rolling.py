@@ -19,9 +19,12 @@ from math import floor
 import pandas as pd
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import ListDataset
+from gluonts.dataset.rolling_dataset import (
+    StepStrategy,
+    generate_rolling_datasets,
+)
 import pytest
 import itertools
-import gluonts.dataset.rolling_dataset as rd
 
 len_to_truncate = 5
 length_of_roll_window = 5
@@ -240,13 +243,15 @@ def generate_dataset(name):
     [(p, u) for p in [-1, 0] for u in [True, False]],
 )
 def test_fails(prediction_length, unique):
-    strat = rd.unique_strategy if unique else rd.basic_strategy
     try:
-        rd.generate_rolling_datasets(
+        generate_rolling_datasets(
             dataset=generate_dataset("constant"),
             start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
             end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
-            strategy=strat(prediction_length=prediction_length),
+            strategy=StepStrategy(
+                step_size=prediction_length if unique else 1,
+                prediction_length=prediction_length,
+            ),
         )
         # program should have failed at this point
         raise RuntimeWarning
@@ -281,14 +286,17 @@ def check_target_values(ds, to_compare):
     ],
 )
 def test_successes(ds_name, prediction_length, unique, ignore_end):
-    strat = rd.unique_strategy if unique else rd.basic_strategy
+    strat = StepStrategy(
+        step_size=prediction_length if unique else 1,
+        prediction_length=prediction_length,
+    )
     end = None if ignore_end else pd.Timestamp("2000-01-02-00", freq="1H")
 
-    rolled_ds = rd.generate_rolling_datasets(
+    rolled_ds = generate_rolling_datasets(
         dataset=generate_dataset(ds_name),
         start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
         end_time=end,
-        strategy=strat(prediction_length=prediction_length),
+        strategy=strat,
     )
 
     ds_expected = generate_expected_rolled_dataset(

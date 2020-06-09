@@ -13,12 +13,59 @@
 
 from functools import partial
 from typing import Optional
+from pydantic import BaseModel
 
 import numpy as np
 import pandas as pd
 
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
+
+
+class StepStrategy(BaseModel):
+    """
+    Removes datapoints equivalent to step_size for each iteration until
+    amount of data left is less than prediction_length
+    
+    Parameters
+    ----------
+    prediction_length
+        The prediction length of the Predictor that the dataset will be
+        used with
+    
+    Returns
+    -------
+    A partial function which yields the rolled windows
+    """
+
+    prediction_length: int
+    step_size: int = 1
+
+    def get_windows(self, window):
+        assert (
+            self.prediction_length > 0
+        ), """the step strategy requires a prediction_length > 0"""
+        assert self.step_size > 0, """step_size should be > 0"""
+
+        while len(window) >= self.prediction_length:
+            yield window
+            window = window[: -self.step_size]
+
+
+class NumSplitsStrategy(BaseModel):
+    prediction_length: int
+    num_splits: int
+
+    def get_windows(self, window):
+        assert (
+            prediction_length > 0
+        ), """the number splits strategy requires a prediction_length > 0"""
+        assert num_splits > 1, """num_splits should be > 1"""
+        for slice_idx in np.linspace(
+            start=self.prediction_length, stop=len(window), num=self.num_splits
+        ):
+
+            yield window[: int(round(slice_idx))]
 
 
 def generate_rolling_datasets(
@@ -28,6 +75,21 @@ def generate_rolling_datasets(
     end_time: Optional[pd.Timestamp] = None,
 ) -> Dataset:
     """
+    Parameters
+    ----------
+    dataset
+        Dataset to generate the rolling forecasting datasets from
+    strategy
+        The strategy that is to be used when rolling
+    start_time
+        The start of the window where rolling forecasts should be applied
+    end_time
+        The end time of the window where rolling should be applied
+    Returns
+    -------
+    Dataset 
+        The augmented dataset
+    
     Returns an augmented version of the input dataset where each timeseries has 
     been rolled upon based on the parameters supplied. Below follows an 
     explanation and examples of how the different parameters can be used to generate
@@ -48,7 +110,7 @@ def generate_rolling_datasets(
 
     start_time = pd.Timestamp('2000-1-1-06', '1H')
     end_time = pd.Timestamp('2000-1-1-10', '1H')
-    strategy=basic_strategy(prediction_length=2)
+    strategy = StepStrategy(prediction_length=2)
 
     returns a new dataset as follows (only target values shown for brevity):
 
@@ -74,14 +136,18 @@ def generate_rolling_datasets(
     [1, 2, 3, 4, 5, 6, 7, 8]
     [1, 2, 3, 4, 5, 6, 7]
 
-    If the unique_strategy is used, fewer values will be in the output as each
-    roll will be of size prediction_length. This ensures that each prediction
-    will be done on unique/new data. 
+    One can change the step_size of the strategy as below:
+
+    strategy = StepStrategy(prediction_length=2, step_size=2)
+
+    This causes fewer values to be in the output which, 
+    when prediction_length matches step_size, ensures that each prediction
+    will be done on unique/new data. Below is the output of this run.
     
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     [1, 2, 3, 4, 5, 6, 7, 8]
 
-    Not setting an end time and using the unique_strategy results in
+    Not setting an end time and using the step_size=2 results in
     the below dataset.
 
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
@@ -89,26 +155,11 @@ def generate_rolling_datasets(
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     [1, 2, 3, 4, 5, 6, 7, 8, 9]
     [1, 2, 3, 4, 5, 6, 7]
-
-    Parameters
-    ----------
-    dataset
-        Dataset to generate the rolling forecasting datasets from
-    strategy
-        The strategy that is to be used when rolling
-    start_time
-        The start of the window where rolling forecasts should be applied
-    end_time
-        The end time of the window where rolling should be applied
-    Returns
-    -------
-    Dataset 
-        The augmented dataset
     """
     assert dataset, "a dataset to perform rolling evaluation on is needed"
     assert start_time, "a pandas Timestamp object is needed for the start time"
-    assert strategy, """a strategy to use when rolling is needed, consider
-        using gluonts.dataset.rolling_dataset.basic_strategy"""
+    assert strategy, """a strategy to use when rolling is needed, for example
+        gluonts.dataset.rolling_dataset.StepStrategy"""
     if end_time:
         assert end_time > start_time, "end time has to be after the start time"
 
@@ -118,80 +169,9 @@ def generate_rolling_datasets(
         base = series[:start_time][:-1].to_numpy()
         prediction_window = series[start_time:end_time]
 
-        for window in strategy(prediction_window):
+        for window in strategy.get_windows(prediction_window):
             new_item = item.copy()
             new_item["target"] = np.concatenate([base, window.to_numpy()])
             ds.append(new_item)
 
     return ds
-
-
-def part_function(window, prediction_length, modifier):
-    """
-    Helper function which yields cut versions of the provided window.
-    each cut is of size modifier.
-    
-    Parameters
-    ----------
-    window
-        The window that should be rolled over
-    prediction_length
-        The prediction length of the Predictor that the dataset will be
-        used with
-    modifier
-        The amount of data to remove for each cut
-    
-    Returns
-    -------
-    A generator which yields multiple cut versions of the window
-    """
-    while len(window) >= prediction_length:
-        yield window
-        window = window[:-modifier]
-
-
-def basic_strategy(prediction_length):
-    """
-    Removes one datapoint for each iteration until to little data is left
-    for the predictor to predict on
-    
-    Parameters
-    ----------
-    prediction_length
-        The prediction length of the Predictor that the dataset will be
-        used with
-    
-    Returns
-    -------
-    A partial function which yields the rolled windows
-    """
-    assert prediction_length, "prediction_length is needed"
-    assert prediction_length > 0, "prediction length needs to be > 0"
-    return partial(
-        part_function, prediction_length=prediction_length, modifier=1
-    )
-
-
-def unique_strategy(prediction_length):
-    """
-    Removes datapoints equivalent to the prediction length used on each 
-    iteration. Iterates until window is too small for the given 
-    prediction_length.
-    
-    Parameters
-    ----------
-    prediction_length
-        The prediction length of the Predictor that the dataset will be
-        used with
-    
-    Returns
-    -------
-    A partial function which yields the rolled windows
-    """
-    assert prediction_length, "prediction_length is needed"
-    assert prediction_length > 0, "prediction length needs to be > 0"
-    return partial(
-        part_function,
-        prediction_length=prediction_length,
-        modifier=prediction_length,
-    )
