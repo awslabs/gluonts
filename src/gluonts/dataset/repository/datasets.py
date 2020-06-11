@@ -107,9 +107,9 @@ dataset_recipes = OrderedDict(
             generate_m5_dataset, pandas_freq="D", prediction_length=28
         ),
         "walmart": partial(
-            generate_walmart_dataset, 
-            pandas_freq="D", 
-            prediction_length=7 #TODO decide of a good number here
+            generate_walmart_dataset,
+            pandas_freq="D",
+            prediction_length=7,  # TODO decide of a good number here
         ),
     }
 )

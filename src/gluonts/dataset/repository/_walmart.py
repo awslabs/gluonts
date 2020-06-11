@@ -125,6 +125,7 @@ def generate_walmart_dataset(
     create_dataset_file(timeseries_data)
     create_dataset_file(timeseries_data, cut=prediction_length)
 
+
 # For debugging
 if __name__ == "__main__":
     pandas_freq = "D"
