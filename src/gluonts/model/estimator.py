@@ -137,7 +137,7 @@ class GluonEstimator(Estimator):
         super().__init__(lead_time=lead_time)
         self.trainer = trainer
         self.dtype = dtype
-       
+
     @classmethod
     def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
         Model = getattr(cls.__init__, "Model", None)
