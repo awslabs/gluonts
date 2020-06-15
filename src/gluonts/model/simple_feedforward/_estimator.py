@@ -99,9 +99,9 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        sampling: bool = True,
         freq: str,
         prediction_length: int,
+        sampling: bool = True,
         trainer: Trainer = Trainer(),
         num_hidden_dimensions: Optional[List[int]] = None,
         context_length: Optional[int] = None,
