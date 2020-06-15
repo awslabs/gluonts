@@ -214,4 +214,3 @@ class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
         """
         distr_args, loc, scale = self.get_distr_args(F, past_target)
         return distr_args, loc, scale
-

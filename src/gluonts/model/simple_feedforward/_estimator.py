@@ -32,6 +32,7 @@ from gluonts.transform import (
 )
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.support.util import get_hybrid_forward_input_names
+
 # Relative imports
 from ._network import (
     SimpleFeedForwardSamplingNetwork,
@@ -182,43 +183,47 @@ class SimpleFeedForwardEstimator(GluonEstimator):
 
     # we now define how the prediction happens given that we are provided a
     # training network.
-    def create_predictor(self,transformation,trained_network):
+    def create_predictor(self, transformation, trained_network):
         if self.sampling is True:
             prediction_network = SimpleFeedForwardSamplingNetwork(
-            num_hidden_dimensions=self.num_hidden_dimensions,
-            prediction_length=self.prediction_length,
-            context_length=self.context_length,
-            distr_output=self.distr_output,
-            batch_normalization=self.batch_normalization,
-            mean_scaling=self.mean_scaling,
-            params=trained_network.collect_params(),
-            num_parallel_samples=self.num_parallel_samples,
-        )
+                num_hidden_dimensions=self.num_hidden_dimensions,
+                prediction_length=self.prediction_length,
+                context_length=self.context_length,
+                distr_output=self.distr_output,
+                batch_normalization=self.batch_normalization,
+                mean_scaling=self.mean_scaling,
+                params=trained_network.collect_params(),
+                num_parallel_samples=self.num_parallel_samples,
+            )
 
             return RepresentableBlockPredictor(
-            input_transform=transformation,
-            prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
-            freq=self.freq,
-            prediction_length=self.prediction_length,
-            ctx=self.trainer.ctx)
-    
+                input_transform=transformation,
+                prediction_net=prediction_network,
+                batch_size=self.trainer.batch_size,
+                freq=self.freq,
+                prediction_length=self.prediction_length,
+                ctx=self.trainer.ctx,
+            )
+
         else:
-            prediction_network = SimpleFeedForwardDistributionNetwork(num_hidden_dimensions=self.num_hidden_dimensions,
-            prediction_length=self.prediction_length,
-            context_length=self.context_length,                                                        
-            distr_output=self.distr_output,
-            batch_normalization=self.batch_normalization,
-            mean_scaling=self.mean_scaling,
-            params=trained_network.collect_params(),
-            num_parallel_samples=self.num_parallel_samples,
-        )
+            prediction_network = SimpleFeedForwardDistributionNetwork(
+                num_hidden_dimensions=self.num_hidden_dimensions,
+                prediction_length=self.prediction_length,
+                context_length=self.context_length,
+                distr_output=self.distr_output,
+                batch_normalization=self.batch_normalization,
+                mean_scaling=self.mean_scaling,
+                params=trained_network.collect_params(),
+                num_parallel_samples=self.num_parallel_samples,
+            )
             return RepresentableBlockPredictor(
-            input_transform=transformation,
-            prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
-            forecast_generator = DistributionForecastGenerator(self.distr_output),  
-            freq=self.freq,
-            prediction_length=self.prediction_length,
-            ctx=self.trainer.ctx,
-        )
+                input_transform=transformation,
+                prediction_net=prediction_network,
+                batch_size=self.trainer.batch_size,
+                forecast_generator=DistributionForecastGenerator(
+                    self.distr_output
+                ),
+                freq=self.freq,
+                prediction_length=self.prediction_length,
+                ctx=self.trainer.ctx,
+            )
