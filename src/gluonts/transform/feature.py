@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -30,6 +30,164 @@ def target_transformation_length(
     return target.shape[-1] + (0 if is_train else pred_length)
 
 
+class MissingValueImputation:
+    """
+    The parent class for all the missing value imputation classes.
+    You can just implement your own inheriting this class.
+    """
+
+    @validated()
+    def __init__(self) -> None:
+        pass
+
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        """
+
+        Parameters
+        ----------
+        values : the array of values with or without nans
+
+        Returns
+        -------
+        values : the array of values with the nans replaced according to the method used.
+
+        """
+        raise NotImplementedError()
+
+
+class LeavesMissingValues(MissingValueImputation):
+    """
+    Just leaves the missing values untouched.
+    """
+
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        return values
+
+
+class DummyValueImputation(MissingValueImputation):
+    """
+    This class replaces all the missing values with the same dummy value given in advance.
+    """
+
+    @validated()
+    def __init__(self, dummy_value: float = 0.0) -> None:
+        self.dummy_value = dummy_value
+
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        nan_indices = np.where(np.isnan(values))
+        values[nan_indices] = self.dummy_value
+        return values
+
+
+class MeanValueImputation(MissingValueImputation):
+    """
+    This class replaces all the missing values with the mean of the non missing values.
+    Careful this is not a 'causal' method in the sense that it leaks information about the furture in the imputation.
+    You may prefer to use CausalMeanValueImputation instead.
+    """
+
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        nan_indices = np.where(np.isnan(values))
+        values[nan_indices] = np.nanmean(values)
+        return values
+
+
+class LastValueImputation(MissingValueImputation):
+    """
+    This class replaces each missing value with the last value that was not missing.
+    (If the first values are missing, they are replaced by the closest non missing value.)
+    """
+
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        values = np.expand_dims(values, axis=0)
+
+        mask = np.isnan(values)
+        idx = np.where(~mask, np.arange(mask.shape[1]), 0)
+        np.maximum.accumulate(idx, axis=1, out=idx)
+        out = values[np.arange(idx.shape[0])[:, None], idx]
+
+        values = np.squeeze(out)
+
+        # in case we need to replace nan at the start of the array
+        mask = np.isnan(values)
+        values[mask] = np.interp(
+            np.flatnonzero(mask), np.flatnonzero(~mask), values[~mask]
+        )
+
+        return values
+
+
+class CausalMeanValueImputation(MissingValueImputation):
+    """
+    This class replaces each missing value with the average of all the values up to this point.
+    (If the first values are missing, they are replaced by the closest non missing value.)
+    """
+
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        mask = np.isnan(values)
+
+        # we cannot compute the mean with this method if there are nans
+        # so we do a temporary fix of the nan just for the mean computation using this:
+        last_value_imputation = LastValueImputation()
+        value_no_nans = last_value_imputation(values)
+
+        # We do the cumulative sum shifted by one indices:
+        adjusted_values_to_causality = np.concatenate(
+            (np.repeat(0.0, 1), value_no_nans[:-1])
+        )
+        cumsum = np.cumsum(adjusted_values_to_causality)
+
+        # We get the indices of the elements shifted by one indices:
+        indices = np.linspace(0, len(value_no_nans) - 1, len(value_no_nans))
+
+        ar_res = cumsum / indices.astype(float)
+        values[mask] = ar_res[mask]
+
+        # make sure that we do not leave the potential nan in the first position:
+        values[0] = value_no_nans[0]
+
+        return values
+
+
+class RollingMeanValueImputation(MissingValueImputation):
+    """
+    This class replaces each missing value with the average of all the last window_size (default=10) values.
+    (If the first values are missing, they are replaced by the closest non missing value.)
+    """
+
+    @validated()
+    def __init__(self, window_size: int = 10) -> None:
+        self.window_size = 1 if window_size < 1 else window_size
+
+    def __call__(self, values: np.ndarray) -> np.ndarray:
+        mask = np.isnan(values)
+
+        # we cannot compute the mean with this method if there are nans
+        # so we do a temporary fix of the nan just for the mean computation using this:
+        last_value_imputation = LastValueImputation()
+        value_no_nans = last_value_imputation(values)
+
+        adjusted_values_to_causality = np.concatenate(
+            (
+                np.repeat(value_no_nans[0], self.window_size + 1),
+                value_no_nans[:-1],
+            )
+        )
+
+        cumsum = np.cumsum(adjusted_values_to_causality)
+
+        ar_res = (
+            cumsum[self.window_size :] - cumsum[: -self.window_size]
+        ) / float(self.window_size)
+
+        values[mask] = ar_res[mask]
+
+        # make sure that we do not leave the potential nan in the first position:
+        values[0] = value_no_nans[0]
+
+        return values
+
+
 class AddObservedValuesIndicator(SimpleTransformation):
     """
     Replaces missing values in a numpy array (NaNs) with a dummy value and adds
@@ -45,6 +203,8 @@ class AddObservedValuesIndicator(SimpleTransformation):
         Field name to use for the indicator
     dummy_value
         Value to use for replacing missing values.
+    imputation_method
+        One of the methods from ImputationStrategy.
     convert_nans
         If set to true (default) missing values will be replaced. Otherwise
         they will not be replaced. In any case the indicator is included in the
@@ -57,6 +217,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         target_field: str,
         output_field: str,
         dummy_value: float = 0.0,
+        imputation_method: Optional[MissingValueImputation] = None,
         convert_nans: bool = True,
         dtype: DType = np.float32,
     ) -> None:
@@ -66,13 +227,18 @@ class AddObservedValuesIndicator(SimpleTransformation):
         self.convert_nans = convert_nans
         self.dtype = dtype
 
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(dummy_value)
+        )
+
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
         nan_entries = np.isnan(value)
 
         if self.convert_nans:
-            value[np.where(nan_entries)] = self.dummy_value
-            data[self.target_field] = value
+            data[self.target_field] = self.imputation_method(value)
 
         data[self.output_field] = np.invert(
             nan_entries, out=nan_entries
