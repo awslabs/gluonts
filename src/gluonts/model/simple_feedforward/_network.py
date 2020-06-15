@@ -28,12 +28,10 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
     """
     Abstract base class to implement feed-forward networks for probabilistic
     time series prediction.
-
     This class does not implement hybrid_forward: this is delegated
     to the two subclasses SimpleFeedForwardTrainingNetwork and
     SimpleFeedForwardPredictionNetwork, that define respectively how to
     compute the loss and how to generate predictions.
-
     Parameters
     ----------
     num_hidden_dimensions
@@ -92,35 +90,7 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             )
             self.scaler = MeanScaler() if mean_scaling else NOPScaler()
 
-    def get_distr(self, F, past_target: Tensor) -> Distribution:
-        """
-        Given past target values, applies the feed-forward network and
-        maps the output to a probability distribution for future observations.
-
-        Parameters
-        ----------
-        F
-        past_target
-            Tensor containing past target observations.
-            Shape: (batch_size, context_length, target_dim).
-
-        Returns
-        -------
-        Distribution
-            The predicted probability distribution for future observations.
-        """
-
-        # (batch_size, seq_len, target_dim) and (batch_size, seq_len, target_dim)
-        scaled_target, target_scale = self.scaler(
-            past_target,
-            F.ones_like(past_target),  # TODO: pass the actual observed here
-        )
-        mlp_outputs = self.mlp(scaled_target)
-        distr_args = self.distr_args_proj(mlp_outputs)
-        return self.distr_output.distribution(
-            distr_args, scale=target_scale.expand_dims(axis=1)
-        )
-    def get_distr_arg(self, F, past_target: Tensor):
+    def get_distr_args(self, F, past_target: Tensor):
         """
         Given past target values, applies the feed-forward network and
         maps the output to the parameter of probability distribution for future observations.
@@ -138,12 +108,11 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
         
         """
         scaled_target, target_scale = self.scaler(
-            past_target,
-            F.ones_like(past_target),  
+            past_target, F.ones_like(past_target),
         )
         mlp_outputs = self.mlp(scaled_target)
         distr_args = self.distr_args_proj(mlp_outputs)
-        scale=target_scale.expand_dims(axis=1)
+        scale = target_scale.expand_dims(axis=1)
         loc = F.zeros_like(scale)
         return distr_args, loc, scale
 
@@ -170,8 +139,10 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         Tensor
             Loss tensor. Shape: (batch_size, ).
         """
-        distr_args, loc, scale = self.get_distr_arg(F, past_target)
-        distr = self.distr_output.distribution(distr_args, scale)
+        distr_args, loc, scale = self.get_distr_args(F, past_target)
+        distr = self.distr_output.distribution(
+            distr_args, loc=loc, scale=scale
+        )
 
         # (batch_size, prediction_length, target_dim)
         loss = distr.loss(future_target)
@@ -204,16 +175,19 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
         Tensor
             Prediction sample. Shape: (batch_size, samples, prediction_length).
         """
-        
-        distr_args, loc, scale = self.get_distr_arg(F, past_target)
-        distr = self.distr_output.distribution(distr_args, scale)
+
+        distr_args, loc, scale = self.get_distr_args(F, past_target)
+        distr = self.distr_output.distribution(
+            distr_args, loc=loc, scale=scale
+        )
 
         # (num_samples, batch_size, prediction_length)
         samples = distr.sample(self.num_parallel_samples)
 
         # (batch_size, num_samples, prediction_length)
         return samples.swapaxes(0, 1)
-    
+
+
 class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
     def __init__(
         self, num_parallel_samples: int = 100, *args, **kwargs
@@ -238,5 +212,6 @@ class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
         loc: an array of zeros with the same shape of scale
         scale: 
         """
-        distr_args, loc, scale = self.get_distr_arg( F, past_target)
+        distr_args, loc, scale = self.get_distr_args(F, past_target)
         return distr_args, loc, scale
+
