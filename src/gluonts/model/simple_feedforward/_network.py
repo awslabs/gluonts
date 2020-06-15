@@ -22,7 +22,7 @@ from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
 from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.model.common import Tensor
-
+from typing import Tuple
 
 class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
     """
@@ -102,9 +102,11 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             Shape: (batch_size, context_length, target_dim).
         Returns
         -------
-        distr_args: the parameters of distribution
-        loc: an array of zeros with the same shape of scale
-        scale: 
+        Tuple[Tensor, Tensor Tensor]
+            A tuple of three tensors ``distr_args``, ``loc``, and ``scale``: the 
+            first contains the output distribution parameters, and the others are 
+            location and scale of the distribution.
+ 
         
         """
         scaled_target, target_scale = self.scaler(
