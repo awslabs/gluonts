@@ -31,9 +31,13 @@ def hyperparameters():
 
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_accuracy(accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize)
+    hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize, sampling = True)
 
     accuracy_test(SimpleFeedForwardEstimator, hyperparameters, accuracy=0.3)
+    
+    hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize, sampling = False)
+    accuracy_test(SimpleFeedForwardEstimator, hyperparameters, accuracy=0.3)
+    
 
 
 def test_repr(repr_test, hyperparameters):
