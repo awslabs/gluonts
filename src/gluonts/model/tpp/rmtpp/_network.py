@@ -89,12 +89,12 @@ class RMTPPNetworkBase(mx.gluon.HybridBlock):
 
     @validated()
     def __init__(
-            self,
-            num_marks: int,
-            interval_length: float,
-            embedding_dim: int = 5,
-            num_hidden_dimensions: int = 10,
-            **kwargs,
+        self,
+        num_marks: int,
+        interval_length: float,
+        embedding_dim: int = 5,
+        num_hidden_dimensions: int = 10,
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
@@ -135,11 +135,11 @@ class RMTPPTrainingNetwork(RMTPPNetworkBase):
 
     # noinspection PyMethodOverriding,PyPep8Naming,PyIncorrectDocstring
     def hybrid_forward(
-            self,
-            F,
-            target: Tensor,
-            valid_length: Tensor,
-            decay_bias: Tensor = None,
+        self,
+        F,
+        target: Tensor,
+        valid_length: Tensor,
+        **kwargs,
     ) -> Tensor:
         """
         Computes the RMTPP negative log likelihood loss.
@@ -219,7 +219,7 @@ class RMTPPTrainingNetwork(RMTPPNetworkBase):
         )  # (N, T, K)
 
         # compute the log intensity and the compensator - (1,)
-        beta = -F.Activation(decay_bias, "softrelu")
+        beta = -F.Activation(kwargs.get("decay_bias"), "softrelu")
         beta_ia_times = F.broadcast_mul(ia_times, beta)  # (N, T, 1)
 
         log_intensity = (
@@ -268,11 +268,11 @@ class RMTPPTrainingNetwork(RMTPPNetworkBase):
 class RMTPPPredictionNetwork(RMTPPNetworkBase):
     @validated()
     def __init__(
-            self,
-            prediction_interval_length: float,
-            num_parallel_samples: int = 100,
-            *args,
-            **kwargs
+        self,
+        prediction_interval_length: float,
+        num_parallel_samples: int = 100,
+        *args,
+        **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
         self.num_parallel_samples = num_parallel_samples

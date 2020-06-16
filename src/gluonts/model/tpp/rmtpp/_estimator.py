@@ -37,7 +37,7 @@ from ._network import RMTPPTrainingNetwork, RMTPPPredictionNetwork
 
 class RMTPPEstimator(GluonEstimator):
     """
-    The "Recurrent Marked Temporal Point Process" is a marked point process model
+    The "Recurrent Marked Temporal Point Process" is a multivariate point process model
     where the conditional intensity function and the mark distribution are
     specified by a recurrent neural network, as described in [Duetal2016]_.
 
