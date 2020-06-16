@@ -162,7 +162,7 @@ class AbstractBaseSplitter(ABC):
 
         max_history:
             If given, all entries in the *test*-set have a max-length of
-            `max_history`. This can be sued to produce smaller file-sizes.
+            `max_history`. This can be used to produce smaller file-sizes.
     """
 
     # @property
@@ -265,4 +265,8 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
         self, item: TimeSeriesSlice, offset: int = 0
     ) -> TimeSeriesSlice:
         freq = item.start.freq
-        return item[: self.split_date + pd.Timedelta(self.prediction_length, unit=freq) + pd.Timedelta(offset, unit=freq)]
+        return item[
+            : self.split_date
+            + pd.Timedelta(self.prediction_length, unit=freq)
+            + pd.Timedelta(offset, unit=freq)
+        ]
