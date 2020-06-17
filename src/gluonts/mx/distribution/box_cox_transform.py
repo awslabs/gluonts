@@ -19,11 +19,11 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.distribution.bijection import Bijection, InverseBijection
-from gluonts.distribution.bijection_output import BijectionOutput
 from gluonts.model.common import Tensor
 
 # Relative imports
+from .bijection import Bijection, InverseBijection
+from .bijection_output import BijectionOutput
 from .distribution import getF, softplus
 
 

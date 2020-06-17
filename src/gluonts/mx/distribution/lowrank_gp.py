@@ -19,19 +19,19 @@ from typing import Tuple, Optional
 from mxnet import gluon
 
 # First-party imports
-from gluonts.distribution.lowrank_multivariate_gaussian import (
+from gluonts.core.component import validated
+from gluonts.model.common import Tensor
+
+from . import bijection, LowrankMultivariateGaussian
+from .lowrank_multivariate_gaussian import (
     inv_softplus,
     sigma_minimum,
 )
-from gluonts.distribution import LowrankMultivariateGaussian
-from gluonts.core.component import validated
-from gluonts.distribution import bijection
-from gluonts.distribution.distribution_output import (
+from .distribution_output import (
     TransformedDistribution,
     ArgProj,
     DistributionOutput,
 )
-from gluonts.model.common import Tensor
 
 
 class GPArgProj(gluon.HybridBlock):

@@ -11,18 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+import importlib
+import sys
+import warnings
 
-from pkgutil import extend_path
+warnings.warn(
+    "gluonts.trainer is deprecated. Use gluonts.mx.trainer instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-from pkg_resources import get_distribution, DistributionNotFound
+import gluonts.mx.trainer
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+sys.modules["gluonts.trainer"] = gluonts.mx.trainer
 
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    __version__ = "0.0.0-unknown"
-
-
-from gluonts.mx.prelude import *
+for submodule in (
+    "_base",
+    "learning_rate_scheduler",
+    "model_averaging",
+):
+    sys.modules[f"gluonts.trainer.{submodule}"] = importlib.import_module(
+        f"gluonts.mx.trainer.{submodule}"
+    )

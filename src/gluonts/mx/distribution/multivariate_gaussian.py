@@ -20,14 +20,15 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.distribution.distribution import (
+from gluonts.model.common import Tensor
+from gluonts.support.linalg_util import lower_triangular_ones
+
+from .distribution import (
     Distribution,
     _sample_multiple,
     getF,
 )
-from gluonts.distribution.distribution_output import DistributionOutput
-from gluonts.model.common import Tensor
-from gluonts.support.linalg_util import lower_triangular_ones
+from .distribution_output import DistributionOutput
 
 
 class MultivariateGaussian(Distribution):
