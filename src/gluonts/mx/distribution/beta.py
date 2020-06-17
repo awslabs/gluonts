@@ -26,7 +26,6 @@ from gluonts.model.common import Tensor
 from gluonts.support.util import erf, erfinv
 
 # Relative imports
-from . import Dirichlet
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
 
