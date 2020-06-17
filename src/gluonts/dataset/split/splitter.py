@@ -271,6 +271,5 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
         freq = item.start.freq
         return item[
             : self.split_date
-            + pd.Timedelta(self.prediction_length, unit=freq)
-            + pd.Timedelta(offset, unit=freq)
+            + pd.Timedelta(self.prediction_length + offset, unit=freq)
         ]
