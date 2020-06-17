@@ -119,7 +119,7 @@ class KernelOutputDict(KernelOutput):
 
         Returns
         -------
-        Kernel
+        gluonts.mx.kernels.Kernel
             Instantiated specified Kernel subclass object.
         """
         return self.kernel_cls(*kernel_args)
