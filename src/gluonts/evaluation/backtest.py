@@ -22,7 +22,6 @@ import pandas as pd
 # First-party imports
 import gluonts  # noqa
 from gluonts import transform
-from gluonts.core.component import get_mxnet_context
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
@@ -36,7 +35,6 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import GluonPredictor, Predictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import TransformedDataset
-from mxnet.ndarray import NDArray
 
 
 def make_evaluation_predictions(

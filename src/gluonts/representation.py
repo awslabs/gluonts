@@ -11,14 +11,34 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
-from gluonts.mx.trainer import *
-from gluonts.mx.trainer import __all__
-
+import importlib
+import sys
 import warnings
 
 warnings.warn(
-    "gluonts.trainer is deprecated. Use gluonts.mx.trainer instead.",
+    "gluonts.representation is deprecated. Use gluonts.mx.representation instead.",
     DeprecationWarning,
     stacklevel=2,
 )
+
+import gluonts.mx.representation
+
+sys.modules["gluonts.representation"] = gluonts.mx.representation
+
+
+for submodule in (
+    "binning_helpers",
+    "custom_binning",
+    "dim_expansion",
+    "discrete_pit",
+    "embedding",
+    "global_relative_binning",
+    "hybrid_representation",
+    "local_absolute_binning",
+    "mean_scaling",
+    "representation",
+    "representation_chain",
+):
+    sys.modules[
+        f"gluonts.representation.{submodule}"
+    ] = importlib.import_module(f"gluonts.mx.representation.{submodule}")

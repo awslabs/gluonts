@@ -11,4 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.mx.representation.representation_chain import *
+import importlib
+import sys
+import warnings
+
+warnings.warn(
+    "gluonts.kernels is deprecated. Use gluonts.mx.kernels instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+import gluonts.mx.kernels
+
+sys.modules["gluonts.kernels"] = gluonts.mx.kernels
+
+for submodule in (
+    "_kernel",
+    "_kernel_output",
+    "_periodic_kernel",
+    "_rbf_kernel",
+):
+    sys.modules[f"gluonts.kernels.{submodule}"] = importlib.import_module(
+        f"gluonts.mx.kernels.{submodule}"
+    )

@@ -11,4 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.mx.distribution.poisson import *
+import importlib
+import sys
+import warnings
+
+warnings.warn(
+    "gluonts.trainer is deprecated. Use gluonts.mx.trainer instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+import gluonts.mx.trainer
+
+sys.modules["gluonts.trainer"] = gluonts.mx.trainer
+
+for submodule in (
+    "_base",
+    "learning_rate_scheduler",
+    "model_averaging",
+):
+    sys.modules[f"gluonts.trainer.{submodule}"] = importlib.import_module(
+        f"gluonts.mx.trainer.{submodule}"
+    )
