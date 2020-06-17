@@ -11,18 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from .serde import *
 
-from pkgutil import extend_path
-
-from pkg_resources import get_distribution, DistributionNotFound
-
-__path__ = extend_path(__path__, __name__)  # type: ignore
-
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    __version__ = "0.0.0-unknown"
-
-
-from gluonts.mx.prelude import *
+__all__ = []

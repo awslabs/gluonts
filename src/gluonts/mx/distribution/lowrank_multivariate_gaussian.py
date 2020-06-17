@@ -21,18 +21,19 @@ from mxnet import gluon
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.distribution import bijection
-from gluonts.distribution.distribution import (
+from gluonts.model.common import Tensor
+
+from . import bijection
+from .distribution import (
     Distribution,
     _sample_multiple,
     getF,
 )
-from gluonts.distribution.distribution_output import (
+from .distribution_output import (
     ArgProj,
     DistributionOutput,
     TransformedDistribution,
 )
-from gluonts.model.common import Tensor
 
 sigma_minimum = 1e-3
 

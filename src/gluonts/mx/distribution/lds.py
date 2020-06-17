@@ -19,12 +19,13 @@ import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.distribution import Distribution, Gaussian, MultivariateGaussian
-from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
 from gluonts.core.component import validated
 from gluonts.support.util import make_nd_diag, _broadcast_param
 from gluonts.support.linalg_util import jitter_cholesky
+
+from . import Distribution, Gaussian, MultivariateGaussian
+from .distribution import getF
 
 
 class ParameterBounds:

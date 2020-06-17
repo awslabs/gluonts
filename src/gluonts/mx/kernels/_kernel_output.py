@@ -19,8 +19,8 @@ from mxnet import gluon
 
 # First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.distribution.distribution_output import ArgProj
 from gluonts.model.common import Tensor
+from gluonts.mx.distribution.distribution_output import ArgProj
 
 # Relative imports
 from . import Kernel
@@ -119,7 +119,7 @@ class KernelOutputDict(KernelOutput):
 
         Returns
         -------
-        Kernel
+        gluonts.mx.kernels.Kernel
             Instantiated specified Kernel subclass object.
         """
         return self.kernel_cls(*kernel_args)

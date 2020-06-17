@@ -20,12 +20,12 @@ from typing import Dict, Optional, Tuple, List
 import numpy as np
 
 # First-party imports
-from gluonts.distribution import Dirichlet
 from gluonts.model.common import Tensor
 from gluonts.support.util import erf, erfinv
 from gluonts.core.component import validated
 
 # Relative imports
+from . import Dirichlet
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
 
