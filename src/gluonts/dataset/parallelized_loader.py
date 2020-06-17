@@ -368,12 +368,16 @@ class ShuffleIter(Iterator[DataEntry]):
         self.base_iterator = base_iterator
 
     def __next__(self) -> DataEntry:
+        # if the buffer is empty, fill the buffer first.
+        # (should only executed in the first round)
         if len(self.shuffle_buffer) == 0:
             self.shuffle_buffer = list(
                 itertools.islice(
                     self.base_iterator, self.shuffle_buffer_length
                 )
             )
+        # choose an element at a random index and yield it
+        # and fill it with the next element in the sequential generator
         idx = random.randint(0, self.shuffle_buffer_length - 1)
         next_sample = self.shuffle_buffer[idx]
         self.shuffle_buffer[idx] = next(self.base_iterator)
