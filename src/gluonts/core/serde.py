@@ -22,7 +22,7 @@ import textwrap
 from functools import singledispatch
 from pathlib import PurePath
 from pydoc import locate
-from typing import cast, Any, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional, cast
 
 # Third-party imports
 import numpy as np

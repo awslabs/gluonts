@@ -15,13 +15,14 @@ import importlib
 import sys
 import warnings
 
+import gluonts.mx.trainer
+
 warnings.warn(
     "gluonts.trainer is deprecated. Use gluonts.mx.trainer instead.",
     DeprecationWarning,
     stacklevel=2,
 )
 
-import gluonts.mx.trainer
 
 sys.modules["gluonts.trainer"] = gluonts.mx.trainer
 

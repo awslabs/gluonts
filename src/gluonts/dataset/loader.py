@@ -14,8 +14,8 @@
 # Standard library imports
 import itertools
 import logging
-from typing import Any, Dict, Iterable, Iterator, Optional
 import multiprocessing as mp
+from typing import Any, Dict, Iterable, Iterator, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -23,7 +23,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset, DataBatch
+from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.parallelized_loader import ParallelDataLoader
 from gluonts.transform import Transformation
 

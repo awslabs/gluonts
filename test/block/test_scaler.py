@@ -15,7 +15,7 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.block import scaler
+from gluonts.mx.block import scaler
 
 
 test_cases = [

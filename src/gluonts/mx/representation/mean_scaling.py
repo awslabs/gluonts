@@ -11,17 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .representation import Representation
+# Standard library imports
+from typing import List, Optional, Tuple
 
 import mxnet as mx
-
-
-# Standard library imports
-from typing import Tuple, Optional, List
 
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
+
+from .representation import Representation
 
 
 class MeanScaling(Representation):

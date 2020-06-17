@@ -23,9 +23,9 @@ import statsmodels.api as sm
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
-from gluonts.model.forecast import SampleForecast, Forecast
-from gluonts.model.predictor import RepresentablePredictor
 from gluonts.evaluation import get_seasonality
+from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 
 

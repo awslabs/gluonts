@@ -17,7 +17,7 @@ from typing import Any, Dict, List
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 
-from ._base import SimpleTransformation, MapTransformation
+from ._base import MapTransformation, SimpleTransformation
 
 
 class RenameFields(SimpleTransformation):

@@ -24,7 +24,7 @@ from gluonts.model.forecast import (
     DistributionForecast,
 )
 
-from gluonts.distribution import Uniform
+from gluonts.mx.distribution import Uniform
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100

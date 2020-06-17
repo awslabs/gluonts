@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Union, List, Tuple
+from typing import List, Optional, Tuple, Union
 
 # Third-party imports
 from mxnet import gluon

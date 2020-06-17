@@ -17,16 +17,15 @@ from typing import List
 # Third-party imports
 from mxnet.gluon import HybridBlock, nn
 
-# First-party imports
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.block.rnn import RNN
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.block.rnn import RNN
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.time_feature import time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,

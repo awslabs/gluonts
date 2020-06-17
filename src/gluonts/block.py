@@ -15,13 +15,14 @@ import importlib
 import sys
 import warnings
 
+import gluonts.mx.block
+
 warnings.warn(
     "gluonts.block is deprecated. Use gluonts.mx.block instead.",
     DeprecationWarning,
     stacklevel=2,
 )
 
-import gluonts.mx.block
 
 sys.modules["gluonts.block"] = gluonts.mx.block
 

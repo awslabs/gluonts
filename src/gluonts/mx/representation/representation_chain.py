@@ -11,17 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .representation import Representation
+from typing import List, Optional, Tuple
+
+import mxnet as mx
 
 # Standard library imports
 import numpy as np
-from typing import Tuple, Optional, List
-import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated, get_mxnet_context
-from gluonts.model.common import Tensor
+from gluonts.core.component import get_mxnet_context, validated
 from gluonts.dataset.common import Dataset
+from gluonts.model.common import Tensor
+
+from .representation import Representation
 
 
 class RepresentationChain(Representation):

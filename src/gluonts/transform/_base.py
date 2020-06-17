@@ -14,7 +14,7 @@
 # Standard library imports
 import abc
 from functools import reduce
-from typing import Callable, Iterator, Iterable, List
+from typing import Callable, Iterable, Iterator, List
 
 # First-party imports
 from gluonts.core.component import validated

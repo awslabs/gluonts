@@ -11,20 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Tuple, Optional
+from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from gluonts.core.component import validated, DType
+from gluonts.core.component import DType, validated
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
 from gluonts.model.common import Tensor
 from gluonts.support.util import erf, erfinv
 
 from ._base import (
-    SimpleTransformation,
-    MapTransformation,
     FlatMapTransformation,
+    MapTransformation,
+    SimpleTransformation,
 )
 
 

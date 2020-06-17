@@ -26,11 +26,11 @@ from pydantic import PositiveFloat, PositiveInt
 
 # First-party imports
 from gluonts.model.common import NPArrayLike
-from gluonts.distribution.box_cox_transform import (
+from gluonts.mx.distribution.box_cox_transform import (
     InverseBoxCoxTransform,
     InverseBoxCoxTransformOutput,
 )
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     DistributionOutput,
     StudentT,
     StudentTOutput,
@@ -63,10 +63,10 @@ from gluonts.distribution import (
     LogitNormal,
     LogitNormalOutput,
 )
-from gluonts.distribution.transformed_distribution_output import (
+from gluonts.mx.distribution.transformed_distribution_output import (
     TransformedDistributionOutput,
 )
-from gluonts.distribution.transformed_distribution import (
+from gluonts.mx.distribution.transformed_distribution import (
     TransformedDistribution,
 )
 

@@ -19,7 +19,7 @@ import time
 from contextlib import closing, contextmanager
 from multiprocessing import Process
 from pathlib import Path
-from typing import Any, ContextManager, Dict, Optional, Type, Iterable, List
+from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
 
 import requests
 
