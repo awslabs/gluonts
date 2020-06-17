@@ -11,22 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
-from ._kernel import Kernel
-from ._kernel_output import KernelOutput, KernelOutputDict
-from ._periodic_kernel import PeriodicKernel, PeriodicKernelOutput
-from ._rbf_kernel import RBFKernel, RBFKernelOutput
+from gluonts.mx.kernels import *
+from gluonts.mx.kernels import __all__
 
-__all__ = [
-    "Kernel",
-    "PeriodicKernel",
-    "RBFKernel",
-    "PeriodicKernelOutput",
-    "RBFKernelOutput",
-    "KernelOutput",
-    "KernelOutputDict",
-]
+import warnings
 
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+warnings.warn(
+    "gluonts.kernels is deprecated. Use gluonts.mx.kernels instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)

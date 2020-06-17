@@ -12,13 +12,13 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from . import learning_rate_scheduler as lrs
-from ._base import Trainer
-from . import model_averaging
+from gluonts.mx.trainer import *
+from gluonts.mx.trainer import __all__
 
-__all__ = ["lrs", "Trainer", "model_averaging"]
+import warnings
 
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+warnings.warn(
+    "gluonts.trainer is deprecated. Use gluonts.mx.trainer instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)

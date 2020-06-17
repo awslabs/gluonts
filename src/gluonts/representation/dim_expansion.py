@@ -11,44 +11,4 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .representation import Representation
-
-# Standard library imports
-from typing import Tuple, Optional, List
-import numpy as np
-import mxnet as mx
-
-# First-party imports
-from gluonts.core.component import validated, get_mxnet_context
-from gluonts.model.common import Tensor
-from gluonts.dataset.common import Dataset
-
-
-class DimExpansion(Representation):
-    """
-    A class representing a dimension expansion operation along a specified axis.
-
-    Parameters
-    ----------
-    axis
-        Axis on which to expand the tensor.
-        (default: -1)
-    """
-
-    @validated()
-    def __init__(self, axis: int = -1, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.axis = axis
-
-    # noinspection PyMethodOverriding
-    def hybrid_forward(
-        self,
-        F,
-        data: Tensor,
-        observed_indicator: Tensor,
-        scale: Optional[Tensor],
-        rep_params: List[Tensor],
-        **kwargs,
-    ) -> Tuple[Tensor, Tensor, List[Tensor]]:
-        data = F.expand_dims(data, axis=self.axis)
-        return data, scale, rep_params
+from gluonts.mx.representation.dim_expansion import *

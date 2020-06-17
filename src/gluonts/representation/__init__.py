@@ -11,32 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
-from .representation import Representation
-from .custom_binning import CustomBinning
-from .global_relative_binning import GlobalRelativeBinning
-from .local_absolute_binning import LocalAbsoluteBinning
-from .hybrid_representation import HybridRepresentation
-from .mean_scaling import MeanScaling
-from .dim_expansion import DimExpansion
-from .embedding import Embedding
-from .discrete_pit import DiscretePIT
-from .representation_chain import RepresentationChain
+from gluonts.mx.representation import *
+from gluonts.mx.representation import __all__
 
-__all__ = [
-    "Representation",
-    "CustomBinning",
-    "GlobalRelativeBinning",
-    "LocalAbsoluteBinning",
-    "HybridRepresentation",
-    "MeanScaling",
-    "DimExpansion",
-    "Embedding",
-    "DiscretePIT",
-    "RepresentationChain",
-]
+import warnings
 
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+warnings.warn(
+    "gluonts.representation is deprecated. Use gluonts.mx.representation instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)

@@ -15,4 +15,12 @@
 
 from pkgutil import extend_path
 
+import warnings
+
+warnings.warn(
+    "gluonts.block is deprecated. Use gluonts.mx.block instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 __path__ = extend_path(__path__, __name__)  # type: ignore
