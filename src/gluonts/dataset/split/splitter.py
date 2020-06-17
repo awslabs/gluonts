@@ -105,8 +105,12 @@ class TimeSeriesSlice(pydantic.BaseModel):
             item=self.item,
             feat_static_cat=self.feat_static_cat,
             feat_static_real=self.feat_static_real,
-            feat_dynamic_cat=[cat.values for cat in self.feat_dynamic_cat],
-            feat_dynamic_real=[real.values for real in self.feat_dynamic_real],
+            feat_dynamic_cat=[
+                cat.values.tolist() for cat in self.feat_dynamic_cat
+            ],
+            feat_dynamic_real=[
+                real.values.tolist() for real in self.feat_dynamic_real
+            ],
         )
 
     @property

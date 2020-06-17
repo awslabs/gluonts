@@ -29,7 +29,7 @@ from .distribution_output import DistributionOutput
 class NegativeBinomial(Distribution):
     r"""
     Negative binomial distribution, i.e. the distribution of the number of
-    successes in a sequence of independet Bernoulli trials.
+    successes in a sequence of independent Bernoulli trials.
 
     Parameters
     ----------
