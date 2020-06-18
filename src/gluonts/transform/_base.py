@@ -35,9 +35,6 @@ class Transformation(metaclass=abc.ABCMeta):
     ) -> Iterator[DataEntry]:
         pass
 
-    def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
-        return data_it  # default is to pass through without estimation
-
     def chain(self, other: "Transformation") -> "Chain":
         return Chain(self, other)
 
@@ -67,11 +64,6 @@ class Chain(Transformation):
         for t in self.transformations:
             tmp = t(tmp, is_train)
         return tmp
-
-    def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
-        return reduce(
-            lambda x, y: y.estimate(x), self.transformations, data_it
-        )
 
 
 class Identity(Transformation):
