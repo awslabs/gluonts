@@ -205,8 +205,6 @@ class GluonEstimator(Estimator):
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
-        transformation.estimate(iter(training_data))
-
         training_data_loader = TrainDataLoader(
             dataset=training_data,
             transform=transformation,
