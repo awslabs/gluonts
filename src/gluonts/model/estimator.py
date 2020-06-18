@@ -229,7 +229,6 @@ class GluonEstimator(Estimator):
                 dtype=self.dtype,
                 num_workers=num_workers,
                 num_prefetch=num_prefetch,
-                shuffle_buffer_length=shuffle_buffer_length,
                 **kwargs,
             )
 
