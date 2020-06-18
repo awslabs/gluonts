@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, Optional, Tuple, cast, List
+from typing import Dict, List, Optional, Tuple, cast
 
 # Third-party imports
 import numpy as np

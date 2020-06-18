@@ -12,20 +12,22 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Tuple, List, Any
+from typing import Any, List, Optional, Tuple
 
-# Third-party imports
-from mxnet import autograd
 import mxnet as mx
 import numpy as np
 
+# Third-party imports
+from mxnet import autograd
+
+from gluonts.core.component import validated
+
 # First-party imports
 from gluonts.model.common import Tensor
-from gluonts.core.component import validated
 
 # Relative imports
 from . import bijection as bij
-from .distribution import Distribution, getF, _index_tensor
+from .distribution import Distribution, _index_tensor, getF
 
 
 class TransformedDistribution(Distribution):

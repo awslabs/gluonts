@@ -13,23 +13,21 @@
 
 # Standard library imports
 from collections import ChainMap
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import numpy as np
 from mxnet import gluon
 
+from gluonts.core.component import validated
+
 # First-party imports
 from gluonts.model.common import Tensor
-from gluonts.core.component import validated
 
 from . import Distribution
 from .bijection import AffineTransformation
 from .bijection_output import BijectionOutput
-from .distribution_output import (
-    ArgProj,
-    DistributionOutput,
-)
+from .distribution_output import ArgProj, DistributionOutput
 from .transformed_distribution import TransformedDistribution
 
 

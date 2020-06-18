@@ -21,12 +21,12 @@ from mxnet.gluon import HybridBlock
 # First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.kernels import KernelOutput, RBFKernelOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.kernels import KernelOutput, RBFKernelOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,

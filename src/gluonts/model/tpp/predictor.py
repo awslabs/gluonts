@@ -29,8 +29,8 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
 from gluonts.model.predictor import (
     GluonPredictor,
-    SymbolBlockPredictor,
     OutputTransform,
+    SymbolBlockPredictor,
 )
 from gluonts.transform import Transformation
 

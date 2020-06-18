@@ -17,10 +17,11 @@ from typing import List
 # Third-party imports
 from mxnet.gluon import nn
 
-# First-party imports
-from gluonts.block.mlp import MLP
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
+
+# First-party imports
+from gluonts.mx.block.mlp import MLP
 
 
 class Seq2SeqDecoder(nn.HybridBlock):

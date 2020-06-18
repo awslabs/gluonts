@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     Uniform,
     StudentT,
     NegativeBinomial,

@@ -17,12 +17,13 @@ from typing import Tuple, List
 # Third-party imports
 import mxnet as mx
 
-# First-party imports
-from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
-from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.model.common import Tensor
 from gluonts.mx.representation import Representation
+
+# First-party imports
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution import Distribution, DistributionOutput
 
 
 class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):

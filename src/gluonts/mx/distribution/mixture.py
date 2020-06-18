@@ -14,16 +14,17 @@
 # Standard library imports
 from typing import List, Optional, Tuple
 
+import numpy as np
+
 # Third-party imports
 from mxnet import gluon
-import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 # Relative imports
-from .distribution import Distribution, _expand_param, getF, _index_tensor
+from .distribution import Distribution, _expand_param, _index_tensor, getF
 from .distribution_output import DistributionOutput
 
 

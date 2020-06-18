@@ -17,12 +17,13 @@ from typing import List, Tuple
 # Third-party imports
 from mxnet.gluon import nn
 
-# First-party imports
-from gluonts.block.cnn import CausalConv1D
-from gluonts.block.mlp import MLP
-from gluonts.block.rnn import RNN
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
+
+# First-party imports
+from gluonts.mx.block.cnn import CausalConv1D
+from gluonts.mx.block.mlp import MLP
+from gluonts.mx.block.rnn import RNN
 
 
 class Seq2SeqEncoder(nn.HybridBlock):

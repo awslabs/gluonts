@@ -12,22 +12,22 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import mxnet as mx
 
-# First-party imports
-from gluonts.block.scaler import NOPScaler, MeanScaler
-from gluonts.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
-from gluonts.distribution import DistributionOutput
 from gluonts.model.common import Tensor
-from gluonts.model.transformer.trans_encoder import TransformerEncoder
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
 from gluonts.mx.representation import Representation
 from gluonts.support.util import copy_parameters, weighted_average
+from gluonts.model.transformer.trans_encoder import TransformerEncoder
+from gluonts.mx.block.feature import FeatureEmbedder
 
+# First-party imports
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution import DistributionOutput
 
 LARGE_NEGATIVE_VALUE = -99999999
 

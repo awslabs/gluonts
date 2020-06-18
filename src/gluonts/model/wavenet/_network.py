@@ -21,12 +21,12 @@ from mxnet import gluon
 from mxnet.gluon import nn
 
 # First-party imports
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.model.common import Tensor
+from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
 from gluonts.mx.representation import Representation
 from gluonts.distribution import DistributionOutput
 from gluonts.support.util import weighted_average
+from gluonts.model.common import Tensor
 
 
 def conv1d(channels, kernel_size, in_channels, use_bias=True, **kwargs):

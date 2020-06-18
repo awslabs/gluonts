@@ -23,7 +23,7 @@ from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 
 from ._base import FlatMapTransformation
-from .sampler import InstanceSampler, ContinuousTimePointSampler
+from .sampler import ContinuousTimePointSampler, InstanceSampler
 
 
 def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:

@@ -16,9 +16,10 @@ import functools
 from pathlib import Path
 from typing import NamedTuple
 
+import numpy as np
+
 # Third-party imports
 import ujson as json
-import numpy as np
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError

@@ -12,12 +12,12 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Tuple, Union, Any
+from typing import Any, List, Optional, Tuple, Union
 
 # Third-party imports
 import mxnet as mx
-from mxnet import autograd
 import numpy as np
+from mxnet import autograd
 
 # First-party imports
 from gluonts.model.common import Tensor

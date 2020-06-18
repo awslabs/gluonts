@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import numpy as np
@@ -21,11 +21,7 @@ import numpy as np
 from gluonts.core.component import DType, validated
 from gluonts.model.common import Tensor
 
-from .distribution import (
-    Distribution,
-    _sample_multiple,
-    getF,
-)
+from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 

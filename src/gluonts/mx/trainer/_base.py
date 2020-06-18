@@ -29,8 +29,8 @@ import numpy as np
 from gluonts.core.component import get_mxnet_context, validated
 from gluonts.core.exception import GluonTSDataError, GluonTSUserError
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
-from gluonts.support.util import HybridContext
 from gluonts.gluonts_tqdm import tqdm
+from gluonts.support.util import HybridContext
 
 # Relative imports
 from . import learning_rate_scheduler as lrs

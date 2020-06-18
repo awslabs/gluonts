@@ -15,40 +15,40 @@
 # Standard library imports
 import collections
 import functools
+import io
 import itertools
 import logging
+import multiprocessing
+import multiprocessing.queues
 import pathlib
 import pickle
-import io
 import random
 import sys
 import time
-
 from collections.abc import Sized
 from multiprocessing.managers import SyncManager
-from typing import Callable, Iterable, Optional, List, Iterator, Union, Any
-
-import multiprocessing
-import multiprocessing.queues
-from multiprocessing.reduction import ForkingPickler
 from multiprocessing.pool import Pool
+from multiprocessing.reduction import ForkingPickler
 from queue import Queue
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Union
+
+import mxnet as mx
+
+# Third-party imports
+import numpy as np
+from mxnet import context, nd
+
+# First-party imports
+from gluonts.core.component import DType
+from gluonts.dataset.common import DataBatch, DataEntry, Dataset, FileDataset
+from gluonts.dataset.util import MPWorkerInfo
+from gluonts.transform import Transformation
 
 try:
     import multiprocessing.resource_sharer
 except ImportError:
     pass
 
-# Third-party imports
-import numpy as np
-from mxnet import nd, context
-import mxnet as mx
-
-# First-party imports
-from gluonts.core.component import DType
-from gluonts.dataset.common import Dataset, DataEntry, DataBatch, FileDataset
-from gluonts.transform import Transformation
-from gluonts.dataset.util import MPWorkerInfo
 
 # ForkingPickler related functions:
 if sys.platform == "darwin" or sys.platform == "win32":

@@ -19,13 +19,10 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType, validated
-from .distribution import (
-    Distribution,
-    _sample_multiple,
-    getF,
-)
-from .distribution_output import DistributionOutput
 from gluonts.model.common import Tensor
+
+from .distribution import Distribution, _sample_multiple, getF
+from .distribution_output import DistributionOutput
 
 
 class DirichletMultinomial(Distribution):

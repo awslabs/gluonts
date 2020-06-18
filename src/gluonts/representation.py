@@ -15,13 +15,14 @@ import importlib
 import sys
 import warnings
 
+import gluonts.mx.representation
+
 warnings.warn(
     "gluonts.representation is deprecated. Use gluonts.mx.representation instead.",
     DeprecationWarning,
     stacklevel=2,
 )
 
-import gluonts.mx.representation
 
 sys.modules["gluonts.representation"] = gluonts.mx.representation
 

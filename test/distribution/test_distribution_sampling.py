@@ -18,7 +18,7 @@ import pytest
 from flaky import flaky
 
 # First-party imports
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     Uniform,
     StudentT,
     NegativeBinomial,

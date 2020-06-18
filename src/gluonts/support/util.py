@@ -22,12 +22,12 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     Optional,
-    cast,
-    Union,
     Tuple,
-    Iterable,
+    Union,
+    cast,
 )
 
 # Third-party imports

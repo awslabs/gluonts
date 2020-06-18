@@ -11,14 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Any, Dict, List, Tuple
 import glob
 import json
 
+# Standard library imports
+from typing import Any, Dict, List, Tuple
+
+import mxnet as mx
+
 # Third-party imports
 import numpy as np
-import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated

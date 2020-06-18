@@ -11,20 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .representation import Representation
-from .binning_helpers import bin_edges_from_bin_centers
-
 # Standard library imports
-from typing import Tuple, Optional, List
+from typing import List, Optional, Tuple
+
+import mxnet as mx
 
 # Third-party imports
 import numpy as np
-import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated, get_mxnet_context
-from gluonts.model.common import Tensor
+from gluonts.core.component import get_mxnet_context, validated
 from gluonts.dataset.common import Dataset
+from gluonts.model.common import Tensor
+
+from .binning_helpers import bin_edges_from_bin_centers
+from .representation import Representation
 
 
 class CustomBinning(Representation):
