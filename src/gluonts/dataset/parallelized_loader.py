@@ -378,7 +378,7 @@ class ShuffleIter(Iterator[DataEntry]):
         # if buffer still empty, means all elements used,
         # return a signal of end of iterator
         if not self.shuffle_buffer:
-            return {}
+            raise StopIteration
         # choose an element at a random index and yield it
         # and fill it with the next element in the sequential generator
         idx = random.randint(0, len(self.shuffle_buffer) - 1)
@@ -386,20 +386,12 @@ class ShuffleIter(Iterator[DataEntry]):
 
         # replace the index with the next element in the iterator if the iterator has not finished.
         # delete the index otherwise.
-        to_replace: DataEntry = next(self.base_iterator, {})
-        if to_replace:
-            self.shuffle_buffer[idx] = to_replace
-        else:
+        try:
+            self.shuffle_buffer[idx] = next(self.base_iterator)
+        except StopIteration:
             del self.shuffle_buffer[idx]
 
         return next_sample
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        while True:
-            next_sample = next(self)
-            if not next_sample:
-                return
-            yield next_sample
 
 
 class _MultiWorkerIter(object):
