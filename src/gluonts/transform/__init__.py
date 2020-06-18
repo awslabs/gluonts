@@ -14,6 +14,7 @@
 
 __all__ = [
     "AddAgeFeature",
+    "AddAggregateLags",
     "AddConstFeature",
     "AddObservedValuesIndicator",
     "AddTimeFeatures",
@@ -91,6 +92,7 @@ from .feature import (
     AddConstFeature,
     AddTimeFeatures,
     AddAgeFeature,
+    AddAggregateLags,
     MissingValueImputation,
     LeavesMissingValues,
     DummyValueImputation,

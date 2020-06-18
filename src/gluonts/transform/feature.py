@@ -496,7 +496,7 @@ class AddAggregateLags(MapTransformation):
         self.valid_lags = [
             x
             for x in self.agg_lags
-            if x > np.ceil(self.pred_length / self.ratio)
+            if x > np.ceil((self.pred_length - 1) / self.ratio)
         ]
         if set(self.agg_lags) - set(self.valid_lags):
             print(
