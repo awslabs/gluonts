@@ -25,7 +25,7 @@ from gluonts.distribution import DistributionOutput
 from gluonts.model.common import Tensor
 from gluonts.model.transformer.trans_encoder import TransformerEncoder
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
-from gluonts.representation import Representation
+from gluonts.mx.representation import Representation
 from gluonts.support.util import copy_parameters, weighted_average
 
 

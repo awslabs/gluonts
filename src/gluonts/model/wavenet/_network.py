@@ -24,7 +24,7 @@ from mxnet.gluon import nn
 from gluonts.block.feature import FeatureEmbedder
 from gluonts.model.common import Tensor
 from gluonts.core.component import validated
-from gluonts.representation import Representation
+from gluonts.mx.representation import Representation
 from gluonts.distribution import DistributionOutput
 from gluonts.support.util import weighted_average
 

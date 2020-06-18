@@ -22,7 +22,7 @@ from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
 from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.model.common import Tensor
-from gluonts.representation import Representation
+from gluonts.mx.representation import Representation
 
 
 class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):

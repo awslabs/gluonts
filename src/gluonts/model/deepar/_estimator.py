@@ -46,7 +46,7 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
 )
-from gluonts.representation import (
+from gluonts.mx.representation import (
     Representation,
     MeanScaling,
     DimExpansion,

@@ -47,7 +47,7 @@ from gluonts.transform import (
     SimpleTransformation,
     VstackFeatures,
 )
-from gluonts.representation import (
+from gluonts.mx.representation import (
     Representation,
     GlobalRelativeBinning,
     Embedding,

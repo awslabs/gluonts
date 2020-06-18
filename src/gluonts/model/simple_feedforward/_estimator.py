@@ -31,7 +31,7 @@ from gluonts.transform import (
     InstanceSplitter,
     Transformation,
 )
-from gluonts.representation import (
+from gluonts.mx.representation import (
     Representation,
     MeanScaling,
     DimExpansion,
