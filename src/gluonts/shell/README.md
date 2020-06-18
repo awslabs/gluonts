@@ -14,6 +14,8 @@ similar to the official DeepAR image.
 Building a container is simple. GluonTS and model-specific dependencies need to
 be installed.
 
+A minimal Dockerfile looks like this:
+
 ```Dockerfile
 FROM python:3.7
 
@@ -61,7 +63,7 @@ Define the forecaster-class in the Dockerfile:
 
 Pass the forecaster-class as a hyper-parameter:
 
-```json
+```python
 {
     ...
     "forecaster_name": "gluonts.model.deepar.DeepAREstimator",
@@ -112,7 +114,7 @@ It is also possible to run predictors directly in inference. Here, it is
 important to pass all parameters to the `Predictor` class as part of the
 `configuration`:
 
-```json
+```python
 {
     "instances": [...],
     "configuration": {
@@ -134,7 +136,7 @@ The input is expected to be in jsonlines format.
 The main difference to SageMaker DeepAR is that GluonTS uses `INFERENCE_CONFIG`
 as the environment-variable, instead of `DEEPAR_INFERENCE_CONFIG`.
 
-```json
+```python
 {
    "BatchStrategy": "SingleRecord",
    "Environment": { 
