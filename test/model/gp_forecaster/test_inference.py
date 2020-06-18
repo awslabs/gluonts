@@ -15,7 +15,7 @@
 import numpy as np
 
 # First-party imports
-from gluonts.kernels import RBFKernel
+from gluonts.mx.kernels import RBFKernel
 from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
 
 # Relative imports
