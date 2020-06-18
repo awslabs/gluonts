@@ -18,8 +18,8 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.distribution import LowrankMultivariateGaussian
-from gluonts.distribution.lowrank_gp import LowrankGPOutput, GPArgProj
+from gluonts.mx.distribution import LowrankMultivariateGaussian
+from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput, GPArgProj
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.evaluation import MultivariateEvaluator
 from gluonts.model.gpvar import GPVAREstimator

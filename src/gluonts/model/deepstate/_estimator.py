@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import List, Optional
+
 # Standard library imports
 import numpy as np
-from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
@@ -22,20 +23,20 @@ from pandas.tseries.frequencies import to_offset
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.distribution.lds import ParameterBounds
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.distribution.lds import ParameterBounds
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import (
-    AddObservedValuesIndicator,
     AddAgeFeature,
+    AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
-    Chain,
     CanonicalInstanceSplitter,
+    Chain,
     ExpandDimArray,
     RemoveFields,
     SetField,
@@ -45,7 +46,7 @@ from gluonts.transform import (
 )
 
 # Relative imports
-from ._network import DeepStateTrainingNetwork, DeepStatePredictionNetwork
+from ._network import DeepStatePredictionNetwork, DeepStateTrainingNetwork
 
 SEASON_INDICATORS_FIELD = "seasonal_indicators"
 

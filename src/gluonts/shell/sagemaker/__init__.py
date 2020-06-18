@@ -11,8 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import os
 import json
+import os
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from gluonts.dataset.common import FileDataset, MetaData
 from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.support.util import map_dct_values
+
 from .params import decode_sagemaker_parameters
 from .path import ServePaths, TrainPaths
 

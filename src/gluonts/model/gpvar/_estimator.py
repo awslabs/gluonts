@@ -17,39 +17,41 @@ from typing import List, Optional
 # Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
-from gluonts.distribution import DistributionOutput
-from gluonts.distribution.lowrank_gp import LowrankGPOutput
 from gluonts.core.component import validated
+
+# Relative imports
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepvar._estimator import (
     get_lags_for_frequency,
     time_features_from_frequency_str,
 )
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+
+# First-party imports
+from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import TimeFeature
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
+    CDFtoGaussianTransform,
     Chain,
+    ExpandDimArray,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
+    RenameFields,
+    SampleTargetDim,
     SetFieldIfNotPresent,
+    TargetDimIndicator,
     Transformation,
     VstackFeatures,
-    ExpandDimArray,
-    TargetDimIndicator,
-    SampleTargetDim,
-    CDFtoGaussianTransform,
-    RenameFields,
     cdf_to_gaussian_forward_transform,
 )
 
-# Relative imports
-from gluonts.dataset.field_names import FieldName
 from ._network import GPVARPredictionNetwork, GPVARTrainingNetwork
 
 

@@ -12,17 +12,18 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Tuple, Optional, NamedTuple
+from typing import NamedTuple, Optional, Tuple
 
 # Third-party imports
 import mxnet as mx
 import numpy as np
 
+from gluonts.core.component import validated
+
 # First-party imports
 from gluonts.model.common import Tensor
-from gluonts.core.component import validated
-from gluonts.support.util import make_nd_diag, _broadcast_param
 from gluonts.support.linalg_util import jitter_cholesky
+from gluonts.support.util import _broadcast_param, make_nd_diag
 
 from . import Distribution, Gaussian, MultivariateGaussian
 from .distribution import getF

@@ -12,44 +12,45 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, List
+from typing import List, Optional
 
 # Third-party imports
 import numpy as np
 
-# First-party imports
-from gluonts.block.decoder import Seq2SeqDecoder
-from gluonts.block.enc2dec import FutureFeatIntegratorEnc2Dec
-from gluonts.block.encoder import Seq2SeqEncoder
-from gluonts.block.quantile_output import QuantileOutput
-from gluonts.core.component import validated, DType
+from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+
+# First-party imports
+from gluonts.mx.block.decoder import Seq2SeqDecoder
+from gluonts.mx.block.enc2dec import FutureFeatIntegratorEnc2Dec
+from gluonts.mx.block.encoder import Seq2SeqEncoder
+from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
-from gluonts.trainer import Trainer
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
+    AddConstFeature,
+    AddObservedValuesIndicator,
     AddTimeFeatures,
     Chain,
+    RemoveFields,
+    RenameFields,
+    SetField,
     TestSplitSampler,
     Transformation,
     VstackFeatures,
-    RenameFields,
-    AddConstFeature,
-    RemoveFields,
-    AddObservedValuesIndicator,
-    SetField,
 )
 
 # Relative imports
 from ._forking_network import (
     ForkingSeq2SeqNetworkBase,
-    ForkingSeq2SeqTrainingNetwork,
     ForkingSeq2SeqPredictionNetwork,
+    ForkingSeq2SeqTrainingNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 

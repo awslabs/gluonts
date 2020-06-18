@@ -17,10 +17,10 @@ from typing import Dict, Optional, Union, cast
 import mxnet as mx
 import numpy as np
 import pandas as pd
+from pandas import to_timedelta
 
 # First-party imports
-from gluonts.model.forecast import OutputType, Forecast, Config
-from pandas import to_timedelta
+from gluonts.model.forecast import Config, Forecast, OutputType
 
 
 class PointProcessSampleForecast(Forecast):

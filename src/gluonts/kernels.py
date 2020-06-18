@@ -15,13 +15,14 @@ import importlib
 import sys
 import warnings
 
+import gluonts.mx.kernels
+
 warnings.warn(
     "gluonts.kernels is deprecated. Use gluonts.mx.kernels instead.",
     DeprecationWarning,
     stacklevel=2,
 )
 
-import gluonts.mx.kernels
 
 sys.modules["gluonts.kernels"] = gluonts.mx.kernels
 

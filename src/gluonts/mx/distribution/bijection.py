@@ -17,9 +17,10 @@ from typing import Optional, Union
 # Third-party imports
 import numpy as np
 
+from gluonts.core.component import validated
+
 # First-party imports
 from gluonts.model.common import Tensor
-from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import getF

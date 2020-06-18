@@ -11,8 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import numpy as np
 import mxnet as mx
+import numpy as np
+
 
 # Workaround needed due to a known issue with np.quantile(inp, quant) returning unsorted values.
 # We fix this by ensuring that the obtained bin_centers are monotonically increasing.

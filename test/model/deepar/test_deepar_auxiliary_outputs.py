@@ -13,7 +13,7 @@
 
 from itertools import islice
 
-from gluonts.distribution import StudentTOutput, StudentT
+from gluonts.mx.distribution import StudentTOutput, StudentT
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.support.util import get_hybrid_forward_input_names
