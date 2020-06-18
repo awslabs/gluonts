@@ -16,42 +16,35 @@ import math
 from typing import Dict, Tuple
 
 # First-party imports
-from gluonts.distribution.distribution import getF, softplus
 from gluonts.model.common import Tensor
+from gluonts.mx.distribution.distribution import getF, softplus
 
 # Relative imports
 from . import Kernel, KernelOutputDict
 
 
-class PeriodicKernel(Kernel):
+class RBFKernel(Kernel):
     r"""
-    Computes a covariance matrix based on the Periodic kernel
+    Computes a covariance matrix based on the RBF (squared exponential) kernel
     between inputs :math:`\mathbf{x_1}` and :math:`\mathbf{x_2}`:
-    :math:`k_{\text{Per}}(\mathbf{x_1}, \mathbf{x_2}) = \theta_0 \exp \left
-    (\frac{-2\sin^2(\theta_2 \pi \|\mathbf{x_1} - \mathbf{x_2}\|)}
-    {\theta_1^2} \right)`,
-    where :math:`\theta_0` is the amplitude parameter,
-    :math:`\theta_1` is the length scale parameter and
-    :math:`\theta_2` is the frequency parameter.
+    :math:`k_{\text{RBF}}(\mathbf{x_1}, \mathbf{x_2}) = \theta_0 \exp \left
+    ( -\frac{\|\mathbf{x_1} - \mathbf{x_2}\|^2}
+    {2\theta_1^2} \right)`,
+    where :math:`\theta_0` is the amplitude parameter and
+    :math:`\theta_1` is the length scale parameter.
     """
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def __init__(
-        self,
-        amplitude: Tensor,
-        length_scale: Tensor,
-        frequency: Tensor,
-        F=None,
+        self, amplitude: Tensor, length_scale: Tensor, F=None
     ) -> None:
         """
         Parameters
         ----------
         amplitude : Tensor
-            Periodic kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
+            RBF kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
         length_scale : Tensor
-            Periodic kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
-        frequency : Tensor
-            Periodic kernel hyper-parameter of shape (batch_size, 1, 1).
+            RBF kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
         F : ModuleType
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
@@ -59,7 +52,6 @@ class PeriodicKernel(Kernel):
         self.F = F if F else getF(amplitude)
         self.amplitude = amplitude
         self.length_scale = length_scale
-        self.frequency = frequency
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def kernel_matrix(self, x1: Tensor, x2: Tensor) -> Tensor:
@@ -74,7 +66,7 @@ class PeriodicKernel(Kernel):
         Returns
         --------------------
         Tensor
-            Periodic kernel matrix of shape (batch_size, history_length, history_length).
+            RBF kernel matrix of shape (batch_size, history_length, history_length).
         """
         self._compute_square_dist(self.F, x1, x2)
 
@@ -82,51 +74,38 @@ class PeriodicKernel(Kernel):
             self.amplitude,
             self.F.exp(
                 self.F.broadcast_div(
-                    -2
-                    * self.F.sin(
-                        self.F.broadcast_mul(
-                            self.frequency,
-                            math.pi
-                            * self.F.sqrt(self.F.abs(self.square_dist)),
-                        )
-                    )
-                    ** 2,
-                    self.length_scale ** 2,
+                    -self.square_dist, 2 * self.length_scale ** 2
                 )
             ),
         )
 
 
-class PeriodicKernelOutput(KernelOutputDict):
-    args_dim: Dict[str, int] = {
-        "amplitude": 1,
-        "length_scale": 1,
-        "frequency": 1,
-    }
-    kernel_cls: type = PeriodicKernel
+class RBFKernelOutput(KernelOutputDict):
+    args_dim: Dict[str, int] = {"amplitude": 1, "length_scale": 1}
+    kernel_cls: type = RBFKernel
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        This function returns the scales for the GP Periodic Kernel hyper-parameters by using the standard deviations
+        This function returns the scales for the GP RBF Kernel hyper-parameters by using the standard deviations
         of the past_target and past_time_features.
 
         Parameters
         ----------
-        F : ModuleType
+        F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-        past_target : Tensor
+        past_target
             Training time series values of shape (batch_size, context_length).
-        past_time_feat : Tensor
+        past_time_feat
             Training features of shape (batch_size, context_length, num_features).
 
         Returns
         -------
         Tuple
-            Three scaled GP hyper-parameters for the Periodic Kernel and scaled model noise hyper-parameter.
+            Two scaled GP hyper-parameters for the RBF Kernel and scaled model noise hyper-parameter.
             Each is a Tensor of shape (batch_size, 1, 1).
         """
         axis = 1
@@ -138,42 +117,32 @@ class PeriodicKernelOutput(KernelOutputDict):
             F.mean(self.compute_std(F, past_time_feat, axis=axis)),
             F.ones_like(amplitude_scaling),
         )
-        # TODO: Define scaling for the frequency
-        frequency_scaling = F.ones_like(amplitude_scaling)
-        return (
-            amplitude_scaling,
-            length_scale_scaling,
-            frequency_scaling,
-            sigma_scaling,
-        )
+        return amplitude_scaling, length_scale_scaling, sigma_scaling
 
     # noinspection PyMethodOverriding,PyPep8Naming
     @classmethod
     def domain_map(
-        cls, F, amplitude: Tensor, length_scale: Tensor, frequency: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+        cls, F, amplitude: Tensor, length_scale: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         """
-        This function applies the softmax to the Periodic Kernel hyper-parameters.
+        This function applies the softmax to the RBF Kernel hyper-parameters.
 
         Parameters
         ----------
-        F : ModuleType
+        F: mx.symbol or mx.nd
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-        amplitude : Tensor
-            Periodic kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
-        length_scale : Tensor
-            Periodic kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
-        frequency : Tensor
-            Periodic kernel hyper-parameter of shape (batch_size, 1, 1).
+        amplitude
+            RBF kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
+        length_scale
+            RBF kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
 
         Returns
         -------
         Tuple
-            Three GP Periodic kernel hyper-parameters.
+            Two GP RBF kernel hyper-parameters.
             Each is a Tensor of shape: (batch_size, 1, 1).
         """
         amplitude = softplus(F, amplitude)
         length_scale = softplus(F, length_scale)
-        frequency = softplus(F, frequency)
-        return amplitude, length_scale, frequency
+        return amplitude, length_scale

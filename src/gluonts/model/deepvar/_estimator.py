@@ -200,7 +200,6 @@ class DeepVAREstimator(GluonEstimator):
         Set maximum length for conditioning the marginal transformation
     use_marginal_transformation
         Whether marginal (empirical cdf, gaussian ppf) transformation is used.
-
     """
 
     @validated()

@@ -171,7 +171,12 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                         ):
                             dec_field[:] = ts[:, idx : idx + self.dec_len].T
 
-                    out[self._future(ts_field)] = np.squeeze(forking_dec_field)
+                    if forking_dec_field.shape[-1] == 1:
+                        out[self._future(ts_field)] = np.squeeze(
+                            forking_dec_field, axis=-1
+                        )
+                    else:
+                        out[self._future(ts_field)] = forking_dec_field
 
             # So far pad indicator not in use
             pad_indicator = np.zeros(self.enc_len)

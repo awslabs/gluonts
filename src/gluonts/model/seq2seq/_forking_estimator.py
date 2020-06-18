@@ -108,7 +108,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         The age feature starts with a small value at the start of the time series and grows over time.
     enable_decoder_dynamic_feature
         Whether the decoder should also be provided with the dynamic features (``age``, ``time``
-        and ``feat_dynamic_real`` if enabled respectively). (default: True)
+        and ``feat_dynamic_real`` if enabled respectively). (default: False)
         It makes sense to disable this, if you dont have ``feat_dynamic_real`` for the prediction range.
     trainer
         trainer (default: Trainer())
@@ -131,9 +131,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         use_feat_static_cat: bool = False,
         cardinality: List[int] = None,
         embedding_dimension: List[int] = None,
-        add_time_feature: bool = True,
-        add_age_feature: bool = True,
-        enable_decoder_dynamic_feature: bool = True,
+        add_time_feature: bool = False,
+        add_age_feature: bool = False,
+        enable_decoder_dynamic_feature: bool = False,
         trainer: Trainer = Trainer(),
         scaling: bool = False,
         dtype: DType = np.float32,
