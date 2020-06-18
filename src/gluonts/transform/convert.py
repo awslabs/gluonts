@@ -50,19 +50,10 @@ class AsNumpyArray(SimpleTransformation):
         self.dtype = dtype
 
     def transform(self, data: DataEntry) -> DataEntry:
-        value = data[self.field]
-        if not isinstance(value, float):
-            # this lines produces "ValueError: setting an array element with a
-            # sequence" on our test
-            # value = np.asarray(value, dtype=np.float32)
-            # see https://stackoverflow.com/questions/43863748/
-            value = np.asarray(list(value), dtype=self.dtype)
-        else:
-            # ugly: required as list conversion will fail in the case of a
-            # float
-            value = np.asarray(value, dtype=self.dtype)
+        value = np.asarray(data[self.field], dtype=self.dtype)
+
         assert_data_error(
-            value.ndim >= self.expected_ndim,
+            value.ndim == self.expected_ndim,
             'Input for field "{self.field}" does not have the required'
             "dimension (field: {self.field}, ndim observed: {value.ndim}, "
             "expected ndim: {self.expected_ndim})",
