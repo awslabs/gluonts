@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from ._predictor import naive_2, Naive2Predictor
+from ._predictor import Naive2Predictor, naive_2
 
 __all__ = ["naive_2", "Naive2Predictor"]
 

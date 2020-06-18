@@ -13,7 +13,7 @@
 
 # Standard library imports
 from collections import OrderedDict
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 # Third-party imports
 from mxnet import gluon
@@ -22,16 +22,13 @@ from mxnet import gluon
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
-from . import bijection, LowrankMultivariateGaussian
-from .lowrank_multivariate_gaussian import (
-    inv_softplus,
-    sigma_minimum,
-)
+from . import LowrankMultivariateGaussian, bijection
 from .distribution_output import (
-    TransformedDistribution,
     ArgProj,
     DistributionOutput,
+    TransformedDistribution,
 )
+from .lowrank_multivariate_gaussian import inv_softplus, sigma_minimum
 
 
 class GPArgProj(gluon.HybridBlock):

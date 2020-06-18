@@ -11,19 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import logging
 import json
+import logging
 import time
 import traceback
-from typing import Callable, Tuple, Iterable, List
+from typing import Callable, Iterable, List, Tuple
 
-from flask import Flask, Response, request, jsonify
+from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel
 
 from gluonts.dataset.common import ListDataset
 from gluonts.model.forecast import Config as ForecastConfig
-from .util import jsonify_floats
 
+from .util import jsonify_floats
 
 logger = logging.getLogger("gluonts.serve")
 

@@ -24,11 +24,7 @@ from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 from . import bijection
-from .distribution import (
-    Distribution,
-    _sample_multiple,
-    getF,
-)
+from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import (
     ArgProj,
     DistributionOutput,

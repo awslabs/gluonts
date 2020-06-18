@@ -13,6 +13,7 @@
 
 # Relative imports
 from . import bijection
+from .beta import Beta, BetaOutput
 from .binned import Binned, BinnedOutput
 from .box_cox_transform import (
     BoxCoxTransformOutput,
@@ -26,9 +27,10 @@ from .dirichlet_multinomial import (
 )
 from .distribution import Distribution
 from .distribution_output import DistributionOutput
+from .gamma import Gamma, GammaOutput
 from .gaussian import Gaussian, GaussianOutput
-from .beta import Beta, BetaOutput
 from .laplace import Laplace, LaplaceOutput
+from .logit_normal import LogitNormal, LogitNormalOutput
 from .lowrank_multivariate_gaussian import (
     LowrankMultivariateGaussian,
     LowrankMultivariateGaussianOutput,
@@ -44,13 +46,11 @@ from .piecewise_linear import (
     PiecewiseLinearOutput,
     TransformedPiecewiseLinear,
 )
+from .poisson import Poisson, PoissonOutput
 from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
-from .logit_normal import LogitNormal, LogitNormalOutput
-from .gamma import Gamma, GammaOutput
-from .poisson import Poisson, PoissonOutput
 
 __all__ = [
     "Distribution",

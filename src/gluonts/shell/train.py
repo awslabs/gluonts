@@ -13,23 +13,22 @@
 
 # Standard library imports
 import logging
-from typing import Any, Type, Union, Optional
+from typing import Any, Optional, Type, Union
 
 # First-party imports
 import gluonts
 from gluonts.core import fqname_for
 from gluonts.core.component import check_gpu_support
 from gluonts.core.serde import dump_code
-from gluonts.evaluation import Evaluator, backtest
 from gluonts.dataset.common import Dataset
+from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.transform import FilterTransformation, TransformedDataset
 from gluonts.support.util import maybe_len
+from gluonts.transform import FilterTransformation, TransformedDataset
 
 # Relative imports
 from .sagemaker import TrainEnv
-
 
 logger = logging.getLogger(__name__)
 

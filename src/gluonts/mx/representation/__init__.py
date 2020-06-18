@@ -11,16 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from .custom_binning import CustomBinning
+from .dim_expansion import DimExpansion
+from .discrete_pit import DiscretePIT
+from .embedding import Embedding
+from .global_relative_binning import GlobalRelativeBinning
+from .hybrid_representation import HybridRepresentation
+from .local_absolute_binning import LocalAbsoluteBinning
+from .mean_scaling import MeanScaling
+
 # Relative imports
 from .representation import Representation
-from .custom_binning import CustomBinning
-from .global_relative_binning import GlobalRelativeBinning
-from .local_absolute_binning import LocalAbsoluteBinning
-from .hybrid_representation import HybridRepresentation
-from .mean_scaling import MeanScaling
-from .dim_expansion import DimExpansion
-from .embedding import Embedding
-from .discrete_pit import DiscretePIT
 from .representation_chain import RepresentationChain
 
 __all__ = [

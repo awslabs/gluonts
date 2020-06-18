@@ -15,13 +15,14 @@ import importlib
 import sys
 import warnings
 
+import gluonts.mx.distribution
+
 warnings.warn(
     "gluonts.distribution is deprecated. Use gluonts.mx.distribution instead.",
     DeprecationWarning,
     stacklevel=2,
 )
 
-import gluonts.mx.distribution
 
 sys.modules["gluonts.distribution"] = gluonts.mx.distribution
 

@@ -16,7 +16,7 @@ import pytest
 from mxnet import nd
 
 # First-party imports
-from gluonts.block.encoder import HierarchicalCausalConv1DEncoder
+from gluonts.mx.block.encoder import HierarchicalCausalConv1DEncoder
 
 
 @pytest.mark.parametrize("use_residual", [True, False])

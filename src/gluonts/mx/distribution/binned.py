@@ -12,19 +12,19 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import mxnet as mx
-from mxnet import gluon
 import numpy as np
+from mxnet import gluon
 
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 # Relative imports
-from .distribution import Distribution, _sample_multiple, getF, _index_tensor
+from .distribution import Distribution, _index_tensor, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 

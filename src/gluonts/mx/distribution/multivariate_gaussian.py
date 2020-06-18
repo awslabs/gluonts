@@ -23,11 +23,7 @@ from gluonts.core.component import DType, validated
 from gluonts.model.common import Tensor
 from gluonts.support.linalg_util import lower_triangular_ones
 
-from .distribution import (
-    Distribution,
-    _sample_multiple,
-    getF,
-)
+from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 

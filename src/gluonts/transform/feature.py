@@ -16,11 +16,11 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
-from gluonts.core.component import validated, DType
+from gluonts.core.component import DType, validated
 from gluonts.dataset.common import DataEntry
 from gluonts.time_feature import TimeFeature
 
-from ._base import SimpleTransformation, MapTransformation
+from ._base import MapTransformation, SimpleTransformation
 from .split import shift_timestamp
 
 

@@ -14,9 +14,9 @@
 
 # Standard library imports
 import argparse
-import os
 import json
 import logging
+import os
 
 logging.basicConfig(
     level=logging.INFO,
