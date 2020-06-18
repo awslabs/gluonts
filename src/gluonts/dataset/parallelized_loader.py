@@ -257,8 +257,6 @@ class _WorkerData:
     transformation: Transformation
     # replicate transformation
     dataset_iterator: Iterator[DataEntry]
-    # shuffle buffer
-    shuffle_buffer: list = []
     # indicates which cycle the iterator has been reset last
     iterator_latest_reset_cycle: int = 0
     # indicates whether the iterator was previously depleted
@@ -366,21 +364,34 @@ class ShuffleIter(Iterator[DataEntry]):
         self.shuffle_buffer: list = []
         self.shuffle_buffer_length = shuffle_buffer_length
         self.base_iterator = base_iterator
+        self.base_iter_finished = False
 
     def __next__(self) -> DataEntry:
         # if the buffer is empty, fill the buffer first.
         # (should only executed in the first round)
-        if len(self.shuffle_buffer) == 0:
+        if not self.shuffle_buffer:
             self.shuffle_buffer = list(
                 itertools.islice(
                     self.base_iterator, self.shuffle_buffer_length
                 )
             )
+        # if buffer still empty, means all elements used,
+        # return a signal of end of iterator
+        if not self.shuffle_buffer:
+            return {}
         # choose an element at a random index and yield it
         # and fill it with the next element in the sequential generator
-        idx = random.randint(0, self.shuffle_buffer_length - 1)
+        idx = random.randint(0, len(self.shuffle_buffer) - 1)
         next_sample = self.shuffle_buffer[idx]
-        self.shuffle_buffer[idx] = next(self.base_iterator)
+
+        # replace the index with the next element in the iterator if the iterator has not finished.
+        # delete the index otherwise.
+        to_replace: DataEntry = next(self.base_iterator, {})
+        if to_replace:
+            self.shuffle_buffer[idx] = to_replace
+        else:
+            del self.shuffle_buffer[idx]
+
         return next_sample
 
     def __iter__(self) -> Iterator[DataEntry]:
@@ -652,9 +663,7 @@ class ParallelDataLoader(object):
         self.worker_id_queue: Optional[Queue] = None
         # In order to recycle unused but pre-calculated batches from last epoch for training:
         self.multi_worker_cache: Optional[Iterator[DataBatch]] = None
-        # Do shuffle or not
         self.shuffle_buffer_length: Optional[int] = shuffle_buffer_length
-        self.shuffle_buffer: list = []
 
         if self.num_workers > 0:
             # generate unique ids for processes

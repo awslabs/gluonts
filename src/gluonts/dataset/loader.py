@@ -201,7 +201,6 @@ class ValidationDataLoader(DataLoader):
         ctx: mx.Context,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
         dtype: DType = np.float32,
         **kwargs,
     ) -> None:
@@ -215,7 +214,7 @@ class ValidationDataLoader(DataLoader):
             cyclic=False,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
+            shuffle_buffer_length=None,
             **kwargs,
         )
 
