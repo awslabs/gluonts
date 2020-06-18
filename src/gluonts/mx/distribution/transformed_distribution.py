@@ -52,7 +52,7 @@ class TransformedDistribution(Distribution):
     def _slice_bijection(
         self, trans: bij.Bijection, item: Any
     ) -> bij.Bijection:
-        from gluonts.distribution.box_cox_transform import BoxCoxTransform
+        from .box_cox_transform import BoxCoxTransform
 
         if isinstance(trans, bij.AffineTransformation):
             loc = (

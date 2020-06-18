@@ -20,10 +20,10 @@ from mxnet import gluon
 
 # First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.distribution.bijection import AffineTransformation
 from gluonts.model.common import Tensor
 
 # Relative imports
+from .bijection import AffineTransformation
 from .distribution import Distribution
 from .transformed_distribution import TransformedDistribution
 

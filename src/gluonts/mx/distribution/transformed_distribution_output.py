@@ -20,18 +20,17 @@ import numpy as np
 from mxnet import gluon
 
 # First-party imports
-from gluonts.distribution import Distribution
-from gluonts.distribution.bijection import AffineTransformation
-from gluonts.distribution.bijection_output import BijectionOutput
-from gluonts.distribution.distribution_output import (
+from gluonts.model.common import Tensor
+from gluonts.core.component import validated
+
+from . import Distribution
+from .bijection import AffineTransformation
+from .bijection_output import BijectionOutput
+from .distribution_output import (
     ArgProj,
     DistributionOutput,
 )
-from gluonts.distribution.transformed_distribution import (
-    TransformedDistribution,
-)
-from gluonts.model.common import Tensor
-from gluonts.core.component import validated
+from .transformed_distribution import TransformedDistribution
 
 
 class TransformedDistributionOutput(DistributionOutput):

@@ -11,18 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+import pandas as pd
 
-from pkgutil import extend_path
-
-from pkg_resources import get_distribution, DistributionNotFound
-
-__path__ = extend_path(__path__, __name__)  # type: ignore
-
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    __version__ = "0.0.0-unknown"
+from gluonts.dataset.split.splitter import TimeSeriesSlice
 
 
-from gluonts.mx.prelude import *
+def make_series(data, start="2020", freq="D"):
+    index = pd.date_range(start=start, freq=freq, periods=len(data))
+    return pd.Series(data, index=index)
+
+
+def test_ts_slice_to_item():
+
+    sl = TimeSeriesSlice(
+        target=make_series(range(100)),
+        item="",
+        feat_static_cat=[1, 2, 3],
+        feat_static_real=[0.1, 0.2, 0.3],
+        feat_dynamic_cat=[make_series(range(100))],
+        feat_dynamic_real=[make_series(range(100))],
+    )
+
+    sl.to_time_series_item()

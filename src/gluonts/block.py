@@ -11,18 +11,31 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+import importlib
+import sys
+import warnings
 
-from pkgutil import extend_path
+warnings.warn(
+    "gluonts.block is deprecated. Use gluonts.mx.block instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-from pkg_resources import get_distribution, DistributionNotFound
+import gluonts.mx.block
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+sys.modules["gluonts.block"] = gluonts.mx.block
 
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    __version__ = "0.0.0-unknown"
-
-
-from gluonts.mx.prelude import *
+for submodule in (
+    "cnn",
+    "decoder",
+    "enc2dec",
+    "encoder",
+    "feature",
+    "mlp",
+    "quantile_output",
+    "rnn",
+    "scaler",
+):
+    sys.modules[f"gluonts.block.{submodule}"] = importlib.import_module(
+        f"gluonts.mx.block.{submodule}"
+    )

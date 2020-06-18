@@ -19,14 +19,13 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.distribution.bijection import AffineTransformation, Bijection
-from gluonts.distribution.distribution import Distribution, getF
-from gluonts.distribution.distribution_output import DistributionOutput
-from gluonts.distribution.transformed_distribution import (
-    TransformedDistribution,
-)
 from gluonts.model.common import Tensor
 from gluonts.support import util
+
+from .bijection import AffineTransformation, Bijection
+from .distribution import Distribution, getF
+from .distribution_output import DistributionOutput
+from .transformed_distribution import TransformedDistribution
 
 
 class PiecewiseLinear(Distribution):
