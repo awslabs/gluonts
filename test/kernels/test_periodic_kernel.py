@@ -19,7 +19,7 @@ import pytest
 from mxnet import nd
 
 # First-party imports
-from gluonts.kernels import PeriodicKernel
+from gluonts.mx.kernels import PeriodicKernel
 
 test_cases = [
     # This tests the simple case where the amplitude and length scale parameters are constant
