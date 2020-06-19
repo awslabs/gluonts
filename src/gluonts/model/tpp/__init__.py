@@ -14,7 +14,6 @@
 from .forecast import PointProcessSampleForecast
 from .predictor import PointProcessGluonPredictor
 
-
 __all__ = ["PointProcessGluonPredictor", "PointProcessSampleForecast"]
 
 

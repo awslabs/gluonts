@@ -13,7 +13,7 @@
 
 # Standard library imports
 from collections import Counter
-from typing import Iterator, List, Any, Optional
+from typing import Any, Iterator, List, Optional
 
 # Third-party imports
 import numpy as np

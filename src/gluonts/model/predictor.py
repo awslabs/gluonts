@@ -14,6 +14,7 @@
 # Standard library imports
 import functools
 import itertools
+import json
 import logging
 import multiprocessing as mp
 import sys
@@ -21,18 +22,17 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-import json
 from typing import (
     TYPE_CHECKING,
-    Tuple,
-    Union,
     Any,
     Callable,
     Dict,
     Iterator,
     List,
     Optional,
+    Tuple,
     Type,
+    Union,
 )
 
 # Third-party imports
@@ -41,7 +41,6 @@ import numpy as np
 
 # First-party imports
 import gluonts
-from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.core.component import (
     DType,
     equals,
@@ -52,10 +51,9 @@ from gluonts.core.component import (
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
-from .forecast_generator import ForecastGenerator, SampleForecastGenerator
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
-
+from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.support.util import (
     export_repr_block,
     export_symb_block,
@@ -65,6 +63,8 @@ from gluonts.support.util import (
     import_symb_block,
 )
 from gluonts.transform import Transformation
+
+from .forecast_generator import ForecastGenerator, SampleForecastGenerator
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa

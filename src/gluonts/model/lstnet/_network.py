@@ -11,18 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import warnings
+
 # Standard library imports
 from typing import Optional
-import warnings
 
 # Third-party imports
 import mxnet as mx
-from mxnet.gluon import nn, loss
+from mxnet.gluon import loss, nn
+
+from gluonts.core.component import DType, validated
 
 # First-party imports
 from gluonts.model.common import Tensor
-from gluonts.core.component import validated, DType
-from gluonts.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
 
 class LSTNetBase(nn.HybridBlock):

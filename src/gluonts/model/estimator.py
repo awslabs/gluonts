@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import NamedTuple, Optional, Iterator
+from typing import Iterator, NamedTuple, Optional
 
 # Third-party imports
 import numpy as np
@@ -27,8 +27,8 @@ from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.predictor import Predictor
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import get_hybrid_forward_input_names
-from gluonts.trainer import Trainer
 from gluonts.transform import Transformation
 
 
@@ -204,8 +204,6 @@ class GluonEstimator(Estimator):
         **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
-
-        transformation.estimate(iter(training_data))
 
         training_data_loader = TrainDataLoader(
             dataset=training_data,

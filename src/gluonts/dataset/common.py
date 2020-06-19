@@ -17,7 +17,6 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from typing import (
-    cast,
     Any,
     Callable,
     Dict,
@@ -27,6 +26,7 @@ from typing import (
     NamedTuple,
     Optional,
     Union,
+    cast,
 )
 
 # Third-party imports

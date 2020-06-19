@@ -14,22 +14,21 @@
 # Standard library imports
 import itertools
 import logging
-import random
 import os
+import random
 from pathlib import Path
 from typing import (
     Callable,
     Iterable,
     Iterator,
     List,
+    NamedTuple,
     Tuple,
     TypeVar,
-    NamedTuple,
 )
 
 # Third-party imports
 import pandas as pd
-
 
 T = TypeVar("T")
 

@@ -16,12 +16,12 @@ import logging
 import multiprocessing
 import re
 import sys
-
 from collections import Sized
 from functools import lru_cache
 from itertools import chain, tee
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     Iterator,
@@ -29,16 +29,16 @@ from typing import (
     Optional,
     Tuple,
     Union,
-    Callable,
 )
 
 # Third-party imports
 import numpy as np
 import pandas as pd
 
+from gluonts.gluonts_tqdm import tqdm
+
 # First-party imports
 from gluonts.model.forecast import Forecast, Quantile
-from gluonts.gluonts_tqdm import tqdm
 
 
 @lru_cache()

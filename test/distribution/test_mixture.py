@@ -19,8 +19,8 @@ import pytest
 # First-party imports
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.common import Tensor, NPArrayLike
-from gluonts.distribution.distribution import Distribution
-from gluonts.distribution import (
+from gluonts.mx.distribution.distribution import Distribution
+from gluonts.mx.distribution import (
     Gaussian,
     StudentT,
     MixtureDistribution,

@@ -23,18 +23,18 @@ import numpy as np
 # First-party imports
 from gluonts import transform
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset, DataEntry
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import (
     copy_parameters,
     get_hybrid_forward_input_names,
 )
 from gluonts.time_feature import time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
@@ -282,8 +282,6 @@ class WaveNetEstimator(GluonEstimator):
         transformation = self.create_transformation(
             bin_edges, pred_length=self.train_window_length
         )
-
-        transformation.estimate(iter(training_data))
 
         training_data_loader = TrainDataLoader(
             dataset=training_data,

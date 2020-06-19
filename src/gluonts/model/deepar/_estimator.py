@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import List, Optional
+
 # Standard library imports
 import numpy as np
-from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
@@ -22,16 +23,16 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import calculate_dataset_statistics
-from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
-    time_features_from_frequency_str,
     get_lags_for_frequency,
+    time_features_from_frequency_str,
 )
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
@@ -46,8 +47,8 @@ from gluonts.transform import (
     VstackFeatures,
 )
 from gluonts.transform.feature import (
-    MissingValueImputation,
     DummyValueImputation,
+    MissingValueImputation,
 )
 
 # Relative imports

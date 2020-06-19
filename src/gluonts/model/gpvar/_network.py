@@ -17,11 +17,12 @@ from typing import List, Optional, Tuple
 # Third-party imports
 import mxnet as mx
 
-# First-party imports
-from gluonts.distribution.distribution import getF
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 from gluonts.model.deepvar._network import DeepVARNetwork
+
+# First-party imports
+from gluonts.mx.distribution.distribution import getF
 
 
 class GPVARNetwork(DeepVARNetwork):
