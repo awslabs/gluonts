@@ -247,7 +247,7 @@ class DeepAREstimator(GluonEstimator):
     ) -> Predictor:
         self.input_repr.initialize_from_dataset(training_data)
         self.output_repr.initialize_from_dataset(training_data)
-        return super().train(training_data)
+        return super().train(training_data, **kwargs)
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
