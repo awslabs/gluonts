@@ -165,7 +165,9 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     ) -> Predictor:
         self.input_repr.initialize_from_dataset(training_data)
         self.output_repr.initialize_from_dataset(training_data)
-        return super().train(training_data, **kwargs)
+        return super().train(
+            training_data, validation_data, num_workers, num_prefetch, **kwargs
+        )
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a

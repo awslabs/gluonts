@@ -220,10 +220,19 @@ class TransformerEstimator(GluonEstimator):
             self.prediction_length, self.config, prefix="dec_"
         )
 
-    def train(self, training_data: Dataset) -> Predictor:
+    def train(
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        **kwargs
+    ) -> Predictor:
         self.input_repr.initialize_from_dataset(training_data)
         self.output_repr.initialize_from_dataset(training_data)
-        return super().train(training_data)
+        return super().train(
+            training_data, validation_data, num_workers, num_prefetch, **kwargs
+        )
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
