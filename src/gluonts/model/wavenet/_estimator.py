@@ -266,8 +266,6 @@ class WaveNetEstimator(GluonEstimator):
             pred_length=self.train_window_length
         )
 
-        transformation.estimate(iter(training_data))
-
         training_data_loader = TrainDataLoader(
             dataset=training_data,
             transform=transformation,

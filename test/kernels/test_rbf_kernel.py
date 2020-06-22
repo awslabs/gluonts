@@ -16,7 +16,7 @@ from mxnet import nd
 import pytest
 
 # First-party imports
-from gluonts.kernels import RBFKernel
+from gluonts.mx.kernels import RBFKernel
 
 
 test_cases = [
