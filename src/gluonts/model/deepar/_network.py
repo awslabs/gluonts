@@ -255,19 +255,9 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             shape=(
                 -1,
                 subsequences_length,
-                # len(self.lags_seq) * prod(self.target_shape),
                 -3,
             ),
         )
-
-        # input_lags = F.reshape(
-        #     data=lags,
-        #     shape=(
-        #         lags.shape[0],
-        #         lags.shape[1],
-        #         lags.shape[2] * lags.shape[3],
-        #     ),
-        # )
 
         # (batch_size, sub_seq_len, input_dim)
         inputs = F.concat(input_lags, time_feat, repeated_static_feat, dim=-1)
