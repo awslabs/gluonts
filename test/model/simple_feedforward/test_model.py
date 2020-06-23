@@ -14,7 +14,6 @@
 import pytest
 
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.mx.distribution.gaussian import GaussianOutput
 
 @pytest.fixture()
 def hyperparameters():
