@@ -31,7 +31,7 @@ from gluonts.transform import (
     Transformation,
 )
 
-
+from gluonts.model.forecast_generator import DistributionForecastGenerator
 # Relative imports
 from ._network import (
     SimpleFeedForwardSamplingNetwork,
