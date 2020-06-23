@@ -32,7 +32,10 @@ def hyperparameters():
 @pytest.mark.parametrize("sampling", [True, False])
 def test_accuracy(accuracy_test, hyperparameters, hybridize, sampling):
     hyperparameters.update(
-        num_batches_per_epoch=200, hybridize=hybridize, sampling=sampling
+        num_batches_per_epoch=200,
+        hybridize=hybridize,
+        sampling=sampling,
+        distr_output=GaussianOutput(),
     )
 
     accuracy_test(SimpleFeedForwardEstimator, hyperparameters, accuracy=0.3)
