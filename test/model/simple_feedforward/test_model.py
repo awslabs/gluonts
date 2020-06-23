@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import pytest
-
+from gluonts.mx.distribution import GaussianOutput
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 
 @pytest.fixture()
