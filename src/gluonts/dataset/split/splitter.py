@@ -14,19 +14,26 @@
 """
 Train/test splitter
 ~~~~~~~~~~~~~~~~~~~
+
 This module defines strategies to split a whole dataset into train and test
 subsets.
+
 For uniform datasets, where all time-series start and end at the same point in
 time `OffsetSplitter` can be used::
+
     splitter = OffsetSplitter(prediction_length=24, split_offset=24)
     train, test = splitter.split(whole_dataset)
+
 For all other datasets, the more flexible `DateSplitter` can be used::
+
     splitter = DateSplitter(
         prediction_length=24,
         split_date=pd.Timestamp('2018-01-31', freq='D')
     )
     train, test = splitter.split(whole_dataset)
+
 The module also supports rolling splits::
+
     splitter = DateSplitter(
         prediction_length=24,
         split_date=pd.Timestamp('2018-01-31', freq='D')
