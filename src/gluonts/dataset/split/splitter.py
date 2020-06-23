@@ -14,26 +14,19 @@
 """
 Train/test splitter
 ~~~~~~~~~~~~~~~~~~~
-
 This module defines strategies to split a whole dataset into train and test
 subsets.
-
 For uniform datasets, where all time-series start and end at the same point in
 time `OffsetSplitter` can be used::
-
     splitter = OffsetSplitter(prediction_length=24, split_offset=24)
     train, test = splitter.split(whole_dataset)
-
 For all other datasets, the more flexible `DateSplitter` can be used::
-
     splitter = DateSplitter(
         prediction_length=24,
         split_date=pd.Timestamp('2018-01-31', freq='D')
     )
     train, test = splitter.split(whole_dataset)
-
 The module also supports rolling splits::
-
     splitter = DateSplitter(
         prediction_length=24,
         split_date=pd.Timestamp('2018-01-31', freq='D')
@@ -50,11 +43,11 @@ import pandas as pd
 import pydantic
 
 # First-party imports
-from gluonts.dataset.common import TimeSeriesItem
+from gluonts.dataset.common import DataEntry
 
 
 class TimeSeriesSlice(pydantic.BaseModel):
-    """Like TimeSeriesItem, but all time-related fields are of type pd.Series
+    """Like DataEntry, but all time-related fields are of type pd.Series
     and is indexable, e.g `ts_slice['2018':]`.
     """
 
@@ -71,47 +64,70 @@ class TimeSeriesSlice(pydantic.BaseModel):
     feat_dynamic_real: List[pd.Series] = []
 
     @classmethod
-    def from_time_series_item(
-        cls, item: TimeSeriesItem, freq: Optional[str] = None
+    def from_data_entry(
+        cls, item: DataEntry, freq: Optional[str] = None
     ) -> "TimeSeriesSlice":
         if freq is None:
-            freq = item.start.freq
+            freq = item["start"].freq
 
         index = pd.date_range(
-            start=item.start, freq=freq, periods=len(item.target)
+            start=item["start"], freq=freq, periods=len(item["target"])
         )
 
+        item_dynamic_cat = (
+            item["feat_dynamic_cat"] if "feat_dynamic_cat" in item else []
+        )
         feat_dynamic_cat = [
-            pd.Series(cat, index=index) for cat in item.feat_dynamic_cat
+            pd.Series(cat, index=index) for cat in item_dynamic_cat
         ]
 
+        item_dynamic_real = (
+            item["feat_dynamic_real"] if "feat_dynamic_real" in item else []
+        )
         feat_dynamic_real = [
-            pd.Series(real, index=index) for real in item.feat_dynamic_real
+            pd.Series(real, index=index) for real in item_dynamic_real
         ]
+
+        feat_static_cat = (
+            list(item["feat_static_cat"]) if "feat_static_cat" in item else []
+        )
+
+        feat_static_real = (
+            list(item["feat_static_real"])
+            if "feat_static_real" in item
+            else []
+        )
 
         return TimeSeriesSlice(
-            target=pd.Series(item.target, index=index),
-            item=item.item,
-            feat_static_cat=item.feat_static_cat,
-            feat_static_real=item.feat_static_real,
+            target=pd.Series(item["target"], index=index),
+            item=item["item"],
+            feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             feat_dynamic_cat=feat_dynamic_cat,
             feat_dynamic_real=feat_dynamic_real,
         )
 
-    def to_time_series_item(self) -> TimeSeriesItem:
-        return TimeSeriesItem(
-            start=self.start,
-            target=self.target.values,
-            item=self.item,
-            feat_static_cat=self.feat_static_cat,
-            feat_static_real=self.feat_static_real,
-            feat_dynamic_cat=[
+    def to_data_entry(self) -> DataEntry:
+        ret = {
+            "start": self.start,
+            "item": self.item,
+            "target": self.target.values,
+        }
+
+        if len(self.feat_static_cat) > 0:
+            ret["feat_static_cat"] = self.feat_static_cat
+        if len(self.feat_static_real) > 0:
+            ret["feat_static_real"] = self.feat_static_real
+        if len(self.feat_dynamic_cat) > 0:
+            ret["feat_dynamic_cat"] = [
                 cat.values.tolist() for cat in self.feat_dynamic_cat
-            ],
-            feat_dynamic_real=[
+            ]
+        if len(self.feat_dynamic_real) > 0:
+            ret["feat_dynamic_real"] = [
                 real.values.tolist() for real in self.feat_dynamic_real
-            ],
-        )
+            ]
+
+        return ret
 
     @property
     def start(self):
@@ -129,14 +145,21 @@ class TimeSeriesSlice(pydantic.BaseModel):
         feat_dynamic_cat = None
 
         if self.feat_dynamic_real is not None:
-            feat_dynamic_real = [feat for feat in self.feat_dynamic_real]
+            feat_dynamic_real = [
+                feat[slice_] for feat in self.feat_dynamic_real
+            ]
 
         if self.feat_dynamic_cat is not None:
-            feat_dynamic_cat = [feat for feat in self.feat_dynamic_cat]
+            feat_dynamic_cat = [feat[slice_] for feat in self.feat_dynamic_cat]
+
+        target = self.target[slice_]
+
+        assert all([len(target) == len(i) for i in feat_dynamic_real])
+        assert all([len(target) == len(i) for i in feat_dynamic_cat])
 
         return TimeSeriesSlice(
+            target=target,
             item=self.item,
-            target=self.target[slice_],
             feat_dynamic_cat=feat_dynamic_cat,
             feat_dynamic_real=feat_dynamic_real,
             feat_static_cat=self.feat_static_cat,
@@ -145,25 +168,23 @@ class TimeSeriesSlice(pydantic.BaseModel):
 
 
 class TrainTestSplit(pydantic.BaseModel):
-    train: List[TimeSeriesItem] = []
-    test: List[TimeSeriesItem] = []
+    train: List[DataEntry] = []
+    test: List[DataEntry] = []
 
     def _add_train_slice(self, train_slice: TimeSeriesSlice) -> None:
         # is there any data left for training?
         if train_slice:
-            self.train.append(train_slice.to_time_series_item())
+            self.train.append(train_slice.to_data_entry())
 
     def _add_test_slice(self, test_slice: TimeSeriesSlice) -> None:
-        self.test.append(test_slice.to_time_series_item())
+        self.test.append(test_slice.to_data_entry())
 
 
 class AbstractBaseSplitter(ABC):
     """Base class for all other splitter.
-
     Args:
         param prediction_length:
             The prediction length which is used to train themodel.
-
         max_history:
             If given, all entries in the *test*-set have a max-length of
             `max_history`. This can be used to produce smaller file-sizes.
@@ -195,10 +216,11 @@ class AbstractBaseSplitter(ABC):
         else:
             return item
 
-    def split(self, items: List[TimeSeriesItem]) -> TrainTestSplit:
+    def split(self, items: List[DataEntry]) -> TrainTestSplit:
         split = TrainTestSplit()
 
-        for item in map(TimeSeriesSlice.from_time_series_item, items):
+        for item in map(TimeSeriesSlice.from_data_entry, items):
+
             train = self._train_slice(item)
             test = self._trim_history(self._test_slice(item))
 
@@ -211,7 +233,7 @@ class AbstractBaseSplitter(ABC):
 
     def rolling_split(
         self,
-        items: List[TimeSeriesItem],
+        items: List[DataEntry],
         windows: int,
         distance: Optional[int] = None,
     ) -> TrainTestSplit:
@@ -222,7 +244,7 @@ class AbstractBaseSplitter(ABC):
 
         split = TrainTestSplit()
 
-        for item in map(TimeSeriesSlice.from_time_series_item, items):
+        for item in map(TimeSeriesSlice.from_data_entry, items):
             train = self._train_slice(item)
             split._add_train_slice(train)
 
