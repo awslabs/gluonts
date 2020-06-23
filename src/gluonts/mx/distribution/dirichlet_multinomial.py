@@ -63,14 +63,16 @@ class DirichletMultinomial(Distribution):
         dim: int,
         n_trials: int,
         alpha: Tensor,
-        F=None,
         float_type: DType = np.float32,
     ) -> None:
         self.dim = dim
         self.n_trials = n_trials
         self.alpha = alpha
-        self.F = F if F else getF(alpha)
         self.float_type = float_type
+
+    @property
+    def F(self):
+        return getF(self.alpha)
 
     @property
     def batch_shape(self) -> Tuple:

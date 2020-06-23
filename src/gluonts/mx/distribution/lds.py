@@ -104,7 +104,6 @@ class LDS(Distribution):
         latent_dim: int,
         output_dim: int,
         seq_length: int,
-        F=None,
     ) -> None:
         self.latent_dim = latent_dim
         self.output_dim = output_dim
@@ -138,7 +137,10 @@ class LDS(Distribution):
 
         self.prior_mean = prior_mean
         self.prior_cov = prior_cov
-        self.F = F if F else getF(noise_std)
+
+    @property
+    def F(self):
+        return getF(self.noise_std)
 
     @property
     def batch_shape(self) -> Tuple:

@@ -49,8 +49,11 @@ class MultivariateGaussian(Distribution):
     @validated()
     def __init__(self, mu: Tensor, L: Tensor, F=None) -> None:
         self.mu = mu
-        self.F = F if F else getF(mu)
         self.L = L
+
+    @property
+    def F(self):
+        return getF(self.mu)
 
     def __getitem__(self, item):
         raise NotImplementedError()
@@ -122,14 +125,12 @@ class MultivariateGaussian(Distribution):
         """
 
         def s(mu: Tensor, L: Tensor) -> Tensor:
-            samples_std_normal = self.F.sample_normal(
-                mu=self.F.zeros_like(mu),
-                sigma=self.F.ones_like(mu),
-                dtype=dtype,
+            F = self.F
+            samples_std_normal = F.sample_normal(
+                mu=F.zeros_like(mu), sigma=F.ones_like(mu), dtype=dtype,
             ).expand_dims(axis=-1)
             samples = (
-                self.F.linalg_gemm2(L, samples_std_normal).squeeze(axis=-1)
-                + mu
+                F.linalg_gemm2(L, samples_std_normal).squeeze(axis=-1) + mu
             )
             return samples
 

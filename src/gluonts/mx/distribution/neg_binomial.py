@@ -44,10 +44,13 @@ class NegativeBinomial(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, mu: Tensor, alpha: Tensor, F=None) -> None:
+    def __init__(self, mu: Tensor, alpha: Tensor) -> None:
         self.mu = mu
         self.alpha = alpha
-        self.F = F if F else getF(mu)
+
+    @property
+    def F(self):
+        return getF(self.mu)
 
     @property
     def batch_shape(self) -> Tuple:

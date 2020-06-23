@@ -44,10 +44,13 @@ class Laplace(Distribution):
     is_reparameterizable = True
 
     @validated()
-    def __init__(self, mu: Tensor, b: Tensor, F=None) -> None:
+    def __init__(self, mu: Tensor, b: Tensor) -> None:
         self.mu = mu
         self.b = b
-        self.F = F if F else getF(mu)
+
+    @property
+    def F(self):
+        return getF(self.mu)
 
     @property
     def batch_shape(self) -> Tuple:
@@ -62,9 +65,8 @@ class Laplace(Distribution):
         return 0
 
     def log_prob(self, x: Tensor) -> Tensor:
-        return -1.0 * (
-            self.F.log(2.0 * self.b) + self.F.abs((x - self.mu) / self.b)
-        )
+        F = self.F
+        return -1.0 * (F.log(2.0 * self.b) + F.abs((x - self.mu) / self.b))
 
     @property
     def mean(self) -> Tensor:
