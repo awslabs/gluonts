@@ -11,10 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._estimator import RMTPPEstimator
-from ._network import RMTPPTrainingNetwork, RMTPPPredictionNetwork
+from ._estimator import DeepTPPEstimator
+from ._network import DeepTPPTrainingNetwork, DeepTPPPredictionNetwork
 
-__all__ = ["RMTPPEstimator", "RMTPPTrainingNetwork", "RMTPPPredictionNetwork"]
+__all__ = [
+    "DeepTPPEstimator",
+    "DeepTPPTrainingNetwork",
+    "DeepTPPPredictionNetwork",
+]
 
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

@@ -22,55 +22,72 @@ from gluonts.dataset.common import Dataset
 from gluonts.model.estimator import GluonEstimator, TrainOutput
 from gluonts.model.predictor import Predictor
 from gluonts.model.tpp import PointProcessGluonPredictor
-from gluonts.trainer import Trainer
+from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
     ContinuousTimeUniformSampler,
     ContinuousTimeInstanceSplitter,
     RenameFields,
-    Transformation
+    Transformation,
 )
 
 # Relative imports
-from ._network import RMTPPTrainingNetwork, RMTPPPredictionNetwork
+from ._network import DeepTPPTrainingNetwork, DeepTPPPredictionNetwork
 
 
-class RMTPPEstimator(GluonEstimator):
+class DeepTPPEstimator(GluonEstimator):
     """
-    The "Recurrent Marked Temporal Point Process" is a multivariate point process model
-    where the conditional intensity function and the mark distribution are
-    specified by a recurrent neural network, as described in [Duetal2016]_.
+    DeepTPP is a multivariate point process model based on an RNN.
 
-    The model works on a multivariate temporal point process, i.e., the "points"
-    take integer marks that index a finite set. RMTPP parameterizes the conditional
-    intensity function for the next mark via a single hidden-layer LSTM, which
-    takes the interarrival time since, and a vector embedding for the mark of,
-    the previous point.
+    After each event (t_i, m_i), the inter-arrival time tau_i = t_i - t_{i-1}
+    and the mark m_i are fed into the RNN. The state h_i of the RNN represents
+    the history embedding. We use h_i to parametrize the distribution over the
+    next inter-arrival time p(tau_{i+1} | h_i) and the distribution over the
+    next mark p(m_{i+1} | h_i). The distribution over the marks is always
+    categorical, but different choices are possible for the distribution over
+    inter-arrival times - see :code:`gluonts.model.tpp.distribution`.
 
-    .. [Duetal2016] Du, N., Dai, H., Trivedi, R., Upadhyay, U., Gomez-Rodriguez, M.,
-        & Song, L. (2016, August). Recurrent marked temporal point processes: Embedding
-        event history to vector. In Proceedings of the 22nd ACM SIGKDD International
-        Conference on Knowledge Discovery and Data Mining (pp. 1555-1564). ACM.
+    The model is a generalization of the approaches described in [DDT+16],
+    [TWJ19] and [SBG20].
+
+    References
+    ----------
+    .. [DDT+16] Du, Nan, et al. "Recurrent Marked Temporal Point Processes:
+    Embedding Event History to Vector." The 22nd ACM SIGKDD International
+    Conference on Knowledge Discovery and Data Mining. ACM, 2016.
+
+    .. [TWJ19] Turkmen, Caner, et al. "Intermittent Demand Forecasting with Deep
+    Renewal Processes." Learning with Temporal Point Processes Workshop,
+    NeurIPS. 2019.
+
+    .. [SBG20] Shchur, Oleksandr, et al. "Intensity-free Learning of Temporal
+    Point Processes." International Conference on Learning Representations.
+    2020.
+
 
     Parameters
     ----------
-    context_interval_length
-        The length of intervals (in continuous time) that the estimator will be
-        trained with.
     prediction_interval_length
         The length of the interval (in continuous time) that the estimator will
         predict at prediction time.
+    context_interval_length
+        The length of intervals (in continuous time) that the estimator will be
+        trained with.
     num_marks
-        The number of marks (disctinct processes), i.e., the cardinality of the
+        The number of marks (distinct processes), i.e., the cardinality of the
         mark set.
+    time_distr_output
+        TPPDistributionOutput for the distribution over the inter-arrival times.
+        See :code:`gluonts.model.tpp.distribution` for possible choices.
     embedding_dim
-        The dimension of vector embeddings for marks (used as input to the LSTM).
+        The dimension of vector embeddings for marks (used as input to the GRU).
     trainer
         :code:`gluonts.trainer.Trainer` object which will be used to train the
         estimator. Note that :code:`Trainer(hybridize=False)` must be set as
         :code:`RMTPPEstimator` currently does not support hybridization.
     num_hidden_dimensions
-        Number of hidden units in the (single) hidden layer of the LSTM.
+        Number of hidden units in the GRU network.
     num_parallel_samples
         The number of samples returned by the :code:`Predictor` learned.
     num_training_instances
@@ -78,7 +95,7 @@ class RMTPPEstimator(GluonEstimator):
         data set provided during training.
     freq
         Similar to the :code:`freq` of discrete-time models, specifies the time
-        unit by which interarrival times are given.
+        unit by which inter-arrival times are given.
     """
 
     @validated()
@@ -87,6 +104,7 @@ class RMTPPEstimator(GluonEstimator):
         prediction_interval_length: float,
         context_interval_length: float,
         num_marks: int,
+        time_distr_output: TPPDistributionOutput = WeibullOutput(),
         embedding_dim: int = 5,
         trainer: Trainer = Trainer(hybridize=False),
         num_hidden_dimensions: int = 10,
@@ -96,7 +114,7 @@ class RMTPPEstimator(GluonEstimator):
     ) -> None:
         assert (
             not trainer.hybridize
-        ), "RMTPP currently only supports the non-hybridized training"
+        ), "DeepTPP currently only supports the non-hybridized training"
 
         super().__init__(trainer=trainer)
 
@@ -125,14 +143,16 @@ class RMTPPEstimator(GluonEstimator):
             else prediction_interval_length
         )
         self.num_marks = num_marks
+        self.time_distr_output = time_distr_output
         self.embedding_dim = embedding_dim
         self.num_parallel_samples = num_parallel_samples
         self.num_training_instances = num_training_instances
         self.freq = freq
 
     def create_training_network(self) -> HybridBlock:
-        return RMTPPTrainingNetwork(
+        return DeepTPPTrainingNetwork(
             num_marks=self.num_marks,
+            time_distr_output=self.time_distr_output,
             interval_length=self.prediction_interval_length,
             embedding_dim=self.embedding_dim,
             num_hidden_dimensions=self.num_hidden_dimensions,
@@ -149,24 +169,26 @@ class RMTPPEstimator(GluonEstimator):
                     ),
                 ),
                 RenameFields(
-                    {"past_target": "target", "past_valid_length": "valid_length"}
+                    {
+                        "past_target": "target",
+                        "past_valid_length": "valid_length",
+                    }
                 ),
             ]
         )
 
     def create_predictor(
-        self, transformation: Transformation, trained_network: HybridBlock
+        self,
+        transformation: Transformation,
+        trained_network: DeepTPPTrainingNetwork,
     ) -> Predictor:
-        # trained_params = trained_network.collect_params()
-        #
-        # del trained_network.collect_params().get("decay_bias").init
-
-        prediction_network = RMTPPPredictionNetwork(
+        prediction_network = DeepTPPPredictionNetwork(
             num_marks=self.num_marks,
             prediction_interval_length=self.prediction_interval_length,
             interval_length=self.context_interval_length,
             embedding_dim=self.embedding_dim,
             num_hidden_dimensions=self.num_hidden_dimensions,
+            time_distr_output=trained_network.time_distr_output,
             params=trained_network.collect_params(),
             num_parallel_samples=self.num_parallel_samples,
         )
@@ -187,6 +209,7 @@ class RMTPPEstimator(GluonEstimator):
         validation_data: Optional[Dataset] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> TrainOutput:
         return super().train_model(
@@ -194,6 +217,7 @@ class RMTPPEstimator(GluonEstimator):
             validation_data,
             num_workers,
             num_prefetch,
+            shuffle_buffer_length,
             batchify_fn=partial(batchify, variable_length=True),
             **kwargs,
         )
