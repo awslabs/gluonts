@@ -30,7 +30,8 @@ def hyperparameters():
 
 
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_accuracy(accuracy_test, hyperparameters, hybridize):
+@pytest.mark.parametrize("sampling", [True, False])
+def test_accuracy(accuracy_test, hyperparameters, hybridize, sampling):
     hyperparameters.update(
         num_batches_per_epoch=200, hybridize=hybridize, sampling=True, distr_output = GaussianOutput()
     )
