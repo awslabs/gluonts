@@ -140,7 +140,7 @@ class LDS(Distribution):
 
     @property
     def F(self):
-        return getF(self.noise_std)
+        return getF(self.prior_mean)
 
     @property
     def batch_shape(self) -> Tuple:
