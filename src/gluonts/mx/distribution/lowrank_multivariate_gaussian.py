@@ -199,8 +199,11 @@ class LowrankMultivariateGaussian(Distribution):
         self.mu = mu
         self.D = D
         self.W = W
-        self.F = getF(mu)
         self.Cov = None
+
+    @property
+    def F(self):
+        return getF(self.mu)
 
     @property
     def batch_shape(self) -> Tuple:
@@ -226,13 +229,14 @@ class LowrankMultivariateGaussian(Distribution):
     @property
     def variance(self) -> Tensor:
         assert self.dim is not None
+        F = self.F
 
         if self.Cov is not None:
             return self.Cov
         # reshape to a matrix form (..., d, d)
-        D_matrix = self.D.expand_dims(-1) * self.F.eye(self.dim)
+        D_matrix = self.D.expand_dims(-1) * F.eye(self.dim)
 
-        W_matrix = self.F.linalg_gemm2(self.W, self.W, transpose_b=True)
+        W_matrix = F.linalg_gemm2(self.W, self.W, transpose_b=True)
 
         self.Cov = D_matrix + W_matrix
 

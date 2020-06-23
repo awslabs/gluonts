@@ -46,12 +46,13 @@ class Gamma(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, alpha: Tensor, beta: Tensor, F=None) -> None:
+    def __init__(self, alpha: Tensor, beta: Tensor) -> None:
         self.alpha = alpha
         self.beta = beta
-        self.F = (
-            F if F else getF(alpha)
-        )  # assuming alpha and beta of same type
+
+    @property
+    def F(self):
+        return getF(self.alpha)
 
     @property
     def batch_shape(self) -> Tuple:
@@ -88,16 +89,15 @@ class Gamma(Distribution):
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
         epsilon = np.finfo(dtype).eps  # machine epsilon
+        F = self.F
 
         samples = _sample_multiple(
-            partial(self.F.sample_gamma, dtype=dtype),
+            partial(F.sample_gamma, dtype=dtype),
             alpha=self.alpha,
             beta=1.0 / self.beta,
             num_samples=num_samples,
         )
-        return self.F.clip(
-            data=samples, a_min=epsilon, a_max=np.finfo(dtype).max
-        )
+        return F.clip(data=samples, a_min=epsilon, a_max=np.finfo(dtype).max)
 
     @property
     def args(self) -> List:

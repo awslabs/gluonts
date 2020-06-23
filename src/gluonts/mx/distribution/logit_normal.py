@@ -41,11 +41,14 @@ class LogitNormal(Distribution):
     """
 
     @validated()
-    def __init__(self, mu: Tensor, sigma: Tensor, F=None) -> None:
+    def __init__(self, mu: Tensor, sigma: Tensor) -> None:
         super().__init__()
         self.mu = mu
         self.sigma = sigma
-        self.F = F if F else getF(mu)
+
+    @property
+    def F(self):
+        return getF(self.mu)
 
     @property
     def batch_shape(self) -> Tuple:

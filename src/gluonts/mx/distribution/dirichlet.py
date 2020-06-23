@@ -48,12 +48,13 @@ class Dirichlet(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(
-        self, alpha: Tensor, F=None, float_type: DType = np.float32
-    ) -> None:
+    def __init__(self, alpha: Tensor, float_type: DType = np.float32) -> None:
         self.alpha = alpha
-        self.F = F if F else getF(alpha)
         self.float_type = float_type
+
+    @property
+    def F(self):
+        return getF(self.alpha)
 
     @property
     def args(self) -> List:
