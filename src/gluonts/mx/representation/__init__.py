@@ -13,12 +13,13 @@
 
 from .custom_binning import CustomBinning
 from .dim_expansion import DimExpansion
-from .discrete_pit import DiscretePIT
+from .const_norm import ConstNormalization
 from .embedding import Embedding
 from .global_relative_binning import GlobalRelativeBinning
 from .hybrid_representation import HybridRepresentation
 from .local_absolute_binning import LocalAbsoluteBinning
 from .mean_scaling import MeanScaling
+from .mlp_bin_transf import MLPBinningTransformation
 
 # Relative imports
 from .representation import Representation
@@ -33,8 +34,9 @@ __all__ = [
     "MeanScaling",
     "DimExpansion",
     "Embedding",
-    "DiscretePIT",
+    "ConstNormalization",
     "RepresentationChain",
+    "MLPBinningTransformation",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
