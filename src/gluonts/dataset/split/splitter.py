@@ -81,27 +81,19 @@ class TimeSeriesSlice(pydantic.BaseModel):
             start=item["start"], freq=freq, periods=len(item["target"])
         )
 
-        item_dynamic_cat = (
-            item["feat_dynamic_cat"] if "feat_dynamic_cat" in item else []
-        )
         feat_dynamic_cat = [
-            pd.Series(cat, index=index) for cat in item_dynamic_cat
+            pd.Series(cat, index=index)
+            for cat in list(item.get("feat_dynamic_cat", []))
         ]
 
-        item_dynamic_real = (
-            item["feat_dynamic_real"] if "feat_dynamic_real" in item else []
-        )
         feat_dynamic_real = [
-            pd.Series(real, index=index) for real in item_dynamic_real
+            pd.Series(real, index=index)
+            for real in list(item.get("feat_dynamic_real", []))
         ]
 
         feat_static_cat = list(item.get("feat_static_cat", []))
 
-        feat_static_real = (
-            list(item["feat_static_real"])
-            if "feat_static_real" in item
-            else []
-        )
+        feat_static_real = list(item.get("feat_static_real", []))
 
         return TimeSeriesSlice(
             target=pd.Series(item["target"], index=index),
@@ -121,13 +113,13 @@ class TimeSeriesSlice(pydantic.BaseModel):
 
         if self.feat_static_cat:
             ret["feat_static_cat"] = self.feat_static_cat
-        if len(self.feat_static_real) > 0:
+        if self.feat_static_real:
             ret["feat_static_real"] = self.feat_static_real
-        if len(self.feat_dynamic_cat) > 0:
+        if self.feat_dynamic_cat:
             ret["feat_dynamic_cat"] = [
                 cat.values.tolist() for cat in self.feat_dynamic_cat
             ]
-        if len(self.feat_dynamic_real) > 0:
+        if self.feat_dynamic_real:
             ret["feat_dynamic_real"] = [
                 real.values.tolist() for real in self.feat_dynamic_real
             ]
@@ -160,7 +152,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
         target = self.target[slice_]
 
         assert all([len(target) == len(feat) for feat in feat_dynamic_real])
-        assert all([len(target) == len(i) for i in feat_dynamic_cat])
+        assert all([len(target) == len(feat) for feat in feat_dynamic_cat])
 
         return TimeSeriesSlice(
             target=target,
