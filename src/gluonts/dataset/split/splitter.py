@@ -95,9 +95,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
             pd.Series(real, index=index) for real in item_dynamic_real
         ]
 
-        feat_static_cat = (
-            list(item["feat_static_cat"]) if "feat_static_cat" in item else []
-        )
+        feat_static_cat = list(item.get("feat_static_cat", []))
 
         feat_static_real = (
             list(item["feat_static_real"])
