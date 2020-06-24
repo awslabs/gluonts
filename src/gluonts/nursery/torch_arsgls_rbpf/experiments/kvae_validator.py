@@ -18,10 +18,10 @@ from gluonts.model.forecast import Forecast
 
 class NoTQDMEvaluator(Evaluator):
     def __call__(
-            self,
-            ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
-            fcst_iterator: Iterable[Forecast],
-            num_series: Optional[int] = None,
+        self,
+        ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
+        fcst_iterator: Iterable[Forecast],
+        num_series: Optional[int] = None,
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
         """
         Compute accuracy metrics by comparing actual data to the forecasts.
@@ -62,7 +62,7 @@ class NoTQDMEvaluator(Evaluator):
 
         if num_series is not None:
             assert (
-                    len(rows) == num_series
+                len(rows) == num_series
             ), f"num_series={num_series} did not match number of elements={len(rows)}"
 
         metrics_per_ts = pd.DataFrame(rows, dtype=np.float64)
@@ -70,9 +70,16 @@ class NoTQDMEvaluator(Evaluator):
 
 
 class KVAEValidator:
-    def __init__(self, log_paths, dataset, forecaster, num_samples, num_series,
-                 store_filter_and_forecast_result=False,
-                 moving_average_param=0.8):
+    def __init__(
+        self,
+        log_paths,
+        dataset,
+        forecaster,
+        num_samples,
+        num_series,
+        store_filter_and_forecast_result=False,
+        moving_average_param=0.8,
+    ):
         super().__init__()
         self.log_paths = log_paths
         self.dataset = dataset
@@ -83,7 +90,9 @@ class KVAEValidator:
         )
         self.num_samples = num_samples
         self.num_series = num_series
-        self.store_filter_and_forecast_result = store_filter_and_forecast_result
+        self.store_filter_and_forecast_result = (
+            store_filter_and_forecast_result
+        )
         self.ma_param = moving_average_param
         self.loss_moving_average = None
 
@@ -108,8 +117,7 @@ class KVAEValidator:
                 forecast_it = shorten_iter(forecast_it, num_series)
                 ts_it = shorten_iter(ts_it, num_series)
             agg_metrics, item_metrics = self.evaluator(
-                ts_it, forecast_it,
-                num_series=num_series,
+                ts_it, forecast_it, num_series=num_series,
             )
             return agg_metrics
 
@@ -121,9 +129,12 @@ class KVAEValidator:
                 self.agg_metrics[key].append(val)
 
     def save(self, epoch):
-        np.savez(os.path.join(self.log_paths.metrics, f"{epoch}.npz"),
-                 self.agg_metrics)
+        np.savez(
+            os.path.join(self.log_paths.metrics, f"{epoch}.npz"),
+            self.agg_metrics,
+        )
 
     def load(self, epoch):
         return np.load(
-            os.path.join(self.log_paths.metrics, f"{epoch}.npz")).item()
+            os.path.join(self.log_paths.metrics, f"{epoch}.npz")
+        ).item()

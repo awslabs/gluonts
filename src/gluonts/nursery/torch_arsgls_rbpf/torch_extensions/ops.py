@@ -12,23 +12,33 @@ def regularize_matrix(mat, regularization, relative_to_diag_mean=True):
         if relative_to_diag_mean:
             diag_mean = batch_diag(mat).mean(dim=-1, keepdim=True)
             diag_regularization = batch_diag_matrix(
-                torch.ones_like(mat[..., 0]) * diag_mean * regularization)
+                torch.ones_like(mat[..., 0]) * diag_mean * regularization
+            )
         else:
             diag_regularization = batch_diag_matrix(
-                torch.ones_like(mat[..., 0]) * regularization)
+                torch.ones_like(mat[..., 0]) * regularization
+            )
         regularized_mat = mat + diag_regularization
     else:
         regularized_mat = mat
     return regularized_mat
 
 
-def cholesky(mat, upper=False, out=None,
-             regularization=0.0, initial_try_regularization=1e-6,
-             max_regularization=1e2, step_factor=10, warning=True):
+def cholesky(
+    mat,
+    upper=False,
+    out=None,
+    regularization=0.0,
+    initial_try_regularization=1e-6,
+    max_regularization=1e2,
+    step_factor=10,
+    warning=True,
+):
     if regularization > 0 and warning:
         warnings.warn(f"regularizing matrix with value: {regularization}")
         regularized_mat = regularize_matrix(
-            mat=mat, regularization=regularization, relative_to_diag_mean=True)
+            mat=mat, regularization=regularization, relative_to_diag_mean=True
+        )
     else:
         regularized_mat = mat
     try:
@@ -44,25 +54,34 @@ def cholesky(mat, upper=False, out=None,
         if torch.isnan(mat).any():
             raise ValueError("NaN detected in input mat.")
         else:
-            regularization = max(regularization * step_factor,
-                                 initial_try_regularization)
+            regularization = max(
+                regularization * step_factor, initial_try_regularization
+            )
             if regularization > max_regularization:
-                raise ValueError(f"attempted regularization greater than "
-                                 f"max_regularization: {max_regularization}.")
+                raise ValueError(
+                    f"attempted regularization greater than "
+                    f"max_regularization: {max_regularization}."
+                )
             else:
-                return cholesky(mat=mat, upper=upper, out=out,
-                                regularization=regularization)
+                return cholesky(
+                    mat=mat,
+                    upper=upper,
+                    out=out,
+                    regularization=regularization,
+                )
 
 
 def cov_from_invcholesky_param(Linv_tril, Linv_logdiag):
-    L = torch.inverse(torch.tril(Linv_tril, -1)
-                      + batch_diag_matrix(torch.exp(Linv_logdiag)))
+    L = torch.inverse(
+        torch.tril(Linv_tril, -1) + batch_diag_matrix(torch.exp(Linv_logdiag))
+    )
     return matmul(L, L.transpose(-1, -2))
 
 
 def inv_from_invcholesky_param(Linv_tril, Linv_logdiag):
-    Linv = torch.tril(Linv_tril, -1) \
-           + batch_diag_matrix(torch.exp(Linv_logdiag))
+    Linv = torch.tril(Linv_tril, -1) + batch_diag_matrix(
+        torch.exp(Linv_logdiag)
+    )
     return matmul(Linv.transpose(-1, -2), Linv)
 
 
@@ -133,8 +152,9 @@ def kron(A, B):
     """
     A_shp, B_shp = A.shape, B.shape
     assert A_shp[:-2] == B_shp[:-2]
-    kron_block = torch.matmul(A[..., :, None, :, None],
-                              B[..., None, :, None, :])
+    kron_block = torch.matmul(
+        A[..., :, None, :, None], B[..., None, :, None, :]
+    )
     kron = kron_block.reshape(
         A_shp[:-2] + (A_shp[-2] * B_shp[-2], A_shp[-1] * B_shp[-1],)
     )
@@ -150,7 +170,8 @@ def vectorize_normal_dist_params(m, V):
 
 def logmeanexp(self: torch.Tensor, dim: int, keepdim: bool = False):
     return torch.logsumexp(self, dim=dim, keepdim=keepdim) - np.log(
-        self.shape[dim])
+        self.shape[dim]
+    )
 
 
 def make_block_diagonal(mats: Tuple[torch.Tensor]) -> torch.Tensor:
@@ -159,16 +180,21 @@ def make_block_diagonal(mats: Tuple[torch.Tensor]) -> torch.Tensor:
     elif len(mats) > 1:
         off_diag_upper_right = torch.zeros(
             mats[-2].shape[:-1] + (mats[-1].shape[-1],),
-            dtype=mats[-1].dtype, device=mats[-1].device,
+            dtype=mats[-1].dtype,
+            device=mats[-1].device,
         )
         off_diag_lower_left = torch.zeros(
             mats[-1].shape[:-1] + (mats[-2].shape[-1],),
-            dtype=mats[-1].dtype, device=mats[-1].device,
+            dtype=mats[-1].dtype,
+            device=mats[-1].device,
         )
-        block_diagonal = torch.cat([
-            torch.cat([mats[-2], off_diag_upper_right], dim=-1),
-            torch.cat([off_diag_lower_left, mats[-1]], dim=-1)
-        ], dim=-2)
+        block_diagonal = torch.cat(
+            [
+                torch.cat([mats[-2], off_diag_upper_right], dim=-1),
+                torch.cat([off_diag_lower_left, mats[-1]], dim=-1),
+            ],
+            dim=-2,
+        )
         return make_block_diagonal(tuple(mats[:-2]) + (block_diagonal,))
     else:  # final recursion
         return mats[0]

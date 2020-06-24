@@ -1,8 +1,11 @@
 import abc
 from box import Box
 from torch import nn
-from torch.distributions import Distribution, OneHotCategorical, \
-    MultivariateNormal
+from torch.distributions import (
+    Distribution,
+    OneHotCategorical,
+    MultivariateNormal,
+)
 
 from utils.utils import make_inv_tril_parametrization
 from torch_extensions.ops import cov_from_invcholesky_param
@@ -52,27 +55,31 @@ class ParametrisedDistribution(nn.Module):
 
 
 class ParametrisedMultivariateNormal(ParametrisedDistribution):
-    def __init__(self,
-                 m, LVinv_tril, LVinv_logdiag,
-                 requires_grad_m=True,
-                 requires_diag_LVinv_tril=True,
-                 requires_diag_LVinv_logdiag=False,
-                 ):
+    def __init__(
+        self,
+        m,
+        LVinv_tril,
+        LVinv_logdiag,
+        requires_grad_m=True,
+        requires_diag_LVinv_tril=True,
+        requires_diag_LVinv_logdiag=False,
+    ):
         super().__init__()
         self.m = nn.Parameter(m, requires_grad=requires_grad_m)
         self.LVinv_tril = nn.Parameter(
-            LVinv_tril, requires_grad=requires_diag_LVinv_tril)
+            LVinv_tril, requires_grad=requires_diag_LVinv_tril
+        )
         self.LVinv_logdiag = nn.Parameter(
-            LVinv_logdiag, requires_grad=requires_diag_LVinv_logdiag)
+            LVinv_logdiag, requires_grad=requires_diag_LVinv_logdiag
+        )
 
     @property
     def dist_params(self):
         return Box(
             loc=self.m,
             covariance_matrix=cov_from_invcholesky_param(
-                Linv_tril=self.LVinv_tril,
-                Linv_logdiag=self.LVinv_logdiag,
-            )
+                Linv_tril=self.LVinv_tril, Linv_logdiag=self.LVinv_logdiag,
+            ),
         )
 
     @property
@@ -83,7 +90,8 @@ class ParametrisedMultivariateNormal(ParametrisedDistribution):
     def from_dist_parametrisation(cls, loc, covariance_matrix, **kwargs):
         """ convenience constructor """
         LVinv_tril, LVinv_logdiag = make_inv_tril_parametrization(
-            covariance_matrix)
+            covariance_matrix
+        )
         return cls(
             m=loc,
             LVinv_tril=LVinv_tril,

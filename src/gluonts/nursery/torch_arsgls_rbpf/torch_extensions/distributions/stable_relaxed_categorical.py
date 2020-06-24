@@ -17,11 +17,12 @@ class StableRelaxedOneHotCategorical(RelaxedOneHotCategorical):
     inputs that are numerically 0 due to imprecision.
     """
 
-    def __init__(self, temperature, probs=None, logits=None,
-                 validate_args=None):
+    def __init__(
+        self, temperature, probs=None, logits=None, validate_args=None
+    ):
         base_dist = ExpRelaxedCategorical(temperature, probs, logits)
         # Do *not* call constructor of RelaxedOneHotCategorical, as it has hard-coded
         # the unstable ExpTransform. Call its parent class directly.
-        super(RelaxedOneHotCategorical, self).__init__(base_dist,
-                                                       StableExpTransform(),
-                                                       validate_args=validate_args)
+        super(RelaxedOneHotCategorical, self).__init__(
+            base_dist, StableExpTransform(), validate_args=validate_args
+        )

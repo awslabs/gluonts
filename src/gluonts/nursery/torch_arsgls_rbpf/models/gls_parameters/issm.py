@@ -48,12 +48,15 @@ class ISSM(nn.Module):
             "Should return a matrix with dims: (n_state, n_params)."
             "May have leading time and batch dimensions."
             "n_params are the the learnt parameters."
-            "level: 1, level+trend:2, seasonality: 1.")
+            "level: 1, level+trend:2, seasonality: 1."
+        )
 
     def forward(self, seasonal_indicators):
-        return (self.A(seasonal_indicators),
-                self.C(seasonal_indicators),
-                self.R_diag_projector(seasonal_indicators))
+        return (
+            self.A(seasonal_indicators),
+            self.C(seasonal_indicators),
+            self.R_diag_projector(seasonal_indicators),
+        )
 
 
 class LevelISSM(ISSM):
@@ -76,14 +79,16 @@ class LevelISSM(ISSM):
         return A.to(self.dtype).to(self.device)
 
     def C(self, seasonal_indicators):
-        C = torch.ones(seasonal_indicators.shape[:-1]
-                       + (self.n_obs, self.n_state,))
+        C = torch.ones(
+            seasonal_indicators.shape[:-1] + (self.n_obs, self.n_state,)
+        )
         return C.to(self.dtype).to(self.device)
 
     def R_diag_projector(self, seasonal_indicators):
         # R_diag_projector = torch.ones(seasonal_indicators.shape[:-1] + (self.n_state,))
-        R_diag_projector = batch_diag_matrix(torch.ones(
-            seasonal_indicators.shape[:-1] + (self.n_state,)))
+        R_diag_projector = batch_diag_matrix(
+            torch.ones(seasonal_indicators.shape[:-1] + (self.n_state,))
+        )
         return R_diag_projector.to(self.dtype).to(self.device)
 
 
@@ -100,22 +105,25 @@ class LevelTrendISSM(LevelISSM):
         return 1
 
     def A(self, seasonal_indicators):
-        A = torch.diag(torch.ones(2), diagonal=0) \
-            + torch.diag(torch.ones(1), diagonal=1)
+        A = torch.diag(torch.ones(2), diagonal=0) + torch.diag(
+            torch.ones(1), diagonal=1
+        )
         for i in range(seasonal_indicators.ndim - 1):
             A = A[None, ...]
         A = A.repeat(seasonal_indicators.shape[:-1] + (1, 1,))
         return A.to(self.dtype).to(self.device)
 
     def C(self, seasonal_indicators):
-        C = torch.ones(seasonal_indicators.shape[:-1]
-                       + (self.n_obs, self.n_state,))
+        C = torch.ones(
+            seasonal_indicators.shape[:-1] + (self.n_obs, self.n_state,)
+        )
         return C.to(self.dtype).to(self.device)
 
     def R_diag_projector(self, seasonal_indicators):
         # R_diag_projector = torch.ones(seasonal_indicators.shape[:-1] + (self.n_state,))
-        R_diag_projector = batch_diag_matrix(torch.ones(
-            seasonal_indicators.shape[:-1] + (self.n_state,)))
+        R_diag_projector = batch_diag_matrix(
+            torch.ones(seasonal_indicators.shape[:-1] + (self.n_state,))
+        )
         return R_diag_projector.to(self.dtype).to(self.device)
 
 
@@ -140,12 +148,15 @@ class SeasonalityISSM(ISSM):
         return A.to(self.dtype).to(self.device)
 
     def C(self, seasonal_indicators):
-        C = one_hot(seasonal_indicators, num_classes=self.n_state)[..., None, :]
+        C = one_hot(seasonal_indicators, num_classes=self.n_state)[
+            ..., None, :
+        ]
         return C.to(self.dtype).to(self.device)
 
     def R_diag_projector(self, seasonal_indicators):
-        R_diag_projector = \
-            one_hot(seasonal_indicators, num_classes=self.n_state)[..., None]
+        R_diag_projector = one_hot(
+            seasonal_indicators, num_classes=self.n_state
+        )[..., None]
         return R_diag_projector.to(self.dtype).to(self.device)
 
 
@@ -210,32 +221,43 @@ class CompositeISSM(ISSM):
         elif offset.name == "H":
             return [HourOfDay(normalized=False), DayOfWeek(normalized=False)]
         elif offset.name == "T":
-            return [MinuteOfHour(normalized=False), HourOfDay(normalized=False)]
+            return [
+                MinuteOfHour(normalized=False),
+                HourOfDay(normalized=False),
+            ]
         else:
             RuntimeError(f"Unsupported frequency {offset.name}")
 
         return []
 
-    def forward(self, seasonal_indicators: torch.Tensor) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, seasonal_indicators: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         seasonal_issm_params = [
-            issm(seasonal_indicators[..., idx:idx + 1])
+            issm(seasonal_indicators[..., idx : idx + 1])
             for idx, issm in enumerate(self.seasonal_issms)
         ]
         nonseasonal_issm_params = self.nonseasonal_issm(seasonal_indicators)
-        A, C, R_diag_projector = zip(nonseasonal_issm_params,
-                                     *seasonal_issm_params)
+        A, C, R_diag_projector = zip(
+            nonseasonal_issm_params, *seasonal_issm_params
+        )
 
-        return (make_block_diagonal(A),
-                torch.cat(C, dim=-1),
-                make_block_diagonal(R_diag_projector))
+        return (
+            make_block_diagonal(A),
+            torch.cat(C, dim=-1),
+            make_block_diagonal(R_diag_projector),
+        )
 
 
 if __name__ == "__main__":
     import mxnet as mx
     from gluonts.model.deepstate.issm import CompositeISSM as GtsCompositeISSM
-    from data.gluonts_nips_datasets.gluonts_nips_datasets import create_loaders, \
-        transform_gluonts_to_pytorch, get_cardinalities, get_dataset
+    from data.gluonts_nips_datasets.gluonts_nips_datasets import (
+        create_loaders,
+        transform_gluonts_to_pytorch,
+        get_cardinalities,
+        get_dataset,
+    )
     from experiments.base_config import TimeFeatType
 
     dataset_names = [
@@ -248,15 +270,21 @@ if __name__ == "__main__":
     for dataset_name in dataset_names:
         for add_trend in [True, False]:
             dataset = get_dataset(dataset_name)
-            train_loader, val_loader, inference_loader, input_transforms = create_loaders(
+            (
+                train_loader,
+                val_loader,
+                inference_loader,
+                input_transforms,
+            ) = create_loaders(
                 dataset=dataset,
                 batch_size=100,
                 past_length=28,
                 n_steps_forecast=14,
             )
             freq = dataset.metadata.freq
-            cardinalities = get_cardinalities(dataset=dataset,
-                                              add_trend=add_trend)
+            cardinalities = get_cardinalities(
+                dataset=dataset, add_trend=add_trend
+            )
             batch = next(iter(inference_loader))
 
             gts_seasonal_indicators = mx.ndarray.concat(
@@ -264,10 +292,14 @@ if __name__ == "__main__":
                 batch["future_seasonal_indicators"],
                 dim=1,
             )
-            gts_issm = GtsCompositeISSM.get_from_freq(freq=freq,
-                                                      add_trend=add_trend)
-            emission_coeff, transition_coeff, innovation_coeff = \
-                gts_issm.get_issm_coeff(gts_seasonal_indicators)
+            gts_issm = GtsCompositeISSM.get_from_freq(
+                freq=freq, add_trend=add_trend
+            )
+            (
+                emission_coeff,
+                transition_coeff,
+                innovation_coeff,
+            ) = gts_issm.get_issm_coeff(gts_seasonal_indicators)
 
             data = transform_gluonts_to_pytorch(
                 batch=batch,
@@ -277,15 +309,20 @@ if __name__ == "__main__":
                 **cardinalities,
             )
 
-            issm = CompositeISSM.get_from_freq(freq=freq,
-                                               add_trend=add_trend).to("cuda")
+            issm = CompositeISSM.get_from_freq(
+                freq=freq, add_trend=add_trend
+            ).to("cuda")
             A, C, R_diag_projector = issm(data["seasonal_indicators"])
 
             assert np.all(
-                A.transpose(0, 1).cpu().numpy() == transition_coeff.asnumpy())
+                A.transpose(0, 1).cpu().numpy() == transition_coeff.asnumpy()
+            )
             assert np.all(
-                C.transpose(0, 1).cpu().numpy() == emission_coeff.asnumpy())
+                C.transpose(0, 1).cpu().numpy() == emission_coeff.asnumpy()
+            )
             # we have a projection matrix and do a matvec product with the params
             # in gluonts, there is just a single parameter, thus they have just a vector.
-            assert np.all(R_diag_projector.transpose(0, 1).sum(
-                dim=-1).cpu().numpy() == innovation_coeff.asnumpy())
+            assert np.all(
+                R_diag_projector.transpose(0, 1).sum(dim=-1).cpu().numpy()
+                == innovation_coeff.asnumpy()
+            )

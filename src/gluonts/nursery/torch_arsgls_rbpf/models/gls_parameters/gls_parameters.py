@@ -4,10 +4,17 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn.init import kaiming_normal_
-from models.gls_parameters.switch_link_functions import IndividualLink, \
-    SharedLink, IdentityLink
-from torch_extensions.ops import cov_from_invcholesky_param, matvec, \
-    batch_diag_matrix, matmul
+from models.gls_parameters.switch_link_functions import (
+    IndividualLink,
+    SharedLink,
+    IdentityLink,
+)
+from torch_extensions.ops import (
+    cov_from_invcholesky_param,
+    matvec,
+    batch_diag_matrix,
+    matmul,
+)
 from experiments.base_config import SwitchLinkType
 from utils.utils import SigmoidLimiter
 
@@ -18,77 +25,103 @@ def filter_out_none(dic: dict):
 
 class GLSParameters(nn.Module):
     def __init__(
-            self,
-            n_state: int,
-            n_obs: int,
-            n_ctrl_state: (int, None),
-            n_ctrl_obs: (int, None),
-            n_switch: int,
-            n_base_A: (int, None),
-            n_base_B: (int, None),
-            n_base_C: (int, None),
-            n_base_D: (int, None),
-            n_base_R: int,
-            n_base_Q: int,
-            switch_link_type: SwitchLinkType,
-            make_cov_from_cholesky_avg=False,
-            b_fn: (nn.Module, None) = None,
-            d_fn: (nn.Module, None) = None,
-            init_scale_A: (float, None) = None,
-            init_scale_B: (float, None) = None,
-            init_scale_C: (float, None) = None,
-            init_scale_D: (float, None) = None,
-            init_scale_Q_diag: (float, tuple, list, None) = None,
-            init_scale_R_diag: (float, tuple, list, None) = None,
-            requires_grad_A: bool = True,
-            requires_grad_B: bool = True,
-            requires_grad_C: bool = True,
-            requires_grad_D: bool = True,
-            requires_grad_R: bool = True,
-            requires_grad_Q: bool = True,
-            full_cov_R: bool = True,
-            full_cov_Q: bool = True,
-            LQinv_logdiag_limiter: (nn.Module, None) = SigmoidLimiter(
-                [-25.0, 25.0]),  # FP64
-            LRinv_logdiag_limiter: (nn.Module, None) = SigmoidLimiter(
-                [-25.0, 25.0]),  # FP64
+        self,
+        n_state: int,
+        n_obs: int,
+        n_ctrl_state: (int, None),
+        n_ctrl_obs: (int, None),
+        n_switch: int,
+        n_base_A: (int, None),
+        n_base_B: (int, None),
+        n_base_C: (int, None),
+        n_base_D: (int, None),
+        n_base_R: int,
+        n_base_Q: int,
+        switch_link_type: SwitchLinkType,
+        make_cov_from_cholesky_avg=False,
+        b_fn: (nn.Module, None) = None,
+        d_fn: (nn.Module, None) = None,
+        init_scale_A: (float, None) = None,
+        init_scale_B: (float, None) = None,
+        init_scale_C: (float, None) = None,
+        init_scale_D: (float, None) = None,
+        init_scale_Q_diag: (float, tuple, list, None) = None,
+        init_scale_R_diag: (float, tuple, list, None) = None,
+        requires_grad_A: bool = True,
+        requires_grad_B: bool = True,
+        requires_grad_C: bool = True,
+        requires_grad_D: bool = True,
+        requires_grad_R: bool = True,
+        requires_grad_Q: bool = True,
+        full_cov_R: bool = True,
+        full_cov_Q: bool = True,
+        LQinv_logdiag_limiter: (nn.Module, None) = SigmoidLimiter(
+            [-25.0, 25.0]
+        ),  # FP64
+        LRinv_logdiag_limiter: (nn.Module, None) = SigmoidLimiter(
+            [-25.0, 25.0]
+        ),  # FP64
     ):
         super().__init__()
         self.make_cov_from_cholesky_avg = make_cov_from_cholesky_avg
-        self.LQinv_logdiag_limiter = LQinv_logdiag_limiter \
-            if LQinv_logdiag_limiter is not None else torch.nn.Identity()
-        self.LRinv_logdiag_limiter = LRinv_logdiag_limiter \
-            if LRinv_logdiag_limiter is not None else torch.nn.Identity()
+        self.LQinv_logdiag_limiter = (
+            LQinv_logdiag_limiter
+            if LQinv_logdiag_limiter is not None
+            else torch.nn.Identity()
+        )
+        self.LRinv_logdiag_limiter = (
+            LRinv_logdiag_limiter
+            if LRinv_logdiag_limiter is not None
+            else torch.nn.Identity()
+        )
         self.b_fn = b_fn
         self.d_fn = d_fn
 
         # ***** Switch Link function *****
-        n_bases = [n for n in
-                   [n_base_A, n_base_B, n_base_C, n_base_D, n_base_R, n_base_Q]
-                   if n is not None]
+        n_bases = [
+            n
+            for n in [
+                n_base_A,
+                n_base_B,
+                n_base_C,
+                n_base_D,
+                n_base_R,
+                n_base_Q,
+            ]
+            if n is not None
+        ]
         if switch_link_type == SwitchLinkType.identity:
-            assert len(set(n_bases)) == 1 and n_bases[0] == n_switch, \
-                f"n_base: {n_bases} should match switch dim {n_switch} when using identity link."
+            assert (
+                len(set(n_bases)) == 1 and n_bases[0] == n_switch
+            ), f"n_base: {n_bases} should match switch dim {n_switch} when using identity link."
         elif switch_link_type == SwitchLinkType.shared:
             assert len(set(n_bases)) == 1
 
-        names_and_dims = filter_out_none({
-            "A": n_base_A, "B": n_base_B,
-            "C": n_base_C, "D": n_base_D,
-            "R": n_base_R, "Q": n_base_Q,
-        })
+        names_and_dims = filter_out_none(
+            {
+                "A": n_base_A,
+                "B": n_base_B,
+                "C": n_base_C,
+                "D": n_base_D,
+                "R": n_base_R,
+                "Q": n_base_Q,
+            }
+        )
         if switch_link_type.value == SwitchLinkType.individual.value:
             self.link_transformers = IndividualLink(
-                dim_in=n_switch, names_and_dims_out=names_and_dims)
+                dim_in=n_switch, names_and_dims_out=names_and_dims
+            )
         elif switch_link_type.value == SwitchLinkType.identity.value:
             self.link_transformers = IdentityLink(
-                names=tuple(names_and_dims.keys()))
+                names=tuple(names_and_dims.keys())
+            )
         elif switch_link_type.value == SwitchLinkType.shared.value:
             dims = [dim for dim in names_and_dims.values()]  # strip None
             assert len(set(dims)) == 1
             dim_out = dims[0]
             self.link_transformers = SharedLink(
-                dim_in=n_switch, dim_out=dim_out,
+                dim_in=n_switch,
+                dim_out=dim_out,
                 names=tuple(names_and_dims.keys()),
             )
         else:
@@ -111,15 +144,22 @@ class GLSParameters(nn.Module):
         if n_base_B is not None:
             if init_scale_B is not None:
                 self.B = nn.Parameter(
-                    init_scale_B * torch.randn(n_base_B, n_state, n_ctrl_state),
+                    init_scale_B
+                    * torch.randn(n_base_B, n_state, n_ctrl_state),
                     requires_grad=requires_grad_B,
                 )
             else:
                 self.B = nn.Parameter(
-                    torch.stack([kaiming_normal_(
-                        tensor=torch.empty(n_state, n_ctrl_state),
-                        nonlinearity="linear") for n in range(n_base_B)],
-                        dim=0),
+                    torch.stack(
+                        [
+                            kaiming_normal_(
+                                tensor=torch.empty(n_state, n_ctrl_state),
+                                nonlinearity="linear",
+                            )
+                            for n in range(n_base_B)
+                        ],
+                        dim=0,
+                    ),
                     requires_grad=requires_grad_B,
                 )
         else:
@@ -133,10 +173,16 @@ class GLSParameters(nn.Module):
                 )
             else:
                 self.C = nn.Parameter(
-                    torch.stack([kaiming_normal_(
-                        tensor=torch.empty(n_obs, n_state),
-                        nonlinearity="linear") for n in range(n_base_C)],
-                        dim=0),
+                    torch.stack(
+                        [
+                            kaiming_normal_(
+                                tensor=torch.empty(n_obs, n_state),
+                                nonlinearity="linear",
+                            )
+                            for n in range(n_base_C)
+                        ],
+                        dim=0,
+                    ),
                     requires_grad=requires_grad_C,
                 )
         else:
@@ -150,10 +196,16 @@ class GLSParameters(nn.Module):
                 )
             else:
                 self.D = nn.Parameter(
-                    torch.stack([kaiming_normal_(
-                        tensor=torch.empty(n_obs, n_ctrl_obs),
-                        nonlinearity="linear") for n in range(n_base_D)],
-                        dim=0),
+                    torch.stack(
+                        [
+                            kaiming_normal_(
+                                tensor=torch.empty(n_obs, n_ctrl_obs),
+                                nonlinearity="linear",
+                            )
+                            for n in range(n_base_D)
+                        ],
+                        dim=0,
+                    ),
                     requires_grad=requires_grad_D,
                 )
         else:
@@ -167,19 +219,24 @@ class GLSParameters(nn.Module):
                 )
             else:
                 self.register_parameter("LQinv_tril", None)
-            init_scale_Q_diag = init_scale_Q_diag if init_scale_Q_diag is not None else [
-                1e-4, 1e0]
+            init_scale_Q_diag = (
+                init_scale_Q_diag
+                if init_scale_Q_diag is not None
+                else [1e-4, 1e0]
+            )
             if isinstance(init_scale_Q_diag, (list, tuple)):
                 self.LQinv_logdiag = nn.Parameter(
                     self.make_cov_init(
-                        init_scale_cov_diag=init_scale_Q_diag, n_base=n_base_Q,
-                        dim_cov=n_obs),
+                        init_scale_cov_diag=init_scale_Q_diag,
+                        n_base=n_base_Q,
+                        dim_cov=n_obs,
+                    ),
                     requires_grad=requires_grad_Q,
                 )
             else:
                 self.LQinv_logdiag = nn.Parameter(
-                    torch.ones((n_base_Q, n_obs)) * -math.log(
-                        init_scale_Q_diag),
+                    torch.ones((n_base_Q, n_obs))
+                    * -math.log(init_scale_Q_diag),
                     requires_grad=requires_grad_Q,
                 )
 
@@ -191,13 +248,18 @@ class GLSParameters(nn.Module):
                 )
             else:
                 self.register_parameter("LRinv_tril", None)
-            init_scale_R_diag = init_scale_R_diag if init_scale_R_diag is not None else [
-                1e-4, 1e0]
+            init_scale_R_diag = (
+                init_scale_R_diag
+                if init_scale_R_diag is not None
+                else [1e-4, 1e0]
+            )
             if isinstance(init_scale_R_diag, (list, tuple)):
                 self.LRinv_logdiag = nn.Parameter(
                     self.make_cov_init(
-                        init_scale_cov_diag=init_scale_R_diag, n_base=n_base_R,
-                        dim_cov=n_state),
+                        init_scale_cov_diag=init_scale_R_diag,
+                        n_base=n_base_R,
+                        dim_cov=n_state,
+                    ),
                     requires_grad=requires_grad_R,
                 )
             else:
@@ -209,23 +271,25 @@ class GLSParameters(nn.Module):
 
     @staticmethod
     def make_cov_init(init_scale_cov_diag: (tuple, list), n_base, dim_cov):
-        def _make_single_cov_linspace_init(init_scale_cov_diag: (tuple, list),
-                                           n_base):
+        def _make_single_cov_linspace_init(
+            init_scale_cov_diag: (tuple, list), n_base
+        ):
             assert len(init_scale_cov_diag) == 2
             log_scale_cov = torch.log(torch.tensor(init_scale_cov_diag))
-            Lmatinv_logdiag = -torch.linspace(log_scale_cov[0],
-                                              log_scale_cov[1], n_base)
+            Lmatinv_logdiag = -torch.linspace(
+                log_scale_cov[0], log_scale_cov[1], n_base
+            )
             idxs = list(range(Lmatinv_logdiag.shape[-1]))
             np.random.shuffle(idxs)
             Lmatinv_logdiag = Lmatinv_logdiag[..., torch.tensor(idxs)]
             return Lmatinv_logdiag
 
         cov = _make_single_cov_linspace_init(
-            init_scale_cov_diag=init_scale_cov_diag,
-            n_base=n_base,
+            init_scale_cov_diag=init_scale_cov_diag, n_base=n_base,
         )
         cov = cov[..., None].repeat(
-            cov.ndim * (1,) + (dim_cov,))  # same scale for all dims.
+            cov.ndim * (1,) + (dim_cov,)
+        )  # same scale for all dims.
         # cov = torch.stack([
         #     _make_single_cov_linspace_init(
         #         init_scale_cov_diag=init_scale_cov_diag,
@@ -234,66 +298,82 @@ class GLSParameters(nn.Module):
         return cov
 
     @staticmethod
-    def var_from_average_scales(weights: torch.Tensor,
-                                Linv_logdiag: torch.Tensor):
+    def var_from_average_scales(
+        weights: torch.Tensor, Linv_logdiag: torch.Tensor
+    ):
         Lmat_diag = torch.exp(-1 * Linv_logdiag)
         Lmat_diag_weighted = torch.einsum("...k,kq->...q", weights, Lmat_diag)
         mat_diag_weighted = Lmat_diag_weighted ** 2
         return mat_diag_weighted
 
     @staticmethod
-    def var_from_average_variances(weights: torch.Tensor,
-                                   Linv_logdiag: torch.Tensor):
+    def var_from_average_variances(
+        weights: torch.Tensor, Linv_logdiag: torch.Tensor
+    ):
         mat_diag = torch.exp(-2 * Linv_logdiag)
         mat_diag_weighted = torch.einsum("...k,kq->...q", weights, mat_diag)
         return mat_diag_weighted
 
     @staticmethod
-    def var_from_average_log_scales(weights: torch.Tensor,
-                                    Linv_logdiag: torch.Tensor):
-        Linv_logdiag_weighted = torch.einsum("...k,kq->...q", weights,
-                                             Linv_logdiag)
+    def var_from_average_log_scales(
+        weights: torch.Tensor, Linv_logdiag: torch.Tensor
+    ):
+        Linv_logdiag_weighted = torch.einsum(
+            "...k,kq->...q", weights, Linv_logdiag
+        )
         mat_diag_weighted = torch.exp(-2 * Linv_logdiag_weighted)
         return mat_diag_weighted
 
     @staticmethod
-    def cov_from_average_scales(weights: torch.Tensor,
-                                Linv_logdiag: torch.Tensor,
-                                Linv_tril: (torch.Tensor, None)):
+    def cov_from_average_scales(
+        weights: torch.Tensor,
+        Linv_logdiag: torch.Tensor,
+        Linv_tril: (torch.Tensor, None),
+    ):
         if Linv_tril is None:
             mat_diag_weighted = GLSParameters.var_from_average_scales(
-                weights=weights, Linv_logdiag=Linv_logdiag)
+                weights=weights, Linv_logdiag=Linv_logdiag
+            )
             mat_weighted = batch_diag_matrix(mat_diag_weighted)
         else:
             Lmat = torch.inverse(
-                torch.tril(Linv_tril, -1) + batch_diag_matrix(
-                    torch.exp(Linv_logdiag)))
+                torch.tril(Linv_tril, -1)
+                + batch_diag_matrix(torch.exp(Linv_logdiag))
+            )
             Lmat_weighted = torch.einsum("...k,koi->...oi", weights, Lmat)
-            mat_weighted = matmul(Lmat_weighted,
-                                  Lmat_weighted.transpose(-1, -2))  # LL^T
+            mat_weighted = matmul(
+                Lmat_weighted, Lmat_weighted.transpose(-1, -2)
+            )  # LL^T
         return mat_weighted
 
     @staticmethod
-    def cov_from_average_variances(weights: torch.Tensor,
-                                   Linv_logdiag: torch.Tensor,
-                                   Linv_tril: (torch.Tensor, None)):
+    def cov_from_average_variances(
+        weights: torch.Tensor,
+        Linv_logdiag: torch.Tensor,
+        Linv_tril: (torch.Tensor, None),
+    ):
         if Linv_tril is None:
             mat_diag_weighted = GLSParameters.var_from_average_variances(
-                weights=weights, Linv_logdiag=Linv_logdiag)
+                weights=weights, Linv_logdiag=Linv_logdiag
+            )
             mat_weighted = batch_diag_matrix(mat_diag_weighted)
         else:
-            mat = cov_from_invcholesky_param(Linv_tril=Linv_tril,
-                                             Linv_logdiag=Linv_logdiag)
+            mat = cov_from_invcholesky_param(
+                Linv_tril=Linv_tril, Linv_logdiag=Linv_logdiag
+            )
             mat_weighted = torch.einsum("...k,kq->...q", weights, mat)
         return mat_weighted
 
     @staticmethod
-    def cov_from_average_log_scales(weights: torch.Tensor,
-                                    Linv_logdiag: torch.Tensor,
-                                    Linv_tril: (torch.Tensor, None)):
+    def cov_from_average_log_scales(
+        weights: torch.Tensor,
+        Linv_logdiag: torch.Tensor,
+        Linv_tril: (torch.Tensor, None),
+    ):
         if Linv_tril is None:
             mat_diag_weighted = GLSParameters.var_from_average_log_scales(
-                weights=weights, Linv_logdiag=Linv_logdiag)
+                weights=weights, Linv_logdiag=Linv_logdiag
+            )
             mat_weighted = batch_diag_matrix(mat_diag_weighted)
         else:
             raise Exception("No can do.")
@@ -313,14 +393,22 @@ class GLSParameters(nn.Module):
         weights = self.link_transformers(switch)
 
         # biases to state (B/b) and observation (D/d)
-        B = torch.einsum("...k,koi->...oi", weights.B,
-                         self.B) if self.B is not None else None
-        D = torch.einsum("...k,koi->...oi", weights.D,
-                         self.D) if self.D is not None else None
-        b = self.compute_bias(s=switch, u=u_state, bias_fn=self.b_fn,
-                              bias_matrix=B)
-        d = self.compute_bias(s=switch, u=u_obs, bias_fn=self.d_fn,
-                              bias_matrix=D)
+        B = (
+            torch.einsum("...k,koi->...oi", weights.B, self.B)
+            if self.B is not None
+            else None
+        )
+        D = (
+            torch.einsum("...k,koi->...oi", weights.D, self.D)
+            if self.D is not None
+            else None
+        )
+        b = self.compute_bias(
+            s=switch, u=u_state, bias_fn=self.b_fn, bias_matrix=B
+        )
+        d = self.compute_bias(
+            s=switch, u=u_obs, bias_fn=self.d_fn, bias_matrix=D
+        )
 
         # transition (A) and emission (C)
         A = torch.einsum("...k,koi->...oi", weights.A, self.A)

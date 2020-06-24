@@ -18,25 +18,28 @@ class PymunkDataset(Dataset):
 
     def __getitem__(self, idx):
         idx = idx.tolist() if torch.is_tensor(idx) else idx
-        sample = {name: data_source[idx] for name, data_source in
-                  self._data.items()}
-        transformed_sample = self.transform(
-            sample) if self.transform is not None else sample
+        sample = {
+            name: data_source[idx] for name, data_source in self._data.items()
+        }
+        transformed_sample = (
+            self.transform(sample) if self.transform is not None else sample
+        )
         return transformed_sample
 
     def _load_dataset(self, file_path):
         npzfile = np.load(file_path)
-        images = npzfile['images'].astype(np.float32)
+        images = npzfile["images"].astype(np.float32)
         # The datasets in KVAE are binarized images
-        images = (images > 0).astype('float32')
+        images = (images > 0).astype("float32")
         assert images.ndim == 4
-        images = images.reshape(images.shape[0], images.shape[1],
-                                images.shape[2] * images.shape[3])
+        images = images.reshape(
+            images.shape[0], images.shape[1], images.shape[2] * images.shape[3]
+        )
         data = {"y": images}
 
-        if 'state' in npzfile:  # all except Pong have state.
-            position = npzfile['state'].astype(np.float32)[:, :, :2]
-            velocity = npzfile['state'].astype(np.float32)[:, :, 2:]
+        if "state" in npzfile:  # all except Pong have state.
+            position = npzfile["state"].astype(np.float32)[:, :, :2]
+            velocity = npzfile["state"].astype(np.float32)[:, :, 2:]
             # # KVAE normalizes the position. However, it is used only for visualisation anyways.
             # position = position - position.mean(axis=(0, 1))
             ground_truth_state = {"position": position, "velocity": velocity}

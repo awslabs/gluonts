@@ -23,15 +23,19 @@ class Environment(object):
 
 
 class Pendulum3DCoordEnvironment(Environment):
-    def __init__(self,
-                 dt=0.1,
-                 center_pendulum=np.array((0, 0, 2.0)),
-                 cov_pendulum=np.array((0.1, 0.2, 0.1)),
-                 noise_std_obs=0.05,
-                 radius=1.0, g=9.81, mass=1.0, dampening=0.25,
-                 noise_std_dyn=0.0,
-                 f=1.0,  # focal length
-                 ):
+    def __init__(
+        self,
+        dt=0.1,
+        center_pendulum=np.array((0, 0, 2.0)),
+        cov_pendulum=np.array((0.1, 0.2, 0.1)),
+        noise_std_obs=0.05,
+        radius=1.0,
+        g=9.81,
+        mass=1.0,
+        dampening=0.25,
+        noise_std_dyn=0.0,
+        f=1.0,  # focal length
+    ):
         super().__init__(
             n_obs=2,
             n_state=2,
@@ -53,9 +57,16 @@ class Pendulum3DCoordEnvironment(Environment):
 
     def _stochastic_differential_equation(self, state, t):
         w = np.random.normal(loc=0.0, scale=self.noise_std_dyn)
-        return np.array([state[1], - ((self.g / 2.0) * np.sin(state[0])
-                                      + (self.dampening / self.mass) * state[
-                                          1] + w)])
+        return np.array(
+            [
+                state[1],
+                -(
+                    (self.g / 2.0) * np.sin(state[0])
+                    + (self.dampening / self.mass) * state[1]
+                    + w
+                ),
+            ]
+        )
 
     def enter(self):
         self.state = np.zeros(self.n_state)
@@ -64,14 +75,19 @@ class Pendulum3DCoordEnvironment(Environment):
         self.t = 0.0
 
     def transit(self, ctrl):
-        self.state, self.t = rungekutta4(state=self.state, t=self.t, dt=self.dt,
-                                         f=self._stochastic_differential_equation)
+        self.state, self.t = rungekutta4(
+            state=self.state,
+            t=self.t,
+            dt=self.dt,
+            f=self._stochastic_differential_equation,
+        )
         return self.state, self.t
 
     def observe(self, perspective):
         pendulum_loc, _ = self.project_to_pixel_space(perspective=perspective)
         pendulum_loc_noisy = pendulum_loc + np.random.normal(
-            loc=0, scale=self.noise_std_obs, size=pendulum_loc.shape)
+            loc=0, scale=self.noise_std_obs, size=pendulum_loc.shape
+        )
         return pendulum_loc_noisy, pendulum_loc
 
     def project_to_pixel_space(self, perspective):
@@ -100,67 +116,75 @@ class Pendulum3DCoordEnvironment(Environment):
         """
         # 1) Rotate Pendulum around z-axis
         angle = self.state[0]
-        M_pendulum = np.array([[np.cos(angle), -np.sin(angle), 0, 0],
-                               [np.sin(angle), np.cos(angle), 0, 0],
-                               [0, 0, 1, 0],
-                               [0, 0, 0, 1]])
+        M_pendulum = np.array(
+            [
+                [np.cos(angle), -np.sin(angle), 0, 0],
+                [np.sin(angle), np.cos(angle), 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+            ]
+        )
 
-        mu_pendulum_hom = np.append(self.center_pendulum
-                                    - np.array(
-            [0, self.r_rotation_pendulum, 0]), 1)
+        mu_pendulum_hom = np.append(
+            self.center_pendulum - np.array([0, self.r_rotation_pendulum, 0]),
+            1,
+        )
         cov_pendulum_hom = np.diag(np.append(self.cov_pendulum, 1))
 
         mu_pendulum_rotated = M_pendulum.dot(mu_pendulum_hom)
         cov_pendulum_rotated = M_pendulum.dot(cov_pendulum_hom).dot(
-            M_pendulum.T)
+            M_pendulum.T
+        )
 
         # 2) Rotate Camera around pendulum center on x-axis and/or y-axis
         x, y, z = self.center_pendulum
-        T_camera = np.array([[1, 0, 0, -x],
-                             [0, 1, 0, -y],
-                             [0, 0, 1, -z],
-                             [0, 0, 0, 1]])
-        inv_T_camera = np.array([[1, 0, 0, x],
-                                 [0, 1, 0, y],
-                                 [0, 0, 1, z],
-                                 [0, 0, 0, 1]])
+        T_camera = np.array(
+            [[1, 0, 0, -x], [0, 1, 0, -y], [0, 0, 1, -z], [0, 0, 0, 1]]
+        )
+        inv_T_camera = np.array(
+            [[1, 0, 0, x], [0, 1, 0, y], [0, 0, 1, z], [0, 0, 0, 1]]
+        )
 
         c = np.cos(perspective[0])
         s = np.sin(perspective[0])
-        rx = np.array([[1, 0, 0, 0],
-                       [0, c, -s, 0],
-                       [0, s, c, 0],
-                       [0, 0, 0, 1]])
+        rx = np.array(
+            [[1, 0, 0, 0], [0, c, -s, 0], [0, s, c, 0], [0, 0, 0, 1]]
+        )
 
         c = np.cos(perspective[1])
         s = np.sin(perspective[1])
-        ry = np.array([[c, 0, s, 0],
-                       [0, 1, 0, 0],
-                       [-s, 0, c, 0],
-                       [0, 0, 0, 1]])
+        ry = np.array(
+            [[c, 0, s, 0], [0, 1, 0, 0], [-s, 0, c, 0], [0, 0, 0, 1]]
+        )
 
         R_camera = rx.dot(
-            ry)  # rotation around center of camera, first rotate around y, then x.
+            ry
+        )  # rotation around center of camera, first rotate around y, then x.
         M_camera = inv_T_camera.dot(R_camera).dot(
-            T_camera)  # rotation around center of pendulum
+            T_camera
+        )  # rotation around center of pendulum
 
         # To rotate the mean, need to project it first to origin, then rotate, then project back
         mu_pendulum_camera = M_camera.dot(mu_pendulum_rotated)
         # The vectors for cov-matrix are already vectors w.r.t. origin, no need to translate
-        cov_pendulum_camera = R_camera.dot(cov_pendulum_rotated).dot(R_camera.T)
+        cov_pendulum_camera = R_camera.dot(cov_pendulum_rotated).dot(
+            R_camera.T
+        )
 
         # 3) Project 3D coordinates of mu and cov vector
         # into image-space, using focal length of camera
         f = self.f
-        F = np.array([[f, 0, 0, 0],
-                      [0, f, 0, 0],
-                      [0, 0, 1, 0]])
+        F = np.array([[f, 0, 0, 0], [0, f, 0, 0], [0, 0, 1, 0]])
         mu_pendulum_projected = np.dot(F, mu_pendulum_camera)
         cov_pendulum_projected = np.dot(F, cov_pendulum_camera).dot(F.T)
 
         # 4) Transform to Pixel coordinates
-        M_pixel = np.array([[1 / mu_pendulum_projected[-1], 0, 0],
-                            [0, 1 / mu_pendulum_projected[-1], 0]])
+        M_pixel = np.array(
+            [
+                [1 / mu_pendulum_projected[-1], 0, 0],
+                [0, 1 / mu_pendulum_projected[-1], 0],
+            ]
+        )
         mu_pendulum_pixel = M_pixel.dot(mu_pendulum_projected)
         cov_pendulum_pixel = M_pixel.dot(cov_pendulum_projected).dot(M_pixel.T)
         return mu_pendulum_pixel, cov_pendulum_pixel
@@ -168,16 +192,21 @@ class Pendulum3DCoordEnvironment(Environment):
 
 def generate_dataset(seed=42):
     from utils.local_seed import local_seed
+
     n_train = 5000
     n_test = 1000
     n_timesteps = 150
     perspective = (0.0, 0.0)
 
-    data_path = os.path.join(consts.data_dir, consts.Datasets.pendulum_3D_coord)
+    data_path = os.path.join(
+        consts.data_dir, consts.Datasets.pendulum_3D_coord
+    )
     if not os.path.exists(data_path):
         os.makedirs(data_path)
 
-    def generate_sequence(n_timesteps_obs, n_steps_sim_per_obs=10, dt_sim=0.01):
+    def generate_sequence(
+        n_timesteps_obs, n_steps_sim_per_obs=10, dt_sim=0.01
+    ):
         assert isinstance(n_steps_sim_per_obs, int) and n_steps_sim_per_obs > 0
         env = Pendulum3DCoordEnvironment(dt=dt_sim)
         env.enter()
@@ -204,7 +233,8 @@ def generate_dataset(seed=42):
             if idx_sample % 100 == 0:
                 print(f"sequence {idx_sample}/{n_data}")
             observations, observations_gt, states = generate_sequence(
-                n_timesteps_obs=n_timesteps)
+                n_timesteps_obs=n_timesteps
+            )
             observations_dataset.append(observations)
             observations_gt_dataset.append(observations_gt)
             states_dataset.append(states)
@@ -214,20 +244,30 @@ def generate_dataset(seed=42):
         return observations_dataset, observations_gt_dataset, states_dataset
 
     with local_seed(seed=seed):
-        observations_train, observations_gt_train, states_train = generate_dataset(
-            n_data=n_train, n_timesteps=n_timesteps)
-        observations_test, observations_gt_test, states_test = generate_dataset(
-            n_data=n_test, n_timesteps=n_timesteps)
+        (
+            observations_train,
+            observations_gt_train,
+            states_train,
+        ) = generate_dataset(n_data=n_train, n_timesteps=n_timesteps)
+        (
+            observations_test,
+            observations_gt_test,
+            states_test,
+        ) = generate_dataset(n_data=n_test, n_timesteps=n_timesteps)
 
-    np.savez(os.path.join(data_path, "train.npz"),
-             obs=observations_train,
-             obs_gt=observations_gt_train,
-             state=states_train)
-    np.savez(os.path.join(data_path, "test.npz"),
-             obs=observations_test,
-             obs_gt=observations_gt_test,
-             state=states_test)
+    np.savez(
+        os.path.join(data_path, "train.npz"),
+        obs=observations_train,
+        obs_gt=observations_gt_train,
+        state=states_train,
+    )
+    np.savez(
+        os.path.join(data_path, "test.npz"),
+        obs=observations_test,
+        obs_gt=observations_gt_test,
+        state=states_test,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     generate_dataset()

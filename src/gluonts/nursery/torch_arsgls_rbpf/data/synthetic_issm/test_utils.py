@@ -30,8 +30,9 @@ def get_seasonality_issm_coeff(gamma):
     return a_t, F_t, g_t
 
 
-def sample_issm(l0, a_t, g_t, sigma_t, T, t_initial=0,
-                single_source_of_error=False):
+def sample_issm(
+    l0, a_t, g_t, sigma_t, T, t_initial=0, single_source_of_error=False
+):
     target = np.zeros((T, 1))
     for idx_t, t in enumerate(range(t_initial, t_initial + T)):
         eps_t = np.random.normal(scale=sigma_t(t))

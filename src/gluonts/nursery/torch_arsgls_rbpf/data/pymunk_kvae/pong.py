@@ -13,13 +13,14 @@ import consts
 
 
 class Pong:
-    def __init__(self, dt=0.2, res=(32, 32), init_pos=(3, 3), init_std=0,
-                 wall=None):
+    def __init__(
+        self, dt=0.2, res=(32, 32), init_pos=(3, 3), init_std=0, wall=None
+    ):
         pygame.init()
 
         self.dt = dt
         self.res = res
-        if os.environ.get('SDL_VIDEODRIVER', '') == 'dummy':
+        if os.environ.get("SDL_VIDEODRIVER", "") == "dummy":
             pygame.display.set_mode(res, 0, 24)
             self.screen = pygame.Surface(res, pygame.SRCCOLORKEY, 24)
             pygame.draw.rect(self.screen, (0, 0, 0), (0, 0, res[0], res[1]), 0)
@@ -44,19 +45,22 @@ class Pong:
         def __init__(self, pong, position):
             self.pong = pong
             self.area = pong.res
-            if position == 'left':
-                self.rect = pymunk.Segment(pong.space.static_body,
-                                           (0, self.area[1] / 2 + 3 * scale),
-                                           (0, self.area[1] / 2 - 3 * scale),
-                                           1.0)
+            if position == "left":
+                self.rect = pymunk.Segment(
+                    pong.space.static_body,
+                    (0, self.area[1] / 2 + 3 * scale),
+                    (0, self.area[1] / 2 - 3 * scale),
+                    1.0,
+                )
             else:
-                self.rect = pymunk.Segment(pong.space.static_body,
-                                           (self.area[0] - 2,
-                                            self.area[1] / 2 + 3 * scale),
-                                           (self.area[0] - 2,
-                                            self.area[1] / 2 - 3 * scale), 1.0)
+                self.rect = pymunk.Segment(
+                    pong.space.static_body,
+                    (self.area[0] - 2, self.area[1] / 2 + 3 * scale),
+                    (self.area[0] - 2, self.area[1] / 2 - 3 * scale),
+                    1.0,
+                )
             self.speed = 2 * scale
-            self.rect.elasticity = .99
+            self.rect.elasticity = 0.99
             self.rect.color = color["white"]
             self.rect.collision_type = 1
 
@@ -79,18 +83,25 @@ class Pong:
         self.static_lines = []
 
         # Add floor
-        self.static_lines.append(pymunk.Segment(self.space.static_body,
-                                                (0, 1),
-                                                (self.res[1], 1), .0))
+        self.static_lines.append(
+            pymunk.Segment(
+                self.space.static_body, (0, 1), (self.res[1], 1), 0.0
+            )
+        )
 
         # Add roof
-        self.static_lines.append(pymunk.Segment(self.space.static_body,
-                                                (0, self.res[1]),
-                                                (self.res[1], self.res[1]), .0))
+        self.static_lines.append(
+            pymunk.Segment(
+                self.space.static_body,
+                (0, self.res[1]),
+                (self.res[1], self.res[1]),
+                0.0,
+            )
+        )
 
         # Set properties
         for line in self.static_lines:
-            line.elasticity = .99
+            line.elasticity = 0.99
             line.color = color["white"]
         self.space.add(self.static_lines)
         return True
@@ -99,14 +110,15 @@ class Pong:
         inertia = pymunk.moment_for_circle(1, 0, radius, (0, 0))
         body = pymunk.Body(1, inertia)
         position = np.array(
-            self.initial_position) + self.initial_std * np.random.normal(
-            size=(2,))
-        position = np.clip(position, self.dd + radius + 1,
-                           self.res[0] - self.dd - radius - 1)
+            self.initial_position
+        ) + self.initial_std * np.random.normal(size=(2,))
+        position = np.clip(
+            position, self.dd + radius + 1, self.res[0] - self.dd - radius - 1
+        )
         body.position = position
 
         shape = pymunk.Circle(body, radius, (0, 0))
-        shape.elasticity = .9
+        shape.elasticity = 0.9
         shape.color = color["white"]
         return shape
 
@@ -120,11 +132,21 @@ class Pong:
         self.space.add(ball, ball.body)
         return ball
 
-    def run(self, iterations=20, sequences=500, angle_limits=(0, 360), radius=3,
-            save=None, filepath='/tmp/data/pong.npz', delay=None):
+    def run(
+        self,
+        iterations=20,
+        sequences=500,
+        angle_limits=(0, 360),
+        radius=3,
+        save=None,
+        filepath="/tmp/data/pong.npz",
+        delay=None,
+    ):
         if save:
-            data = np.empty((sequences, iterations, self.res[0], self.res[1]),
-                            dtype=np.float32)
+            data = np.empty(
+                (sequences, iterations, self.res[0], self.res[1]),
+                dtype=np.float32,
+            )
         controls = None, None
 
         # Add roof and floor
@@ -139,8 +161,8 @@ class Pong:
             ball = self.fire(angle, velocity, radius)
 
             # Create pong paddles
-            paddle1 = self.Paddle(self, 'left')
-            paddle2 = self.Paddle(self, 'right')
+            paddle1 = self.Paddle(self, "left")
+            paddle2 = self.Paddle(self, "right")
 
             for i in range(iterations):
                 self._clear()
@@ -159,13 +181,20 @@ class Pong:
                 if delay:
                     self.clock.tick(delay)
 
-                if save == 'png':
-                    pygame.image.save(self.screen, os.path.join(
-                        filepath, "bouncing_balls_%02d_%02d.png" % (s, i)))
-                elif save == 'npz':
-                    data[s, i] = pygame.surfarray.array2d(self.screen).swapaxes(
-                        1, 0).astype(
-                        np.float32) / 255
+                if save == "png":
+                    pygame.image.save(
+                        self.screen,
+                        os.path.join(
+                            filepath, "bouncing_balls_%02d_%02d.png" % (s, i)
+                        ),
+                    )
+                elif save == "npz":
+                    data[s, i] = (
+                        pygame.surfarray.array2d(self.screen)
+                        .swapaxes(1, 0)
+                        .astype(np.float32)
+                        / 255
+                    )
 
                 # Remove the paddles
                 self.space.remove(paddle1.rect)
@@ -174,12 +203,12 @@ class Pong:
             # Remove the ball and the wall from the space
             self.space.remove(ball, ball.body)
 
-        if save == 'npz':
+        if save == "npz":
             np.savez(os.path.abspath(filepath), images=data, controls=controls)
 
 
 def generate_dataset(seed=1234, n_timesteps_train=20, n_timesteps_test=100):
-    os.environ['SDL_VIDEODRIVER'] = 'dummy'
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
     np.random.seed(seed=seed)
 
     # Create data dir
@@ -187,20 +216,34 @@ def generate_dataset(seed=1234, n_timesteps_train=20, n_timesteps_test=100):
     if not os.path.exists(data_path):
         os.makedirs(data_path)
 
-    cannon = Pong(dt=0.2, res=(32 * scale, 32 * scale),
-                  init_pos=(16 * scale, 16 * scale),
-                  init_std=3, wall=None)
-    cannon.run(delay=None, iterations=n_timesteps_train, sequences=5000,
-               radius=3 * scale,
-               angle_limits=(0, 360),
-               filepath=os.path.join(data_path, "train.npz"), save='npz')
+    cannon = Pong(
+        dt=0.2,
+        res=(32 * scale, 32 * scale),
+        init_pos=(16 * scale, 16 * scale),
+        init_std=3,
+        wall=None,
+    )
+    cannon.run(
+        delay=None,
+        iterations=n_timesteps_train,
+        sequences=5000,
+        radius=3 * scale,
+        angle_limits=(0, 360),
+        filepath=os.path.join(data_path, "train.npz"),
+        save="npz",
+    )
     np.random.seed(5678)
-    cannon.run(delay=None, iterations=n_timesteps_test, sequences=1000,
-               radius=3 * scale,
-               angle_limits=(0, 360),
-               filepath=os.path.join(data_path, "test.npz"), save='npz')
+    cannon.run(
+        delay=None,
+        iterations=n_timesteps_test,
+        sequences=1000,
+        radius=3 * scale,
+        angle_limits=(0, 360),
+        filepath=os.path.join(data_path, "test.npz"),
+        save="npz",
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     scale = 1
     generate_dataset()

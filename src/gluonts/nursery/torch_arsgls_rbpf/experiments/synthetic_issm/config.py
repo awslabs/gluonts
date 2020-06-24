@@ -4,9 +4,11 @@ from torch.nn.modules.activation import ReLU
 from torch import nn
 from experiments.base_config import BaseConfig, SwitchLinkType, TimeFeatType
 from utils.utils import TensorDims
-from src.data.synthetic_issm import generate_synthetic_issm, \
-    generate_synthetic_issm_changepoint, \
-    generate_synthetic_issm_random_changepoint
+from src.data.synthetic_issm import (
+    generate_synthetic_issm,
+    generate_synthetic_issm_changepoint,
+    generate_synthetic_issm_random_changepoint,
+)
 
 
 @dataclass()
@@ -50,16 +52,21 @@ elif experiment_name == "synthetic_issm_changepoint":
     n_steps_forecast = generate_synthetic_issm_changepoint.n_steps_forecast
     timesteps = generate_synthetic_issm_changepoint.T
 elif experiment_name == "synthetic_issm_random_changepoint":
-    n_steps_forecast = generate_synthetic_issm_random_changepoint.n_steps_forecast
+    n_steps_forecast = (
+        generate_synthetic_issm_random_changepoint.n_steps_forecast
+    )
     timesteps = generate_synthetic_issm_random_changepoint.T
 else:
     raise Exception(f"unknown experiment {experiment_name}")
 
 n_timefeat = (
-    7 if timefeat.value == TimeFeatType.seasonal_indicator.value else
-    4 if timefeat.value == TimeFeatType.timefeat.value else
-    0 if timefeat.value == TimeFeatType.none.value else
-    None
+    7
+    if timefeat.value == TimeFeatType.seasonal_indicator.value
+    else 4
+    if timefeat.value == TimeFeatType.timefeat.value
+    else 0
+    if timefeat.value == TimeFeatType.none.value
+    else None
 )
 assert n_timefeat is not None
 n_group = 5

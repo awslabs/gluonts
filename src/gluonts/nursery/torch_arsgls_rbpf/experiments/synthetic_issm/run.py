@@ -2,14 +2,18 @@ import os
 import torch
 from torch.optim.adam import Adam
 
-from models.switching_gaussian_linear_system import \
-    SwitchingLinearDynamicalSystem, \
-    CategoricalSwitchingLinearDynamicalSystem, \
-    RecurrentSwitchingLinearDynamicalSystem
+from models.switching_gaussian_linear_system import (
+    SwitchingLinearDynamicalSystem,
+    CategoricalSwitchingLinearDynamicalSystem,
+    RecurrentSwitchingLinearDynamicalSystem,
+)
 import consts
-from data.synthetic_issm.synthetic_issm_loader import create_trainset_loader, \
-    create_inference_loader, gluonts_batch_to_train_pytorch, \
-    gluonts_batch_to_forecast_pytorch
+from data.synthetic_issm.synthetic_issm_loader import (
+    create_trainset_loader,
+    create_inference_loader,
+    gluonts_batch_to_train_pytorch,
+    gluonts_batch_to_forecast_pytorch,
+)
 from experiments.synthetic_issm.sgls_components import (
     SyntheticGLSParameters,
     SyntheticStateToSwitchEncoder,
@@ -24,21 +28,31 @@ from experiments.synthetic_issm.config import config, change_point_experiment
 from inference.smc.resampling import make_criterion_fn_with_ess_threshold
 
 if change_point_experiment:
-    from experiments.synthetic_issm.plots_changepoint import \
-        make_params_over_training_plots, make_state_prior_plots, \
-        make_forecast_plots
+    from experiments.synthetic_issm.plots_changepoint import (
+        make_params_over_training_plots,
+        make_state_prior_plots,
+        make_forecast_plots,
+    )
 else:
-    from experiments.synthetic_issm.plots import \
-        make_params_over_training_plots, make_state_prior_plots, \
-        make_forecast_plots
+    from experiments.synthetic_issm.plots import (
+        make_params_over_training_plots,
+        make_state_prior_plots,
+        make_forecast_plots,
+    )
 
 
-def train(log_paths, model, train_loader, val_loader,
-          device="cuda", dtype=torch.float32, seed=42,
-          n_epochs_until_validate_loss=10,
-          n_epochs_until_validate_plots=10000,
-          show_plots=True,
-          ):
+def train(
+    log_paths,
+    model,
+    train_loader,
+    val_loader,
+    device="cuda",
+    dtype=torch.float32,
+    seed=42,
+    n_epochs_until_validate_loss=10,
+    n_epochs_until_validate_plots=10000,
+    show_plots=True,
+):
     print(f"Training on device: {device}; dtype: {dtype}; seed: {seed}")
     torch.manual_seed(seed)
     model = model.to(dtype).to(device)
@@ -46,12 +60,16 @@ def train(log_paths, model, train_loader, val_loader,
     # ***** Optimizer *****
     all_params = list(model.parameters())
     warmup_params = [model.state_prior_model.m]
-    large_params = [model.state_prior_model.m,
-                    model.state_prior_model.LVinv_tril,
-                    model.state_prior_model.LVinv_logdiag] \
-                   + list(model.gls_base_parameters.parameters())
-    other_params = [param for param in all_params
-                    if not any([param is lparam for lparam in large_params])]
+    large_params = [
+        model.state_prior_model.m,
+        model.state_prior_model.LVinv_tril,
+        model.state_prior_model.LVinv_logdiag,
+    ] + list(model.gls_base_parameters.parameters())
+    other_params = [
+        param
+        for param in all_params
+        if not any([param is lparam for lparam in large_params])
+    ]
     assert len(all_params) == len(large_params) + len(other_params)
 
     # # ********** some configs that we want to change quickly # **********
@@ -60,44 +78,63 @@ def train(log_paths, model, train_loader, val_loader,
     n_epochs_no_resampling = 50
     n_epochs_warmup = 0
     n_iter_decay_one_order_of_magnitude = 500
-    optimizer_warmup = Adam(warmup_params, lr=1e-2, betas=(0.95, 0.99),
-                            amsgrad=False)
-    optimizer = Adam([{"params": large_params, "lr": 1e-2},
-                      {"params": other_params}], lr=1e-2, betas=(0.9, 0.95),
-                     amsgrad=False)
+    optimizer_warmup = Adam(
+        warmup_params, lr=1e-2, betas=(0.95, 0.99), amsgrad=False
+    )
+    optimizer = Adam(
+        [{"params": large_params, "lr": 1e-2}, {"params": other_params}],
+        lr=1e-2,
+        betas=(0.9, 0.95),
+        amsgrad=False,
+    )
     # **********
     decay_rate = (1 / 10) ** (1 / n_iter_decay_one_order_of_magnitude)
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer,
-                                                       gamma=decay_rate)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(
+        optimizer, gamma=decay_rate
+    )
 
     val_data = gluonts_batch_to_forecast_pytorch(
         batch=next(iter(val_loader)),
         device=model.state_prior_model.m.device,
         dtype=model.state_prior_model.m.dtype,
-        dims=dims, time_features=config.time_feat,
+        dims=dims,
+        time_features=config.time_feat,
         n_steps_forecast=config.n_steps_forecast,
     )
     for idx_epoch in range(n_epochs):
         # save model
-        torch.save(model.state_dict(),
-                   os.path.join(log_paths.model, f"{idx_epoch}.pt"))
+        torch.save(
+            model.state_dict(),
+            os.path.join(log_paths.model, f"{idx_epoch}.pt"),
+        )
 
         # choose optimizer & apply lr decay
-        optimizer = optimizer_warmup if idx_epoch < n_epochs_warmup else optimizer
+        optimizer = (
+            optimizer_warmup if idx_epoch < n_epochs_warmup else optimizer
+        )
 
         # validation: loss
         if idx_epoch % n_epochs_until_validate_loss == 0:
-            loss_val = model(**val_data).mean(dim=(0, 1)).detach().cpu().numpy()
+            loss_val = (
+                model(**val_data).mean(dim=(0, 1)).detach().cpu().numpy()
+            )
             print(f"epoch: {idx_epoch}; loss {loss_val:.3f}")
         # validation: plots
         if (idx_epoch + 1) % n_epochs_until_validate_plots == 0:
-            make_params_over_training_plots(epoch=idx_epoch, model=model,
-                                            log_paths=log_paths,
-                                            show=show_plots)
+            make_params_over_training_plots(
+                epoch=idx_epoch,
+                model=model,
+                log_paths=log_paths,
+                show=show_plots,
+            )
             make_forecast_plots(
-                epoch=idx_epoch, model=model, log_paths=log_paths, dims=dims,
+                epoch=idx_epoch,
+                model=model,
+                log_paths=log_paths,
+                dims=dims,
                 n_steps_forecast=config.n_steps_forecast,
-                data=val_data, show=show_plots,
+                data=val_data,
+                show=show_plots,
             )
 
         # annealing
@@ -105,14 +142,18 @@ def train(log_paths, model, train_loader, val_loader,
         # Start with never re-sampling.
         if idx_epoch == 0:
             print(
-                f"\nEpoch: {idx_epoch}: setting resampling criterion fn to ESS = 0.0")
+                f"\nEpoch: {idx_epoch}: setting resampling criterion fn to ESS = 0.0"
+            )
             model.resampling_criterion_fn = make_criterion_fn_with_ess_threshold(
-                min_ess_ratio=0.0)
+                min_ess_ratio=0.0
+            )
         elif idx_epoch == n_epochs_no_resampling:
             print(
-                f"\nEpoch: {idx_epoch}: setting resampling criterion fn to ESS = 0.5")
+                f"\nEpoch: {idx_epoch}: setting resampling criterion fn to ESS = 0.5"
+            )
             model.resampling_criterion_fn = make_criterion_fn_with_ess_threshold(
-                min_ess_ratio=0.5)
+                min_ess_ratio=0.5
+            )
         else:
             pass
         # training
@@ -121,7 +162,8 @@ def train(log_paths, model, train_loader, val_loader,
                 batch=batch,
                 device=model.state_prior_model.m.device,
                 dtype=model.state_prior_model.m.dtype,
-                dims=dims, time_features=config.time_feat,
+                dims=dims,
+                time_features=config.time_feat,
             )
             optimizer.zero_grad()
             loss = model(**batch).sum(dim=(0, 1))
@@ -132,10 +174,11 @@ def train(log_paths, model, train_loader, val_loader,
         if idx_epoch > n_epochs_warmup:
             scheduler.step()
 
-    print('done training.')
+    print("done training.")
     # save model
-    torch.save(model.state_dict(),
-               os.path.join(log_paths.model, f"{n_epochs}.pt"))
+    torch.save(
+        model.state_dict(), os.path.join(log_paths.model, f"{n_epochs}.pt")
+    )
     return model
 
 
@@ -176,21 +219,23 @@ if __name__ == "__main__":
     val_loader = inference_loader
 
     model = train(
-        log_paths=log_paths, model=model,
-        train_loader=train_loader, val_loader=inference_loader,
+        log_paths=log_paths,
+        model=model,
+        train_loader=train_loader,
+        val_loader=inference_loader,
     )
     print("generating plots")
     data = gluonts_batch_to_forecast_pytorch(
         batch=next(iter(inference_loader)),
         device=model.state_prior_model.m.device,
         dtype=model.state_prior_model.m.dtype,
-        dims=dims, time_features=config.time_feat,
+        dims=dims,
+        time_features=config.time_feat,
         n_steps_forecast=config.n_steps_forecast,
     )
     show_plots = True
     make_state_prior_plots(
-        model=model, log_paths=log_paths,
-        show=show_plots,
+        model=model, log_paths=log_paths, show=show_plots,
     )
     make_forecast_plots(
         epoch=model.trained_epochs,
@@ -199,9 +244,12 @@ if __name__ == "__main__":
         dims=dims,
         n_steps_forecast=config.n_steps_forecast,
         data=data,
-        show=show_plots
+        show=show_plots,
     )
-    make_params_over_training_plots(epoch=model.trained_epochs, model=model,
-                                    log_paths=log_paths,
-                                    show=show_plots)
+    make_params_over_training_plots(
+        epoch=model.trained_epochs,
+        model=model,
+        log_paths=log_paths,
+        show=show_plots,
+    )
     print("done")

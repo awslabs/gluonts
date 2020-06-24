@@ -20,6 +20,7 @@ class TimeFeatType(Enum):
 @dataclass()
 class BaseConfig:
     """ Contains possible configs that all experiments share and should set """
+
     experiment_name: str
     dataset_name: str
     dims: TensorDims

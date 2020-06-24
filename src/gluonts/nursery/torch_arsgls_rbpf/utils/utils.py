@@ -23,10 +23,8 @@ def make_dummy_ssm_params():
     a1, a2 = 0.5, -1.0
 
     # state-related parameters
-    A = torch.tensor([[a1, a2],
-                      [1.0, 0.0]])
-    B = torch.tensor([[1.0],
-                      [1.0]])
+    A = torch.tensor([[a1, a2], [1.0, 0.0]])
+    B = torch.tensor([[1.0], [1.0]])
     R = 0.064 * torch.eye(2)
 
     # observation/emission-related parameters
@@ -38,16 +36,9 @@ def make_dummy_ssm_params():
     m0 = torch.zeros((2,))
     V0 = torch.eye(2) * 4.0
 
-    params = Box({
-        "A": A,
-        "B": B,
-        "C": C,
-        "D": D,
-        "R": R,
-        "Q": Q,
-        "m0": m0,
-        "V0": V0,
-    })
+    params = Box(
+        {"A": A, "B": B, "C": C, "D": D, "R": R, "Q": Q, "m0": m0, "V0": V0,}
+    )
     return params
 
 
@@ -55,14 +46,17 @@ def make_dummy_input_data(ssm_params, n_data=100, n_timesteps=10):
     device, dtype = ssm_params.A.device, ssm_params.A.dtype
     n_ctrlx = ssm_params.B.shape[1]
     n_ctrly = ssm_params.D.shape[1]
-    x_state = torch.tensor(0.01 * torch.randn(*(n_timesteps, n_data, n_ctrlx)),
-                           dtype=dtype, device=device)
-    x_obs = torch.tensor(0.01 * torch.randn(*(n_timesteps, n_data, n_ctrly)),
-                         dtype=dtype, device=device)
-    input_data = Box({
-        "u_state": x_state,
-        "u_obs": x_obs,
-    })
+    x_state = torch.tensor(
+        0.01 * torch.randn(*(n_timesteps, n_data, n_ctrlx)),
+        dtype=dtype,
+        device=device,
+    )
+    x_obs = torch.tensor(
+        0.01 * torch.randn(*(n_timesteps, n_data, n_ctrly)),
+        dtype=dtype,
+        device=device,
+    )
+    input_data = Box({"u_state": x_state, "u_obs": x_obs,})
     return input_data
 
 
@@ -80,37 +74,64 @@ def convert_ssm_params_to_model_params(A, B, C, D, R, Q, m0, V0):
     LV0inv_tril, LV0inv_logdiag = make_inv_tril_parametrization(V0)
 
     params = Box(
-        A=A, B=B, C=C, D=D, m0=m0,
-        LV0inv_tril=LV0inv_tril, LV0inv_logdiag=LV0inv_logdiag,
-        LRinv_tril=LRinv_tril, LRinv_logdiag=LRinv_logdiag,
-        LQinv_tril=LQinv_tril, LQinv_logdiag=LQinv_logdiag,
+        A=A,
+        B=B,
+        C=C,
+        D=D,
+        m0=m0,
+        LV0inv_tril=LV0inv_tril,
+        LV0inv_logdiag=LV0inv_logdiag,
+        LRinv_tril=LRinv_tril,
+        LRinv_logdiag=LRinv_logdiag,
+        LQinv_tril=LQinv_tril,
+        LQinv_logdiag=LQinv_logdiag,
     )
-    model_params = Box({
-        name: torch.nn.Parameter(val.clone().detach())
-        for name, val in params.items()})
+    model_params = Box(
+        {
+            name: torch.nn.Parameter(val.clone().detach())
+            for name, val in params.items()
+        }
+    )
 
     return model_params
 
 
 def convert_model_params_to_ssm_params(
-        A, B, C, D, m0, LV0inv_tril, LV0inv_logdiag, LRinv_tril, LRinv_logdiag,
-        LQinv_tril, LQinv_logdiag):
-    R = torch.cholesky_inverse(torch.tril(LRinv_tril, -1)
-                               + torch.diag(torch.exp(LRinv_logdiag)))
-    Q = torch.cholesky_inverse(torch.tril(LQinv_tril, -1)
-                               + torch.diag(torch.exp(LQinv_logdiag)))
-    V0 = torch.cholesky_inverse(torch.tril(LV0inv_tril, -1)
-                                + torch.diag(torch.exp(LV0inv_logdiag)))
+    A,
+    B,
+    C,
+    D,
+    m0,
+    LV0inv_tril,
+    LV0inv_logdiag,
+    LRinv_tril,
+    LRinv_logdiag,
+    LQinv_tril,
+    LQinv_logdiag,
+):
+    R = torch.cholesky_inverse(
+        torch.tril(LRinv_tril, -1) + torch.diag(torch.exp(LRinv_logdiag))
+    )
+    Q = torch.cholesky_inverse(
+        torch.tril(LQinv_tril, -1) + torch.diag(torch.exp(LQinv_logdiag))
+    )
+    V0 = torch.cholesky_inverse(
+        torch.tril(LV0inv_tril, -1) + torch.diag(torch.exp(LV0inv_logdiag))
+    )
     return Box(A=A, B=B, C=C, D=D, R=R, Q=Q, m0=m0, V0=V0)
 
 
 def add_sample_dims_to_initial_state(m0, V0, dims):
     if not m0.ndim == V0.ndim - 1:
-        raise Exception(f"m0 should be (batched) vector, V0 (batched) var, but"
-                        f"dims don't match. Got m0: {m0.ndim}, V0: {V0.ndim}.")
+        raise Exception(
+            f"m0 should be (batched) vector, V0 (batched) var, but"
+            f"dims don't match. Got m0: {m0.ndim}, V0: {V0.ndim}."
+        )
     dim_particle = (
-        (dims.particle,) if dims.particle is not None and
-                            dims.particle != 0 else tuple())
+        (dims.particle,)
+        if dims.particle is not None and dims.particle != 0
+        else tuple()
+    )
     if m0.ndim == 1:  # add batch dim (trade off performance for consistency)
         m0 = m0.repeat(dim_particle + (dims.batch,) + (1,) * m0.ndim)
         V0 = V0.repeat(dim_particle + (dims.batch,) + (1,) * V0.ndim)
@@ -153,15 +174,16 @@ class SigmoidLimiter(nn.Module):
     def forward(self, x):
         # factor 4 to make it tanh with derivative 1 at origin.
         return self.offset + self.scaling * torch.sigmoid(
-            x * (4 / self.scaling))
+            x * (4 / self.scaling)
+        )
 
 
 def compute_conv_output_img_dims(
-        dims_img: (list, tuple),
-        kernel_size: (int, tuple),
-        stride: (int, tuple),
-        padding: (int, tuple),
-        dilation: (int, tuple, None) = None,
+    dims_img: (list, tuple),
+    kernel_size: (int, tuple),
+    stride: (int, tuple),
+    padding: (int, tuple),
+    dilation: (int, tuple, None) = None,
 ) -> tuple:
     if isinstance(kernel_size, int):
         kernel_size = (kernel_size, kernel_size)
@@ -172,27 +194,27 @@ def compute_conv_output_img_dims(
     if isinstance(dilation, int):
         dilation = (dilation, dilation)
     elif dilation is None:
-        dilation = (1, 1,)
+        dilation = (
+            1,
+            1,
+        )
 
     dims_img_in = list(dims_img)
     # dims_img_in = [shp_in[1], shp_in[2]]
     dims_img_out = copy(dims_img_in)
 
     for idx in range(len(dims_img_out)):
-        dims_img_out[idx] = (dims_img_out[idx]
-                             + 2 * padding[idx]
-                             - dilation[idx] * (kernel_size[idx] - 1)
-                             - 1) // stride[idx] + 1
+        dims_img_out[idx] = (
+            dims_img_out[idx]
+            + 2 * padding[idx]
+            - dilation[idx] * (kernel_size[idx] - 1)
+            - 1
+        ) // stride[idx] + 1
     return tuple(dims_img_out)
 
 
 def compute_cnn_output_filters_and_dims(
-        dims_img,
-        dims_filter,
-        kernel_sizes,
-        strides,
-        paddings,
-        dilations=None,
+    dims_img, dims_filter, kernel_sizes, strides, paddings, dilations=None,
 ):
     dims_img = dims_img[-2:]
     for idx_hidden in range(len(dims_filter)):
@@ -215,7 +237,7 @@ class Reshape(nn.Module):
         self.n_batch_dims = n_batch_dims
 
     def forward(self, x):
-        return x.reshape(x.shape[:self.n_batch_dims] + self.shape)
+        return x.reshape(x.shape[: self.n_batch_dims] + self.shape)
 
 
 class BatchDiagMatrix(nn.Module):
@@ -229,8 +251,9 @@ class BatchDiagMatrix(nn.Module):
 class Bias(nn.Module):
     def __init__(self, dim_out, init_val, requires_grad=True):
         super().__init__()
-        self._value = nn.Parameter(init_val * torch.ones(dim_out),
-                                   requires_grad=requires_grad)
+        self._value = nn.Parameter(
+            init_val * torch.ones(dim_out), requires_grad=requires_grad
+        )
 
     def forward(self, x):
         assert x.ndim == 2, "not implemented for CNN"
@@ -248,38 +271,66 @@ class IndependentBernoulli(Independent):
 
 
 def create_zeros_state_vec(dims, device, dtype):
-    dim_particle = ((dims.particle,) if dims.particle is not None
-                                        and dims.particle != 0 else tuple())
-    vec = [torch.zeros(dim_particle + (dims.batch, dims.state,),
-                       device=device, dtype=dtype) for t in
-           range(dims.timesteps)]
+    dim_particle = (
+        (dims.particle,)
+        if dims.particle is not None and dims.particle != 0
+        else tuple()
+    )
+    vec = [
+        torch.zeros(
+            dim_particle + (dims.batch, dims.state,),
+            device=device,
+            dtype=dtype,
+        )
+        for t in range(dims.timesteps)
+    ]
     return vec
 
 
 def create_zeros_state_mat(dims, device, dtype):
-    dim_particle = ((dims.particle,) if dims.particle is not None
-                                        and dims.particle != 0 else tuple())
-    mat = [torch.zeros(dim_particle + (dims.batch, dims.state, dims.state),
-                       device=device, dtype=dtype) for t in
-           range(dims.timesteps)]
+    dim_particle = (
+        (dims.particle,)
+        if dims.particle is not None and dims.particle != 0
+        else tuple()
+    )
+    mat = [
+        torch.zeros(
+            dim_particle + (dims.batch, dims.state, dims.state),
+            device=device,
+            dtype=dtype,
+        )
+        for t in range(dims.timesteps)
+    ]
     return mat
 
 
 def create_zeros_switch_vec(dims, device, dtype):
-    dim_particle = ((dims.particle,) if dims.particle is not None
-                                        and dims.particle != 0 else tuple())
-    vec = [torch.zeros(dim_particle + (dims.batch, dims.switch,),
-                       device=device, dtype=dtype) for t in
-           range(dims.timesteps)]
+    dim_particle = (
+        (dims.particle,)
+        if dims.particle is not None and dims.particle != 0
+        else tuple()
+    )
+    vec = [
+        torch.zeros(
+            dim_particle + (dims.batch, dims.switch,),
+            device=device,
+            dtype=dtype,
+        )
+        for t in range(dims.timesteps)
+    ]
     return vec
 
 
 def create_zeros_log_weights(dims, device, dtype):
-    dim_particle = ((dims.particle,) if dims.particle is not None
-                                        and dims.particle != 0 else tuple())
+    dim_particle = (
+        (dims.particle,)
+        if dims.particle is not None and dims.particle != 0
+        else tuple()
+    )
     log_weights = [
         torch.zeros(dim_particle + (dims.batch,), device=device, dtype=dtype)
-        for t in range(dims.timesteps)]
+        for t in range(dims.timesteps)
+    ]
     return log_weights
 
 
@@ -292,24 +343,36 @@ class ConditionalTransformation(nn.Module):
 
 
 class ConditionalAffine(ConditionalTransformation):
-    def __init__(self, dim_in: int, dim_out: int, n_base_transforms: int,
-                 init_fn: callable = orthogonal_, bias: bool = True):
-        super().__init__(dim_in=dim_in, dim_out=dim_out,
-                         n_base_transforms=n_base_transforms)
+    def __init__(
+        self,
+        dim_in: int,
+        dim_out: int,
+        n_base_transforms: int,
+        init_fn: callable = orthogonal_,
+        bias: bool = True,
+    ):
+        super().__init__(
+            dim_in=dim_in, dim_out=dim_out, n_base_transforms=n_base_transforms
+        )
 
-        mats_init = [init_fn(torch.empty(dim_out, dim_in)) for _ in
-                     range(n_base_transforms)]
+        mats_init = [
+            init_fn(torch.empty(dim_out, dim_in))
+            for _ in range(n_base_transforms)
+        ]
         self.base_matrices = nn.Parameter(torch.stack(mats_init, dim=0))
         if bias:
             self.base_biases = nn.Parameter(
-                torch.zeros(n_base_transforms, dim_out))
+                torch.zeros(n_base_transforms, dim_out)
+            )
         else:
-            self.register_parameter('base_biases', None)
+            self.register_parameter("base_biases", None)
 
-    def forward(self, inputs: torch.Tensor,
-                weights: torch.Tensor) -> torch.Tensor:
-        linear = torch.einsum("...k,...i,koi->...o", weights, inputs,
-                              self.base_matrices)
+    def forward(
+        self, inputs: torch.Tensor, weights: torch.Tensor
+    ) -> torch.Tensor:
+        linear = torch.einsum(
+            "...k,...i,koi->...o", weights, inputs, self.base_matrices
+        )
         if self.base_biases is not None:
             bias = torch.einsum("...k,ko->...o", weights, self.base_biases)
             affine = linear + bias
@@ -330,28 +393,37 @@ def flatten_iterable(items: (list, tuple, set)):
 
 def one_hot(labels, num_classes, is_squeeze=False):
     if not is_squeeze:
-        return one_hot(labels.squeeze(dim=-1), num_classes=num_classes,
-                       is_squeeze=True)
+        return one_hot(
+            labels.squeeze(dim=-1), num_classes=num_classes, is_squeeze=True
+        )
     else:
         return torch.eye(num_classes, dtype=labels.dtype)[labels]
 
 
-def prepare_logging(consts, config, run_nr: (int, None) = None,
-                    copy_config_file=True, root_log_path=None):
+def prepare_logging(
+    consts,
+    config,
+    run_nr: (int, None) = None,
+    copy_config_file=True,
+    root_log_path=None,
+):
     if root_log_path is None:  # create
         if run_nr is None:  # time-stamped folders inside folder "other"
-            now = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            cfg_save_path = os.path.join(consts.log_dir, config.dataset_name,
-                                         "other", now)
+            now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            cfg_save_path = os.path.join(
+                consts.log_dir, config.dataset_name, "other", now
+            )
             root_log_path = cfg_save_path
         else:  # dataset_name/experiment_name/run_nr/.
-            cfg_save_path = os.path.join(consts.log_dir, config.dataset_name,
-                                         config.experiment_name)
+            cfg_save_path = os.path.join(
+                consts.log_dir, config.dataset_name, config.experiment_name
+            )
             root_log_path = os.path.join(cfg_save_path, str(run_nr))
 
         plot_path = os.path.join(root_log_path, "plots")
-        model_snapshots_path = os.path.join(root_log_path,
-                                            "parameters_over_time")
+        model_snapshots_path = os.path.join(
+            root_log_path, "parameters_over_time"
+        )
         metrics_path = os.path.join(root_log_path, "metrics")
 
         os.makedirs(root_log_path, exist_ok=False)
@@ -360,15 +432,20 @@ def prepare_logging(consts, config, run_nr: (int, None) = None,
         os.makedirs(metrics_path, exist_ok=False)
 
         if copy_config_file:
-            copyfile(src=os.path.abspath(inspect.getfile(config.__class__)),
-                     dst=os.path.join(cfg_save_path, "config.py"))
-            copyfile(src=os.path.abspath(consts.__file__),
-                     dst=os.path.join(cfg_save_path, "consts.py"))
+            copyfile(
+                src=os.path.abspath(inspect.getfile(config.__class__)),
+                dst=os.path.join(cfg_save_path, "config.py"),
+            )
+            copyfile(
+                src=os.path.abspath(consts.__file__),
+                dst=os.path.join(cfg_save_path, "consts.py"),
+            )
 
     else:  # load
         plot_path = os.path.join(root_log_path, "plots")
-        model_snapshots_path = os.path.join(root_log_path,
-                                            "parameters_over_time")
+        model_snapshots_path = os.path.join(
+            root_log_path, "parameters_over_time"
+        )
         metrics_path = os.path.join(root_log_path, "metrics")
 
     log_paths = namedtuple("log_paths", ["root", "plot", "model", "metrics"])
@@ -383,8 +460,10 @@ def prepare_logging(consts, config, run_nr: (int, None) = None,
 def list_of_dicts_to_dict_of_list(list_of_dicts: List[dict]):
     assert isinstance(list_of_dicts, (list, tuple))
     assert isinstance(list_of_dicts[0], dict)
-    assert all(list_of_dicts[0].keys() == list_of_dicts[idx].keys()
-               for idx in range(len(list_of_dicts)))
+    assert all(
+        list_of_dicts[0].keys() == list_of_dicts[idx].keys()
+        for idx in range(len(list_of_dicts))
+    )
     dict_of_list = {
         key: [list_of_dicts[idx][key] for idx in range(len(list_of_dicts))]
         for key in list_of_dicts[0].keys()

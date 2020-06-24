@@ -5,11 +5,18 @@ import numpy as np
 from torch import nn
 from experiments.base_config import BaseConfig
 from utils.utils import TensorDims
-from experiments.model_component_zoo import gls_parameters, encoders, decoders, \
-    state_priors, switch_transitions, switch_priors
+from experiments.model_component_zoo import (
+    gls_parameters,
+    encoders,
+    decoders,
+    state_priors,
+    switch_transitions,
+    switch_priors,
+)
 from models.kalman_variational_autoencoder import KalmanVariationalAutoEncoder
-from models.auxiliary_switching_gaussian_linear_system import \
-    RecurrentAuxiliarySwitchingLinearDynamicalSystem
+from models.auxiliary_switching_gaussian_linear_system import (
+    RecurrentAuxiliarySwitchingLinearDynamicalSystem,
+)
 from experiments.base_config import SwitchLinkType
 from torch_extensions.layers_with_init import LSTM, Linear
 
@@ -163,9 +170,12 @@ def make_kvae(config):
     gls_base_params = gls_parameters.GLSParametersKVAE(config=config)
     decoder = decoders.AuxiliaryToObsDecoderConvBernoulli(config=config)
     encoder = encoders.ObsToAuxiliaryEncoderConvGaussian(config=config)
-    state_prior_model = state_priors.StatePriorModeFixedlNoInputs(config=config)
-    rnn = LSTM(input_size=config.dims.auxiliary,
-               hidden_size=config.n_hidden_rnn)
+    state_prior_model = state_priors.StatePriorModeFixedlNoInputs(
+        config=config
+    )
+    rnn = LSTM(
+        input_size=config.dims.auxiliary, hidden_size=config.n_hidden_rnn
+    )
 
     model = KalmanVariationalAutoEncoder(
         n_state=config.dims.state,
@@ -188,13 +198,18 @@ def make_asgls(config):
     input_transformer = None
     gls_base_parameters = gls_parameters.GLSParametersASGLS(config=config)
     switch_transition_model = switch_transitions.SwitchTransitionModelGaussianRecurrentBaseMat(
-        config=config)
-    state_prior_model = state_priors.StatePriorModeFixedlNoInputs(config=config)
+        config=config
+    )
+    state_prior_model = state_priors.StatePriorModeFixedlNoInputs(
+        config=config
+    )
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
     measurment_model = decoders.AuxiliaryToObsDecoderConvBernoulli(
-        config=config)
+        config=config
+    )
     obs_encoder = encoders.ObsToAuxiliaryLadderEncoderConvMlpGaussian(
-        config=config)
+        config=config
+    )
 
     model = RecurrentAuxiliarySwitchingLinearDynamicalSystem(
         n_state=dims.state,
