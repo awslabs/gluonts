@@ -20,6 +20,7 @@ from .box_cox_transform import (
     InverseBoxCoxTransformOutput,
 )
 from .categorical import Categorical, CategoricalOutput
+from .deterministic import Deterministic, DeterministicOutput
 from .dirichlet import Dirichlet, DirichletOutput
 from .dirichlet_multinomial import (
     DirichletMultinomial,
@@ -95,6 +96,8 @@ __all__ = [
     "CategoricalOutput",
     "LogitNormal",
     "LogitNormalOutput",
+    "Deterministic",
+    "DeterministicOutput",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
