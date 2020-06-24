@@ -3,11 +3,16 @@ import torch
 from torch import nn
 from experiments.base_config import BaseConfig, SwitchLinkType
 from utils.utils import TensorDims
-from experiments.model_component_zoo import gls_parameters, switch_transitions, \
-    switch_priors, \
-    state_priors, encoders
-from models.switching_gaussian_linear_system import \
-    RecurrentSwitchingLinearDynamicalSystem
+from experiments.model_component_zoo import (
+    gls_parameters,
+    switch_transitions,
+    switch_priors,
+    state_priors,
+    encoders,
+)
+from models.switching_gaussian_linear_system import (
+    RecurrentSwitchingLinearDynamicalSystem,
+)
 from experiments.model_component_zoo.input_transforms import ControlInputs
 
 
@@ -59,12 +64,10 @@ config = PendulumSGLSConfig(
     experiment_name="default",
     gpus=tuple(range(0, 4)),
     dtype=torch.float64,
-
     lr=1e-2,
     n_epochs=50,
     n_epochs_no_resampling=5,
     n_epochs_until_validate_loss=1,
-
     n_steps_forecast=100,
     dims=dims,
     init_scale_A=1.0,
@@ -98,12 +101,10 @@ config = PendulumSGLSConfig(
     n_base_R=10,
     n_base_F=10,
     n_base_S=10,  # 10,
-
     state_prior_scale=1.0,
     state_prior_loc=0.0,
     switch_prior_loc=0.0,
     switch_prior_scale=1.0,
-
     b_fn_dims=tuple(),
     b_fn_activations=nn.LeakyReLU(0.1, inplace=True),
     d_fn_dims=tuple(),
@@ -116,16 +117,23 @@ config = PendulumSGLSConfig(
 def make_model(config):
     dims = config.dims
     gls_base_parameters = gls_parameters.GlsParametersUnrestricted(
-        config=config)
+        config=config
+    )
     input_transformer = lambda *args, **kwargs: ControlInputs(None, None, None)
-    obs_to_switch_encoder = encoders.ObsToSwitchEncoderGaussianMLP(
-        config=config) if config.obs_to_switch_encoder else None
-    state_to_switch_encoder = encoders.StateToSwitchEncoderGaussianMLP(
-        config=config) if config.state_to_switch_encoder else None
+    obs_to_switch_encoder = (
+        encoders.ObsToSwitchEncoderGaussianMLP(config=config)
+        if config.obs_to_switch_encoder
+        else None
+    )
+    state_to_switch_encoder = (
+        encoders.StateToSwitchEncoderGaussianMLP(config=config)
+        if config.state_to_switch_encoder
+        else None
+    )
     state_prior_model = state_priors.StatePriorModelNoInputs(config=config)
-    switch_transition_model = \
-        switch_transitions.SwitchTransitionModelGaussianRecurrentBaseMat(
-            config=config)
+    switch_transition_model = switch_transitions.SwitchTransitionModelGaussianRecurrentBaseMat(
+        config=config
+    )
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
     model = RecurrentSwitchingLinearDynamicalSystem(
         n_state=dims.state,

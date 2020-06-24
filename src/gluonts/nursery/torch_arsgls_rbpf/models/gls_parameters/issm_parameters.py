@@ -1,24 +1,33 @@
 import torch
 from box import Box
 from torch import nn
-from models.gls_parameters.issm import ISSM, LevelISSM, LevelTrendISSM, \
-    SeasonalityISSM, \
-    CompositeISSM
+from models.gls_parameters.issm import (
+    ISSM,
+    LevelISSM,
+    LevelTrendISSM,
+    SeasonalityISSM,
+    CompositeISSM,
+)
 from torch_extensions.ops import batch_diag_matrix, matvec
 from models.gls_parameters.gls_parameters import GLSParameters
 
 
 class ISSMParameters(GLSParameters):
-    def __init__(self, issm: ISSM, n_base_R,
-                 init_scale_R_diag: (float, tuple, list, None) = None,
-                 **kwargs):
+    def __init__(
+        self,
+        issm: ISSM,
+        n_base_R,
+        init_scale_R_diag: (float, tuple, list, None) = None,
+        **kwargs,
+    ):
         # kwargs["init_scale_B"]=0.1,  # some small value - these are just biases.
         # kwargs["init_scale_D"]=0.1,
         kwargs["n_base_A"] = None
         kwargs["n_base_C"] = None
         assert kwargs["n_obs"] == 1
-        super().__init__(n_base_R=n_base_R, init_scale_R_diag=init_scale_R_diag,
-                         **kwargs)
+        super().__init__(
+            n_base_R=n_base_R, init_scale_R_diag=init_scale_R_diag, **kwargs
+        )
         self.issm = issm
         # ***** Overwrite LRinv_logdiag *****
         # Note that the 1-4 (season 1, season 2, level, trend) R parameters are
@@ -34,7 +43,8 @@ class ISSMParameters(GLSParameters):
                     n_params_R = len(self.issm.seasonal_issms) + 1
                 else:
                     raise Exception(
-                        f"unknown nonseasonal_issm: {self.issm.nonseasonal_issm}")
+                        f"unknown nonseasonal_issm: {self.issm.nonseasonal_issm}"
+                    )
             else:
                 n_params_R = len(self.issm.seasonal_issms)
         else:
@@ -44,7 +54,7 @@ class ISSMParameters(GLSParameters):
             self.make_cov_init(
                 init_scale_cov_diag=init_scale_R_diag,
                 n_base=n_base_R,
-                dim_cov=n_params_R
+                dim_cov=n_params_R,
             ),
             requires_grad=self.LRinv_logdiag.requires_grad,
         )
@@ -53,18 +63,27 @@ class ISSMParameters(GLSParameters):
         weights = self.link_transformers(switch=switch)
 
         # biases
-        B = torch.einsum("...k,koi->...oi", weights.B,
-                         self.B) if self.B is not None else None
-        D = torch.einsum("...k,koi->...oi", weights.D,
-                         self.D) if self.D is not None else None
-        b = self.compute_bias(s=switch, u=u_state, bias_fn=self.b_fn,
-                              bias_matrix=B)
-        d = self.compute_bias(s=switch, u=u_obs, bias_fn=self.d_fn,
-                              bias_matrix=D)
+        B = (
+            torch.einsum("...k,koi->...oi", weights.B, self.B)
+            if self.B is not None
+            else None
+        )
+        D = (
+            torch.einsum("...k,koi->...oi", weights.D, self.D)
+            if self.D is not None
+            else None
+        )
+        b = self.compute_bias(
+            s=switch, u=u_state, bias_fn=self.b_fn, bias_matrix=B
+        )
+        d = self.compute_bias(
+            s=switch, u=u_obs, bias_fn=self.d_fn, bias_matrix=D
+        )
 
         # transition and emission from ISSM
         _, C, R_diag_projector = self.issm(
-            seasonal_indicators=seasonal_indicators)
+            seasonal_indicators=seasonal_indicators
+        )
         A = None  # instead of identity, we use None to avoid unnecessary computation
 
         # covariance matrices

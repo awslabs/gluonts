@@ -1,11 +1,15 @@
 import torch
 from torch import nn
 from torch.distributions import OneHotCategorical, MultivariateNormal
-from inference.analytical_gausian_linear.inference_step import \
-    filter_forward_prediction_step
-from models.gls_parameters.state_to_switch_parameters import StateToSwitchParams
-from torch_extensions.distributions.conditional_parametrised_distribution import \
-    ParametrisedConditionalDistribution
+from inference.analytical_gausian_linear.inference_step import (
+    filter_forward_prediction_step,
+)
+from models.gls_parameters.state_to_switch_parameters import (
+    StateToSwitchParams,
+)
+from torch_extensions.distributions.conditional_parametrised_distribution import (
+    ParametrisedConditionalDistribution,
+)
 from torch_extensions.mlp import MLP
 from torch_extensions.ops import batch_diag_matrix, matvec
 from torch_extensions.recurrent_transition import GaussianRecurrentTransition
@@ -28,8 +32,13 @@ def _extract_dims_from_cfg(config):
 class SwitchTransitionModelCategorical(nn.Module):
     def __init__(self, config):
         super().__init__()
-        dim_in, dim_out, dims_stem, activations_stem, dim_in_dist_params = \
-            _extract_dims_from_cfg(config)
+        (
+            dim_in,
+            dim_out,
+            dims_stem,
+            activations_stem,
+            dim_in_dist_params,
+        ) = _extract_dims_from_cfg(config)
         dim_in_dist_params = dims_stem[-1] if len(dims_stem) > 0 else dim_in
         self.conditional_dist = ParametrisedConditionalDistribution(
             stem=MLP(
@@ -37,12 +46,14 @@ class SwitchTransitionModelCategorical(nn.Module):
                 dims_hidden=dims_stem,
                 activations=activations_stem,
             ),
-            dist_params=nn.ModuleDict({
-                "logits": nn.Sequential(
-                    nn.Linear(dim_in_dist_params, dim_out),
-                    SigmoidLimiter(limits=[-10, 10]),
-                )
-            }),
+            dist_params=nn.ModuleDict(
+                {
+                    "logits": nn.Sequential(
+                        nn.Linear(dim_in_dist_params, dim_out),
+                        SigmoidLimiter(limits=[-10, 10]),
+                    )
+                }
+            ),
             dist_cls=OneHotCategorical,
         )
 
@@ -56,9 +67,18 @@ class SwitchTransitionModelGaussian(nn.Module):
     def __init__(self, config):
         """ due to parameter sharing we cannot instantiate this one entirely from config file. """
         super().__init__()
-        dim_in, dim_out, dims_stem, activations_stem, dim_in_dist_params = \
-            _extract_dims_from_cfg(config)
-        n_state, n_switch, is_recurrent = config.dims.state, config.dims.switch, config.is_recurrent
+        (
+            dim_in,
+            dim_out,
+            dims_stem,
+            activations_stem,
+            dim_in_dist_params,
+        ) = _extract_dims_from_cfg(config)
+        n_state, n_switch, is_recurrent = (
+            config.dims.state,
+            config.dims.switch,
+            config.is_recurrent,
+        )
         self.conditional_dist = GaussianRecurrentTransition(
             conditional_dist_tranform=ParametrisedConditionalDistribution(
                 stem=MLP(
@@ -66,19 +86,21 @@ class SwitchTransitionModelGaussian(nn.Module):
                     dims_hidden=dims_stem,
                     activations=activations_stem,
                 ),
-                dist_params=nn.ModuleDict({
-                    "loc": nn.Sequential(
-                        nn.Linear(dim_in_dist_params, dim_out),
-                    ),
-                    "scale_tril": nn.Sequential(
-                        nn.Linear(dim_in_dist_params, dim_out),
-                        Lambda(fn=lambda x: x - 4.0),
-                        # start out with small variances.
-                        nn.Softplus(),
-                        Lambda(fn=lambda x: x + 1e-6),  # FP64
-                        Lambda(fn=batch_diag_matrix),
-                    ),
-                }),
+                dist_params=nn.ModuleDict(
+                    {
+                        "loc": nn.Sequential(
+                            nn.Linear(dim_in_dist_params, dim_out),
+                        ),
+                        "scale_tril": nn.Sequential(
+                            nn.Linear(dim_in_dist_params, dim_out),
+                            Lambda(fn=lambda x: x - 4.0),
+                            # start out with small variances.
+                            nn.Softplus(),
+                            Lambda(fn=lambda x: x + 1e-6),  # FP64
+                            Lambda(fn=batch_diag_matrix),
+                        ),
+                    }
+                ),
                 dist_cls=MultivariateNormal,
             ),
             n_state=n_state,
@@ -93,16 +115,26 @@ class SwitchTransitionModelGaussian(nn.Module):
 class SwitchTransitionModelGaussianRecurrentBaseMat(nn.Module):
     def __init__(self, config, switch_link=None):
         super().__init__()
-        dim_in, dim_out, dims_stem, activations_stem, dim_in_dist_params = \
-            _extract_dims_from_cfg(config)
-        activations_stem = (activations_stem,) if isinstance(
-            activations_stem, nn.Module) else activations_stem
+        (
+            dim_in,
+            dim_out,
+            dims_stem,
+            activations_stem,
+            dim_in_dist_params,
+        ) = _extract_dims_from_cfg(config)
+        activations_stem = (
+            (activations_stem,)
+            if isinstance(activations_stem, nn.Module)
+            else activations_stem
+        )
         n_state, n_switch = config.dims.state, config.dims.switch
         self.is_recurrent = config.is_recurrent
 
         n_base_F, n_base_S = config.n_base_F, config.n_base_S
         init_scale_S_diag = config.init_scale_S_diag
-        switch_link_type = config.recurrent_link_type if switch_link is None else None
+        switch_link_type = (
+            config.recurrent_link_type if switch_link is None else None
+        )
 
         self.base_parameters = StateToSwitchParams(
             n_switch=n_switch,

@@ -37,14 +37,18 @@ class IndividualLink(nn.ModuleDict):
     def __init__(self, dim_in, names_and_dims_out: dict):
         super().__init__()
         for name, dim_out in names_and_dims_out.items():
-            self.update({
-                name: MLP(
-                    dim_in=dim_in,
-                    dims_hidden=(64, dim_out,),
-                    activations=(
-                        nn.LeakyReLU(0.1, inplace=True), nn.Softmax(dim=-1),)
-                )
-            })
+            self.update(
+                {
+                    name: MLP(
+                        dim_in=dim_in,
+                        dims_hidden=(64, dim_out,),
+                        activations=(
+                            nn.LeakyReLU(0.1, inplace=True),
+                            nn.Softmax(dim=-1),
+                        ),
+                    )
+                }
+            )
 
     def forward(self, switch):
         return Box({name: link(switch) for name, link in self.items()})
@@ -58,7 +62,7 @@ class SharedLink(nn.Module):
         self.link = MLP(
             dim_in=dim_in,
             dims_hidden=(dim_out,),
-            activations=(nn.Softmax(dim=-1),)
+            activations=(nn.Softmax(dim=-1),),
         )
 
     def forward(self, switch):

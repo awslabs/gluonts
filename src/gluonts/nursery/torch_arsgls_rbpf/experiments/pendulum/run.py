@@ -15,16 +15,25 @@ from visualization.plot_forecasts import make_val_plots_pendulum
 from inference.smc.resampling import make_criterion_fn_with_ess_threshold
 
 
-def train(log_paths, model, n_epochs, n_epochs_no_resampling, lr, train_loader,
-          gpus,
-          dtype=torch.float32,
-          n_epochs_until_validate_loss=config.n_epochs_until_validate_loss):
+def train(
+    log_paths,
+    model,
+    n_epochs,
+    n_epochs_no_resampling,
+    lr,
+    train_loader,
+    gpus,
+    dtype=torch.float32,
+    n_epochs_until_validate_loss=config.n_epochs_until_validate_loss,
+):
     if len(gpus) == 0:
         device = "cpu"
     elif len(gpus) == 1:
         device = f"cuda:{gpus[0]}"
     else:
-        device = f"cuda:{gpus[0]}"  # first of the available GPUs to store params on
+        device = (
+            f"cuda:{gpus[0]}"  # first of the available GPUs to store params on
+        )
 
     print(f"Training on device: {device} [{gpus}]; dtype: {dtype};")
     if len(gpus) > 1:
@@ -34,54 +43,73 @@ def train(log_paths, model, n_epochs, n_epochs_no_resampling, lr, train_loader,
         m = model
     model = model.to(dtype).to(device)
 
-    val_data = next(iter(DataLoader(  # we did not make validation set...
-        dataset=PendulumCoordDataset(
-            file_path=os.path.join(consts.data_dir, dataset_name, "test.npz"),
-            n_timesteps=dims.timesteps + config.n_steps_forecast,
-        ),
-        batch_size=500,
-        shuffle=False,
-        num_workers=0,
-        collate_fn=time_first_collate_fn,
-    )))
-    val_data = {name: val.to(device).to(dtype) for name, val in
-                val_data.items()}
+    val_data = next(
+        iter(
+            DataLoader(  # we did not make validation set...
+                dataset=PendulumCoordDataset(
+                    file_path=os.path.join(
+                        consts.data_dir, dataset_name, "test.npz"
+                    ),
+                    n_timesteps=dims.timesteps + config.n_steps_forecast,
+                ),
+                batch_size=500,
+                shuffle=False,
+                num_workers=0,
+                collate_fn=time_first_collate_fn,
+            )
+        )
+    )
+    val_data = {
+        name: val.to(device).to(dtype) for name, val in val_data.items()
+    }
 
     # ***** Optimizer *****
     n_iter_decay_one_order_of_magnitude = max(int(n_epochs / 2), 1)
-    optimizer = Adam(params=model.parameters(), lr=lr, betas=(0.9, 0.95),
-                     amsgrad=False,
-                     weight_decay=1e-4)
+    optimizer = Adam(
+        params=model.parameters(),
+        lr=lr,
+        betas=(0.9, 0.95),
+        amsgrad=False,
+        weight_decay=1e-4,
+    )
     decay_rate = (1 / 10) ** (1 / n_iter_decay_one_order_of_magnitude)
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer,
-                                                       gamma=decay_rate)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(
+        optimizer, gamma=decay_rate
+    )
     best_loss = np.inf
-    epoch_iter = tqdm.tqdm(range(n_epochs), desc='Epoch', position=0)
+    epoch_iter = tqdm.tqdm(range(n_epochs), desc="Epoch", position=0)
     for idx_epoch in epoch_iter:
         # save model
-        torch.save(model.state_dict(),
-                   os.path.join(log_paths.model, f"{idx_epoch}.pt"))
+        torch.save(
+            model.state_dict(),
+            os.path.join(log_paths.model, f"{idx_epoch}.pt"),
+        )
 
         # annealing
         # set re-sampling criterion to ESS = 0.5 after given number of epochs.
         # Start with never re-sampling.
         if idx_epoch == 0:
             print(
-                f"\nEpoch: {idx_epoch}: setting resampling criterion fn to ESS = 0.0")
+                f"\nEpoch: {idx_epoch}: setting resampling criterion fn to ESS = 0.0"
+            )
             m.resampling_criterion_fn = make_criterion_fn_with_ess_threshold(
-                min_ess_ratio=0.0)
+                min_ess_ratio=0.0
+            )
         elif idx_epoch == n_epochs_no_resampling:
             print(
-                f"\nEpoch: {idx_epoch}: setting resampling criterion fn to ESS = 0.5")
+                f"\nEpoch: {idx_epoch}: setting resampling criterion fn to ESS = 0.5"
+            )
             m.resampling_criterion_fn = make_criterion_fn_with_ess_threshold(
-                min_ess_ratio=0.5)
+                min_ess_ratio=0.5
+            )
         else:
             pass
 
         # validation: loss
         if idx_epoch % n_epochs_until_validate_loss == 0:
-            loss_val = model(y=val_data['y']).mean(
-                dim=(0, 1)).detach().cpu().numpy()
+            loss_val = (
+                model(y=val_data["y"]).mean(dim=(0, 1)).detach().cpu().numpy()
+            )
             for n_step_fcst in [
                 config.n_steps_forecast,
                 len(val_data["y"]) - 5,
@@ -99,28 +127,35 @@ def train(log_paths, model, n_epochs, n_epochs_no_resampling, lr, train_loader,
                         show=False,
                         savepath=os.path.join(
                             log_paths.plot,
-                            f"forecast_b{idx_timeseries}_ep{idx_epoch}_fcst_{n_step_fcst}.pdf")
+                            f"forecast_b{idx_timeseries}_ep{idx_epoch}_fcst_{n_step_fcst}.pdf",
+                        ),
                     )
             print(f"epoch: {idx_epoch}; loss {loss_val:.3f}")
             if loss_val < best_loss:
                 best_loss = loss_val
-                torch.save(model.state_dict(),
-                           os.path.join(log_paths.model, f"best.pt"))
+                torch.save(
+                    model.state_dict(),
+                    os.path.join(log_paths.model, f"best.pt"),
+                )
 
         # training
         for idx_batch, batch in enumerate(train_loader):
-            epoch_iter.set_postfix(batch=f"{idx_batch}/{len(train_loader)}",
-                                   refresh=True)
-            batch = {name: val.to(device).to(dtype) for name, val in
-                     batch.items()}
+            epoch_iter.set_postfix(
+                batch=f"{idx_batch}/{len(train_loader)}", refresh=True
+            )
+            batch = {
+                name: val.to(device).to(dtype) for name, val in batch.items()
+            }
             optimizer.zero_grad()
-            loss = model(batch['y']).mean(dim=(0, 1))  # sum over time and batch
+            loss = model(batch["y"]).mean(
+                dim=(0, 1)
+            )  # sum over time and batch
             loss.backward()
             optimizer.step()
         model.trained_epochs = idx_epoch
         scheduler.step()
 
-    print('done training.')
+    print("done training.")
     torch.save(model.state_dict(), os.path.join(log_paths.model, f"final.pt"))
     return model
 

@@ -4,8 +4,14 @@ from utils.utils import TensorDims
 
 
 class DynamicalSystem(nn.Module, metaclass=ABCMeta):
-    def __init__(self, n_state, n_obs, n_ctrl_state=None, n_ctrl_obs=None,
-                 n_particle=None):
+    def __init__(
+        self,
+        n_state,
+        n_obs,
+        n_ctrl_state=None,
+        n_ctrl_obs=None,
+        n_particle=None,
+    ):
         super().__init__()
         self.n_state = n_state
         self.n_obs = n_obs
@@ -13,8 +19,9 @@ class DynamicalSystem(nn.Module, metaclass=ABCMeta):
         self.n_ctrl_obs = n_ctrl_obs
         self.n_particle = n_particle
 
-    def get_dims(self, y=None, u_state=None, u_obs=None, n_timesteps=None,
-                 n_batch=None):
+    def get_dims(
+        self, y=None, u_state=None, u_obs=None, n_timesteps=None, n_batch=None
+    ):
         if y is not None:
             n_timesteps = y.shape[0]
             n_batch = y.shape[1]
@@ -34,7 +41,8 @@ class DynamicalSystem(nn.Module, metaclass=ABCMeta):
                     f"u_state: {type(u_state)}, "
                     f"u_obs: {type(u_obs)}, "
                     f"n_timesteps: {type(n_timesteps)}, "
-                    f"n_batch: {type(n_batch)}")
+                    f"n_batch: {type(n_batch)}"
+                )
         return TensorDims(
             timesteps=n_timesteps,
             particle=self.n_particle,

@@ -1,13 +1,18 @@
-from models.gls_parameters import GLSParameters, ISSMParameters, CompositeISSM, \
-    SeasonalityISSM
+from models.gls_parameters import (
+    GLSParameters,
+    ISSMParameters,
+    CompositeISSM,
+    SeasonalityISSM,
+)
 from torch_extensions.mlp import MLP
 
 
 class GlsParametersISSM(ISSMParameters):
     def __init__(self, config):
         super().__init__(
-            issm=CompositeISSM.get_from_freq(freq=config.freq,
-                                             add_trend=config.add_trend),
+            issm=CompositeISSM.get_from_freq(
+                freq=config.freq, add_trend=config.add_trend
+            ),
             n_state=config.dims.state,
             n_obs=config.dims.obs,
             n_ctrl_state=config.dims.ctrl_state,
@@ -23,12 +28,16 @@ class GlsParametersISSM(ISSMParameters):
                 dim_in=config.dims.switch,  # f: b(s)
                 dims_hidden=tuple(config.b_fn_dims) + (config.dims.state,),
                 activations=config.b_fn_activations,
-            ) if config.b_fn_dims else None,
+            )
+            if config.b_fn_dims
+            else None,
             d_fn=MLP(
                 dim_in=config.dims.switch,  # f: d(s)
                 dims_hidden=tuple(config.d_fn_dims) + (config.dims.obs,),
                 activations=config.d_fn_activations,
-            ) if config.d_fn_dims else None,
+            )
+            if config.d_fn_dims
+            else None,
             init_scale_R_diag=config.init_scale_R_diag,
             init_scale_Q_diag=config.init_scale_Q_diag,
             init_scale_A=config.init_scale_A,
@@ -56,12 +65,16 @@ class GlsParametersSeasonalityISSM(ISSMParameters):
                 dim_in=config.dims.switch,  # f: b(s)
                 dims_hidden=tuple(config.b_fn_dims) + (config.dims.state,),
                 activations=config.b_fn_activations,
-            ) if config.b_fn_dims else None,
+            )
+            if config.b_fn_dims
+            else None,
             d_fn=MLP(
                 dim_in=config.dims.switch,  # f: d(s)
                 dims_hidden=tuple(config.d_fn_dims) + (config.dims.obs,),
                 activations=config.d_fn_activations,
-            ) if config.d_fn_dims else None,
+            )
+            if config.d_fn_dims
+            else None,
             init_scale_R_diag=config.init_scale_R_diag,
             init_scale_Q_diag=config.init_scale_Q_diag,
             init_scale_A=config.init_scale_A,
@@ -89,12 +102,16 @@ class GlsParametersUnrestricted(GLSParameters):
                 dim_in=config.dims.switch,  # f: b(s)
                 dims_hidden=tuple(config.b_fn_dims) + (config.dims.state,),
                 activations=config.b_fn_activations,
-            ) if config.b_fn_dims else None,
+            )
+            if config.b_fn_dims
+            else None,
             d_fn=MLP(
                 dim_in=config.dims.switch,  # f: d(s)
                 dims_hidden=tuple(config.d_fn_dims) + (config.dims.obs,),
                 activations=config.d_fn_activations,
-            ) if config.d_fn_dims else None,
+            )
+            if config.d_fn_dims
+            else None,
             init_scale_R_diag=config.init_scale_R_diag,
             init_scale_Q_diag=config.init_scale_Q_diag,
             init_scale_A=config.init_scale_A,
@@ -157,12 +174,16 @@ class GLSParametersASGLS(GLSParameters):
                 dim_in=config.dims.switch,  # f: b(s)
                 dims_hidden=tuple(config.b_fn_dims) + (config.dims.state,),
                 activations=config.b_fn_activations,
-            ) if config.b_fn_dims else None,
+            )
+            if config.b_fn_dims
+            else None,
             d_fn=MLP(
                 dim_in=config.dims.switch,  # f: d(s)
                 dims_hidden=tuple(config.d_fn_dims) + (config.dims.obs,),
                 activations=config.d_fn_activations,
-            ) if config.d_fn_dims else None,
+            )
+            if config.d_fn_dims
+            else None,
             init_scale_A=config.init_scale_A,
             init_scale_B=config.init_scale_B,
             init_scale_C=config.init_scale_C,

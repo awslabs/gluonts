@@ -4,13 +4,21 @@ from torch.nn.modules.activation import LeakyReLU
 from torch import nn
 from experiments.base_config import BaseConfig, SwitchLinkType, TimeFeatType
 from utils.utils import TensorDims
-from data.gluonts_nips_datasets.gluonts_nips_datasets import get_cardinalities, \
-    get_dataset
-from experiments.model_component_zoo import gls_parameters, switch_transitions, \
-    switch_priors, \
-    state_priors, encoders, input_transforms
-from models.switching_gaussian_linear_system import \
-    RecurrentSwitchingLinearDynamicalSystem
+from data.gluonts_nips_datasets.gluonts_nips_datasets import (
+    get_cardinalities,
+    get_dataset,
+)
+from experiments.model_component_zoo import (
+    gls_parameters,
+    switch_transitions,
+    switch_priors,
+    state_priors,
+    encoders,
+    input_transforms,
+)
+from models.switching_gaussian_linear_system import (
+    RecurrentSwitchingLinearDynamicalSystem,
+)
 
 
 @dataclass()
@@ -78,24 +86,30 @@ past_lengths = {
 
 def get_n_feat_and_freq(dataset_name, timefeat):
     dataset = get_dataset(
-        dataset_name)  # bad to load this here, but must extract metadata.
+        dataset_name
+    )  # bad to load this here, but must extract metadata.
     freq = dataset.metadata.freq
-    cardinalities = get_cardinalities(dataset=dataset,
-                                      add_trend=add_trend_map[dataset_name])
+    cardinalities = get_cardinalities(
+        dataset=dataset, add_trend=add_trend_map[dataset_name]
+    )
     n_staticfeat = sum(cardinalities["cardinalities_feat_static_cat"])
     if timefeat.value == TimeFeatType.seasonal_indicator.value:
         n_timefeat = sum(cardinalities["cardinalities_season_indicators"])
     elif timefeat.value == TimeFeatType.timefeat.value:
         n_timefeat = len(cardinalities["cardinalities_season_indicators"]) + 3
     elif timefeat.value == TimeFeatType.both.value:
-        n_timefeat = sum(cardinalities["cardinalities_season_indicators"]) \
-                     + len(cardinalities["cardinalities_season_indicators"]) + 3
+        n_timefeat = (
+            sum(cardinalities["cardinalities_season_indicators"])
+            + len(cardinalities["cardinalities_season_indicators"])
+            + 3
+        )
     elif timefeat.value == TimeFeatType.timefeat.none:
         n_timefeat = 0
     else:
         raise Exception("unexpected")
-    n_latent = sum(cardinalities["cardinalities_season_indicators"]) \
-               + (2 if add_trend_map[dataset_name] else 1)
+    n_latent = sum(cardinalities["cardinalities_season_indicators"]) + (
+        2 if add_trend_map[dataset_name] else 1
+    )
 
     prediction_length_rolling = dataset.metadata.prediction_length
     if dataset.metadata.freq == "H":
@@ -105,17 +119,32 @@ def get_n_feat_and_freq(dataset_name, timefeat):
     else:
         raise Exception("unexpected freq")
 
-    return n_timefeat, n_staticfeat, n_latent, freq, cardinalities, prediction_length_rolling, prediction_length_full
+    return (
+        n_timefeat,
+        n_staticfeat,
+        n_latent,
+        freq,
+        cardinalities,
+        prediction_length_rolling,
+        prediction_length_full,
+    )
 
 
 def make_default_config(dataset_name):
     timefeat = TimeFeatType.timefeat
-    (n_timefeat, n_staticfeat, n_latent, freq, cardinalities,
-     prediction_length_rolling, prediction_length_full) = get_n_feat_and_freq(
-        dataset_name=dataset_name, timefeat=timefeat)
+    (
+        n_timefeat,
+        n_staticfeat,
+        n_latent,
+        freq,
+        cardinalities,
+        prediction_length_rolling,
+        prediction_length_full,
+    ) = get_n_feat_and_freq(dataset_name=dataset_name, timefeat=timefeat)
     assert len(cardinalities["cardinalities_feat_static_cat"]) == 1
-    n_static_embedding = min(50, (
-            cardinalities["cardinalities_feat_static_cat"][0] + 1) // 2)
+    n_static_embedding = min(
+        50, (cardinalities["cardinalities_feat_static_cat"][0] + 1) // 2
+    )
     n_ctrl = 64
 
     dims = TensorDims(
@@ -145,12 +174,13 @@ def make_default_config(dataset_name):
         n_epochs_no_resampling=5,
         n_epochs_freeze_gls_params=1,
         n_epochs_until_validate_loss=1,
-        lr=1e-3 if dataset_name in [
-            "electricity_nips"] else 1e-2 if dataset_name in [
-            "solar_nips"] else 5e-3,
+        lr=1e-3
+        if dataset_name in ["electricity_nips"]
+        else 1e-2
+        if dataset_name in ["solar_nips"]
+        else 5e-3,
         weight_decay=1e-5,
         grad_clip_norm=10.0,
-
         num_samples_eval=100,
         batch_size_val=15,  # 10
         # gpus=tuple(range(3, 4)),
@@ -212,16 +242,22 @@ def make_default_config(dataset_name):
 def make_model(config):
     dims = config.dims
     input_transformer = input_transforms.InputTransformEmbeddingAndMLP(
-        config=config)
+        config=config
+    )
     gls_base_parameters = gls_parameters.GlsParametersISSM(config=config)
-    obs_to_switch_encoder = encoders.ObsToSwitchEncoderGaussianMLP(
-        config=config) \
-        if config.obs_to_switch_encoder else None
-    state_to_switch_encoder = encoders.StateToSwitchEncoderGaussianMLP(
-        config=config) \
-        if config.state_to_switch_encoder else None
+    obs_to_switch_encoder = (
+        encoders.ObsToSwitchEncoderGaussianMLP(config=config)
+        if config.obs_to_switch_encoder
+        else None
+    )
+    state_to_switch_encoder = (
+        encoders.StateToSwitchEncoderGaussianMLP(config=config)
+        if config.state_to_switch_encoder
+        else None
+    )
     switch_transition_model = switch_transitions.SwitchTransitionModelGaussianRecurrentBaseMat(
-        config=config)
+        config=config
+    )
     state_prior_model = state_priors.StatePriorModelNoInputs(config=config)
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
     model = RecurrentSwitchingLinearDynamicalSystem(
@@ -278,14 +314,14 @@ def basemat_mod(config):
     cfgs = {}
     for n_base in [10, 15, 20, 25]:
         cfg = deepcopy(config)
-        cfg.n_base_A = n_base,
-        cfg.n_base_B = None,
-        cfg.n_base_C = n_base,
-        cfg.n_base_D = n_base,
-        cfg.n_base_Q = n_base,
-        cfg.n_base_R = n_base,
-        cfg.n_base_F = n_base,
-        cfg.n_base_S = n_base,
+        cfg.n_base_A = (n_base,)
+        cfg.n_base_B = (None,)
+        cfg.n_base_C = (n_base,)
+        cfg.n_base_D = (n_base,)
+        cfg.n_base_Q = (n_base,)
+        cfg.n_base_R = (n_base,)
+        cfg.n_base_F = (n_base,)
+        cfg.n_base_S = (n_base,)
         cfgs[str(n_base)] = cfg
     return cfgs
 
@@ -318,7 +354,8 @@ def make_experiment_config(dataset_name, experiment_name):
     if experiment_name is not None and experiment_name != "default":
         if not f"{experiment_name}" in locals():
             raise Exception(
-                f"config file must have function {experiment_name}_mod")
+                f"config file must have function {experiment_name}_mod"
+            )
         mod_fn = locals()[f"{experiment_name}_mod"]
         print(f"modifying config for experiment {experiment_name}")
         config = mod_fn(config)

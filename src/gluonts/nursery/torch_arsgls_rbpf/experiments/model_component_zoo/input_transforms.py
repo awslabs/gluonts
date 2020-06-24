@@ -12,8 +12,9 @@ class ControlInputs:
     switch: torch.Tensor
 
     def __getitem__(self, item):
-        return ControlInputs(self.state[item], self.obs[item],
-                             self.switch[item])
+        return ControlInputs(
+            self.state[item], self.obs[item], self.switch[item]
+        )
 
     def __len__(self):
         assert len(self.state) == len(self.obs) == len(self.switch)
@@ -52,9 +53,9 @@ class InputTransformOneHotMLP(nn.Module):
         )
 
     def forward(self, u_static_cat, u_time) -> ControlInputs:
-        u_staticfeat_onehot = one_hot(u_static_cat,
-                                      num_classes=self.num_classes).to(
-            dtype=u_time.dtype)
+        u_staticfeat_onehot = one_hot(
+            u_static_cat, num_classes=self.num_classes
+        ).to(dtype=u_time.dtype)
         u = self.mlp(torch.cat((u_staticfeat_onehot, u_time), dim=-1))
         return ControlInputs(state=u, obs=u, switch=u)
 
@@ -88,7 +89,8 @@ class InputTransformEmbeddingAndMLP(nn.Module):
 
     def forward(self, u_static_cat, u_time) -> ControlInputs:
         u = self.mlp(
-            torch.cat([self.embedding(u_static_cat), u_time * 5], dim=-1))
+            torch.cat([self.embedding(u_static_cat), u_time * 5], dim=-1)
+        )
         return ControlInputs(state=u, obs=u, switch=u)
 
 

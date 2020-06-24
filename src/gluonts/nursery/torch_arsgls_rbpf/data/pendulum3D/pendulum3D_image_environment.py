@@ -5,8 +5,9 @@ import scipy.stats
 import matplotlib.pyplot as plt
 
 import consts
-from data.pendulum3D.pendulum3D_coord_environment import \
-    Pendulum3DCoordEnvironment
+from data.pendulum3D.pendulum3D_coord_environment import (
+    Pendulum3DCoordEnvironment,
+)
 
 
 class Pendulum3DImageEnvironment(Pendulum3DCoordEnvironment):
@@ -16,14 +17,22 @@ class Pendulum3DImageEnvironment(Pendulum3DCoordEnvironment):
     camera rotates around x or y axis, whereas pendulum rotates around z axis.
     """
 
-    def __init__(self,
-                 center_pendulum=np.array((0, 0, 2.0)),
-                 cov_pendulum=np.array((0.1, 0.2, 0.1)),
-                 noise_std_obs=0.2,
-                 radius=1.0, g=9.81, mass=1.0, dampening=0.25,
-                 noise_std_dyn=0.0, dt=0.1,
-                 dims_img=(32, 32,), f=1, cx=1, cy=1,
-                 ):
+    def __init__(
+        self,
+        center_pendulum=np.array((0, 0, 2.0)),
+        cov_pendulum=np.array((0.1, 0.2, 0.1)),
+        noise_std_obs=0.2,
+        radius=1.0,
+        g=9.81,
+        mass=1.0,
+        dampening=0.25,
+        noise_std_dyn=0.0,
+        dt=0.1,
+        dims_img=(32, 32,),
+        f=1,
+        cx=1,
+        cy=1,
+    ):
         """
         These params depend on each other.
         the ratio of focal length and distance of the pendulum (z-axis of center-pendulum)
@@ -56,24 +65,29 @@ class Pendulum3DImageEnvironment(Pendulum3DCoordEnvironment):
         )
         self.dims_img = dims_img
         self.n_obs = np.prod(
-            dims_img)  # required to overwrite this due to bad design...
+            dims_img
+        )  # required to overwrite this due to bad design...
         self.cx, self.cy = cx, cy
 
     def observe(self, perspective):
         mu_pendulum_pixel, cov_pendulum_pixel = self.project_to_pixel_space(
-            perspective=perspective)
+            perspective=perspective
+        )
         x = np.linspace(-self.cx, self.cx, self.dims_img[0])
         # Image vertical dimensions go from top to bottom.
         # --> Invert by starting with positive numbers top .
         y = np.linspace(self.cy, -self.cy, self.dims_img[1])
         xv, yv = np.meshgrid(x, y)
         pixels = np.concatenate(
-            (xv.ravel()[:, np.newaxis], yv.ravel()[:, np.newaxis]), 1)
+            (xv.ravel()[:, np.newaxis], yv.ravel()[:, np.newaxis]), 1
+        )
 
         img = scipy.stats.multivariate_normal.pdf(
-            pixels, mean=mu_pendulum_pixel, cov=cov_pendulum_pixel)
-        img_noisy = img + np.random.normal(loc=0, scale=self.noise_std_obs,
-                                           size=img.shape)
+            pixels, mean=mu_pendulum_pixel, cov=cov_pendulum_pixel
+        )
+        img_noisy = img + np.random.normal(
+            loc=0, scale=self.noise_std_obs, size=img.shape
+        )
         return img_noisy, img
 
     def plot(self, observations, n_samples=3, n_timesteps=None):
@@ -84,9 +98,12 @@ class Pendulum3DImageEnvironment(Pendulum3DCoordEnvironment):
         if n_samples is None or n_samples > observations.shape[1]:
             n_samples = observations.shape[1]
 
-        fig, axs = plt.subplots(n_samples, n_timesteps,
-                                figsize=(n_timesteps * 2, n_samples * 2),
-                                squeeze=False)
+        fig, axs = plt.subplots(
+            n_samples,
+            n_timesteps,
+            figsize=(n_timesteps * 2, n_samples * 2),
+            squeeze=False,
+        )
         plt.tight_layout()
         for t in range(n_timesteps):
             for n in range(n_samples):
@@ -95,9 +112,9 @@ class Pendulum3DImageEnvironment(Pendulum3DCoordEnvironment):
 
         for t in range(n_timesteps):
             for n in range(n_samples):
-                obs = observations[t, n, :self.dims_img[0] * self.dims_img[1]]
+                obs = observations[t, n, : self.dims_img[0] * self.dims_img[1]]
                 img = obs.reshape((self.dims_img[0], self.dims_img[1]))
-                axs[n, t].imshow(img, cmap='binary', interpolation='none')
+                axs[n, t].imshow(img, cmap="binary", interpolation="none")
         return fig, axs
 
     def plot_mean(self, observations, n_timesteps=None):
@@ -106,35 +123,44 @@ class Pendulum3DImageEnvironment(Pendulum3DCoordEnvironment):
 
         if n_timesteps == None:
             n_timesteps = observations.shape[0]
-        fig, axs = plt.subplots(1, n_timesteps,
-                                figsize=(n_timesteps * 2, 2),
-                                squeeze=True)
+        fig, axs = plt.subplots(
+            1, n_timesteps, figsize=(n_timesteps * 2, 2), squeeze=True
+        )
         fig.tight_layout()
         for t in range(n_timesteps):
             axs[t].set_xticks([])
             axs[t].set_yticks([])
 
         for t in range(n_timesteps):
-            obs = np.mean(observations[t, :self.dims_img[0] * self.dims_img[1]],
-                          axis=0)
+            obs = np.mean(
+                observations[t, : self.dims_img[0] * self.dims_img[1]], axis=0
+            )
             img = obs.reshape((self.dims_img[0], self.dims_img[1]))
-            axs[t].imshow(img, cmap='binary', interpolation='none')
+            axs[t].imshow(img, cmap="binary", interpolation="none")
         return fig, axs
 
 
 def generate_dataset(seed=42):
     from utils.local_seed import local_seed
+
     n_train = 5000
     n_test = 1000
     n_timesteps = 150
-    dims_img = (32, 32,)
+    dims_img = (
+        32,
+        32,
+    )
     perspective = (0.0, 0.0)
 
-    data_path = os.path.join(consts.data_dir, consts.Datasets.pendulum_3D_image)
+    data_path = os.path.join(
+        consts.data_dir, consts.Datasets.pendulum_3D_image
+    )
     if not os.path.exists(data_path):
         os.makedirs(data_path)
 
-    def generate_sequence(n_timesteps_obs, n_steps_sim_per_obs=10, dt_sim=0.01):
+    def generate_sequence(
+        n_timesteps_obs, n_steps_sim_per_obs=10, dt_sim=0.01
+    ):
         assert isinstance(n_steps_sim_per_obs, int) and n_steps_sim_per_obs > 0
         env = Pendulum3DImageEnvironment(dt=dt_sim, dims_img=dims_img)
         env.enter()
@@ -161,7 +187,8 @@ def generate_dataset(seed=42):
             if idx_sample % 100 == 0:
                 print(f"sequence {idx_sample}/{n_data}")
             observations, observations_gt, states = generate_sequence(
-                n_timesteps_obs=n_timesteps)
+                n_timesteps_obs=n_timesteps
+            )
             observations_dataset.append(observations)
             observations_gt_dataset.append(observations_gt)
             states_dataset.append(states)
@@ -171,20 +198,30 @@ def generate_dataset(seed=42):
         return observations_dataset, observations_gt_dataset, states_dataset
 
     with local_seed(seed=seed):
-        observations_train, observations_gt_train, states_train = generate_dataset(
-            n_data=n_train, n_timesteps=n_timesteps)
-        observations_test, observations_gt_test, states_test = generate_dataset(
-            n_data=n_test, n_timesteps=n_timesteps)
+        (
+            observations_train,
+            observations_gt_train,
+            states_train,
+        ) = generate_dataset(n_data=n_train, n_timesteps=n_timesteps)
+        (
+            observations_test,
+            observations_gt_test,
+            states_test,
+        ) = generate_dataset(n_data=n_test, n_timesteps=n_timesteps)
 
-    np.savez(os.path.join(data_path, "train.npz"),
-             obs=observations_train,
-             obs_gt=observations_gt_train,
-             state=states_train)
-    np.savez(os.path.join(data_path, "test.npz"),
-             obs=observations_test,
-             obs_gt=observations_gt_test,
-             state=states_test)
+    np.savez(
+        os.path.join(data_path, "train.npz"),
+        obs=observations_train,
+        obs_gt=observations_gt_train,
+        state=states_train,
+    )
+    np.savez(
+        os.path.join(data_path, "test.npz"),
+        obs=observations_test,
+        obs_gt=observations_gt_test,
+        state=states_test,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     generate_dataset()

@@ -2,14 +2,27 @@ import math
 from box import Box
 import torch
 from utils.utils import convert_ssm_params_to_model_params
-from inference.analytical_gausian_linear.inference_sequence_homogenous import \
-    filter_forward, smooth_forward_backward, smooth_global, sample, loss_em, \
-    loss_forward
+from inference.analytical_gausian_linear.inference_sequence_homogenous import (
+    filter_forward,
+    smooth_forward_backward,
+    smooth_global,
+    sample,
+    loss_em,
+    loss_forward,
+)
 from models.dynamical_system import DynamicalSystem
 
 
-def ornstein_uhlenbeck_initialization(n_obs, n_state, n_ctrl_state, n_ctrl_obs,
-                                      n_theta=10, mu=0.0, sig=2.0, y=None):
+def ornstein_uhlenbeck_initialization(
+    n_obs,
+    n_state,
+    n_ctrl_state,
+    n_ctrl_obs,
+    n_theta=10,
+    mu=0.0,
+    sig=2.0,
+    y=None,
+):
     """ initialise to a default model with OU prior """
     if y is not None:
         mu_y = torch.mean(y, dim=1)
@@ -53,10 +66,20 @@ class GaussianLinearSystemHomogenous(DynamicalSystem):
     inhomogenous dynamics or linear(ized) approximations of non-linear dynamics.
     """
 
-    def __init__(self, n_state, n_obs, n_ctrl_state, n_ctrl_obs,
-                 initialization_fn=ornstein_uhlenbeck_initialization):
-        super().__init__(n_state=n_state, n_obs=n_obs,
-                         n_ctrl_state=n_ctrl_state, n_ctrl_obs=n_ctrl_obs)
+    def __init__(
+        self,
+        n_state,
+        n_obs,
+        n_ctrl_state,
+        n_ctrl_obs,
+        initialization_fn=ornstein_uhlenbeck_initialization,
+    ):
+        super().__init__(
+            n_state=n_state,
+            n_obs=n_obs,
+            n_ctrl_state=n_ctrl_state,
+            n_ctrl_obs=n_ctrl_obs,
+        )
 
         params = initialization_fn(
             n_obs=self.n_obs,
@@ -79,67 +102,125 @@ class GaussianLinearSystemHomogenous(DynamicalSystem):
     def filter_forward(self, y, u_state=None, u_obs=None):
         dims = self.get_dims(y)
         return filter_forward(
-            dims=dims, A=self.A, B=self.B, C=self.C, D=self.D,
-            LQinv_tril=self.LQinv_tril, LQinv_logdiag=self.LQinv_logdiag,
-            LRinv_tril=self.LRinv_tril, LRinv_logdiag=self.LRinv_logdiag,
-            LV0inv_tril=self.LV0inv_tril, LV0inv_logdiag=self.LV0inv_logdiag,
+            dims=dims,
+            A=self.A,
+            B=self.B,
+            C=self.C,
+            D=self.D,
+            LQinv_tril=self.LQinv_tril,
+            LQinv_logdiag=self.LQinv_logdiag,
+            LRinv_tril=self.LRinv_tril,
+            LRinv_logdiag=self.LRinv_logdiag,
+            LV0inv_tril=self.LV0inv_tril,
+            LV0inv_logdiag=self.LV0inv_logdiag,
             m0=self.m0,
-            y=y, u_state=u_state, u_obs=u_obs,
+            y=y,
+            u_state=u_state,
+            u_obs=u_obs,
         )
 
     def smooth_forward_backward(self, y, u_state=None, u_obs=None):
         dims = self.get_dims(y)
         return smooth_forward_backward(
-            dims=dims, A=self.A, B=self.B, C=self.C, D=self.D,
-            LQinv_tril=self.LQinv_tril, LQinv_logdiag=self.LQinv_logdiag,
-            LRinv_tril=self.LRinv_tril, LRinv_logdiag=self.LRinv_logdiag,
-            LV0inv_tril=self.LV0inv_tril, LV0inv_logdiag=self.LV0inv_logdiag,
+            dims=dims,
+            A=self.A,
+            B=self.B,
+            C=self.C,
+            D=self.D,
+            LQinv_tril=self.LQinv_tril,
+            LQinv_logdiag=self.LQinv_logdiag,
+            LRinv_tril=self.LRinv_tril,
+            LRinv_logdiag=self.LRinv_logdiag,
+            LV0inv_tril=self.LV0inv_tril,
+            LV0inv_logdiag=self.LV0inv_logdiag,
             m0=self.m0,
-            y=y, u_state=u_state, u_obs=u_obs,
+            y=y,
+            u_state=u_state,
+            u_obs=u_obs,
         )
 
     def smooth_global(self, y, u_state=None, u_obs=None):
         dims = self.get_dims(y)
         return smooth_global(
-            dims=dims, A=self.A, B=self.B, C=self.C, D=self.D,
-            LQinv_tril=self.LQinv_tril, LQinv_logdiag=self.LQinv_logdiag,
-            LRinv_tril=self.LRinv_tril, LRinv_logdiag=self.LRinv_logdiag,
-            LV0inv_tril=self.LV0inv_tril, LV0inv_logdiag=self.LV0inv_logdiag,
+            dims=dims,
+            A=self.A,
+            B=self.B,
+            C=self.C,
+            D=self.D,
+            LQinv_tril=self.LQinv_tril,
+            LQinv_logdiag=self.LQinv_logdiag,
+            LRinv_tril=self.LRinv_tril,
+            LRinv_logdiag=self.LRinv_logdiag,
+            LV0inv_tril=self.LV0inv_tril,
+            LV0inv_logdiag=self.LV0inv_logdiag,
             m0=self.m0,
-            y=y, u_state=u_state, u_obs=u_obs,
+            y=y,
+            u_state=u_state,
+            u_obs=u_obs,
         )
 
     def sample(self, u_state=None, u_obs=None, n_timesteps=None, n_batch=None):
         # TODO: make sample function take initial sample as input.
         #  and this method take either (m, V) or sample, or None (-> use prior).
-        dims = self.get_dims(u_state=u_state, u_obs=u_obs,
-                             n_timesteps=n_timesteps, n_batch=n_batch)
+        dims = self.get_dims(
+            u_state=u_state,
+            u_obs=u_obs,
+            n_timesteps=n_timesteps,
+            n_batch=n_batch,
+        )
         return sample(
-            dims=dims, A=self.A, B=self.B, C=self.C, D=self.D,
-            LQinv_tril=self.LQinv_tril, LQinv_logdiag=self.LQinv_logdiag,
-            LRinv_tril=self.LRinv_tril, LRinv_logdiag=self.LRinv_logdiag,
-            LV0inv_tril=self.LV0inv_tril, LV0inv_logdiag=self.LV0inv_logdiag,
-            m0=self.m0, u_state=u_state, u_obs=u_obs,
+            dims=dims,
+            A=self.A,
+            B=self.B,
+            C=self.C,
+            D=self.D,
+            LQinv_tril=self.LQinv_tril,
+            LQinv_logdiag=self.LQinv_logdiag,
+            LRinv_tril=self.LRinv_tril,
+            LRinv_logdiag=self.LRinv_logdiag,
+            LV0inv_tril=self.LV0inv_tril,
+            LV0inv_logdiag=self.LV0inv_logdiag,
+            m0=self.m0,
+            u_state=u_state,
+            u_obs=u_obs,
         )
 
     def loss_forward(self, y, u_state=None, u_obs=None):
         dims = self.get_dims(y)
         return loss_forward(
-            dims=dims, A=self.A, B=self.B, C=self.C, D=self.D,
-            LQinv_tril=self.LQinv_tril, LQinv_logdiag=self.LQinv_logdiag,
-            LRinv_tril=self.LRinv_tril, LRinv_logdiag=self.LRinv_logdiag,
-            LV0inv_tril=self.LV0inv_tril, LV0inv_logdiag=self.LV0inv_logdiag,
+            dims=dims,
+            A=self.A,
+            B=self.B,
+            C=self.C,
+            D=self.D,
+            LQinv_tril=self.LQinv_tril,
+            LQinv_logdiag=self.LQinv_logdiag,
+            LRinv_tril=self.LRinv_tril,
+            LRinv_logdiag=self.LRinv_logdiag,
+            LV0inv_tril=self.LV0inv_tril,
+            LV0inv_logdiag=self.LV0inv_logdiag,
             m0=self.m0,
-            y=y, u_state=u_state, u_obs=u_obs,
+            y=y,
+            u_state=u_state,
+            u_obs=u_obs,
         )
 
     def loss_em(self, y, u_state=None, u_obs=None):
         dims = self.get_dims(y)
         return loss_em(
-            dims=dims, A=self.A, B=self.B, C=self.C, D=self.D,
-            LQinv_tril=self.LQinv_tril, LQinv_logdiag=self.LQinv_logdiag,
-            LRinv_tril=self.LRinv_tril, LRinv_logdiag=self.LRinv_logdiag,
-            LV0inv_tril=self.LV0inv_tril, LV0inv_logdiag=self.LV0inv_logdiag,
+            dims=dims,
+            A=self.A,
+            B=self.B,
+            C=self.C,
+            D=self.D,
+            LQinv_tril=self.LQinv_tril,
+            LQinv_logdiag=self.LQinv_logdiag,
+            LRinv_tril=self.LRinv_tril,
+            LRinv_logdiag=self.LRinv_logdiag,
+            LV0inv_tril=self.LV0inv_tril,
+            LV0inv_logdiag=self.LV0inv_logdiag,
             m0=self.m0,
-            y=y, u_state=u_state, u_obs=u_obs,
+            y=y,
+            u_state=u_state,
+            u_obs=u_obs,
         )

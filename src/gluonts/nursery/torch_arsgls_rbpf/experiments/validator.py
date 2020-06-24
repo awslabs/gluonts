@@ -22,10 +22,10 @@ class FilterAndForecastEvaluator(Evaluator):
         super().__init__(*args, **kwargs, num_workers=0)
 
     def __call__(
-            self,
-            ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
-            pred_iterator: Iterable[Forecast],
-            num_series: Optional[int] = None,
+        self,
+        ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
+        pred_iterator: Iterable[Forecast],
+        num_series: Optional[int] = None,
     ) -> Dict[torch.Tensor, Tuple[Dict[str, float], pd.DataFrame]]:
         """
         Compute accuracy metrics by comparing actual data to the forecasts.
@@ -66,7 +66,8 @@ class FilterAndForecastEvaluator(Evaluator):
             # mpys_filter.append(fcst_and_loss["mpy_filter"])
             # Vpys_filter.append(fcst_and_loss["Vpy_filter"])
             rows.append(
-                self.get_metrics_per_ts(ts, forecast))  # forecasts metrics
+                self.get_metrics_per_ts(ts, forecast)
+            )  # forecasts metrics
 
         assert not any(
             True for _ in ts_iterator
@@ -78,7 +79,7 @@ class FilterAndForecastEvaluator(Evaluator):
 
         if num_series is not None:
             assert (
-                    len(rows) == num_series
+                len(rows) == num_series
             ), f"num_series={num_series} did not match number of elements={len(rows)}"
 
         # If all entries of a target array are NaNs, the resulting metric will have value "masked". Pandas does not
@@ -96,9 +97,16 @@ class FilterAndForecastEvaluator(Evaluator):
 
 
 class Validator:
-    def __init__(self, log_paths, dataset, forecaster, num_samples, num_series,
-                 store_filter_and_forecast_result=False,
-                 moving_average_param=0.8):
+    def __init__(
+        self,
+        log_paths,
+        dataset,
+        forecaster,
+        num_samples,
+        num_series,
+        store_filter_and_forecast_result=False,
+        moving_average_param=0.8,
+    ):
         super().__init__()
         self.log_paths = log_paths
         self.dataset = dataset
@@ -109,7 +117,9 @@ class Validator:
         )
         self.num_samples = num_samples
         self.num_series = num_series
-        self.store_filter_and_forecast_result = store_filter_and_forecast_result
+        self.store_filter_and_forecast_result = (
+            store_filter_and_forecast_result
+        )
         self.ma_param = moving_average_param
         self.loss_moving_average = None
 
@@ -134,8 +144,7 @@ class Validator:
                 forecast_it = shorten_iter(forecast_it, num_series)
                 ts_it = shorten_iter(ts_it, num_series)
             eval_outputs = self.evaluator(
-                ts_it, forecast_it,
-                num_series=num_series,
+                ts_it, forecast_it, num_series=num_series,
             )
             agg_metrics, item_metrics = eval_outputs["metrics"]
             loss = eval_outputs["loss"]
@@ -145,11 +154,12 @@ class Validator:
             if self.loss_moving_average is None:
                 self.loss_moving_average = loss
             else:
-                self.loss_moving_average = \
-                    self.ma_param * self.loss_moving_average + (
-                            1 - self.ma_param) * loss
+                self.loss_moving_average = (
+                    self.ma_param * self.loss_moving_average
+                    + (1 - self.ma_param) * loss
+                )
 
-            agg_metrics['loss'] = loss
+            agg_metrics["loss"] = loss
             # agg_metrics['loss_norm'] = loss_norm
             agg_metrics["loss_ma"] = self.loss_moving_average
             if self.store_filter_and_forecast_result:
@@ -166,9 +176,12 @@ class Validator:
                 self.agg_metrics[key].append(val)
 
     def save(self, epoch):
-        np.savez(os.path.join(self.log_paths.metrics, f"{epoch}.npz"),
-                 self.agg_metrics)
+        np.savez(
+            os.path.join(self.log_paths.metrics, f"{epoch}.npz"),
+            self.agg_metrics,
+        )
 
     def load(self, epoch):
         return np.load(
-            os.path.join(self.log_paths.metrics, f"{epoch}.npz")).item()
+            os.path.join(self.log_paths.metrics, f"{epoch}.npz")
+        ).item()

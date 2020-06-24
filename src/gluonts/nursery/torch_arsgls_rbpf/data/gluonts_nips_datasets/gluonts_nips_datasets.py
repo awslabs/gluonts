@@ -3,8 +3,11 @@ import pathlib
 from box import Box
 
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import InferenceDataLoader, TrainDataLoader, \
-    ValidationDataLoader
+from gluonts.dataset.loader import (
+    InferenceDataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -35,23 +38,29 @@ from utils.utils import one_hot
 
 def get_dataset(dataset_name):
     if dataset_name == "wiki2000_nips":
-        datasets_root_path = os.path.join(os.environ["HOME"],
-                                          ".mxnet/gluon-ts/datasets")
+        datasets_root_path = os.path.join(
+            os.environ["HOME"], ".mxnet/gluon-ts/datasets"
+        )
         dataset_path = os.path.join(datasets_root_path, dataset_name)
 
         if not os.path.exists(datasets_root_path):
             os.makedirs(datasets_root_path, exist_ok=True)
         if not os.path.exists(dataset_path):
-            raise Exception(f"you must manually upload the wiki dataset "
-                            f"and place it to the following folder: {dataset_path}")
+            raise Exception(
+                f"you must manually upload the wiki dataset "
+                f"and place it to the following folder: {dataset_path}"
+            )
         else:
             dataset = load_datasets(
                 metadata=pathlib.PurePath(
-                    os.path.join(dataset_path, "metadata")),
+                    os.path.join(dataset_path, "metadata")
+                ),
                 train=pathlib.PurePath(os.path.join(dataset_path, "train")),
                 test=pathlib.PurePath(os.path.join(dataset_path, "test")),
             )
-            if dataset.metadata.freq == "1D":  # WHY IS WIKI "D" AND THIS IS "1D" ?!
+            if (
+                dataset.metadata.freq == "1D"
+            ):  # WHY IS WIKI "D" AND THIS IS "1D" ?!
                 dataset.metadata.freq = "D"
             return dataset
     else:
@@ -59,14 +68,14 @@ def get_dataset(dataset_name):
 
 
 def create_input_transform(
-        is_train,
-        prediction_length,
-        past_length,
-        use_feat_static_cat,
-        use_feat_dynamic_real,
-        freq,
-        time_features,
-        extract_tail_chunks_for_train: bool = False
+    is_train,
+    prediction_length,
+    past_length,
+    use_feat_static_cat,
+    use_feat_dynamic_real,
+    freq,
+    time_features,
+    extract_tail_chunks_for_train: bool = False,
 ):
     SEASON_INDICATORS_FIELD = "seasonal_indicators"
     remove_field_names = [
@@ -76,8 +85,11 @@ def create_input_transform(
     if not use_feat_dynamic_real:
         remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
-    time_features = time_features if time_features is not None \
+    time_features = (
+        time_features
+        if time_features is not None
         else time_features_from_frequency_str(freq)
+    )
 
     transform = Chain(
         [RemoveFields(field_names=remove_field_names)]
@@ -119,11 +131,11 @@ def create_input_transform(
             VstackFeatures(
                 output_field=FieldName.FEAT_TIME,
                 input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
-                             + (
-                                 [FieldName.FEAT_DYNAMIC_REAL]
-                                 if use_feat_dynamic_real
-                                 else []
-                             ),
+                + (
+                    [FieldName.FEAT_DYNAMIC_REAL]
+                    if use_feat_dynamic_real
+                    else []
+                ),
             ),
             CanonicalInstanceSplitter(
                 target_field=FieldName.TARGET,
@@ -140,8 +152,9 @@ def create_input_transform(
                 instance_length=past_length,
                 use_prediction_features=True,
                 prediction_length=prediction_length,
-            ) if (is_train and not extract_tail_chunks_for_train) else
-            CanonicalInstanceSplitter(
+            )
+            if (is_train and not extract_tail_chunks_for_train)
+            else CanonicalInstanceSplitter(
                 target_field=FieldName.TARGET,
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
@@ -162,11 +175,17 @@ def create_input_transform(
     return transform
 
 
-def create_loaders(dataset, batch_sizes, past_length,
-                   prediction_length_full, prediction_length_rolling,
-                   num_batches_per_epoch=50, num_workers=0,
-                   extract_tail_chunks_for_train: bool = False,
-                   val_full_length=True):
+def create_loaders(
+    dataset,
+    batch_sizes,
+    past_length,
+    prediction_length_full,
+    prediction_length_rolling,
+    num_batches_per_epoch=50,
+    num_workers=0,
+    extract_tail_chunks_for_train: bool = False,
+    val_full_length=True,
+):
     """
     The past_length and prediction_length is seriously unintuitive in gluonTS.
     Here is a little summary to make sure it is used it correctly:
@@ -188,7 +207,7 @@ def create_loaders(dataset, batch_sizes, past_length,
     test: this does not make sense. It still gives you y[-past_length:] ...
     """
     input_transforms = {}
-    for name in ['train', 'val', 'test_full', 'test_rolling']:
+    for name in ["train", "val", "test_full", "test_rolling"]:
         if name == "train":
             prediction_length = 0
             is_train = True
@@ -197,7 +216,10 @@ def create_loaders(dataset, batch_sizes, past_length,
             prediction_length = 0
             is_train = False
             past_length_ = past_length + (
-                prediction_length_full if val_full_length else prediction_length_rolling)
+                prediction_length_full
+                if val_full_length
+                else prediction_length_rolling
+            )
         elif name == "test_full":
             prediction_length = prediction_length_full
             is_train = False
@@ -213,7 +235,9 @@ def create_loaders(dataset, batch_sizes, past_length,
             prediction_length=prediction_length,
             past_length=past_length_,
             use_feat_static_cat=True,
-            use_feat_dynamic_real=True if dataset.metadata.feat_dynamic_real else False,
+            use_feat_dynamic_real=True
+            if dataset.metadata.feat_dynamic_real
+            else False,
             freq=dataset.metadata.freq,
             time_features=None,
             extract_tail_chunks_for_train=extract_tail_chunks_for_train,
@@ -221,7 +245,7 @@ def create_loaders(dataset, batch_sizes, past_length,
 
     train_loader = TrainDataLoader(
         dataset=dataset.train,
-        transform=input_transforms['train'],
+        transform=input_transforms["train"],
         num_batches_per_epoch=num_batches_per_epoch,
         batch_size=batch_sizes["train"],
         num_workers=num_workers,
@@ -230,7 +254,7 @@ def create_loaders(dataset, batch_sizes, past_length,
     )
     val_loader = ValidationDataLoader(
         dataset=dataset.train,
-        transform=input_transforms['val'],
+        transform=input_transforms["val"],
         batch_size=batch_sizes["val"],
         num_workers=num_workers,
         ctx=None,
@@ -238,7 +262,7 @@ def create_loaders(dataset, batch_sizes, past_length,
     )
     test_full_loader = InferenceDataLoader(
         dataset=dataset.test,
-        transform=input_transforms['test_full'],
+        transform=input_transforms["test_full"],
         batch_size=batch_sizes["test_full"],
         num_workers=num_workers,
         ctx=None,
@@ -246,36 +270,45 @@ def create_loaders(dataset, batch_sizes, past_length,
     )
     test_rolling_loader = InferenceDataLoader(
         dataset=dataset.test,
-        transform=input_transforms['test_rolling'],
+        transform=input_transforms["test_rolling"],
         batch_size=batch_sizes["test_rolling"],
         num_workers=num_workers,
         ctx=None,
         dtype=np.float32,
     )
 
-    return train_loader, val_loader, test_full_loader, test_rolling_loader, input_transforms
+    return (
+        train_loader,
+        val_loader,
+        test_full_loader,
+        test_rolling_loader,
+        input_transforms,
+    )
 
 
 def transform_gluonts_to_pytorch(
-        batch,
-        time_features: TimeFeatType,
-        cardinalities_feat_static_cat,
-        cardinalities_season_indicators,
-        bias_y=0.0,
-        factor_y=1.0,
-        device="cuda",
-        dtype=torch.float32,
+    batch,
+    time_features: TimeFeatType,
+    cardinalities_feat_static_cat,
+    cardinalities_season_indicators,
+    bias_y=0.0,
+    factor_y=1.0,
+    device="cuda",
+    dtype=torch.float32,
 ):
     n_timesteps_targets = batch["past_target"].shape[1]
     n_timesteps_inputs = batch["past_time_feat"].shape[1] + (
-        batch['future_time_feat'].shape[
-            1] if 'future_time_feat' in batch else 0)
+        batch["future_time_feat"].shape[1]
+        if "future_time_feat" in batch
+        else 0
+    )
 
     # Category features
     feat_static_cat = batch["feat_static_cat"].asnumpy()
     feat_static_cat = [
         torch.tensor(feat_static_cat[..., idx], dtype=torch.int64)
-        for idx, num_classes in enumerate(cardinalities_feat_static_cat)]
+        for idx, num_classes in enumerate(cardinalities_feat_static_cat)
+    ]
     feat_static_cat = [
         feat[None, ...].repeat((n_timesteps_inputs, 1,))
         for feat in feat_static_cat
@@ -285,16 +318,24 @@ def transform_gluonts_to_pytorch(
     # Season indicator features
     seasonal_indicators = np.concatenate(
         [batch["past_seasonal_indicators"].asnumpy().transpose(1, 0, 2)]
-        + ([batch["future_seasonal_indicators"].asnumpy().transpose(1, 0, 2)]
-           if "future_seasonal_indicators" in batch else []), axis=0)
+        + (
+            [batch["future_seasonal_indicators"].asnumpy().transpose(1, 0, 2)]
+            if "future_seasonal_indicators" in batch
+            else []
+        ),
+        axis=0,
+    )
     seasonal_indicators = torch.tensor(
-        seasonal_indicators, dtype=torch.int64, device=device)
+        seasonal_indicators, dtype=torch.int64, device=device
+    )
     seasonal_indicator_feat = [
         one_hot(
             labels=seasonal_indicators[:, :, idx],
             num_classes=num_classes,
             is_squeeze=True,
-        ).to(dtype).to(device)
+        )
+        .to(dtype)
+        .to(device)
         for idx, num_classes in enumerate(cardinalities_season_indicators)
     ]
     seasonal_indicator_feat = torch.cat(seasonal_indicator_feat, dim=-1)
@@ -302,10 +343,16 @@ def transform_gluonts_to_pytorch(
     # Time-Features
     time_feat = torch.tensor(
         np.concatenate(
-            [batch['past_time_feat'].asnumpy().transpose(1, 0, 2)]
-            + ([batch['future_time_feat'].asnumpy().transpose(1, 0, 2)]
-               if "future_time_feat" in batch else []), axis=0),
-        dtype=dtype, device=device,
+            [batch["past_time_feat"].asnumpy().transpose(1, 0, 2)]
+            + (
+                [batch["future_time_feat"].asnumpy().transpose(1, 0, 2)]
+                if "future_time_feat" in batch
+                else []
+            ),
+            axis=0,
+        ),
+        dtype=dtype,
+        device=device,
     )
 
     if time_features.value == TimeFeatType.timefeat.value:
@@ -317,11 +364,16 @@ def transform_gluonts_to_pytorch(
     elif time_features.value == TimeFeatType.none.value:
         time_features = None
     else:
-        raise ValueError(f"unexpected value for time_features: {time_features}")
+        raise ValueError(
+            f"unexpected value for time_features: {time_features}"
+        )
 
-    y = torch.tensor(
-        batch["past_target"].asnumpy()
-    ).to(dtype).to(device=device).transpose(1, 0)
+    y = (
+        torch.tensor(batch["past_target"].asnumpy())
+        .to(dtype)
+        .to(device=device)
+        .transpose(1, 0)
+    )
 
     # for these experiments we have just 1 type of static feats.
     assert len(feat_static_cat) == 1
@@ -340,11 +392,15 @@ def get_cardinalities(dataset, add_trend):
         for feat_static_cat in dataset.metadata.feat_static_cat
     ]
     cardinalities_season_indicators = [
-        issm.n_seasons for issm in CompositeISSM.get_from_freq(
-            dataset.metadata.freq, add_trend=add_trend).seasonal_issms
+        issm.n_seasons
+        for issm in CompositeISSM.get_from_freq(
+            dataset.metadata.freq, add_trend=add_trend
+        ).seasonal_issms
     ]
-    return Box(cardinalities_feat_static_cat=cardinalities_feat_static_cat,
-               cardinalities_season_indicators=cardinalities_season_indicators)
+    return Box(
+        cardinalities_feat_static_cat=cardinalities_feat_static_cat,
+        cardinalities_season_indicators=cardinalities_season_indicators,
+    )
 
 
 if __name__ == "__main__":
@@ -367,8 +423,12 @@ if __name__ == "__main__":
 
         dataset = get_dataset(dataset_name=dataset_name)
         print(f"predicition length: {dataset.metadata.prediction_length}")
-        print(f"length: train: {len(dataset.train)}, test: {len(dataset.test)}")
-        print(f"time-series length: {len(next(iter(dataset.train))['target'])}")
+        print(
+            f"length: train: {len(dataset.train)}, test: {len(dataset.test)}"
+        )
+        print(
+            f"time-series length: {len(next(iter(dataset.train))['target'])}"
+        )
         prediction_length_rolling = dataset.metadata.prediction_length
         if dataset.metadata.freq == "H":
             prediction_length_full = 7 * prediction_length_rolling
@@ -377,11 +437,20 @@ if __name__ == "__main__":
         else:
             raise Exception("unexpected freq")
 
-        train_loader, val_loader, test_full_loader, test_rolling_loader, input_transforms = create_loaders(
+        (
+            train_loader,
+            val_loader,
+            test_full_loader,
+            test_rolling_loader,
+            input_transforms,
+        ) = create_loaders(
             dataset=dataset,
-            batch_sizes={"train": batch_size, "val": batch_size,
-                         "test_full": batch_size,
-                         "test_rolling": batch_size},
+            batch_sizes={
+                "train": batch_size,
+                "val": batch_size,
+                "test_full": batch_size,
+                "test_rolling": batch_size,
+            },
             past_length=past_length,
             prediction_length_full=prediction_length_full,
             prediction_length_rolling=prediction_length_rolling,
@@ -395,23 +464,29 @@ if __name__ == "__main__":
             batch=batch_train,
             time_features=TimeFeatType.seasonal_indicator,
             cardinalities_feat_static_cat=[
-                int(feat_static_cat.cardinality) for feat_static_cat in
-                dataset.metadata.feat_static_cat],
+                int(feat_static_cat.cardinality)
+                for feat_static_cat in dataset.metadata.feat_static_cat
+            ],
             cardinalities_season_indicators=[
-                issm.n_seasons for issm in
-                CompositeISSM.get_from_freq(
-                    dataset.metadata.freq, add_trend=add_trend).seasonal_issms],
+                issm.n_seasons
+                for issm in CompositeISSM.get_from_freq(
+                    dataset.metadata.freq, add_trend=add_trend
+                ).seasonal_issms
+            ],
         )
         batch_test = transform_gluonts_to_pytorch(
             batch=batch_test,
             time_features=TimeFeatType.seasonal_indicator,
             cardinalities_feat_static_cat=[
-                int(feat_static_cat.cardinality) for feat_static_cat in
-                dataset.metadata.feat_static_cat],
+                int(feat_static_cat.cardinality)
+                for feat_static_cat in dataset.metadata.feat_static_cat
+            ],
             cardinalities_season_indicators=[
-                issm.n_seasons for issm in
-                CompositeISSM.get_from_freq(
-                    dataset.metadata.freq, add_trend=add_trend).seasonal_issms],
+                issm.n_seasons
+                for issm in CompositeISSM.get_from_freq(
+                    dataset.metadata.freq, add_trend=add_trend
+                ).seasonal_issms
+            ],
         )
 
         # print(batch_train['seasonal_indicators'].shape)
@@ -427,11 +502,12 @@ if __name__ == "__main__":
         # plt.show()
         # plt.close()
 
-        list_data = ListDataset(dataset.train,
-                                freq=dataset.metadata.freq).list_data
+        list_data = ListDataset(
+            dataset.train, freq=dataset.metadata.freq
+        ).list_data
         # TB
         data_array = np.concatenate(
-            [list_data[idx]['target'] for idx in range(len(list_data))],
+            [list_data[idx]["target"] for idx in range(len(list_data))],
             axis=0,
         )
         m = data_array.mean()
