@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import pytest
-from gluonts.mx.distribution import GaussianOutput
+
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 
 @pytest.fixture()
@@ -32,10 +32,7 @@ def hyperparameters():
 @pytest.mark.parametrize("sampling", [True, False])
 def test_accuracy(accuracy_test, hyperparameters, hybridize, sampling):
     hyperparameters.update(
-        num_batches_per_epoch=200,
-        hybridize=hybridize,
-        sampling=sampling,
-        distr_output=GaussianOutput(),
+        num_batches_per_epoch=200, hybridize=hybridize, sampling=sampling
     )
 
     accuracy_test(SimpleFeedForwardEstimator, hyperparameters, accuracy=0.3)
