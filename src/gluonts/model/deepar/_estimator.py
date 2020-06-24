@@ -243,12 +243,18 @@ class DeepAREstimator(GluonEstimator):
         validation_data: Optional[Dataset] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Predictor:
         self.input_repr.initialize_from_dataset(training_data)
         self.output_repr.initialize_from_dataset(training_data)
         return super().train(
-            training_data, validation_data, num_workers, num_prefetch, **kwargs
+            training_data,
+            validation_data,
+            num_workers,
+            num_prefetch,
+            shuffle_buffer_length,
+            **kwargs,
         )
 
     def create_transformation(self) -> Transformation:

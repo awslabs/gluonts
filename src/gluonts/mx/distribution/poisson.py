@@ -42,9 +42,12 @@ class Poisson(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, rate: Tensor, F=None) -> None:
+    def __init__(self, rate: Tensor) -> None:
         self.rate = rate
-        self.F = F if F else getF(rate)
+
+    @property
+    def F(self):
+        return getF(self.rate)
 
     @property
     def batch_shape(self) -> Tuple:

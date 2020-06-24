@@ -40,13 +40,16 @@ class Categorical(Distribution):
     """
 
     @validated()
-    def __init__(self, log_probs: Tensor, num_cats: int, F=None) -> None:
+    def __init__(self, log_probs: Tensor, num_cats: int) -> None:
         super().__init__()
         self.log_probs = log_probs
         self.num_cats = num_cats
-        self.F = F if F else getF(log_probs)
         self.cats = self.F.arange(self.num_cats)
         self._probs = None
+
+    @property
+    def F(self):
+        return getF(self.log_probs)
 
     @property
     def probs(self):

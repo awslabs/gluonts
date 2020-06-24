@@ -58,7 +58,10 @@ class StudentT(Distribution):
         self.mu = mu
         self.sigma = sigma
         self.nu = nu
-        self.F = F if F else getF(mu)
+
+    @property
+    def F(self):
+        return getF(self.mu)
 
     @property
     def batch_shape(self) -> Tuple:
