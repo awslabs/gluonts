@@ -119,7 +119,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
             "target": self.target.values,
         }
 
-        if len(self.feat_static_cat) > 0:
+        if self.feat_static_cat:
             ret["feat_static_cat"] = self.feat_static_cat
         if len(self.feat_static_real) > 0:
             ret["feat_static_real"] = self.feat_static_real
