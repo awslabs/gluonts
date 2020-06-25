@@ -47,10 +47,13 @@ class Gaussian(Distribution):
     is_reparameterizable = True
 
     @validated()
-    def __init__(self, mu: Tensor, sigma: Tensor, F=None) -> None:
+    def __init__(self, mu: Tensor, sigma: Tensor) -> None:
         self.mu = mu
         self.sigma = sigma
-        self.F = F if F else getF(mu)
+
+    @property
+    def F(self):
+        return getF(self.mu)
 
     @property
     def batch_shape(self) -> Tuple:

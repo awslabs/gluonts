@@ -46,12 +46,13 @@ class Beta(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, alpha: Tensor, beta: Tensor, F=None) -> None:
+    def __init__(self, alpha: Tensor, beta: Tensor) -> None:
         self.alpha = alpha
         self.beta = beta
-        self.F = (
-            F if F else getF(alpha)
-        )  # assuming alpha and beta of same type
+
+    @property
+    def F(self):
+        return getF(self.alpha)
 
     @property
     def batch_shape(self) -> Tuple:
