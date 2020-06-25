@@ -345,7 +345,7 @@ class Trainer:
                         )
 
                 logger.info(
-                    f"Final loss: {best_epoch_info['metric_value']} "
+                    f"Final loss: {best_epoch_info['score']} "
                     f"(occurred at epoch {best_epoch_info['epoch_no']})"
                 )
 
