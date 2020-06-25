@@ -344,6 +344,11 @@ class Trainer:
                             best_epoch_info["params_path"], self.ctx
                         )
 
+                logger.info(
+                    f"Final loss: {best_epoch_info['metric_value']} "
+                    f"(occurred at epoch {best_epoch_info['epoch_no']})"
+                )
+
                 logging.info("Computing averaged parameters.")
                 averaged_params_path = self.avg_strategy.apply(gluonts_temp)
 
