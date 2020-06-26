@@ -133,11 +133,9 @@ def run_test(
 
     test_dataset = TransformedDataset(
         base_dataset=test_dataset,
-        transformations=[
-            FilterTransformation(
-                lambda x: x["target"].shape[-1] > predictor.prediction_length
-            )
-        ],
+        transformation=FilterTransformation(
+            lambda x: x["target"].shape[-1] > predictor.prediction_length
+        ),
     )
 
     len_filtered = len(test_dataset)
