@@ -39,6 +39,13 @@ from .model_averaging import (
     SelectNBestMean,
     save_epoch_info,
 )
+# iteration averaging
+from .model_iteration_averaging import (
+    IterationAveragingStrategy,
+    NTA_V1,
+    NTA_V2,
+    Alpha_Suffix,
+)
 
 logger = logging.getLogger("gluonts").getChild("trainer")
 
@@ -113,7 +120,7 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        avg_strategy: AveragingStrategy = SelectNBestMean(num_models=1),
+        avg_strategy: Union[AveragingStrategy,IterationAveragingStrategy] = SelectNBestMean(num_models=1),
     ) -> None:
 
         assert (
@@ -228,6 +235,10 @@ class Trainer:
 
                     epoch_loss = mx.metric.Loss()
 
+                    # use averaged model for validation
+                    if not is_training and isinstance(self.avg_strategy, IterationAveragingStrategy):
+                        self.avg_strategy.load_averaged_model(net)
+
                     with tqdm(batch_iter) as it:
                         for batch_no, data_entry in enumerate(it, start=1):
                             if self.halt:
@@ -250,6 +261,10 @@ class Trainer:
                             if is_training:
                                 loss.backward()
                                 trainer.step(batch_size)
+
+                                # iteration averaging in training
+                                if isinstance(self.avg_strategy, IterationAveragingStrategy):
+                                    self.avg_strategy.apply(net)
 
                             epoch_loss.update(None, preds=loss)
                             lv = loss_value(epoch_loss)
@@ -289,6 +304,11 @@ class Trainer:
                         ("" if is_training else "validation_") + "epoch_loss",
                         lv,
                     )
+
+                    if not is_training and isinstance(self.avg_strategy, IterationAveragingStrategy):
+                        # bring back the cached model
+                        self.avg_strategy.load_cached_model(net)
+
                     return epoch_loss
 
                 for epoch_no in range(self.epochs):
@@ -306,6 +326,17 @@ class Trainer:
                         epoch_loss = loop(
                             epoch_no, validation_iter, is_training=False
                         )
+
+                    # update average trigger
+                    if isinstance(self.avg_strategy, IterationAveragingStrategy):
+                        if isinstance(self.avg_strategy, Alpha_Suffix):
+                            # alpha suffix
+                            self.avg_strategy.update_average_trigger(epoch_no+1)
+                        else:
+                            # NTA
+                            self.avg_strategy.update_average_trigger(loss_value(epoch_loss))
+                        # once triggered, update the average immediately
+                        self.avg_strategy.apply(net)
 
                     should_continue = lr_scheduler.step(loss_value(epoch_loss))
                     if not should_continue:
@@ -344,10 +375,15 @@ class Trainer:
                             best_epoch_info["params_path"], self.ctx
                         )
 
-                logging.info("Computing averaged parameters.")
-                averaged_params_path = self.avg_strategy.apply(gluonts_temp)
+                if isinstance(self.avg_strategy, AveragingStrategy):
+                    logging.info("Computing averaged parameters.")
+                    averaged_params_path = self.avg_strategy.apply(gluonts_temp)
 
-                logging.info("Loading averaged parameters.")
-                net.load_parameters(averaged_params_path, self.ctx)
+                    logging.info("Loading averaged parameters.")
+                    net.load_parameters(averaged_params_path, self.ctx)
+
+                if isinstance(self.avg_strategy, IterationAveragingStrategy):
+                    logging.info("Loading averaged parameters.")
+                    self.avg_strategy.load_averaged_model(net)
 
                 logger.info("End model training")
