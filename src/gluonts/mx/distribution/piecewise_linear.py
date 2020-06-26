@@ -64,9 +64,8 @@ class PiecewiseLinear(Distribution):
 
     @validated()
     def __init__(
-        self, gamma: Tensor, slopes: Tensor, knot_spacings: Tensor, F=None
+        self, gamma: Tensor, slopes: Tensor, knot_spacings: Tensor
     ) -> None:
-        self.F = F if F else getF(gamma)
         self.gamma = gamma
         self.slopes = slopes
         self.knot_spacings = knot_spacings
@@ -76,6 +75,10 @@ class PiecewiseLinear(Distribution):
         self.b, self.knot_positions = PiecewiseLinear._to_orig_params(
             self.F, slopes, knot_spacings
         )
+
+    @property
+    def F(self):
+        return getF(self.gamma)
 
     @property
     def args(self) -> List:

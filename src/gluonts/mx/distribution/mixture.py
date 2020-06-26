@@ -56,12 +56,14 @@ class MixtureDistribution(Distribution):
     def __init__(
         self, mixture_probs: Tensor, components: List[Distribution], F=None
     ) -> None:
-
-        self.F = F if F else getF(mixture_probs)
         # TODO: handle case with all components of the same type more efficiently when sampling
         # self.all_same = len(set(c.__class__.__name__ for c in components)) == 1
         self.mixture_probs = mixture_probs
         self.components = components
+
+    @property
+    def F(self):
+        return getF(self.mixture_probs)
 
     def __getitem__(self, item):
         return MixtureDistribution(
@@ -129,18 +131,19 @@ class MixtureDistribution(Distribution):
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
+        F = self.F
         samples_list = [c.sample(num_samples, dtype) for c in self.components]
-        samples = self.F.stack(*samples_list, axis=-1)
+        samples = F.stack(*samples_list, axis=-1)
 
         mixture_probs = _expand_param(self.mixture_probs, num_samples)
 
-        idx = self.F.random.multinomial(mixture_probs)
+        idx = F.random.multinomial(mixture_probs)
 
         for _ in range(self.event_dim):
             idx = idx.expand_dims(axis=-1)
         idx = idx.broadcast_like(samples_list[0])
 
-        selected_samples = self.F.pick(data=samples, index=idx, axis=-1)
+        selected_samples = F.pick(data=samples, index=idx, axis=-1)
 
         return selected_samples
 

@@ -57,16 +57,18 @@ class Binned(Distribution):
         self,
         bin_log_probs: Tensor,
         bin_centers: Tensor,
-        F=None,
         label_smoothing: Optional[float] = None,
     ) -> None:
         self.bin_centers = bin_centers
         self.bin_log_probs = bin_log_probs
         self._bin_probs = None
-        self.F = F if F else getF(bin_log_probs)
 
         self.bin_edges = Binned._compute_edges(self.F, bin_centers)
         self.label_smoothing = label_smoothing
+
+    @property
+    def F(self):
+        return getF(self.bin_log_probs)
 
     @staticmethod
     def _compute_edges(F, bin_centers: Tensor) -> Tensor:
@@ -130,10 +132,11 @@ class Binned(Distribution):
 
     @property
     def stddev(self):
-        ex2 = self.F.broadcast_mul(
-            self.bin_probs, self.bin_centers.square()
-        ).sum(axis=-1)
-        return self.F.broadcast_minus(ex2, self.mean.square()).sqrt()
+        F = self.F
+        ex2 = F.broadcast_mul(self.bin_probs, self.bin_centers.square()).sum(
+            axis=-1
+        )
+        return F.broadcast_minus(ex2, self.mean.square()).sqrt()
 
     def _get_mask(self, x):
         F = self.F

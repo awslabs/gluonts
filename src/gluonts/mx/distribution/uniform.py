@@ -44,10 +44,13 @@ class Uniform(Distribution):
     is_reparameterizable = True
 
     @validated()
-    def __init__(self, low: Tensor, high: Tensor, F=None) -> None:
+    def __init__(self, low: Tensor, high: Tensor) -> None:
         self.low = low
         self.high = high
-        self.F = F if F else getF(low)
+
+    @property
+    def F(self):
+        return getF(self.low)
 
     @property
     def batch_shape(self) -> Tuple:
@@ -62,10 +65,11 @@ class Uniform(Distribution):
         return 0
 
     def log_prob(self, x: Tensor) -> Tensor:
-        is_in_range = self.F.broadcast_greater_equal(
+        F = self.F
+        is_in_range = F.broadcast_greater_equal(
             x, self.low
-        ) * self.F.broadcast_lesser(x, self.high)
-        return self.F.log(is_in_range) - self.F.log(self.high - self.low)
+        ) * F.broadcast_lesser(x, self.high)
+        return F.log(is_in_range) - F.log(self.high - self.low)
 
     @property
     def mean(self) -> Tensor:
