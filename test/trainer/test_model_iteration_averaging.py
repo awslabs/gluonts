@@ -80,7 +80,7 @@ def test_NTA_V1(n: int):
     # test averaged model
     avg_strategy.load_averaged_model(model)
     if n <= 0 or n > 6:
-        # average never happends, model is not changed
+        # average never happens, model is not changed
         for k,v in params.items():
             for arr in v.list_data():
                 # the last model should have 10 in all coordinates
@@ -119,7 +119,7 @@ def test_NTA_V2(n: int):
     # test averaged model
     avg_strategy.load_averaged_model(model)
     if n <= 0 or n >= len(loss_list):
-        # average never happends, model is not changed
+        # average never happens, model is not changed
         for k,v in params.items():
             for arr in v.list_data():
                 # the last model should have 10 in all coordinates
@@ -164,7 +164,7 @@ def test_Alpha_Suffix(alpha: float):
     avg_strategy.load_averaged_model(model)
     n = max(int(math.ceil(len(loss_list)*(1-alpha))), 1)
     if n > len(loss_list):
-        # average never happends, model is not changed
+        # average never happens, model is not changed
         for k,v in params.items():
             for arr in v.list_data():
                 # the last model should have 10 in all coordinates

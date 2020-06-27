@@ -14,7 +14,6 @@
 # Standard library imports
 from typing import Any, Dict, Optional
 
-import mxnet as mx
 import mxnet.gluon.nn as nn
 
 # First-party imports
@@ -125,6 +124,7 @@ class IterationAveragingStrategy:
             for name, param_cached in self.cached_model.items():
                 model.collect_params()[name].set_data(param_cached)
 
+
 class NTA_V1(IterationAveragingStrategy):
     @validated()
     def __init__(self, n: int = 5, maximize: bool = False):
@@ -170,6 +170,7 @@ class NTA_V1(IterationAveragingStrategy):
                     self.averaging_started = True
             self.val_logs.append(average_trigger)
 
+
 class NTA_V2(IterationAveragingStrategy):
     @validated()
     def __init__(self, n: int = 5, maximize: bool = False):
@@ -177,7 +178,7 @@ class NTA_V2(IterationAveragingStrategy):
         Parameters
         ----------
         n
-            The non-montone interval
+            The non-monotone interval
         maximize
             Whether to maximize or minimize the validation metric
         val_logs
@@ -212,6 +213,7 @@ class NTA_V2(IterationAveragingStrategy):
                     self.averaging_started = True
             self.val_logs.append(average_trigger)
 
+
 class Alpha_Suffix(IterationAveragingStrategy):
     @validated()
     def __init__(self, epochs: int, alpha: float = 0.75):
@@ -223,7 +225,7 @@ class Alpha_Suffix(IterationAveragingStrategy):
         epochs
             The total number of epochs.
         alpha
-            Propotion of averaging.
+            Proportion of averaging.
         alpha_suffix
             The epoch where iteration averaging starts.
         """
@@ -244,8 +246,7 @@ class Alpha_Suffix(IterationAveragingStrategy):
         Returns
         -------
         """
-        
-        # implement NTA (gluonnlp)
+
         if not self.averaging_started:
             if average_trigger >= self.alpha_suffix:
                 self.averaging_started = True
