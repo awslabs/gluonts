@@ -20,10 +20,11 @@ import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn
 
-# First-party imports
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.model.common import Tensor
 from gluonts.core.component import validated
+from gluonts.model.common import Tensor
+
+# First-party imports
+from gluonts.mx.block.feature import FeatureEmbedder
 
 
 class LookupValues(gluon.HybridBlock):

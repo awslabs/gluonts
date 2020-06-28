@@ -13,13 +13,12 @@
 
 import math
 
-from mxnet.gluon import HybridBlock
-from mxnet.gluon import nn
+from mxnet.gluon import HybridBlock, nn
 
 # First-party imports
-from gluonts.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
+from gluonts.mx.block.feature import FeatureEmbedder
 
 
 class DeepFactorNetworkBase(HybridBlock):

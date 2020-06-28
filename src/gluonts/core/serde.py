@@ -22,10 +22,9 @@ import textwrap
 from functools import singledispatch
 from pathlib import PurePath
 from pydoc import locate
-from typing import cast, Any, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional, cast
 
 # Third-party imports
-import mxnet as mx
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel
@@ -473,19 +472,6 @@ def encode_pydantic_model(v: BaseModel) -> Any:
     }
 
 
-@encode.register(mx.Context)
-def encode_mx_context(v: mx.Context) -> Any:
-    """
-    Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~mxnet.Context` class.
-    """
-    return {
-        "__kind__": kind_inst,
-        "class": fqname_for(v.__class__),
-        "args": encode([v.device_type, v.device_id]),
-    }
-
-
 @encode.register(np.ndarray)
 def encode_np_ndarray(v: np.ndarray) -> Any:
     """
@@ -523,16 +509,6 @@ def encode_np_dtype(v: np.dtype) -> Any:
         "__kind__": kind_inst,
         "class": fqname_for(v.__class__),
         "args": encode([v.name]),
-    }
-
-
-@encode.register(mx.nd.NDArray)
-def encode_mx_ndarray(v: mx.nd.NDArray) -> Any:
-    return {
-        "__kind__": kind_inst,
-        "class": "mxnet.nd.array",
-        "args": encode([v.asnumpy().tolist()]),
-        "kwargs": {"dtype": encode(v.dtype)},
     }
 
 

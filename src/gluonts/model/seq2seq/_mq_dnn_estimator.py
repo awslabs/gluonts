@@ -11,24 +11,30 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import logging
+
 # Standard library imports
 import multiprocessing
 from typing import List, Optional
 
+import mxnet as mx
+
 # Third-party imports
 import numpy as np
-import mxnet as mx
-import logging
+
+from gluonts.core.component import validated
 
 # First-party imports
 from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.stat import calculate_dataset_statistics
-from gluonts.block.decoder import ForkingMLPDecoder
-from gluonts.block.encoder import HierarchicalCausalConv1DEncoder, RNNEncoder
-from gluonts.block.quantile_output import QuantileOutput
-from gluonts.core.component import validated
-from gluonts.trainer import Trainer
 from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
+from gluonts.mx.block.decoder import ForkingMLPDecoder
+from gluonts.mx.block.encoder import (
+    HierarchicalCausalConv1DEncoder,
+    RNNEncoder,
+)
+from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.trainer import Trainer
 
 
 class MQCNNEstimator(ForkingSeq2SeqEstimator):

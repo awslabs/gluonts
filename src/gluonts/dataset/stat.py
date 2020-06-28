@@ -22,8 +22,8 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.core.exception import assert_data_error
-from gluonts.gluonts_tqdm import tqdm
 from gluonts.dataset.field_names import FieldName
+from gluonts.gluonts_tqdm import tqdm
 
 
 class ScaleHistogram:

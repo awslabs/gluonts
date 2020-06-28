@@ -22,10 +22,10 @@ from pydantic import PositiveInt
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
+from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
+from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.support.pandas import frequency_add
 
 

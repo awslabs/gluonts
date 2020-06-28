@@ -23,7 +23,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.forecast import SampleForecast
-from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
+from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 
 

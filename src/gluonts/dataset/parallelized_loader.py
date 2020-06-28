@@ -15,40 +15,40 @@
 # Standard library imports
 import collections
 import functools
+import io
 import itertools
 import logging
+import multiprocessing
+import multiprocessing.queues
 import pathlib
 import pickle
-import io
 import random
 import sys
 import time
-
 from collections.abc import Sized
 from multiprocessing.managers import SyncManager
-from typing import Callable, Iterable, Optional, List, Iterator, Union, Any
-
-import multiprocessing
-import multiprocessing.queues
-from multiprocessing.reduction import ForkingPickler
 from multiprocessing.pool import Pool
+from multiprocessing.reduction import ForkingPickler
 from queue import Queue
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Union
+
+import mxnet as mx
+
+# Third-party imports
+import numpy as np
+from mxnet import context, nd
+
+# First-party imports
+from gluonts.core.component import DType
+from gluonts.dataset.common import DataBatch, DataEntry, Dataset, FileDataset
+from gluonts.dataset.util import MPWorkerInfo
+from gluonts.transform import Transformation
 
 try:
     import multiprocessing.resource_sharer
 except ImportError:
     pass
 
-# Third-party imports
-import numpy as np
-from mxnet import nd, context
-import mxnet as mx
-
-# First-party imports
-from gluonts.core.component import DType
-from gluonts.dataset.common import Dataset, DataEntry, DataBatch, FileDataset
-from gluonts.transform import Transformation
-from gluonts.dataset.util import MPWorkerInfo
 
 # ForkingPickler related functions:
 if sys.platform == "darwin" or sys.platform == "win32":
@@ -265,16 +265,25 @@ class _WorkerData:
 
 # needed because some iterators are not cyclic
 def _worker_reset_iterator(
-    is_train: bool, cyclic: bool, cycle_num: int,
+    is_train: bool,
+    cyclic: bool,
+    cycle_num: int,
+    shuffle_buffer_length: Optional[int],
 ) -> None:
     """Initialize or reset iterators of workers."""
 
-    _WorkerData.dataset_iterator = _sequential_sample_generator(
+    generator = _sequential_sample_generator(
         dataset=_WorkerData.dataset,
         transformation=_WorkerData.transformation,
         is_train=is_train,
         cyclic=cyclic,
     )
+    if shuffle_buffer_length is not None:
+        generator = ShuffleIter(
+            base_iterator=generator,
+            shuffle_buffer_length=shuffle_buffer_length,
+        )
+    _WorkerData.dataset_iterator = generator
 
     _WorkerData.iterator_latest_reset_cycle = cycle_num
     _WorkerData.iterator_exhausted_indicator = False
@@ -308,6 +317,7 @@ def _worker_fn(
     is_train: bool,
     cyclic: bool,
     cycle_num: int,
+    shuffle_buffer_length: int,
 ):
     """Function for processing data in worker process."""
 
@@ -315,13 +325,14 @@ def _worker_fn(
     if (_WorkerData.iterator_latest_reset_cycle < cycle_num) and (
         _WorkerData.iterator_latest_reset_cycle == 0 or not cyclic
     ):
-        _worker_reset_iterator(is_train, cyclic, cycle_num)
+        _worker_reset_iterator(
+            is_train, cyclic, cycle_num, shuffle_buffer_length
+        )
 
     # retrieve the samples that will be batched
     batch_samples = list(
         itertools.islice(_WorkerData.dataset_iterator, batch_size)
     )
-
     # batch the samples, if there were any
     if batch_samples:
         success = True
@@ -346,6 +357,43 @@ def _worker_fn(
     return buf.getvalue()
 
 
+class ShuffleIter(Iterator[DataEntry]):
+    def __init__(
+        self, base_iterator: Iterator[DataEntry], shuffle_buffer_length: int
+    ):
+        self.shuffle_buffer: list = []
+        self.shuffle_buffer_length = shuffle_buffer_length
+        self.base_iterator = base_iterator
+        self.base_iter_finished = False
+
+    def __next__(self) -> DataEntry:
+        # if the buffer is empty, fill the buffer first.
+        # (should only executed in the first round)
+        if not self.shuffle_buffer:
+            self.shuffle_buffer = list(
+                itertools.islice(
+                    self.base_iterator, self.shuffle_buffer_length
+                )
+            )
+        # if buffer still empty, means all elements used,
+        # return a signal of end of iterator
+        if not self.shuffle_buffer:
+            raise StopIteration
+        # choose an element at a random index and yield it
+        # and fill it with the next element in the sequential generator
+        idx = random.randint(0, len(self.shuffle_buffer) - 1)
+        next_sample = self.shuffle_buffer[idx]
+
+        # replace the index with the next element in the iterator if the iterator has not finished.
+        # delete the index otherwise.
+        try:
+            self.shuffle_buffer[idx] = next(self.base_iterator)
+        except StopIteration:
+            del self.shuffle_buffer[idx]
+
+        return next_sample
+
+
 class _MultiWorkerIter(object):
     """Internal multi-worker iterator for DataLoader."""
 
@@ -364,6 +412,7 @@ class _MultiWorkerIter(object):
         worker_fn: Callable,
         dataset_len: int,
         timeout: int,
+        shuffle_buffer_length: Optional[int],
     ):
         self._worker_pool = worker_pool
         self._batchify_fn = batchify_fn
@@ -385,7 +434,8 @@ class _MultiWorkerIter(object):
         self._num_workers = num_workers
         self._batch_size = batch_size
         self._dataset_len = dataset_len
-
+        # shuffle variable
+        self.shuffle_buffer_length = shuffle_buffer_length
         # pre-fetch batches
         self._num_prefetch = num_prefetch
         for i in range(self._num_prefetch):
@@ -407,6 +457,7 @@ class _MultiWorkerIter(object):
                 self._is_train,
                 self._cyclic,
                 self._cycle_num,
+                self.shuffle_buffer_length,
             ),
         )
         self._data_buffer[self._sent_idx] = async_ret
@@ -529,6 +580,7 @@ class ParallelDataLoader(object):
         batchify_fn: Callable = batchify,
         num_prefetch: Optional[int] = None,
         num_workers: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
     ):
         # Some windows error with the ForkingPickler prevents usage currently:
         if sys.platform == "win32":
@@ -556,6 +608,10 @@ class ParallelDataLoader(object):
         assert (
             num_prefetch is None or num_prefetch >= 0
         ), "Num workers has to be >= 0."
+        assert (
+            shuffle_buffer_length is None
+            or shuffle_buffer_length >= batch_size
+        ), "Shuffle buffer length has to be at least the size of each batch."
 
         self.dataset = dataset
         self.dataset_len: int
@@ -578,13 +634,10 @@ class ParallelDataLoader(object):
 
         # TODO: switch to default multiprocessing.cpu_count() here
         default_num_workers = 0
-        self.num_workers = (
-            num_workers
-            if num_workers is not None
-            else min(
-                self.dataset_len, default_num_workers
-            )  # cannot have more than dataset entries
-        )
+        self.num_workers = min(
+            num_workers if num_workers is not None else default_num_workers,
+            self.dataset_len,
+        )  # cannot have more than dataset entries
         self.num_prefetch = (
             num_prefetch if num_prefetch is not None else 2 * self.num_workers
         )
@@ -599,6 +652,7 @@ class ParallelDataLoader(object):
         self.worker_id_queue: Optional[Queue] = None
         # In order to recycle unused but pre-calculated batches from last epoch for training:
         self.multi_worker_cache: Optional[Iterator[DataBatch]] = None
+        self.shuffle_buffer_length: Optional[int] = shuffle_buffer_length
 
         if self.num_workers > 0:
             # generate unique ids for processes
@@ -627,6 +681,11 @@ class ParallelDataLoader(object):
             generator = _sequential_sample_generator(
                 self.dataset, self.transformation, self.is_train, self.cyclic,
             )
+            if self.shuffle_buffer_length is not None:
+                generator = ShuffleIter(
+                    base_iterator=generator,
+                    shuffle_buffer_length=self.shuffle_buffer_length,
+                )
 
             def same_process_iter():
                 while True:
@@ -634,7 +693,6 @@ class ParallelDataLoader(object):
                     batch_samples = list(
                         itertools.islice(generator, self.batch_size)
                     )
-
                     # terminate if no more batches to be dealt with
                     if len(batch_samples) == 0:
                         return
@@ -670,6 +728,7 @@ class ParallelDataLoader(object):
                     dataset_len=self.dataset_len,
                     cycle_num=self.cycle_num,
                     timeout=120,
+                    shuffle_buffer_length=self.shuffle_buffer_length,
                 )
                 if self.cyclic:
                     self.multi_worker_cache = iter(multi_worker)

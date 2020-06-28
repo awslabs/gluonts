@@ -16,7 +16,7 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.distribution import Binned, BinnedOutput
+from gluonts.mx.distribution import Binned, BinnedOutput
 
 
 COMMON_KWARGS = {

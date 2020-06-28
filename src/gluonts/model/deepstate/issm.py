@@ -19,16 +19,16 @@ from pandas.tseries.frequencies import to_offset
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
+from gluonts.mx.distribution.distribution import getF
 from gluonts.support.util import _broadcast_param
 from gluonts.time_feature import (
-    TimeFeature,
-    MinuteOfHour,
-    HourOfDay,
     DayOfWeek,
-    WeekOfYear,
+    HourOfDay,
+    MinuteOfHour,
     MonthOfYear,
+    TimeFeature,
+    WeekOfYear,
 )
 
 
@@ -288,12 +288,12 @@ class CompositeISSM(ISSM):
             ]
         elif offset.name == "D":
             seasonal_issms = [
-                SeasonalityISSM(num_seasons=7)  # day-of-week seasonality
-            ]
+                SeasonalityISSM(num_seasons=7)
+            ]  # day-of-week seasonality
         elif offset.name == "B":  # TODO: check this case
             seasonal_issms = [
-                SeasonalityISSM(num_seasons=7)  # day-of-week seasonality
-            ]
+                SeasonalityISSM(num_seasons=7)
+            ]  # day-of-week seasonality
         elif offset.name == "H":
             seasonal_issms = [
                 SeasonalityISSM(num_seasons=24),  # hour-of-day seasonality

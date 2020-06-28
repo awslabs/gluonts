@@ -46,7 +46,7 @@ from gluonts.dataset.artificial import ConstantDataset
 
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation import Evaluator
 
