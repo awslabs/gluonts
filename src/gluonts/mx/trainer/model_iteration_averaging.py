@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 import mxnet.gluon.nn as nn
 
@@ -134,6 +134,8 @@ class IterationAveragingStrategy:
 
 
 class NTA_V1(IterationAveragingStrategy):
+    val_logs: List[Any]
+
     @validated()
     def __init__(self, n: int = 5, maximize: bool = False):
         r"""
@@ -184,6 +186,8 @@ class NTA_V1(IterationAveragingStrategy):
 
 
 class NTA_V2(IterationAveragingStrategy):
+    val_logs: List[Any]
+    
     @validated()
     def __init__(self, n: int = 5, maximize: bool = False):
         r"""
