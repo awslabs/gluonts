@@ -4,8 +4,9 @@ wget==3.2
 matplotlib==3.0.3
 numpy==1.15.4
 scipy==1.1.0
-torch==1.4.0
-torchvision==0.5.0
+torch==1.5.1
+pytorch-lightning==0.8.3
+torchvision==0.6.1
 pandas==0.25.3
 pygame==1.9.6
 pymunk==5.6.0
