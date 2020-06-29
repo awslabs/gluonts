@@ -122,14 +122,22 @@ class MixtureDistribution(Distribution):
     @property
     def stddev(self) -> Tensor:
         F = self.F
-        sq_mean_values = F.square(F.stack(*[c.mean for c in self.components], axis=-1))
-        sq_std_values = F.square(F.stack(*[c.stddev for c in self.components], axis=-1))
+        sq_mean_values = F.square(
+            F.stack(*[c.mean for c in self.components], axis=-1)
+        )
+        sq_std_values = F.square(
+            F.stack(*[c.stddev for c in self.components], axis=-1)
+        )
 
-        return F.sqrt(F.sum(
-            F.broadcast_mul(sq_mean_values + sq_std_values, self.mixture_probs, axis=-1),
-            axis=-1,
-        ) - F.square(self.mean))
-
+        return F.sqrt(
+            F.sum(
+                F.broadcast_mul(
+                    sq_mean_values + sq_std_values, self.mixture_probs, axis=-1
+                ),
+                axis=-1,
+            )
+            - F.square(self.mean)
+        )
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
