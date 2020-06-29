@@ -119,7 +119,9 @@ def make_model(config):
     gls_base_parameters = gls_parameters.GlsParametersUnrestricted(
         config=config
     )
-    input_transformer = lambda *args, **kwargs: ControlInputs(None, None, None)
+    input_transformer = lambda *args, **kwargs: ControlInputs(
+        None, None, None, None
+    )
     obs_to_switch_encoder = (
         encoders.ObsToSwitchEncoderGaussianMLP(config=config)
         if config.obs_to_switch_encoder
