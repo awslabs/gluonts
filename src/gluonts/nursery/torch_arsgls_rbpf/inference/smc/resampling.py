@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Sequence, Dict
 import math
 import numpy as np
 import torch
@@ -133,7 +133,7 @@ def make_criterion_fn_with_ess_threshold(min_ess_ratio: float = 0.5):
 def resample(
     n_particle: int,
     log_norm_weights: torch.Tensor,
-    tensors_to_resample: Tuple[torch.Tensor, ...],
+    tensors_to_resample: (Sequence[torch.Tensor], Dict[str, torch.Tensor]),
     resampling_indices_fn: callable,
     criterion_fn: callable,
     dim: int = -2,
@@ -181,17 +181,36 @@ def resample(
     idxs_resample_if_criterion = torch.where(
         needs_resampling, idxs_resample, idxs_keep,
     )
-    resampled_tensors = tuple(
-        particles.gather(
-            dim=dim,
-            index=repeat_like(
-                idxs_resample_if_criterion,
-                particles,
-                self_dims_in_target=tuple(
-                    range(idxs_resample_if_criterion.ndim)
+
+    if isinstance(tensors_to_resample, Sequence):
+        resampled_tensors = tuple(
+            particles.gather(
+                dim=dim,
+                index=repeat_like(
+                    idxs_resample_if_criterion,
+                    particles,
+                    self_dims_in_target=tuple(
+                        range(idxs_resample_if_criterion.ndim)
+                    ),
                 ),
-            ),
+            )
+            for particles in tensors_to_resample
         )
-        for particles in tensors_to_resample
-    )
+    elif isinstance(tensors_to_resample, Dict):
+        resampled_tensors = {
+            name: particles.gather(
+                dim=dim,
+                index=repeat_like(
+                    idxs_resample_if_criterion,
+                    particles,
+                    self_dims_in_target=tuple(
+                        range(idxs_resample_if_criterion.ndim)
+                    ),
+                ),
+            )
+            for name, particles in tensors_to_resample.items()
+        }
+    else:
+        raise Exception(f"tensors_to_resample of unexpected type: "
+                        f"{type(tensors_to_resample)}")
     return resampled_log_norm_weights, resampled_tensors
