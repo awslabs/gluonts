@@ -187,7 +187,7 @@ class NTA_V1(IterationAveragingStrategy):
 
 class NTA_V2(IterationAveragingStrategy):
     val_logs: List[Any]
-    
+
     @validated()
     def __init__(self, n: int = 5, maximize: bool = False):
         r"""
