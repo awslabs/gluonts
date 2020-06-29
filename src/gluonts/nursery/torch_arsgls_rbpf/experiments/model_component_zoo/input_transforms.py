@@ -10,14 +10,18 @@ class ControlInputs:
     state: torch.Tensor
     obs: torch.Tensor
     switch: torch.Tensor
+    encoder: torch.Tensor
 
     def __getitem__(self, item):
         return ControlInputs(
-            self.state[item], self.obs[item], self.switch[item]
+            self.state[item],
+            self.obs[item],
+            self.switch[item],
+            self.encoder[item]
         )
 
     def __len__(self):
-        assert len(self.state) == len(self.obs) == len(self.switch)
+        assert len(self.state) == len(self.obs) == len(self.switch) == len(self.encoder)
         return len(self.state)
 
 
@@ -57,7 +61,7 @@ class InputTransformOneHotMLP(nn.Module):
             u_static_cat, num_classes=self.num_classes
         ).to(dtype=u_time.dtype)
         u = self.mlp(torch.cat((u_staticfeat_onehot, u_time), dim=-1))
-        return ControlInputs(state=u, obs=u, switch=u)
+        return ControlInputs(state=u, obs=u, switch=u, encoder=u)
 
 
 class InputTransformMLP(nn.Module):
@@ -71,7 +75,7 @@ class InputTransformMLP(nn.Module):
 
     def forward(self, u_static_cat, u_time) -> ControlInputs:
         u = self.mlp(torch.cat((u_static_cat, u_time), dim=-1))
-        return ControlInputs(state=u, obs=u, switch=u)
+        return ControlInputs(state=u, obs=u, switch=u, encoder=u)
 
 
 class InputTransformEmbeddingAndMLP(nn.Module):
@@ -88,10 +92,12 @@ class InputTransformEmbeddingAndMLP(nn.Module):
         )
 
     def forward(self, u_static_cat, u_time) -> ControlInputs:
+        # TODO: must now repeat static feats on first dim (after embed).
+        #  previously had that in preprocessing.
         u = self.mlp(
             torch.cat([self.embedding(u_static_cat), u_time * 5], dim=-1)
         )
-        return ControlInputs(state=u, obs=u, switch=u)
+        return ControlInputs(state=u, obs=u, switch=u, encoder=u)
 
 
 class InputTransformEmbeddingAndMLPKVAE(InputTransformEmbeddingAndMLP):
@@ -99,4 +105,5 @@ class InputTransformEmbeddingAndMLPKVAE(InputTransformEmbeddingAndMLP):
         u = super().forward(u_static_cat=u_static_cat, u_time=u_time)
         u.obs = None
         u.switch = None
+        u.encoder = None
         return u
