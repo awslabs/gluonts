@@ -30,6 +30,7 @@ from gluonts.mx.trainer.model_iteration_averaging import (
     Alpha_Suffix,
 )
 
+
 def initialize_model() -> nn.HybridBlock:
     # dummy training data
     N = 10  # number of time series
@@ -37,35 +38,42 @@ def initialize_model() -> nn.HybridBlock:
     prediction_length = 24
     freq = "1H"
     custom_dataset = np.random.normal(size=(N, T))
-    start = pd.Timestamp("01-01-2019", freq=freq)  # can be different for each time series
-    train_ds = ListDataset([{'target': x, 'start': start}
-                            for x in custom_dataset[:, :-prediction_length]],
-                        freq=freq)
+    start = pd.Timestamp(
+        "01-01-2019", freq=freq
+    )  # can be different for each time series
+    train_ds = ListDataset(
+        [
+            {"target": x, "start": start}
+            for x in custom_dataset[:, :-prediction_length]
+        ],
+        freq=freq,
+    )
     # create a simple model
     estimator = SimpleFeedForwardEstimator(
         num_hidden_dimensions=[10],
         prediction_length=prediction_length,
         context_length=T,
         freq=freq,
-        trainer=Trainer(ctx="cpu",
-                        epochs=1,
-                        learning_rate=1e-3,
-                        num_batches_per_epoch=1
-                    )
+        trainer=Trainer(
+            ctx="cpu", epochs=1, learning_rate=1e-3, num_batches_per_epoch=1
+        ),
     )
     # train model
     predictor = estimator.train(train_ds)
 
     return predictor.prediction_net
 
-@pytest.mark.parametrize("n", [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20])
+
+@pytest.mark.parametrize(
+    "n", [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20]
+)
 def test_NTA_V1(n: int):
     model = initialize_model()
     params = model.collect_params()
     avg_strategy = NTA_V1(n=n)
     loss_list = [5, 4, 3, 2, 3, 3, 3, 3, 3, 3, 3]
     for i, loss in enumerate(loss_list):
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
                 arr[:] = i
         avg_strategy.update_average_trigger(loss)
@@ -73,7 +81,7 @@ def test_NTA_V1(n: int):
     # nothing is cached yet, thus load_cached_model won't change anything
     # test cached model
     avg_strategy.load_cached_model(model)
-    for k,v in params.items():
+    for k, v in params.items():
         for arr in v.list_data():
             # the last model should have 10 in all coordinates
             assert mx.nd.norm(arr - 10).asscalar() < 1e-30
@@ -81,30 +89,33 @@ def test_NTA_V1(n: int):
     avg_strategy.load_averaged_model(model)
     if n <= 0 or n > 6:
         # average never happens, model is not changed
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
                 # the last model should have 10 in all coordinates
                 assert mx.nd.norm(arr - 10).asscalar() < 1e-30
     else:
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
                 # NTA_V1 takes the average on the last 7-n iterations
-                assert mx.nd.norm(arr - (4+n+10)/2.).asscalar() < 1e-30
+                assert mx.nd.norm(arr - (4 + n + 10) / 2.0).asscalar() < 1e-30
     # test cached model
     avg_strategy.load_cached_model(model)
-    for k,v in params.items():
+    for k, v in params.items():
         for arr in v.list_data():
             # the last model should have 10 in all coordinates
             assert mx.nd.norm(arr - 10).asscalar() < 1e-30
 
-@pytest.mark.parametrize("n", [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20])
+
+@pytest.mark.parametrize(
+    "n", [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20]
+)
 def test_NTA_V2(n: int):
     model = initialize_model()
     params = model.collect_params()
     avg_strategy = NTA_V2(n=n)
     loss_list = [5, 4, 3, 2, 3, 3, 3, 3, 3, 3, 3]
     for i, loss in enumerate(loss_list):
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
                 arr[:] = i
         avg_strategy.update_average_trigger(loss)
@@ -112,7 +123,7 @@ def test_NTA_V2(n: int):
     # nothing is cached yet, thus load_cached_model won't change anything
     # test cached model
     avg_strategy.load_cached_model(model)
-    for k,v in params.items():
+    for k, v in params.items():
         for arr in v.list_data():
             # the last model should have 10 in all coordinates
             assert mx.nd.norm(arr - 10).asscalar() < 1e-30
@@ -120,26 +131,27 @@ def test_NTA_V2(n: int):
     avg_strategy.load_averaged_model(model)
     if n <= 0 or n >= len(loss_list):
         # average never happens, model is not changed
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
                 # the last model should have 10 in all coordinates
                 assert mx.nd.norm(arr - 10).asscalar() < 1e-30
     else:
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
-                # NTA_V2 takes the average once the loss increases, no matter what n is taken 
+                # NTA_V2 takes the average once the loss increases, no matter what n is taken
                 # (the first n iterations are ignored)
                 if n <= 4:
                     val = 7
                 else:
-                    val = (n+10) / 2.
+                    val = (n + 10) / 2.0
                 assert mx.nd.norm(arr - val).asscalar() < 1e-30
     # test cached model
     avg_strategy.load_cached_model(model)
-    for k,v in params.items():
+    for k, v in params.items():
         for arr in v.list_data():
             # the last model should have 10 in all coordinates
             assert mx.nd.norm(arr - 10).asscalar() < 1e-30
+
 
 @pytest.mark.parametrize("alpha", [0.0, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0])
 def test_Alpha_Suffix(alpha: float):
@@ -148,35 +160,35 @@ def test_Alpha_Suffix(alpha: float):
     loss_list = [5, 4, 3, 2, 3, 3, 3, 3, 3, 3, 3]
     avg_strategy = Alpha_Suffix(epochs=len(loss_list), alpha=alpha)
     for i, loss in enumerate(loss_list):
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
                 arr[:] = i
-        avg_strategy.update_average_trigger(i+1)
+        avg_strategy.update_average_trigger(i + 1)
         avg_strategy.apply(model)
     # nothing is cached yet, thus load_cached_model won't change anything
     # test cached model
     avg_strategy.load_cached_model(model)
-    for k,v in params.items():
+    for k, v in params.items():
         for arr in v.list_data():
             # the last model should have 10 in all coordinates
             assert mx.nd.norm(arr - 10).asscalar() < 1e-30
     # test averaged model
     avg_strategy.load_averaged_model(model)
-    n = max(int(math.ceil(len(loss_list)*(1-alpha))), 1)
+    n = max(int(math.ceil(len(loss_list) * (1 - alpha))), 1)
     if n > len(loss_list):
         # average never happens, model is not changed
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
                 # the last model should have 10 in all coordinates
                 assert mx.nd.norm(arr - 10).asscalar() < 1e-30
     else:
-        for k,v in params.items():
+        for k, v in params.items():
             for arr in v.list_data():
-                val = (n+9) / 2.
+                val = (n + 9) / 2.0
                 assert mx.nd.norm(arr - val).asscalar() < 1e-30
     # test cached model
     avg_strategy.load_cached_model(model)
-    for k,v in params.items():
+    for k, v in params.items():
         for arr in v.list_data():
             # the last model should have 10 in all coordinates
             assert mx.nd.norm(arr - 10).asscalar() < 1e-30

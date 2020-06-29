@@ -66,7 +66,7 @@ class IterationAveragingStrategy:
         -------
         The averaged model, None if the averaging hasn't started.
         """
-        
+
         if self.averaging_started:
             self.update_average(model)
 
@@ -81,15 +81,19 @@ class IterationAveragingStrategy:
         """
         self.average_counter += 1
         if self.averaged_model is None:
-            self.averaged_model = {k: v.list_data()[0].copy() \
-                                    for k, v in model.collect_params().items()}
+            self.averaged_model = {
+                k: v.list_data()[0].copy()
+                for k, v in model.collect_params().items()
+            }
         else:
-            alpha = 1. / self.average_counter
+            alpha = 1.0 / self.average_counter
             # moving average
             for name, param_avg in self.averaged_model.items():
-                param_avg[:] += alpha * (model.collect_params()[name].list_data()[0] - param_avg)
+                param_avg[:] += alpha * (
+                    model.collect_params()[name].list_data()[0] - param_avg
+                )
 
-    def load_averaged_model(self, model:nn.HybridBlock):
+    def load_averaged_model(self, model: nn.HybridBlock):
         r"""
         When validating/evaluating the averaged model in the half way of training, 
         use load_averaged_model first to load the averaged model and overwrite the current model, 
@@ -103,16 +107,20 @@ class IterationAveragingStrategy:
         if self.averaged_model is not None:
             # cache the current model
             if self.cached_model is None:
-                self.cached_model = {k: v.list_data()[0].copy() \
-                                        for k, v in model.collect_params().items()}
+                self.cached_model = {
+                    k: v.list_data()[0].copy()
+                    for k, v in model.collect_params().items()
+                }
             else:
                 for name, param_cached in self.cached_model.items():
-                    param_cached[:] = model.collect_params()[name].list_data()[0]
+                    param_cached[:] = model.collect_params()[name].list_data()[
+                        0
+                    ]
             # load the averaged model
             for name, param_avg in self.averaged_model.items():
                 model.collect_params()[name].set_data(param_avg)
 
-    def load_cached_model(self, model:nn.HybridBlock):
+    def load_cached_model(self, model: nn.HybridBlock):
         r"""
         Parameters
         ----------
@@ -147,7 +155,7 @@ class NTA_V1(IterationAveragingStrategy):
         self.n = n
         self.maximize = maximize
         self.val_logs = []
-    
+
     def update_average_trigger(self, average_trigger: Any):
         r"""
         Parameters
@@ -158,15 +166,19 @@ class NTA_V1(IterationAveragingStrategy):
         Returns
         -------
         """
-        
+
         # implement NTA (salesforce)
         # this is the implementation from the iclr (and salesforce github) version, which mismatches the arxiv (and gluonnlp) version
         if not self.averaging_started and self.n > 0:
             if self.maximize:
-                if len(self.val_logs) > self.n and average_trigger < max(self.val_logs[:-self.n]):
+                if len(self.val_logs) > self.n and average_trigger < max(
+                    self.val_logs[: -self.n]
+                ):
                     self.averaging_started = True
             else:
-                if len(self.val_logs) > self.n and average_trigger > min(self.val_logs[:-self.n]):
+                if len(self.val_logs) > self.n and average_trigger > min(
+                    self.val_logs[: -self.n]
+                ):
                     self.averaging_started = True
             self.val_logs.append(average_trigger)
 
@@ -190,7 +202,7 @@ class NTA_V2(IterationAveragingStrategy):
         self.n = n
         self.maximize = maximize
         self.val_logs = []
-    
+
     def update_average_trigger(self, average_trigger: Any):
         r"""
         Parameters
@@ -201,15 +213,19 @@ class NTA_V2(IterationAveragingStrategy):
         Returns
         -------
         """
-        
+
         # implement NTA (gluonnlp)
         if not self.averaging_started and self.n > 0:
             if self.maximize:
                 # in gluonnlp awd-lstm, "len(self.val_logs) > self.n" is used, but I think it should be ">=" instead
-                if len(self.val_logs) >= self.n and average_trigger < max(self.val_logs[-self.n:]):
+                if len(self.val_logs) >= self.n and average_trigger < max(
+                    self.val_logs[-self.n :]
+                ):
                     self.averaging_started = True
             else:
-                if len(self.val_logs) >= self.n and average_trigger > min(self.val_logs[-self.n:]):
+                if len(self.val_logs) >= self.n and average_trigger > min(
+                    self.val_logs[-self.n :]
+                ):
                     self.averaging_started = True
             self.val_logs.append(average_trigger)
 
@@ -232,10 +248,10 @@ class Alpha_Suffix(IterationAveragingStrategy):
 
         super().__init__()
 
-        assert (alpha >= 0 and alpha <= 1)
+        assert alpha >= 0 and alpha <= 1
 
-        self.alpha_suffix = epochs * (1. - alpha)
-    
+        self.alpha_suffix = epochs * (1.0 - alpha)
+
     def update_average_trigger(self, average_trigger: Any):
         r"""
         Parameters
@@ -250,9 +266,3 @@ class Alpha_Suffix(IterationAveragingStrategy):
         if not self.averaging_started:
             if average_trigger >= self.alpha_suffix:
                 self.averaging_started = True
-
-
-
-    
-
-   

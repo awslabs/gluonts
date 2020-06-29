@@ -39,6 +39,7 @@ from .model_averaging import (
     SelectNBestMean,
     save_epoch_info,
 )
+
 # iteration averaging
 from .model_iteration_averaging import (
     IterationAveragingStrategy,
@@ -120,7 +121,9 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        avg_strategy: Union[AveragingStrategy,IterationAveragingStrategy] = SelectNBestMean(num_models=1),
+        avg_strategy: Union[
+            AveragingStrategy, IterationAveragingStrategy
+        ] = SelectNBestMean(num_models=1),
     ) -> None:
 
         assert (
@@ -236,7 +239,9 @@ class Trainer:
                     epoch_loss = mx.metric.Loss()
 
                     # use averaged model for validation
-                    if not is_training and isinstance(self.avg_strategy, IterationAveragingStrategy):
+                    if not is_training and isinstance(
+                        self.avg_strategy, IterationAveragingStrategy
+                    ):
                         self.avg_strategy.load_averaged_model(net)
 
                     with tqdm(batch_iter) as it:
@@ -263,7 +268,10 @@ class Trainer:
                                 trainer.step(batch_size)
 
                                 # iteration averaging in training
-                                if isinstance(self.avg_strategy, IterationAveragingStrategy):
+                                if isinstance(
+                                    self.avg_strategy,
+                                    IterationAveragingStrategy,
+                                ):
                                     self.avg_strategy.apply(net)
 
                             epoch_loss.update(None, preds=loss)
@@ -305,7 +313,9 @@ class Trainer:
                         lv,
                     )
 
-                    if not is_training and isinstance(self.avg_strategy, IterationAveragingStrategy):
+                    if not is_training and isinstance(
+                        self.avg_strategy, IterationAveragingStrategy
+                    ):
                         # bring back the cached model
                         self.avg_strategy.load_cached_model(net)
 
@@ -328,13 +338,19 @@ class Trainer:
                         )
 
                     # update average trigger
-                    if isinstance(self.avg_strategy, IterationAveragingStrategy):
+                    if isinstance(
+                        self.avg_strategy, IterationAveragingStrategy
+                    ):
                         if isinstance(self.avg_strategy, Alpha_Suffix):
                             # alpha suffix
-                            self.avg_strategy.update_average_trigger(epoch_no+1)
+                            self.avg_strategy.update_average_trigger(
+                                epoch_no + 1
+                            )
                         elif isinstance(self.avg_strategy, (NTA_V1, NTA_V2)):
                             # NTA
-                            self.avg_strategy.update_average_trigger(loss_value(epoch_loss))
+                            self.avg_strategy.update_average_trigger(
+                                loss_value(epoch_loss)
+                            )
                         else:
                             raise NotImplementedError
                         # once triggered, update the average immediately
@@ -379,7 +395,9 @@ class Trainer:
 
                 if isinstance(self.avg_strategy, AveragingStrategy):
                     logging.info("Computing averaged parameters.")
-                    averaged_params_path = self.avg_strategy.apply(gluonts_temp)
+                    averaged_params_path = self.avg_strategy.apply(
+                        gluonts_temp
+                    )
 
                     logging.info("Loading averaged parameters.")
                     net.load_parameters(averaged_params_path, self.ctx)
