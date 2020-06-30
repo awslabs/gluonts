@@ -175,7 +175,7 @@ class NTA_V1(IterationAveragingStrategy):
             Parameter of polynomial-decay averaging.
         """
 
-        super().__init__(eta = eta)
+        super().__init__(eta=eta)
 
         self.n = n
         self.maximize = maximize
@@ -231,7 +231,7 @@ class NTA_V2(IterationAveragingStrategy):
             Parameter of polynomial-decay averaging.
         """
 
-        super().__init__(eta = eta)
+        super().__init__(eta=eta)
 
         self.n = n
         self.maximize = maximize
@@ -288,7 +288,7 @@ class Alpha_Suffix(IterationAveragingStrategy):
             Parameter of polynomial-decay averaging.
         """
 
-        super().__init__(eta = eta)
+        super().__init__(eta=eta)
 
         assert 0 <= alpha <= 1
 
