@@ -14,6 +14,7 @@
 # Standard library imports
 from typing import Any, Dict, Optional, List
 
+# Third-party imports
 import mxnet.gluon.nn as nn
 
 # First-party imports
@@ -21,24 +22,31 @@ from gluonts.core.component import validated
 
 
 class IterationAveragingStrategy:
+
+    r"""
+    The model averaging is based on paper 
+    "Stochastic Gradient Descent for Non-smooth Optimization: Convergence Results and Optimal Averaging Schemes", 
+    (http://proceedings.mlr.press/v28/shamir13.pdf), parameterized by eta.
+    When eta = 0, it is equivalent to simple average over all iterations with same weights.
+    """
+
     @validated()
-    def __init__(self):
+    def __init__(self, eta: float = 0):
         r"""
         Parameters
         ----------
-        averaged_model
-            Dict that maintains the averaged model parameters.
-        cached_model
-            Temporarily save the current model, so that the averaged model can be used for validation.
-        average_counter
-            The number of models accumulated in the average.
-        averaging_started
-            Indicate whether the model averaging has started.
+        eta
+            Parameter of polynomial-decay averaging.
         """
 
+        self.eta = eta
+        # Dict that maintains the averaged model parameters.
         self.averaged_model = None
+        # Temporarily save the current model, so that the averaged model can be used for validation.
         self.cached_model = None
+        # The number of models accumulated in the average.
         self.average_counter = 0
+        # Indicate whether the model averaging has started.
         self.averaging_started = False
 
     def update_average_trigger(self, average_trigger: Any):
@@ -86,7 +94,7 @@ class IterationAveragingStrategy:
                 for k, v in model.collect_params().items()
             }
         else:
-            alpha = 1.0 / self.average_counter
+            alpha = (self.eta + 1.0) / (self.eta + self.average_counter)
             # moving average
             for name, param_avg in self.averaged_model.items():
                 param_avg[:] += alpha * (
@@ -134,10 +142,18 @@ class IterationAveragingStrategy:
 
 
 class NTA_V1(IterationAveragingStrategy):
+    r"""
+    Implement Non-monotonically Triggered AvSGD (NTA)
+    This method is based on paper "Regularizing and Optimizing LSTM Language Models", 
+    (https://openreview.net/pdf?id=SyyGPP0TZ), and an implementation is available in Salesforce GitHub 
+    (https://github.com/salesforce/awd-lstm-lm/blob/master/main.py)
+    Note that it mismatches the arxiv (and gluonnlp) version, which is referred to as NTA_V2 below
+    """
+
     val_logs: List[Any]
 
     @validated()
-    def __init__(self, n: int = 5, maximize: bool = False):
+    def __init__(self, n: int = 5, maximize: bool = False, eta: float = 0):
         r"""
         Depending on the choice of metrics, the users may want to minimize or maximize the metrics.
         Thus, set maximize = True to maximize, otherwise minimize.
@@ -148,14 +164,15 @@ class NTA_V1(IterationAveragingStrategy):
             The non-montone interval.
         maximize
             Whether to maximize or minimize the validation metric.
-        val_logs
-            Historical validation metrics.
+        eta
+            Parameter of polynomial-decay averaging.
         """
 
-        super().__init__()
+        super().__init__(eta = eta)
 
         self.n = n
         self.maximize = maximize
+        # Historical validation metrics.
         self.val_logs = []
 
     def update_average_trigger(self, average_trigger: Any):
@@ -169,8 +186,6 @@ class NTA_V1(IterationAveragingStrategy):
         -------
         """
 
-        # implement NTA (salesforce)
-        # this is the implementation from the iclr (and salesforce github) version, which mismatches the arxiv (and gluonnlp) version
         if not self.averaging_started and self.n > 0:
             if self.maximize:
                 if len(self.val_logs) > self.n and average_trigger < max(
@@ -186,25 +201,34 @@ class NTA_V1(IterationAveragingStrategy):
 
 
 class NTA_V2(IterationAveragingStrategy):
+
+    r"""
+    Implement Non-monotonically Triggered AvSGD (NTA)
+    This method is based on paper "Regularizing and Optimizing LSTM Language Models", 
+    (https://arxiv.org/pdf/1708.02182.pdf), and an implementation is available in GluonNLP GitHub 
+    (https://github.com/dmlc/gluon-nlp/blob/v0.9.x/scripts/language_model/word_language_model.py)
+    """
+
     val_logs: List[Any]
-    
+
     @validated()
-    def __init__(self, n: int = 5, maximize: bool = False):
+    def __init__(self, n: int = 5, maximize: bool = False, eta: float = 0):
         r"""
         Parameters
         ----------
         n
-            The non-monotone interval
+            The non-monotone interval.
         maximize
-            Whether to maximize or minimize the validation metric
-        val_logs
-            Historical validation metrics
+            Whether to maximize or minimize the validation metric.
+        eta
+            Parameter of polynomial-decay averaging.
         """
 
-        super().__init__()
+        super().__init__(eta = eta)
 
         self.n = n
         self.maximize = maximize
+        # Historical validation metrics.
         self.val_logs = []
 
     def update_average_trigger(self, average_trigger: Any):
@@ -218,10 +242,8 @@ class NTA_V2(IterationAveragingStrategy):
         -------
         """
 
-        # implement NTA (gluonnlp)
         if not self.averaging_started and self.n > 0:
             if self.maximize:
-                # in gluonnlp awd-lstm, "len(self.val_logs) > self.n" is used, but I think it should be ">=" instead
                 if len(self.val_logs) >= self.n and average_trigger < max(
                     self.val_logs[-self.n :]
                 ):
@@ -236,7 +258,7 @@ class NTA_V2(IterationAveragingStrategy):
 
 class Alpha_Suffix(IterationAveragingStrategy):
     @validated()
-    def __init__(self, epochs: int, alpha: float = 0.75):
+    def __init__(self, epochs: int, alpha: float = 0.75, eta: float = 0):
         r"""
         Taking iteration average for the last epoch*alpha epochs
 
@@ -246,14 +268,15 @@ class Alpha_Suffix(IterationAveragingStrategy):
             The total number of epochs.
         alpha
             Proportion of averaging.
-        alpha_suffix
-            The epoch where iteration averaging starts.
+        eta
+            Parameter of polynomial-decay averaging.
         """
 
-        super().__init__()
+        super().__init__(eta = eta)
 
-        assert alpha >= 0 and alpha <= 1
+        assert 0 <= alpha <= 1
 
+        # The epoch where iteration averaging starts.
         self.alpha_suffix = epochs * (1.0 - alpha)
 
     def update_average_trigger(self, average_trigger: Any):
