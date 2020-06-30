@@ -15,6 +15,7 @@
 from typing import Any, Dict, Optional, List
 
 # Third-party imports
+import mxnet as mx
 import mxnet.gluon.nn as nn
 
 # First-party imports
@@ -26,9 +27,15 @@ class IterationAveragingStrategy:
     r"""
     The model averaging is based on paper 
     "Stochastic Gradient Descent for Non-smooth Optimization: Convergence Results and Optimal Averaging Schemes", 
-    (http://proceedings.mlr.press/v28/shamir13.pdf), parameterized by eta.
+    (http://proceedings.mlr.press/v28/shamir13.pdf), 
+    which implements polynomial-decay averaging, parameterized by eta.
     When eta = 0, it is equivalent to simple average over all iterations with same weights.
     """
+
+    averaged_model: Optional[Dict[str, mx.nd.NDArray]]
+    cached_model: Optional[Dict[str, mx.nd.NDArray]]
+    average_counter: int
+    averaging_started: bool
 
     @validated()
     def __init__(self, eta: float = 0):
@@ -143,7 +150,7 @@ class IterationAveragingStrategy:
 
 class NTA_V1(IterationAveragingStrategy):
     r"""
-    Implement Non-monotonically Triggered AvSGD (NTA)
+    Implement Non-monotonically Triggered AvSGD (NTA).
     This method is based on paper "Regularizing and Optimizing LSTM Language Models", 
     (https://openreview.net/pdf?id=SyyGPP0TZ), and an implementation is available in Salesforce GitHub 
     (https://github.com/salesforce/awd-lstm-lm/blob/master/main.py)
@@ -168,7 +175,7 @@ class NTA_V1(IterationAveragingStrategy):
             Parameter of polynomial-decay averaging.
         """
 
-        super().__init__(eta=eta)
+        super().__init__(eta = eta)
 
         self.n = n
         self.maximize = maximize
@@ -203,7 +210,7 @@ class NTA_V1(IterationAveragingStrategy):
 class NTA_V2(IterationAveragingStrategy):
 
     r"""
-    Implement Non-monotonically Triggered AvSGD (NTA)
+    Implement Non-monotonically Triggered AvSGD (NTA).
     This method is based on paper "Regularizing and Optimizing LSTM Language Models", 
     (https://arxiv.org/pdf/1708.02182.pdf), and an implementation is available in GluonNLP GitHub 
     (https://github.com/dmlc/gluon-nlp/blob/v0.9.x/scripts/language_model/word_language_model.py)
@@ -224,7 +231,7 @@ class NTA_V2(IterationAveragingStrategy):
             Parameter of polynomial-decay averaging.
         """
 
-        super().__init__(eta=eta)
+        super().__init__(eta = eta)
 
         self.n = n
         self.maximize = maximize
@@ -257,6 +264,15 @@ class NTA_V2(IterationAveragingStrategy):
 
 
 class Alpha_Suffix(IterationAveragingStrategy):
+
+    r"""
+    Implement Alpha Suffix model averaging.
+    This method is based on paper "Making Gradient Descent Optimalfor Strongly Convex Stochastic Optimization", 
+    (https://arxiv.org/pdf/1109.5647.pdf).
+    """
+
+    alpha_suffix: float
+
     @validated()
     def __init__(self, epochs: int, alpha: float = 0.75, eta: float = 0):
         r"""
@@ -272,7 +288,7 @@ class Alpha_Suffix(IterationAveragingStrategy):
             Parameter of polynomial-decay averaging.
         """
 
-        super().__init__(eta=eta)
+        super().__init__(eta = eta)
 
         assert 0 <= alpha <= 1
 
