@@ -30,6 +30,7 @@ from gluonts.mx.distribution import (
     PiecewiseLinear,
     MixtureDistribution,
     Binned,
+    PeakOverThresholdGeneralizedPareto,
 )
 import gluonts.mx.distribution.bijection as bij
 from gluonts.mx.distribution.box_cox_transform import BoxCoxTransform
@@ -178,6 +179,10 @@ DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = (Gaussian, Uniform, Laplace, Binned)
                     lambda_2=mx.nd.zeros(shape=BATCH_SHAPE),
                 )
             ],
+        ),
+        PeakOverThresholdGeneralizedPareto(
+            scale=mx.nd.zeros(shape=BATCH_SHAPE),
+            concentration=mx.nd.ones(shape=BATCH_SHAPE),
         ),
     ],
 )

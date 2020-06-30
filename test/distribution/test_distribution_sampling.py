@@ -34,6 +34,7 @@ from gluonts.mx.distribution import (
     Dirichlet,
     DirichletMultinomial,
     Categorical,
+    PeakOverThresholdGeneralizedPareto,
 )
 from gluonts.core.serde import dump_json, load_json, dump_code, load_code
 
@@ -115,6 +116,13 @@ test_cases = [
         },
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 0])}),
+    (
+        PeakOverThresholdGeneralizedParetoOutput,
+        {
+            "scale": mx.nd.array([1000.0, -1000.0]),
+            "concentration": mx.nd.array([1.0, 2.0]),
+        },
+    ),
 ]
 
 

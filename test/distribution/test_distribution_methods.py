@@ -28,6 +28,7 @@ from gluonts.mx.distribution import (
     MultivariateGaussian,
     PiecewiseLinear,
     Poisson,
+    PeakOverThresholdGeneralizedPareto,
     Binned,
     TransformedDistribution,
     Categorical,
@@ -112,6 +113,13 @@ test_cases = [
         },
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 1.0])}),
+    (
+        PeakOverThresholdGeneralizedPareto,
+        {
+            "scale": mx.nd.array([1000.0, -1000.0]),
+            "concentration": mx.nd.array([1.0, 2.0]),
+        },
+    ),
 ]
 
 test_output = {
@@ -165,6 +173,11 @@ test_output = {
         "stddev": mx.nd.array([31.622776, 1.0]),
         "variance": mx.nd.array([1000.0, 1.0]),
     },
+    "PeakOverThresholdGeneralizedPareto": {
+        "mean": mx.nd.array([1000.0, 1.0]),
+        "stddev": mx.nd.array([31.622776, 1.0]),
+        "variance": mx.nd.array([1000.0, 1.0]),
+    },
 }
 
 # TODO: implement stddev methods for MultivariateGaussian and LowrankMultivariateGaussian
@@ -177,6 +190,7 @@ DISTRIBUTIONS = [
     Uniform,
     Binned,
     Poisson,
+    PeakOverThresholdGeneralizedPareto,
 ]
 
 

@@ -34,6 +34,7 @@ from gluonts.mx.distribution import (
     UniformOutput,
     DirichletOutput,
     DirichletMultinomialOutput,
+    PeakOverThresholdGeneralizedParetoOutput,
 )
 
 
@@ -161,6 +162,14 @@ from gluonts.mx.distribution import (
             PoissonOutput(),
             mx.nd.random.normal(shape=(3, 4, 5, 6)),
             [None],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4, 5),
+            (),
+        ),
+        (
+            PeakOverThresholdGeneralizedParetoOutput(),
+            mx.nd.random.normal(shape=(3, 4, 5, 6)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
             [None, mx.nd.ones(shape=(3, 4, 5))],
             (3, 4, 5),
             (),

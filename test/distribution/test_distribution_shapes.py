@@ -33,6 +33,7 @@ from gluonts.mx.distribution import (
     TransformedDistribution,
     Dirichlet,
     DirichletMultinomial,
+    PeakOverThresholdGeneralizedPareto,
 )
 from gluonts.mx.distribution.bijection import AffineTransformation
 from gluonts.mx.distribution.box_cox_transform import BoxCoxTransform
@@ -215,6 +216,14 @@ from gluonts.mx.distribution.box_cox_transform import BoxCoxTransform
                         lambda_2=mx.nd.zeros(shape=(3, 4, 5)),
                     )
                 ],
+            ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            PeakOverThresholdGeneralizedPareto(
+                scale=mx.nd.zeros(shape=(3, 4, 5)),
+                concentration=mx.nd.ones(shape=(3, 4, 5)),
             ),
             (3, 4, 5),
             (),

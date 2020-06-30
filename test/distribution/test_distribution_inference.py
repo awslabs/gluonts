@@ -54,6 +54,8 @@ from gluonts.mx.distribution import (
     GaussianOutput,
     Poisson,
     PoissonOutput,
+    PeakOverThresholdGeneralizedPareto,
+    PeakOverThresholdGeneralizedParetoOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
     Binned,
@@ -916,3 +918,41 @@ def test_logit_normal_likelihood(mu: float, sigma: float, hybridize: bool):
     assert (
         np.abs(sigma_hat - sigma) < TOL * sigma
     ), f"sigma did not match: sigma = {sigma}, sigma_hat = {sigma_hat}"
+
+
+@pytest.mark.parametrize("scale, concentration", [(2.3, 0.7)])
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_PeakOverThresholdGeneralizedPareto_likelihood(
+    scale: float, concentration: float, hybridize: bool
+) -> None:
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+
+    # generate samples
+    scales = mx.nd.zeros((NUM_SAMPLES,)) + scale
+    concentrations = mx.nd.zeros((NUM_SAMPLES,)) + concentration
+
+    distr = PeakOverThresholdGeneralizedPareto(scales, concentrations)
+    samples = distr.sample()
+
+    init_biases = [
+        inv_softplus(scale - START_TOL_MULTIPLE * TOL * scale),
+        inv_softplus(concentration - START_TOL_MULTIPLE * TOL * concentration),
+    ]
+
+    scale_hat, concentration_hat = maximum_likelihood_estimate_sgd(
+        PeakOverThresholdGeneralizedParetoOutput(),
+        samples,
+        init_biases=init_bias,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.001),
+        num_epochs=PositiveInt(5),
+    )
+
+    assert (
+        np.abs(scale_hat - scale) < TOL * scale
+    ), f"scale did not match: scale = {scale}, scale_hat = {scale_hat}"
+    assert (
+        np.abs(concentration_hat - concentration) < TOL * concentration
+    ), f"concentration did not match: concentration = {concentration}, concentration_hat = {concentration_hat}"
