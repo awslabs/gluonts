@@ -63,64 +63,6 @@ class Timestamp(pd.Timestamp):
         yield conv
 
 
-class TimeSeriesItem(pydantic.BaseModel):
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {np.ndarray: np.ndarray.tolist}
-
-    start: Timestamp
-    target: np.ndarray
-    item: Optional[str] = None
-
-    feat_static_cat: List[int] = []
-    feat_static_real: List[float] = []
-    feat_dynamic_cat: List[List[int]] = []
-    feat_dynamic_real: List[List[float]] = []
-
-    # A dataset can use this field to include information about the origin of
-    # the item (e.g. the file name and line). If an exception in a
-    # transformation occurs the content of the field will be included in the
-    # error message (if the field is set).
-    metadata: dict = {}
-
-    @pydantic.validator("target", pre=True)
-    def validate_target(cls, v):
-        return np.asarray(v)
-
-    def __eq__(self, other: Any) -> bool:
-        # we have to overwrite this function, since we can't just compare
-        # numpy ndarrays, but have to call all on it
-        if isinstance(other, TimeSeriesItem):
-            return (
-                self.start == other.start
-                and (self.target == other.target).all()
-                and self.item == other.item
-                and self.feat_static_cat == other.feat_static_cat
-                and self.feat_static_real == other.feat_static_real
-                and self.feat_dynamic_cat == other.feat_dynamic_cat
-                and self.feat_dynamic_real == other.feat_dynamic_real
-            )
-        return False
-
-    def gluontsify(self, metadata: "MetaData") -> dict:
-        data: dict = {
-            "item": self.item,
-            "start": self.start,
-            "target": self.target,
-        }
-
-        if metadata.feat_static_cat:
-            data["feat_static_cat"] = self.feat_static_cat
-        if metadata.feat_static_real:
-            data["feat_static_real"] = self.feat_static_real
-        if metadata.feat_dynamic_cat:
-            data["feat_dynamic_cat"] = self.feat_dynamic_cat
-        if metadata.feat_dynamic_real:
-            data["feat_dynamic_real"] = self.feat_dynamic_real
-
-        return data
-
-
 class BasicFeatureInfo(pydantic.BaseModel):
     name: str
 

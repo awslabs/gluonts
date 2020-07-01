@@ -29,7 +29,6 @@ from gluonts.dataset.common import (
     FileDataset,
     ListDataset,
     MetaData,
-    TimeSeriesItem,
     save_datasets,
     serialize_data_entry,
 )
@@ -79,10 +78,7 @@ def load_file_dataset_numpy(path: Path, freq: str) -> Iterator[Any]:
 
 
 def load_parsed_dataset(path: Path, freq: str) -> Iterator[Any]:
-    for item in FileDataset(path, freq):
-        yield TimeSeriesItem(
-            start=item["start"], target=item["target"], item="ABC"
-        )
+    yield from FileDataset(path, freq)
 
 
 def load_list_dataset(path: Path, freq: str) -> Iterator[Any]:
@@ -173,23 +169,3 @@ def test_loader_multivariate() -> None:
 
         assert (ds[1]["target"] == [[-1, -2, 3], [2, 4, 81]]).all()
         assert ds[1]["start"] == Timestamp("2014-09-07", freq="D")
-
-
-def test_timeseries_item_serialization() -> None:
-    ts_item = TimeSeriesItem(
-        item="1",
-        start="2014-09-07 00:00:00",
-        target=[1, 2],
-        feat_static_cat=[1],
-    )
-    metadata = MetaData(
-        freq="1H",
-        feat_static_cat=[{"name": "feat_static_cat_000", "cardinality": 1}],
-    )
-    process = ProcessDataEntry(freq=metadata.freq)
-
-    data_entry = process(ts_item.gluontsify(metadata))
-    serialized_data = serialize_data_entry(data_entry)
-
-    deserialized_ts_item = TimeSeriesItem(**serialized_data)
-    assert deserialized_ts_item == ts_item
