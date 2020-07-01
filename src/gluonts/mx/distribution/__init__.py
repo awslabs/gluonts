@@ -41,6 +41,7 @@ from .multivariate_gaussian import (
     MultivariateGaussian,
     MultivariateGaussianOutput,
 )
+from .nan_mixture import NanMixture, NanMixtureOutput
 from .neg_binomial import NegativeBinomial, NegativeBinomialOutput
 from .piecewise_linear import (
     PiecewiseLinear,
@@ -72,6 +73,8 @@ __all__ = [
     "LowrankMultivariateGaussianOutput",
     "MixtureDistributionOutput",
     "MixtureDistribution",
+    "NanMixture",
+    "NanMixtureOutput",
     "NegativeBinomialOutput",
     "NegativeBinomial",
     "UniformOutput",

@@ -24,7 +24,13 @@ from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 # Relative imports
-from .distribution import Distribution, _expand_param, _index_tensor, getF, nans_like
+from .distribution import (
+    Distribution,
+    _expand_param,
+    _index_tensor,
+    getF,
+    nans_like,
+)
 from .distribution_output import DistributionOutput
 from .mixture import MixtureDistribution, MixtureDistributionOutput
 from .deterministic import Deterministic, DeterministicOutput
@@ -52,38 +58,47 @@ class NanMixture(MixtureDistribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(
-            self, nan_prob: Tensor, distribution: Distribution, F=None
-    ) -> None:
-        F = F if F else getF(nan_prob)
-        mixture_probs = F.concat(nan_prob, 1 - nan_prob, dim=-1)
-        super().__init__(mixture_probs=mixture_probs, components=[distribution,
-                                                                  Deterministic(value=nans_like(nan_prob))],
-                         F=F)
+    def __init__(self, nan_prob: Tensor, distribution: Distribution) -> None:
+        F = getF(nan_prob)
+        mixture_probs = F.stack(1 - nan_prob, nan_prob, axis=-1)
+        super().__init__(
+            mixture_probs=mixture_probs,
+            components=[
+                distribution,
+                Deterministic(value=nans_like(nan_prob)),
+            ],
+            F=F,
+        )
 
     def log_prob(self, x: Tensor) -> Tensor:
+
         F = self.F
+
+        # masking NaN's with ones
+        x_non_nan = F.where(x != x, F.ones_like(x), x)
 
         log_mix_weights = F.log(self.mixture_probs)
 
+        non_nan_comp_log_likelihood = F.where(
+            x != x,
+            -x.ones_like() / 0.0,
+            self.components[0].log_prob(x_non_nan),
+        )
         # compute log probabilities of components
         component_log_likelihood = F.stack(
-            *[c.log_prob(x) for c in self.components], axis=-1
+            *[non_nan_comp_log_likelihood, self.components[1].log_prob(x)],
+            axis=-1
         )
 
-        # log likelihood of first component for NaN is -inf and not not NaN
-        minus_inf = -component_log_likelihood.ones_like() / 0.
-        component_log_likelihood = F.where(F.contrib.isnan(component_log_likelihood),
-                                           minus_inf,
-                                           component_log_likelihood
-                                           )
         # compute mixture log probability by log-sum-exp
-        summands = F.sum(F.stack(log_mix_weights, component_log_likelihood, axis=-1), axis=-1)
+        summands = log_mix_weights + component_log_likelihood
         max_val = F.max_axis(summands, axis=-1, keepdims=True)
-
+        # catch edge case max_val = -inf
+        max_val = F.where(max_val == -np.inf, max_val.zeros_like(), max_val)
         sum_exp = F.sum(
             F.exp(F.broadcast_minus(summands, max_val)), axis=-1, keepdims=True
         )
+
         log_sum_exp = F.log(sum_exp) + max_val
         return log_sum_exp.squeeze(axis=-1)
 

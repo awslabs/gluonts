@@ -29,6 +29,7 @@ from gluonts.support.util import erf, erfinv
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
 
+
 class Deterministic(Distribution):
     r"""
     Deterministic/Degenerate distribution.
@@ -43,9 +44,9 @@ class Deterministic(Distribution):
     is_reparameterizable = True  # TODO is it?
 
     @validated()
-    def __init__(self, value: Tensor, F=None) -> None:
+    def __init__(self, value: Tensor) -> None:
         self.value = value
-        self.F = F if F else getF(value)
+        self.F = getF(value)
 
     @property
     def batch_shape(self) -> Tuple:
@@ -63,11 +64,11 @@ class Deterministic(Distribution):
         # TODO add tolerance for float comparison?
         F = self.F
         value = self.value
-        is_both_nan = F.broadcast_logical_and(F.contrib.isnan(x), F.contrib.isnan(value))
-        is_equal_or_both_nan = F.broadcast_logical_or((x == value), is_both_nan)
-        return (
-            F.log(is_equal_or_both_nan)
+        is_both_nan = F.broadcast_logical_and(x != x, value != value)
+        is_equal_or_both_nan = F.broadcast_logical_or(
+            (x == value), is_both_nan
         )
+        return F.log(is_equal_or_both_nan)
 
     @property
     def mean(self) -> Tensor:
@@ -75,24 +76,26 @@ class Deterministic(Distribution):
 
     @property
     def stddev(self) -> Tensor:
-        return 0
+        return self.value.zeros_like()
 
     def cdf(self, x):
         # TODO add tolerance for float comparison?
         F = self.F
         value = self.value
-        is_both_nan = F.broadcast_logical_and(F.contrib.isnan(x), F.contrib.isnan(value))
-        is_greater_equal_or_both_nan = F.broadcast_logical_or((x >= value), is_both_nan)
-        return (is_greater_equal_or_both_nan)
+        is_both_nan = F.broadcast_logical_and(
+            F.contrib.isnan(x), F.contrib.isnan(value)
+        )
+        is_greater_equal_or_both_nan = F.broadcast_logical_or(
+            (x >= value), is_both_nan
+        )
+        return is_greater_equal_or_both_nan
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.int32
     ) -> Tensor:
         # TODO implement dtype?
         return _sample_multiple(
-            lambda value: value,
-            value=self.value,
-            num_samples=num_samples
+            lambda value: value, value=self.value, num_samples=num_samples
         )
 
     def quantile(self, level: Tensor) -> Tensor:
@@ -107,17 +110,15 @@ class Deterministic(Distribution):
         quantiles = F.broadcast_mul(self.value, level.ones_like())
         level = F.broadcast_mul(quantiles.ones_like(), level)
 
-        minus_inf = -quantiles.ones_like()/0.
-        quantiles = F.where(F.broadcast_logical_or(level != 0, F.contrib.isnan(quantiles)),
-                            quantiles,
-                            minus_inf
-                            )
+        minus_inf = -quantiles.ones_like() / 0.0
+        quantiles = F.where(
+            F.broadcast_logical_or(level != 0, F.contrib.isnan(quantiles)),
+            quantiles,
+            minus_inf,
+        )
 
         nans = level.zeros_like() / 0.0
-        quantiles = F.where(level != level,
-                            nans,
-                            quantiles
-                            )
+        quantiles = F.where(level != level, nans, quantiles)
 
         return quantiles
 
@@ -155,7 +156,3 @@ class DeterministicOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return ()
-
-
-
-
