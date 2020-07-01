@@ -125,6 +125,6 @@ def test_nan_mixture(distr: Distribution, p: Tensor, serialize_fn) -> None:
     print(mu_grad_true)
     print(sigma.grad)
     print(sigma_grad_true)
-    assert p.grad == p_grad_true
-    assert mu.grad == mu_grad_true
-    assert sigma.grad == p_grad_true
+    assert np.allclose(p.grad, p_grad_true, atol=1e-1)
+    assert np.allclose(mu.grad, mu_grad_true, atol=1e-1)
+    assert np.allclose(sigma.grad, p_grad_true, atol=1e-1)
