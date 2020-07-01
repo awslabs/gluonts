@@ -100,6 +100,44 @@ class TrainDatasets(NamedTuple):
     train: Dataset
     test: Optional[Dataset] = None
 
+    def save(self, path_str: str, overwrite=True) -> None:
+        """
+        Saves an TrainDatasets object to a JSON Lines file.
+
+        Parameters
+        ----------
+        path_str
+            Where to save the dataset.
+        overwrite
+            Whether to delete previous version in this folder.
+        """
+        import shutil
+        import ujson as json
+
+        path = Path(path_str)
+
+        if overwrite:
+            shutil.rmtree(path, ignore_errors=True)
+
+        def dump_line(f, line):
+            f.write(json.dumps(line).encode("utf-8"))
+            f.write("\n".encode("utf-8"))
+
+        (path / "metadata").mkdir(parents=True)
+        with open(path / "metadata/metadata.json", "wb") as f:
+            dump_line(f, self.metadata.dict())
+
+        (path / "train").mkdir(parents=True)
+        with open(path / "train/data.json", "wb") as f:
+            for entry in self.train:
+                dump_line(f, serialize_data_entry(entry))
+
+        if self.test is not None:
+            (path / "test").mkdir(parents=True)
+            with open(path / "test/data.json", "wb") as f:
+                for entry in self.test:
+                    dump_line(f, serialize_data_entry(entry))
+
 
 class FileDataset(Dataset):
     """
