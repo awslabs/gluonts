@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import shutil
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -33,7 +32,6 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pydantic
-import ujson as json
 from pandas.tseries.offsets import Tick
 
 # First-party imports
