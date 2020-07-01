@@ -686,7 +686,7 @@ class RecipeDataset(ArtificialDataset):
 
     @staticmethod
     def trim_ts_item_end(x: DataEntry, length: int) -> DataEntry:
-        """Trim a TimeSeriesItem into a training range, by removing
+        """Trim a DataEntry into a training range, by removing
         the last prediction_length time points from the target and dynamic
         features."""
         y = dict(
@@ -707,7 +707,7 @@ class RecipeDataset(ArtificialDataset):
 
     @staticmethod
     def trim_ts_item_front(x: DataEntry, length: int) -> DataEntry:
-        """Trim a TimeSeriesItem into a training range, by removing
+        """Trim a DataEntry into a training range, by removing
         the first offset_front time points from the target and dynamic
         features."""
         assert length <= len(x[FieldName.TARGET])
