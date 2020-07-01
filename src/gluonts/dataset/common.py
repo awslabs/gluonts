@@ -92,15 +92,6 @@ class SourceContext(NamedTuple):
     row: int
 
 
-class Channel(pydantic.BaseModel):
-    metadata: Path
-    train: Path
-    test: Optional[Path] = None
-
-    def get_datasets(self) -> "TrainDatasets":
-        return load_datasets(self.metadata, self.train, self.test)
-
-
 class TrainDatasets(NamedTuple):
     """
     A dataset containing two subsets, one to be used for training purposes,
@@ -440,46 +431,6 @@ def load_datasets(
     test_ds = FileDataset(path=test, freq=meta.freq) if test else None
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
-
-
-def save_datasets(
-    dataset: TrainDatasets, path_str: str, overwrite=True
-) -> None:
-    """
-    Saves an TrainDatasets object to a JSON Lines file.
-
-    Parameters
-    ----------
-    dataset
-        The training datasets.
-    path_str
-        Where to save the dataset.
-    overwrite
-        Whether to delete previous version in this folder.
-    """
-    path = Path(path_str)
-
-    if overwrite:
-        shutil.rmtree(path, ignore_errors=True)
-
-    def dump_line(f, line):
-        f.write(json.dumps(line).encode("utf-8"))
-        f.write("\n".encode("utf-8"))
-
-    (path / "metadata").mkdir(parents=True)
-    with open(path / "metadata/metadata.json", "wb") as f:
-        dump_line(f, dataset.metadata.dict())
-
-    (path / "train").mkdir(parents=True)
-    with open(path / "train/data.json", "wb") as f:
-        for entry in dataset.train:
-            dump_line(f, serialize_data_entry(entry))
-
-    if dataset.test is not None:
-        (path / "test").mkdir(parents=True)
-        with open(path / "test/data.json", "wb") as f:
-            for entry in dataset.test:
-                dump_line(f, serialize_data_entry(entry))
 
 
 def serialize_data_entry(data):
