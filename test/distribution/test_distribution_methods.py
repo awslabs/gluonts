@@ -116,8 +116,8 @@ test_cases = [
     (
         PeakOverThresholdGeneralizedPareto,
         {
-            "scale": mx.nd.array([1000.0, -1000.0]),
-            "concentration": mx.nd.array([1.0, 2.0]),
+            "scale": mx.nd.array([100.0, -100.0]),
+            "concentration": mx.nd.array([0.1, 0.2]),
         },
     ),
 ]
@@ -174,9 +174,9 @@ test_output = {
         "variance": mx.nd.array([1000.0, 1.0]),
     },
     "PeakOverThresholdGeneralizedPareto": {
-        "mean": mx.nd.array([1000.0, 1.0]),
-        "stddev": mx.nd.array([31.622776, 1.0]),
-        "variance": mx.nd.array([1000.0, 1.0]),
+        "mean": mx.nd.array([111.111115, -125.0]),
+        "stddev": mx.nd.array([124.226006, -161.3743]),
+        "variance": mx.nd.array([15432.101, 26041.664]),
     },
 }
 

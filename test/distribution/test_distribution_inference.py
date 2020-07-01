@@ -936,7 +936,7 @@ def test_PeakOverThresholdGeneralizedPareto_likelihood(
     distr = PeakOverThresholdGeneralizedPareto(scales, concentrations)
     samples = distr.sample()
 
-    init_biases = [
+    init_bias = [
         inv_softplus(scale - START_TOL_MULTIPLE * TOL * scale),
         inv_softplus(concentration - START_TOL_MULTIPLE * TOL * concentration),
     ]

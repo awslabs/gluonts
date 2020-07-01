@@ -181,7 +181,7 @@ DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = (Gaussian, Uniform, Laplace, Binned)
             ],
         ),
         PeakOverThresholdGeneralizedPareto(
-            scale=mx.nd.zeros(shape=BATCH_SHAPE),
+            scale=mx.nd.ones(shape=BATCH_SHAPE),
             concentration=mx.nd.ones(shape=BATCH_SHAPE),
         ),
     ],
