@@ -16,6 +16,7 @@ import pytest
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx.distribution import GaussianOutput
 
+
 @pytest.fixture()
 def hyperparameters():
     return dict(
@@ -26,7 +27,7 @@ def hyperparameters():
         num_hidden_dimensions=[3],
         num_batches_per_epoch=1,
         use_symbol_block_predictor=True,
-        distr_output=GaussianOutput()
+        distr_output=GaussianOutput(),
     )
 
 
