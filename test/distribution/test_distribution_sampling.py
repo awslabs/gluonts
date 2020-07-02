@@ -131,10 +131,17 @@ test_cases = [
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
-DISTRIBUTIONS_WITH_CDF = [Gaussian, Uniform, Laplace, Binned, PeakOverThresholdGeneralizedPareto]
+DISTRIBUTIONS_WITH_CDF = [
+    Gaussian,
+    Uniform,
+    Laplace,
+    Binned,
+    PeakOverThresholdGeneralizedPareto,
+]
 DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = [Gaussian, Uniform, Laplace, Binned]
 # base_distribution_quantile wait for test
 # DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = [Gaussian, Uniform, Laplace, Binned, PeakOverThresholdGeneralizedPareto]
+
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)

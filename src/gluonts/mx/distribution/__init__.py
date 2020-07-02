@@ -47,7 +47,10 @@ from .piecewise_linear import (
     TransformedPiecewiseLinear,
 )
 from .poisson import Poisson, PoissonOutput
-from .POT_generalized_pareto import PeakOverThresholdGeneralizedPareto, PeakOverThresholdGeneralizedParetoOutput
+from .POT_generalized_pareto import (
+    PeakOverThresholdGeneralizedPareto,
+    PeakOverThresholdGeneralizedParetoOutput,
+)
 from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput

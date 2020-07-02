@@ -51,7 +51,7 @@ class PeakOverThresholdGeneralizedPareto(Distribution):
       mapped to `concentration > 0` for heavy tails.
     F
     """
-    
+
     is_reparameterizable = False
 
     @validated()
@@ -74,14 +74,12 @@ class PeakOverThresholdGeneralizedPareto(Distribution):
 
     def log_prob(self, x: Tensor) -> Tensor:
         F = self.F
-        z = x / self.scale        
+        z = x / self.scale
 
-        ll = (
-             - F.log(self.scale) 
-             - ((self.concentration + 1) / self.concentration) 
-             * F.log1p(self.concentration * z)
-        )
-        
+        ll = -F.log(self.scale) - (
+            (self.concentration + 1) / self.concentration
+        ) * F.log1p(self.concentration * z)
+
         return ll
 
     @property
@@ -89,42 +87,49 @@ class PeakOverThresholdGeneralizedPareto(Distribution):
         # Mean is only defined for concentration < 1. How to handle that?
         mu = self.scale / (1 - self.concentration)
         return mu
-    
 
     @property
     def stddev(self) -> Tensor:
         # Variance is only defined for concentration < 1/2. How?
         F = self.F
-        return self.scale / ((1 - self.concentration)* self.F.sqrt(1 - 2 * self.concentration))
-        
-        
+        return self.scale / (
+            (1 - self.concentration) * self.F.sqrt(1 - 2 * self.concentration)
+        )
+
     def cdf(self, x: Tensor) -> Tensor:
         F = self.F
         z = x / self.scale
-        u = 1 - F.power(1 + self.concentration * z, - 1 / self.concentration )
+        u = 1 - F.power(1 + self.concentration * z, -1 / self.concentration)
         return u
-        
-    
-    def base_distribution_quantile(self, level: Tensor, threshold: Tensor, peak_ratio: Tensor, transforms, below=False) -> Tensor:
+
+    def base_distribution_quantile(
+        self,
+        level: Tensor,
+        threshold: Tensor,
+        peak_ratio: Tensor,
+        transforms,
+        below=False,
+    ) -> Tensor:
         """
         Computes the tail quantile of the base distribution using the fitted extreme value distribution. 
         """
-        
+
         F = self.F
         sgn = -1 if below else 1
-        
+
         # Base GPD quantile
-        base_q = (self.scale/self.concentration) * (F.power( level / peak_ratio, -self.concentration) - 1)
-        
+        base_q = (self.scale / self.concentration) * (
+            F.power(level / peak_ratio, -self.concentration) - 1
+        )
+
         # Reversing the transforms
         for t in transforms:
             base_q = t.f(base_q)
-        
+
         # Applying over/below threshold
         q = threshold + sgn * base_q
-        
+
         return q
-        
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
@@ -133,26 +138,39 @@ class PeakOverThresholdGeneralizedPareto(Distribution):
             F = self.F
             ones = concentration.ones_like()
 
-            smpl = scale * (F.power(
-                F.random.uniform(0 * ones, 1 * ones, dtype=dtype),
-                -concentration) - 1) / concentration
-        
+            smpl = (
+                scale
+                * (
+                    F.power(
+                        F.random.uniform(0 * ones, 1 * ones, dtype=dtype),
+                        -concentration,
+                    )
+                    - 1
+                )
+                / concentration
+            )
+
             return smpl
-            
-        return _sample_multiple(s, scale=self.scale, concentration=self.concentration, num_samples=num_samples)
+
+        return _sample_multiple(
+            s,
+            scale=self.scale,
+            concentration=self.concentration,
+            num_samples=num_samples,
+        )
 
     @property
     def args(self) -> List:
         return [self.scale, self.concentration]
 
-    
+
 class PeakOverThresholdGeneralizedParetoOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"scale": 1, "concentration": 1}
     distr_cls: type = PeakOverThresholdGeneralizedPareto
 
     @classmethod
     def domain_map(cls, F, scale, concentration):
-        scale = 1e-4 + softplus(F, scale)  
+        scale = 1e-4 + softplus(F, scale)
         concentration = 1e-4 + softplus(F, concentration)
         return scale.squeeze(axis=-1), concentration.squeeze(axis=-1)
 
