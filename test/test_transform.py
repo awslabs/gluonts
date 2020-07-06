@@ -424,7 +424,7 @@ def test_multi_dim_transformation(is_train):
             transform.AddObservedValuesIndicator(
                 target_field=FieldName.TARGET,
                 output_field="observed_values",
-                convert_nans=False,
+                imputation_method=None,
             ),
             transform.VstackFeatures(
                 output_field="dynamic_feat",
