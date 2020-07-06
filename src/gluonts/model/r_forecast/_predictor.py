@@ -13,6 +13,7 @@
 
 # Standard library imports
 import os
+from pathlib import Path
 from typing import Dict, Iterator, Optional
 
 # Third-party imports
@@ -101,7 +102,8 @@ class RForecastPredictor(RepresentablePredictor):
 
         for n in r_files:
             try:
-                robjects.r(f'source("{this_dir}/R/{n}.R")')
+                path = Path(this_dir, "R", f"{n}.R")
+                robjects.r(f'source("{path}")'.replace("\\", "\\\\"))
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
