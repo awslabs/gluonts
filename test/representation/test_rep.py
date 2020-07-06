@@ -15,7 +15,7 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.representation import Representation
+from gluonts.mx.representation import Representation
 
 
 cases = [

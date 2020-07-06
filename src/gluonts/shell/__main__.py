@@ -29,7 +29,8 @@ from gluonts.model.predictor import Predictor
 
 # Relative imports
 from gluonts.shell.serve import Settings
-from .sagemaker import TrainEnv, ServeEnv
+
+from .sagemaker import ServeEnv, TrainEnv
 
 Forecaster = Type[Union[Estimator, Predictor]]
 

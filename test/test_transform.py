@@ -29,6 +29,16 @@ from gluonts.dataset.common import ProcessStartField, DataEntry, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 
+from gluonts.transform import (
+    MissingValueImputation,
+    LeavesMissingValues,
+    DummyValueImputation,
+    MeanValueImputation,
+    LastValueImputation,
+    CausalMeanValueImputation,
+    RollingMeanValueImputation,
+)
+
 FREQ = "1D"
 
 TEST_VALUES = {
@@ -414,7 +424,7 @@ def test_multi_dim_transformation(is_train):
             transform.AddObservedValuesIndicator(
                 target_field=FieldName.TARGET,
                 output_field="observed_values",
-                convert_nans=False,
+                imputation_method=None,
             ),
             transform.VstackFeatures(
                 output_field="dynamic_feat",
@@ -877,6 +887,61 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         assert d["future_valid_length"] == d["past_valid_length"] == 0
         assert np.prod(np.shape(d["past_target"])) == 0
         assert np.prod(np.shape(d["future_target"])) == 0
+
+
+def test_AddObservedIndicator():
+    """
+    Tests the different methods to impute missing values.
+    """
+
+    array_value = np.array(
+        [np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]
+    )
+
+    l_methods = [
+        "dummy_value",
+        "mean",
+        "causal_mean",
+        "last_value",
+        "rolling_mean1",
+        "rolling_mean10",
+    ]
+
+    d_method_instances = {
+        "dummy_value": DummyValueImputation(),
+        "mean": MeanValueImputation(),
+        "causal_mean": CausalMeanValueImputation(),
+        "last_value": LastValueImputation(),
+        "rolling_mean1": RollingMeanValueImputation(1),
+        "rolling_mean10": RollingMeanValueImputation(10),
+    }
+
+    d_expected_result = {
+        "dummy_value": np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
+        "mean": np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
+        "causal_mean": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9 / 7]),
+        "last_value": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+        "rolling_mean10": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.1, 1.0, 1.2]),
+        "rolling_mean1": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+    }
+
+    expected_missindicator = np.array([0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0])
+
+    for method in l_methods:
+        transfo = transform.AddObservedValuesIndicator(
+            target_field=FieldName.TARGET,
+            output_field=FieldName.OBSERVED_VALUES,
+            imputation_method=d_method_instances[method],
+        )
+
+        d = {"target": array_value.copy()}
+
+        res = transfo.transform(d)
+
+        assert np.array_equal(d_expected_result[method], res["target"])
+        assert np.array_equal(
+            expected_missindicator, res[FieldName.OBSERVED_VALUES]
+        )
 
 
 def make_dataset(N, train_length):

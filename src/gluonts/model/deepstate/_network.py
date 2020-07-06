@@ -17,14 +17,13 @@ from typing import List, Optional
 # Third-party imports
 import mxnet as mx
 
-# First-party imports
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.block.scaler import NOPScaler, MeanScaler
 from gluonts.core.component import validated
-from gluonts.distribution.lds import ParameterBounds, LDS, LDSArgsProj
-from gluonts.model.deepstate.issm import ISSM
 from gluonts.model.common import Tensor
-from gluonts.support.util import weighted_average, make_nd_diag
+from gluonts.model.deepstate.issm import ISSM
+from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution.lds import LDS, LDSArgsProj, ParameterBounds
+from gluonts.support.util import make_nd_diag, weighted_average
 
 
 class DeepStateNetwork(mx.gluon.HybridBlock):

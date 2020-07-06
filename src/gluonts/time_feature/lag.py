@@ -13,7 +13,7 @@
 
 # Standard library imports
 import re
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import numpy as np

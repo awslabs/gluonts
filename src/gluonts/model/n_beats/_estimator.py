@@ -22,7 +22,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
     ExpectedNumInstanceSampler,
@@ -32,10 +32,10 @@ from gluonts.transform import (
 
 # Relative imports
 from ._network import (
+    VALID_LOSS_FUNCTIONS,
+    VALID_N_BEATS_STACK_TYPES,
     NBEATSPredictionNetwork,
     NBEATSTrainingNetwork,
-    VALID_N_BEATS_STACK_TYPES,
-    VALID_LOSS_FUNCTIONS,
 )
 
 

@@ -17,7 +17,7 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.distribution import PiecewiseLinear, PiecewiseLinearOutput
+from gluonts.mx.distribution import PiecewiseLinear, PiecewiseLinearOutput
 from gluonts.testutil import empirical_cdf
 from gluonts.core.serde import dump_json, load_json
 

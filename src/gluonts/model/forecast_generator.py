@@ -18,19 +18,19 @@ from typing import Any, Callable, Iterator, List, Optional
 import mxnet as mx
 import numpy as np
 
-# First-party imports
-from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast import (
-    Forecast,
-    SampleForecast,
-    QuantileForecast,
     DistributionForecast,
+    Forecast,
+    QuantileForecast,
+    SampleForecast,
 )
 
+# First-party imports
+from gluonts.mx.distribution import Distribution, DistributionOutput
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 BlockType = mx.gluon.Block

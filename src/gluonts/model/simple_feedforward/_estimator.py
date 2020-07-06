@@ -20,10 +20,10 @@ from mxnet.gluon import HybridBlock
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-from gluonts.trainer import Trainer
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
     ExpectedNumInstanceSampler,

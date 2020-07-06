@@ -15,8 +15,8 @@
 from mxnet.gluon import HybridBlock, nn
 
 # First-party imports
-from gluonts.block.rnn import RNN
 from gluonts.core.component import validated
+from gluonts.mx.block.rnn import RNN
 
 
 class RNNModel(HybridBlock):

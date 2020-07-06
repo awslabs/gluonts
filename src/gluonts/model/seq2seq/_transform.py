@@ -13,7 +13,7 @@
 
 # Standard library imports
 from collections import Counter
-from typing import Iterator, List, Any, Optional
+from typing import Any, Iterator, List, Optional
 
 # Third-party imports
 import numpy as np
@@ -171,7 +171,12 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                         ):
                             dec_field[:] = ts[:, idx : idx + self.dec_len].T
 
-                    out[self._future(ts_field)] = np.squeeze(forking_dec_field)
+                    if forking_dec_field.shape[-1] == 1:
+                        out[self._future(ts_field)] = np.squeeze(
+                            forking_dec_field, axis=-1
+                        )
+                    else:
+                        out[self._future(ts_field)] = forking_dec_field
 
             # So far pad indicator not in use
             pad_indicator = np.zeros(self.enc_len)

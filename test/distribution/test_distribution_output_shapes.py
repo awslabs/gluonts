@@ -18,7 +18,7 @@ from itertools import product
 import mxnet as mx
 
 from gluonts.model.common import Tensor
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     DistributionOutput,
     GaussianOutput,
     GammaOutput,

@@ -17,7 +17,7 @@ import numpy as np
 from mxnet import nd
 
 # First-party imports
-from gluonts.block.cnn import CausalConv1D
+from gluonts.mx.block.cnn import CausalConv1D
 
 
 def compute_causalconv1d(
