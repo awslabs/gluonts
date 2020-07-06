@@ -81,12 +81,12 @@ def test_nan_mixture(distr: Distribution, p: Tensor, serialize_fn) -> None:
     # TODO check histogram of non-nan values
     # TODO check mean and stddev
 
-    x = mx.nd.array([[[np.nan, 10.5, -0.5]], [[np.nan, 10.5, np.nan]]])
-    print("p")
-    print(p)
-    print()
-    print("x")
-    print(x)
+    x = mx.nd.array([[[np.nan, 3.5, -0.5]], [[np.nan, 3.5, np.nan]]])
+    # print("p")
+    # print(p)
+    # print()
+    # print("x")
+    # print(x)
     # check log_prob
     log_prob = nan_mixture.log_prob(x)
     log_prob_true = mx.nd.log(mx.nd.where(x != x, p, (1 - p) * distr.prob(x)))
@@ -104,10 +104,19 @@ def test_nan_mixture(distr: Distribution, p: Tensor, serialize_fn) -> None:
     with mx.autograd.record():
         distr = Gaussian(mu=mu, sigma=sigma,)
         nan_mixture = NanMixture(nan_prob=p, distribution=distr)
-        nll = nan_mixture.loss(x)
+        nll = -nan_mixture.log_prob(x)
     nll.backward()
 
     p_grad_true = mx.nd.where(x != x, -1 / p, 1 / (1 - p))
+    # gradient is undefined for these cases:
+    p_grad_true = mx.nd.where(
+        mx.nd.logical_or(
+            mx.nd.logical_and(x != x, p == 0),
+            mx.nd.logical_and(x == x, p == 1),
+        ),
+        0.0 / p_grad_true.zeros_like(),
+        p_grad_true,
+    )
 
     mu_grad_true = -(x - mu) / mx.nd.square(sigma)
     mu_grad_true = mx.nd.where(x != x, mu.zeros_like(), mu_grad_true)
@@ -119,12 +128,17 @@ def test_nan_mixture(distr: Distribution, p: Tensor, serialize_fn) -> None:
     sigma_grad_true = mx.nd.where(x != x, sigma.zeros_like(), sigma_grad_true)
     sigma_grad_true = mx.nd.where(p == 1, sigma.zeros_like(), sigma_grad_true)
 
-    print(p.grad)
-    print(p_grad_true)
-    print(mu.grad)
-    print(mu_grad_true)
-    print(sigma.grad)
-    print(sigma_grad_true)
-    assert np.allclose(p.grad, p_grad_true, atol=1e-1)
-    assert np.allclose(mu.grad, mu_grad_true, atol=1e-1)
-    assert np.allclose(sigma.grad, p_grad_true, atol=1e-1)
+    # print(p.grad)
+    # print(p_grad_true)
+    # print(mu.grad)
+    # print(mu_grad_true)
+    # print(sigma.grad)
+    # print(sigma_grad_true)
+
+    assert np.allclose(
+        p.grad.asnumpy(), p_grad_true.asnumpy(), atol=1e-1, equal_nan=True
+    )
+    assert np.allclose(mu.grad.asnumpy(), mu_grad_true.asnumpy(), atol=1e-1)
+    assert np.allclose(
+        sigma.grad.asnumpy(), sigma_grad_true.asnumpy(), atol=1e-1
+    )
