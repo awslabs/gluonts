@@ -634,13 +634,10 @@ class ParallelDataLoader(object):
 
         # TODO: switch to default multiprocessing.cpu_count() here
         default_num_workers = 0
-        self.num_workers = (
-            num_workers
-            if num_workers is not None
-            else min(
-                self.dataset_len, default_num_workers
-            )  # cannot have more than dataset entries
-        )
+        self.num_workers = min(
+            num_workers if num_workers is not None else default_num_workers,
+            self.dataset_len,
+        )  # cannot have more than dataset entries
         self.num_prefetch = (
             num_prefetch if num_prefetch is not None else 2 * self.num_workers
         )

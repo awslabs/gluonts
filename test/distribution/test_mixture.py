@@ -127,9 +127,12 @@ def test_mixture(
 
     # check mean and stddev
     calc_mean = mixture.mean.asnumpy()
+    calc_std = mixture.stddev.asnumpy()
     sample_mean = samples_mix.asnumpy().mean(axis=0)
+    sample_std = samples_mix.asnumpy().std(axis=0)
 
     assert np.allclose(calc_mean, sample_mean, atol=1e-1)
+    assert np.allclose(calc_std, sample_std, atol=1e-1)
 
     # check that histograms are close
     assert (

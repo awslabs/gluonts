@@ -32,4 +32,4 @@ def test_ts_slice_to_item():
         feat_dynamic_real=[make_series(range(100))],
     )
 
-    sl.to_time_series_item()
+    sl.to_data_entry()
