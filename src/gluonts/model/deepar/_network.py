@@ -28,6 +28,7 @@ from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
 from gluonts.support.util import weighted_average
+from gluonts.mx.representation import Representation
 
 
 def prod(xs):
@@ -47,12 +48,13 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         history_length: int,
         context_length: int,
         prediction_length: int,
+        input_repr: Representation,
+        output_repr: Representation,
         distr_output: DistributionOutput,
         dropout_rate: float,
         cardinality: List[int],
         embedding_dimension: List[int],
         lags_seq: List[int],
-        scaling: bool = True,
         dtype: DType = np.float32,
         **kwargs,
     ) -> None:
@@ -67,7 +69,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
         self.num_cat = len(cardinality)
-        self.scaling = scaling
         self.dtype = dtype
 
         assert len(cardinality) == len(
@@ -81,6 +82,8 @@ class DeepARNetwork(mx.gluon.HybridBlock):
 
         self.lags_seq = lags_seq
 
+        self.input_repr = input_repr
+        self.output_repr = output_repr
         self.distr_output = distr_output
         RnnCell = {"lstm": mx.gluon.rnn.LSTMCell, "gru": mx.gluon.rnn.GRUCell}[
             self.cell_type
@@ -111,10 +114,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                 embedding_dims=embedding_dimension,
                 dtype=self.dtype,
             )
-            if scaling:
-                self.scaler = MeanScaler(keepdims=True)
-            else:
-                self.scaler = NOPScaler(keepdims=True)
 
     @staticmethod
     def get_lagged_subsequences(
@@ -179,7 +178,8 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         future_target: Optional[
             Tensor
         ],  # (batch_size, prediction_length, *target_shape)
-    ) -> Tuple[Tensor, List, Tensor, Tensor]:
+        future_observed_values: Optional[Tensor],
+    ) -> Tuple[Tensor, List, Tensor, Tensor, List[Tensor]]:
         """
         Unrolls the LSTM encoder over past and, if present, future data.
         Returns outputs and state of the encoder, plus the scale of past_target
@@ -195,6 +195,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                 end=None,
             )
             sequence = past_target
+            sequence_obs = past_observed_values
             sequence_length = self.history_length
             subsequences_length = self.context_length
         else:
@@ -208,27 +209,23 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                 dim=1,
             )
             sequence = F.concat(past_target, future_target, dim=1)
+            sequence_obs = F.concat(
+                past_observed_values, future_observed_values, dim=1
+            )
             sequence_length = self.history_length + self.prediction_length
             subsequences_length = self.context_length + self.prediction_length
+
+        input_tar_repr, scale, rep_params_in = self.input_repr(
+            sequence, sequence_obs, None, []
+        )
 
         # (batch_size, sub_seq_len, *target_shape, num_lags)
         lags = self.get_lagged_subsequences(
             F=F,
-            sequence=sequence,
+            sequence=input_tar_repr,
             sequence_length=sequence_length,
             indices=self.lags_seq,
             subsequences_length=subsequences_length,
-        )
-
-        # scale is computed on the context length last units of the past target
-        # scale shape is (batch_size, 1, *target_shape)
-        _, scale = self.scaler(
-            past_target.slice_axis(
-                axis=1, begin=-self.context_length, end=None
-            ),
-            past_observed_values.slice_axis(
-                axis=1, begin=-self.context_length, end=None
-            ),
         )
 
         # (batch_size, num_features)
@@ -251,18 +248,10 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             axis=1, repeats=subsequences_length
         )
 
-        # (batch_size, sub_seq_len, *target_shape, num_lags)
-        lags_scaled = F.broadcast_div(lags, scale.expand_dims(axis=-1))
-
         # from (batch_size, sub_seq_len, *target_shape, num_lags)
         # to (batch_size, sub_seq_len, prod(target_shape) * num_lags)
         input_lags = F.reshape(
-            data=lags_scaled,
-            shape=(
-                -1,
-                subsequences_length,
-                len(self.lags_seq) * prod(self.target_shape),
-            ),
+            data=lags, shape=(-1, subsequences_length, -3,),
         )
 
         # (batch_size, sub_seq_len, input_dim)
@@ -287,7 +276,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         # state: list of (batch_size, num_cells) tensors
         # scale: (batch_size, 1, *target_shape)
         # static_feat: (batch_size, num_features + prod(target_shape))
-        return outputs, state, scale, static_feat
+        return outputs, state, scale, static_feat, rep_params_in
 
 
 class DeepARTrainingNetwork(DeepARNetwork):
@@ -324,7 +313,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         # i.e. by providing future data as well
         F = getF(feat_static_cat)
 
-        rnn_outputs, _, scale, _ = self.unroll_encoder(
+        rnn_outputs, _, scale, _, _ = self.unroll_encoder(
             F=F,
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
@@ -333,6 +322,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
             past_observed_values=past_observed_values,
             future_time_feat=future_time_feat,
             future_target=future_target,
+            future_observed_values=future_observed_values,
         )
 
         distr_args = self.proj_distr_args(rnn_outputs)
@@ -395,27 +385,27 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_target,
             dim=1,
         )
-
-        # (batch_size, seq_len)
-        loss = distr.loss(target)
-
-        # (batch_size, seq_len, *target_shape)
-        observed_values = F.concat(
+        target_obs = F.concat(
             past_observed_values.slice_axis(
                 axis=1,
                 begin=self.history_length - self.context_length,
-                end=self.history_length,
+                end=None,
             ),
             future_observed_values,
             dim=1,
         )
 
+        output_tar_repr, _, _ = self.output_repr(target, target_obs, None, [])
+
+        # (batch_size, seq_len)
+        loss = distr.loss(output_tar_repr)
+
         # mask the loss at one time step iff one or more observations is missing in the target dimensions
         # (batch_size, seq_len)
         loss_weights = (
-            observed_values
+            target_obs
             if (len(self.target_shape) == 0)
-            else observed_values.min(axis=-1, keepdims=False)
+            else target_obs.min(axis=-1, keepdims=False)
         )
 
         weighted_loss = weighted_average(
@@ -446,6 +436,8 @@ class DeepARPredictionNetwork(DeepARNetwork):
         time_feat: Tensor,
         scale: Tensor,
         begin_states: List,
+        rep_params_in: List[Tensor],
+        rep_params_out: List[Tensor],
     ) -> Tensor:
         """
         Computes sample paths by unrolling the LSTM starting with a initial
@@ -493,26 +485,29 @@ class DeepARPredictionNetwork(DeepARNetwork):
 
         # for each future time-units we draw new samples for this time-unit and update the state
         for k in range(self.prediction_length):
+            input_tar_repr, _, _ = self.input_repr(
+                repeated_past_target,
+                F.ones_like(repeated_past_target),
+                repeated_scale,
+                rep_params_in,
+            )
+            _, _, rep_params = self.output_repr(
+                repeated_past_target,
+                F.ones_like(repeated_past_target),
+                repeated_scale,
+                rep_params_out,
+            )
+
             # (batch_size * num_samples, 1, *target_shape, num_lags)
             lags = self.get_lagged_subsequences(
                 F=F,
-                sequence=repeated_past_target,
+                sequence=input_tar_repr,
                 sequence_length=self.history_length + k,
                 indices=self.shifted_lags,
                 subsequences_length=1,
             )
 
-            # (batch_size * num_samples, 1, *target_shape, num_lags)
-            lags_scaled = F.broadcast_div(
-                lags, repeated_scale.expand_dims(axis=-1)
-            )
-
-            # from (batch_size * num_samples, 1, *target_shape, num_lags)
-            # to (batch_size * num_samples, 1, prod(target_shape) * num_lags)
-            input_lags = F.reshape(
-                data=lags_scaled,
-                shape=(-1, 1, prod(self.target_shape) * len(self.lags_seq)),
-            )
+            input_lags = F.reshape(data=lags, shape=(-1, 1, -3,),)
 
             # (batch_size * num_samples, 1, prod(target_shape) * num_lags + num_time_features + num_static_features)
             decoder_input = F.concat(
@@ -541,6 +536,10 @@ class DeepARPredictionNetwork(DeepARNetwork):
 
             # (batch_size * num_samples, 1, *target_shape)
             new_samples = distr.sample(dtype=self.dtype)
+
+            new_samples = self.output_repr.post_transform(
+                F, new_samples, repeated_scale, rep_params
+            )
 
             # (batch_size * num_samples, seq_len, *target_shape)
             repeated_past_target = F.concat(
@@ -590,7 +589,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
         """
 
         # unroll the decoder in "prediction mode", i.e. with past data only
-        _, state, scale, static_feat = self.unroll_encoder(
+        _, state, scale, static_feat, rep_params_in = self.unroll_encoder(
             F=F,
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
@@ -599,6 +598,11 @@ class DeepARPredictionNetwork(DeepARNetwork):
             past_observed_values=past_observed_values,
             future_time_feat=None,
             future_target=None,
+            future_observed_values=None,
+        )
+
+        _, _, rep_params_out = self.output_repr(
+            past_target, past_observed_values, None, []
         )
 
         return self.sampling_decoder(
@@ -608,4 +612,6 @@ class DeepARPredictionNetwork(DeepARNetwork):
             static_feat=static_feat,
             scale=scale,
             begin_states=state,
+            rep_params_in=rep_params_in,
+            rep_params_out=rep_params_out,
         )

@@ -109,6 +109,7 @@ test_cases = [
             )
             .log()
             .repeat(axis=0, repeats=2),
+            "num_cats": 7,
         },
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 1.0])}),

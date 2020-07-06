@@ -20,21 +20,13 @@ import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn
 
-from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-
 # First-party imports
 from gluonts.mx.block.feature import FeatureEmbedder
-
-
-class LookupValues(gluon.HybridBlock):
-    def __init__(self, values: mx.nd.NDArray, **kwargs):
-        super().__init__(**kwargs)
-        with self.name_scope():
-            self.bin_values = self.params.get_constant("bin_values", values)
-
-    def hybrid_forward(self, F, indices, bin_values):
-        return F.take(bin_values, indices)
+from gluonts.core.component import validated
+from gluonts.mx.representation import Representation
+from gluonts.distribution import DistributionOutput
+from gluonts.support.util import weighted_average
+from gluonts.model.common import Tensor
 
 
 def conv1d(channels, kernel_size, in_channels, use_bias=True, **kwargs):
@@ -121,7 +113,6 @@ class CausalDilatedResidue(nn.HybridBlock):
 class WaveNet(nn.HybridBlock):
     def __init__(
         self,
-        bin_values: List[float],
         n_residue: int,
         n_skip: int,
         dilation_depth: int,
@@ -130,6 +121,9 @@ class WaveNet(nn.HybridBlock):
         cardinality: List[int],
         embedding_dimension: int,
         pred_length: int,
+        input_repr: Representation,
+        output_repr: Representation,
+        distr_output: DistributionOutput,
         **kwargs,
     ):
 
@@ -138,7 +132,6 @@ class WaveNet(nn.HybridBlock):
         self.dilation_depth = dilation_depth
         self.pred_length = pred_length
 
-        self.mu = len(bin_values)
         self.dilations = WaveNet._get_dilations(
             dilation_depth=dilation_depth, n_stacks=n_stacks
         )
@@ -156,10 +149,6 @@ class WaveNet(nn.HybridBlock):
                 embedding_dims=[embedding_dimension for _ in cardinality],
             )
 
-            # self.post_transform = LookupValues(mx.nd.array(bin_values))
-            self.target_embed = nn.Embedding(
-                input_dim=self.mu, output_dim=n_residue
-            )
             self.residuals = nn.HybridSequential()
             for i, d in enumerate(self.dilations):
                 is_not_last = i + 1 < len(self.dilations)
@@ -186,15 +175,15 @@ class WaveNet(nn.HybridBlock):
                 in_channels=n_skip, channels=n_skip, kernel_size=1
             )
 
-            self.conv2 = conv1d(
-                in_channels=n_skip, channels=self.mu, kernel_size=1
-            )
             self.output_act = (
                 nn.ELU()
                 if act_type == "elu"
                 else nn.Activation(activation=act_type)
             )
-            self.cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
+            self.proj_distr_args = distr_output.get_args_proj()
+            self.input_repr = input_repr
+            self.output_repr = output_repr
+            self.distr_output = distr_output
 
     @staticmethod
     def _get_dilations(dilation_depth, n_stacks):
@@ -293,8 +282,7 @@ class WaveNet(nn.HybridBlock):
 
         """
         # (batch_size, embed_dim, sequence_length)
-        o = self.target_embed(target).swapaxes(1, 2)
-        o = F.concat(o, features, dim=1)
+        o = F.concat(target, features, dim=1)
         o = self.conv_project(o)
         return o
 
@@ -345,7 +333,6 @@ class WaveNet(nn.HybridBlock):
         y = self.output_act(y)
         y = self.conv1(y)
         y = self.output_act(y)
-        y = self.conv2(y)
         unnormalized_output = y.swapaxes(1, 2)
         return unnormalized_output, queues_next
 
@@ -359,7 +346,6 @@ class WaveNet(nn.HybridBlock):
         future_time_feat: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
-        scale: Tensor,
     ) -> Tensor:
         """
         Computes the training loss for the wavenet model.
@@ -389,9 +375,19 @@ class WaveNet(nn.HybridBlock):
         Tensor
             Returns loss with shape (batch_size,)
         """
-        full_target = F.concat(past_target, future_target, dim=-1).astype(
-            "int32"
+        full_target = F.concat(past_target, future_target, dim=-1)
+        full_observed = F.concat(
+            past_observed_values, future_observed_values, dim=-1
         )
+
+        input_tar_repr, scale, _ = self.input_repr(
+            full_target, full_observed, None, []
+        )
+        input_tar_repr = input_tar_repr.swapaxes(1, 2)
+        output_tar_repr, _, _ = self.output_repr(
+            full_target, full_observed, None, []
+        )
+
         full_features = self.get_full_features(
             F,
             feat_static_cat=feat_static_cat,
@@ -403,25 +399,29 @@ class WaveNet(nn.HybridBlock):
         )
         embedding = self.target_feature_embedding(
             F,
-            F.slice_axis(full_target, begin=0, end=-1, axis=-1),
+            F.slice_axis(input_tar_repr, begin=0, end=-1, axis=-1),
             F.slice_axis(full_features, begin=1, end=None, axis=-1),
         )
         unnormalized_output, _ = self.base_net(F, embedding)
 
+        distr_args = self.proj_distr_args(unnormalized_output)
+        distr = self.distr_output.distribution(distr_args, scale=scale)
+
         label = F.slice_axis(
-            full_target, begin=self.receptive_field, end=None, axis=-1
+            output_tar_repr, begin=self.receptive_field, end=None, axis=-1
         )
 
-        full_observed = F.expand_dims(
-            F.concat(past_observed_values, future_observed_values, dim=-1),
-            axis=1,
-        )
         loss_weight = F.slice_axis(
             full_observed, begin=self.receptive_field, end=None, axis=-1
         )
-        loss_weight = F.expand_dims(loss_weight, axis=2)
-        loss = self.cross_entropy_loss(unnormalized_output, label, loss_weight)
-        return loss
+
+        loss = distr.loss(label)
+
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=loss_weight, axis=1
+        )
+
+        return weighted_loss, loss
 
 
 class WaveNetSampler(WaveNet):
@@ -446,11 +446,7 @@ class WaveNetSampler(WaveNet):
 
     @validated()
     def __init__(
-        self,
-        bin_values: List[float],
-        num_samples: int,
-        temperature: float = 1.0,
-        **kwargs,
+        self, num_samples: int, temperature: float = 1.0, **kwargs,
     ):
         """
         Same arguments as WaveNet. In addition
@@ -460,12 +456,9 @@ class WaveNetSampler(WaveNet):
 -         if set to 0.0 most likely sample at each step is chosen.
         :param post_transform: An optional post transform that will be applied to the samples.
         """
-        super().__init__(bin_values=bin_values, **kwargs)
+        super().__init__(**kwargs)
         self.num_samples = num_samples
         self.temperature = temperature
-
-        with self.name_scope():
-            self.post_transform = LookupValues(mx.nd.array(bin_values))
 
     def get_initial_conv_queues(self, F, past_target, features):
         """
@@ -504,7 +497,6 @@ class WaveNetSampler(WaveNet):
         past_observed_values: Tensor,
         past_time_feat: Tensor,
         future_time_feat: Tensor,
-        scale: Tensor,
     ) -> Tensor:
         """
         Computes the training loss for the wavenet model.
@@ -537,7 +529,14 @@ class WaveNetSampler(WaveNet):
             """
             return F.repeat(u, repeats=self.num_samples, axis=0)
 
-        past_target = past_target.astype("int32")
+        input_tar_repr, scale, rep_params_in = self.input_repr(
+            past_target, past_observed_values, None, []
+        )
+        input_tar_repr = input_tar_repr.swapaxes(1, 2)
+        _, _, rep_params_out = self.output_repr(
+            past_target, past_observed_values, None, []
+        )
+
         full_features = self.get_full_features(
             F,
             feat_static_cat=feat_static_cat,
@@ -556,7 +555,7 @@ class WaveNetSampler(WaveNet):
         queues = self.get_initial_conv_queues(
             F,
             past_target=F.slice_axis(
-                past_target, begin=-self.receptive_field, end=None, axis=-1
+                input_tar_repr, begin=-self.receptive_field, end=None, axis=-1
             ),
             features=F.slice_axis(
                 full_features,
@@ -569,10 +568,26 @@ class WaveNetSampler(WaveNet):
 
         res = F.slice_axis(past_target, begin=-2, end=None, axis=-1)
         res = blow_up(res)
+        scale_bu = blow_up(scale)
         for n in range(self.pred_length):
             # Generate one-step ahead predictions. The input consists of target and features
             # corresponding to the last two time steps.
             current_target = F.slice_axis(res, begin=-2, end=None, axis=-1)
+
+            input_tar_repr_loc, _, _ = self.input_repr(
+                current_target,
+                F.ones_like(current_target),
+                scale_bu,
+                rep_params_in,
+            )
+            input_tar_repr_loc = input_tar_repr_loc.swapaxes(1, 2)
+            _, _, rep_params = self.output_repr(
+                current_target,
+                F.ones_like(current_target),
+                scale_bu,
+                rep_params_out,
+            )
+
             current_features = F.slice_axis(
                 full_features,
                 begin=self.receptive_field + n - 1,
@@ -580,29 +595,24 @@ class WaveNetSampler(WaveNet):
                 axis=-1,
             )
             embedding = self.target_feature_embedding(
-                F, target=current_target, features=blow_up(current_features),
+                F,
+                target=input_tar_repr_loc,
+                features=blow_up(current_features),
             )
 
             # (batch_size, 1, num_bins) where 1 corresponds to the time axis.
             unnormalized_outputs, queues = self.base_net(
                 F, embedding, one_step_prediction=True, queues=queues
             )
-            if self.temperature > 0:
-                # (batch_size, 1, num_bins) where 1 corresponds to the time axis.
-                probs = F.softmax(
-                    unnormalized_outputs / self.temperature, axis=-1
-                )
-                # (batch_size, 1)
-                y = F.sample_multinomial(probs)
-            else:
-                # (batch_size, 1)
-                y = F.argmax(unnormalized_outputs, axis=-1)
-            y = y.astype("int32")
+            distr_args = self.proj_distr_args(unnormalized_outputs)
+            distr = self.distr_output.distribution(distr_args, scale=scale_bu)
+
+            y = distr.sample()
+            y = self.output_repr.post_transform(F, y, scale_bu, rep_params)
+
             res = F.concat(res, y, num_args=2, dim=-1)
         samples = F.slice_axis(res, begin=-self.pred_length, end=None, axis=-1)
         samples = samples.reshape(
             shape=(-1, self.num_samples, self.pred_length)
         )
-        samples = self.post_transform(samples)
-        samples = F.broadcast_mul(scale.expand_dims(axis=1), samples)
         return samples

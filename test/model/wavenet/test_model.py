@@ -23,7 +23,7 @@ def hyperparameters(dsinfo):
         ctx="cpu",
         epochs=1,
         learning_rate=1e-2,
-        hybridize=True,
+        hybridize=False,
         num_cells=2,
         num_layers=1,
         context_length=2,
@@ -33,7 +33,7 @@ def hyperparameters(dsinfo):
     )
 
 
-@pytest.mark.parametrize("hybridize", [True, False])
+@pytest.mark.parametrize("hybridize", [False])
 def test_accuracy(accuracy_test, hyperparameters, hybridize):
     hyperparameters.update(hybridize=hybridize)
 

@@ -47,46 +47,13 @@ from gluonts.transform import (
     SimpleTransformation,
     VstackFeatures,
 )
-
-
-class QuantizeScaled(SimpleTransformation):
-    """
-    Rescale and quantize the target variable.
-
-    Requires
-      past_target and future_target fields.
-
-    The mean absolute value of the past_target is used to rescale past_target and future_target.
-    Then the bin_edges are used to quantize the rescaled target.
-
-    The calculated scale is included as a new field "scale"
-    """
-
-    @validated()
-    def __init__(
-        self,
-        bin_edges: List[float],
-        past_target: str,
-        future_target: str,
-        scale: str = "scale",
-    ):
-        self.bin_edges = np.array(bin_edges)
-        self.future_target = future_target
-        self.past_target = past_target
-        self.scale = scale
-
-    def transform(self, data: DataEntry) -> DataEntry:
-        p = data[self.past_target]
-        m = np.mean(np.abs(p))
-        scale = m if m > 0 else 1.0
-        data[self.future_target] = np.digitize(
-            data[self.future_target] / scale, bins=self.bin_edges, right=False
-        )
-        data[self.past_target] = np.digitize(
-            data[self.past_target] / scale, bins=self.bin_edges, right=False
-        )
-        data[self.scale] = np.array([scale])
-        return data
+from gluonts.mx.representation import (
+    Representation,
+    GlobalRelativeBinning,
+    Embedding,
+    RepresentationChain,
+)
+from gluonts.distribution import DistributionOutput, CategoricalOutput
 
 
 def _get_seasonality(freq: str, seasonality_dict: Dict) -> int:
@@ -144,6 +111,15 @@ class WaveNetEstimator(GluonEstimator):
         num_parallel_samples
             Number of evaluation samples per time series to increase parallelism during inference.
             This is a model optimization that does not affect the accuracy (default: 200)
+        input_repr
+            Representation for the model inputs.
+            (default: Embedding(GlobalRelativeBinning(num_bins=1024)))
+        output_repr
+            Representation for the model outputs.
+            (default: GlobalRelativeBinning(num_bins=1024))
+        distr_output
+            Distribution used to evaluate observations and sample predictions.
+            (default: Categorical(num_cats=1024))
     """
 
     @validated()
@@ -160,7 +136,6 @@ class WaveNetEstimator(GluonEstimator):
         cardinality: List[int] = [1],
         seasonality: Optional[int] = None,
         embedding_dimension: int = 5,
-        num_bins: int = 1024,
         hybridize_prediction_net: bool = False,
         n_residue=24,
         n_skip=32,
@@ -170,6 +145,14 @@ class WaveNetEstimator(GluonEstimator):
         temperature: float = 1.0,
         act_type: str = "elu",
         num_parallel_samples: int = 200,
+        input_repr: Representation = RepresentationChain(
+            chain=[
+                GlobalRelativeBinning(num_bins=1024),
+                Embedding(num_bins=1024),
+            ]
+        ),
+        output_repr: Representation = GlobalRelativeBinning(num_bins=1024),
+        distr_output: DistributionOutput = CategoricalOutput(num_cats=1024),
     ) -> None:
         """
         Model with Wavenet architecture and quantized target.
@@ -197,6 +180,9 @@ class WaveNetEstimator(GluonEstimator):
         :param act_type: Activation type used after before output layer.
           Can be any of
               'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'
+        :param input_repr: Representation for the model inputs.
+        :param output_repr: Representation for the model outputs.
+        :param distr_output: Distribution used to evaluate observations and sample predictions.
         """
 
         super().__init__(trainer=trainer)
@@ -205,7 +191,6 @@ class WaveNetEstimator(GluonEstimator):
         self.prediction_length = prediction_length
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
-        self.num_bins = num_bins
         self.hybridize_prediction_net = hybridize_prediction_net
 
         self.n_residue = n_residue
@@ -258,6 +243,9 @@ class WaveNetEstimator(GluonEstimator):
         self.logger.info(
             f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
         )
+        self.input_repr = input_repr
+        self.output_repr = output_repr
+        self.distr_output = distr_output
 
     def train(
         self,
@@ -267,20 +255,15 @@ class WaveNetEstimator(GluonEstimator):
         num_prefetch: Optional[int] = None,
         **kwargs,
     ) -> Predictor:
-        has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
-        low = -10.0 if has_negative_data else 0
-        high = 10.0
-        bin_centers = np.linspace(low, high, self.num_bins)
-        bin_edges = np.concatenate(
-            [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
-        )
+        self.input_repr.initialize_from_dataset(training_data)
+        self.output_repr.initialize_from_dataset(training_data)
 
         logging.info(
             f"using training windows of length = {self.train_window_length}"
         )
 
         transformation = self.create_transformation(
-            bin_edges, pred_length=self.train_window_length
+            pred_length=self.train_window_length
         )
 
         training_data_loader = TrainDataLoader(
@@ -310,7 +293,7 @@ class WaveNetEstimator(GluonEstimator):
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
         with self.trainer.ctx:
-            params = self._get_wavenet_args(bin_centers)
+            params = self._get_wavenet_args()
             params.update(pred_length=self.train_window_length)
             trained_net = WaveNet(**params)
 
@@ -324,12 +307,10 @@ class WaveNetEstimator(GluonEstimator):
         # ensure that the prediction network is created within the same MXNet
         # context as the one that was used during training
         with self.trainer.ctx:
-            return self.create_predictor(
-                transformation, trained_net, bin_centers
-            )
+            return self.create_predictor(transformation, trained_net)
 
     def create_transformation(
-        self, bin_edges: np.ndarray, pred_length: int
+        self, pred_length: int
     ) -> transform.Transformation:
         return Chain(
             [
@@ -372,15 +353,10 @@ class WaveNetEstimator(GluonEstimator):
                         FieldName.OBSERVED_VALUES,
                     ],
                 ),
-                QuantizeScaled(
-                    bin_edges=bin_edges.tolist(),
-                    future_target="future_target",
-                    past_target="past_target",
-                ),
             ]
         )
 
-    def _get_wavenet_args(self, bin_centers):
+    def _get_wavenet_args(self):
         return dict(
             n_residue=self.n_residue,
             n_skip=self.n_skip,
@@ -389,21 +365,22 @@ class WaveNetEstimator(GluonEstimator):
             act_type=self.act_type,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
-            bin_values=bin_centers.tolist(),
             pred_length=self.prediction_length,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
+            distr_output=self.distr_output,
         )
 
     def create_predictor(
         self,
         transformation: transform.Transformation,
         trained_network: mx.gluon.HybridBlock,
-        bin_values: np.ndarray,
     ) -> Predictor:
 
         prediction_network = WaveNetSampler(
             num_samples=self.num_parallel_samples,
             temperature=self.temperature,
-            **self._get_wavenet_args(bin_values),
+            **self._get_wavenet_args(),
         )
 
         # The lookup layer is specific to the sampling network here

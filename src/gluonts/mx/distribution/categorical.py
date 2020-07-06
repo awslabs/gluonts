@@ -40,10 +40,10 @@ class Categorical(Distribution):
     """
 
     @validated()
-    def __init__(self, log_probs: Tensor) -> None:
+    def __init__(self, log_probs: Tensor, num_cats: int) -> None:
         super().__init__()
         self.log_probs = log_probs
-        self.num_cats = self.log_probs.shape[-1]
+        self.num_cats = num_cats
         self.cats = self.F.arange(self.num_cats)
         self._probs = None
 
@@ -121,7 +121,7 @@ class CategoricalOutput(DistributionOutput):
     def distribution(
         self, distr_args, loc=None, scale=None, **kwargs
     ) -> Distribution:
-        distr = Categorical(distr_args)
+        distr = Categorical(distr_args, self.num_cats)
         return distr
 
     @property
