@@ -81,7 +81,7 @@ def test_nan_mixture(distr: Distribution, p: Tensor, serialize_fn) -> None:
     # TODO check histogram of non-nan values
     # TODO check mean and stddev
 
-    x = mx.nd.array([[[np.nan, 10.5, -0.5]], [[np.nan, 10.5, -0.5]]])
+    x = mx.nd.array([[[np.nan, 10.5, -0.5]], [[np.nan, 10.5, np.nan]]])
     print("p")
     print(p)
     print()
@@ -107,17 +107,17 @@ def test_nan_mixture(distr: Distribution, p: Tensor, serialize_fn) -> None:
         nll = nan_mixture.loss(x)
     nll.backward()
 
-    p_grad_true = mx.nd.where(x != x, 1 / p, 1 / (p - 1))
+    p_grad_true = mx.nd.where(x != x, -1 / p, 1 / (1 - p))
 
-    mu_grad_non_nan = -(x - mu) / mx.nd.square(sigma)
-    mu_grad_true = mx.nd.where(x != x, mu.zeros_like(), mu_grad_non_nan)
+    mu_grad_true = -(x - mu) / mx.nd.square(sigma)
+    mu_grad_true = mx.nd.where(x != x, mu.zeros_like(), mu_grad_true)
+    mu_grad_true = mx.nd.where(p == 1, mu.zeros_like(), mu_grad_true)
 
-    sigma_grad_non_nan = -(
+    sigma_grad_true = -(
         mx.nd.square(mu) - 2 * mu * x - mx.nd.square(sigma) + mx.nd.square(x)
     ) / (sigma ** 3)
-    sigma_grad_true = mx.nd.where(
-        x != x, sigma.zeros_like(), sigma_grad_non_nan
-    )
+    sigma_grad_true = mx.nd.where(x != x, sigma.zeros_like(), sigma_grad_true)
+    sigma_grad_true = mx.nd.where(p == 1, sigma.zeros_like(), sigma_grad_true)
 
     print(p.grad)
     print(p_grad_true)

@@ -71,19 +71,30 @@ class NanMixture(MixtureDistribution):
         )
 
     def log_prob(self, x: Tensor) -> Tensor:
-
         F = self.F
 
-        # masking NaN's with ones
+        # masking zero-valued mixture_probs to prevent NaN edge case gradients
+        nonzero_mixture_probs = F.where(
+            self.mixture_probs == 0,
+            self.mixture_probs.ones_like(),
+            self.mixture_probs,
+        )
+
+        log_mix_weights = F.where(
+            self.mixture_probs == 0,
+            -1.0 / self.mixture_probs.zeros_like(),
+            F.log(nonzero_mixture_probs),
+        )
+
+        # TODO does the replacement value has to be in the support of the distribution? maybe sample from it
+        # masking data NaN's with ones to prevent NaN gradients
         x_non_nan = F.where(x != x, F.ones_like(x), x)
-
-        log_mix_weights = F.log(self.mixture_probs)
-
         non_nan_comp_log_likelihood = F.where(
             x != x,
             -x.ones_like() / 0.0,
             self.components[0].log_prob(x_non_nan),
         )
+
         # compute log probabilities of components
         component_log_likelihood = F.stack(
             *[non_nan_comp_log_likelihood, self.components[1].log_prob(x)],
