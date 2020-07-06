@@ -14,6 +14,7 @@
 
 __all__ = [
     "AddAgeFeature",
+    "AddAggregateLags",
     "AddConstFeature",
     "AddObservedValuesIndicator",
     "AddTimeFeatures",
@@ -84,6 +85,7 @@ from .convert import (
 from .dataset import TransformedDataset
 from .feature import (
     AddAgeFeature,
+    AddAggregateLags,
     AddConstFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
