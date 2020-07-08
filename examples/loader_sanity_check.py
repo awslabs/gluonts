@@ -1,12 +1,11 @@
 import time
 
-import torch
 import mxnet as mx
 
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.transform import TransformedDataset
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx.batchify import batchify as mx_batchify
 
 dataset = get_dataset("electricity")
 dataset_train = dataset.train
@@ -26,7 +25,7 @@ training_loader = TrainDataLoader(
     dataset=dataset_train,
     transform=transform,
     batch_size=batch_size,
-    ctx=mx.cpu(),
+    batchify_fn=lambda x: mx_batchify(x, mx.cpu()),
     num_batches_per_epoch=num_batches_per_epoch,
     num_workers=2,
     shuffle_buffer_length=20,

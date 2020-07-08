@@ -1,5 +1,5 @@
 import time
-import itertools
+from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,9 +9,10 @@ import mxnet as mx
 import torch
 
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.transform import TransformedDataset
 from gluonts.dataset.loader import TrainDataLoader, InferenceDataLoader
 from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx.batchify import batchify as mx_batchify
+from gluonts.torch.batchify import batchify as torch_batchify
 
 dataset = get_dataset("electricity")
 dataset_train = dataset.train
@@ -32,7 +33,7 @@ training_loader = TrainDataLoader(
     dataset=dataset_train,
     transform=transform,
     batch_size=batch_size,
-    ctx=mx.cpu(),
+    batchify_fn=partial(mx_batchify, ctx=mx.cpu()),
     num_batches_per_epoch=num_batches_per_epoch,
     num_workers=2,
     shuffle_buffer_length=64,
@@ -75,13 +76,13 @@ inference_loader = InferenceDataLoader(
     dataset=dataset_train,
     transform=transform,
     batch_size=batch_size,
-    ctx=mx.cpu(),
+    batchify_fn=partial(torch_batchify, device=torch.device("cpu")),
 )
 
 start = time.time()
 batch_ids = []
 for batch in inference_loader:
-    assert isinstance(batch["past_target"], mx.nd.NDArray)
+    assert isinstance(batch["past_target"], torch.Tensor)
     assert batch["past_target"].shape[0] <= batch_size
     batch_ids.append(batch["item_id"])
 end = time.time()

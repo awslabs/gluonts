@@ -11,35 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterable, Iterator, List, Callable, Optional
+from typing import Iterable, Iterator, Callable, Optional
 import itertools
 import random
-from multiprocessing import Process, Manager, Queue, Event
+from multiprocessing import Process, Manager, Queue
 from queue import Empty
 
-import numpy as np
-
-from gluonts.dataset.common import DataBatch, Dataset
+from gluonts.dataset.common import DataEntry, DataBatch, Dataset
 from gluonts.dataset.util import MPWorkerInfo
-
-
-def stack(data, make_array_fn):
-    if isinstance(data[0], np.ndarray):
-        data = make_array_fn(data)
-    elif isinstance(data[0], (list, tuple)):
-        return list(stack(t, make_array_fn) for t in zip(*data))
-    return data
-
-
-def batchify(
-    data: List[dict], make_array_fn: Callable = np.asarray
-) -> DataBatch:
-    return {
-        key: stack(
-            data=[item[key] for item in data], make_array_fn=make_array_fn
-        )
-        for key in data[0].keys()
-    }
+from gluonts.transform import Transformation
+from gluonts.transform.dataset import TransformedDataset
 
 
 class CyclicIterable(Iterable):
@@ -57,9 +38,7 @@ class PseudoShuffledIterator(Iterator):
     pseudo randomized iterator using the same elements from the input iterator.
     """
 
-    def __init__(
-        self, base_iterator: Iterator, shuffle_buffer_length: int
-    ):
+    def __init__(self, base_iterator: Iterator, shuffle_buffer_length: int):
         self.shuffle_buffer: list = []
         self.shuffle_buffer_length = shuffle_buffer_length
         self.base_iterator = base_iterator
@@ -188,16 +167,11 @@ class MultiProcessIterator(Iterator):
 
 class DataLoader(Iterable[DataBatch]):
     def __init__(
-        self,
-        dataset: Dataset,
-        batch_size: int,
-        batchify_fn: Callable = batchify,
-        make_array_fn: Callable = np.asarray,
+        self, dataset: Dataset, batch_size: int, batchify_fn: Callable,
     ) -> None:
         self.dataset = dataset
         self.batch_size = batch_size
         self.batchify_fn = batchify_fn
-        self.make_array_fn = make_array_fn
 
     def __iter__(self):
         iterator = iter(self.dataset)
@@ -206,24 +180,17 @@ class DataLoader(Iterable[DataBatch]):
             batch_elements = list(itertools.islice(iterator, self.batch_size))
             if not batch_elements:
                 break
-            yield self.batchify_fn(
-                data=batch_elements, make_array_fn=self.make_array_fn
-            )
+            yield self.batchify_fn(batch_elements)
 
 
-import mxnet as mx
-
-from gluonts.transform import Transformation
-from gluonts.transform.dataset import TransformedDataset
-
-
-class TrainDataLoader(Iterable[DataBatch]):
+class TrainDataLoader(DataLoader):
     def __init__(
         self,
         dataset: Dataset,
+        *,
         transform: Transformation,
         batch_size: int,
-        ctx: mx.Context,
+        batchify_fn: Callable,
         num_batches_per_epoch: int,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
@@ -245,7 +212,7 @@ class TrainDataLoader(Iterable[DataBatch]):
             )
         )
 
-        shuffled_iterator: Iterable = (
+        shuffled_iterator: Iterable[DataEntry] = (
             base_iterator
             if shuffle_buffer_length is None
             else PseudoShuffledIterator(
@@ -253,25 +220,18 @@ class TrainDataLoader(Iterable[DataBatch]):
             )
         )
 
-        self.data_loader = DataLoader(
-            shuffled_iterator,
-            batch_size=batch_size,
-            make_array_fn=lambda a: mx.nd.array(a, ctx=ctx),
+        super().__init__(
+            shuffled_iterator, batch_size=batch_size, batchify_fn=batchify_fn,
         )
 
         self.num_batches_per_epoch = num_batches_per_epoch
-
-        self.iterator = itertools.islice(
-            self.data_loader, self.num_batches_per_epoch
-        )
 
     def __len__(self):
         return self.num_batches_per_epoch
 
     def __iter__(self):
-        yield from self.iterator
-        self.iterator = itertools.islice(
-            self.data_loader, self.num_batches_per_epoch
+        yield from itertools.islice(
+            super().__iter__(), self.num_batches_per_epoch
         )
 
 
@@ -282,8 +242,7 @@ class ValidationDataLoader(DataLoader):
         *,
         transform: Transformation,
         batch_size: int,
-        ctx: mx.Context,
-        num_prefetch: Optional[int] = None,
+        batchify_fn: Callable,
     ) -> None:
         transformed_dataset = TransformedDataset(
             base_dataset=dataset, transformation=transform, is_train=True,
@@ -292,7 +251,7 @@ class ValidationDataLoader(DataLoader):
         super().__init__(
             transformed_dataset,
             batch_size=batch_size,
-            make_array_fn=lambda a: mx.nd.array(a, ctx=ctx),
+            batchify_fn=batchify_fn,
         )
 
 
@@ -303,8 +262,7 @@ class InferenceDataLoader(DataLoader):
         *,
         transform: Transformation,
         batch_size: int,
-        ctx: mx.Context,
-        num_prefetch: Optional[int] = None,
+        batchify_fn: Callable,
     ) -> None:
         transformed_dataset = TransformedDataset(
             base_dataset=dataset, transformation=transform, is_train=False,
@@ -313,5 +271,5 @@ class InferenceDataLoader(DataLoader):
         super().__init__(
             transformed_dataset,
             batch_size=batch_size,
-            make_array_fn=lambda a: mx.nd.array(a, ctx=ctx),
+            batchify_fn=batchify_fn,
         )
