@@ -144,7 +144,7 @@ def smooth_global(
     u_obs: Optional[torch.Tensor] = None,
 ):
     """ compute posterior by direct inversion of unrolled model """
-    # TODO: Works only if all matrices have time and batch dimension.
+    # This implementation works only if all mats have time and batch dimension.
     #  Otherwise does not broadcast correctly.
     assert A.ndim == 4
     assert B.ndim == 4
