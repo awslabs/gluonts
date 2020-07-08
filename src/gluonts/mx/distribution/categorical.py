@@ -121,7 +121,7 @@ class CategoricalOutput(DistributionOutput):
     def distribution(
         self, distr_args, loc=None, scale=None, **kwargs
     ) -> Distribution:
-        distr = Categorical(distr_args)
+        distr = Categorical(*distr_args)
         return distr
 
     @property
