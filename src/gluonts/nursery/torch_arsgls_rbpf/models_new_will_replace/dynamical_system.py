@@ -1,12 +1,67 @@
+from typing import Sequence, Optional, Union
 from dataclasses import dataclass
 from abc import ABCMeta
 
 import torch
 from torch import nn
 
+
+@dataclass
+class ControlInputs:
+    state: torch.Tensor
+    target: torch.Tensor
+
+    def __getitem__(self, item):
+        return self.__class__(**self.__dict__)
+
+    def __len__(self):
+        if not len(set(len(v) for v in self.__dict__.values())) == 1:
+            raise Exception("Not all data in this class has same length.")
+        return len(self.state)
+
+    def to(self, device=None, dtype=None):
+        if device is None:
+            device = self.state.device
+        if dtype is None:
+            dtype = self.state.dtype
+
+        for key in self.__dict__.keys():
+            val = getattr(self, key)
+            if val is not None:
+                setattr(self, key, val.to(dtype).to(device))
+        return self
+
+
+@dataclass
+class GLSVariables:
+    """
+    Stores either (m, V) or samples or both from a MultivariateNormal.
+    We use this instead of torch.distributions.MultivariateNormal in order
+    to reduce overhead and increase performance.
+    """
+    # TODO: performance differences should be tested, maybe can replace this.
+
+    # Setting default value not possible since subclasses of this dataclass
+    # would need to set all fields then with default values too.
+    m: (torch.Tensor, None)
+    V: (torch.Tensor, None)
+    x: (torch.Tensor, None)
+
+    def __post_init__(self):
+        has_state_dist_params = tuple(
+            param is not None for param in (self.m, self.V)
+        )
+        if not len(set(has_state_dist_params)) == 1:
+            raise Exception("Provide either all or no distribution parameters")
+
+        has_state_sample = self.x is not None
+        if not (all(has_state_dist_params) or has_state_sample):
+            raise Exception("Provide at least either dist params or samples.")
+
+
 @dataclass
 class Latents:
-    pass
+    variables: GLSVariables
 
 
 @dataclass
@@ -25,32 +80,65 @@ class DynamicalSystem(nn.Module, metaclass=ABCMeta):
     def __init__(
         self,
         n_state,
-        n_obs,
+        n_target,
         n_ctrl_state=None,
-        n_ctrl_obs=None,
+        n_ctrl_target=None,
         n_particle=None,
     ):
         super().__init__()
         self.n_state = n_state
-        self.n_obs = n_obs
+        self.n_target = n_target
         self.n_ctrl_state = n_ctrl_state
-        self.n_ctrl_obs = n_ctrl_obs
+        self.n_ctrl_target = n_ctrl_target
         self.n_particle = n_particle
 
-    def filter(self, *args, **kwargs):
+    def filter(
+        self,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+    ) -> Sequence[Latents]:
         raise NotImplementedError("Should be implemented by child class")
 
-    def smooth(self, *args, **kwargs):
+    def smooth(
+        self,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+    ) -> Sequence[Latents]:
         raise NotImplementedError("Should be implemented by child class")
 
-    def sample(self, *args, **kwargs):
+    def sample(
+        self,
+        n_steps_forecast: int,
+        n_batch: int,
+        future_controls: Optional[Union[Sequence[torch.Tensor], ControlInputs]],
+        deterministic: bool,
+        **kwargs,
+    ) -> Sequence[Prediction]:
         raise NotImplementedError("Should be implemented by child class")
 
-    def forecast(self, *args, **kwargs):
+    def forecast(
+        self,
+        n_steps_forecast: int,
+        initial_latent: Latents,
+        future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
+        deterministic: bool,
+    ) -> Sequence[Prediction]:
         raise NotImplementedError("Should be implemented by child class")
 
-    def predict(self, *args, **kwargs):
+    def predict(
+        self,
+        n_steps_forecast: int,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
+        future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
+        deterministic: bool,
+    ) -> Sequence[Prediction]:
         raise NotImplementedError("Should be implemented by child class")
 
-    def loss(self, *args, **kwargs):
+    def loss(
+        self,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+    ) -> torch.Tensor:
         raise NotImplementedError("Should be implemented by child class")
+

@@ -1,64 +1,30 @@
 import abc
 from dataclasses import dataclass, asdict
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Optional, Union
 
 import torch
 from torch import nn
 
-from experiments.model_component_zoo.input_transforms import ControlInputs
 from inference.smc.normalize import normalize_log_weights
 from inference.smc.resampling import make_criterion_fn_with_ess_threshold, \
     systematic_resampling_indices, resample, make_argmax_log_weights
 
 from models_new_will_replace.dynamical_system import DynamicalSystem, \
-    Latents, Prediction
-from models.gls_parameters import GLSParameters
+    Latents, Prediction, ControlInputs
+from models_new_will_replace.gls_parameters.gls_parameters import GLSParameters
 from torch_extensions.distributions.parametrised_distribution import \
     ParametrisedMultivariateNormal
 from torch_extensions.fusion import ProbabilisticSensorFusion
 from utils.utils import list_of_dicts_to_dict_of_list
-
-# TODO: make static_cat without t dim. we just dont index it then.
-#  however, in the the Lightning Module.
-
-
-# TODO: make marginalisation not in sub-modules, but in the reucrrent model.
-#  maybe later though.
-
-@dataclass
-class RandomVariablesRBSMC:
-    """
-    Stores either (m, V) or samples or both from a MultivariateNormal.
-    We use this instead of torch.distributions.MultivariateNormal in order
-    to reduce overhead and increase performance. However,
-    performance differences should be tested later, maybe can replace this.
-    """
-
-    # Setting default value not possible since subclasses of this dataclass
-    # would need to set all fields then with default values too.
-    m: (torch.Tensor, None)
-    V: (torch.Tensor, None)
-    x: (torch.Tensor, None)
-
-    def __post_init__(self):
-        has_state_dist_params = tuple(
-            param is not None for param in (self.m, self.V)
-        )
-        if not len(set(has_state_dist_params)) == 1:
-            raise Exception("Provide either all or no distribution parameters")
-
-        has_state_sample = self.x is not None
-        if not (all(has_state_dist_params) or has_state_sample):
-            raise Exception("Provide at least either dist params or samples.")
 
 
 @dataclass
 class LatentsRBSMC(Latents):
     """ Template for models based on Rao-Blackwellized SMC. """
 
-    variables: RandomVariablesRBSMC
     log_weights: torch.Tensor
 
+    # TODO: Still need this?
     @classmethod
     def sequence_to_tensor(cls, sequence: Sequence, dim=0):
         """
@@ -118,13 +84,13 @@ class LatentsRBSMC(Latents):
         )
 
 
-class GaussianLinearSystemRBSMC(DynamicalSystem):
+class BaseRBSMC(DynamicalSystem):
     def __init__(
         self,
         n_state: int,
-        n_obs: int,
+        n_target: int,
         n_ctrl_state: int,
-        n_ctrl_obs: int,
+        n_ctrl_target: int,
         n_particle: int,
         gls_base_parameters: GLSParameters,
         state_prior_model: ParametrisedMultivariateNormal,
@@ -134,9 +100,9 @@ class GaussianLinearSystemRBSMC(DynamicalSystem):
     ):
         super().__init__(
             n_state=n_state,
-            n_obs=n_obs,
+            n_target=n_target,
             n_ctrl_state=n_ctrl_state,
-            n_ctrl_obs=n_ctrl_obs,  # TODO: rename
+            n_ctrl_target=n_ctrl_target,
         )
         self.n_particle = n_particle
 
@@ -148,10 +114,86 @@ class GaussianLinearSystemRBSMC(DynamicalSystem):
         self.resampling_criterion_fn = resampling_criterion_fn
         self.resampling_indices_fn = resampling_indices_fn
 
-    def filter_latent(
+    # def filter(
+    #     self,
+    #     past_targets: [Sequence[torch.Tensor], torch.Tensor],
+    #     past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+    # ) -> Sequence[Prediction]:
+    #     latents_filtered = self.filter_latent(
+    #         past_targets=past_targets, past_controls=past_controls,
+    #     )
+    #     emissions_filtered = [
+    #         self.emit(lats_t=lats, ctrl_t=ctrls)
+    #         for lats, ctrls in zip(latents_filtered, past_controls)
+    #     ]
+    #     predictions = [
+    #         Prediction(latents=l, emissions=e)
+    #         for l, e in zip(latents_filtered, emissions_filtered)
+    #     ]
+    #     return predictions
+
+    def forecast(
+            self,
+            n_steps_forecast: int,
+            initial_latent: LatentsRBSMC,
+            future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+            deterministic=False,
+    ) -> Sequence[Prediction]:
+
+        # TODO: This may be made optional and with criterion later.
+        resampled_log_norm_weights, resampled_tensors = resample(
+            n_particle=self.n_particle,
+            log_norm_weights=normalize_log_weights(
+                log_weights=initial_latent.log_weights
+                if not deterministic
+                else make_argmax_log_weights(initial_latent.log_weights),
+            ),
+            tensors_to_resample=asdict(initial_latent.variables),
+            resampling_indices_fn=self.resampling_indices_fn,
+            criterion_fn=make_criterion_fn_with_ess_threshold(
+                min_ess_ratio=1.0,  # re-sample always / all.
+            ),
+        )
+
+        # pack re-sampled back into object of our API type.
+        resampled_initial_latent = initial_latent.__class__(
+            # TODO: these are normalized. its OK as its actually not used
+            #  but what is a better design here?
+            log_weights=resampled_log_norm_weights,
+            variables=initial_latent.variables.__class__(**resampled_tensors,),
+        )
+
+        return self._sample_forecast(
+            n_steps_forecast=n_steps_forecast,
+            initial_latent=resampled_initial_latent,
+            future_controls=future_controls,
+            deterministic=deterministic,
+        )
+
+    def sample(
+            self,
+            n_steps_forecast: int,
+            n_batch: int,
+            n_particle: int,
+            future_controls: Optional[Sequence[torch.Tensor]] = None,
+            deterministic=False,
+            **kwargs,
+    ) -> Sequence[Prediction]:
+        initial_latent = self._sample_initial_latents(
+            n_particle=n_particle, n_batch=n_batch,
+        )
+
+        return self._sample_forecast(
+            n_steps_forecast=n_steps_forecast,
+            initial_latent=initial_latent,
+            future_controls=future_controls,
+            deterministic=deterministic,
+        )
+
+    def filter(
         self,
-        past_targets: Sequence[torch.Tensor],
-        past_controls: (Sequence[ControlInputs], None) = None,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
     ) -> Sequence[LatentsRBSMC]:
 
         n_timesteps = len(past_targets)
@@ -171,82 +213,13 @@ class GaussianLinearSystemRBSMC(DynamicalSystem):
             )
         return filtered
 
-    def filter(
-        self,
-        past_targets: Sequence[torch.Tensor],
-        past_controls: (Sequence[ControlInputs], None) = None,
-    ) -> Sequence[Prediction]:
-        latents_filtered = self.filter_latent(
-            past_targets=past_targets, past_controls=past_controls,
-        )
-        emissions_filtered = [
-            self.emit(lats_t=lats, ctrl_t=ctrls)
-            for lats, ctrls in zip(latents_filtered, past_controls)
-        ]
-        predictions = [
-            Prediction(latents=l, emissions=e)
-            for l, e in zip(latents_filtered, emissions_filtered)
-        ]
-        return predictions
-
-    def forecast(
-        self,
-        n_steps_forecast: int,
-        initial_latent: LatentsRBSMC,
-        future_controls: (Sequence[torch.Tensor], None) = None,
-        deterministic=False,
-    ) -> Sequence[Prediction]:
-
-        if future_controls is not None:
-            assert n_steps_forecast == len(future_controls)
-
-        # Step 1: Re-sample latents before forecast.
-        # TODO: This may be made optional and with criterion later.
-        resampled_log_norm_weights, resampled_tensors = resample(
-            n_particle=self.n_particle,
-            log_norm_weights=normalize_log_weights(
-                log_weights=initial_latent.log_weights
-                if not deterministic
-                else make_argmax_log_weights(initial_latent.log_weights),
-            ),
-            tensors_to_resample=asdict(initial_latent.variables),
-            resampling_indices_fn=self.resampling_indices_fn,
-            criterion_fn=make_criterion_fn_with_ess_threshold(
-                min_ess_ratio=1.0,  # re-sample always / all.
-            ),
-        )
-        # pack re-sampled back into object of our API type.
-        resampled_initial_latent = initial_latent.__class__(
-            log_weights=resampled_log_norm_weights,  # normalized but thats OK.
-            variables=initial_latent.variables.__class__(**resampled_tensors,),
-        )
-
-        controls = (
-            [None] * n_steps_forecast
-            if future_controls is None
-            else future_controls
-        )
-        forecasted = [None] * n_steps_forecast
-
-        for t in range(n_steps_forecast):
-            # TODO: currently always uses sample-based forecast.
-            #  some models may use mixture / conditional marginal.
-            forecasted[t] = self.forecast_sample_step(
-                lats_tm1=forecasted[t - 1].latents
-                if t > 0
-                else resampled_initial_latent,
-                ctrl_t=controls[t],
-                deterministic=deterministic,
-            )
-        return forecasted
-
     def predict(
         self,
         # prediction_length would be misleading as prediction includes past.
         n_steps_forecast: int,
-        past_targets: Sequence[torch.Tensor],
-        past_controls: (Sequence[ControlInputs], None) = None,
-        future_controls: (Sequence[ControlInputs], None) = None,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        future_controls: Optional[Sequence[ControlInputs]] = None,
         deterministic: bool = False,
     ) -> Tuple[Sequence[Prediction], Sequence[Prediction]]:  # past & future
         """
@@ -256,9 +229,18 @@ class GaussianLinearSystemRBSMC(DynamicalSystem):
         for future these are probablistic forecasts form unrolling the SSM.
         """
 
-        predictions_filtered = self.filter(
+        latents_filtered = self.filter(
             past_targets=past_targets, past_controls=past_controls,
         )
+        emissions_filtered = [
+            self.emit(lats_t=lats, ctrl_t=ctrls)
+            for lats, ctrls in zip(latents_filtered, past_controls)
+        ]
+        predictions_filtered = [
+            Prediction(latents=l, emissions=e)
+            for l, e in zip(latents_filtered, emissions_filtered)
+        ]
+
         predictions_forecast = self.forecast(
             n_steps_forecast=n_steps_forecast,
             initial_latent=predictions_filtered[-1].latents,
@@ -269,8 +251,8 @@ class GaussianLinearSystemRBSMC(DynamicalSystem):
 
     def loss(
         self,
-        past_targets: Sequence[torch.Tensor],
-        past_controls: (Sequence[ControlInputs], None) = None,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
     ) -> torch.Tensor:
         return self.loss_filter(
             past_targets=past_targets,
@@ -279,8 +261,8 @@ class GaussianLinearSystemRBSMC(DynamicalSystem):
 
     def loss_filter(
         self,
-        past_targets: Sequence[torch.Tensor],
-        past_controls: (Sequence[ControlInputs], None) = None,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
     ) -> torch.Tensor:
         """
         Computes an estimate of the negative log marginal likelihood.
@@ -290,13 +272,52 @@ class GaussianLinearSystemRBSMC(DynamicalSystem):
         (i.e. incremental importance weights / importance weight updates) s.t.
         their product yields an (unbiased) estimate of the marginal likelihood.
         """
-        latents_filtered = self.filter_latent(
+        latents_filtered = self.filter(
             past_targets=past_targets, past_controls=past_controls,
         )
         log_weights = [lats.log_weights for lats in latents_filtered]
         log_conditionals = [torch.logsumexp(lws, dim=0) for lws in log_weights]
         log_marginal = sum(log_conditionals)  # FIVO-type ELBO
         return -log_marginal
+
+    def _mixture_forecast(
+            self,
+            n_steps_forecast: int,
+            initial_latent: LatentsRBSMC,
+            future_controls: Optional[Sequence[ControlInputs]] = None,
+            deterministic=False,
+    ) -> Sequence[Prediction]:
+        raise NotImplementedError("TODO")
+
+    def _sample_forecast(
+        self,
+        n_steps_forecast: int,
+        initial_latent: LatentsRBSMC,
+        future_controls: Optional[Sequence[torch.Tensor]] = None,
+        deterministic=False,
+    ) -> Sequence[Prediction]:
+
+        if future_controls is not None:
+            assert n_steps_forecast == len(future_controls)
+
+        controls = (
+            [None] * n_steps_forecast
+            if future_controls is None
+            else future_controls
+        )
+        forecasted = [None] * n_steps_forecast
+
+        for t in range(n_steps_forecast):
+            forecasted[t] = self.forecast_sample_step(
+                lats_tm1=forecasted[t - 1].latents if t > 0 else initial_latent,
+                ctrl_t=controls[t],
+                deterministic=deterministic,
+            )
+        return forecasted
+
+    @abc.abstractmethod
+    def _sample_initial_latents(self, n_particle, n_batch) -> LatentsRBSMC:
+        raise NotImplementedError("must be implemented by child class")
 
     @abc.abstractmethod
     def emit(self, lats_t: LatentsRBSMC, ctrl_t: ControlInputs):
@@ -329,29 +350,3 @@ class GaussianLinearSystemRBSMC(DynamicalSystem):
     ) -> Prediction:
         raise NotImplementedError("must be implemented by child class")
 
-    # @abc.abstractmethod
-    # def _initial_state(
-    #     self,
-    #     ctrl_initial: (ControlInputs, None),
-    #     n_particle: int,
-    #     n_batch: int,
-    # ) -> LatentsRBSMC:
-    #     raise NotImplementedError("must be implemented by child class")
-
-    # def _split_controls(
-    #     self,
-    #     controls: (ControlInputs, None),
-    #     n_steps_past: int,
-    #     n_steps_future: int,
-    # ):
-    #     n_steps_total = n_steps_past + n_steps_future
-    #
-    #     if controls is not None:
-    #         controls_past = controls[:n_steps_past]
-    #         controls_future = controls[n_steps_past:n_steps_total]
-    #         assert len(controls_past) == n_steps_past
-    #         assert len(controls_future) == n_steps_future
-    #     else:
-    #         controls_past = None
-    #         controls_future = None
-    #     return controls_past, controls_future
