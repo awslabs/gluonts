@@ -1,3 +1,4 @@
+from typing import Optional
 import torch
 from torch import matmul
 from torch_extensions.ops import (
@@ -21,25 +22,26 @@ from utils.utils import (
     create_zeros_state_mat,
     add_sample_dims_to_initial_state,
     LOG_2PI,
+    TensorDims,
 )
 
 
 def filter_forward(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     # TODO: assumes B != None, D != None. u_state and u_obs can be None.
     #  Better to work with vectors b, d. matmul Bu should be done outside!
@@ -68,21 +70,21 @@ def filter_forward(
 
 
 def smooth_forward_backward(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     m_sm = create_zeros_state_vec(dims=dims, device=A.device, dtype=A.dtype)
     V_sm = create_zeros_state_mat(dims=dims, device=A.device, dtype=A.dtype)
@@ -125,21 +127,21 @@ def smooth_forward_backward(
 
 
 def smooth_global(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     """ compute posterior by direct inversion of unrolled model """
     # TODO: Works only if all matrices have time and batch dimension.
@@ -248,20 +250,20 @@ def smooth_global(
 
 
 def sample(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     # generate noise
     wz = torch.randn(dims.timesteps, dims.batch, dims.state)
@@ -299,21 +301,21 @@ def sample(
 
 
 def loss_forward(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     """
     Computes the sample-wise (e.g. (particle, batch)) forward / filter loss.
@@ -375,21 +377,21 @@ def loss_forward(
 
 
 def loss_em(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     """
     Computes the sample-wise (e.g. (particle, batch)) EM loss.
