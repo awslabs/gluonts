@@ -1,3 +1,4 @@
+from models_new_will_replace.dynamical_system import ControlInputs
 import os
 import inspect
 from copy import copy
@@ -46,17 +47,13 @@ def make_dummy_input_data(ssm_params, n_data=100, n_timesteps=10):
     device, dtype = ssm_params.A.device, ssm_params.A.dtype
     n_ctrlx = ssm_params.B.shape[1]
     n_ctrly = ssm_params.D.shape[1]
-    x_state = torch.tensor(
-        0.01 * torch.randn(*(n_timesteps, n_data, n_ctrlx)),
-        dtype=dtype,
-        device=device,
+    x = 0.01 * torch.randn(
+        *(n_timesteps, n_data, n_ctrlx), dtype=dtype, device=device,
     )
-    x_obs = torch.tensor(
-        0.01 * torch.randn(*(n_timesteps, n_data, n_ctrly)),
-        dtype=dtype,
-        device=device,
+    y = 0.01 * torch.randn(
+        *(n_timesteps, n_data, n_ctrly), dtype=dtype, device=device,
     )
-    input_data = Box({"u_state": x_state, "u_obs": x_obs,})
+    input_data = ControlInputs(state=x, target=y)
     return input_data
 
 
@@ -143,8 +140,8 @@ class TensorDims(NamedTuple):
     particle: int
     batch: int
     state: int
-    obs: int
-    ctrl_obs: Union[int, None]
+    target: int
+    ctrl_target: Union[int, None]
     ctrl_state: Union[int, None]
     ctrl_switch: Union[int, None] = None
     switch: Union[int, None] = None

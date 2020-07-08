@@ -189,7 +189,7 @@ if __name__ == "__main__":
     model = RecurrentSwitchingLinearDynamicalSystem(
         # temperature=torch.tensor((1.0 / dims.switch)),
         n_state=dims.state,
-        n_obs=dims.obs,
+        n_obs=dims.target,
         n_ctrl_state=dims.ctrl_state,
         n_particle=dims.particle,
         n_switch=dims.switch,

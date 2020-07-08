@@ -73,7 +73,7 @@ class AuxiliaryToObsDecoderConvBernoulli(ParametrisedConditionalDistribution):
                             stride=1,
                             padding=0,
                         ),
-                        Reshape((config.dims.obs,)),
+                        Reshape((config.dims.target,)),
                     )
                 }
             ),
@@ -84,7 +84,7 @@ class AuxiliaryToObsDecoderConvBernoulli(ParametrisedConditionalDistribution):
 class AuxiliaryToObsDecoderMlpGaussian(ParametrisedConditionalDistribution):
     def __init__(self, config):
         dim_in = config.dims.auxiliary
-        dim_out = config.dims.obs
+        dim_out = config.dims.target
         dims_stem = config.dims_decoder
         activations_stem = config.activations_decoder
         dim_in_dist_params = dims_stem[-1] if len(dims_stem) > 0 else dim_in
@@ -92,7 +92,7 @@ class AuxiliaryToObsDecoderMlpGaussian(ParametrisedConditionalDistribution):
         super().__init__(
             stem=MLP(
                 dim_in=dim_in,
-                dims_hidden=dims_stem,
+                dims=dims_stem,
                 activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(

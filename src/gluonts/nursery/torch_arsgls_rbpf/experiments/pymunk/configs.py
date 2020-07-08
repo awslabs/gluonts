@@ -179,7 +179,7 @@ def make_kvae(config):
 
     model = KalmanVariationalAutoEncoder(
         n_state=config.dims.state,
-        n_obs=config.dims.obs,
+        n_obs=config.dims.target,
         n_auxiliary=config.dims.auxiliary,
         n_ctrl_state=config.dims.ctrl_state,
         n_particle=config.dims.particle,
@@ -213,7 +213,7 @@ def make_asgls(config):
 
     model = RecurrentAuxiliarySwitchingLinearDynamicalSystem(
         n_state=dims.state,
-        n_obs=dims.obs,
+        n_obs=dims.target,
         n_ctrl_state=dims.ctrl_state,
         n_particle=dims.particle,
         n_switch=dims.switch,

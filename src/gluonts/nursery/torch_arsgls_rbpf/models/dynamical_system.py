@@ -14,9 +14,9 @@ class DynamicalSystem(nn.Module, metaclass=ABCMeta):
     ):
         super().__init__()
         self.n_state = n_state
-        self.n_obs = n_obs
+        self.n_target = n_obs
         self.n_ctrl_state = n_ctrl_state
-        self.n_ctrl_obs = n_ctrl_obs
+        self.n_ctrl_target = n_ctrl_obs
         self.n_particle = n_particle
 
     def get_dims(
@@ -48,8 +48,8 @@ class DynamicalSystem(nn.Module, metaclass=ABCMeta):
             particle=self.n_particle,
             batch=n_batch,
             state=self.n_state,
-            obs=self.n_obs,
-            ctrl_obs=self.n_ctrl_obs,
+            target=self.n_target,
+            ctrl_target=self.n_ctrl_target,
             ctrl_state=self.n_ctrl_state,
         )
 

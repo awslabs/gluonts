@@ -82,10 +82,10 @@ class GaussianLinearSystemHomogenous(DynamicalSystem):
         )
 
         params = initialization_fn(
-            n_obs=self.n_obs,
+            n_obs=self.n_target,
             n_state=self.n_state,
             n_ctrl_state=self.n_ctrl_state,
-            n_ctrl_obs=self.n_ctrl_obs,
+            n_ctrl_obs=self.n_ctrl_target,
         )
         self.A = torch.nn.Parameter(params.A)
         self.B = torch.nn.Parameter(params.B)

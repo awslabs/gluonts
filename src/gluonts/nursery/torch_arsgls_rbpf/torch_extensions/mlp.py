@@ -7,17 +7,17 @@ class MLP(nn.Sequential):
     def __init__(
         self,
         dim_in: int,
-        dims_hidden: Tuple[int],
+        dims: Tuple[int],
         activations: (Tuple[nn.Module], nn.Module, None),
     ):
         super().__init__()
-        assert isinstance(dims_hidden, (tuple, list))
+        assert isinstance(dims, (tuple, list))
 
         if not isinstance(activations, (tuple, list)):
-            activations = tuple(activations for _ in range(len(dims_hidden)))
+            activations = tuple(activations for _ in range(len(dims)))
 
-        dims_in = (dim_in,) + tuple(dims_hidden[:-1])
-        dims_out = dims_hidden
+        dims_in = (dim_in,) + tuple(dims[:-1])
+        dims_out = dims
         for l, (n_in, n_out, activation) in enumerate(
             zip(dims_in, dims_out, activations)
         ):

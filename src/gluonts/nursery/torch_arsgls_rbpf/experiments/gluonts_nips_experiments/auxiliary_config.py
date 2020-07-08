@@ -151,16 +151,16 @@ def make_default_config(dataset_name):
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
         particle=10,
-        batch=50,
+        batch=20,
         state=16,
-        obs=1,
+        target=1,
         switch=10,
         # ctrl_state=None,
         # ctrl_switch=n_staticfeat + n_timefeat,
         # ctrl_obs=n_staticfeat + n_timefeat,
         ctrl_state=n_ctrl,
         ctrl_switch=n_ctrl,
-        ctrl_obs=n_ctrl,
+        ctrl_target=n_ctrl,
         timefeat=n_timefeat,
         staticfeat=n_staticfeat,
         cat_embedding=n_static_embedding,
@@ -254,7 +254,7 @@ def make_model(config):
 
     model = RecurrentAuxiliarySwitchingLinearDynamicalSystem(
         n_state=dims.state,
-        n_obs=dims.obs,
+        n_obs=dims.target,
         n_ctrl_state=dims.ctrl_state,
         n_particle=dims.particle,
         n_switch=dims.switch,

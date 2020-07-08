@@ -21,9 +21,9 @@ from utils.utils import (
 
 def _extract_dims_from_cfg_obs(config):
     if config.dims.ctrl_switch is not None:
-        dim_in = config.dims.obs + config.dims.ctrl_switch
+        dim_in = config.dims.target + config.dims.ctrl_switch
     else:
-        dim_in = config.dims.obs
+        dim_in = config.dims.target
     dim_out = config.dims.switch
     dims_stem = config.obs_to_switch_encoder_dims
     activations_stem = config.obs_to_switch_encoder_activations
@@ -60,7 +60,7 @@ class ObsToSwitchEncoderCategoricalMLP(ParametrisedConditionalDistribution):
         super().__init__(
             stem=MLP(
                 dim_in=dim_in,
-                dims_hidden=dims_stem,
+                dims=dims_stem,
                 activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
@@ -90,7 +90,7 @@ class ObsToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
         super().__init__(
             stem=MLP(
                 dim_in=dim_in,
-                dims_hidden=dims_stem,
+                dims=dims_stem,
                 activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
@@ -126,7 +126,7 @@ class StateToSwitchEncoderCategoricalMLP(ParametrisedConditionalDistribution):
         super().__init__(
             stem=MLP(
                 dim_in=dim_in,
-                dims_hidden=dims_stem,
+                dims=dims_stem,
                 activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
@@ -156,7 +156,7 @@ class StateToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
         super().__init__(
             stem=MLP(
                 dim_in=dim_in,
-                dims_hidden=dims_stem,
+                dims=dims_stem,
                 activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
@@ -299,7 +299,7 @@ class ObsToAuxiliaryEncoderConvGaussian(ParametrisedConditionalDistribution):
 
 class ObsToAuxiliaryEncoderMlpGaussian(ParametrisedConditionalDistribution):
     def __init__(self, config):
-        dim_in = config.dims.obs
+        dim_in = config.dims.target
         dim_out = config.dims.auxiliary
         dims_stem = config.dims_encoder
         activations_stem = config.activations_decoder
@@ -308,7 +308,7 @@ class ObsToAuxiliaryEncoderMlpGaussian(ParametrisedConditionalDistribution):
         super().__init__(
             stem=MLP(
                 dim_in=dim_in,
-                dims_hidden=dims_stem,
+                dims=dims_stem,
                 activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
@@ -341,11 +341,11 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
         # TODO: which control to take?
         assert (
             config.dims.ctrl_switch
-            == config.dims.ctrl_obs
+            == config.dims.ctrl_target
             == config.dims.ctrl_state
         )
 
-        dim_in = config.dims.obs + config.dims.ctrl_switch
+        dim_in = config.dims.target + config.dims.ctrl_switch
         dim_out_1 = config.dims.auxiliary
         dim_out_2 = config.dims.switch
 
@@ -364,12 +364,12 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
                 [
                     MLP(
                         dim_in=dim_in,
-                        dims_hidden=dims_stems[0],
+                        dims=dims_stems[0],
                         activations=activations_stems[0],
                     ),
                     MLP(
                         dim_in=dim_in_stem_2,
-                        dims_hidden=dims_stems[1],
+                        dims=dims_stems[1],
                         activations=activations_stems[1],
                     ),
                 ]
@@ -431,7 +431,7 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
         self.num_hierarchies = 2
         assert (
             config.dims.ctrl_switch
-            == config.dims.ctrl_obs
+            == config.dims.ctrl_target
             == config.dims.ctrl_state
             in [None, 0]
         ), "no controls. would require different architecture or mixing with images."
@@ -493,7 +493,7 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
                     ),
                     MLP(
                         dim_in=dim_out_flat_conv,
-                        dims_hidden=dims_stem_2,
+                        dims=dims_stem_2,
                         activations=activations_stem_2,
                     ),
                 ]
