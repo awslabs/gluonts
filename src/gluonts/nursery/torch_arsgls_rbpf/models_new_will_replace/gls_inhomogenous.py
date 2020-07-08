@@ -140,8 +140,8 @@ class GaussianLinearSystemInhomogenous(DynamicalSystem):
             particle=self.n_particle,
             batch=n_batch,
             state=self.n_state,
-            obs=self.n_target,
-            ctrl_obs=self.n_ctrl_target,
+            target=self.n_target,
+            ctrl_target=self.n_ctrl_target,
             ctrl_state=self.n_ctrl_state,
         )
 
