@@ -28,17 +28,12 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     VstackFeatures,
 )
-from gluonts.dataset.repository.datasets import dataset_recipes
-from gluonts.dataset.common import ListDataset
-from gluonts.dataset.common import load_datasets
-from gluonts.dataset.repository.datasets import get_dataset as get_dataset_gts
 
-from models_new_will_replace.gls_rbsmc import GaussianLinearSystemRBSMC
+from models_new_will_replace.base_rbsmc import BaseRBSMC
 from models_new_will_replace.dynamical_system import Prediction, Latents
-from experiments.base_config import TimeFeatType
 
 from data.gluonts_nips_datasets.gluonts_nips_datasets import get_dataset
-from models.gls_parameters.issm import CompositeISSM
+from models_new_will_replace.gls_parameters.issm import CompositeISSM
 
 
 def create_input_transform(
@@ -157,8 +152,9 @@ class GluontsUnivariateDataLoaderWrapper:
     - with TBF format (Time, Batch, Feature).
     """
 
-    def __init__(self, gluonts_loader):
+    def __init__(self, gluonts_loader, dtype: Optional[torch.dtype] = None):
         self._gluonts_loader = gluonts_loader
+        self.dtype = dtype
 
         self._all_data_keys = [
             "feat_static_cat",
@@ -176,7 +172,11 @@ class GluontsUnivariateDataLoaderWrapper:
     def __iter__(self):
         for batch_gluonts in self._gluonts_loader:
             yield self._to_time_first(
-                self._to_pytorch(self._extract_relevant_data(batch_gluonts,))
+                self._to_pytorch(
+                    self._extract_relevant_data(
+                        batch_gluonts,
+                    )
+                )
             )
 
     def _extract_relevant_data(self, gluonts_batch: dict):
@@ -188,7 +188,7 @@ class GluontsUnivariateDataLoaderWrapper:
 
     def _to_pytorch(self, gluonts_batch: dict):
         return {
-            key: torch.tensor(gluonts_batch[key].asnumpy())
+            key: torch.tensor(gluonts_batch[key].asnumpy(), dtype=self.dtype)
             for key, val in gluonts_batch.items()
         }
 
@@ -205,7 +205,7 @@ class GluontsUnivariateDataModel(LightningModule):
     # TODO: let this take a config / hyperparam file with Hydra.
     def __init__(
         self,
-        ssm: GaussianLinearSystemRBSMC,  # TODO: what about kvae?
+        ssm: BaseRBSMC,  # TODO: what about kvae?
         ctrl_transformer: nn.Module,  # TODO: make API
         tar_transformer: torch.distributions.AffineTransform,
         dataset_name: str,
@@ -280,7 +280,7 @@ class GluontsUnivariateDataModel(LightningModule):
         #  But we could use an arbitrary bijection for any likelihood function?
         for t in range(len(predictions)):
             predictions[t].emissions = self.tar_transformer(
-                predictions[t].emissions
+                predictions[t].emissions,
             )
         return predictions
 
@@ -335,7 +335,8 @@ class GluontsUnivariateDataModel(LightningModule):
                 num_workers=0,  # TODO: had problems with > 0. Maybe they fixed
                 ctx=None,
                 dtype=np.float32,
-            )
+            ),
+            dtype=self.dtype,
         )
 
     # def val_dataloader(self):
@@ -375,13 +376,16 @@ class GluontsUnivariateDataModel(LightningModule):
         past_time_feat: torch.Tensor,
         past_target: torch.Tensor,
     ):
+        T, B = past_target.shape[:2]
+
         past_target = self.tar_transformer.inv(past_target)
         past_controls = self.ctrl_transformer(
             feat_static_cat=feat_static_cat,
-            past_seasonal_indicators=past_seasonal_indicators,
-            past_time_feat=past_time_feat,
+            seasonal_indicators=past_seasonal_indicators,
+            time_feat=past_time_feat,
         )
-        loss = self.ssm.loss(
+        loss_samplewise = self.ssm.loss(
             past_targets=past_target, past_controls=past_controls,
         )
+        loss = loss_samplewise.sum(dim=0) / (T * B)
         return loss
