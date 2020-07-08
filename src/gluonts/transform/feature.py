@@ -87,6 +87,8 @@ class MeanValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        if len(values) == 1:
+            return DummyValueImputation()(values)
         nan_indices = np.where(np.isnan(values))
         values[nan_indices] = np.nanmean(values)
         return values
@@ -125,6 +127,8 @@ class CausalMeanValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        if len(values) == 1:
+            return DummyValueImputation()(values)
         mask = np.isnan(values)
 
         # we cannot compute the mean with this method if there are nans
@@ -161,6 +165,8 @@ class RollingMeanValueImputation(MissingValueImputation):
         self.window_size = 1 if window_size < 1 else window_size
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        if len(values) == 1:
+            return DummyValueImputation()(values)
         mask = np.isnan(values)
 
         # we cannot compute the mean with this method if there are nans
