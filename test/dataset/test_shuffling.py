@@ -11,24 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Iterable
+
+import pytest
+
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.dataset.parallelized_loader import ShuffleIter
-import itertools
+from gluonts.dataset.loader import PseudoShuffledIterator
 
 
-# test if ShuffleIter would return a iterator of the same size of the base iterator
-def test_shuffle_iter() -> None:
-    # test with range
-    data = [{str(i): str(i)} for i in range(20)]
-    shuffled_data = ShuffleIter(
-        base_iterator=iter(data), shuffle_buffer_length=10
+@pytest.mark.parametrize(
+    "data", [
+        range(20),
+        constant_dataset()[1],
+    ]
+)
+def test_shuffle_iter(data: Iterable) -> None:
+    list_data = list(data)
+    shuffled_iter = PseudoShuffledIterator(
+        base_iterator=iter(list_data), shuffle_buffer_length=5
     )
-    assert len(list(shuffled_data)) == 20
-
-    # test with constant gluonts dataset
-    ds_info, train_ds, test_ds = constant_dataset()
-    base_iter, base_iter_backup = itertools.tee(iter(train_ds), 2)
-    shuffled_data = ShuffleIter(
-        base_iterator=base_iter, shuffle_buffer_length=5
-    )
-    assert len(list(shuffled_data)) == len(list(base_iter_backup))
+    shuffled_data = list(shuffled_iter)
+    assert len(shuffled_data) == len(list_data)
+    assert all(d in shuffled_data for d in list_data)
