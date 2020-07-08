@@ -254,6 +254,8 @@ cat_samples = np.random.choice(
 cat_samples = np.where(
     np.random.uniform(size=(BATCH_SIZE)) > nan_prob, cat_samples, np.nan
 )
+
+
 @pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_inference() -> None:
     nmdo = NanMixtureOutput(GaussianOutput())
