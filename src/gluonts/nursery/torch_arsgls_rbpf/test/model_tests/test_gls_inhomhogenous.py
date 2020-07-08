@@ -1,10 +1,10 @@
 from box import Box
 import torch
 
-from models.inhomogenous_gaussian_linear_system import (
+from models_new_will_replace.gls_inhomogenous import (
     GaussianLinearSystemInhomogenous,
 )
-from models.homogenous_gaussian_lineary_system import (
+from models_new_will_replace.gls_homogenous import (
     GaussianLinearSystemHomogenous,
 )
 from utils.utils import make_dummy_ssm_params, make_dummy_input_data
@@ -14,30 +14,39 @@ from utils.local_seed import local_seed
 def _make_models_and_data(device, dtype, n_data=20, n_timesteps=10, seed=42):
     with local_seed(seed=seed):
         true_params = make_dummy_ssm_params()
-        input_data = make_dummy_input_data(
+        controls = make_dummy_input_data(
             ssm_params=true_params, n_timesteps=n_timesteps, n_data=n_data
         )
         true_model = GaussianLinearSystemHomogenous(
-            n_obs=1, n_state=2, n_ctrl_state=1, n_ctrl_obs=3,
+            n_target=1, n_state=2, n_ctrl_state=1, n_ctrl_target=3,
         )
-        x, y = true_model.sample(**input_data)
-        data = Box(**input_data, y=y)
+        samples = true_model.sample(
+            n_steps_forecast=n_timesteps,
+            n_batch=n_data,
+            future_controls=controls,
+            deterministic=False,
+        )
+        emissions = torch.stack([sample.emissions for sample in samples], dim=0)
+        data = Box(
+            past_controls=controls,
+            past_targets=emissions,
+        )
 
     model_homogenous = GaussianLinearSystemHomogenous(
-        n_obs=1, n_state=2, n_ctrl_state=1, n_ctrl_obs=3,
+        n_target=1, n_state=2, n_ctrl_state=1, n_ctrl_target=3,
     )
     model_inhomogenous = GaussianLinearSystemInhomogenous(
-        n_obs=1,
+        n_target=1,
         n_state=2,
         n_ctrl_state=1,
-        n_ctrl_obs=3,
+        n_ctrl_target=3,
         n_timesteps=n_timesteps,
     )
     model_inhomogenous_batch = GaussianLinearSystemInhomogenous(
-        n_obs=1,
+        n_target=1,
         n_state=2,
         n_ctrl_state=1,
-        n_ctrl_obs=3,
+        n_ctrl_target=3,
         n_timesteps=n_timesteps,
         n_batch=n_data,
     )
@@ -119,17 +128,17 @@ def _test_inference_identical_to_homogenous(
         m_fb_ib,
         V_fb_ib,
         Cov_fb_ib,
-    ) = model_inhomogenous_batch.smooth_forward_backward(**data)
-    m_gl_ib, V_gl_ib, Cov_gl_ib = model_inhomogenous_batch.smooth_global(
+    ) = model_inhomogenous_batch._smooth_forward_backward(**data)
+    m_gl_ib, V_gl_ib, Cov_gl_ib = model_inhomogenous_batch._smooth_global(
         **data
     )
 
-    m_fb_i, V_fb_i, Cov_fb_i = model_inhomogenous.smooth_forward_backward(
+    m_fb_i, V_fb_i, Cov_fb_i = model_inhomogenous._smooth_forward_backward(
         **data
     )
 
-    m_fb_h, V_fb_h, Cov_fb_h = model_homogenous.smooth_forward_backward(**data)
-    m_gl_h, V_gl_h, Cov_gl_h = model_homogenous.smooth_global(**data)
+    m_fb_h, V_fb_h, Cov_fb_h = model_homogenous._smooth_forward_backward(**data)
+    m_gl_h, V_gl_h, Cov_gl_h = model_homogenous._smooth_global(**data)
 
     # fw-bw: inhomogenous and batch-individual vs. just inhomogenous
     err = torch.max(torch.abs(m_fb_ib - m_fb_i))
@@ -174,17 +183,17 @@ def _test_loss_identical_to_homogenous(
         device=device, dtype=dtype, n_data=n_data, n_timesteps=n_timesteps
     )
 
-    loss_fw_inhomogenous_batch = model_inhomogenous_batch.loss_forward(**data)
-    loss_fw_inhomogenous = model_inhomogenous.loss_forward(**data)
-    loss_fw_homogenous = model_homogenous.loss_forward(**data)
+    loss_fw_inhomogenous_batch = model_inhomogenous_batch._loss_forward(**data)
+    loss_fw_inhomogenous = model_inhomogenous._loss_forward(**data)
+    loss_fw_homogenous = model_homogenous._loss_forward(**data)
     err = (loss_fw_inhomogenous - loss_fw_homogenous).abs().max()
     assert err <= tolerance, f"large error: {err}"
     err = (loss_fw_inhomogenous - loss_fw_inhomogenous_batch).abs().max()
     assert err <= tolerance, f"large error: {err}"
 
-    loss_em_inhomogenous_batch = model_inhomogenous_batch.loss_em(**data)
-    loss_em_inhomogenous = model_inhomogenous.loss_em(**data)
-    loss_em_homogenous = model_homogenous.loss_em(**data)
+    loss_em_inhomogenous_batch = model_inhomogenous_batch._loss_em(**data)
+    loss_em_inhomogenous = model_inhomogenous._loss_em(**data)
+    loss_em_homogenous = model_homogenous._loss_em(**data)
     err = (loss_em_inhomogenous - loss_em_homogenous).abs().max()
     assert err <= tolerance, f"large error: {err}"
     err = (loss_em_inhomogenous - loss_em_inhomogenous_batch).abs().max()
@@ -195,23 +204,23 @@ def _test_loss_identical_to_homogenous(
 
 def test_inference_identical_to_homogenous_cpu_float64(tolerance=1e-20):
     _test_inference_identical_to_homogenous(
-        tolerance=tolerance, device="cpu", dtype=torch.float64
+        tolerance=tolerance, device="cpu", dtype=torch.float64,
     )
 
 
 def test_inference_identical_to_homogenous_gpu_float32(tolerance=1e-4):
     _test_inference_identical_to_homogenous(
-        tolerance=tolerance, device="cuda", dtype=torch.float32
+        tolerance=tolerance, device="cuda", dtype=torch.float32,
     )
 
 
 def test_loss_identical_to_homogenous_cpu_float64(tolerance=1e-12):
     _test_loss_identical_to_homogenous(
-        tolerance=tolerance, device="cpu", dtype=torch.float64
+        tolerance=tolerance, device="cpu", dtype=torch.float64,
     )
 
 
-def test_loss_identical_to_homogenohs_gpu_float32(tolerance=1e-4):
+def test_loss_identical_to_homogenous_gpu_float32(tolerance=1e-4):
     _test_loss_identical_to_homogenous(
-        tolerance=tolerance, device="cuda", dtype=torch.float64
+        tolerance=tolerance, device="cuda", dtype=torch.float64,
     )

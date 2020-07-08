@@ -1,28 +1,39 @@
 from box import Box
 import torch
 
-from models.homogenous_gaussian_lineary_system import (
+from models_new_will_replace.gls_homogenous import (
     GaussianLinearSystemHomogenous,
 )
 from utils.utils import make_dummy_ssm_params, make_dummy_input_data
 from utils.local_seed import local_seed
 
+from models_new_will_replace.dynamical_system import ControlInputs
+
 
 def _make_model_and_data(device, dtype, n_timesteps=10, n_data=20, seed=42):
     with local_seed(seed=seed):
         true_params = make_dummy_ssm_params()
-        input_data = make_dummy_input_data(
+        controls = make_dummy_input_data(
             ssm_params=true_params, n_timesteps=n_timesteps, n_data=n_data
         )
         true_model = GaussianLinearSystemHomogenous(
-            n_obs=1, n_state=2, n_ctrl_state=1, n_ctrl_obs=3,
+            n_target=1, n_state=2, n_ctrl_state=1, n_ctrl_target=3,
         )
-        x, y = true_model.sample(**input_data)
-        data = Box(**input_data, y=y)
+        samples = true_model.sample(
+            n_steps_forecast=n_timesteps,
+            n_batch=n_data,
+            future_controls=controls,
+            deterministic=False,
+        )
+        emissions = torch.stack([sample.emissions for sample in samples], dim=0)
+        data = Box(
+            past_controls=controls,
+            past_targets=emissions,
+        )
 
     model = (
         GaussianLinearSystemHomogenous(
-            n_obs=1, n_state=2, n_ctrl_state=1, n_ctrl_obs=3,
+            n_target=1, n_state=2, n_ctrl_state=1, n_ctrl_target=3,
         )
         .to(device)
         .to(dtype)
@@ -37,8 +48,8 @@ def _test_inference_identical(
     model, data = _make_model_and_data(device=device, dtype=dtype)
 
     # Use unrolled SSM ("global") and standard inference as reference.
-    m_gl, V_gl, Cov_gl = model.smooth_global(**data)
-    m_fb, V_fb, Cov_fb = model.smooth_forward_backward(**data)
+    m_gl, V_gl, Cov_gl = model._smooth_global(**data)
+    m_fb, V_fb, Cov_fb = model._smooth_forward_backward(**data)
 
     # Compute max absolute error of fw-bw vs. global smoothing.
     err = torch.max(torch.abs(m_fb - m_gl))
@@ -56,13 +67,13 @@ def _test_loss_identical(tolerance=2e-5, dtype=torch.float32, device="cuda:0"):
     optimizer = torch.optim.SGD(params=model.parameters(), lr=1e-3)
 
     optimizer.zero_grad()
-    loss_fw = model.loss_forward(**data)
-    loss_fw.backward(retain_graph=True)
+    loss_fw = model._loss_forward(**data)
+    loss_fw.sum(dim=0).backward(retain_graph=True)
     grads_fw = (p.grad for p in model.parameters())
 
     optimizer.zero_grad()
-    loss_em = model.loss_em(**data)
-    loss_em.backward()
+    loss_em = model._loss_em(**data)
+    loss_em.sum(dim=0).backward()
     grads_em = (p.grad for p in model.parameters())
 
     err = (loss_em - loss_fw).abs().max()
@@ -77,23 +88,23 @@ def _test_loss_identical(tolerance=2e-5, dtype=torch.float32, device="cuda:0"):
 
 def test_inference_identical_cpu_float64(tolerance=1e-10):
     _test_inference_identical(
-        tolerance=tolerance, device="cpu", dtype=torch.float64
+        tolerance=tolerance, device="cpu", dtype=torch.float64,
     )
 
 
 def test_inference_identical_gpu_float32(tolerance=1e-3):
     _test_inference_identical(
-        tolerance=tolerance, device="cuda", dtype=torch.float64
+        tolerance=tolerance, device="cuda", dtype=torch.float64,
     )
 
 
 def test_loss_identical_cpu_float64(tolerance=1e-10):
     _test_loss_identical(
-        tolerance=tolerance, device="cpu", dtype=torch.float64
+        tolerance=tolerance, device="cpu", dtype=torch.float64,
     )
 
 
 def test_loss_identical_gpu_float32(tolerance=1e-10):
     _test_loss_identical(
-        tolerance=tolerance, device="cuda", dtype=torch.float64
+        tolerance=tolerance, device="cuda", dtype=torch.float64,
     )
