@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional, Union, Sequence
 from box import Box
 import math
 import numpy as np
@@ -30,27 +30,27 @@ class GLSParameters(nn.Module):
         self,
         n_state: int,
         n_obs: int,
-        n_ctrl_state: (int, None),
-        n_ctrl_obs: (int, None),
+        n_ctrl_state: Optional[int],
+        n_ctrl_obs: Optional[int],
         n_switch: int,
-        n_base_A: (int, None),
-        n_base_B: (int, None),
-        n_base_C: (int, None),
-        n_base_D: (int, None),
+        n_base_A: Optional[int],
+        n_base_B: Optional[int],
+        n_base_C: Optional[int],
+        n_base_D: Optional[int],
         n_base_R: int,
         n_base_Q: int,
         switch_link_type: SwitchLinkType,
         switch_link_dims_hidden: tuple = tuple(),
         switch_link_activations: nn.Module = nn.ReLU(),
         make_cov_from_cholesky_avg=False,
-        b_fn: (nn.Module, None) = None,
-        d_fn: (nn.Module, None) = None,
+        b_fn: Optional[nn.Module] = None,
+        d_fn: Optional[nn.Module] = None,
         init_scale_A: (float, None) = None,
         init_scale_B: (float, None) = None,
-        init_scale_C: (float, None) = None,
-        init_scale_D: (float, None) = None,
-        init_scale_Q_diag: (float, tuple, list, None) = None,
-        init_scale_R_diag: (float, tuple, list, None) = None,
+        init_scale_C: Optional[float] = None,
+        init_scale_D: Optional[float] = None,
+        init_scale_Q_diag: Optional[Union[float, Sequence[float]]] = None,
+        init_scale_R_diag: Optional[Union[float, Sequence[float]]] = None,
         requires_grad_A: bool = True,
         requires_grad_B: bool = True,
         requires_grad_C: bool = True,
@@ -59,12 +59,8 @@ class GLSParameters(nn.Module):
         requires_grad_Q: bool = True,
         full_cov_R: bool = True,
         full_cov_Q: bool = True,
-        LQinv_logdiag_limiter: (nn.Module, None) = SigmoidLimiter(
-            [-25.0, 25.0]  # TODO: default None? Also use Optional.
-        ),  # FP64
-        LRinv_logdiag_limiter: (nn.Module, None) = SigmoidLimiter(
-            [-25.0, 25.0]
-        ),  # FP64
+        LQinv_logdiag_limiter: Optional[nn.Module] = None,
+        LRinv_logdiag_limiter: Optional[nn.Module] = None,
     ):
         super().__init__()
         self.make_cov_from_cholesky_avg = make_cov_from_cholesky_avg
@@ -97,7 +93,8 @@ class GLSParameters(nn.Module):
         if switch_link_type == SwitchLinkType.identity:
             assert (
                 len(set(n_bases)) == 1 and n_bases[0] == n_switch
-            ), f"n_base: {n_bases} should match switch dim {n_switch} when using identity link."
+            ), f"n_base: {n_bases} should match switch dim {n_switch} " \
+               f"when using identity link."
         elif switch_link_type == SwitchLinkType.shared:
             assert len(set(n_bases)) == 1
 
@@ -297,11 +294,6 @@ class GLSParameters(nn.Module):
         cov = cov[..., None].repeat(
             cov.ndim * (1,) + (dim_cov,)
         )  # same scale for all dims.
-        # cov = torch.stack([
-        #     _make_single_cov_linspace_init(
-        #         init_scale_cov_diag=init_scale_cov_diag,
-        #         n_base=n_base,
-        #     ) for _ in range(dim_cov)], dim=-1)
         return cov
 
     @staticmethod
