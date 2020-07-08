@@ -26,7 +26,7 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     InferenceDataLoader,
 )
-from gluonts.dataset.parallelized_loader import batchify, stack, _pad_arrays
+from gluonts.mx.batchify import batchify, stack, _pad_arrays
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimeUniformSampler,
