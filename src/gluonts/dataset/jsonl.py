@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import gzip
 import functools
 from pathlib import Path
 from typing import NamedTuple
@@ -92,10 +93,10 @@ class JsonLinesFile:
             # 1MB
             BUF_SIZE = 1024 ** 2
 
-            with self.open(self.path) as file_obj:
+            with self.open(self.path, "rb") as file_obj:
                 read_chunk = functools.partial(file_obj.read, BUF_SIZE)
                 file_len = sum(
-                    chunk.count("\n") for chunk in iter(read_chunk, "")
+                    chunk.count(b"\n") for chunk in iter(read_chunk, b"")
                 )
                 self._len = file_len
         return self._len
