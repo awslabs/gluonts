@@ -476,7 +476,11 @@ def loss_em(
     return loss_all
 
 
-def compute_entropy(dims, V, Cov):
+def compute_entropy(
+    dims: TensorDims,
+    V: torch.Tensor,
+    Cov: torch.Tensor,
+):
     """
     Compute sample-wise entropy of the smoothing posterior.
     We factorise the smoothing posterior such that the entropy sums over all time-steps

@@ -443,7 +443,11 @@ def loss_em(
     return loss
 
 
-def compute_entropy(dims, V, Cov):
+def compute_entropy(
+    dims: TensorDims,
+    V: torch.Tensor,
+    Cov: torch.Tensor,
+):
     """ Compute entropy of Gaussian posterior from E-step (in Markovian SSM) """
     entropy = 0.0
     for t in range(0, dims.timesteps):
