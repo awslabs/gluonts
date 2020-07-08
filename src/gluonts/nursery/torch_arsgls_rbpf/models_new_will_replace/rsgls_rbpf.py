@@ -1,8 +1,8 @@
 import torch
 
-from experiments.model_component_zoo.input_transforms import ControlInputs
+from models_new_will_replace.dynamical_system import ControlInputs
 from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemRBSMC, \
-    RandomVariablesSGLS
+    GLSVariablesSGLS
 from torch_extensions.distributions.parametrised_distribution import \
     prepend_batch_dims
 
@@ -11,7 +11,7 @@ class RecurrentSwitchingGaussianLinearSystemRBSMC(
     SwitchingGaussianLinearSystemRBSMC
 ):
     def _make_switch_transition_dist(
-        self, lat_vars_tm1: RandomVariablesSGLS, ctrl_t: ControlInputs,
+        self, lat_vars_tm1: GLSVariablesSGLS, ctrl_t: ControlInputs,
     ) -> torch.distributions.MultivariateNormal:
         # TODO: currently switch_transition_model handles if it
         #  marginalizes or uses state sample.
