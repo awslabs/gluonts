@@ -1,3 +1,4 @@
+from typing import Optional
 import torch
 from torch import matmul
 from torch_extensions.ops import (
@@ -15,25 +16,25 @@ from inference.analytical_gausian_linear.inference_step import (
     filter_forward_measurement_step,
     smooth_backward_step,
 )
-from utils.utils import add_sample_dims_to_initial_state, LOG_2PI
+from utils.utils import add_sample_dims_to_initial_state, LOG_2PI, TensorDims
 
 
 def filter_forward(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     device, dtype = A.device, A.dtype
 
@@ -69,21 +70,21 @@ def filter_forward(
 
 
 def smooth_forward_backward(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     device, dtype = A.device, A.dtype
     R = cov_from_invcholesky_param(LRinv_tril, LRinv_logdiag)
@@ -136,21 +137,21 @@ def smooth_forward_backward(
 
 
 def smooth_global(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     """ compute posterior by direct inversion of unrolled model """
     device, dtype = A.device, A.dtype
@@ -248,20 +249,20 @@ def smooth_global(
 
 
 def sample(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     device, dtype = A.device, A.dtype
 
@@ -299,21 +300,21 @@ def sample(
 
 
 def loss_forward(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     device, dtype = A.device, A.dtype
 
@@ -351,21 +352,21 @@ def loss_forward(
 
 
 def loss_em(
-    dims,
-    A,
-    B,
-    C,
-    D,
-    LQinv_tril,
-    LQinv_logdiag,
-    LRinv_tril,
-    LRinv_logdiag,
-    LV0inv_tril,
-    LV0inv_logdiag,
-    m0,
-    y,
-    u_state=None,
-    u_obs=None,
+    dims: TensorDims,
+    A: torch.Tensor,
+    B: Optional[torch.Tensor],
+    C: torch.Tensor,
+    D: Optional[torch.Tensor],
+    LQinv_tril: torch.Tensor,
+    LQinv_logdiag: torch.Tensor,
+    LRinv_tril: torch.Tensor,
+    LRinv_logdiag: torch.Tensor,
+    LV0inv_tril: torch.Tensor,
+    LV0inv_logdiag: torch.Tensor,
+    m0: torch.Tensor,
+    y: torch.Tensor,
+    u_state: Optional[torch.Tensor] = None,
+    u_obs: Optional[torch.Tensor] = None,
 ):
     Rinv = inv_from_invcholesky_param(LRinv_tril, LRinv_logdiag)
     Qinv = inv_from_invcholesky_param(LQinv_tril, LQinv_logdiag)
