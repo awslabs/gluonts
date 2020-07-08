@@ -41,10 +41,10 @@ from torch_extensions.distributions.parametrised_distribution import (
     ParametrisedMultivariateNormal,
     prepend_batch_dims,
 )
-from models.gls_parameters import GLSParameters
+from models.gls_parameters.gls_parameters import GLSParameters
 from models.dynamical_system import DynamicalSystem
 from experiments.model_component_zoo.input_transforms import InputTransformer
-from experiments.model_component_zoo.input_transforms import ControlInputs
+from models_new_will_replace.dynamical_system import ControlInputs
 from data.gluonts_nips_datasets.gluonts_nips_datasets import (
     transform_gluonts_to_pytorch,
 )
@@ -242,7 +242,7 @@ class AuxiliarySwitchingLinearDynamicalSystem(DynamicalSystem):
             self.state_prior_model.m.device,
         )
 
-        u_state, u_obs, u_switch = u.state, u.obs, u.state
+        u_state, u_obs, u_switch = u.state, u.target, u.state
         (u_state, u_obs, u_switch, seasonal_indicators) = (
             [None] * dims.timesteps if u is None else u
             for u in (u_state, u_obs, u_switch, seasonal_indicators)
@@ -317,7 +317,7 @@ class AuxiliarySwitchingLinearDynamicalSystem(DynamicalSystem):
             len(set(tensor is None for tensor in (s, x))) == 1
         ), "all of (s, x) or none should be provided."
         u = self.input_transformer(u_static_cat=u_static_cat, u_time=u_time)
-        u_state, u_obs, u_switch = u.state, u.obs, u.state
+        u_state, u_obs, u_switch = u.state, u.target, u.state
         dims = self.get_dims(
             u_state=u_state,
             u_obs=u_obs,

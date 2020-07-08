@@ -33,7 +33,7 @@ class StateToSwitchParams(nn.Module):
             if switch_link_type.value == SwitchLinkType.individual.value:
                 self.link_transformers = IndividualLink(
                     dim_in=n_switch,
-                    names_and_dims_out={"S": n_base_S, "F": n_base_F,},
+                    names_and_dims={"S": n_base_S, "F": n_base_F, },
                 )
             elif switch_link_type.value == SwitchLinkType.identity.value:
                 names = ("S", "F")

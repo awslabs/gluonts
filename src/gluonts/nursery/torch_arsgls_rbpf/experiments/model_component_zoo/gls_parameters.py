@@ -1,9 +1,7 @@
-from models.gls_parameters import (
-    GLSParameters,
-    ISSMParameters,
-    CompositeISSM,
-    SeasonalityISSM,
-)
+from models.gls_parameters.gls_parameters import GLSParameters
+from models.gls_parameters.issm_parameters import ISSMParameters
+from models.gls_parameters.issm import CompositeISSM, SeasonalityISSM
+
 from torch_extensions.mlp import MLP
 
 
@@ -14,9 +12,9 @@ class GlsParametersISSM(ISSMParameters):
                 freq=config.freq, add_trend=config.add_trend
             ),
             n_state=config.dims.state,
-            n_obs=config.dims.obs,
+            n_obs=config.dims.target,
             n_ctrl_state=config.dims.ctrl_state,
-            n_ctrl_obs=config.dims.ctrl_obs,
+            n_ctrl_obs=config.dims.ctrl_target,
             n_switch=config.dims.switch,
             n_base_B=config.n_base_B,
             n_base_D=config.n_base_D,
@@ -26,14 +24,14 @@ class GlsParametersISSM(ISSMParameters):
             make_cov_from_cholesky_avg=config.make_cov_from_cholesky_avg,
             b_fn=MLP(
                 dim_in=config.dims.switch,  # f: b(s)
-                dims_hidden=tuple(config.b_fn_dims) + (config.dims.state,),
+                dims=tuple(config.b_fn_dims) + (config.dims.state,),
                 activations=config.b_fn_activations,
             )
             if config.b_fn_dims
             else None,
             d_fn=MLP(
                 dim_in=config.dims.switch,  # f: d(s)
-                dims_hidden=tuple(config.d_fn_dims) + (config.dims.obs,),
+                dims=tuple(config.d_fn_dims) + (config.dims.target,),
                 activations=config.d_fn_activations,
             )
             if config.d_fn_dims
@@ -51,9 +49,9 @@ class GlsParametersSeasonalityISSM(ISSMParameters):
         super().__init__(
             issm=SeasonalityISSM(n_seasons=config.dims.state),
             n_state=config.dims.state,
-            n_obs=config.dims.obs,
+            n_obs=config.dims.target,
             n_ctrl_state=config.dims.ctrl_state,
-            n_ctrl_obs=config.dims.ctrl_obs,
+            n_ctrl_obs=config.dims.ctrl_target,
             n_switch=config.dims.switch,
             n_base_B=config.n_base_B,
             n_base_D=config.n_base_D,
@@ -63,14 +61,14 @@ class GlsParametersSeasonalityISSM(ISSMParameters):
             make_cov_from_cholesky_avg=config.make_cov_from_cholesky_avg,
             b_fn=MLP(
                 dim_in=config.dims.switch,  # f: b(s)
-                dims_hidden=tuple(config.b_fn_dims) + (config.dims.state,),
+                dims=tuple(config.b_fn_dims) + (config.dims.state,),
                 activations=config.b_fn_activations,
             )
             if config.b_fn_dims
             else None,
             d_fn=MLP(
                 dim_in=config.dims.switch,  # f: d(s)
-                dims_hidden=tuple(config.d_fn_dims) + (config.dims.obs,),
+                dims=tuple(config.d_fn_dims) + (config.dims.target,),
                 activations=config.d_fn_activations,
             )
             if config.d_fn_dims
@@ -87,10 +85,10 @@ class GlsParametersUnrestricted(GLSParameters):
     def __init__(self, config):
         super().__init__(
             n_state=config.dims.state,
-            n_obs=config.dims.obs,
+            n_obs=config.dims.target,
             n_switch=config.dims.switch,
             n_ctrl_state=config.dims.ctrl_state,
-            n_ctrl_obs=config.dims.ctrl_obs,
+            n_ctrl_obs=config.dims.ctrl_target,
             n_base_A=config.n_base_A,
             n_base_B=config.n_base_B,
             n_base_C=config.n_base_C,
@@ -100,14 +98,14 @@ class GlsParametersUnrestricted(GLSParameters):
             switch_link_type=config.switch_link_type,
             b_fn=MLP(
                 dim_in=config.dims.switch,  # f: b(s)
-                dims_hidden=tuple(config.b_fn_dims) + (config.dims.state,),
+                dims=tuple(config.b_fn_dims) + (config.dims.state,),
                 activations=config.b_fn_activations,
             )
             if config.b_fn_dims
             else None,
             d_fn=MLP(
                 dim_in=config.dims.switch,  # f: d(s)
-                dims_hidden=tuple(config.d_fn_dims) + (config.dims.obs,),
+                dims=tuple(config.d_fn_dims) + (config.dims.target,),
                 activations=config.d_fn_activations,
             )
             if config.d_fn_dims
@@ -130,7 +128,7 @@ class GLSParametersKVAE(GLSParameters):
             # NOTE: SSM (pseudo) obs are Model auxiliary.
             n_switch=config.n_hidden_rnn,  # alpha in KVAE
             n_ctrl_state=config.dims.ctrl_state,
-            n_ctrl_obs=config.dims.ctrl_obs,
+            n_ctrl_obs=config.dims.ctrl_target,
             n_base_A=config.n_base_A,
             n_base_B=config.n_base_B,
             n_base_C=config.n_base_C,
@@ -162,7 +160,7 @@ class GLSParametersASGLS(GLSParameters):
             # NOTE: SSM (pseudo) obs are Model auxiliary.
             n_switch=config.dims.switch,
             n_ctrl_state=config.dims.ctrl_state,
-            n_ctrl_obs=config.dims.ctrl_obs,
+            n_ctrl_obs=config.dims.ctrl_target,
             n_base_A=config.n_base_A,
             n_base_B=config.n_base_B,
             n_base_C=config.n_base_C,
@@ -172,14 +170,14 @@ class GLSParametersASGLS(GLSParameters):
             switch_link_type=config.switch_link_type,
             b_fn=MLP(
                 dim_in=config.dims.switch,  # f: b(s)
-                dims_hidden=tuple(config.b_fn_dims) + (config.dims.state,),
+                dims=tuple(config.b_fn_dims) + (config.dims.state,),
                 activations=config.b_fn_activations,
             )
             if config.b_fn_dims
             else None,
             d_fn=MLP(
                 dim_in=config.dims.switch,  # f: d(s)
-                dims_hidden=tuple(config.d_fn_dims) + (config.dims.obs,),
+                dims=tuple(config.d_fn_dims) + (config.dims.target,),
                 activations=config.d_fn_activations,
             )
             if config.d_fn_dims

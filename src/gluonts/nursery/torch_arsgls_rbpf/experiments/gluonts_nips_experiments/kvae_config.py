@@ -268,7 +268,7 @@ def make_model(config):
 
     model = KalmanVariationalAutoEncoder(
         n_state=config.dims.state,
-        n_obs=config.dims.obs,
+        n_obs=config.dims.target,
         n_auxiliary=config.dims.auxiliary,
         n_ctrl_state=config.dims.ctrl_state,
         n_particle=config.dims.particle,

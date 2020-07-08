@@ -149,8 +149,8 @@ def make_default_config(dataset_name):
 
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
-        particle=10,
-        batch=50,
+        particle=20,
+        batch=10,
         state=n_latent,
         obs=1,
         switch=10,
@@ -262,7 +262,7 @@ def make_model(config):
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
     model = RecurrentSwitchingLinearDynamicalSystem(
         n_state=dims.state,
-        n_obs=dims.obs,
+        n_obs=dims.target,
         n_ctrl_state=dims.ctrl_state,
         n_particle=dims.particle,
         n_switch=dims.switch,

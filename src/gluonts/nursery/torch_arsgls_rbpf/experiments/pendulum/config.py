@@ -13,7 +13,7 @@ from experiments.model_component_zoo import (
 from models.switching_gaussian_linear_system import (
     RecurrentSwitchingLinearDynamicalSystem,
 )
-from experiments.model_component_zoo.input_transforms import ControlInputs
+from models_new_will_replace.dynamical_system import ControlInputs
 
 
 @dataclass()
@@ -139,7 +139,7 @@ def make_model(config):
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
     model = RecurrentSwitchingLinearDynamicalSystem(
         n_state=dims.state,
-        n_obs=dims.obs,
+        n_obs=dims.target,
         n_ctrl_state=dims.ctrl_state,
         n_particle=dims.particle,
         n_switch=dims.switch,

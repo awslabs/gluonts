@@ -43,7 +43,7 @@ class SwitchTransitionModelCategorical(nn.Module):
         self.conditional_dist = ParametrisedConditionalDistribution(
             stem=MLP(
                 dim_in=dim_in,
-                dims_hidden=dims_stem,
+                dims=dims_stem,
                 activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
@@ -83,7 +83,7 @@ class SwitchTransitionModelGaussian(nn.Module):
             conditional_dist_tranform=ParametrisedConditionalDistribution(
                 stem=MLP(
                     dim_in=dim_in,
-                    dims_hidden=dims_stem,
+                    dims=dims_stem,
                     activations=activations_stem,
                 ),
                 dist_params=nn.ModuleDict(
@@ -147,7 +147,7 @@ class SwitchTransitionModelGaussianRecurrentBaseMat(nn.Module):
         )
         self.transform = MLP(
             dim_in=dim_in,
-            dims_hidden=dims_stem + (dim_out,),
+            dims=dims_stem + (dim_out,),
             activations=activations_stem + (None,),
         )
 

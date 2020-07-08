@@ -45,7 +45,7 @@ class SwitchPriorModelCategorical(nn.Module):
             self.dist = ParametrisedConditionalDistribution(
                 stem=MLP(
                     dim_in=dim_in,
-                    dims_hidden=dims_stem,
+                    dims=dims_stem,
                     activations=activations_stem,
                 ),
                 dist_params=nn.ModuleDict(
@@ -95,7 +95,7 @@ class SwitchPriorModelGaussian(nn.Module):
             self.dist = ParametrisedConditionalDistribution(
                 stem=MLP(
                     dim_in=dim_in,
-                    dims_hidden=dims_stem,
+                    dims=dims_stem,
                     activations=activations_stem,
                 ),
                 dist_params=nn.ModuleDict(

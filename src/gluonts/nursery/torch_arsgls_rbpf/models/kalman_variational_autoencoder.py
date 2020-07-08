@@ -14,11 +14,11 @@ from inference.analytical_gausian_linear.inference_step import (
     filter_forward_predictive_distribution,
 )
 from models.dynamical_system import DynamicalSystem
-from models.gls_parameters import GLSParameters
+from models.gls_parameters.gls_parameters import GLSParameters
 from torch_extensions.distributions.parametrised_distribution import (
     ParametrisedMultivariateNormal,
 )
-from experiments.model_component_zoo.input_transforms import ControlInputs
+from models_new_will_replace.dynamical_system import ControlInputs
 
 
 # TODO: Add missing data code from the diverged branch.
@@ -83,7 +83,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
 
     def expand_particle_dim(self, u: ControlInputs):
         # assumes we have time dimension
-        u.obs = u.obs[:, None, ...] if u.obs is not None else None
+        u.target = u.target[:, None, ...] if u.target is not None else None
         u.state = u.state[:, None, ...] if u.state is not None else None
         u.switch = u.switch[:, None, ...] if u.switch is not None else None
         return u
@@ -124,7 +124,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
         rnn_inputs = torch.cat([z_initial, z_time_first[:-1]], dim=0)
 
         gls_params, rnn_state = self.compute_gls_params(
-            rnn_inputs=rnn_inputs, u_state=u.state, u_obs=u.obs,
+            rnn_inputs=rnn_inputs, u_state=u.state, u_obs=u.target,
         )
         LQinv_tril, LQinv_logdiag = make_inv_tril_parametrization(gls_params.Q)
         LRinv_tril, LRinv_logdiag = make_inv_tril_parametrization(gls_params.R)
@@ -154,7 +154,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
                 m0=m0,
                 y=z_time_first,
                 u_state=u.state,
-                u_obs=u.obs,
+                u_obs=u.target,
             ).sum(dim=0)
             / dims.particle
         )  # loss_em fn already sums over time. Only avg Particle dim.
@@ -221,7 +221,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
         auxiliary_predictive_dist = MultivariateNormal(
             loc=matvec(gls_params.C, x)
             + (
-                matvec(gls_params.D, u.obs)
+                matvec(gls_params.D, u.target)
                 if gls_params.D is not None
                 else 0.0
             ),
@@ -304,7 +304,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
 
         # Unroll RNN on all pseudo-obervations to get the SSM params
         gls_params, last_rnn_state = self.compute_gls_params(
-            rnn_inputs=rnn_inputs, u_state=u.state, u_obs=u.obs,
+            rnn_inputs=rnn_inputs, u_state=u.state, u_obs=u.target,
         )
 
         # filter with pseudo-obs.
@@ -328,7 +328,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
             m0=m0,
             y=z,
             u_state=u.state,
-            u_obs=u.obs,
+            u_obs=u.target,
         )
         # predictive distribution of SSM is VAE latent z.
         mpz, Vpz = filter_forward_predictive_distribution(
@@ -336,7 +336,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
             V=V_fw,
             Q=gls_params.Q,
             C=gls_params.C,
-            d=matvec(gls_params, u.obs) if gls_params.D is not None else None,
+            d=matvec(gls_params, u.target) if gls_params.D is not None else None,
         )
 
         x_filter_dist = MultivariateNormal(loc=m_fw, covariance_matrix=V_fw)
@@ -376,7 +376,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
         rnn_inputs = torch.cat([z_initial, z[:-1]], dim=0)
 
         gls_params, last_rnn_state = self.compute_gls_params(
-            rnn_inputs=rnn_inputs, u_state=u.state, u_obs=u.obs
+            rnn_inputs=rnn_inputs, u_state=u.state, u_obs=u.target
         )
         LQinv_tril, LQinv_logdiag = make_inv_tril_parametrization(gls_params.Q)
         LRinv_tril, LRinv_logdiag = make_inv_tril_parametrization(gls_params.R)
@@ -397,7 +397,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
             m0=m0,
             y=z,
             u_state=u.state,
-            u_obs=u.obs,
+            u_obs=u.target,
         )
         # predictive distribution of SSM is VAE latent z.
         mpz, Vpz = filter_forward_predictive_distribution(
@@ -405,7 +405,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
             V=V_fb,
             Q=gls_params.Q,
             C=gls_params.C,
-            d=matvec(gls_params, u.obs) if gls_params.D is not None else None,
+            d=matvec(gls_params, u.target) if gls_params.D is not None else None,
         )
         # We omit the covariance between states. Could add it if we need.
         x_smoothed_dist = MultivariateNormal(loc=m_fb, covariance_matrix=V_fb)
@@ -439,7 +439,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
         )
         dims = self.get_dims(
             u_state=u.state,
-            u_obs=u.obs,
+            u_obs=u.target,
             n_timesteps=n_timesteps,
             n_batch=n_batch,
         )
@@ -474,7 +474,7 @@ class KalmanVariationalAutoEncoder(DynamicalSystem):
                 else gls_params_initial,
                 rnn_state_tm1=rnn_state[t - 1] if t > 0 else rnn_state_initial,
                 u_state_t=u.state[t] if u.state is not None else None,
-                u_obs_t=u.obs[t] if u.obs is not None else None,
+                u_obs_t=u.target[t] if u.target is not None else None,
                 deterministic=deterministic,
             )
         x = torch.stack(x, dim=0)
