@@ -35,7 +35,9 @@ class GaussianRecurrentTransition(nn.Module):
         Forward marginalises out the Gaussian if m and V given,
         or transforms a sample x if that is given instead.
         """
-        assert len({(x is None), (m is None and V is None)}) == 2
+        # assert len({(x is None), (m is None and V is None)}) == 2
+        assert (x is None) or (m is None and V is None)  #
+
         h = torch.cat((u, s), dim=-1) if u is not None else s
         switch_to_switch_dist = self.conditional_dist_transform(h)
         if self.F is not None:
