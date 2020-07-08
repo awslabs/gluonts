@@ -969,8 +969,6 @@ def test_AddObservedIndicator():
 
             res = transfo.transform(d)
 
-            print(i)
-            print(method)
             assert np.array_equal(d_expected_results[method][i], res["target"])
             assert np.array_equal(
                 expected_missindicators[i], res[FieldName.OBSERVED_VALUES]
