@@ -1,8 +1,8 @@
 python-box==4.2.3
 notebook==5.5.0
 wget==3.2
-matplotlib==3.0.3
-numpy==1.15.4
+matplotlib==3.2.2
+numpy==1.19.0
 scipy==1.1.0
 torch==1.5.1
 pytorch-lightning==0.8.3
@@ -25,6 +25,6 @@ POT==0.7.0
 # gluon-TS related imports (incl. third-party requirements)
 mxnet==1.6
 pydantic==1.5.1
-holidays==2.2.1
+holidays==0.9.12
 #gluonts==0.5.0
 #git+https://github.com/awslabs/gluon-ts.git
