@@ -358,6 +358,11 @@ def _worker_fn(
 
 
 class ShuffleIter(Iterator[DataEntry]):
+    """
+    A wrapper class which takes a serialized iterator as an input and generates a
+    pseudo randomized iterator using the same elements from the input iterator.
+    """
+
     def __init__(
         self, base_iterator: Iterator[DataEntry], shuffle_buffer_length: int
     ):
@@ -566,6 +571,11 @@ class ParallelDataLoader(object):
         but will consume more shared_memory. Using smaller number may forfeit the purpose of using
         multiple worker processes, try reduce `num_workers` in this case.
         By default it defaults to `num_workers * 2`.
+    shuffle_buffer_length
+        The length of the buffer used to do pseudo shuffle.
+        If not None, the loader will perform pseudo shuffle when generating batches.
+        Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
+        more time to be done.
     """
 
     def __init__(
