@@ -99,6 +99,8 @@ class LastValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        if len(values) == 1:
+            return DummyValueImputation()(values)
         values = np.expand_dims(values, axis=0)
 
         mask = np.isnan(values)
@@ -107,8 +109,6 @@ class LastValueImputation(MissingValueImputation):
         out = values[np.arange(idx.shape[0])[:, None], idx]
 
         values = np.squeeze(out)
-        if values.shape == ():  # edge case when we pass a single value
-            values = values.reshape(1,)
         # in case we need to replace nan at the start of the array
         mask = np.isnan(values)
         values[mask] = np.interp(
