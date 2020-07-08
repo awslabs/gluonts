@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn.init import kaiming_normal_
-from models.gls_parameters.switch_link_functions import (
+from models_new_will_replace.gls_parameters.switch_link_functions import (
     IndividualLink,
     SharedLink,
     IdentityLink,
@@ -38,6 +38,8 @@ class GLSParameters(nn.Module):
         n_base_R: int,
         n_base_Q: int,
         switch_link_type: SwitchLinkType,
+        switch_link_dims_hidden: tuple = tuple(),
+        switch_link_activations: nn.Module = nn.ReLU(),
         make_cov_from_cholesky_avg=False,
         b_fn: (nn.Module, None) = None,
         d_fn: (nn.Module, None) = None,
@@ -56,7 +58,7 @@ class GLSParameters(nn.Module):
         full_cov_R: bool = True,
         full_cov_Q: bool = True,
         LQinv_logdiag_limiter: (nn.Module, None) = SigmoidLimiter(
-            [-25.0, 25.0]
+            [-25.0, 25.0]  # TODO: default None? Also use Optional.
         ),  # FP64
         LRinv_logdiag_limiter: (nn.Module, None) = SigmoidLimiter(
             [-25.0, 25.0]
@@ -97,7 +99,7 @@ class GLSParameters(nn.Module):
         elif switch_link_type == SwitchLinkType.shared:
             assert len(set(n_bases)) == 1
 
-        names_and_dims = filter_out_none(
+        names_and_dims_out = filter_out_none(
             {
                 "A": n_base_A,
                 "B": n_base_B,
@@ -109,20 +111,23 @@ class GLSParameters(nn.Module):
         )
         if switch_link_type.value == SwitchLinkType.individual.value:
             self.link_transformers = IndividualLink(
-                dim_in=n_switch, names_and_dims_out=names_and_dims
+                dim_in=n_switch,
+                names_and_dims_out=names_and_dims_out,
+                dims_hidden=switch_link_dims_hidden,
+                activations_hidden=switch_link_activations,
             )
         elif switch_link_type.value == SwitchLinkType.identity.value:
             self.link_transformers = IdentityLink(
-                names=tuple(names_and_dims.keys())
+                names=tuple(names_and_dims_out.keys())
             )
         elif switch_link_type.value == SwitchLinkType.shared.value:
-            dims = [dim for dim in names_and_dims.values()]  # strip None
+            dims = [dim for dim in names_and_dims_out.values()]  # strip None
             assert len(set(dims)) == 1
             dim_out = dims[0]
             self.link_transformers = SharedLink(
                 dim_in=n_switch,
                 dim_out=dim_out,
-                names=tuple(names_and_dims.keys()),
+                names=tuple(names_and_dims_out.keys()),
             )
         else:
             raise Exception(f"unknown switch link type: {switch_link_type}")
@@ -437,6 +442,6 @@ class GLSParameters(nn.Module):
                 Linv_logdiag=self.LRinv_logdiag_limiter(self.LRinv_logdiag),
                 Linv_tril=self.LRinv_tril,
             )
-        # return B and D also because the loss and smoothing functions use B / D atm
+        # return B and D because the loss and smoothing functions use B / D atm
         # and do not support b / d (although that is straightforward to do).
         return Box(A=A, b=b, C=C, d=d, Q=Q, R=R, B=B, D=D)
