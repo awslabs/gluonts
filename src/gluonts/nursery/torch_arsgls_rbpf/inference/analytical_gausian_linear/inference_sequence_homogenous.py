@@ -267,7 +267,7 @@ def sample(
 
     # generate noise
     wz = torch.randn(dims.timesteps, dims.batch, dims.state)
-    wy = torch.randn(dims.timesteps, dims.batch, dims.obs)
+    wy = torch.randn(dims.timesteps, dims.batch, dims.target)
 
     # pre-compute cholesky matrices
     LR = torch.inverse(
@@ -329,7 +329,7 @@ def loss_forward(
     # Note: We can not use (more readable) in-place operations due to backprop problems.
     m_fw = [None] * dims.timesteps
     V_fw = [None] * dims.timesteps
-    loss_samplewise = torch.zeros((dims.batch,), device=device, dtype=dtype)
+    loss = torch.zeros((dims.batch,), device=device, dtype=dtype)
     for t in range(0, dims.timesteps):
         (mp, Vp) = (
             filter_forward_prediction_step(
@@ -341,12 +341,12 @@ def loss_forward(
         m_fw[t], V_fw[t], dobs_norm, LVpyinv = filter_forward_measurement_step(
             y=y[t], m=mp, V=Vp, Q=Q, C=C, d=d[t], return_loss_components=True
         )
-        loss_samplewise += (
-            0.5 * torch.sum(dobs_norm ** 2, dim=-1)
-            - 0.5 * 2 * torch.sum(torch.log(batch_diag(LVpyinv)), dim=(-1,))
-            + 0.5 * dims.obs * LOG_2PI
+        loss += (
+                0.5 * torch.sum(dobs_norm ** 2, dim=-1)
+                - 0.5 * 2 * torch.sum(torch.log(batch_diag(LVpyinv)), dim=(-1,))
+                + 0.5 * dims.target * LOG_2PI
         )
-    loss = torch.sum(loss_samplewise, dim=(0,))
+
     return loss
 
 
@@ -400,9 +400,9 @@ def loss_em(
     delta_init = m[0] - m0
     quad_init = matmul(delta_init[..., None], delta_init[..., None, :]) + V[0]
     loss_init = 0.5 * (
-        torch.sum(V0inv * quad_init, dim=(0, -1, -2))
-        - 2.0 * dims.batch * torch.sum(LV0inv_logdiag)
-        + dims.batch * dims.state * LOG_2PI
+        torch.sum(V0inv * quad_init, dim=(-1, -2))
+        - 2.0 * torch.sum(LV0inv_logdiag)
+        + dims.state * LOG_2PI
     )
 
     # transition losses - summed over all time-steps
@@ -419,12 +419,11 @@ def loss_em(
         + matmul(matmul(A, V_sum_head), A.transpose(-1, -2))
     )
     loss_trans = 0.5 * (
-        torch.sum(Rinv * quad_trans, dim=(0, -1, -2))
+        torch.sum(Rinv * quad_trans, dim=(-1, -2))
         - 2.0
         * (dims.timesteps - 1)
-        * dims.batch
         * torch.sum(LRinv_logdiag, dim=-1)
-        + (dims.timesteps - 1) * dims.batch * dims.state * LOG_2PI
+        + (dims.timesteps - 1) * dims.state * LOG_2PI
     )
 
     # observation losses - summed over all time-steps
@@ -434,13 +433,13 @@ def loss_em(
         delta_obs.transpose(0, 1).transpose(-1, -2), delta_obs.transpose(0, 1)
     ) + matmul(C, matmul(V_sum, C.transpose(-1, -2)))
     loss_obs = 0.5 * (
-        torch.sum(Qinv * quad_obs, dim=(0, -1, -2))
-        - 2.0 * dims.timesteps * dims.batch * torch.sum(LQinv_logdiag, dim=-1)
-        + dims.timesteps * dims.batch * dims.obs * LOG_2PI
+            torch.sum(Qinv * quad_obs, dim=(-1, -2))
+            - 2.0 * dims.timesteps * torch.sum(LQinv_logdiag, dim=-1)
+            + dims.timesteps * dims.target * LOG_2PI
     )
 
-    loss_all = loss_trans + loss_obs + loss_init + loss_entropy
-    return loss_all
+    loss = loss_trans + loss_obs + loss_init + loss_entropy
+    return loss
 
 
 def compute_entropy(dims, V, Cov):
@@ -450,8 +449,8 @@ def compute_entropy(dims, V, Cov):
         if t == 0:  # marginal entropy (t==0)
             LVt = cholesky(V[t])
             entropy += 0.5 * 2.0 * torch.sum(
-                torch.log(batch_diag(LVt)), dim=(0, -1,)
-            ) + 0.5 * dims.batch * dims.state * (1 + LOG_2PI)
+                torch.log(batch_diag(LVt)), dim=(-1,)
+            ) + 0.5 * dims.state * (1 + LOG_2PI)
         else:  # joint entropy (t, t-1) - marginal entropy (t-1)
             Vtm1inv = batch_cholesky_inverse(cholesky(V[t - 1]))
             Cov_cond = V[t] - matmul(
@@ -460,6 +459,6 @@ def compute_entropy(dims, V, Cov):
             LCov_cond = cholesky(Cov_cond)
 
             entropy += 0.5 * 2.0 * torch.sum(
-                torch.log(batch_diag(LCov_cond)), dim=(0, -1,)
-            ) + 0.5 * dims.batch * dims.state * (1.0 + LOG_2PI)
+                torch.log(batch_diag(LCov_cond)), dim=(-1,)
+            ) + 0.5 * dims.state * (1.0 + LOG_2PI)
     return entropy

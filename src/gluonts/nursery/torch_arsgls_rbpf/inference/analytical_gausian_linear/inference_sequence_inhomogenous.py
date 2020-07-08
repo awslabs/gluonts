@@ -265,7 +265,7 @@ def sample(
 ):
     # generate noise
     wz = torch.randn(dims.timesteps, dims.batch, dims.state)
-    wy = torch.randn(dims.timesteps, dims.batch, dims.obs)
+    wy = torch.randn(dims.timesteps, dims.batch, dims.target)
 
     # Initial step.
     # Note: We cannot use in-place operations here because we must backprop through y.
@@ -367,9 +367,9 @@ def loss_forward(
             return_loss_components=True,
         )
         loss += 0.5 * (
-            torch.sum(dobs_norm ** 2, dim=-1)
-            - 2 * torch.sum(torch.log(batch_diag(LVpyinv)), dim=(-1,))
-            + dims.obs * LOG_2PI
+                torch.sum(dobs_norm ** 2, dim=-1)
+                - 2 * torch.sum(torch.log(batch_diag(LVpyinv)), dim=(-1,))
+                + dims.target * LOG_2PI
         )
     return loss
 
@@ -457,9 +457,9 @@ def loss_em(
         C, matmul(V, C.transpose(-1, -2))
     )
     loss_obs = 0.5 * (
-        torch.sum(Qinv * quad_obs, dim=(0, -1, -2))  # T...FF
-        - 2.0 * torch.sum(LQinv_logdiag, dim=(0, -1))  # T...F
-        + dims.timesteps * dims.obs * LOG_2PI
+            torch.sum(Qinv * quad_obs, dim=(0, -1, -2))  # T...FF
+            - 2.0 * torch.sum(LQinv_logdiag, dim=(0, -1))  # T...F
+            + dims.timesteps * dims.target * LOG_2PI
     )
 
     with torch.no_grad():  # posterior optimal --> entropy has analytically zero gradients as well.
