@@ -10,6 +10,7 @@ from models.gls_parameters.switch_link_functions import (
     SharedLink,
 )
 from torch_extensions.ops import batch_diag_matrix, matmul
+from models_new_will_replace.gls_parameters.gls_parameters import GLSParameters
 
 
 class StateToSwitchParams(nn.Module):
@@ -20,12 +21,15 @@ class StateToSwitchParams(nn.Module):
         n_base_F,
         n_base_S,
         init_scale_S_diag=(1e-4, 1e0,),
-        trainable_S=True,
+        requires_grad_S: bool = True,
+        full_cov_S: bool = False,
+        make_cov_from_cholesky_avg: bool = True,
         switch_link: (nn.Module, None) = None,
         switch_link_type: (SwitchLinkType, None) = None,
     ):
         super().__init__()
         assert len({switch_link is None, switch_link_type is None}) == 2
+        self.make_cov_from_cholesky_avg = make_cov_from_cholesky_avg
 
         if switch_link is not None:
             self.link_transformers = switch_link
@@ -59,9 +63,17 @@ class StateToSwitchParams(nn.Module):
             requires_grad=True,
         )
         # TODO: optionally learnable.
-        self.LSinv_tril = nn.Parameter(
-            torch.zeros((n_base_S, n_switch, n_switch)), requires_grad=False,
-        )
+        if full_cov_S:  # tril part is always initialised zero
+            self.LSinv_tril = nn.Parameter(
+                torch.zeros((n_base_S, n_switch, n_switch)),
+                requires_grad=requires_grad_S,
+            )
+        else:
+            self.register_parameter("LSinv_tril", None)
+
+        # self.LSinv_tril = nn.Parameter(
+        #     torch.zeros((n_base_S, n_switch, n_switch)), requires_grad=False,
+        # )
         if isinstance(init_scale_S_diag, (list, tuple)):
             assert len(init_scale_S_diag) == 2
 
@@ -86,22 +98,31 @@ class StateToSwitchParams(nn.Module):
                     dim=-1,
                 ),
                 # LSinv_logdiag[:, None].repeat(1, n_switch),
-                requires_grad=True if trainable_S else False,
+                requires_grad=requires_grad_S,
             )
         else:
             self.LSinv_logdiag = nn.Parameter(
                 torch.ones((n_base_S, n_switch))
                 * -math.log(init_scale_S_diag),
-                requires_grad=True if trainable_S else False,
+                requires_grad=requires_grad_S,
             )
 
     def forward(self, switch):
         weights = self.link_transformers(switch=switch)
         F = torch.einsum("...k,koi->...oi", weights.F, self.F)
-        LS_basemats = torch.inverse(
-            torch.tril(self.LSinv_tril, -1)
-            + batch_diag_matrix(torch.exp(self.LSinv_logdiag))
-        )
-        LS = torch.einsum("...k,koi->...oi", weights.S, LS_basemats)
-        S = matmul(LS, LS.transpose(-1, -2))
+
+        if self.make_cov_from_cholesky_avg:
+            S = GLSParameters.cov_from_average_scales(
+                weights=weights.S,
+                Linv_logdiag=self.LSinv_logdiag,
+                Linv_tril=self.LSinv_tril,
+            )
+
+        else:
+            S = GLSParameters.cov_from_average_variances(
+                weights=weights.S,
+                Linv_logdiag=self.LSinv_logdiag,
+                Linv_tril=self.LSinv_tril,
+            )
+
         return Box(F=F, S=S)
