@@ -12,7 +12,7 @@ class ControlInputs:
     target: torch.Tensor
 
     def __getitem__(self, item):
-        return self.__class__(**self.__dict__)
+        return self.__class__(**{k: v[item] for k, v in self.__dict__.items()})
 
     def __len__(self):
         if not len(set(len(v) for v in self.__dict__.values())) == 1:
@@ -27,7 +27,8 @@ class ControlInputs:
 
         for key in self.__dict__.keys():
             val = getattr(self, key)
-            if val is not None:
+            # None (optional) or integer types are ignored.
+            if isinstance(val, (torch.FloatTensor, torch.DoubleTensor)):
                 setattr(self, key, val.to(dtype).to(device))
         return self
 
