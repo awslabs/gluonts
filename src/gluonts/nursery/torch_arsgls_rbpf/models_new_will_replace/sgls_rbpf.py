@@ -1,10 +1,11 @@
 from typing import Optional
 from dataclasses import dataclass
+
 from box import Box
 
 import torch
 from torch import nn
-from torch.distributions import OneHotCategorical, MultivariateNormal
+from torch.distributions import MultivariateNormal
 
 from models_new_will_replace.base_rbsmc import (
     LatentsRBSMC,
@@ -35,8 +36,10 @@ from torch_extensions.distributions.parametrised_distribution import (
     ParametrisedMultivariateNormal,
     prepend_batch_dims,
 )
+from torch_extensions.distributions.conditional_parametrised_distribution import (
+    ParametrisedConditionalDistribution,
+)
 from models_new_will_replace.gls_parameters.gls_parameters import GLSParameters
-
 
 @dataclass
 class ControlInputsSGLS(ControlInputs):
@@ -75,7 +78,7 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
         n_particle: int,
         n_switch: int,
         gls_base_parameters: GLSParameters,
-        obs_encoder: nn.Module,
+        obs_encoder: ParametrisedConditionalDistribution,
         state_prior_model: ParametrisedMultivariateNormal,
         switch_prior_model: ParametrisedDistribution,
         switch_transition_model: nn.Module,
@@ -138,7 +141,7 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
                 tensors_to_resample={
                     key: val
                     for key, val in lats_tm1.variables.__dict__.items()
-                    if key != "x"  # TODO: Is there a better way? Also below.
+                    if key != "x"  # below set to None explicitly
                 },
                 resampling_indices_fn=self.resampling_indices_fn,
                 criterion_fn=self.resampling_criterion_fn,
@@ -151,22 +154,18 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
                 lat_vars_tm1=lats_tm1.variables, ctrl_t=ctrl_t,
             )
 
-        # TODO: also need API for encoders: __call__ output should have
-        #  at least the field switch.
-        encoder_dists = self._make_encoder_dists(tar_t=tar_t, ctrl_t=ctrl_t,)
         switch_proposal_dist = self._make_switch_proposal_dist(
             switch_model_dist=switch_model_dist,
-            switch_encoder_dist=encoder_dists.switch,
+            switch_encoder_dist=self._make_encoder_dists(
+                tar_t=tar_t, ctrl_t=ctrl_t,
+            ).switch,
         )
         s_t = switch_proposal_dist.rsample()
-        # TODO: change API also of gls_params! take ctrl.
-        #  not all got seasonality stuff! maybe subclass will have other.
         gls_params_t = self.gls_base_parameters(
             switch=s_t,
-            seasonal_indicators=None,  # TODO: should not have this. but will be resolved by API change
-            u_state=ctrl_t.state,
-            u_obs=ctrl_t.target,
+            controls=ctrl_t,
         )
+
         mp, Vp = filter_forward_prediction_step(
             m=lats_tm1.variables.m,
             V=lats_tm1.variables.V,
@@ -237,9 +236,7 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
         )
         gls_params_t = self.gls_base_parameters(
             switch=s_t,
-            seasonal_indicators=None,  # TODO: should not have this. but will be resolved by API change
-            u_state=ctrl_t.state,
-            u_obs=ctrl_t.target,
+            controls=ctrl_t,
         )
 
         # covs are not psd in case of ISSM (zeros on most entries).
@@ -315,10 +312,7 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
         # Trade-off: faster, lower memory training vs. slower sampling/forecast
         gls_params_t = self.gls_base_parameters(
             switch=lats_t.variables.switch,
-            seasonal_indicators=None,  # TODO: should not have this. but will be resolved by API change.
-            # Also None is wrong! Can have indicators in this model! (copy from ASGLS mistake)
-            u_state=ctrl_t.state,
-            u_obs=ctrl_t.target,
+            controls=ctrl_t,
         )
         return torch.distributions.MultivariateNormal(
             loc=matvec(gls_params_t.C, lats_t.variables.x)
@@ -328,13 +322,14 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
 
     def _make_encoder_dists(
         self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
-    ) -> torch.distributions.MultivariateNormal:
-        concatenated_data = torch.cat(
-            tuple(inp for inp in (tar_t, ctrl_t.encoder) if inp is not None),
-            dim=-1,
-        )
-        encoder_dists = self.obs_encoder(concatenated_data)
-        return encoder_dists
+    ) -> Box:
+        encoded = self.obs_encoder([tar_t, ctrl_t.encoder])
+        if isinstance(encoded, torch.distributions.Distribution):
+            return Box(switch=encoded)
+        elif hasattr(encoded, "switch"):
+            return encoded.switch
+        else:
+            raise Exception(f"unknown encoding type: {type(encoded)}")
 
     def _make_switch_prior_dist(
         self,

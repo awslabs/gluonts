@@ -1,7 +1,7 @@
 import torch
 from box import Box
 from torch import nn
-from models.gls_parameters.issm import (
+from models_new_will_replace.gls_parameters.issm import (
     ISSM,
     LevelISSM,
     LevelTrendISSM,
@@ -9,7 +9,7 @@ from models.gls_parameters.issm import (
     CompositeISSM,
 )
 from torch_extensions.ops import batch_diag_matrix, matvec
-from models.gls_parameters.gls_parameters import GLSParameters
+from models_new_will_replace.gls_parameters.gls_parameters import GLSParameters
 from models_new_will_replace.sgls_rbpf import ControlInputsSGLSISSM
 
 

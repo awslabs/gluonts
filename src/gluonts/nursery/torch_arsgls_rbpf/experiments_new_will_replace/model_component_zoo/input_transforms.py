@@ -3,28 +3,11 @@ import torch
 from torch import nn
 from torch_extensions.mlp import MLP
 from utils.utils import one_hot
-from dataclasses import dataclass
-
-
-@dataclass
-class ControlInputs:
-    state: torch.Tensor
-    target: torch.Tensor
-    switch: torch.Tensor
-    encoder: torch.Tensor
-
-    def __getitem__(self, item):
-        return ControlInputs(
-            self.state[item],
-            self.target[item],
-            self.switch[item],
-            self.encoder[item]
-        )
-
-    def __len__(self):
-        assert len(self.state) == len(self.target) == len(self.switch) \
-               == len(self.encoder)
-        return len(self.state)
+from models_new_will_replace.dynamical_system import ControlInputs
+from models_new_will_replace.sgls_rbpf import (
+    ControlInputsSGLS,
+    ControlInputsSGLSISSM,
+)
 
 
 class InputTransformer(nn.Module):
@@ -39,9 +22,30 @@ class InputTransformer(nn.Module):
     ) -> ControlInputs:
         raise NotImplementedError("child classes must implement this")
 
-    def _repeat_static_feats(self, feat_static, n_timesteps):
+    def _repeat_static_feats(self, feat_static: torch.Tensor, n_timesteps: int):
         return feat_static[None, ...].repeat(
             (n_timesteps,) + (1,) * feat_static.ndim)
+
+    def _all_same_controls(
+        self,
+        ctrl_features: torch.Tensor,
+        seasonal_indicators: Optional[torch.Tensor] = None,
+    ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
+        if seasonal_indicators is None:
+            return ControlInputsSGLS(
+                state=ctrl_features,
+                target=ctrl_features,
+                switch=ctrl_features,
+                encoder=ctrl_features,
+            )
+        else:
+            return ControlInputsSGLSISSM(
+                state=ctrl_features,
+                target=ctrl_features,
+                switch=ctrl_features,
+                encoder=ctrl_features,
+                seasonal_indicators=seasonal_indicators,
+            )
 
 
 class InputTransformEmbedder(InputTransformer):
@@ -57,15 +61,18 @@ class InputTransformEmbedder(InputTransformer):
             feat_static_cat: torch.Tensor,
             time_feat: torch.Tensor,
             seasonal_indicators: Optional[torch.Tensor] = None,
-    ) -> ControlInputs:
+    ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         feat_static_embed_repeat = self._repeat_static_feats(
             feat_static=self.embedding(
                 feat_static_cat.squeeze(dim=-1).to(torch.int64),
             ),
             n_timesteps=len(time_feat),
         )
-        feat = torch.cat([feat_static_embed_repeat, time_feat], dim=-1)
-        return ControlInputs(state=feat, target=feat, switch=feat, encoder=feat)
+        ctrl_features = torch.cat([feat_static_embed_repeat, time_feat], dim=-1)
+        return self._all_same_controls(
+            ctrl_features=ctrl_features,
+            seasonal_indicators=seasonal_indicators,
+        )
 
 
 class InputTransformOneHotMLP(InputTransformer):
@@ -83,17 +90,20 @@ class InputTransformOneHotMLP(InputTransformer):
             feat_static_cat: torch.Tensor,
             time_feat: torch.Tensor,
             seasonal_indicators: Optional[torch.Tensor] = None,
-    ) -> ControlInputs:
+    ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         feat_static_onehot_repeat = self._repeat_static_feats(
             feat_static=one_hot(
                 feat_static_cat, num_classes=self.num_classes,
             ).to(dtype=feat_static_cat.dtype),
             n_timesteps=len(time_feat),
         )
-        feat = self.mlp(
+        ctrl_features = self.mlp(
             torch.cat((feat_static_onehot_repeat, time_feat), dim=-1),
         )
-        return ControlInputs(state=feat, target=feat, switch=feat, encoder=feat)
+        return self._all_same_controls(
+            ctrl_features=ctrl_features,
+            seasonal_indicators=seasonal_indicators,
+        )
 
 
 class InputTransformMLP(InputTransformer):
@@ -110,15 +120,18 @@ class InputTransformMLP(InputTransformer):
             feat_static_cat: torch.Tensor,
             time_feat: torch.Tensor,
             seasonal_indicators: Optional[torch.Tensor] = None,
-    ) -> ControlInputs:
+    ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         feat_static_repeat = self._repeat_static_feats(
             feat_static=feat_static_cat,
             n_timesteps=len(time_feat),
         )
-        feat = self.mlp(
+        ctrl_features = self.mlp(
             torch.cat((feat_static_repeat, time_feat), dim=-1),
         )
-        return ControlInputs(state=feat, target=feat, switch=feat, encoder=feat)
+        return self._all_same_controls(
+            ctrl_features=ctrl_features,
+            seasonal_indicators=seasonal_indicators,
+        )
 
 
 class InputTransformEmbeddingAndMLP(InputTransformer):
@@ -141,18 +154,22 @@ class InputTransformEmbeddingAndMLP(InputTransformer):
             feat_static_cat: torch.Tensor,
             time_feat: torch.Tensor,
             seasonal_indicators: Optional[torch.Tensor] = None,
-    ) -> ControlInputs:
+    ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         feat_static_embed_repeat = self._repeat_static_feats(
             feat_static=self.embedding(
                 feat_static_cat.squeeze(dim=-1).to(torch.int64),
             ),
             n_timesteps=len(time_feat),
         )
-        feat = self.mlp(
-            torch.cat([feat_static_embed_repeat,
-                       time_feat * self.time_feat_factor], dim=-1),
+        ctrl_features = self.mlp(
+            torch.cat([
+                feat_static_embed_repeat, time_feat * self.time_feat_factor
+            ], dim=-1),
         )
-        return ControlInputs(state=feat, target=feat, switch=feat, encoder=feat)
+        return self._all_same_controls(
+            ctrl_features=ctrl_features,
+            seasonal_indicators=seasonal_indicators,
+        )
 
 
 class InputTransformEmbeddingAndMLPKVAE(InputTransformEmbeddingAndMLP):
@@ -161,13 +178,13 @@ class InputTransformEmbeddingAndMLPKVAE(InputTransformEmbeddingAndMLP):
             feat_static_cat: torch.Tensor,
             time_feat: torch.Tensor,
             seasonal_indicators: Optional[torch.Tensor] = None,
-    ) -> ControlInputs:
-        u = super().forward(
+    ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
+        controls = super().forward(
             feat_static_cat=feat_static_cat,
             time_feat=time_feat,
             seasonal_indicators=seasonal_indicators,
         )
-        u.target = None
-        u.switch = None
-        u.encoder = None
-        return u
+        controls.target = None
+        controls.switch = None
+        controls.encoder = None
+        return controls

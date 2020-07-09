@@ -1,3 +1,4 @@
+from typing import Sequence
 from dataclasses import dataclass
 from box import Box
 
@@ -5,13 +6,16 @@ import torch
 from torch import nn
 from torch.distributions import OneHotCategorical, MultivariateNormal
 
-from models_new_will_replace.dynamical_system import GLSVariables, ControlInputs
+from models_new_will_replace.dynamical_system import GLSVariables
 from models_new_will_replace.base_rbsmc import (
     LatentsRBSMC,
     BaseRBSMC,
     Prediction,
 )
-from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemRBSMC
+from models_new_will_replace.sgls_rbpf import (
+    SwitchingGaussianLinearSystemRBSMC,
+    ControlInputsSGLS,
+)
 
 
 from inference.smc.resampling import (
@@ -34,7 +38,9 @@ from torch_extensions.ops import (
 from torch_extensions.distributions.parametrised_distribution import (
     ParametrisedDistribution,
     ParametrisedMultivariateNormal,
-    prepend_batch_dims,
+)
+from torch_extensions.distributions.conditional_parametrised_distribution import (
+    LadderParametrisedConditionalDistribution,
 )
 from models_new_will_replace.gls_parameters.gls_parameters import GLSParameters
 
@@ -170,7 +176,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
         n_switch: int,
         gls_base_parameters: GLSParameters,
         measurement_model: nn.Module,
-        obs_encoder: nn.Module,
+        obs_encoder: LadderParametrisedConditionalDistribution,
         state_prior_model: ParametrisedMultivariateNormal,
         switch_prior_model: ParametrisedDistribution,
         switch_transition_model: nn.Module,
@@ -198,7 +204,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
         self,
         lats_tm1: (LatentsASGLS, None),
         tar_t: torch.Tensor,
-        ctrl_t: ControlInputs,
+        ctrl_t: ControlInputsSGLS,
     ):
         is_initial_step = lats_tm1 is None
         if is_initial_step:
@@ -235,7 +241,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
                 tensors_to_resample={
                     key: val
                     for key, val in lats_tm1.variables.__dict__.items()
-                    if key != "x"  # TODO: Is there a better way? Also below.
+                    if key != "x"  # below set to None explicitly
                 },
                 resampling_indices_fn=self.resampling_indices_fn,
                 criterion_fn=self.resampling_criterion_fn,
@@ -248,19 +254,15 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
                 lat_vars_tm1=lats_tm1.variables, ctrl_t=ctrl_t,
             )
 
-        encoder_dists = self._make_encoder_dists(tar_t=tar_t, ctrl_t=ctrl_t,)
+        encoder_dists = self._make_encoder_dists(tar_t=tar_t, ctrl_t=ctrl_t, )
         switch_proposal_dist = self._make_switch_proposal_dist(
             switch_model_dist=switch_model_dist,
             switch_encoder_dist=encoder_dists.switch,
         )
         s_t = switch_proposal_dist.rsample()
-        # TODO: change API also of gls_params! take ctrl.
-        #  not all got seasonality stuff! maybe subclass will have other.
         gls_params_t = self.gls_base_parameters(
             switch=s_t,
-            seasonal_indicators=None,  # TODO: should not have this. but will be resolved by API change
-            u_state=ctrl_t.state,
-            u_obs=ctrl_t.target,
+            controls=ctrl_t,
         )
         mp, Vp = filter_forward_prediction_step(
             m=lats_tm1.variables.m,
@@ -304,7 +306,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
     def forecast_sample_step(
         self,
         lats_tm1: LatentsASGLS,
-        ctrl_t: ControlInputs,
+        ctrl_t: ControlInputsSGLS,
         deterministic: bool = False,
     ) -> Prediction:
         n_batch = lats_tm1.variables.x.shape[1]
@@ -331,9 +333,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
         )
         gls_params_t = self.gls_base_parameters(
             switch=s_t,
-            seasonal_indicators=None,  # TODO: should not have this. but will be resolved by API change
-            u_state=ctrl_t.state,
-            u_obs=ctrl_t.target,
+            controls=ctrl_t,
         )
 
         # covs are not psd in case of ISSM (zeros on most entries).
@@ -408,8 +408,19 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
             )
         )
 
-    def emit(self, lats_t: LatentsASGLS, ctrl_t: ControlInputs):
+    def emit(self, lats_t: LatentsASGLS, ctrl_t: ControlInputsSGLS):
         return self.measurement_model(lats_t.variables.auxiliary)
+
+    def _make_encoder_dists(
+        self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
+    ) -> Box:
+        encoded = self.obs_encoder([tar_t, ctrl_t.encoder])
+        if not isinstance(encoded, Sequence):
+            raise Exception(f"Expected sequence, got {type(encoded)}")
+        if not len(encoded) == 2:
+            raise Exception(f"Expected 2 encodings, got {len(encoded)}")
+
+        return Box(auxiliary=encoded[0], switch=encoded[1])
 
     def _make_auxiliary_model_dist(
         self,

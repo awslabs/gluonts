@@ -21,6 +21,7 @@ from experiments.model_component_zoo import (
     decoders,
 )
 import experiments_new_will_replace.model_component_zoo.input_transforms
+import experiments_new_will_replace.model_component_zoo.gls_parameters
 
 from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemRBSMC
 from models_new_will_replace.rsgls_rbpf import RecurrentSwitchingGaussianLinearSystemRBSMC
@@ -86,7 +87,30 @@ input_transformer = experiments_new_will_replace.model_component_zoo\
 )
 
 
-gls_base_parameters = gls_parameters.GLSParametersASGLS(config=config)
+def deep_getattr(cls, *args):
+    if len(args) == 0:
+        raise ValueError("no arguments provided")
+    elif len(args) == 1:
+        return getattr(cls, args[0])
+    else:
+        return deep_getattr(getattr(cls, args[0]), *args[1:])
+
+
+def deep_setattr(cls, *args, val):
+    if len(args) == 0:
+        raise ValueError("no arguments provided")
+    elif len(args) == 1:
+        return setattr(cls, args[0], val)
+    else:
+        return deep_setattr(getattr(cls, args[0]), *args[1:], val=val)
+
+
+gls_base_parameters_old = gls_parameters.GLSParametersASGLS(config=config)
+gls_base_parameters = experiments_new_will_replace.model_component_zoo.gls_parameters.GLSParametersASGLS(config=config)
+for name in dict(gls_base_parameters_old.named_parameters()).keys():
+    val = deep_getattr(gls_base_parameters_old, *name.split("."))
+    deep_setattr(gls_base_parameters, *name.split("."), "data", val=val.data)
+
 switch_transition_model_recurrent = switch_transitions.SwitchTransitionModelGaussianRecurrentBaseMat(
     config=config,
 )
@@ -103,7 +127,9 @@ switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
 measurment_model = decoders.AuxiliaryToObsDecoderMlpGaussian(config=config)
 encoder = encoders.ObsToAuxiliaryLadderEncoderMlpGaussian(config=config)
 # obs_encoder = encoders.ObsToSwitchEncoderGaussianMLP(config=config)
-obs_encoder = lambda x: encoder(x).switch
+obs_encoder = lambda x: encoder(x)[1]  # hack
+from box import  Box
+obs_encoder_auxiliary_old = lambda x: Box(auxiliary=encoder(x)[0], switch=encoder(x)[1])
 
 
 device = "cuda"
@@ -117,7 +143,7 @@ sgls = SwitchingGaussianLinearSystemRBSMC(
     n_particle=dims.particle,
     n_switch=dims.switch,
     gls_base_parameters=gls_base_parameters,
-    obs_encoder=encoder,
+    obs_encoder=obs_encoder,
     # input_transformer=input_transformer,
     switch_transition_model=switch_transition_model,
     state_prior_model=state_prior_model,
@@ -131,7 +157,7 @@ sgls_old = SwitchingLinearDynamicalSystem(
     n_ctrl_state=dims.ctrl_state,
     n_particle=dims.particle,
     n_switch=dims.switch,
-    gls_base_parameters=gls_base_parameters,
+    gls_base_parameters=gls_base_parameters_old,
     obs_to_switch_encoder=obs_encoder,
     state_to_switch_encoder=None,
     input_transformer=input_transformer_old,
@@ -150,7 +176,7 @@ rsgls = RecurrentSwitchingGaussianLinearSystemRBSMC(
     n_particle=dims.particle,
     n_switch=dims.switch,
     gls_base_parameters=gls_base_parameters,
-    obs_encoder=encoder,
+    obs_encoder=obs_encoder,
     # input_transformer=input_transformer,
     switch_transition_model=switch_transition_model_recurrent,
     state_prior_model=state_prior_model,
@@ -162,7 +188,7 @@ rsgls_old = RecurrentSwitchingLinearDynamicalSystem(
     n_ctrl_state=dims.ctrl_state,
     n_particle=dims.particle,
     n_switch=dims.switch,
-    gls_base_parameters=gls_base_parameters,
+    gls_base_parameters=gls_base_parameters_old,
     obs_to_switch_encoder=obs_encoder,
     state_to_switch_encoder=None,
     input_transformer=input_transformer_old,
@@ -193,9 +219,9 @@ asgls_old = AuxiliarySwitchingLinearDynamicalSystem(
     n_ctrl_state=dims.ctrl_state,
     n_particle=dims.particle,
     n_switch=dims.switch,
-    gls_base_parameters=gls_base_parameters,
+    gls_base_parameters=gls_base_parameters_old,
     measurement_model=measurment_model,
-    obs_encoder=encoder,
+    obs_encoder=obs_encoder_auxiliary_old,
     input_transformer=input_transformer_old,
     switch_transition_model=switch_transition_model,
     state_prior_model=state_prior_model,
@@ -224,9 +250,9 @@ arsgls_old = RecurrentAuxiliarySwitchingLinearDynamicalSystem(
     n_ctrl_state=dims.ctrl_state,
     n_particle=dims.particle,
     n_switch=dims.switch,
-    gls_base_parameters=gls_base_parameters,
+    gls_base_parameters=gls_base_parameters_old,
     measurement_model=measurment_model,
-    obs_encoder=encoder,
+    obs_encoder=obs_encoder_auxiliary_old,
     input_transformer=input_transformer_old,
     switch_transition_model=switch_transition_model_recurrent,
     state_prior_model=state_prior_model,
