@@ -186,7 +186,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             np.random.seed(seed)
             mx.random.seed(seed)
 
-
         # `use_static_feat` and `use_dynamic_feat` always True because network
         # always receives input; either from the input data or constants
         encoder = HierarchicalCausalConv1DEncoder(
@@ -253,7 +252,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         **kwargs,
     ):
         cached_train_data = ListDataset(
-            data_iter=list(training_data), freq=self.freq,
+            data_iter=list(training_data), freq=self.freq
         )
         cached_validation_data = (
             None
