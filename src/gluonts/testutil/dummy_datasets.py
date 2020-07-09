@@ -34,6 +34,7 @@ def make_dummy_datasets_with_features(
     prediction_length: int = 3,
     cardinality: List[int] = [],
     num_feat_dynamic_real: int = 0,
+    num_past_feat_dynamic_real: int = 0,
 ) -> Tuple[ListDataset, ListDataset]:
 
     data_iter_train = []
@@ -49,6 +50,13 @@ def make_dummy_datasets_with_features(
             data_entry_train[FieldName.FEAT_STATIC_CAT] = [
                 randint(0, c) for c in cardinality
             ]
+        if num_past_feat_dynamic_real > 0:
+            data_entry_train[FieldName.PAST_FEAT_DYNAMIC_REAL] = [
+                [float(1 + k)] * ts_length
+                for k in range(num_past_feat_dynamic_real)
+            ]
+        # Since used directly in predict and not in make_evaluate_predictions,
+        # where the test target would be chopped, test and train target have the same lengths
         data_entry_test = data_entry_train.copy()
         if num_feat_dynamic_real > 0:
             data_entry_train[FieldName.FEAT_DYNAMIC_REAL] = [
