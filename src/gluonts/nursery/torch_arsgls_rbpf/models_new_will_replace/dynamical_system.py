@@ -34,12 +34,10 @@ class ControlInputs:
 
 @dataclass
 class GLSVariables:
-    """
-    Stores either (m, V) or samples or both from a MultivariateNormal.
-    We use this instead of torch.distributions.MultivariateNormal in order
-    to reduce overhead and increase performance.
-    """
-    # TODO: performance differences should be tested, maybe can replace this.
+    """ Stores either (m, V) or samples or both from a MultivariateNormal. """
+    # Note: The performance difference to using a Multivariate
+    # (computes choleksy and broadcasts) is actually small.
+    # Could replace (m, V) by MultivariateNormal.
 
     # Setting default value not possible since subclasses of this dataclass
     # would need to set all fields then with default values too.
