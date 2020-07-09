@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from box import Box
 import torch
 from torch import nn
@@ -88,6 +90,7 @@ class ObsToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
             dim_in_dist_params,
         ) = _extract_dims_from_cfg_obs(config=config)
         super().__init__(
+            allow_cat_inputs=True,
             stem=MLP(
                 dim_in=dim_in,
                 dims=dims_stem,
@@ -306,6 +309,7 @@ class ObsToAuxiliaryEncoderMlpGaussian(ParametrisedConditionalDistribution):
         dim_in_dist_params = dims_stem[-1] if len(dims_stem) > 0 else dim_in
 
         super().__init__(
+            allow_cat_inputs=True,
             stem=MLP(
                 dim_in=dim_in,
                 dims=dims_stem,
@@ -360,7 +364,8 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
         )
 
         super().__init__(
-            stems=nn.ModuleList(
+            allow_cat_inputs=True,
+            stem=nn.ModuleList(
                 [
                     MLP(
                         dim_in=dim_in,
@@ -415,14 +420,6 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
             dist_cls=[MultivariateNormal, MultivariateNormal],
         )
 
-    def forward(self, *args, **kwargs):
-        dists = super().forward(*args, **kwargs)
-        assert len(dists) == self.num_hierarchies and all(
-            isinstance(dist, torch.distributions.Distribution)
-            for dist in dists
-        )
-        return Box(auxiliary=dists[0], switch=dists[1])
-
 
 class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
     LadderParametrisedConditionalDistribution
@@ -446,7 +443,7 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
         assert config.dims_encoder[0] is None, (
             "first stem is a conv net. " "config is given differently..."
         )
-        dims_stem_2 = (
+        dims_stem_2 = (  # TODO: really past self?
             32,
             32,
         )
@@ -459,7 +456,8 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
         )
 
         super().__init__(
-            stems=nn.ModuleList(
+            allow_cat_inputs=False,  # images and scalar...
+            stem=nn.ModuleList(
                 [
                     nn.Sequential(
                         Reshape(
@@ -541,10 +539,5 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
             dist_cls=[MultivariateNormal, MultivariateNormal],
         )
 
-    def forward(self, *args, **kwargs):
-        dists = super().forward(*args, **kwargs)
-        assert len(dists) == self.num_hierarchies and all(
-            isinstance(dist, torch.distributions.Distribution)
-            for dist in dists
-        )
-        return Box(auxiliary=dists[0], switch=dists[1])
+
+

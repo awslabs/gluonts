@@ -152,9 +152,10 @@ class GluontsUnivariateDataLoaderWrapper:
     - with TBF format (Time, Batch, Feature).
     """
 
-    def __init__(self, gluonts_loader, dtype: Optional[torch.dtype] = None):
+    def __init__(self, gluonts_loader, float_dtype: Optional[torch.dtype] = None):
         self._gluonts_loader = gluonts_loader
-        self.dtype = dtype
+        self.float_dtype = float_dtype
+        self.int_dtype = torch.int64
 
         self._all_data_keys = [
             "feat_static_cat",
@@ -167,6 +168,10 @@ class GluontsUnivariateDataLoaderWrapper:
         ]
         self._static_data_keys = [
             "feat_static_cat",
+        ]
+        self._int_data_keys = [
+            "past_seasonal_indicators",
+            "future_seasonal_indicators",
         ]
 
     def __iter__(self):
@@ -188,8 +193,11 @@ class GluontsUnivariateDataLoaderWrapper:
 
     def _to_pytorch(self, gluonts_batch: dict):
         return {
-            key: torch.tensor(gluonts_batch[key].asnumpy(), dtype=self.dtype)
-            for key, val in gluonts_batch.items()
+            key: torch.tensor(
+                gluonts_batch[key].asnumpy(),
+                dtype=self.int_dtype
+                if key in self._int_data_keys else self.float_dtype
+            ) for key, val in gluonts_batch.items()
         }
 
     def _to_time_first(self, torch_batch):
@@ -336,7 +344,7 @@ class GluontsUnivariateDataModel(LightningModule):
                 ctx=None,
                 dtype=np.float32,
             ),
-            dtype=self.dtype,
+            float_dtype=self.dtype,
         )
 
     # def val_dataloader(self):
