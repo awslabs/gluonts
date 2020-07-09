@@ -125,7 +125,7 @@ def backtest_metrics(
     ),
     num_samples: int = 100,
     logging_file: Optional[str] = None,
-    use_symbol_block_predictor: Optional[bool] = False,
+    use_symbol_block_predictor: bool = False,
     num_workers: Optional[int] = None,
     num_prefetch: Optional[int] = None,
     **kwargs,
@@ -189,7 +189,17 @@ def backtest_metrics(
     if isinstance(forecaster, Estimator):
         serialize_message(logger, estimator_key, forecaster)
         assert train_dataset is not None
-        predictor = forecaster.train(train_dataset)
+
+        predictor = (
+            forecaster.train(
+                train_dataset,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                **kwargs,
+            )
+            if isinstance(forecaster, GluonEstimator)
+            else (forecaster.train(train_dataset))
+        )
 
         if isinstance(forecaster, GluonEstimator) and isinstance(
             predictor, GluonPredictor
@@ -200,9 +210,6 @@ def backtest_metrics(
                 batch_size=forecaster.trainer.batch_size,
                 ctx=forecaster.trainer.ctx,
                 dtype=forecaster.dtype,
-                num_workers=num_workers,
-                num_prefetch=num_prefetch,
-                **kwargs,
             )
 
             if forecaster.trainer.hybridize:
