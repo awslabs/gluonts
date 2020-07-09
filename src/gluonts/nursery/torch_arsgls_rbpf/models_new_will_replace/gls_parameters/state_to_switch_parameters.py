@@ -62,7 +62,6 @@ class StateToSwitchParams(nn.Module):
             ),
             requires_grad=True,
         )
-        # TODO: optionally learnable.
         if full_cov_S:  # tril part is always initialised zero
             self.LSinv_tril = nn.Parameter(
                 torch.zeros((n_base_S, n_switch, n_switch)),
@@ -71,9 +70,6 @@ class StateToSwitchParams(nn.Module):
         else:
             self.register_parameter("LSinv_tril", None)
 
-        # self.LSinv_tril = nn.Parameter(
-        #     torch.zeros((n_base_S, n_switch, n_switch)), requires_grad=False,
-        # )
         if isinstance(init_scale_S_diag, (list, tuple)):
             assert len(init_scale_S_diag) == 2
 
