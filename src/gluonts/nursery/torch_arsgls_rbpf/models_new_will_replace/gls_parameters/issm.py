@@ -148,14 +148,14 @@ class SeasonalityISSM(ISSM):
         return A.to(self.dtype).to(self.device)
 
     def C(self, seasonal_indicators):
-        C = one_hot(seasonal_indicators, num_classes=self.n_state)[
-            ..., None, :
-        ]
+        C = one_hot(
+            seasonal_indicators, num_classes=self.n_state,
+        )[..., None, :]
         return C.to(self.dtype).to(self.device)
 
     def R_diag_projector(self, seasonal_indicators):
         R_diag_projector = one_hot(
-            seasonal_indicators, num_classes=self.n_state
+            seasonal_indicators, num_classes=self.n_state,
         )[..., None]
         return R_diag_projector.to(self.dtype).to(self.device)
 
