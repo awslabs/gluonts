@@ -249,6 +249,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         validation_data: Optional[Dataset] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ):
         cached_train_data = ListDataset(
@@ -273,6 +274,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             validation_data=cached_validation_data,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
             **kwargs,
         )
 
