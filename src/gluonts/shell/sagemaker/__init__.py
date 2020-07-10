@@ -11,17 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# Standard library imports
+from distutils.util import strtobool
 import json
 import os
 from pathlib import Path
-from typing import Dict, Optional
-
 from pydantic import BaseModel
+from typing import Any, Dict, Optional
 
-from gluonts.dataset.common import FileDataset, MetaData
+# First party imports
+from gluonts.dataset.common import FileDataset, ListDataset, MetaData
 from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.support.util import map_dct_values
 
+# Relevant imports
 from .params import decode_sagemaker_parameters
 from .path import ServePaths, TrainPaths
 
@@ -42,8 +45,15 @@ class TrainEnv:
         self.hyperparameters = _load_hyperparameters(
             self.path.hyperparameters, self.channels
         )
+        self.train_auxillary_parameters = _load_train_auxillary_parameters(
+            self.path.train_auxillary_parameters
+        )
         self.current_host = _get_current_host(self.path.resourceconfig)
-        self.datasets = _load_datasets(self.hyperparameters, self.channels)
+        self.datasets = _load_datasets(
+            self.hyperparameters,
+            self.train_auxillary_parameters,
+            self.channels,
+        )
 
 
 class ServeEnv:
@@ -118,6 +128,15 @@ def _load_hyperparameters(path: Path, channels) -> dict:
         return hyperparameters
 
 
+def _load_train_auxillary_parameters(path: Path) -> dict:
+    with path.open() as json_file:
+        train_auxillary_parameters = decode_sagemaker_parameters(
+            json.load(json_file)
+        )
+
+    return train_auxillary_parameters
+
+
 def _get_current_host(resourceconfig: Path) -> str:
     if not resourceconfig.exists():
         return "local"
@@ -128,11 +147,18 @@ def _get_current_host(resourceconfig: Path) -> str:
 
 
 def _load_datasets(
-    hyperparameters: dict, channels: Dict[str, Path]
+    hyperparameters: dict,
+    train_auxillary_parameters: dict,
+    channels: Dict[str, Path],
 ) -> Dict[str, FileDataset]:
     freq = hyperparameters["freq"]
-    return {
-        name: FileDataset(channels[name], freq)
-        for name in DATASET_NAMES
-        if name in channels
-    }
+    is_cached = strtobool(train_auxillary_parameters["is_cached"])
+    dataset_dict = {}
+    for name in DATASET_NAMES:
+        if name in channels:
+            file_dataset = FileDataset(channels[name], freq)
+            dataset_dict[name] = (
+                ListDataset(file_dataset, freq) if is_cached else file_dataset
+            )
+
+    return dataset_dict
