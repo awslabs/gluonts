@@ -239,45 +239,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
 
-    # FIXME: for now we always want the dataset to be cached and utilize multiprocessing.
-    # TODO it properly: Enable caching of the dataset in the `_load_datasets` function of the shell,
-    # TODO and pass `num_workers` from train_env in the `run_train_and_test` method to `run_train`,
-    # TODO which in turn has to pass it to train(...)
-    def train(
-        self,
-        training_data: Dataset,
-        validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-        **kwargs,
-    ):
-        cached_train_data = ListDataset(
-            data_iter=list(training_data), freq=self.freq
-        )
-        cached_validation_data = (
-            None
-            if validation_data is None
-            else ListDataset(data_iter=list(validation_data), freq=self.freq)
-        )
-        num_workers = (
-            num_workers
-            if num_workers is not None
-            else min(4, int(np.ceil(np.sqrt(multiprocessing.cpu_count()))))
-        )
-
-        logger = logging.getLogger(__name__)
-        logger.info(f"gluonts[multiprocessing]: num_workers={num_workers}")
-
-        return super().train(
-            training_data=cached_train_data,
-            validation_data=cached_validation_data,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
-            **kwargs,
-        )
-
     @classmethod
     def from_inputs(cls, train_iter, **params):
         logger = logging.getLogger(__name__)
