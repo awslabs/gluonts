@@ -166,17 +166,20 @@ def temporary_server(
 
 @contextmanager  # type: ignore
 def temporary_train_env(
-    hyperparameters: Dict[str, Any], dataset_name: str
+    hyperparameters: Dict[str, Any], train_auxillary_parameters: Dict[str, Any], dataset_name: str
 ) -> ContextManager[TrainEnv]:
     """
     A context manager that instantiates a training environment from a given
-    combination of `hyperparameters` and `dataset_name` in a temporary
+    combination of `hyperparameters`, `train_auxillary_parameters` and `dataset_name` in a temporary
     directory and removes the directory on exit.
 
     Parameters
     ----------
     hyperparameters
-        The name of the repository dataset to use when instantiating the
+        The hyperparameters to use when instantiating the
+        training environment.
+    train_auxillary_parameters
+        The train_auxillary_parameters to use when instantiating the
         training environment.
     dataset_name
         The name of the repository dataset to use when instantiating the
@@ -195,6 +198,11 @@ def temporary_train_env(
         with paths.hyperparameters.open(mode="w") as fp:
             hps_encoded = encode_sagemaker_parameters(hyperparameters)
             json.dump(hps_encoded, fp, indent=2, sort_keys=True)
+
+        # write train_auxillary_parameters
+        with paths.train_auxillary_parameters.open(mode="w") as fp:
+            train_aux_params_encoded = encode_sagemaker_parameters(train_auxillary_parameters)
+            json.dump(train_aux_params_encoded, fp, indent=2, sort_keys=True)
 
         # save dataset
         ds_path = materialize_dataset(dataset_name)

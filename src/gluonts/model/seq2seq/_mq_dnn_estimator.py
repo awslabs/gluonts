@@ -13,7 +13,6 @@
 
 # Standard library imports
 import logging
-import multiprocessing
 from typing import List, Optional
 from distutils.util import strtobool
 
@@ -23,7 +22,6 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
 from gluonts.mx.block.decoder import ForkingMLPDecoder
