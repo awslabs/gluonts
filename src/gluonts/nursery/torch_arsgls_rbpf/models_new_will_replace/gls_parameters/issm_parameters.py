@@ -89,23 +89,25 @@ class ISSMParameters(GLSParameters):
 
         # covariance matrices
         if self.make_cov_from_cholesky_avg:
-            Q_diag = self.var_from_average_scales(
+            Q_diag, LQ_diag = self.var_from_average_scales(
                 weights=weights.Q,
                 Linv_logdiag=self.LQinv_logdiag_limiter(self.LQinv_logdiag),
             )
-            R_diag = self.var_from_average_scales(
+            R_diag, LR_diag = self.var_from_average_scales(
                 weights=weights.R,
                 Linv_logdiag=self.LRinv_logdiag_limiter(self.LRinv_logdiag),
             )
         else:
-            Q_diag = self.var_from_average_variances(
+            Q_diag, LQ_diag = self.var_from_average_variances(
                 weights=weights.Q,
                 Linv_logdiag=self.LQinv_logdiag_limiter(self.LQinv_logdiag),
             )
-            R_diag = self.var_from_average_variances(
+            R_diag, LR_diag = self.var_from_average_variances(
                 weights=weights.R,
                 Linv_logdiag=self.LRinv_logdiag_limiter(self.LRinv_logdiag),
             )
         Q = batch_diag_matrix(Q_diag)
         R = batch_diag_matrix(matvec(R_diag_projector, R_diag))
-        return Box(A=A, b=b, C=C, d=d, Q=Q, R=R)
+        LQ = batch_diag_matrix(LQ_diag)
+        LR = batch_diag_matrix(matvec(R_diag_projector, LR_diag))
+        return Box(A=A, b=b, C=C, d=d, Q=Q, R=R, LR=LR, LQ=LQ)
