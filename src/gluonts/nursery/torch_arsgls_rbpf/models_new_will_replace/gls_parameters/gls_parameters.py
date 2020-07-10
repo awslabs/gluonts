@@ -12,6 +12,7 @@ from models.gls_parameters.switch_link_functions import (
 )
 from torch_extensions.ops import (
     cov_from_invcholesky_param,
+    cov_and_chol_from_invcholesky_param,
     matvec,
     batch_diag_matrix,
     matmul,
@@ -303,7 +304,8 @@ class GLSParameters(nn.Module):
         Lmat_diag = torch.exp(-1 * Linv_logdiag)
         Lmat_diag_weighted = torch.einsum("...k,kq->...q", weights, Lmat_diag)
         mat_diag_weighted = Lmat_diag_weighted ** 2
-        return mat_diag_weighted
+
+        return mat_diag_weighted, Lmat_diag_weighted
 
     @staticmethod
     def var_from_average_variances(
@@ -311,7 +313,8 @@ class GLSParameters(nn.Module):
     ):
         mat_diag = torch.exp(-2 * Linv_logdiag)
         mat_diag_weighted = torch.einsum("...k,kq->...q", weights, mat_diag)
-        return mat_diag_weighted
+        Lmat_diag_weighted = torch.sqrt(mat_diag_weighted)
+        return mat_diag_weighted, Lmat_diag_weighted
 
     @staticmethod
     def var_from_average_log_scales(
@@ -321,7 +324,8 @@ class GLSParameters(nn.Module):
             "...k,kq->...q", weights, Linv_logdiag
         )
         mat_diag_weighted = torch.exp(-2 * Linv_logdiag_weighted)
-        return mat_diag_weighted
+        Lmat_diag_weighted = torch.exp(-1 * Linv_logdiag_weighted)
+        return mat_diag_weighted, Lmat_diag_weighted
 
     @staticmethod
     def cov_from_average_scales(
@@ -333,7 +337,7 @@ class GLSParameters(nn.Module):
             mat_diag_weighted = GLSParameters.var_from_average_scales(
                 weights=weights, Linv_logdiag=Linv_logdiag
             )
-            mat_weighted = batch_diag_matrix(mat_diag_weighted)
+            mat_weighted, Lmat_weighted = batch_diag_matrix(mat_diag_weighted)
         else:
             Lmat = torch.inverse(
                 torch.tril(Linv_tril, -1)
@@ -343,7 +347,7 @@ class GLSParameters(nn.Module):
             mat_weighted = matmul(
                 Lmat_weighted, Lmat_weighted.transpose(-1, -2)
             )  # LL^T
-        return mat_weighted
+        return mat_weighted, Lmat_weighted
 
     @staticmethod
     def cov_from_average_variances(
@@ -352,16 +356,19 @@ class GLSParameters(nn.Module):
         Linv_tril: (torch.Tensor, None),
     ):
         if Linv_tril is None:
-            mat_diag_weighted = GLSParameters.var_from_average_variances(
-                weights=weights, Linv_logdiag=Linv_logdiag
+            mat_diag_weighted, Lmat_diag_weighted = GLSParameters\
+                .var_from_average_variances(
+                    weights=weights, Linv_logdiag=Linv_logdiag,
             )
             mat_weighted = batch_diag_matrix(mat_diag_weighted)
+            Lmat_weighted = batch_diag_matrix(Lmat_diag_weighted)
         else:
-            mat = cov_from_invcholesky_param(
-                Linv_tril=Linv_tril, Linv_logdiag=Linv_logdiag
+            mat, _ = cov_and_chol_from_invcholesky_param(
+                Linv_tril=Linv_tril, Linv_logdiag=Linv_logdiag,
             )
             mat_weighted = torch.einsum("...k,kq->...q", weights, mat)
-        return mat_weighted
+            Lmat_weighted = torch.cholesky(mat_weighted)
+        return mat_weighted, Lmat_weighted
 
     @staticmethod
     def cov_from_average_log_scales(
@@ -370,13 +377,15 @@ class GLSParameters(nn.Module):
         Linv_tril: (torch.Tensor, None),
     ):
         if Linv_tril is None:
-            mat_diag_weighted = GLSParameters.var_from_average_log_scales(
-                weights=weights, Linv_logdiag=Linv_logdiag
+            mat_diag_weighted, Lmat_diag_weighted = GLSParameters\
+                .var_from_average_log_scales(
+                    weights=weights, Linv_logdiag=Linv_logdiag,
             )
             mat_weighted = batch_diag_matrix(mat_diag_weighted)
+            Lmat_weighted = batch_diag_matrix(Lmat_diag_weighted)
         else:
             raise Exception("No can do.")
-        return mat_weighted
+        return mat_weighted, Lmat_weighted
 
     @staticmethod
     def compute_bias(s, u=None, bias_fn=None, bias_matrix=None):
@@ -415,27 +424,27 @@ class GLSParameters(nn.Module):
 
         # covariances matrices transition (R) and emission (Q)
         if self.make_cov_from_cholesky_avg:
-            Q = self.cov_from_average_scales(
+            Q, LQ = self.cov_from_average_scales(
                 weights=weights.Q,
                 Linv_logdiag=self.LQinv_logdiag_limiter(self.LQinv_logdiag),
                 Linv_tril=self.LQinv_tril,
             )
-            R = self.cov_from_average_scales(
+            R, LR = self.cov_from_average_scales(
                 weights=weights.R,
                 Linv_logdiag=self.LRinv_logdiag_limiter(self.LRinv_logdiag),
                 Linv_tril=self.LRinv_tril,
             )
         else:
-            Q = self.cov_from_average_variances(
+            Q, LQ = self.cov_from_average_variances(
                 weights=weights.Q,
                 Linv_logdiag=self.LQinv_logdiag_limiter(self.LQinv_logdiag),
                 Linv_tril=self.LQinv_tril,
             )
-            R = self.cov_from_average_variances(
+            R, LR = self.cov_from_average_variances(
                 weights=weights.R,
                 Linv_logdiag=self.LRinv_logdiag_limiter(self.LRinv_logdiag),
                 Linv_tril=self.LRinv_tril,
             )
         # return B and D because the loss and smoothing functions use B / D atm
         # and do not support b / d (although that is straightforward to do).
-        return Box(A=A, b=b, C=C, d=d, Q=Q, R=R, B=B, D=D)
+        return Box(A=A, b=b, C=C, d=d, Q=Q, R=R, B=B, D=D, LQ=LQ, LR=LR)

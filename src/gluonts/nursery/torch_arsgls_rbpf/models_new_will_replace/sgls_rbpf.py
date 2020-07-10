@@ -239,37 +239,15 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
             controls=ctrl_t,
         )
 
-        # covs are not psd in case of ISSM (zeros on most entries).
-        # fortunately, these are diagonal -> don't need cholesky, just sqrt of diag.
-        # TODO: maybe extract short naming in the beginning...
-        # TODO: MultivariateNormal exists also in cholesky form in torch I think.
-        #  can that solve this annoying issue? OR just IndependentNormal?
-        #  Although states are mixed (full cov) after prediction/update step.
-        try:
-            x_dist_t = torch.distributions.MultivariateNormal(
-                loc=(
+        x_dist_t = torch.distributions.MultivariateNormal(
+            loc=(
                     matvec(gls_params_t.A, lats_tm1.variables.x)
                     if gls_params_t.A is not None
                     else lats_tm1.variables.x
                 )
                 + (gls_params_t.b if gls_params_t.b is not None else 0.0),
-                covariance_matrix=gls_params_t.R,
-            )
-        except:
-            assert (
-                batch_diag_matrix(batch_diag(gls_params_t.R)) == gls_params_t.R
-            ).all()
-            x_dist_t = torch.distributions.MultivariateNormal(
-                loc=(
-                    matvec(gls_params_t.A, lats_tm1.variables.x)
-                    if gls_params_t.A is not None
-                    else lats_tm1.variables.x
-                )
-                + (gls_params_t.b if gls_params_t.b is not None else 0.0),
-                scale_tril=batch_diag_matrix(
-                    batch_diag(gls_params_t.R) ** 0.5
-                ),
-            )
+            scale_tril=gls_params_t.LR,  # stable with scale and 0 variance.
+        )
 
         x_t = x_dist_t.mean if deterministic else x_dist_t.rsample()
         lats_t = LatentsSGLS(

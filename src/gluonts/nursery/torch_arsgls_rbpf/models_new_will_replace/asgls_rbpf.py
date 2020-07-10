@@ -61,96 +61,6 @@ class LatentsSGLS(LatentsRBSMC):
     def __post_init__(self):
         assert isinstance(self.variables, GLSVariablesSGLS)
 
-
-# class A:
-#     def foo(self, a: LatentsRBSMC) -> torch.Tensor:
-#         return a.variables.m
-#
-#
-# class B(A):
-#     def foo(self, a: LatentsSGLS) -> torch.Tensor:
-#         return a.variables.switch
-
-# @dataclass
-# class State:
-# """
-# Stores either (m, V) or samples or both from a MultivariateNormal.
-# We use this instead of torch.distributions.MultivariateNormal in order
-# to reduce overhead and increase performance. However,
-# performance differences should be tested later, maybe can replace this.
-# """
-#
-# m: (torch.Tensor, None) = None
-# V: (torch.Tensor, None) = None
-# x: (torch.Tensor, None) = None
-#
-# def __post_init__(self):
-#     has_state_dist_params = tuple(
-#         param is not None for param in (self.m, self.V)
-#     )
-#     if not len(set(has_state_dist_params)) == 1:
-#         raise Exception("Provide either all or no distribution parameters")
-#
-#     has_state_sample = self.x is not None
-#     if not (all(has_state_dist_params) or has_state_sample):
-#         raise Exception("Provide at least either dist params or samples.")
-
-
-# @dataclass
-# class Latents:  # per-time-step
-#     """ Base Template for Gaussian Linear Systems. """
-#
-#     state: State  # we call the latents of the GLS states.
-#
-#     @property
-#     def state_name(self):  # if we rename, only need once.
-#         return "state"
-#
-#     def as_flat_dict(self):
-#         return dict(FlatDict(asdict(self)))
-#         # state = latents.pop(self.state_name)
-#         #
-#         # for key, value in asdict(state).items():
-#         #     latents.update(f"{self.state_name}.{key}")
-#
-#     def from_flat_dict(self, flat_dict: dict):
-#         # TODO: This is really bad. cannot make classmethod due to state_name.
-#         # TODO: currently handles only "state:*",
-#         #  not arbitrary flat_dict representation.
-#         state_keys = tuple(
-#             key for key in flat_dict if key.startswith(f"{self.state_name}:")
-#         )
-#         state_dict = {
-#             key.split(f"{self.state_name}:")[1]: flat_dict.pop(key)
-#             for key in state_keys
-#         }
-#         print(state_dict)
-#         self.__init__(state=State(**state_dict), **flat_dict)
-#         return self
-
-
-# @dataclass
-# class LatentsRBSMC(Latents):
-#     """ Template for models based on Rao-Blackwellized SMC. """
-#
-#     log_weights: torch.Tensor
-#
-#
-# @dataclass
-# class LatentsSGLS(LatentsRBSMC):
-#     """ Template for (Recurrent) Switching Gaussian Linear Systems. """
-#
-#     switch: torch.Tensor
-#
-#
-# @dataclass
-# class LatentASGLS(LatentsRBSMC):
-#     """ Template for Auxiliary Variable (Recurrent) SGLS. """
-#
-#     switch: torch.Tensor
-#     auxiliary: torch.Tensor
-
-
 @dataclass
 class GLSVariablesASGLS(GLSVariables):
 
@@ -336,37 +246,15 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
             controls=ctrl_t,
         )
 
-        # covs are not psd in case of ISSM (zeros on most entries).
-        # fortunately, these are diagonal -> don't need cholesky, just sqrt of diag.
-        # TODO: maybe extract short naming in the beginning...
-        # TODO: MultivariateNormal exists also in cholesky form in torch I think.
-        #  can that solve this annoying issue? OR just IndependentNormal?
-        #  Although states are mixed (full cov) after prediction/update step.
-        try:
-            x_dist_t = torch.distributions.MultivariateNormal(
-                loc=(
+        x_dist_t = torch.distributions.MultivariateNormal(
+            loc=(
                     matvec(gls_params_t.A, lats_tm1.variables.x)
                     if gls_params_t.A is not None
                     else lats_tm1.variables.x
                 )
                 + (gls_params_t.b if gls_params_t.b is not None else 0.0),
-                covariance_matrix=gls_params_t.R,
-            )
-        except:
-            assert (
-                batch_diag_matrix(batch_diag(gls_params_t.R)) == gls_params_t.R
-            ).all()
-            x_dist_t = torch.distributions.MultivariateNormal(
-                loc=(
-                    matvec(gls_params_t.A, lats_tm1.variables.x)
-                    if gls_params_t.A is not None
-                    else lats_tm1.variables.x
-                )
-                + (gls_params_t.b if gls_params_t.b is not None else 0.0),
-                scale_tril=batch_diag_matrix(
-                    batch_diag(gls_params_t.R) ** 0.5
-                ),
-            )
+            scale_tril=gls_params_t.LR,  # stable with scale and 0 variance.
+        )
 
         x_t = x_dist_t.mean if deterministic else x_dist_t.rsample()
 
@@ -426,7 +314,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
         self,
         mp: torch.Tensor,
         Vp: torch.Tensor,
-        gls_params: Box,  # TODO: define a type for this.
+        gls_params: Box,
     ):
         mpz, Vpz = filter_forward_predictive_distribution(
             m=mp, V=Vp, Q=gls_params.Q, C=gls_params.C, d=gls_params.d,
@@ -444,44 +332,3 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
         return self.fuse_densities(
             [auxiliary_model_dist, auxiliary_encoder_dist]
         )
-
-    # def _initial_state(
-    #     self,
-    #     ctrl_initial: (ControlInputs, None),
-    #     n_particle: int,
-    #     n_batch: int,
-    # ) -> LatentsASGLS:
-    #     state_prior = self.state_prior_model(
-    #         None, batch_shape_to_prepend=(n_particle, n_batch),
-    #     )
-    #     latent_variables_initial = LatentsASGLS(
-    #         variables=RandomVariablesASGLS(
-    #             m=state_prior.loc,
-    #             V=state_prior.covariance_matrix,
-    #             x=None,
-    #             switch=None,
-    #             auxiliary=None,
-    #         ),
-    #         log_weights=torch.zeros_like(state_prior.loc[..., 0]),
-    #     )
-    #     return latent_variables_initial
-
-# class ArsglsGtsUnivariate(LightningModule):
-#     def __init__(
-#         self,
-#         ssm: AuxiliarySwitchingGaussianLinearSystemRBSMC,
-#         ctrl_transformer: nn.Module,  # TODO: *args, **kwargs -> ControlInputs
-#         tar_transformer: torch.distributions.Transform,  # invertible
-#     ):
-#         self.ctrl_transformer = ctrl_transformer
-#         self.tar_transformer = tar_transformer
-#         self.ssm = ssm
-#
-#     def forward(self, observations, controls):
-#         # TODO: API change: make inputs as in GluonTS and transformer handle.
-#         #  Maybe implement base class for those GTS experiments.
-#         #  Some private fns that do the pre-processing.
-#         ctrls_ssm = self.ctrl_transformer(controls)
-#         obs_ssm = self.tar_transformer(observations)
-#         filtered = self.ssm.filter(observations=obs_ssm, controls=ctrls_ssm)
-#         fil
