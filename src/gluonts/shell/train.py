@@ -13,7 +13,11 @@
 
 # Standard library imports
 import logging
+import multiprocessing
 from typing import Any, Optional, Type, Union
+
+# Third-party imports
+import numpy as np
 
 # First-party imports
 import gluonts
@@ -82,8 +86,9 @@ def run_train_and_test(
         predictor = forecaster
     else:
         predictor = run_train(
-            forecaster, env.datasets["train"], env.datasets.get("validation")
+            forecaster, env.datasets["train"], env.datasets.get("validation"), env.train_auxillary_parameters
         )
+
 
     predictor.serialize(env.path.model)
 
@@ -95,10 +100,21 @@ def run_train(
     forecaster: Estimator,
     train_dataset: Dataset,
     validation_dataset: Optional[Dataset],
+    train_auxillary_parameters: dict,
 ) -> Predictor:
-    return forecaster.train(
-        training_data=train_dataset, validation_data=validation_dataset
+    num_workers = (
+        int(train_auxillary_parameters["num_workers"]) if "num_workers" in train_auxillary_parameters
+        else min(4, int(np.ceil(np.sqrt(multiprocessing.cpu_count()))))
     )
+    num_batches_shuffle = (
+        int(train_auxillary_parameters["num_batches_shuffle"]) if "num_batches_shuffle" in train_auxillary_parameters
+        else None
+    )
+
+    return forecaster.train(training_data=train_dataset,
+                            validation_data=validation_dataset,
+                            num_workers=num_workers,
+                            num_batches_shuffle=num_batches_shuffle)
 
 
 def run_test(

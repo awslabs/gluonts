@@ -45,8 +45,15 @@ class TrainEnv:
         self.hyperparameters = _load_hyperparameters(
             self.path.hyperparameters, self.channels
         )
+        self.train_auxillary_parameters = _load_train_auxillary_parameters(
+            self.path.train_auxillary_parameters
+        )
         self.current_host = _get_current_host(self.path.resourceconfig)
-        self.datasets = _load_datasets(self.hyperparameters, self.channels)
+        self.datasets = _load_datasets(
+            self.hyperparameters,
+            self.train_auxillary_parameters,
+            self.channels,
+        )
 
 
 class ServeEnv:
@@ -121,6 +128,15 @@ def _load_hyperparameters(path: Path, channels) -> dict:
         return hyperparameters
 
 
+def _load_train_auxillary_parameters(path: Path) -> dict:
+    with path.open() as json_file:
+        train_auxillary_parameters = decode_sagemaker_parameters(
+            json.load(json_file)
+        )
+
+    return train_auxillary_parameters
+
+
 def _get_current_host(resourceconfig: Path) -> str:
     if not resourceconfig.exists():
         return "local"
@@ -131,7 +147,8 @@ def _get_current_host(resourceconfig: Path) -> str:
 
 
 def _load_datasets(
-    hyperparameters: dict, channels: Dict[str, Path]
+    hyperparameters: dict,
+    channels: Dict[str, Path],
 ) -> Dict[str, FileDataset]:
     freq = hyperparameters["freq"]
     listify_dataset = strtobool(hyperparameters.get("listify_dataset", "no"))
