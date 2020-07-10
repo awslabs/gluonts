@@ -13,7 +13,7 @@
 
 # Standard library imports
 from collections import Counter
-from typing import Any, Iterator, List, Optional
+from typing import Iterator, List, Optional
 
 # Third-party imports
 import numpy as np
@@ -44,9 +44,11 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         train_sampler,
         enc_len: int,
         dec_len: int,
-        target_field=FieldName.TARGET,
+        target_field: str = FieldName.TARGET,
         encoder_series_fields: Optional[List[str]] = None,
         decoder_series_fields: Optional[List[str]] = None,
+        encoder_disabled_fields: Optional[List[str]] = None,
+        decoder_disabled_fields: Optional[List[str]] = None,
         prediction_time_decoder_exclude: Optional[List[str]] = None,
         is_pad_out: str = "is_pad",
         start_input_field: str = "start",
@@ -71,16 +73,23 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             else [self.target_field]
         )
 
+        self.encoder_disabled_fields = (
+            encoder_disabled_fields
+            if encoder_disabled_fields is not None
+            else []
+        )
+
+        self.decoder_disabled_fields = (
+            decoder_disabled_fields
+            if decoder_disabled_fields is not None
+            else []
+        )
+
         # Fields that are not used at prediction time for the decoder
         self.prediction_time_decoder_exclude = (
             prediction_time_decoder_exclude + [self.target_field]
             if prediction_time_decoder_exclude is not None
             else [self.target_field]
-        )
-
-        # Fields that are disabled for the decoder (dummy fields still created)
-        self.decoder_disabled_fields = list(
-            set(self.encoder_series_fields) - set(self.decoder_series_fields)
         )
 
         self.is_pad_out = is_pad_out
@@ -111,6 +120,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         else:
             sampling_indices = [len(target)]
 
+        # Loops over all encoder and decoder fields even those that are disabled to
+        # set to dummy zero fields in those cases
         ts_fields_counter = Counter(
             set(self.encoder_series_fields + self.decoder_series_fields)
         )
@@ -136,8 +147,11 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 # take enc_len values from ts, depending on sampling_idx
                 slice = ts[:, start_idx:sampling_idx]
 
-                # if we have less than enc_len values, pad_left with 0
-                past_piece = pad_to_size(slice, self.enc_len)
+                past_piece = np.zeros(shape=(len(ts), self.enc_len))
+
+                if ts_field not in self.encoder_disabled_fields:
+                    # if we have less than enc_len values, pad_left with 0
+                    past_piece = pad_to_size(slice, self.enc_len)
 
                 out[self._past(ts_field)] = past_piece.transpose()
 
@@ -151,11 +165,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 # This is were some of the forking magic happens:
                 # For each of the encoder_len time-steps at which the decoder is applied we slice the
                 # corresponding inputs called decoder_fields to the appropriate dec_len
-                if (
-                    ts_field
-                    in self.decoder_series_fields
-                    + self.decoder_disabled_fields
-                ):
+                if ts_field in self.decoder_series_fields:
+
                     forking_dec_field = np.zeros(
                         shape=(self.enc_len, self.dec_len, len(ts))
                     )
@@ -170,7 +181,6 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                             range(start_idx + 1, start_idx + self.enc_len + 1),
                         ):
                             dec_field[:] = ts[:, idx : idx + self.dec_len].T
-
                     if forking_dec_field.shape[-1] == 1:
                         out[self._future(ts_field)] = np.squeeze(
                             forking_dec_field, axis=-1
