@@ -101,6 +101,32 @@ def test_mqcnn_covariate_smoke_test(
     assert len(forecasts) == len(dataset_test)
 
 
+@pytest.mark.parametrize("use_feat_static_cat", [True, False])
+@pytest.mark.parametrize("cardinality", [[], [3, 10]])
+def test_feat_static_cat_smoke_test(use_feat_static_cat, cardinality):
+    hps = {
+        "seed": 42,
+        "freq": "D",
+        "prediction_length": 3,
+        "quantiles": [0.5, 0.1],
+        "epochs": 3,
+        "num_batches_per_epoch": 3,
+        "use_feat_static_cat": use_feat_static_cat,
+    }
+
+    dataset_train, dataset_test = make_dummy_datasets_with_features(
+        cardinality=cardinality,
+        num_feat_dynamic_real=2,
+        freq=hps["freq"],
+        prediction_length=hps["prediction_length"],
+    )
+    estimator = MQCNNEstimator.from_inputs(dataset_train, **hps)
+
+    predictor = estimator.train(dataset_train, num_workers=0)
+    forecasts = list(predictor.predict(dataset_test))
+    assert len(forecasts) == len(dataset_test)
+
+
 # Test scaling and from inputs
 @pytest.mark.parametrize("scaling", [True, False])
 @pytest.mark.parametrize("scaling_decoder_dynamic_feature", [True, False])

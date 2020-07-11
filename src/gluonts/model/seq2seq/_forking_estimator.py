@@ -113,7 +113,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         and ``feat_dynamic_real`` if enabled respectively). (default: True)
     enable_decoder_dynamic_feature
         Whether the decoder should also be provided with the dynamic features (``age``, ``time``
-        and ``feat_dynamic_real`` if enabled respectively). (default: False)
+        and ``feat_dynamic_real`` if enabled respectively). (default: True)
         It makes sense to disable this, if you don't have ``feat_dynamic_real`` for the prediction range.
     trainer
         trainer (default: Trainer())
@@ -142,7 +142,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         add_time_feature: bool = True,
         add_age_feature: bool = False,
         enable_encoder_dynamic_feature: bool = True,
-        enable_decoder_dynamic_feature: bool = False,
+        enable_decoder_dynamic_feature: bool = True,
         trainer: Trainer = Trainer(),
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
