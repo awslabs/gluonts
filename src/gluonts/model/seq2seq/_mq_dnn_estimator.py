@@ -65,7 +65,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
     embedding_dimension:
         Dimension of the embeddings for categorical features. (default: [min(50, (cat+1)//2) for cat in cardinality])
     add_time_feature
-        Adds a set of time features. (default: False)
+        Adds a set of time features. (default: True)
     add_age_feature
         Adds an age feature. (default: False)
         The age feature starts with a small value at the start of the time series and grows over time.
@@ -74,7 +74,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         and ``feat_dynamic_real`` if enabled respectively). (default: True)
     enable_decoder_dynamic_feature
         Whether the decoder should also be provided with the dynamic features (``age``, ``time``
-        and ``feat_dynamic_real`` if enabled respectively). (default: False)
+        and ``feat_dynamic_real`` if enabled respectively). (default: True)
         It makes sense to disable this, if you don't have ``feat_dynamic_real`` for the prediction range.
     seed
         Will set the specified int seed for numpy anc MXNet if specified. (default: None)
@@ -119,10 +119,10 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         use_feat_static_cat: bool = False,
         cardinality: List[int] = None,
         embedding_dimension: List[int] = None,
-        add_time_feature: bool = False,
+        add_time_feature: bool = True,
         add_age_feature: bool = False,
         enable_encoder_dynamic_feature: bool = True,
-        enable_decoder_dynamic_feature: bool = False,
+        enable_decoder_dynamic_feature: bool = True,
         seed: Optional[int] = None,
         decoder_mlp_dim_seq: Optional[List[int]] = None,
         channels_seq: Optional[List[int]] = None,
@@ -256,20 +256,24 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         ]
         # user defined arguments become implications
         for field in fields:
-            if (
-                field in params.keys()
-                and (
+            if field in params.keys():
+                is_params_field = (
                     params[field]
                     if type(params[field]) == bool
                     else strtobool(params[field])
                 )
-                and not auto_params[field]
-            ):
-                logger.warning(
-                    f"gluonts[from_inputs]: {field} set to False since it is not present in the data."
-                )
-                params[field] = False
-                if field == "use_feat_static_cat":
+                if is_params_field and not auto_params[field]:
+                    logger.warning(
+                        f"gluonts[from_inputs]: {field} set to False since it is not present in the data."
+                    )
+                    params[field] = False
+                    if field == "use_feat_static_cat":
+                        params["cardinality"] = None
+                elif (
+                    field == "use_feat_static_cat"
+                    and not is_params_field
+                    and auto_params[field]
+                ):
                     params["cardinality"] = None
 
         # user specified 'params' will take precedence:
