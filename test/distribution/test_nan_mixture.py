@@ -67,7 +67,6 @@ SHAPE = p.shape
             mx.nd.array(p),
             mx.nd.array(p_cat),
         ),
-        # TODO: add a multivariate case here
     ],
 )
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
@@ -256,7 +255,7 @@ cat_samples = np.where(
 )
 
 
-@pytest.mark.skip("Skip test that takes long time to run")
+# @pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_inference() -> None:
     nmdo = NanMixtureOutput(GaussianOutput())
 

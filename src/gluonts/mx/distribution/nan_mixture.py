@@ -107,9 +107,6 @@ class NanMixture(MixtureDistribution):
         summands = log_mix_weights + component_log_likelihood
         max_val = F.max_axis(summands, axis=-1, keepdims=True)
 
-        # catch edge case max_val = -inf
-        max_val = F.where(max_val == -np.inf, max_val.zeros_like(), max_val)
-
         sum_exp = F.sum(
             F.exp(F.broadcast_minus(summands, max_val)), axis=-1, keepdims=True
         )

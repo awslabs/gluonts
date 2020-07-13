@@ -19,10 +19,9 @@ from typing import Dict, List, Optional, Tuple
 # Third-party imports
 import numpy as np
 
-from gluonts.core.component import validated
-
 # First-party imports
 from gluonts.model.common import Tensor
+from gluonts.core.component import validated
 from gluonts.support.util import erf, erfinv
 
 # Relative imports
@@ -41,7 +40,7 @@ class Deterministic(Distribution):
     F
     """
 
-    is_reparameterizable = True  # TODO is it?
+    is_reparameterizable = True
 
     @validated()
     def __init__(self, value: Tensor) -> None:
@@ -61,7 +60,6 @@ class Deterministic(Distribution):
         return 0
 
     def log_prob(self, x: Tensor) -> Tensor:
-        # TODO add tolerance for float comparison?
         F = self.F
         value = self.value
         is_both_nan = F.broadcast_logical_and(x != x, value != value)
@@ -79,7 +77,6 @@ class Deterministic(Distribution):
         return self.value.zeros_like()
 
     def cdf(self, x):
-        # TODO add tolerance for float comparison?
         F = self.F
         value = self.value
         is_both_nan = F.broadcast_logical_and(
@@ -93,16 +90,14 @@ class Deterministic(Distribution):
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.int32
     ) -> Tensor:
-        # TODO implement dtype?
         return _sample_multiple(
             lambda value: value, value=self.value, num_samples=num_samples
-        )
+        ).astype(dtype=dtype)
 
     def quantile(self, level: Tensor) -> Tensor:
         F = self.F
         # we consider level to be an independent axis and so expand it
         # to shape (num_levels, 1, 1, ...)
-        # TODO can this be done easier?
 
         for _ in range(self.all_dim):
             level = level.expand_dims(axis=-1)
@@ -150,7 +145,6 @@ class DeterministicOutput(DistributionOutput):
             same entries as `mu` and the second has entries mapped to the
             positive orthant.
         """
-        # TODO do I need rounding?
         return value.squeeze(axis=-1)
 
     @property
