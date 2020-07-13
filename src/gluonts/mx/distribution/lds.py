@@ -41,13 +41,27 @@ class ParameterBounds:
 
 def _safe_split(x, num_outputs, axis, squeeze_axis, *args, **kwargs):
     """
-    Wrapper around mx.nd.split that squeezes the right amount of axes.
+    A type-stable wrapper around mx.nd.split.
 
-    Currently mx.nd.split behaves weirdly if num_outputs==1:
+    Currently mx.nd.split behaves weirdly if num_outputs=1:
 
         a = mx.nd.ones(shape=(1, 1, 2))
         l = a.split(axis=1, num_outputs=1, squeeze_axis=False)
-        l[0].shape  # (1, 2), I would expect (1, 1, 2)
+        type(l)  # mx.NDArray
+        l.shape  # (1, 1, 2)
+
+    Compare that with the case num_outputs=2:
+
+        a = mx.nd.ones(shape=(1, 2, 2))
+        l = a.split(axis=1, num_outputs=2, squeeze_axis=False)
+        type(l)  # list
+        len(l)  # 2
+        l[0].shape  # (1, 1, 2)
+
+    This wrapper makes the behavior consistent by always returning a list
+    of length num_outputs, whose elements will have one less axis than x
+    in case x.shape[axis]==num_outputs and squeeze_axis==True, and the same
+    number of axes as x otherwise.
     """
     if num_outputs > 1:
         return x.split(
