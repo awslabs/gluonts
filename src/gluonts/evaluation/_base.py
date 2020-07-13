@@ -156,7 +156,7 @@ class Evaluator:
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
 
-        rows: List = []
+        rows = []
 
         with tqdm(
             zip(ts_iterator, fcst_iterator),
@@ -550,7 +550,6 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-
     The MultivariateEvaluator class owns functionality for evaluating
     multidimensional target arrays of shape
     (target_dimensionality, prediction_length).
