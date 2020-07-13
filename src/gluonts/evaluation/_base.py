@@ -319,14 +319,19 @@ class Evaluator:
             "MAPE": self.mape(pred_target, median_fcst),
             "sMAPE": self.smape(pred_target, median_fcst),
             "OWA": np.nan,  # by default not calculated
-            "MSIS": self.msis(
+        }
+
+        try:
+            metrics["MSIS"] = self.msis(
                 pred_target,
                 forecast.quantile(self.alpha / 2),
                 forecast.quantile(1.0 - self.alpha / 2),
                 seasonal_error,
                 self.alpha,
-            ),
-        }
+            )
+        except Exception:
+            logging.warning("Could not calculate MSIS metric.")
+            metrics["MSIS"] = np.nan
 
         if self.calculate_owa:
             metrics["OWA"] = self.owa(
