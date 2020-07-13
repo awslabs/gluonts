@@ -141,7 +141,6 @@ def trim_encoded_sagemaker_parameters(
 
 def detrim_sagemaker_parameters(trimmed_params: dict) -> dict:
     """DE-trim parameters that have already been trimmed.
-
     Example:
     >>> detrim_sagemaker_parameters({
     ...     '_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
@@ -149,18 +148,20 @@ def detrim_sagemaker_parameters(trimmed_params: dict) -> dict:
     ... })
     {'foo': '[1, 2, 3]', 'bar': 'hello'}
     """
-    detrimmed_params = {}
-    for key, value in trimmed_params.items():
-        if key[:3] == "_0_":
-            detrimmed_params[key[3:]] = trimmed_params[key]
-            idx = 1
-            while f"_{idx}_{key[3:]}" in trimmed_params:
-                detrimmed_params[key[3:]] += trimmed_params[
-                    f"_{idx}_{key[3:]}"
-                ]
-                idx += 1
-        elif key[0] == "_":
-            continue
-        else:
-            detrimmed_params[key] = value
+    detrimmed_params = trimmed_params.copy()
+
+    trimmed_param_names = [
+        param[3:] for param in detrimmed_params if param.startswith("_0_")
+    ]
+
+    for name in trimmed_param_names:
+        value = ""
+        for idx in count():
+            part = detrimmed_params.pop(f"_{idx}_{name}", None)
+            if part is None:
+                break
+            value += part
+
+        detrimmed_params[name] = value
+
     return detrimmed_params
