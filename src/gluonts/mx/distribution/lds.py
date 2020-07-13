@@ -39,6 +39,27 @@ class ParameterBounds:
         self.upper = upper
 
 
+def _safe_split(x, num_outputs, axis, squeeze_axis, *args, **kwargs):
+    """
+    Wrapper around mx.nd.split that squeezes the right amount of axes.
+
+    Currently mx.nd.split behaves weirdly if num_outputs==1:
+
+        a = mx.nd.ones(shape=(1, 1, 2))
+        l = a.split(axis=1, num_outputs=1, squeeze_axis=False)
+        l[0].shape  # (1, 2), I would expect (1, 1, 2)
+    """
+    if num_outputs > 1:
+        return x.split(
+            axis=axis,
+            num_outputs=num_outputs,
+            squeeze_axis=squeeze_axis,
+            *args,
+            **kwargs
+        )
+    return [x.squeeze(axis=axis)] if squeeze_axis else [x]
+
+
 class LDS(Distribution):
     r"""
     Implements Linear Dynamical System (LDS) as a distribution.
@@ -111,28 +132,37 @@ class LDS(Distribution):
 
         # Split coefficients along time axis for easy access
         # emission_coef[t]: (batch_size, obs_dim, latent_dim)
-        self.emission_coeff = emission_coeff.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        self.emission_coeff = _safe_split(
+            emission_coeff,
+            axis=1,
+            num_outputs=self.seq_length,
+            squeeze_axis=True,
         )
 
         # innovation_coef[t]: (batch_size, latent_dim)
-        self.innovation_coeff = innovation_coeff.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=False
+        self.innovation_coeff = _safe_split(
+            innovation_coeff,
+            axis=1,
+            num_outputs=self.seq_length,
+            squeeze_axis=False,
         )
 
         # transition_coeff: (batch_size, latent_dim, latent_dim)
-        self.transition_coeff = transition_coeff.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        self.transition_coeff = _safe_split(
+            transition_coeff,
+            axis=1,
+            num_outputs=self.seq_length,
+            squeeze_axis=True,
         )
 
         # noise_std[t]: (batch_size, obs_dim)
-        self.noise_std = noise_std.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        self.noise_std = _safe_split(
+            noise_std, axis=1, num_outputs=self.seq_length, squeeze_axis=True
         )
 
         # residuals[t]: (batch_size, obs_dim)
-        self.residuals = residuals.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        self.residuals = _safe_split(
+            residuals, axis=1, num_outputs=self.seq_length, squeeze_axis=True
         )
 
         self.prior_mean = prior_mean
@@ -219,8 +249,8 @@ class LDS(Distribution):
         """
         F = self.F
         # targets[t]: (batch_size, obs_dim)
-        targets = targets.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        targets = _safe_split(
+            targets, axis=1, num_outputs=self.seq_length, squeeze_axis=True
         )
 
         log_p_seq = []
@@ -229,8 +259,11 @@ class LDS(Distribution):
         cov = self.prior_cov
 
         observed = (
-            observed.split(
-                axis=1, num_outputs=self.seq_length, squeeze_axis=True
+            _safe_split(
+                observed,
+                axis=1,
+                num_outputs=self.seq_length,
+                squeeze_axis=True,
             )
             if observed is not None
             else None
@@ -319,18 +352,22 @@ class LDS(Distribution):
         noise_std = F.stack(*self.noise_std, axis=1).expand_dims(axis=-1)
 
         # samples_eps_obs[t]: (num_samples, batch_size, obs_dim, 1)
-        samples_eps_obs = (
-            Gaussian(noise_std.zeros_like(), noise_std)
-            .sample(num_samples)
-            .split(axis=-3, num_outputs=self.seq_length, squeeze_axis=True)
+        samples_eps_obs = _safe_split(
+            Gaussian(noise_std.zeros_like(), noise_std).sample(num_samples),
+            axis=-3,
+            num_outputs=self.seq_length,
+            squeeze_axis=True,
         )
 
         # Sample standard normal for all time steps
         # samples_eps_std_normal[t]: (num_samples, batch_size, obs_dim, 1)
-        samples_std_normal = (
-            Gaussian(noise_std.zeros_like(), noise_std.ones_like())
-            .sample(num_samples)
-            .split(axis=-3, num_outputs=self.seq_length, squeeze_axis=True)
+        samples_std_normal = _safe_split(
+            Gaussian(noise_std.zeros_like(), noise_std.ones_like()).sample(
+                num_samples
+            ),
+            axis=-3,
+            num_outputs=self.seq_length,
+            squeeze_axis=True,
         )
 
         # Sample the prior state.
