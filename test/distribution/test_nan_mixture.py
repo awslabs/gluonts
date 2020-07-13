@@ -255,7 +255,7 @@ cat_samples = np.where(
 )
 
 
-# @pytest.mark.skip("Skip test that takes long time to run")
+@pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_inference() -> None:
     nmdo = NanMixtureOutput(GaussianOutput())
 
