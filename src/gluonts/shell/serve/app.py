@@ -128,7 +128,7 @@ def batch_inference_invocations(
 
     def invocations() -> Response:
         request_data = request.data.decode("utf8").strip()
-        instances = list(map(json.loads, request_data.splitlines()))
+        instances = list(map(json.loads, request_data.split("\n")))
         predictions = []
 
         # we have to take this as the initial start-time since the first
