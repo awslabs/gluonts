@@ -130,7 +130,7 @@ def batch_inference_invocations(
         request_data = request.data.decode("utf8").strip()
 
         # request_data can be empty, but .split() will produce a non-empty
-        # list, which then means we try to decode an emoty string, which
+        # list, which then means we try to decode an empty string, which
         # causes an error: `''.split() == ['']`
         if request_data:
             instances = list(map(json.loads, request_data.split("\n")))
