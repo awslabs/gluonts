@@ -78,6 +78,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
             item_id=item.get(FieldName.ITEM_ID),
         )
 
+
 class MovingAveragePredictor(RepresentablePredictor):
     """
     A :class:`Predictor` that predicts the moving average based on the
@@ -104,29 +105,27 @@ class MovingAveragePredictor(RepresentablePredictor):
 
     @validated()
     def __init__(
-            self,
-            prediction_length: int,
-            freq: str,
-            context_length: int,
+        self, prediction_length: int, freq: str, context_length: int,
     ) -> None:
         super().__init__(freq=freq, prediction_length=prediction_length)
         self.context_length = context_length
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
 
-        target = item['target'].tolist()
+        target = item["target"].tolist()
 
         for _ in range(self.prediction_length):
-            window = target[-self.context_length:]
+            window = target[-self.context_length :]
             target.append(np.nanmean(window))
 
         start_date = frequency_add(item["start"], len(item["target"]))
         return SampleForecast(
-            samples=np.array([target[-self.prediction_length:]]),
+            samples=np.array([target[-self.prediction_length :]]),
             start_date=start_date,
             freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
+
 
 class MeanEstimator(Estimator):
     """
