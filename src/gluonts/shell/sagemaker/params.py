@@ -106,9 +106,11 @@ def encode_and_trim_sagemaker_parameters(
     >>> encode_and_trim_sagemaker_parameters({
     ...     "foo": [1, 2, 3],
     ...     "bar": "hello"
-    ... })
-    {'_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
-     '_0_bar': 'hell', '_1_bar': 'o'}
+    ... }, max_len = 4)
+    {
+        '_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
+        '_0_bar': 'hell', '_1_bar': 'o'
+    }
     """
     endoded_params = map_dct_values(encode_sagemaker_parameter, decoded_params)
     return trim_encoded_sagemaker_parameters(endoded_params, max_len)
@@ -122,10 +124,12 @@ def trim_encoded_sagemaker_parameters(
     Example:
     >>> trim_encoded_sagemaker_parameters({
     ...     'foo': '[1, 2, 3]',
-    ...      'bar': 'hello'
+    ...     'bar': 'hello'
     ... }, max_len = 4)
-    {'_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
-     '_0_bar': 'hell', '_1_bar': 'o'}
+    {
+        '_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
+        '_0_bar': 'hell', '_1_bar': 'o'
+    }
     """
     trimmed_params = {}
     for key, value in encoded_params.items():
@@ -142,9 +146,10 @@ def trim_encoded_sagemaker_parameters(
 def detrim_sagemaker_parameters(trimmed_params: dict) -> dict:
     """DE-trim parameters that have already been trimmed.
     Example:
+
     >>> detrim_sagemaker_parameters({
     ...     '_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
-    ...      '_0_bar': 'hell', '_1_bar': 'o'
+    ...     '_0_bar': 'hell', '_1_bar': 'o'
     ... })
     {'foo': '[1, 2, 3]', 'bar': 'hello'}
     """
