@@ -78,6 +78,55 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
             item_id=item.get(FieldName.ITEM_ID),
         )
 
+class MovingAveragePredictor(RepresentablePredictor):
+    """
+    A :class:`Predictor` that predicts the moving average based on the
+    last `context_length` elements of the input target.
+
+    If `prediction_length` = 1, the output is the moving average
+    based on the last `context_length` elements of the input target.
+
+    If `prediction_length` > 1, the output is the moving average based on the
+    last `context_length` elements of the input target, where
+    previously calculated moving averages are appended at the end of the input target.
+    Hence, for `prediction_length` larger than `context_length`, there will be
+    cases where the moving average is calculated on top of previous moving averages.
+
+    Parameters
+    ----------
+    context_length
+        Length of the target context used to condition the predictions.
+    prediction_length
+        Length of the prediction horizon.
+    freq
+        Frequency of the predicted data.
+    """
+
+    @validated()
+    def __init__(
+            self,
+            prediction_length: int,
+            freq: str,
+            context_length: int,
+    ) -> None:
+        super().__init__(freq=freq, prediction_length=prediction_length)
+        self.context_length = context_length
+
+    def predict_item(self, item: DataEntry) -> SampleForecast:
+
+        target = item['target'].tolist()
+
+        for _ in range(self.prediction_length):
+            window = target[-self.context_length:]
+            target.append(np.nanmean(window))
+
+        start_date = frequency_add(item["start"], len(item["target"]))
+        return SampleForecast(
+            samples=np.array([target[-self.prediction_length:]]),
+            start_date=start_date,
+            freq=self.freq,
+            item_id=item.get(FieldName.ITEM_ID),
+        )
 
 class MeanEstimator(Estimator):
     """
