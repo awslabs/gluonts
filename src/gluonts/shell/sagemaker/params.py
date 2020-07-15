@@ -101,8 +101,6 @@ def encode_and_trim_sagemaker_parameters(
     """Encode a SageMaker parameters dictionary where all values are strings then
     trim them to account for Sagemaker character size limit.
 
-    Example:
-
     >>> encode_and_trim_sagemaker_parameters({
     ...     "foo": [1, 2, 3],
     ...     "bar": "hello"
