@@ -18,6 +18,7 @@ from typing import Any, Union
 # First-party imports
 from gluonts.core.serde import load_json, dump_json
 from gluonts.support.util import map_dct_values
+from gluonts.dataset.util import batcher
 
 
 def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:
@@ -86,8 +87,11 @@ def detrim_and_decode_sagemaker_parameters(trimmed_params: dict) -> dict:
     Example:
 
     >>> detrim_sagemaker_parameters({
-    ...     '_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
-    ...      '_0_bar': 'hell', '_1_bar': 'o'
+    ...     '_0_foo': '[1, ',
+    ...     '_1_foo': '2, 3',
+    ...     '_2_foo': ']',
+    ...     '_0_bar': 'hell',
+    ...     '_1_bar': 'o'
     ... })
     {'foo': [1, 2, 3], 'bar': 'hello'}
     """
@@ -106,8 +110,11 @@ def encode_and_trim_sagemaker_parameters(
     ...     "bar": "hello"
     ... }, max_len = 4)
     {
-        '_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
-        '_0_bar': 'hell', '_1_bar': 'o'
+        '_0_foo': '[1, ',
+        '_1_foo': '2, 3',
+        '_2_foo': ']',
+        '_0_bar': 'hell',
+        '_1_bar': 'o'
     }
     """
     endoded_params = map_dct_values(encode_sagemaker_parameter, decoded_params)
@@ -120,22 +127,24 @@ def trim_encoded_sagemaker_parameters(
     """Trim parameters that have already been encoded to a given max length.
 
     Example:
+
     >>> trim_encoded_sagemaker_parameters({
     ...     'foo': '[1, 2, 3]',
     ...     'bar': 'hello'
     ... }, max_len = 4)
     {
-        '_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
-        '_0_bar': 'hell', '_1_bar': 'o'
+        '_0_foo': '[1, ',
+        '_1_foo': '2, 3',
+        '_2_foo': ']',
+        '_0_bar': 'hell',
+        '_1_bar': 'o'
     }
     """
     trimmed_params = {}
     for key, value in encoded_params.items():
         if len(value) > max_len:
-            for idx, sub_len in enumerate(range(0, len(value), max_len)):
-                trimmed_params[f"_{idx}_{key}"] = value[
-                    sub_len : sub_len + max_len
-                ]
+            for idx, substr in enumerate(batcher(value, max_len)):
+                trimmed_params[f"_{idx}_{key}"] = "".join(substr)
         else:
             trimmed_params[key] = value
     return trimmed_params
@@ -143,11 +152,15 @@ def trim_encoded_sagemaker_parameters(
 
 def detrim_sagemaker_parameters(trimmed_params: dict) -> dict:
     """DE-trim parameters that have already been trimmed.
+
     Example:
 
     >>> detrim_sagemaker_parameters({
-    ...     '_0_foo': '[1, ', '_1_foo': '2, 3', '_2_foo': ']',
-    ...     '_0_bar': 'hell', '_1_bar': 'o'
+    ...     '_0_foo': '[1, ',
+    ...     '_1_foo': '2, 3',
+    ...     '_2_foo': ']',
+    ...     '_0_bar': 'hell',
+    ...     '_1_bar': 'o'
     ... })
     {'foo': '[1, 2, 3]', 'bar': 'hello'}
     """
