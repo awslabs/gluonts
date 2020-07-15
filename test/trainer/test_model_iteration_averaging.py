@@ -25,8 +25,7 @@ from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.trainer.model_iteration_averaging import (
     IterationAveragingStrategy,
-    NTA_V1,
-    NTA_V2,
+    NTA,
     Alpha_Suffix,
 )
 
@@ -37,7 +36,7 @@ def initialize_model() -> nn.HybridBlock:
     T = 100  # number of timesteps
     prediction_length = 24
     freq = "1H"
-    custom_dataset = np.random.normal(size=(N, T))
+    custom_dataset = np.zeros(shape=(N, T))
     start = pd.Timestamp(
         "01-01-2019", freq=freq
     )  # can be different for each time series
@@ -55,9 +54,10 @@ def initialize_model() -> nn.HybridBlock:
         context_length=T,
         freq=freq,
         trainer=Trainer(
-            ctx="cpu", epochs=1, learning_rate=1e-3, num_batches_per_epoch=1
+            ctx="cpu", epochs=1, learning_rate=1e-3, num_batches_per_epoch=1,
         ),
     )
+
     # train model
     predictor = estimator.train(train_ds)
 
@@ -70,13 +70,13 @@ def initialize_model() -> nn.HybridBlock:
 def test_NTA_V1(n: int):
     model = initialize_model()
     params = model.collect_params()
-    avg_strategy = NTA_V1(n=n)
+    avg_strategy = NTA(n=n, last_n_trigger=False)
     loss_list = [5, 4, 3, 2, 3, 3, 3, 3, 3, 3, 3]
     for i, loss in enumerate(loss_list):
         for k, v in params.items():
             for arr in v.list_data():
                 arr[:] = i
-        avg_strategy.update_average_trigger(loss)
+        avg_strategy.update_average_trigger(metric=loss)
         avg_strategy.apply(model)
     # nothing is cached yet, thus load_cached_model won't change anything
     # test cached model
@@ -112,13 +112,13 @@ def test_NTA_V1(n: int):
 def test_NTA_V2(n: int):
     model = initialize_model()
     params = model.collect_params()
-    avg_strategy = NTA_V2(n=n)
+    avg_strategy = NTA(n=n, last_n_trigger=True)
     loss_list = [5, 4, 3, 2, 3, 3, 3, 3, 3, 3, 3]
     for i, loss in enumerate(loss_list):
         for k, v in params.items():
             for arr in v.list_data():
                 arr[:] = i
-        avg_strategy.update_average_trigger(loss)
+        avg_strategy.update_average_trigger(metric=loss)
         avg_strategy.apply(model)
     # nothing is cached yet, thus load_cached_model won't change anything
     # test cached model
@@ -163,7 +163,7 @@ def test_Alpha_Suffix(alpha: float):
         for k, v in params.items():
             for arr in v.list_data():
                 arr[:] = i
-        avg_strategy.update_average_trigger(i + 1)
+        avg_strategy.update_average_trigger(epoch=i + 1)
         avg_strategy.apply(model)
     # nothing is cached yet, thus load_cached_model won't change anything
     # test cached model

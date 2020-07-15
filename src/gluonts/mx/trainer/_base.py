@@ -43,8 +43,7 @@ from .model_averaging import (
 # iteration averaging
 from .model_iteration_averaging import (
     IterationAveragingStrategy,
-    NTA_V1,
-    NTA_V2,
+    NTA,
     Alpha_Suffix,
 )
 
@@ -341,18 +340,9 @@ class Trainer:
                     if isinstance(
                         self.avg_strategy, IterationAveragingStrategy
                     ):
-                        if isinstance(self.avg_strategy, Alpha_Suffix):
-                            # alpha suffix
-                            self.avg_strategy.update_average_trigger(
-                                epoch_no + 1
-                            )
-                        elif isinstance(self.avg_strategy, (NTA_V1, NTA_V2)):
-                            # NTA
-                            self.avg_strategy.update_average_trigger(
-                                loss_value(epoch_loss)
-                            )
-                        else:
-                            raise NotImplementedError
+                        self.avg_strategy.update_average_trigger(
+                            metric=loss_value(epoch_loss), epoch=epoch_no + 1
+                        )
                         # once triggered, update the average immediately
                         self.avg_strategy.apply(net)
 
