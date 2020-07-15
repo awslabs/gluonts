@@ -334,10 +334,12 @@ class GLSParameters(nn.Module):
         Linv_tril: (torch.Tensor, None),
     ):
         if Linv_tril is None:
-            mat_diag_weighted = GLSParameters.var_from_average_scales(
-                weights=weights, Linv_logdiag=Linv_logdiag
+            mat_diag_weighted, Lmat_diag_weighted = GLSParameters\
+                .var_from_average_scales(
+                    weights=weights, Linv_logdiag=Linv_logdiag,
             )
-            mat_weighted, Lmat_weighted = batch_diag_matrix(mat_diag_weighted)
+            mat_weighted = batch_diag_matrix(mat_diag_weighted)
+            Lmat_weighted = batch_diag_matrix(Lmat_diag_weighted)
         else:
             Lmat = torch.inverse(
                 torch.tril(Linv_tril, -1)
