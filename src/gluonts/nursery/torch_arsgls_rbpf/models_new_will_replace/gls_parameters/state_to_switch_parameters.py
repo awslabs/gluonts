@@ -103,22 +103,22 @@ class StateToSwitchParams(nn.Module):
                 requires_grad=requires_grad_S,
             )
 
-    def forward(self, switch):
+    def forward(self, switch: torch.Tensor) -> Box:
         weights = self.link_transformers(switch=switch)
         F = torch.einsum("...k,koi->...oi", weights.F, self.F)
 
         if self.make_cov_from_cholesky_avg:
-            S = GLSParameters.cov_from_average_scales(
+            S, LS = GLSParameters.cov_from_average_scales(
                 weights=weights.S,
                 Linv_logdiag=self.LSinv_logdiag,
                 Linv_tril=self.LSinv_tril,
             )
 
         else:
-            S = GLSParameters.cov_from_average_variances(
+            S, LS = GLSParameters.cov_from_average_variances(
                 weights=weights.S,
                 Linv_logdiag=self.LSinv_logdiag,
                 Linv_tril=self.LSinv_tril,
             )
 
-        return Box(F=F, S=S)
+        return Box(F=F, S=S, LS=LS)

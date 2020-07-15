@@ -1,11 +1,9 @@
 from models_new_will_replace.asgls_rbpf \
     import AuxiliarySwitchingGaussianLinearSystemRBSMC
-from models_new_will_replace.rsgls_rbpf import RecurrentSwitchingGaussianLinearSystemRBSMC
-
+from models_new_will_replace.rsgls_rbpf import RecurrentMixin
 
 
 class AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC(
-    AuxiliarySwitchingGaussianLinearSystemRBSMC,
-    RecurrentSwitchingGaussianLinearSystemRBSMC,
+    RecurrentMixin, AuxiliarySwitchingGaussianLinearSystemRBSMC,
 ):
     pass

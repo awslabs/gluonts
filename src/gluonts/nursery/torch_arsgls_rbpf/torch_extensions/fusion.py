@@ -14,6 +14,23 @@ from torch_extensions.ops import matvec, batch_cholesky_inverse, cholesky
 from utils.utils import flatten_iterable, one_hot
 
 
+def gaussian_linear_combination(distributions_and_weights: Dict):
+    assert isinstance(distributions_and_weights, dict)
+    assert all(isinstance(dist, MultivariateNormal)
+                for dist in distributions_and_weights.keys())
+
+    return MultivariateNormal(
+        loc=sum([
+            dist.loc * weight for dist, weight in
+            distributions_and_weights.items()
+        ]),
+        covariance_matrix=sum([
+            dist.covariance_matrix * weight for dist, weight in
+            distributions_and_weights.items()
+        ]),
+    )
+
+
 class ProbabilisticSensorFusion(nn.Module):
     def __init__(self):
         super().__init__()
