@@ -62,9 +62,8 @@ class LatentsSGLS(LatentsRBSMC):
         assert isinstance(self.variables, GLSVariablesSGLS)
 
 @dataclass
-class GLSVariablesASGLS(GLSVariables):
+class GLSVariablesASGLS(GLSVariablesSGLS):
 
-    switch: torch.Tensor
     auxiliary: torch.Tensor
 
 
@@ -221,8 +220,6 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
     ) -> Prediction:
         n_batch = lats_tm1.variables.x.shape[1]
 
-        # TODO: Now we have again the distinction here. Can be improved?
-        # TODO: Can use base cls, but API is different :-/
         if lats_tm1.variables.switch is None:
             switch_model_dist_t = self._make_switch_prior_dist(
                 n_particle=self.n_particle,

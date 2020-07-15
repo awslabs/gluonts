@@ -22,6 +22,8 @@ from experiments.model_component_zoo import (
 )
 import experiments_new_will_replace.model_component_zoo.input_transforms
 import experiments_new_will_replace.model_component_zoo.gls_parameters
+from experiments_new_will_replace.model_component_zoo\
+    .recurrent_base_parameters import StateToSwitchParamsDefault
 
 from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemRBSMC
 from models_new_will_replace.rsgls_rbpf import RecurrentSwitchingGaussianLinearSystemRBSMC
@@ -29,11 +31,13 @@ from models_new_will_replace.asgls_rbpf import AuxiliarySwitchingGaussianLinearS
 from models_new_will_replace.arsgls_rbpf import (
     AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC,
 )
+from models_new_will_replace.categorical_sgls_rbpf import \
+    CategoricalSwitchingGaussianLinearSystemRBSMC
 from experiments_new_will_replace.gluonts_univariate_datasets.gts_rbsmc_model \
     import GluontsUnivariateDataModel, GluontsUnivariateDataLoaderWrapper
 
 from models.switching_gaussian_linear_system import (
-    SwitchingLinearDynamicalSystem,
+    SwitchingLinearDynamicalSystem, CategoricalSwitchingLinearDynamicalSystem,
 )
 from models.switching_gaussian_linear_system import (
     RecurrentSwitchingLinearDynamicalSystem,
@@ -106,30 +110,48 @@ def deep_setattr(cls, *args, val):
 
 
 gls_base_parameters_old = gls_parameters.GLSParametersASGLS(config=config)
-gls_base_parameters = experiments_new_will_replace.model_component_zoo.gls_parameters.GLSParametersASGLS(config=config)
+gls_base_parameters = experiments_new_will_replace.model_component_zoo\
+    .gls_parameters.GLSParametersASGLS(config=config)
+recurrent_base_parameters = StateToSwitchParamsDefault(config=config)
+
 for name in dict(gls_base_parameters_old.named_parameters()).keys():
     val = deep_getattr(gls_base_parameters_old, *name.split("."))
     deep_setattr(gls_base_parameters, *name.split("."), "data", val=val.data)
 
-switch_transition_model_recurrent = switch_transitions.SwitchTransitionModelGaussianRecurrentBaseMat(
-    config=config,
-)
+switch_transition_model_recurrent = switch_transitions\
+    .SwitchTransitionModelGaussianRecurrentBaseMat(config=config)
 from copy import deepcopy
 config_nonrec = deepcopy(config)
 config_nonrec.is_recurrent = False
+config_nonrec.obs_to_switch_encoder_dims = (64,)
+config_nonrec.obs_to_switch_encoder_activations = (torch.nn.ReLU(),)
 
-switch_transition_model = switch_transitions.SwitchTransitionModelGaussian(
+switch_transition_model_old = switch_transitions.SwitchTransitionModelGaussian(
     config=config_nonrec,
 )
+switch_transition_model_cat_old = switch_transitions.SwitchTransitionModelCategorical(config=config_nonrec)
+from experiments_new_will_replace.model_component_zoo.switch_transitions import SwitchTransitionModelGaussian, SwitchTransitionModelCategorical
+switch_transition_model = SwitchTransitionModelGaussian(config=config)
+switch_transition_model_cat = SwitchTransitionModelCategorical(config=config)
+
+from experiments_new_will_replace.model_component_zoo.switch_transitions import SwitchTransitionModelGaussianDirac
+switch_transition_model_dirac = SwitchTransitionModelGaussianDirac(config)
+#
+# switch_transition_model_dirac.conditional_dist.stem = switch_transition_model.conditional_dist.stem
+# switch_transition_model_dirac.conditional_dist.dist_params['loc'] = switch_transition_model.conditional_dist.dist_params['loc']
+# switch_transition_model_recurrent
 
 state_prior_model = state_priors.StatePriorModelNoInputs(config=config)
 switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
+switch_prior_model_cat = switch_priors.SwitchPriorModelCategorical(config=config)
 measurment_model = decoders.AuxiliaryToObsDecoderMlpGaussian(config=config)
 encoder = encoders.ObsToAuxiliaryLadderEncoderMlpGaussian(config=config)
 # obs_encoder = encoders.ObsToSwitchEncoderGaussianMLP(config=config)
 obs_encoder = lambda x: encoder(x)[1]  # hack
 from box import  Box
 obs_encoder_auxiliary_old = lambda x: Box(auxiliary=encoder(x)[0], switch=encoder(x)[1])
+
+obs_encoder_cat = encoders.ObsToSwitchEncoderCategoricalMLP(config=config_nonrec)
 
 
 device = "cuda"
@@ -151,6 +173,23 @@ sgls = SwitchingGaussianLinearSystemRBSMC(
     resampling_criterion_fn=make_criterion_fn_with_ess_threshold(0.5),
 ).to(dtype)
 
+csgls = CategoricalSwitchingGaussianLinearSystemRBSMC(
+    n_state=dims.state,
+    n_target=dims.target,
+    n_ctrl_state=dims.ctrl_state,
+    n_ctrl_target=dims.ctrl_target,
+    n_particle=dims.particle,
+    n_switch=dims.switch,
+    gls_base_parameters=gls_base_parameters,
+    obs_encoder=obs_encoder_cat,
+    # input_transformer=input_transformer,
+    switch_transition_model=switch_transition_model_cat,
+    state_prior_model=state_prior_model,
+    switch_prior_model=switch_prior_model_cat,
+    resampling_criterion_fn=make_criterion_fn_with_ess_threshold(0.5),
+    temperature=torch.Tensor([1.0]),
+).to(dtype)
+
 sgls_old = SwitchingLinearDynamicalSystem(
     n_state=dims.state,
     n_obs=dims.target,
@@ -161,12 +200,28 @@ sgls_old = SwitchingLinearDynamicalSystem(
     obs_to_switch_encoder=obs_encoder,
     state_to_switch_encoder=None,
     input_transformer=input_transformer_old,
-    switch_transition_model=switch_transition_model,
+    switch_transition_model=switch_transition_model_old,
     state_prior_model=state_prior_model,
     switch_prior_model=switch_prior_model,
     min_ess_ratio=0.0,
 ).to(device).to(dtype)
 
+csgls_old = CategoricalSwitchingLinearDynamicalSystem(
+    n_state=dims.state,
+    n_obs=dims.target,
+    n_ctrl_state=dims.ctrl_state,
+    n_particle=dims.particle,
+    n_switch=dims.switch,
+    gls_base_parameters=gls_base_parameters_old,
+    obs_to_switch_encoder=obs_encoder_cat,
+    state_to_switch_encoder=None,
+    input_transformer=input_transformer_old,
+    switch_transition_model=switch_transition_model_cat_old,
+    state_prior_model=state_prior_model,
+    switch_prior_model=switch_prior_model_cat,
+    min_ess_ratio=0.0,
+    temperature=torch.Tensor([1.0]),
+).to(device).to(dtype)
 # ***** RSGLS *****
 rsgls = RecurrentSwitchingGaussianLinearSystemRBSMC(
     n_state=dims.state,
@@ -176,9 +231,10 @@ rsgls = RecurrentSwitchingGaussianLinearSystemRBSMC(
     n_particle=dims.particle,
     n_switch=dims.switch,
     gls_base_parameters=gls_base_parameters,
+    recurrent_base_parameters=recurrent_base_parameters,
     obs_encoder=obs_encoder,
     # input_transformer=input_transformer,
-    switch_transition_model=switch_transition_model_recurrent,
+    switch_transition_model=switch_transition_model_dirac,
     state_prior_model=state_prior_model,
     switch_prior_model=switch_prior_model,
 ).to(dtype)
@@ -237,10 +293,11 @@ arsgls = AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC(
     n_particle=dims.particle,
     n_switch=dims.switch,
     gls_base_parameters=gls_base_parameters,
+    recurrent_base_parameters=recurrent_base_parameters,
     measurement_model=measurment_model,
     obs_encoder=encoder,
     # input_transformer=input_transformer,
-    switch_transition_model=switch_transition_model_recurrent,
+    switch_transition_model=switch_transition_model_dirac,
     state_prior_model=state_prior_model,
     switch_prior_model=switch_prior_model,
 ).to(dtype)
@@ -286,6 +343,7 @@ for name, ssm in {
     "rsgls": rsgls,
     "asgls": asgls,
     "arsgls": arsgls,
+    "csgls": csgls,
 }.items():
     models[name] = GluontsUnivariateDataModel(
         ssm=ssm,
@@ -319,6 +377,7 @@ models_old = {
     "rsgls": rsgls_old.to(device),
     "asgls": asgls_old.to(device),
     "arsgls": arsgls_old.to(device),
+    "csgls": csgls_old.to(device),
 }
 
 for name in ["sgls", "rsgls", "asgls", "arsgls"]:
@@ -337,12 +396,12 @@ for name in ["sgls", "rsgls", "asgls", "arsgls"]:
 import numpy as np
 TB = np.prod(batch_old['y'].shape[:2])
 
-for name in ["sgls", "rsgls", "asgls", "arsgls"]:
+for name in ["csgls", "sgls", "rsgls", "asgls", "arsgls"]:
     print(f"next is: {name}")
-    print(models_old[name].loss_forward(**batch_old).sum() / TB)
+    # print(models_old[name].loss_forward(**batch_old).sum() / TB)
     print(models[name].loss(**batch).sum())
 
-for name in ["sgls", "rsgls", "asgls", "arsgls"]:
+for name in ["csgls", "sgls", "rsgls", "asgls", "arsgls"]:
     print(f"next is: {name}")
     _ = models[name].ssm.sample(
         n_steps_forecast=len(batch_test["future_time_feat"]),
@@ -356,3 +415,5 @@ for name in ["sgls", "rsgls", "asgls", "arsgls"]:
     )
 
 print("foo")
+trainer = Trainer(gpus=[0])
+trainer.fit(models['sgls'])

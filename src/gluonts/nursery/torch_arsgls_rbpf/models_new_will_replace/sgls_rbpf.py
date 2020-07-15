@@ -215,7 +215,6 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
     ) -> Prediction:
         n_batch = lats_tm1.variables.x.shape[1]
 
-        # TODO: Now we have again the distinction here. Can be improved?
         if lats_tm1.variables.switch is None:
             switch_model_dist_t = self._make_switch_prior_dist(
                 n_particle=self.n_particle,
@@ -232,7 +231,7 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
         s_t = (
             switch_model_dist_t.mean
             if deterministic
-            else switch_model_dist_t.rsample()
+            else switch_model_dist_t.sample()
         )
         gls_params_t = self.gls_base_parameters(
             switch=s_t,
@@ -328,10 +327,10 @@ class SwitchingGaussianLinearSystemRBSMC(BaseRBSMC):
     ) -> torch.distributions.MultivariateNormal:
         # TODO: make base class and eventually move the prepend in.
         switch_model_dist = self.switch_transition_model(
-            u=prepend_batch_dims(ctrl_t.switch, shp=(self.n_particle,))
+            controls=prepend_batch_dims(ctrl_t.switch, shp=(self.n_particle,))
             if ctrl_t.switch is not None
             else None,
-            s=lat_vars_tm1.switch,
+            switch=lat_vars_tm1.switch,
         )
         return switch_model_dist
 
