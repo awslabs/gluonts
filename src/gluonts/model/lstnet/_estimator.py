@@ -19,20 +19,20 @@ import numpy as np
 from mxnet.gluon import HybridBlock, loss
 
 # First-party imports
-from gluonts.core.component import validated, DType
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.lstnet._network import LSTNetTrain, LSTNetPredict
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-from gluonts.trainer import Trainer
+from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
+from gluonts.model.estimator import GluonEstimator
+from gluonts.model.lstnet._network import LSTNetPredict, LSTNetTrain
+from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.transform import (
+    AddObservedValuesIndicator,
+    AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
-    AsNumpyArray,
-    AddObservedValuesIndicator,
 )
 
 

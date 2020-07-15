@@ -15,7 +15,7 @@
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     MultivariateGaussianOutput,
     LowrankMultivariateGaussianOutput,
 )

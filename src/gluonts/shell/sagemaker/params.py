@@ -14,7 +14,7 @@
 
 # Standard library imports
 import json
-from typing import Union, Any
+from typing import Any, Union
 
 # First-party imports
 from gluonts.core.serde import load_json

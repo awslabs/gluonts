@@ -11,20 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Tuple, Optional
+from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from gluonts.core.component import validated, DType
+from gluonts.core.component import DType, validated
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
 from gluonts.model.common import Tensor
 from gluonts.support.util import erf, erfinv
 
 from ._base import (
-    SimpleTransformation,
-    MapTransformation,
     FlatMapTransformation,
+    MapTransformation,
+    SimpleTransformation,
 )
 
 
@@ -50,19 +50,10 @@ class AsNumpyArray(SimpleTransformation):
         self.dtype = dtype
 
     def transform(self, data: DataEntry) -> DataEntry:
-        value = data[self.field]
-        if not isinstance(value, float):
-            # this lines produces "ValueError: setting an array element with a
-            # sequence" on our test
-            # value = np.asarray(value, dtype=np.float32)
-            # see https://stackoverflow.com/questions/43863748/
-            value = np.asarray(list(value), dtype=self.dtype)
-        else:
-            # ugly: required as list conversion will fail in the case of a
-            # float
-            value = np.asarray(value, dtype=self.dtype)
+        value = np.asarray(data[self.field], dtype=self.dtype)
+
         assert_data_error(
-            value.ndim >= self.expected_ndim,
+            value.ndim == self.expected_ndim,
             'Input for field "{self.field}" does not have the required'
             "dimension (field: {self.field}, ndim observed: {value.ndim}, "
             "expected ndim: {self.expected_ndim})",
@@ -99,7 +90,8 @@ class ExpandDimArray(SimpleTransformation):
 
 class VstackFeatures(SimpleTransformation):
     """
-    Stack fields together using ``np.vstack``.
+    Stack fields together using ``np.vstack`` when h_stack = False.
+    Otherwise stack fields together using ``np.hstack``.
 
     Fields with value ``None`` are ignored.
 
@@ -111,6 +103,8 @@ class VstackFeatures(SimpleTransformation):
         Fields to stack together
     drop_inputs
         If set to true the input fields will be dropped.
+    h_stack
+        To stack horizontally instead of vertically
     """
 
     @validated()
@@ -119,6 +113,7 @@ class VstackFeatures(SimpleTransformation):
         output_field: str,
         input_fields: List[str],
         drop_inputs: bool = True,
+        h_stack: bool = False,
     ) -> None:
         self.output_field = output_field
         self.input_fields = input_fields
@@ -129,6 +124,7 @@ class VstackFeatures(SimpleTransformation):
                 fname for fname in self.input_fields if fname != output_field
             ]
         )
+        self.h_stack = h_stack
 
     def transform(self, data: DataEntry) -> DataEntry:
         r = [
@@ -136,7 +132,7 @@ class VstackFeatures(SimpleTransformation):
             for fname in self.input_fields
             if data[fname] is not None
         ]
-        output = np.vstack(r)
+        output = np.vstack(r) if not self.h_stack else np.hstack(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
             del data[fname]

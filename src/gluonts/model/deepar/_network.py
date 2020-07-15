@@ -11,20 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-import numpy as np
 from typing import List, Optional, Tuple
 
 # Third-party imports
 import mxnet as mx
 
-# First-party imports
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.block.scaler import MeanScaler, NOPScaler
+# Standard library imports
+import numpy as np
+
 from gluonts.core.component import DType, validated
-from gluonts.distribution import DistributionOutput, Distribution
-from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
+
+# First-party imports
+from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution import Distribution, DistributionOutput
+from gluonts.mx.distribution.distribution import getF
 from gluonts.support.util import weighted_average
 
 

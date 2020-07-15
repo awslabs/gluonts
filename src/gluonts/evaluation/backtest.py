@@ -22,7 +22,6 @@ import pandas as pd
 # First-party imports
 import gluonts  # noqa
 from gluonts import transform
-from gluonts.core.component import get_mxnet_context
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
@@ -36,7 +35,6 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import GluonPredictor, Predictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import TransformedDataset
-from mxnet.ndarray import NDArray
 
 
 def make_evaluation_predictions(
@@ -127,7 +125,7 @@ def backtest_metrics(
     ),
     num_samples: int = 100,
     logging_file: Optional[str] = None,
-    use_symbol_block_predictor: Optional[bool] = False,
+    use_symbol_block_predictor: bool = False,
     num_workers: Optional[int] = None,
     num_prefetch: Optional[int] = None,
     **kwargs,
@@ -191,7 +189,17 @@ def backtest_metrics(
     if isinstance(forecaster, Estimator):
         serialize_message(logger, estimator_key, forecaster)
         assert train_dataset is not None
-        predictor = forecaster.train(train_dataset)
+
+        predictor = (
+            forecaster.train(
+                train_dataset,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                **kwargs,
+            )
+            if isinstance(forecaster, GluonEstimator)
+            else (forecaster.train(train_dataset))
+        )
 
         if isinstance(forecaster, GluonEstimator) and isinstance(
             predictor, GluonPredictor
@@ -202,9 +210,6 @@ def backtest_metrics(
                 batch_size=forecaster.trainer.batch_size,
                 ctx=forecaster.trainer.ctx,
                 dtype=forecaster.dtype,
-                num_workers=num_workers,
-                num_prefetch=num_prefetch,
-                **kwargs,
             )
 
             if forecaster.trainer.hybridize:

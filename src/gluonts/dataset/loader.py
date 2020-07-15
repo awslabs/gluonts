@@ -14,8 +14,8 @@
 # Standard library imports
 import itertools
 import logging
-from typing import Any, Dict, Iterable, Iterator, Optional
 import multiprocessing as mp
+from typing import Any, Dict, Iterable, Iterator, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -23,7 +23,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset, DataBatch
+from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.parallelized_loader import ParallelDataLoader
 from gluonts.transform import Transformation
 
@@ -58,6 +58,11 @@ class DataLoader(Iterable[DataEntry]):
         By default it defaults to `num_workers * 2`.
     cyclic
         Indicates whether the dataset is traversed potentially multiple times.
+    shuffle_buffer_length
+        The length of the buffer used to do pseudo shuffle.
+        If not None, the loader will perform pseudo shuffle when generating batches.
+        Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
+        more time to be done.
 
     """
 
@@ -73,6 +78,7 @@ class DataLoader(Iterable[DataEntry]):
         dtype: DType = np.float32,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> None:
         self.batch_size = batch_size
@@ -89,6 +95,7 @@ class DataLoader(Iterable[DataEntry]):
             )
         self.num_workers = num_workers
         self.num_prefetch = num_prefetch
+        self.shuffle_buffer_length = shuffle_buffer_length
 
         self.parallel_data_loader = ParallelDataLoader(
             dataset=dataset,
@@ -100,6 +107,7 @@ class DataLoader(Iterable[DataEntry]):
             dtype=self.dtype,
             num_workers=self.num_workers,
             num_prefetch=self.num_prefetch,
+            shuffle_buffer_length=self.shuffle_buffer_length,
             **kwargs,
         )
 
@@ -140,6 +148,11 @@ class TrainDataLoader(DataLoader):
         By default `num_workers * 2`.
     dtype
         Floating point type to use. Default is np.float32.
+    shuffle_buffer_length
+        The length of the buffer used to do pseudo shuffle.
+        If not None, the loader will perform pseudo shuffle when generating batches.
+        Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
+        more time to be done.
     """
 
     def __init__(
@@ -151,6 +164,7 @@ class TrainDataLoader(DataLoader):
         num_batches_per_epoch: int,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
         dtype: DType = np.float32,
         **kwargs,
     ) -> None:
@@ -166,6 +180,7 @@ class TrainDataLoader(DataLoader):
             cyclic=True,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
             **kwargs,
         )
 
@@ -209,6 +224,7 @@ class ValidationDataLoader(DataLoader):
             cyclic=False,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
+            shuffle_buffer_length=None,
             **kwargs,
         )
 
@@ -236,5 +252,6 @@ class InferenceDataLoader(DataLoader):
             cyclic=False,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
+            shuffle_buffer_length=None,
             **kwargs,
         )

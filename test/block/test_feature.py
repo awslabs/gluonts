@@ -19,7 +19,7 @@ import mxnet as mx
 import pytest
 
 # First-party imports
-from gluonts.block.feature import FeatureAssembler, FeatureEmbedder
+from gluonts.mx.block.feature import FeatureAssembler, FeatureEmbedder
 
 # fix the seed for the tests in this file
 mx.random.seed(78_431_519)

@@ -146,6 +146,7 @@ tests/externaldata/
 
 # docs
 docs/html
+.DS_Store
 
 # release
 docs/model_zoo/*.zip

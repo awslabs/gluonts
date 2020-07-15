@@ -11,19 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import logging
 import json
+import logging
 import time
 import traceback
-from typing import Callable, Tuple, Iterable, List
+from typing import Callable, Iterable, List, Tuple
 
-from flask import Flask, Response, request, jsonify
+from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel
 
 from gluonts.dataset.common import ListDataset
 from gluonts.model.forecast import Config as ForecastConfig
-from .util import jsonify_floats
 
+from .util import jsonify_floats
 
 logger = logging.getLogger("gluonts.serve")
 
@@ -128,7 +128,15 @@ def batch_inference_invocations(
 
     def invocations() -> Response:
         request_data = request.data.decode("utf8").strip()
-        instances = list(map(json.loads, request_data.splitlines()))
+
+        # request_data can be empty, but .split() will produce a non-empty
+        # list, which then means we try to decode an empty string, which
+        # causes an error: `''.split() == ['']`
+        if request_data:
+            instances = list(map(json.loads, request_data.split("\n")))
+        else:
+            instances = []
+
         predictions = []
 
         # we have to take this as the initial start-time since the first
