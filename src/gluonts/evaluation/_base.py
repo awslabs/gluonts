@@ -550,7 +550,7 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-
+    
     The MultivariateEvaluator class owns functionality for evaluating
     multidimensional target arrays of shape
     (target_dimensionality, prediction_length).
