@@ -90,7 +90,8 @@ class ExpandDimArray(SimpleTransformation):
 
 class VstackFeatures(SimpleTransformation):
     """
-    Stack fields together using ``np.vstack``.
+    Stack fields together using ``np.vstack`` when h_stack = False.
+    Otherwise stack fields together using ``np.hstack``.
 
     Fields with value ``None`` are ignored.
 
@@ -102,6 +103,8 @@ class VstackFeatures(SimpleTransformation):
         Fields to stack together
     drop_inputs
         If set to true the input fields will be dropped.
+    h_stack
+        To stack horizontally instead of vertically
     """
 
     @validated()
@@ -110,6 +113,7 @@ class VstackFeatures(SimpleTransformation):
         output_field: str,
         input_fields: List[str],
         drop_inputs: bool = True,
+        h_stack: bool = False,
     ) -> None:
         self.output_field = output_field
         self.input_fields = input_fields
@@ -120,6 +124,7 @@ class VstackFeatures(SimpleTransformation):
                 fname for fname in self.input_fields if fname != output_field
             ]
         )
+        self.h_stack = h_stack
 
     def transform(self, data: DataEntry) -> DataEntry:
         r = [
@@ -127,7 +132,7 @@ class VstackFeatures(SimpleTransformation):
             for fname in self.input_fields
             if data[fname] is not None
         ]
-        output = np.vstack(r)
+        output = np.vstack(r) if not self.h_stack else np.hstack(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
             del data[fname]

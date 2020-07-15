@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.trainer.model_averaging import (
+from gluonts.mx.trainer.model_averaging import (
     SelectNBestMean,
     SelectNBestSoftmax,
 )

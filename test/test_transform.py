@@ -424,7 +424,7 @@ def test_multi_dim_transformation(is_train):
             transform.AddObservedValuesIndicator(
                 target_field=FieldName.TARGET,
                 output_field="observed_values",
-                convert_nans=False,
+                imputation_method=None,
             ),
             transform.VstackFeatures(
                 output_field="dynamic_feat",
@@ -894,9 +894,11 @@ def test_AddObservedIndicator():
     Tests the different methods to impute missing values.
     """
 
-    array_value = np.array(
-        [np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]
-    )
+    array_values = [
+        np.array([np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]),
+        np.array([np.nan]),
+        np.array([10.0]),
+    ]
 
     l_methods = [
         "dummy_value",
@@ -916,32 +918,61 @@ def test_AddObservedIndicator():
         "rolling_mean10": RollingMeanValueImputation(10),
     }
 
-    d_expected_result = {
-        "dummy_value": np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
-        "mean": np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
-        "causal_mean": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9 / 7]),
-        "last_value": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
-        "rolling_mean10": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.1, 1.0, 1.2]),
-        "rolling_mean1": np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+    d_expected_results = {
+        "dummy_value": [
+            np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "mean": [
+            np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "causal_mean": [
+            np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9 / 7]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "last_value": [
+            np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "rolling_mean10": [
+            np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.1, 1.0, 1.2]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "rolling_mean1": [
+            np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
     }
 
-    expected_missindicator = np.array([0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0])
+    expected_missindicators = [
+        np.array([0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
+        np.array([0.0]),
+        np.array([1.0]),
+    ]
 
-    for method in l_methods:
-        transfo = transform.AddObservedValuesIndicator(
-            target_field=FieldName.TARGET,
-            output_field=FieldName.OBSERVED_VALUES,
-            imputation_method=d_method_instances[method],
-        )
+    for i, array_value in enumerate(array_values):
+        for method in l_methods:
+            transfo = transform.AddObservedValuesIndicator(
+                target_field=FieldName.TARGET,
+                output_field=FieldName.OBSERVED_VALUES,
+                imputation_method=d_method_instances[method],
+            )
 
-        d = {"target": array_value.copy()}
+            d = {"target": array_value.copy()}
 
-        res = transfo.transform(d)
+            res = transfo.transform(d)
 
-        assert np.array_equal(d_expected_result[method], res["target"])
-        assert np.array_equal(
-            expected_missindicator, res[FieldName.OBSERVED_VALUES]
-        )
+            assert np.array_equal(d_expected_results[method][i], res["target"])
+            assert np.array_equal(
+                expected_missindicators[i], res[FieldName.OBSERVED_VALUES]
+            )
 
 
 def make_dataset(N, train_length):

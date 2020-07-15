@@ -87,6 +87,8 @@ class MeanValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        if len(values) == 1:
+            return DummyValueImputation()(values)
         nan_indices = np.where(np.isnan(values))
         values[nan_indices] = np.nanmean(values)
         return values
@@ -99,6 +101,8 @@ class LastValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        if len(values) == 1:
+            return DummyValueImputation()(values)
         values = np.expand_dims(values, axis=0)
 
         mask = np.isnan(values)
@@ -107,7 +111,6 @@ class LastValueImputation(MissingValueImputation):
         out = values[np.arange(idx.shape[0])[:, None], idx]
 
         values = np.squeeze(out)
-
         # in case we need to replace nan at the start of the array
         mask = np.isnan(values)
         values[mask] = np.interp(
@@ -124,6 +127,8 @@ class CausalMeanValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        if len(values) == 1:
+            return DummyValueImputation()(values)
         mask = np.isnan(values)
 
         # we cannot compute the mean with this method if there are nans
@@ -160,6 +165,8 @@ class RollingMeanValueImputation(MissingValueImputation):
         self.window_size = 1 if window_size < 1 else window_size
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
+        if len(values) == 1:
+            return DummyValueImputation()(values)
         mask = np.isnan(values)
 
         # we cannot compute the mean with this method if there are nans
@@ -201,14 +208,9 @@ class AddObservedValuesIndicator(SimpleTransformation):
         Field for which missing values will be replaced
     output_field
         Field name to use for the indicator
-    dummy_value
-        Value to use for replacing missing values.
     imputation_method
-        One of the methods from ImputationStrategy.
-    convert_nans
-        If set to true (default) missing values will be replaced. Otherwise
-        they will not be replaced. In any case the indicator is included in the
-        result.
+        One of the methods from ImputationStrategy. If set to None, no imputation is
+        done and only the indicator is included.
     """
 
     @validated()
@@ -216,28 +218,21 @@ class AddObservedValuesIndicator(SimpleTransformation):
         self,
         target_field: str,
         output_field: str,
-        dummy_value: float = 0.0,
-        imputation_method: Optional[MissingValueImputation] = None,
-        convert_nans: bool = True,
+        imputation_method: Optional[
+            MissingValueImputation
+        ] = DummyValueImputation(0.0),
         dtype: DType = np.float32,
     ) -> None:
-        self.dummy_value = dummy_value
         self.target_field = target_field
         self.output_field = output_field
-        self.convert_nans = convert_nans
         self.dtype = dtype
-
-        self.imputation_method = (
-            imputation_method
-            if imputation_method is not None
-            else DummyValueImputation(dummy_value)
-        )
+        self.imputation_method = imputation_method
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
         nan_entries = np.isnan(value)
 
-        if self.convert_nans:
+        if self.imputation_method is not None:
             data[self.target_field] = self.imputation_method(value)
 
         data[self.output_field] = np.invert(
