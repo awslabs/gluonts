@@ -60,6 +60,7 @@ class ObsToSwitchEncoderCategoricalMLP(ParametrisedConditionalDistribution):
             dim_in_dist_params,
         ) = _extract_dims_from_cfg_obs(config=config)
         super().__init__(
+            allow_cat_inputs=True,
             stem=MLP(
                 dim_in=dim_in,
                 dims=dims_stem,
