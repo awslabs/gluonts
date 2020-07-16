@@ -29,6 +29,7 @@ from gluonts.block.quantile_output import QuantileOutput
 from gluonts.core.component import validated
 from gluonts.trainer import Trainer
 from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
+from gluonts.distribution import DistributionOutput, StudentTOutput, GaussianOutput
 
 
 class MQCNNEstimator(ForkingSeq2SeqEstimator):
@@ -101,6 +102,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         self,
         freq: str,
         prediction_length: int,
+        sampling: bool = True,
+        distr_output: DistributionOutput = GaussianOutput(),
         context_length: Optional[int] = None,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
@@ -119,6 +122,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         trainer: Trainer = Trainer(),
         scaling: bool = False,
     ) -> None:
+        
+        self.sampling = sampling
+        self.distr_output = distr_output
 
         assert (
             prediction_length > 0
