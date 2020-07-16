@@ -25,7 +25,6 @@ from gluonts.core import fqname_for
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import get_hybrid_forward_input_names
@@ -199,38 +198,15 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
-
-        training_data_loader = TrainDataLoader(
-            dataset=training_data,
-            transform=transformation,
-            batch_size=self.trainer.batch_size,
-            num_batches_per_epoch=self.trainer.num_batches_per_epoch,
-            ctx=self.trainer.ctx,
-            dtype=self.dtype,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
-            **kwargs,
+        train_iter = self.trainer.training_data_loader(
+            training_data, transformation, self.dtype
         )
-
-        validation_data_loader = None
-        if validation_data is not None:
-            validation_data_loader = ValidationDataLoader(
-                dataset=validation_data,
-                transform=transformation,
-                batch_size=self.trainer.batch_size,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
-                num_workers=num_workers,
-                num_prefetch=num_prefetch,
-                **kwargs,
-            )
+        validation_iter = self.trainer.validation_data_loader(
+            validation_data, transformation, self.dtype
+        )
 
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
@@ -240,8 +216,8 @@ class GluonEstimator(Estimator):
         self.trainer(
             net=trained_net,
             input_names=get_hybrid_forward_input_names(trained_net),
-            train_iter=training_data_loader,
-            validation_iter=validation_data_loader,
+            train_iter=train_iter,
+            validation_iter=validation_iter,
         )
 
         with self.trainer.ctx:
@@ -257,16 +233,8 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Predictor:
         return self.train_model(
-            training_data,
-            validation_data,
-            num_workers,
-            num_prefetch,
-            shuffle_buffer_length,
-            **kwargs,
+            training_data, validation_data, **kwargs,
         ).predictor

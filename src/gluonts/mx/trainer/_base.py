@@ -114,6 +114,9 @@ class Trainer:
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
         avg_strategy: AveragingStrategy = SelectNBestMean(num_models=1),
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
     ) -> None:
 
         assert (
@@ -150,6 +153,9 @@ class Trainer:
         self.avg_strategy = avg_strategy
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
+        self.num_workers = num_workers
+        self.num_prefetch = num_prefetch
+        self.shuffle_buffer_length = shuffle_buffer_length
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:
         logger.info("Received signal: {}".format(signum))
@@ -351,3 +357,34 @@ class Trainer:
                 net.load_parameters(averaged_params_path, self.ctx)
 
                 logger.info("End model training")
+
+    def training_data_loader(
+        self, training_data, transformation, dtype
+    ) -> TrainDataLoader:
+        return TrainDataLoader(
+            dataset=training_data,
+            transform=transformation,
+            dtype=dtype,
+            batch_size=self.batch_size,
+            num_batches_per_epoch=self.num_batches_per_epoch,
+            ctx=self.ctx,
+            num_workers=self.num_workers,
+            num_prefetch=self.num_prefetch,
+            shuffle_buffer_length=self.shuffle_buffer_length,
+        )
+
+    def validation_data_loader(
+        self, validation_data, transformation, dtype
+    ) -> Optional[ValidationDataLoader]:
+        if validation_data is None:
+            return None
+
+        return ValidationDataLoader(
+            dataset=validation_data,
+            transform=transformation,
+            dtype=dtype,
+            batch_size=self.batch_size,
+            ctx=self.ctx,
+            num_workers=self.num_workers,
+            num_prefetch=self.num_prefetch,
+        )
