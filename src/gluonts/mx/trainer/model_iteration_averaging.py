@@ -209,28 +209,22 @@ class NTA(IterationAveragingStrategy):
         """
 
         if not self.averaging_started and self.n > 0:
-            if self.last_n_trigger:
-                if self.maximize:
-                    if len(self.val_logs) >= self.n and metric < max(
-                        self.val_logs[-self.n :]
-                    ):
-                        self.averaging_started = True
-                else:
-                    if len(self.val_logs) >= self.n and metric > min(
-                        self.val_logs[-self.n :]
-                    ):
-                        self.averaging_started = True
+            min_len = self.n if self.last_n_trigger else (self.n + 1)
+            sliced_val_logs = (
+                self.val_logs[-self.n :]
+                if self.last_n_trigger
+                else self.val_logs[: -self.n]
+            )
+            if self.maximize:
+                if len(self.val_logs) >= min_len and metric < max(
+                    sliced_val_logs
+                ):
+                    self.averaging_started = True
             else:
-                if self.maximize:
-                    if len(self.val_logs) > self.n and metric < max(
-                        self.val_logs[: -self.n]
-                    ):
-                        self.averaging_started = True
-                else:
-                    if len(self.val_logs) > self.n and metric > min(
-                        self.val_logs[: -self.n]
-                    ):
-                        self.averaging_started = True
+                if len(self.val_logs) >= min_len and metric > min(
+                    sliced_val_logs
+                ):
+                    self.averaging_started = True
             self.val_logs.append(metric)
 
 

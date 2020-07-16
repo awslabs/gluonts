@@ -39,8 +39,6 @@ from .model_averaging import (
     SelectNBestMean,
     save_epoch_info,
 )
-
-# iteration averaging
 from .model_iteration_averaging import (
     IterationAveragingStrategy,
     NTA,
