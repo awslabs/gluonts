@@ -261,3 +261,58 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         predictions = self.quantile_proj(fcst_output).swapaxes(2, 1)
 
         return predictions
+
+    
+class ForkingSeq2SeqDistributionNetwork(ForkingSeq2SeqNetworkBase):
+    # noinspection PyMethodOverriding
+    def hybrid_forward(
+        self,
+        F,
+        past_target: Tensor,
+        past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,
+    ) -> List[Tensor,Tensor,Tensor]
+        """
+        Parameters
+        ----------
+        F: mx.symbol or mx.ndarray
+            Gluon function space
+        past_target: Tensor
+             shape (batch_size, encoder_length, 1)
+        feat_static_cat
+            shape (batch_size, encoder_length, num_feature_static_cat)
+        past_feat_dynamic
+            shape (batch_size, encoder_length, num_feature_dynamic)
+        future_feat_dynamic
+            shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
+        past_observed_values: Tensor
+            shape (batch_size, encoder_length, 1)
+        Returns
+        -------
+        distr_args: the parameters of distribution
+        loc: an array of zeros with the same shape of scale
+        scale: 
+        """
+        scaled_past_target, scale = self.scaler(
+            past_target.slice_axis(
+                axis=1, begin=-self.context_length, end=None
+            ),
+            past_observed_values.slice_axis(
+                axis=1, begin=-self.context_length, end=None
+            ),
+        )
+
+        dec_output = self.get_decoder_network_output(
+            F,
+            past_target,
+            past_feat_dynamic,
+            future_feat_dynamic,
+            feat_static_cat,
+            past_observed_values,
+        )
+        distr_args = self.distr_args_proj(dec_output)
+
+        loc = F.zeros_like(scale)
+        return distr_args, loc, scale
