@@ -107,6 +107,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         self,
         freq: str,
         prediction_length: int,
+        sampling: bool = True,
+        distr_output: DistributionOutput = GaussianOutput(),
         context_length: Optional[int] = None,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
@@ -197,6 +199,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         )
 
         quantile_output = QuantileOutput(self.quantiles)
+        self.sampling = sampling
+        self.distr_output = distr_output
 
         super().__init__(
             encoder=encoder,
