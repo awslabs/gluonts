@@ -116,10 +116,11 @@ def test_deepvar(
         ),
     )
 
+    predictor = estimator.train(training_data=dataset.train)
+
     agg_metrics, _ = backtest_metrics(
-        train_dataset=dataset.train,
         test_dataset=dataset.test,
-        forecaster=estimator,
+        predictor=predictor,
         evaluator=MultivariateEvaluator(
             quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
         ),
