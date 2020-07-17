@@ -13,63 +13,20 @@
 
 # Standard library imports
 import logging
-import pydoc
 import traceback
 from pathlib import Path
 from typing import Optional, Type, Union, cast
 
 # Third-party imports
 import click
-import pkg_resources
-
-# First-party imports
-from gluonts.core.exception import GluonTSForecasterNotFoundError
-from gluonts.model.estimator import Estimator
-from gluonts.model.predictor import Predictor
 
 # Relative imports
 from gluonts.shell.serve import Settings
 
 from .sagemaker import ServeEnv, TrainEnv
-
-Forecaster = Type[Union[Estimator, Predictor]]
+from .util import forecaster_type_by_name
 
 logger = logging.getLogger(__name__)
-
-
-def forecaster_type_by_name(name: str) -> Forecaster:
-    """
-    Loads a forecaster from the `gluonts_forecasters` entry_points namespace
-    by name.
-
-    If a forecater wasn't register under that name, it tries to locate the
-    class.
-
-    Third-party libraries can register their forecasters as follows by defining
-    a corresponding section in the `entry_points` section of their `setup.py`::
-
-        entry_points={
-            'gluonts_forecasters': [
-                'model_a = my_models.model_a:MyEstimator',
-                'model_b = my_models.model_b:MyPredictor',
-            ]
-        }
-    """
-    forecaster = None
-
-    for entry_point in pkg_resources.iter_entry_points("gluonts_forecasters"):
-        if entry_point.name == name:
-            forecaster = entry_point.load()
-            break
-    else:
-        forecaster = pydoc.locate(name)
-
-    if forecaster is None:
-        raise GluonTSForecasterNotFoundError(
-            f'Cannot locate estimator with classname "{name}".'
-        )
-
-    return cast(Forecaster, forecaster)
 
 
 @click.group()
