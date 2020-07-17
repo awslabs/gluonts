@@ -50,11 +50,11 @@ def train_env() -> ContextManager[TrainEnv]:
         "prediction_length": prediction_length,
         "num_samples": num_samples,
     }
-    train_auxillary_parameters = {
-        "is_cached": True
-    }
+    train_auxillary_parameters = {"is_cached": True}
 
-    with testutil.temporary_train_env(hyperparameters, train_auxillary_parameters, "constant") as env:
+    with testutil.temporary_train_env(
+        hyperparameters, train_auxillary_parameters, "constant"
+    ) as env:
         yield env
 
 

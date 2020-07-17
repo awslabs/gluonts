@@ -166,7 +166,9 @@ def temporary_server(
 
 @contextmanager  # type: ignore
 def temporary_train_env(
-    hyperparameters: Dict[str, Any], train_auxillary_parameters: Dict[str, Any], dataset_name: str
+    hyperparameters: Dict[str, Any],
+    train_auxillary_parameters: Dict[str, Any],
+    dataset_name: str,
 ) -> ContextManager[TrainEnv]:
     """
     A context manager that instantiates a training environment from a given
@@ -201,7 +203,9 @@ def temporary_train_env(
 
         # write train_auxillary_parameters
         with paths.train_auxillary_parameters.open(mode="w") as fp:
-            train_aux_params_encoded = encode_sagemaker_parameters(train_auxillary_parameters)
+            train_aux_params_encoded = encode_sagemaker_parameters(
+                train_auxillary_parameters
+            )
             json.dump(train_aux_params_encoded, fp, indent=2, sort_keys=True)
 
         # save dataset
