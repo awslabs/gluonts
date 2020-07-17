@@ -51,8 +51,6 @@ def train_env() -> ContextManager[TrainEnv]:
         "num_samples": num_samples,
     }
     train_auxillary_parameters = {
-        "num_workers": 2,
-        "num_batches_shuffle": 8,
         "is_cached": True
     }
 
