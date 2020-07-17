@@ -98,8 +98,7 @@ def run_train(
     train_dataset: Dataset,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
-    return forecaster.train(training_data=train_dataset,
-                            validation_data=validation_dataset)
+    return forecaster.train(training_data=train_dataset, validation_data=validation_dataset)
 
 
 def run_test(
