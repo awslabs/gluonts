@@ -108,10 +108,14 @@ class MovingAveragePredictor(RepresentablePredictor):
         self, prediction_length: int, freq: str, context_length: int,
     ) -> None:
         super().__init__(freq=freq, prediction_length=prediction_length)
+
+        assert (
+            context_length >= 1
+        ), "The value of `context_length` should be >= 1"
+
         self.context_length = context_length
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
-
         target = item["target"].tolist()
 
         for _ in range(self.prediction_length):
