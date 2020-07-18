@@ -110,7 +110,6 @@ def encode_and_trim_sagemaker_parameters(
     ...     "foo": [1, 2, 3],
     ...     "bar": "hello"
     ... }, max_len = 4)
-    ... # doctest: +NORMALIZE_WHITESPACE
     {'_0_foo': '[1, ',
      '_1_foo': '2, 3',
      '_2_foo': ']',
@@ -132,7 +131,6 @@ def trim_encoded_sagemaker_parameters(
     ...     'foo': '[1, 2, 3]',
     ...     'bar': 'hello'
     ... }, max_len = 4)
-    ... # doctest: +NORMALIZE_WHITESPACE
     {'_0_foo': '[1, ',
      '_1_foo': '2, 3',
      '_2_foo': ']',
