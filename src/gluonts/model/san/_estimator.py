@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+import numpy as np
 from mxnet.gluon import HybridBlock
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
@@ -28,41 +29,37 @@ from gluonts.transform import (
 )
 
 from ._network import (
-    SelfAttentionTrainingNetwork, 
+    SelfAttentionTrainingNetwork,
     SelfAttentionPredictionNetwork,
 )
 
 
-class AsNumpyArrayDefaultNone(AsNumpyArray):
-    def transform(self, data: DataEntry) -> DataEntry:
-        if self.field not in data.keys():
-            data[self.field] = None
-            return data
-        else:
-            return super(AsNumpyArrayDefaultNone, self).transform(data)
-
-
-
 class SelfAttentionEstimator(GluonEstimator):
     @validated()
-    def __init__(self,
-                 freq: str,
-                 prediction_length: int,
-                 context_length: Optional[int] = None,
-                 trainer: Trainer = Trainer(),
-                 data_dim: int,
-                 model_dim: int,
-                 ffn_dim_multiplier: int,
-                 num_heads: int,
-                 num_layers: int,
-                 num_outputs: int,
-                 cardinalities: List[int],
-                 kernel_sizes: List[int],
-                 distance_encoding: Optional[str],
-                 pre_layer_norm: bool = False,
-                 dropout: float = 0.1,
-                 temperature: float = 1.0,
-                 time_features: Optional[List[TimeFeature]] = None):
+    def __init__(
+        self,
+        freq: str,
+        prediction_length: int,
+        data_dim: int,
+        model_dim: int,
+        ffn_dim_multiplier: int,
+        num_heads: int,
+        num_layers: int,
+        num_outputs: int,
+        cardinalities: List[int],
+        kernel_sizes: List[int],
+        distance_encoding: Optional[str],
+        context_length: Optional[int] = None,
+        trainer: Trainer = Trainer(),
+        pre_layer_norm: bool = False,
+        dropout: float = 0.1,
+        temperature: float = 1.0,
+        time_features: Optional[List[TimeFeature]] = None,
+        use_feat_dynamic_real: bool = True,
+        use_feat_dynamic_cat: bool = False,
+        use_feat_static_real: bool = False,
+        use_feat_static_cat: bool = True,
+    ):
         super().__init__(trainer=trainer)
         self.freq = freq
         self.prediction_length = prediction_length
@@ -79,72 +76,90 @@ class SelfAttentionEstimator(GluonEstimator):
         self.pre_layer_norm = pre_layer_norm
         self.dropout = dropout
         self.temperature = temperature
-        
-        self.time_features = time_features or time_features_from_frequency_str(self.freq)
-        
+
+        self.time_features = time_features or time_features_from_frequency_str(
+            self.freq
+        )
+        self.use_feat_dynamic_cat = use_feat_dynamic_cat
+        self.use_feat_dynamic_real = use_feat_dynamic_real
+        self.use_feat_static_cat = use_feat_static_cat
+        self.use_feat_static_real = use_feat_static_real
+
     def create_transformation(self) -> Transformation:
-        chain = Chain([
-            AsNumpyArray(
-                field=FieldName.TARGET, 
-                expected_ndim=2,
-            ),
-            AddObservedValuesIndicator(
-                target_field=FieldName.TARGET,
-                output_field=FieldName.OBSERVED_VALUES,
-            ),
-            AsNumpyArrayDefaultNone(
-                field=FieldName.FEAT_DYNAMIC_CAT,
-                expected_ndim=1,
-            ),
-            AsNumpyArrayDefaultNone(
-                field=FieldName.FEAT_DYNAMIC_REAL,
-                expected_ndim=2,
-            ),
-            AsNumpyArrayDefaultNone(
-                field=FieldName.FEAT_STATIC_CAT,
-                expected_ndim=0,
-            ),
-            AsNumpyArrayDefaultNone(
-                field=FieldName.FEAT_STATIC_REAL,
-                expected_ndim=1,
-            ),
-            AddTimeFeatures(
-                start_field=FieldName.START,
-                target_field=FieldName.TARGET,
-                output_field=FieldName.FEAT_TIME,
-                time_features=self.time_features,
-                pred_length=self.prediction_length,
-            ),
-            AddAgeFeature(
-                target_field=FieldName.TARGET,
-                output_field=FieldName.FEAT_AGE,
-                pred_length=self.prediction_length,
-                log_scale=True,
-            ),
-            VstackFeatures(
-                output_field=FieldName.FEAT_DYNAMIC_REAL,
-                input_fields=[
-                    FieldName.FEAT_TIME,
-                    FieldName.FEAT_AGE,
-                    FieldName.FEAT_DYNAMIC_REAL,
-                ],
-            ),
-            InstanceSplitter(
-                target_field=FieldName.TARGET,
-                is_pad_field=FieldName.IS_PAD,
-                start_field=FieldName.START,
-                forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                past_length=self.context_length,
-                future_length=self.prediction_length,
-                time_series_fields=[
-                    FieldName.FEAT_TIME,
-                    FieldName.OBSERVED_VALUES,
-                ],
-            ),
-        ])
+        def _feature_transform(field: str) -> Transformation:
+            dtype = np.int32 if field.split("_")[-1] == "cat" else np.float32
+            if getattr(self, f"use_{field}"):
+                return AsNumpyArray(field=field, expected_ndim=1, dtype=dtype)
+            else:
+                return SetField(output_field=field, value=None)
+
+        time_series_fields = [FieldName.OBSERVED_VALUES]
+        if self.use_feat_dynamic_cat:
+            time_series_fields.append(FieldName.FEAT_DYNAMIC_CAT)
+        if self.use_feat_dynamic_real or (self.time_features is not None):
+            time_series_fields.append(FieldName.FEAT_DYNAMIC_REAL)
+
+        chain = Chain(
+            [
+                _feature_transform(FieldName.FEAT_DYNAMIC_REAL),
+                _feature_transform(FieldName.FEAT_DYNAMIC_CAT),
+                _feature_transform(FieldName.FEAT_STATIC_REAL),
+                _feature_transform(FieldName.FEAT_STATIC_CAT),
+                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1,),
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                ),
+                AddTimeFeatures(
+                    start_field=FieldName.START,
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_TIME,
+                    time_features=self.time_features,
+                    pred_length=self.prediction_length,
+                ),
+                AddAgeFeature(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_AGE,
+                    pred_length=self.prediction_length,
+                    log_scale=True,
+                ),
+                VstackFeatures(
+                    output_field=FieldName.FEAT_DYNAMIC_REAL,
+                    input_fields=[
+                        FieldName.FEAT_TIME,
+                        FieldName.FEAT_AGE,
+                        FieldName.FEAT_DYNAMIC_REAL,
+                    ],
+                ),
+                InstanceSplitter(
+                    target_field=FieldName.TARGET,
+                    is_pad_field=FieldName.IS_PAD,
+                    start_field=FieldName.START,
+                    forecast_start_field=FieldName.FORECAST_START,
+                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    past_length=self.context_length,
+                    future_length=self.prediction_length,
+                    time_series_fields=time_series_fields,
+                ),
+            ]
+            + (
+                [
+                    RemoveFields(field_names=[FieldName.FEAT_DYNAMIC_CAT]),
+                    SetField(
+                        output_field=f"past_{FieldName.FEAT_DYNAMIC_CAT}",
+                        value=None,
+                    ),
+                    SetField(
+                        output_field=f"future_{FieldName.FEAT_DYNAMIC_CAT}",
+                        value=None,
+                    ),
+                ]
+                if not self.use_feat_dynamic_cat
+                else []
+            )
+        )
         return chain
-    
+
     def create_training_network(self) -> SelfAttentionTrainingNetwork:
         return SelfAttentionTrainingNetwork(
             context_length=self.context_length,
@@ -162,10 +177,10 @@ class SelfAttentionEstimator(GluonEstimator):
             dropout=self.dropout,
             temperature=self.temperature,
         )
-        
-    def create_predictor(self, 
-                         transformation: Transformation,
-                         trained_network: HybridBlock) -> Predictor:
+
+    def create_predictor(
+        self, transformation: Transformation, trained_network: HybridBlock
+    ) -> Predictor:
         prediction_network = SelfAttentionPredictionNetwork(
             context_length=self.context_length,
             prediction_length=self.prediction_length,
@@ -191,4 +206,3 @@ class SelfAttentionEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
-        
