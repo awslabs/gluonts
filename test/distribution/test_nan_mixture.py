@@ -185,7 +185,7 @@ def test_nan_mixture_1(
 NUM_SAMPLES = 10000
 mu = 1.0
 sigma = 1.5
-TOL = 0.09
+TOL = 0.01
 
 nan_prob = 0.3
 
