@@ -95,6 +95,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
         with self.name_scope():
             self.quantile_proj = quantile_output.get_quantile_proj()
+            self.distr_args_proj = self.distr_output.get_args_proj()
             self.loss = quantile_output.get_loss()
             self.embedder = FeatureEmbedder(
                 cardinalities=cardinality,
