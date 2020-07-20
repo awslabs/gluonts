@@ -51,7 +51,9 @@ from gluonts.transform import (
 from ._forking_network import (
     ForkingSeq2SeqNetworkBase,
     ForkingSeq2SeqTrainingNetwork,
+    ForkingSeq2SeqDistributionTrainingNetwork,
     ForkingSeq2SeqPredictionNetwork,
+    ForkingSeq2SeqDistributionNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 
@@ -311,18 +313,34 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
         return Chain(chain)
 
-    def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
-        return ForkingSeq2SeqTrainingNetwork(
-            encoder=self.encoder,
-            enc2dec=FutureFeatIntegratorEnc2Dec(),
-            decoder=self.decoder,
-            quantile_output=self.quantile_output,
-            context_length=self.context_length,
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
-            scaling=self.scaling,
-            dtype=self.dtype,
-        )
+    ef create_training_network(self) -> ForkingSeq2SeqNetworkBase:
+        if self.sampling:
+            return ForkingSeq2SeqTrainingNetwork(
+                encoder=self.encoder,
+                enc2dec=FutureFeatIntegratorEnc2Dec(),
+                decoder=self.decoder,
+                distr_output=self.distr_output,
+                quantile_output=self.quantile_output,
+                context_length=self.context_length,
+                cardinality=self.cardinality,
+                embedding_dimension=self.embedding_dimension,
+                scaling=self.scaling,
+                dtype=self.dtype,
+            )
+        else:
+            return ForkingSeq2SeqDistributionTrainingNetwork(
+                encoder=self.encoder,
+                enc2dec=FutureFeatIntegratorEnc2Dec(),
+                decoder=self.decoder,
+                quantile_output=self.quantile_output,
+                distr_output = self.distr_output,
+                context_length=self.context_length,
+                cardinality=self.cardinality,
+                embedding_dimension=self.embedding_dimension,
+                scaling=self.scaling,
+                dtype=self.dtype,
+            )
+
 
     def create_predictor(
         self,
