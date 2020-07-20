@@ -41,6 +41,163 @@ serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
     return np.mean(np.abs(x - y))
 
+"""------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"""
+
+
+
+NUM_SAMPLES = 2_000
+NUM_SAMPLES_LARGE = 100_000
+
+p = np.array([[[0.0001, 0.0001, 0.5]], [[0.999, 0.999, 0.5]]])
+p_cat = np.array(
+    [
+        [[[0.1, 0.9], [0.9, 0.1], [0.5, 0.5]]],
+        [[[0.9, 0.1], [0.01, 0.99], [0.45, 0.55]]],
+    ]
+)
+SHAPE = p.shape
+p = mx.nd.array(p),
+p_cat = mx.nd.array(p_cat)
+
+@pytest.mark.parametrize(
+    "distr, p, p_cat",
+    [
+        (
+            Gaussian(
+                mu=mx.nd.zeros(shape=SHAPE),
+                sigma=1e-3 + mx.nd.ones(shape=SHAPE),
+            )
+
+        ),
+    ],
+)
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_nan_mixture_1(
+    distr: Distribution,
+
+    serialize_fn,
+) -> None:
+    # sample from component distributions, and select samples
+
+    samples = distr.sample(num_samples=NUM_SAMPLES_LARGE)
+
+    rand = mx.nd.random.uniform(shape=(NUM_SAMPLES_LARGE, *p.shape))
+    choice = (rand > p.expand_dims(axis=0)).broadcast_like(samples)
+    samples_ref = mx.nd.where(choice, samples, samples.zeros_like() / 0.0)
+
+    # construct NanMixture distribution and sample from it
+    nan_mixture = NanMixture(nan_prob=p, distribution=distr)
+    nan_mixture = serialize_fn(nan_mixture)
+
+    samples_mix = nan_mixture.sample(num_samples=NUM_SAMPLES_LARGE)
+
+    # check that shapes are right
+
+    assert samples.shape == samples_mix.shape == samples_ref.shape
+
+    # TODO check mean and stddev
+
+    x = mx.nd.array([[[np.nan, 3.5, -0.5]], [[np.nan, 3.5, np.nan]]])
+
+    # check log_prob
+    log_prob = nan_mixture.log_prob(x)
+    log_prob_true = mx.nd.log(mx.nd.where(x != x, p, (1 - p) * distr.prob(x)))
+
+    assert np.allclose(log_prob.asnumpy(), log_prob_true.asnumpy())
+
+    # check gradients
+    mu = mx.nd.zeros(shape=SHAPE)
+    sigma = 1e-3 + mx.nd.ones(shape=SHAPE)
+
+    p.attach_grad()
+    mu.attach_grad()
+    sigma.attach_grad()
+
+    with mx.autograd.record():
+        distr = Gaussian(mu=mu, sigma=sigma,)
+        nan_mixture = NanMixture(nan_prob=p, distribution=distr)
+        nll = -nan_mixture.log_prob(x)
+    nll.backward()
+
+    p_grad_true = mx.nd.where(x != x, -1 / p, 1 / (1 - p))
+    # gradient is undefined for these cases:
+    p_grad_true = mx.nd.where(
+        mx.nd.logical_or(
+            mx.nd.logical_and(x != x, p == 0),
+            mx.nd.logical_and(x == x, p == 1),
+        ),
+        0.0 / p_grad_true.zeros_like(),
+        p_grad_true,
+    )
+
+    mu_grad_true = -(x - mu) / mx.nd.square(sigma)
+    mu_grad_true = mx.nd.where(x != x, mu.zeros_like(), mu_grad_true)
+    mu_grad_true = mx.nd.where(p == 1, mu.zeros_like(), mu_grad_true)
+
+    sigma_grad_true = -(
+        mx.nd.square(mu) - 2 * mu * x - mx.nd.square(sigma) + mx.nd.square(x)
+    ) / (sigma ** 3)
+    sigma_grad_true = mx.nd.where(x != x, sigma.zeros_like(), sigma_grad_true)
+    sigma_grad_true = mx.nd.where(p == 1, sigma.zeros_like(), sigma_grad_true)
+
+    assert np.allclose(p.grad.asnumpy(), p_grad_true.asnumpy())
+    assert np.allclose(mu.grad.asnumpy(), mu_grad_true.asnumpy())
+    assert np.allclose(sigma.grad.asnumpy(), sigma_grad_true.asnumpy())
+
+    # Check if NanMixture works with a discrete distribution
+    x = mx.nd.array([[[np.nan, 0, 1]], [[np.nan, 0, np.nan]]])
+
+    # construct NanMixture distribution
+    nan_mixture = NanMixture(nan_prob=p, distribution=cat_distr)
+    nan_mixture = serialize_fn(nan_mixture)
+
+    # check log_prob
+    log_prob = nan_mixture.log_prob(x)
+    log_prob_true = mx.nd.log(
+        mx.nd.where(x != x, p, (1 - p) * cat_distr.prob(x))
+    )
+
+    assert np.allclose(log_prob.asnumpy(), log_prob_true.asnumpy())
+
+    # check the gradient
+
+    p_cat.attach_grad()
+    p.attach_grad()
+
+    with mx.autograd.record():
+        cat_distr = Categorical(log_probs=mx.nd.log(p_cat))
+        nan_mixture = NanMixture(nan_prob=p, distribution=cat_distr)
+        nll = -nan_mixture.log_prob(x)
+    nll.backward()
+
+    p_grad_true = mx.nd.where(x != x, -1 / p, 1 / (1 - p))
+
+    p_cat_zero = p_cat[:, :, :, 0]
+    p_cat_one = p_cat[:, :, :, 1]
+
+    p_cat_grad_zero_true = mx.nd.where(
+        mx.nd.logical_or(x != x, x == 1),
+        mx.nd.array(p_cat_zero).zeros_like(),
+        -1 / mx.nd.array(p_cat_zero),
+    )
+    p_cat_grad_one_true = mx.nd.where(
+        mx.nd.logical_or(x != x, x == 0),
+        mx.nd.array(p_cat_one).zeros_like(),
+        -1 / mx.nd.array(p_cat_one),
+    )
+    p_cat_grad_true = mx.nd.stack(
+        p_cat_grad_zero_true, p_cat_grad_one_true, axis=-1
+    )
+
+    assert np.allclose(p.grad.asnumpy(), p_grad_true.asnumpy())
+    assert np.allclose(p_cat.grad.asnumpy(), p_cat_grad_true.asnumpy())
+
+
+"""------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------""
+
+
+
+
 
 NUM_SAMPLES = 2_000
 NUM_SAMPLES_LARGE = 100_000
@@ -209,7 +366,6 @@ def test_nanmixture_output(distribution_output, serialize_fn) -> None:
     distr_args = args_proj(input)
 
     d = nmdo.distribution(distr_args)
-    print(d)
     d = serialize_fn(d)
 
     samples = d.sample(num_samples=NUM_SAMPLES)
