@@ -27,6 +27,9 @@ from gluonts.model.predictor import Predictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import FilterTransformation, TransformedDataset
 
+# Third party imports
+import json
+
 # Relative imports
 from .sagemaker import TrainEnv
 
@@ -124,7 +127,7 @@ def run_test(
         dataset=test_dataset, predictor=predictor, num_samples=100
     )
 
-    agg_metrics, _item_metrics = Evaluator()(
+    agg_metrics, item_metrics = Evaluator()(
         ts_iterator=ts_it,
         fcst_iterator=forecast_it,
         num_series=len(test_dataset),
@@ -133,3 +136,9 @@ def run_test(
     # we only log aggregate metrics for now as item metrics may be very large
     for name, score in agg_metrics.items():
         logger.info(f"#test_score ({env.current_host}, {name}): {score}")
+
+    # store metrics
+    with open(env.path.model / "agg_metrics.json", "w") as f:
+        json.dump(agg_metrics, f)
+    with open(env.path.model / "item_metrics.csv", "w") as f:
+        item_metrics.to_csv(f, index=False)
