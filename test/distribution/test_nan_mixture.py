@@ -103,7 +103,7 @@ def test_nan_mixture(
     log_prob = nan_mixture.log_prob(x)
     log_prob_true = mx.nd.log(mx.nd.where(x != x, p, (1 - p) * distr.prob(x)))
 
-    assert np.allclose(log_prob.asnumpy(), log_prob_true.asnumpy(), atol=1e-1)
+    assert np.allclose(log_prob.asnumpy(), log_prob_true.asnumpy())
 
     # check gradients
     mu = mx.nd.zeros(shape=SHAPE)
@@ -140,11 +140,9 @@ def test_nan_mixture(
     sigma_grad_true = mx.nd.where(x != x, sigma.zeros_like(), sigma_grad_true)
     sigma_grad_true = mx.nd.where(p == 1, sigma.zeros_like(), sigma_grad_true)
 
-    assert np.allclose(p.grad.asnumpy(), p_grad_true.asnumpy(), atol=1e-1)
-    assert np.allclose(mu.grad.asnumpy(), mu_grad_true.asnumpy(), atol=1e-1)
-    assert np.allclose(
-        sigma.grad.asnumpy(), sigma_grad_true.asnumpy(), atol=1e-1
-    )
+    assert np.allclose(p.grad.asnumpy(), p_grad_true.asnumpy())
+    assert np.allclose(mu.grad.asnumpy(), mu_grad_true.asnumpy())
+    assert np.allclose(sigma.grad.asnumpy(), sigma_grad_true.asnumpy())
 
     # Check if NanMixture works with a discrete distribution
     x = mx.nd.array([[[np.nan, 0, 1]], [[np.nan, 0, np.nan]]])
@@ -159,7 +157,7 @@ def test_nan_mixture(
         mx.nd.where(x != x, p, (1 - p) * cat_distr.prob(x))
     )
 
-    assert np.allclose(log_prob.asnumpy(), log_prob_true.asnumpy(), atol=1e-1)
+    assert np.allclose(log_prob.asnumpy(), log_prob_true.asnumpy())
 
     # check the gradient
 
@@ -191,10 +189,8 @@ def test_nan_mixture(
         p_cat_grad_zero_true, p_cat_grad_one_true, axis=-1
     )
 
-    assert np.allclose(p.grad.asnumpy(), p_grad_true.asnumpy(), atol=1e-1)
-    assert np.allclose(
-        p_cat.grad.asnumpy(), p_cat_grad_true.asnumpy(), atol=1e-1
-    )
+    assert np.allclose(p.grad.asnumpy(), p_grad_true.asnumpy())
+    assert np.allclose(p_cat.grad.asnumpy(), p_cat_grad_true.asnumpy())
 
 
 @pytest.mark.parametrize(
@@ -227,14 +223,14 @@ def test_nanmixture_output(distribution_output, serialize_fn) -> None:
     assert log_prob.shape == d.batch_shape
 
 
-BATCH_SIZE = 10000
+BATCH_SIZE = 100000
 
 zeros = mx.nd.zeros((BATCH_SIZE))
 ones = mx.nd.ones((BATCH_SIZE))
 
 mu = 1.0
 sigma = 1.5
-TOL = 0.09
+TOL = 0.01
 
 nan_prob = 0.3
 mx.random.seed(1)
@@ -271,7 +267,7 @@ def test_nanmixture_inference() -> None:
 
     mixture_samples = mx.nd.array(np_samples)
 
-    N = 1000
+    N = 800
     t = tqdm(list(range(N)))
     for _ in t:
         with mx.autograd.record():
@@ -315,7 +311,7 @@ def test_nanmixture_inference() -> None:
 
     mixture_samples = mx.nd.array(cat_samples)
 
-    N = 10000
+    N = 800
     t = tqdm(list(range(N)))
     for _ in t:
         with mx.autograd.record():
@@ -333,9 +329,6 @@ def test_nanmixture_inference() -> None:
     cat_probs_hat = d.distribution.probs.asnumpy()
     nan_prob_hat = d.nan_prob.asnumpy()
 
-    print(loss_value)
-    print(cat_probs_hat)
-    print(nan_prob_hat)
     assert np.allclose(
         cat_probs, cat_probs_hat, atol=TOL
     ), f"categorical dist: cat_probs did not match: cat_probs = {cat_probs}, cat_probs_hat = {cat_probs_hat}"
