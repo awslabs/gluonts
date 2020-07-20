@@ -24,6 +24,7 @@ from gluonts.block.decoder import Seq2SeqDecoder
 from gluonts.block.enc2dec import Seq2SeqEnc2Dec
 from gluonts.block.encoder import Seq2SeqEncoder
 from gluonts.block.quantile_output import QuantileOutput
+from gluonts.distribution import DistributionOutput
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 from gluonts.block.feature import FeatureEmbedder
@@ -211,6 +212,62 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         return weighted_loss
+    
+    
+class ForkingSeq2SeqDistributionTrainingNetwork(ForkingSeq2SeqNetworkBase):
+    def hybrid_forward(
+        self,
+        F,
+        past_target: Tensor,
+        future_target: Tensor,
+        past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,
+        future_observed_values: Tensor,
+    ) -> Tensor:
+        """
+        Parameters
+        ----------
+        F: mx.symbol or mx.ndarray
+            Gluon function space
+        past_target: Tensor
+            shape (batch_size, encoder_length, 1)
+        future_target: Tensor
+            shape (batch_size, encoder_length, decoder_length)
+        past_feat_dynamic
+            shape (batch_size, encoder_length, num_past_feature_dynamic)
+        future_feat_dynamic
+            shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
+        feat_static_cat
+            shape (batch_size, encoder_length, num_feature_static_cat)
+        past_observed_values: Tensor
+            shape (batch_size, encoder_length, 1)
+        future_observed_values: Tensor
+            shape (batch_size, encoder_length, decoder_length)
+
+        Returns
+        -------
+        loss with shape (batch_size, prediction_length)
+        """
+        scaled_target, target_scale = self.scaler(
+            past_target,
+            F.ones_like(past_target),  # TODO: pass the actual observed here
+        )
+        dec_output = self.get_decoder_network_output(
+            F,
+            past_target,
+            past_feat_dynamic,
+            future_feat_dynamic,
+            feat_static_cat,
+            past_observed_values,
+        )
+        distr_args = self.distr_args_proj(dec_output)
+        distr = self.distr_output.distribution(
+            distr_args, scale=target_scale.expand_dims(axis=1)
+        )
+        loss = distr.loss(future_target)
+        return loss.mean(axis = 1)
 
 
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
