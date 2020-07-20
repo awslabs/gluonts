@@ -68,6 +68,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         enc2dec: Seq2SeqEnc2Dec,
         decoder: Seq2SeqDecoder,
         quantile_output: QuantileOutput,
+        distr_ouptut: DistributionOutput,
         context_length: int,
         cardinality: List[int],
         embedding_dimension: List[int],
