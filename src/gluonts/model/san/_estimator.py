@@ -26,6 +26,7 @@ from gluonts.transform import (
     SetField,
     Transformation,
     VstackFeatures,
+    ExpandDimArray,
 )
 
 from ._network import (
@@ -40,7 +41,6 @@ class SelfAttentionEstimator(GluonEstimator):
         self,
         freq: str,
         prediction_length: int,
-        data_dim: int,
         model_dim: int,
         ffn_dim_multiplier: int,
         num_heads: int,
@@ -64,7 +64,6 @@ class SelfAttentionEstimator(GluonEstimator):
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or prediction_length
-        self.data_dim = data_dim
         self.model_dim = model_dim
         self.ffn_dim_multiplier = ffn_dim_multiplier
         self.num_heads = num_heads
@@ -105,7 +104,7 @@ class SelfAttentionEstimator(GluonEstimator):
                 _feature_transform(FieldName.FEAT_DYNAMIC_CAT),
                 _feature_transform(FieldName.FEAT_STATIC_REAL),
                 _feature_transform(FieldName.FEAT_STATIC_CAT),
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1,),
+                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
@@ -164,7 +163,6 @@ class SelfAttentionEstimator(GluonEstimator):
         return SelfAttentionTrainingNetwork(
             context_length=self.context_length,
             prediction_length=self.prediction_length,
-            d_data=self.data_dim,
             d_hidden=self.model_dim,
             m_ffn=self.ffn_dim_multiplier,
             n_head=self.num_heads,
@@ -184,7 +182,6 @@ class SelfAttentionEstimator(GluonEstimator):
         prediction_network = SelfAttentionPredictionNetwork(
             context_length=self.context_length,
             prediction_length=self.prediction_length,
-            d_data=self.data_dim,
             d_hidden=self.model_dim,
             m_ffn=self.ffn_dim_multiplier,
             n_head=self.num_heads,

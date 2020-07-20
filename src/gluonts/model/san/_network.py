@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 import mxnet as mx
 from mxnet import init
@@ -10,6 +10,9 @@ from gluonts.mx.block.feature import FeatureEmbedder, FeatureAssembler
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
 from ._layers import CausalConv1D, DualSelfAttention, PosFFN
+
+OptTensor = Union[List, Tensor]
+is_tensor = lambda obj: isinstance(obj, (mx.ndarray.NDArray, mx.symbol.Symbol))
 
 
 class SelfAttentionBlock(HybridBlock):
@@ -53,13 +56,13 @@ class SelfAttentionBlock(HybridBlock):
             )
 
     def hybrid_forward(
-        self, F, value: Tensor, shape: Tensor, mask: Optional[Tensor] = None
+        self, F, value: Tensor, shape: Tensor, mask: Tensor,
     ):
         v = value
         s = shape
         if self.pre_ln:
             value = self.lnorm(value)
-        value, shape = self.attention(value, shape, mask=mask)
+        value, shape = self.attention(value, shape, mask)
         value = value + v
         shape = shape + s
         if not self.pre_ln:
@@ -74,7 +77,6 @@ class SelfAttentionNetwork(HybridBlock):
         self,
         context_length: int,
         prediction_length: int,
-        d_data: int,
         d_hidden: int,
         m_ffn: int,
         n_head: int,
@@ -99,28 +101,13 @@ class SelfAttentionNetwork(HybridBlock):
         assert d_hidden % self.n_groups == 0
         self.context_length = context_length
         self.prediction_length = prediction_length
-        self.d_data = d_data
         self.d_hidden = d_hidden
         assert (n_output % 2 == 1) and (n_output <= 9)
-        quantiles = sum(
+        self.quantiles = sum(
             [[i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)],
             [0.5],
         )
         self.n_output = n_output
-        self.quantiles = Parameter(
-            "quantiles",
-            shape=(self.n_output,),
-            init=init.Constant(quantiles),
-            differentiable=False,
-        )
-        # self.offset = Parameter('offset',
-        #                              shape=(0,1,self.d_data),
-        #                              init=init.Zero(),
-        #                              differentiable=True)
-        # self.scale = Parameter('scale',
-        #                             shape=(0,1,self.d_data),
-        #                             init=init.One(),
-        #                             differentiable=True)
         self.normalizer_eps = normalizer_eps
 
         with self.name_scope():
@@ -168,7 +155,8 @@ class SelfAttentionNetwork(HybridBlock):
                 prefix="embedder_",
             )
             self.output_proj = nn.Dense(
-                self.d_data * n_output,
+                n_output,
+                flatten=False,
                 weight_initializer=init.Xavier(),
                 prefix="output_proj_",
             )
@@ -177,20 +165,20 @@ class SelfAttentionNetwork(HybridBlock):
         self,
         F,
         past_target: Tensor,
-        past_feat_dynamic_real: Optional[Tensor],
-        past_feat_dynamic_cat: Optional[Tensor],
+        past_feat_dynamic_real: Tensor,
+        past_feat_dynamic_cat: OptTensor,
         past_observed_values: Tensor,
         past_is_pad: Tensor,
-        future_target: Optional[Tensor],
-        future_feat_dynamic_real: Optional[Tensor],
-        future_feat_dynamic_cat: Optional[Tensor],
-        feat_static_real: Optional[Tensor],
-        feat_static_cat: Optional[Tensor],
-    ) -> Tuple[Tensor, Optional[Tensor], Tensor, Optional[Tensor]]:
+        future_target: OptTensor,
+        future_feat_dynamic_real: OptTensor,
+        future_feat_dynamic_cat: OptTensor,
+        feat_static_real: OptTensor,
+        feat_static_cat: OptTensor,
+    ) -> Tuple[Tensor, OptTensor, Tensor, Tensor, OptTensor, Tensor, Tensor]:
         obs = past_target * past_observed_values
         count = F.sum(past_observed_values, axis=1, keepdims=True)
-        offset = obs.sum(axis=1, keepdims=True).div(count)
-        scale = obs.power(2).sum(axis=1, keepdims=True).div(count)
+        offset = F.sum(obs, axis=1, keepdims=True) / count
+        scale = F.sum(obs ** 2, axis=1, keepdims=True) / count
         scale = scale - offset ** 2
         scale = scale.sqrt()
 
@@ -201,18 +189,22 @@ class SelfAttentionNetwork(HybridBlock):
             )
 
         def _assemble_covariates(
-            feat_dynamic_real: Optional[Tensor],
-            feat_dynamic_cat: Optional[Tensor],
-            feat_static_real: Optional[Tensor],
-            feat_static_cat: Optional[Tensor],
+            feat_dynamic_real: OptTensor,
+            feat_dynamic_cat: OptTensor,
+            feat_static_real: OptTensor,
+            feat_static_cat: OptTensor,
+            is_past: bool,
         ) -> Tensor:
             covariates = []
-            if feat_dynamic_real is not None:
+            if is_tensor(feat_dynamic_real):
                 covariates.append(feat_dynamic_real)
-            if feat_static_real is not None:
+            if is_tensor(feat_static_real):
                 covariates.append(
                     feat_static_real.expand_dims(axis=1).repeat(
-                        axis=1, repeats=(1, self.context_length, 1)
+                        axis=1,
+                        repeats=self.context_length
+                        if is_past
+                        else self.prediction_length,
                     )
                 )
             if len(covariates) > 0:
@@ -222,12 +214,15 @@ class SelfAttentionNetwork(HybridBlock):
                 covariates = None
 
             categories = []
-            if feat_dynamic_cat is not None:
+            if is_tensor(feat_dynamic_cat):
                 categories.append(feat_dynamic_cat)
-            if feat_static_cat is not None:
+            if is_tensor(feat_static_cat):
                 categories.append(
                     feat_static_cat.expand_dims(axis=1).repeat(
-                        axis=1, repeats=(1, self.context_length, 1)
+                        axis=1,
+                        repeats=self.context_length
+                        if is_past
+                        else self.prediction_length,
                     )
                 )
             if len(categories) > 0:
@@ -250,12 +245,14 @@ class SelfAttentionNetwork(HybridBlock):
             past_feat_dynamic_cat,
             feat_static_real,
             feat_static_cat,
+            is_past=True,
         )
         future_covariates = _assemble_covariates(
             future_feat_dynamic_real,
             future_feat_dynamic_cat,
             feat_static_real,
             feat_static_cat,
+            is_past=False,
         )
         past_observed_values = F.logical_and(
             past_observed_values, F.logical_not(past_is_pad),
@@ -285,54 +282,57 @@ class SelfAttentionNetwork(HybridBlock):
         horizon: int,
         target: Tensor,
         covars: Optional[Tensor],
-        mask: Optional[Tensor],
+        mask: Tensor,
     ) -> Tensor:
+        target = F.expand_dims(target, axis=-1)
+        mask = F.expand_dims(mask, axis=-1)
         value = self.value_proj(target)
         shape = self.shape_proj(target)
         if covars is not None:
             shape = shape + covars
         for block in self._blocks:
-            value, shape = block(value, shape, mask=mask)
+            value, shape = block(value, shape, mask)
         value = F.slice_axis(value, axis=1, begin=-horizon, end=None)
         preds = self.output_proj(value)
-        preds = preds.reshape(0, 0, -4, self.d_data, self.n_output)
         return preds
 
 
 class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
-    @staticmethod
     def quantile_loss(
+        self,
         F,
         target: Tensor,
         quantile_forecast: Tensor,
-        quantiles: Tensor,
         observed_values: Tensor,
     ) -> Tensor:
-        target = F.expand_dims(target, axis=-1)
-        diff = F.broadcast_sub(quantile_forecast, target)
-        weight = F.broadcast_sub(
-            F.broadcast_lesser_equal(target, quantile_forecast), quantiles
+        forecasts = F.split(
+            quantile_forecast, axis=-1, num_outputs=self.n_output
         )
-        loss = F.abs(diff * weight) * 2.0
-        loss = F.sum(loss, axis=-1)
-        loss = F.where(observed_values, F.zeros_like(loss), loss)
+        losses = []
+        for forecast, quantile in zip(forecasts, self.quantiles):
+            forecast = F.squeeze(forecast, axis=-1)
+            diff = forecast - target
+            weight = F.broadcast_lesser_equal(target, forecast) - quantile
+            loss = F.abs(diff * weight) * 2.0
+            loss = F.where(observed_values, loss, F.zeros_like(loss))
+            losses.append(loss)
+        loss = F.stack(*losses, axis=-1).sum(axis=-1)
         return loss
 
     def hybrid_forward(
         self,
         F,
         past_target: Tensor,
-        past_feat_dynamic_real: Optional[Tensor],
-        past_feat_dynamic_cat: Optional[Tensor],
+        past_feat_dynamic_real: OptTensor,
+        past_feat_dynamic_cat: OptTensor,
         past_observed_values: Tensor,
         past_is_pad: Tensor,
         future_target: Tensor,
-        future_feat_dynamic_real: Optional[Tensor],
-        future_feat_dynamic_cat: Optional[Tensor],
+        future_feat_dynamic_real: OptTensor,
+        future_feat_dynamic_cat: OptTensor,
         future_observed_values: Tensor,
-        feat_static_real: Optional[Tensor],
-        feat_static_cat: Optional[Tensor],
-        quantiles: Tensor,
+        feat_static_real: OptTensor,
+        feat_static_cat: OptTensor,
     ) -> Tensor:
         (
             past_target,
@@ -373,7 +373,7 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
         )
         preds = self._postprocess(F, preds, offset, scale)
         loss = self.quantile_loss(
-            F, future_target, preds, quantiles, future_observed_values
+            F, future_target, preds, future_observed_values
         )
 
         return loss.mean()
@@ -432,11 +432,11 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
             )
             next_observed_value = F.ones_like(next_target)
 
-            target = F.concat(target, next_target, axis=1)
-            covars = F.concat(covars, next_covars, axis=1)
+            target = F.concat(target, next_target, dim=1)
+            covars = F.concat(covars, next_covars, dim=1)
             observed_values = F.concat(
-                observed_values, next_observed_value, axis=1
+                observed_values, next_observed_value, dim=1
             )
-        preds = F.concat(*preds, axis=1)
+        preds = F.concat(*preds, dim=1)
         preds = self._postprocess(F, preds, offset, scale)
         return preds

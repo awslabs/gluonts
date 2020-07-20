@@ -41,12 +41,12 @@ class SinusoidalPositionalEmbedding(HybridBlock):
             )
         self.d_embed = d_embed
 
-    def forward(self, F, pos_seq: Tensor) -> Tensor:
+    def hybrid_forward(self, F, pos_seq: Tensor) -> Tensor:
         inv_freq = F.arange(0, self.d_embed, 2)
         inv_freq = F.exp((inv_freq / self.d_embed) * -math.log(1e4))
         pos_seq = F.reshape(data=pos_seq, shape=(0, 0, 1))
         pos_seq = F.broadcast_mul(pos_seq, inv_freq)
-        return F.concatenate(F.sin(pos_seq), F.cos(pos_seq), axis=-1)
+        return F.concat(F.sin(pos_seq), F.cos(pos_seq), dim=-1)
 
 
 class Attention(HybridBlock):
@@ -86,7 +86,7 @@ class Attention(HybridBlock):
         -------
             Tensor [batch, n_head, length, d_head]
         """
-        x = F.reshape(data=x, shape=(0, -4, -1, self.n_head, self.d_head))
+        x = F.reshape(data=x, shape=(0, 0, -4, self.n_head, self.d_head))
         x = F.swapaxes(data=x, dim1=1, dim2=2)
         return x
 
@@ -239,8 +239,8 @@ class GroupSelfAttention(Attention):
         qk = self.qk_proj(qk)
         qk = F.swapaxes(qk, dim1=1, dim2=2)
         qk = F.split(qk, num_outputs=2 * self.n_groups, axis=-1)
-        q = F.concatenate(*qk[0::2], axis=-1)
-        k = F.concatenate(*qk[1::2], axis=-1)
+        q = F.concat(*qk[0::2], dim=-1)
+        k = F.concat(*qk[1::2], dim=-1)
         q = self._split_head(F, q)
         k = self._split_head(F, k)
         v = self.v_proj(value)
@@ -262,8 +262,10 @@ class GroupSelfAttention(Attention):
                 unidir_mask, F.ones_like(score) * float("-inf"), score
             )
         if key_mask is not None:
-            mem_mask = key_mask.expand_dims(axis=1)  # head
-            mem_mask = key_mask.expand_dims(axis=2)  # query
+            mem_mask = key_mask.squeeze(axis=-1)
+            mem_mask = mem_mask.expand_dims(axis=1)  # head
+            mem_mask = mem_mask.expand_dims(axis=2)  # query
+            mem_mask = F.broadcast_like(mem_mask, score)
             score = F.where(
                 mem_mask, F.ones_like(score) * float("-inf"), score
             )
@@ -283,7 +285,7 @@ class GroupSelfAttention(Attention):
             # score_{ij} = <q_i, k_j> + s_{ij}
             # idx.shape = [klen, klen]
             # idx[i][j] = i-j
-            idx = F.contrib.arange_like(k, axis=1)
+            idx = F.contrib.arange_like(k, axis=2)
             idx = F.broadcast_sub(
                 idx.expand_dims(axis=1), idx.expand_dims(axis=0)
             )
@@ -293,7 +295,7 @@ class GroupSelfAttention(Attention):
             idx = idx.expand_dims(axis=0).expand_dims(axis=0)
             # dist representation r for attention
             # r.shape = [1, klen, d_hidden]
-            r = F.contrib.arange_like(k, axis=1).expand_dims(axis=0)
+            r = F.contrib.arange_like(k, axis=2).expand_dims(axis=0)
             r = self.posemb(r)
             r = self.pos_proj(r)
             # r.shape = [1, n_head, klen, d_head]
@@ -353,8 +355,7 @@ class GroupSelfAttention(Attention):
         F,
         value: Tensor,
         shape: Tensor,
-        *,
-        mask: Optional[Tensor] = None,
+        mask: Tensor,
         _ctt_bias_weight: Optional[Tensor] = None,
         _pos_bias_weight: Optional[Tensor] = None,
     ) -> Tensor:
@@ -372,7 +373,7 @@ class DualSelfAttention(GroupSelfAttention):
         super(DualSelfAttention, self).__init__(**kwargs)
         with self.name_scope():
             self.pat_proj = nn.Conv1D(
-                channels=self.d_hidden * 2,
+                channels=self.d_hidden,
                 kernel_size=1,
                 groups=self.n_groups,
                 use_bias=self.bias,
@@ -386,7 +387,9 @@ class DualSelfAttention(GroupSelfAttention):
         v = super(DualSelfAttention, self)._compute_attn_output(F, score, v)
         s = F.batch_dot(score, k)
         s = self._merge_head(F, s)
+        s = F.swapaxes(s, dim1=1, dim2=2)
         s = self.pat_proj(s)
+        s = F.swapaxes(s, dim1=1, dim2=2)
         return v, s
 
     def hybrid_forward(
@@ -394,8 +397,7 @@ class DualSelfAttention(GroupSelfAttention):
         F,
         value: Tensor,
         shape: Tensor,
-        *,
-        mask: Optional[Tensor] = None,
+        mask: Optional[Tensor],
         _ctt_bias_weight: Optional[Tensor] = None,
         _pos_bias_weight: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor]:
@@ -426,11 +428,14 @@ class PosFFN(HybridBlock):
                 use_bias=True,
                 flatten=False,
                 activation=activation,
-                init=init.Xavier(),
+                weight_initializer=init.Xavier(),
             )
             self.dropout = nn.Dropout(dropout)
             self.linear2 = nn.Dense(
-                units=d_model, use_bias=True, flatten=False, init=init.Xavier()
+                units=d_model,
+                use_bias=True,
+                flatten=False,
+                weight_initializer=init.Xavier(),
             )
             self.lnorm = nn.LayerNorm(axis=-1)
 
@@ -475,7 +480,7 @@ class CausalConv1D(HybridBlock):
             .slice_axis(axis=1, begin=0, end=1)
             .tile(reps=(1, self.kernel_size - 1, 1))
         )
-        x = F.concatenate(pad, x, axis=1)
+        x = F.concat(pad, x, dim=1)
         x = F.swapaxes(x, dim1=1, dim2=2)
         x = self.net(x)
         x = F.swapaxes(x, dim1=1, dim2=2)
