@@ -13,7 +13,7 @@
 
 # Standard library imports
 import json
-from typing import ContextManager
+from typing import ContextManager, Optional
 import sys
 
 # Third-party imports
@@ -22,6 +22,7 @@ import pytest
 
 # First-party imports
 from gluonts.core.component import equals
+from gluonts.dataset.common import FileDataset, ListDataset
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
@@ -44,17 +45,15 @@ num_samples = 4
 
 
 @pytest.fixture(scope="function")  # type: ignore
-def train_env() -> ContextManager[TrainEnv]:
+def train_env(listify_dataset) -> ContextManager[TrainEnv]:
     hyperparameters = {
         "context_length": context_length,
         "prediction_length": prediction_length,
         "num_samples": num_samples,
+        "listify_dataset": listify_dataset,
     }
-    train_auxillary_parameters = {"is_cached": True}
 
-    with testutil.temporary_train_env(
-        hyperparameters, train_auxillary_parameters, "constant"
-    ) as env:
+    with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
 
 
@@ -100,6 +99,17 @@ def batch_transform(monkeypatch, train_env):
     return inference_config
 
 
+@pytest.mark.parametrize("listify_dataset", [True, False])
+def test_listify_dataset(train_env: TrainEnv, listify_dataset):
+    for dataset_name in train_env.datasets.keys():
+        assert (
+            isinstance(train_env.datasets[dataset_name], ListDataset)
+            if listify_dataset
+            else isinstance(train_env.datasets[dataset_name], FileDataset)
+        )
+
+
+@pytest.mark.parametrize("listify_dataset", [True])
 def test_train_shell(train_env: TrainEnv, caplog) -> None:
     run_train_and_test(env=train_env, forecaster_type=MeanPredictor)
 
@@ -116,6 +126,7 @@ def test_train_shell(train_env: TrainEnv, caplog) -> None:
             assert line.endswith("270.0")
 
 
+@pytest.mark.parametrize("listify_dataset", [True])
 def test_server_shell(
     train_env: TrainEnv, static_server: "testutil.ServerFacade", caplog
 ) -> None:
@@ -157,6 +168,7 @@ def test_server_shell(
         assert equals(exp_samples, act_samples)
 
 
+@pytest.mark.parametrize("listify_dataset", [True])
 def test_dynamic_shell(
     train_env: TrainEnv, dynamic_server: "testutil.ServerFacade", caplog
 ) -> None:
@@ -199,6 +211,7 @@ def test_dynamic_shell(
         assert equals(exp_samples, act_samples)
 
 
+@pytest.mark.parametrize("listify_dataset", [True])
 def test_dynamic_batch_shell(
     batch_transform,
     train_env: TrainEnv,
