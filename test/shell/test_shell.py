@@ -52,7 +52,6 @@ def train_env(listify_dataset) -> ContextManager[TrainEnv]:
         "num_samples": num_samples,
         "listify_dataset": listify_dataset,
     }
-
     with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
 
