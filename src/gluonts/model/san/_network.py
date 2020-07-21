@@ -9,7 +9,12 @@ from gluonts.model.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder, FeatureAssembler
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
-from ._layers import CausalConv1D, DualSelfAttention, PosFFN
+from ._layers import (
+    CausalConv1D,
+    GroupSelfAttention,
+    DualSelfAttention,
+    PosFFN,
+)
 
 OptTensor = Union[List, Tensor]
 is_tensor = lambda obj: isinstance(obj, (mx.ndarray.NDArray, mx.symbol.Symbol))
@@ -35,7 +40,7 @@ class SelfAttentionBlock(HybridBlock):
         self.pre_ln = pre_ln
 
         with self.name_scope():
-            self.attention = DualSelfAttention(
+            self.attention = GroupSelfAttention(
                 d_hidden=d_hidden,
                 n_groups=n_groups,
                 n_head=n_head,
@@ -59,16 +64,16 @@ class SelfAttentionBlock(HybridBlock):
         self, F, value: Tensor, shape: Tensor, mask: Tensor,
     ):
         v = value
-        s = shape
+        # s = shape
         if self.pre_ln:
             value = self.lnorm(value)
-        value, shape = self.attention(value, shape, mask)
+        value = self.attention(value, shape, mask)
         value = value + v
-        shape = shape + s
+        # shape = shape + s
         if not self.pre_ln:
             value = self.lnorm(value)
         value = self.ffn(value)
-        return value, shape
+        return value
 
 
 class SelfAttentionNetwork(HybridBlock):
@@ -254,7 +259,7 @@ class SelfAttentionNetwork(HybridBlock):
             feat_static_cat,
             is_past=False,
         )
-        past_observed_values = F.logical_and(
+        past_observed_values = F.broadcast_logical_and(
             past_observed_values, F.logical_not(past_is_pad),
         )
 
@@ -291,7 +296,8 @@ class SelfAttentionNetwork(HybridBlock):
         if covars is not None:
             shape = shape + covars
         for block in self._blocks:
-            value, shape = block(value, shape, mask)
+            value = block(value, shape, mask)
+            shape = value + shape
         value = F.slice_axis(value, axis=1, begin=-horizon, end=None)
         preds = self.output_proj(value)
         return preds
@@ -369,7 +375,7 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
         )
 
         preds = self._forward_step(
-            F, self.prediction_length, target, covars, 1.0 - observed_values
+            F, self.prediction_length, target, covars, observed_values
         )
         preds = self._postprocess(F, preds, offset, scale)
         loss = self.quantile_loss(
@@ -422,7 +428,7 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
         preds = []
         for step in range(self.prediction_length):
             forecast = self._forward_step(
-                F, 1, target, covars, 1.0 - observed_values
+                F, 1, target, covars, observed_values
             )
             preds.append(forecast)
             next_target = F.slice_axis(forecast, axis=-1, begin=0, end=1)

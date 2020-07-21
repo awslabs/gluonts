@@ -1,6 +1,6 @@
 from typing import Optional, Tuple, List
 import math
-
+import numpy as np
 import mxnet as mx
 from mxnet import init
 from mxnet.gluon import nn, Parameter, HybridBlock
@@ -13,17 +13,18 @@ def _torch_gather(F, data: Tensor, idx: Tensor, axis: int):
     """
     Pytorch-style gather_nd
     """
+    ndim = 4
     if axis < 0:
-        axis = data.ndim + axis
+        axis = ndim + axis
     mx_idx = []
-    for dim in range(data.ndim):
+    for dim in range(ndim):
         if dim == axis:
             d_idx = F.broadcast_like(idx, data)
         else:
             d_idx = F.contrib.arange_like(data, axis=dim)
             for _ in range(dim):
                 d_idx = F.expand_dims(data=d_idx, axis=0)
-            for _ in range(data.ndim - dim - 1):
+            for _ in range(ndim - dim - 1):
                 d_idx = F.expand_dims(data=d_idx, axis=-1)
             d_idx = F.broadcast_like(d_idx, data)
         mx_idx.append(d_idx)
@@ -254,12 +255,22 @@ class GroupSelfAttention(Attention):
         self, F, score: Tensor, key_mask: Optional[Tensor]
     ) -> Tensor:
         if not self.bidirectional:
-            k_idx = F.contrib.arange_like(score, axis=-1).reshape(1, 1, 1, -1)
-            q_idx = F.contrib.arange_like(score, axis=-2).reshape(1, 1, -1, 1)
-            unidir_mask = F.broadcast_greater(k_idx, q_idx)
+            k_idx = F.contrib.arange_like(score, axis=-1)
+            k_idx = (
+                k_idx.expand_dims(axis=0)
+                .expand_dims(axis=0)
+                .expand_dims(axis=0)
+            )
+            q_idx = F.contrib.arange_like(score, axis=-2)
+            q_idx = (
+                q_idx.expand_dims(axis=-1)
+                .expand_dims(axis=0)
+                .expand_dims(axis=0)
+            )
+            unidir_mask = F.broadcast_lesser_equal(k_idx, q_idx)
             unidir_mask = F.broadcast_like(unidir_mask, score)
             score = F.where(
-                unidir_mask, F.ones_like(score) * float("-inf"), score
+                unidir_mask, score, F.ones_like(score) * float("-inf")
             )
         if key_mask is not None:
             mem_mask = key_mask.squeeze(axis=-1)
@@ -267,7 +278,7 @@ class GroupSelfAttention(Attention):
             mem_mask = mem_mask.expand_dims(axis=2)  # query
             mem_mask = F.broadcast_like(mem_mask, score)
             score = F.where(
-                mem_mask, F.ones_like(score) * float("-inf"), score
+                mem_mask, score, F.ones_like(score) * float("-inf")
             )
         return score
 
