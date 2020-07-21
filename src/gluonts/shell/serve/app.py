@@ -128,7 +128,7 @@ def do(fn, args, queue):
     queue.put(fn(*args))
 
 
-def with_fallback(fn, args, timeout, fallback):
+def with_timeout(fn, args, timeout):
     queue = mp.Queue()
     process = mp.Process(target=do, args=(fn, args, queue))
     process.start()
@@ -136,12 +136,13 @@ def with_fallback(fn, args, timeout, fallback):
     try:
         return queue.get(True, timeout=timeout)
     except QueueEmpty:
-        logger.warning("TIMEOUT DURING REUQUEST")
         os.kill(process.pid, signal.SIGKILL)
-        return fallback()
+        return None
 
 
 def make_predictions(predictor, dataset, configuration):
+    DEBUG = configuration.dict().get("DEBUG")
+
     # we have to take this as the initial start-time since the first
     # forecast is produced before the loop in predictor.predict
     start = time.time()
@@ -169,7 +170,6 @@ def make_predictions(predictor, dataset, configuration):
 def batch_inference_invocations(
     predictor_factory, configuration, settings
 ) -> Callable[[], Response]:
-    DEBUG = configuration.dict().get("DEBUG")
     predictor = predictor_factory({"configuration": configuration.dict()})
 
     def invocations() -> Response:
@@ -186,26 +186,26 @@ def batch_inference_invocations(
         dataset = ListDataset(instances, predictor.freq)
 
         if settings.gluonts_batch_timeout > 0:
-            FallbackPredictor = forecaster_type_by_name(
-                settings.gluonts_batch_fallback_predictor
-            )
-            fallback_predictor = FallbackPredictor(
-                freq=predictor.freq,
-                prediction_length=predictor.prediction_length,
-            )
-
-            def as_json(forecast_iter):
-                return list(
-                    forecast.as_json_dict(configuration)
-                    for forecast in forecast_iter
-                )
-
-            predictions = with_fallback(
+            predictions = with_timeout(
                 make_predictions,
                 args=(predictor, dataset, configuration),
                 timeout=settings.gluonts_batch_timeout,
-                fallback=lambda: as_json(fallback_predictor.predict(dataset)),
             )
+
+            # predictions are None, when predictor timed out
+            if predictions is None:
+                logger.warning(f"predictor timed out for: {request_data}")
+                FallbackPredictor = forecaster_type_by_name(
+                    settings.gluonts_batch_fallback_predictor
+                )
+                fallback_predictor = FallbackPredictor(
+                    freq=predictor.freq,
+                    prediction_length=predictor.prediction_length,
+                )
+
+                predictions = make_predictions(
+                    fallback_predictor, dataset, configuration
+                )
         else:
             predictions = make_predictions(predictor, dataset, configuration)
 
