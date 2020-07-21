@@ -209,7 +209,7 @@ def temporary_train_env(
         path_train.symlink_to(ds_path / "train", target_is_directory=True)
         path_test.symlink_to(ds_path / "test", target_is_directory=True)
 
-        yield TrainEnv(path=paths.base)
+        yield TrainEnv(path=paths)
 
 
 @contextmanager  # type: ignore
