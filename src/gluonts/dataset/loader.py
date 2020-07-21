@@ -58,6 +58,11 @@ class DataLoader(Iterable[DataEntry]):
         By default it defaults to `num_workers * 2`.
     cyclic
         Indicates whether the dataset is traversed potentially multiple times.
+    shuffle_buffer_length
+        The length of the buffer used to do pseudo shuffle.
+        If not None, the loader will perform pseudo shuffle when generating batches.
+        Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
+        more time to be done.
 
     """
 
@@ -143,6 +148,11 @@ class TrainDataLoader(DataLoader):
         By default `num_workers * 2`.
     dtype
         Floating point type to use. Default is np.float32.
+    shuffle_buffer_length
+        The length of the buffer used to do pseudo shuffle.
+        If not None, the loader will perform pseudo shuffle when generating batches.
+        Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
+        more time to be done.
     """
 
     def __init__(

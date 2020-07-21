@@ -19,10 +19,9 @@ import mxnet as mx
 import numpy as np
 from mxnet import gluon
 
+# First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.model.common import Tensor
-
-# First-party imports
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import Seq2SeqEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
@@ -39,21 +38,23 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
     Parameters
     ----------
     encoder: Seq2SeqEncoder
-        encoder block
+        encoder block.
     enc2dec: Seq2SeqEnc2Dec
-        encoder to decoder mapping block
+        encoder to decoder mapping block.
     decoder: Seq2SeqDecoder
-        decoder block
+        decoder block.
     quantile_output: QuantileOutput
         quantile output block
     context_length: int,
-        length of the encoding sequence
+        length of the encoding sequence.
     cardinality: List[int],
         number of values of each categorical feature.
     embedding_dimension: List[int],
-        dimension of the embeddings for categorical features
+        dimension of the embeddings for categorical features.
     scaling
-        Whether to automatically scale the target values (default: True)
+        Whether to automatically scale the target values. (default: False)
+    scaling_decoder_dynamic_feature
+        Whether to automatically scale the dynamic features for the decoder. (default: False)
     dtype
         (default: np.float32)
     kwargs: dict
@@ -70,7 +71,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         context_length: int,
         cardinality: List[int],
         embedding_dimension: List[int],
-        scaling: bool = True,
+        scaling: bool = False,
+        scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
         **kwargs,
     ) -> None:
@@ -84,12 +86,23 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
         self.scaling = scaling
+        self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
+        self.scaling_decoder_dynamic_feature_axis = 1
         self.dtype = dtype
 
         if self.scaling:
             self.scaler = MeanScaler(keepdims=True)
         else:
             self.scaler = NOPScaler(keepdims=True)
+
+        if self.scaling_decoder_dynamic_feature:
+            self.scaler_decoder_dynamic_feature = MeanScaler(
+                keepdims=True, axis=self.scaling_decoder_dynamic_feature_axis
+            )
+        else:
+            self.scaler_decoder_dynamic_feature = NOPScaler(
+                keepdims=True, axis=self.scaling_decoder_dynamic_feature_axis
+            )
 
         with self.name_scope():
             self.quantile_proj = quantile_output.get_quantile_proj()
@@ -127,6 +140,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
         # in addition to embedding features, use the log scale as it can help prediction too
         # (batch_size, num_features + prod(target_shape))
+        # TODO: Check why different from DeepAR case
         feat_static_real = F.concat(
             embedded_cat, F.log(scale.squeeze(axis=1)), dim=1,
         )
@@ -142,9 +156,15 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             scaled_past_target, feat_static_real, past_feat_dynamic_extended
         )
 
+        # TODO: This assumes that future_feat_dynamic has no missing values
+        # TODO: Output the scale as well to be used by the decoder
+        scaled_future_feat_dynamic, _ = self.scaler_decoder_dynamic_feature(
+            future_feat_dynamic, F.ones_like(future_feat_dynamic)
+        )
+
         # arguments: encoder_output_static, encoder_output_dynamic, future_features
         dec_input_static, dec_input_dynamic = self.enc2dec(
-            enc_output_static, enc_output_dynamic, future_feat_dynamic
+            enc_output_static, enc_output_dynamic, scaled_future_feat_dynamic
         )
 
         # arguments: dynamic_input, static_input
@@ -179,7 +199,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         future_target: Tensor
             shape (batch_size, encoder_length, decoder_length)
         past_feat_dynamic
-            shape (batch_size, encoder_length, num_feature_dynamic)
+            shape (batch_size, encoder_length, num_past_feature_dynamic)
         future_feat_dynamic
             shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
         feat_static_cat
@@ -234,7 +254,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         feat_static_cat
             shape (batch_size, encoder_length, num_feature_static_cat)
         past_feat_dynamic
-            shape (batch_size, encoder_length, num_feature_dynamic)
+            shape (batch_size, encoder_length, num_past_feature_dynamic)
         future_feat_dynamic
             shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
         past_observed_values: Tensor

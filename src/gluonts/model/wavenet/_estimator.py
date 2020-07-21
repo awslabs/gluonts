@@ -265,6 +265,7 @@ class WaveNetEstimator(GluonEstimator):
         validation_data: Optional[Dataset] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
@@ -291,6 +292,7 @@ class WaveNetEstimator(GluonEstimator):
             ctx=self.trainer.ctx,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
             **kwargs,
         )
 
