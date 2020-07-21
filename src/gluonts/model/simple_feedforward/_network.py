@@ -159,6 +159,8 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         )
 
         if isinstance(distr, NanMixture):
+            # demasking the missing values for the future_targets
+
             loss = distr.loss(
                 F.where(
                     future_observed_values,
