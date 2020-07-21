@@ -11,7 +11,7 @@ from inference.analytical_gausian_linear.inference_sequence_homogenous import (
     loss_em,
     loss_forward,
 )
-from models_new_will_replace.dynamical_system import DynamicalSystem, \
+from models_new_will_replace.base_gls import BaseGaussianLinearSystem, \
     Prediction, Latents, GLSVariables, ControlInputs
 
 from utils.utils import TensorDims
@@ -58,7 +58,7 @@ def ornstein_uhlenbeck_initialization(
     return convert_ssm_params_to_model_params(**ssm_params)
 
 
-class GaussianLinearSystemHomogenous(DynamicalSystem):
+class GaussianLinearSystemHomogenous(BaseGaussianLinearSystem):
     """
     Standard GLS with fixed set of parameters that do not change over time.
     This class has methods to perform inference (filter and smooth)
@@ -180,7 +180,7 @@ class GaussianLinearSystemHomogenous(DynamicalSystem):
             for m, V in zip(m_smooth, V_smooth)  # covariances ignored here.
         ]
 
-    def sample(
+    def sample_generative(
         self,
         n_steps_forecast: int,
         n_batch: int,

@@ -1,11 +1,11 @@
 import torch
 from torch_extensions.distributions.stable_relaxed_categorical import \
     StableRelaxedOneHotCategorical
-from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemRBSMC
+from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemBaseRBSMC
 
 
 class CategoricalSwitchingGaussianLinearSystemRBSMC(
-    SwitchingGaussianLinearSystemRBSMC
+    SwitchingGaussianLinearSystemBaseRBSMC
 ):
     def __init__(self, temperature, *args, **kwargs):
         super().__init__(*args, **kwargs)

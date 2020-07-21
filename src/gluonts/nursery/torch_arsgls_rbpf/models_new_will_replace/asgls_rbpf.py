@@ -6,14 +6,14 @@ import torch
 from torch import nn
 from torch.distributions import OneHotCategorical, MultivariateNormal
 
-from models_new_will_replace.dynamical_system import GLSVariables
-from models_new_will_replace.base_rbsmc import (
+from models_new_will_replace.base_gls import GLSVariables
+from models_new_will_replace.base_amortized_gls import (
     LatentsRBSMC,
-    BaseRBSMC,
+    BaseAmortizedGaussianLinearSystem,
     Prediction,
 )
 from models_new_will_replace.sgls_rbpf import (
-    SwitchingGaussianLinearSystemRBSMC,
+    SwitchingGaussianLinearSystemBaseRBSMC,
     ControlInputsSGLS,
 )
 
@@ -74,7 +74,9 @@ class LatentsASGLS(LatentsRBSMC):
     log_weights: torch.Tensor
 
 
-class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemRBSMC):
+class AuxiliarySwitchingGaussianLinearSystemRBSMC(
+    SwitchingGaussianLinearSystemBaseRBSMC
+):
     def __init__(
         self,
         n_state: int,
@@ -85,7 +87,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
         n_switch: int,
         gls_base_parameters: GLSParameters,
         measurement_model: nn.Module,
-        obs_encoder: LadderParametrisedConditionalDistribution,
+        encoder: LadderParametrisedConditionalDistribution,
         state_prior_model: ParametrisedMultivariateNormal,
         switch_prior_model: ParametrisedDistribution,
         switch_transition_model: nn.Module,
@@ -100,7 +102,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
             n_particle=n_particle,
             n_switch=n_switch,
             gls_base_parameters=gls_base_parameters,
-            obs_encoder=obs_encoder,
+            encoder=encoder,
             state_prior_model=state_prior_model,
             switch_prior_model=switch_prior_model,
             switch_transition_model=switch_transition_model,
@@ -126,6 +128,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
             )
             lats_tm1 = LatentsASGLS(
                 log_weights=None,  # Not used. We use log_norm_weights instead.
+                gls_params=None,  # First (previous) step no gls_params
                 variables=GLSVariablesASGLS(
                     m=state_prior.loc,
                     V=state_prior.covariance_matrix,
@@ -157,13 +160,14 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
             )
             lats_tm1 = LatentsASGLS(
                 log_weights=None,  # Not used. We use log_norm_weights instead.
+                gls_params=None,  # not used outside this function.
                 variables=GLSVariablesASGLS(**resampled_tensors, x=None),
             )
             switch_model_dist = self._make_switch_transition_dist(
                 lat_vars_tm1=lats_tm1.variables, ctrl_t=ctrl_t,
             )
 
-        encoder_dists = self._make_encoder_dists(tar_t=tar_t, ctrl_t=ctrl_t, )
+        encoder_dists = self._make_encoder_dists(tar_t=tar_t, ctrl_t=ctrl_t)
         switch_proposal_dist = self._make_switch_proposal_dist(
             switch_model_dist=switch_model_dist,
             switch_encoder_dist=encoder_dists.switch,
@@ -207,12 +211,13 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
         log_weights_t = log_norm_weights + log_update
         return LatentsASGLS(
             log_weights=log_weights_t,
+            gls_params=None,  # not used outside this function
             variables=GLSVariablesASGLS(
                 m=m_t, V=V_t, x=None, switch=s_t, auxiliary=z_t,
             ),
         )
 
-    def forecast_sample_step(
+    def sample_step(
         self,
         lats_tm1: LatentsASGLS,
         ctrl_t: ControlInputsSGLS,
@@ -264,6 +269,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
 
         lats_t = LatentsASGLS(
             log_weights=lats_tm1.log_weights,  # does not change w/o evidence.
+            gls_params=None,  # not used outside this function
             variables=GLSVariablesASGLS(
                 x=x_t, m=None, V=None, switch=s_t, auxiliary=z_t,
             ),
@@ -284,6 +290,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
         z_initial = None  # same here.
         return LatentsASGLS(
             log_weights=torch.zeros_like(state_prior.loc[..., 0]),
+            gls_params=None,  # initial step has none
             variables=GLSVariablesASGLS(
                 x=x_initial,
                 m=None,
@@ -299,7 +306,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(SwitchingGaussianLinearSystemR
     def _make_encoder_dists(
         self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
     ) -> Box:
-        encoded = self.obs_encoder([tar_t, ctrl_t.encoder])
+        encoded = self.encoder([tar_t, ctrl_t.encoder])
         if not isinstance(encoded, Sequence):
             raise Exception(f"Expected sequence, got {type(encoded)}")
         if not len(encoded) == 2:

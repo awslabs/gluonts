@@ -1,4 +1,4 @@
-from models_new_will_replace.dynamical_system import ControlInputs
+from models_new_will_replace.base_gls import ControlInputs
 import os
 import inspect
 from copy import copy
@@ -60,6 +60,13 @@ def make_dummy_input_data(ssm_params, n_data=100, n_timesteps=10):
 def make_inv_tril_parametrization(mat):
     L = torch.cholesky(mat)
     Linv = torch.inverse(L)
+    Linv_tril = torch.tril(Linv, -1)
+    Linv_logdiag = torch.log(batch_diag(Linv))
+    return Linv_tril, Linv_logdiag
+
+
+def make_inv_tril_parametrization_from_cholesky(Lmat):
+    Linv = torch.inverse(Lmat)
     Linv_tril = torch.tril(Linv, -1)
     Linv_logdiag = torch.log(batch_diag(Linv))
     return Linv_tril, Linv_logdiag

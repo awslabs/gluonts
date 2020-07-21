@@ -2,7 +2,7 @@ import torch
 from torch.distributions import MultivariateNormal
 
 from models_new_will_replace.sgls_rbpf import ControlInputsSGLS
-from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemRBSMC, \
+from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemBaseRBSMC, \
     GLSVariablesSGLS
 from torch_extensions.distributions.parametrised_distribution import \
     prepend_batch_dims
@@ -70,6 +70,6 @@ class RecurrentMixin:
 
 
 class RecurrentSwitchingGaussianLinearSystemRBSMC(
-    RecurrentMixin, SwitchingGaussianLinearSystemRBSMC,
+    RecurrentMixin, SwitchingGaussianLinearSystemBaseRBSMC,
 ):
     pass

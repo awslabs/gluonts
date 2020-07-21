@@ -1,5 +1,4 @@
-from typing import Tuple, Optional, Union, Sequence
-from box import Box
+from typing import Optional, Union, Sequence
 import math
 import numpy as np
 import torch
@@ -11,15 +10,13 @@ from models.gls_parameters.switch_link_functions import (
     IdentityLink,
 )
 from torch_extensions.ops import (
-    cov_from_invcholesky_param,
     cov_and_chol_from_invcholesky_param,
     matvec,
     batch_diag_matrix,
     matmul,
 )
 from experiments.base_config import SwitchLinkType
-from utils.utils import SigmoidLimiter
-from models_new_will_replace.dynamical_system import ControlInputs
+from models_new_will_replace.base_gls import ControlInputs, GLSParams
 
 
 def filter_out_none(dic: dict):
@@ -399,7 +396,7 @@ class GLSParameters(nn.Module):
             b = b_lin + b_nonlin
         return b
 
-    def forward(self, switch, controls: ControlInputs):
+    def forward(self, switch, controls: ControlInputs) -> GLSParams:
         weights = self.link_transformers(switch)
 
         # biases to state (B/b) and observation (D/d)
@@ -449,4 +446,7 @@ class GLSParameters(nn.Module):
             )
         # return B and D because the loss and smoothing functions use B / D atm
         # and do not support b / d (although that is straightforward to do).
-        return Box(A=A, b=b, C=C, d=d, Q=Q, R=R, B=B, D=D, LQ=LQ, LR=LR)
+        return GLSParams(
+            A=A, b=b, C=C, d=d, Q=Q, R=R, B=B, D=D, LQ=LQ, LR=LR,
+        )
+

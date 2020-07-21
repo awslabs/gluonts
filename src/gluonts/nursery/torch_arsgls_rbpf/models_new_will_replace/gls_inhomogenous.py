@@ -8,18 +8,18 @@ from inference.analytical_gausian_linear.inference_sequence_inhomogenous import 
     loss_em,
     loss_forward,
 )
-from models_new_will_replace.dynamical_system import DynamicalSystem, \
+from models_new_will_replace.base_gls import BaseGaussianLinearSystem, \
     ControlInputs
 from models_new_will_replace.gls_homogenous import (
     ornstein_uhlenbeck_initialization,
 )
-from models_new_will_replace.dynamical_system import DynamicalSystem, \
+from models_new_will_replace.base_gls import BaseGaussianLinearSystem, \
     Prediction, Latents, GLSVariables
 
 from utils.utils import TensorDims
 
 
-class GaussianLinearSystemInhomogenous(DynamicalSystem):
+class GaussianLinearSystemInhomogenous(BaseGaussianLinearSystem):
     """
     GLS with inhomogenous (i.e. time-dependent) dynamics.
 
@@ -188,7 +188,7 @@ class GaussianLinearSystemInhomogenous(DynamicalSystem):
             for m, V in zip(m_smooth, V_smooth)  # covariances ignored here.
         ]
 
-    def sample(
+    def sample_generative(
         self,
         n_steps_forecast: int,
         n_batch: int,

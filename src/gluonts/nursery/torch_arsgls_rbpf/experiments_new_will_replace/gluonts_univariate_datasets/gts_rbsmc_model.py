@@ -29,8 +29,8 @@ from gluonts.transform import (
     VstackFeatures,
 )
 
-from models_new_will_replace.base_rbsmc import BaseRBSMC
-from models_new_will_replace.dynamical_system import Prediction, Latents
+from models_new_will_replace.base_amortized_gls import BaseAmortizedGaussianLinearSystem
+from models_new_will_replace.base_gls import Prediction, Latents
 
 from data.gluonts_nips_datasets.gluonts_nips_datasets import get_dataset
 from models_new_will_replace.gls_parameters.issm import CompositeISSM
@@ -213,7 +213,7 @@ class GluontsUnivariateDataModel(LightningModule):
     # TODO: let this take a config / hyperparam file with Hydra.
     def __init__(
         self,
-        ssm: BaseRBSMC,  # TODO: what about kvae?
+        ssm: BaseAmortizedGaussianLinearSystem,  # TODO: what about kvae?
         ctrl_transformer: nn.Module,  # TODO: make API
         tar_transformer: torch.distributions.AffineTransform,
         dataset_name: str,
@@ -383,6 +383,7 @@ class GluontsUnivariateDataModel(LightningModule):
         past_seasonal_indicators: torch.Tensor,
         past_time_feat: torch.Tensor,
         past_target: torch.Tensor,
+        **kwargs,
     ):
         T, B = past_target.shape[:2]
 
@@ -393,7 +394,7 @@ class GluontsUnivariateDataModel(LightningModule):
             time_feat=past_time_feat,
         )
         loss_samplewise = self.ssm.loss(
-            past_targets=past_target, past_controls=past_controls,
+            past_targets=past_target, past_controls=past_controls, **kwargs,
         )
         loss = loss_samplewise.sum(dim=0) / (T * B)
         return loss

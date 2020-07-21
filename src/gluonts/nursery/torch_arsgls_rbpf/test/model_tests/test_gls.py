@@ -7,7 +7,7 @@ from models_new_will_replace.gls_homogenous import (
 from utils.utils import make_dummy_ssm_params, make_dummy_input_data
 from utils.local_seed import local_seed
 
-from models_new_will_replace.dynamical_system import ControlInputs
+from models_new_will_replace.base_gls import ControlInputs
 
 
 def _make_model_and_data(device, dtype, n_timesteps=10, n_data=20, seed=42):
@@ -19,7 +19,7 @@ def _make_model_and_data(device, dtype, n_timesteps=10, n_data=20, seed=42):
         true_model = GaussianLinearSystemHomogenous(
             n_target=1, n_state=2, n_ctrl_state=1, n_ctrl_target=3,
         )
-        samples = true_model.sample(
+        samples = true_model.sample_generative(
             n_steps_forecast=n_timesteps,
             n_batch=n_data,
             future_controls=controls,

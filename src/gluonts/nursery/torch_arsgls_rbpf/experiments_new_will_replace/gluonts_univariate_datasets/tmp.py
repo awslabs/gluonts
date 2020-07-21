@@ -25,7 +25,7 @@ import experiments_new_will_replace.model_component_zoo.gls_parameters
 from experiments_new_will_replace.model_component_zoo\
     .recurrent_base_parameters import StateToSwitchParamsDefault
 
-from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemRBSMC
+from models_new_will_replace.sgls_rbpf import SwitchingGaussianLinearSystemBaseRBSMC
 from models_new_will_replace.rsgls_rbpf import RecurrentSwitchingGaussianLinearSystemRBSMC
 from models_new_will_replace.asgls_rbpf import AuxiliarySwitchingGaussianLinearSystemRBSMC
 from models_new_will_replace.arsgls_rbpf import (
@@ -157,7 +157,7 @@ obs_encoder_cat = encoders.ObsToSwitchEncoderCategoricalMLP(config=config_nonrec
 device = "cuda"
 dtype = torch.float32
 # ***** SGLS *****
-sgls = SwitchingGaussianLinearSystemRBSMC(
+sgls = SwitchingGaussianLinearSystemBaseRBSMC(
     n_state=dims.state,
     n_target=dims.target,
     n_ctrl_state=dims.ctrl_state,
@@ -165,7 +165,7 @@ sgls = SwitchingGaussianLinearSystemRBSMC(
     n_particle=dims.particle,
     n_switch=dims.switch,
     gls_base_parameters=gls_base_parameters,
-    obs_encoder=obs_encoder,
+    encoder=obs_encoder,
     # input_transformer=input_transformer,
     switch_transition_model=switch_transition_model,
     state_prior_model=state_prior_model,
@@ -263,7 +263,7 @@ asgls = AuxiliarySwitchingGaussianLinearSystemRBSMC(
     n_switch=dims.switch,
     gls_base_parameters=gls_base_parameters,
     measurement_model=measurment_model,
-    obs_encoder=encoder,
+    encoder=encoder,
     # input_transformer=input_transformer,
     switch_transition_model=switch_transition_model,
     state_prior_model=state_prior_model,
@@ -403,7 +403,7 @@ for name in ["csgls", "sgls", "rsgls", "asgls", "arsgls"]:
 
 for name in ["csgls", "sgls", "rsgls", "asgls", "arsgls"]:
     print(f"next is: {name}")
-    _ = models[name].ssm.sample(
+    _ = models[name].ssm.sample_generative(
         n_steps_forecast=len(batch_test["future_time_feat"]),
         n_batch=batch_test["future_time_feat"].shape[1],
         n_particle=config.dims.particle,
