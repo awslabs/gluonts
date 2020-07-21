@@ -108,7 +108,7 @@ def test_listify_dataset(train_env: TrainEnv, listify_dataset):
         )
 
 
-@pytest.mark.parametrize("listify_dataset", [True])
+@pytest.mark.parametrize("listify_dataset", [True, False])
 def test_train_shell(train_env: TrainEnv, caplog) -> None:
     run_train_and_test(env=train_env, forecaster_type=MeanPredictor)
 
@@ -125,7 +125,7 @@ def test_train_shell(train_env: TrainEnv, caplog) -> None:
             assert line.endswith("270.0")
 
 
-@pytest.mark.parametrize("listify_dataset", [True])
+@pytest.mark.parametrize("listify_dataset", [True, False])
 def test_server_shell(
     train_env: TrainEnv, static_server: "testutil.ServerFacade", caplog
 ) -> None:
@@ -167,7 +167,7 @@ def test_server_shell(
         assert equals(exp_samples, act_samples)
 
 
-@pytest.mark.parametrize("listify_dataset", [True])
+@pytest.mark.parametrize("listify_dataset", [True, False])
 def test_dynamic_shell(
     train_env: TrainEnv, dynamic_server: "testutil.ServerFacade", caplog
 ) -> None:
@@ -210,7 +210,7 @@ def test_dynamic_shell(
         assert equals(exp_samples, act_samples)
 
 
-@pytest.mark.parametrize("listify_dataset", [True])
+@pytest.mark.parametrize("listify_dataset", [True, False])
 def test_dynamic_batch_shell(
     batch_transform,
     train_env: TrainEnv,

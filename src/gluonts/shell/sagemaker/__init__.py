@@ -134,11 +134,7 @@ def _load_datasets(
     hyperparameters: dict, channels: Dict[str, Path]
 ) -> Dict[str, FileDataset]:
     freq = hyperparameters["freq"]
-    listify_dataset = (
-        strtobool(hyperparameters["listify_dataset"])
-        if "listify_dataset" in hyperparameters.keys()
-        else False
-    )
+    listify_dataset = strtobool(hyperparameters.get("listify_dataset", "no"))
     dataset_dict = {}
     for name in DATASET_NAMES:
         if name in channels:
