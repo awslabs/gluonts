@@ -157,11 +157,11 @@ class NanMixtureOutput(DistributionOutput):
         **kwargs,
     ) -> MixtureDistribution:
         nan_prob = distr_args[0]
-        component_args = distr_args[1:]
+        component_args = distr_args[1]
         return NanMixture(
             nan_prob=nan_prob,
             distribution=self.distr_output.distribution(
-                *component_args, loc=loc, scale=scale
+                component_args, loc=loc, scale=scale
             ),
         )
 

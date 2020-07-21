@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import ClassVar, Dict
+from typing import Dict
 
 # Third-party imports
 import mxnet as mx
@@ -116,8 +116,8 @@ params_cat_grad = {"log_probs": log_p_cat_grad_true}
     ],
 )
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
-def test_nan_mixture_1(
-    distr_class: ClassVar[Distribution],
+def test_nan_mixture(
+    distr_class,
     p: Tensor,
     x: Tensor,
     distr_params: Dict[str, Tensor],
@@ -197,7 +197,7 @@ np_samples = np.where(
 )
 
 
-# @pytest.mark.skip("Skip test that takes long time to run")
+@pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_gaussian_inference() -> None:
 
     nmdo = NanMixtureOutput(GaussianOutput())
@@ -252,6 +252,7 @@ cat_samples = np.where(
 )
 
 
+@pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_categorical_inference() -> None:
 
     nmdo = NanMixtureOutput(CategoricalOutput(3))

@@ -23,7 +23,7 @@ from typing import Tuple
 
 # First-party imports
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.distribution import DistributionOutput, NanMixture
 from gluonts.support.util import weighted_average
 
 
@@ -158,15 +158,22 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
             distr_args, loc=loc, scale=scale
         )
 
-        # (batch_size, prediction_length, target_dim)
-        loss = distr.loss(future_target)
-
-        weighted_loss = weighted_average(
-            F=F, x=loss, weights=future_observed_values, axis=1
-        )
-
-        # (batch_size, )
-        return weighted_loss
+        if isinstance(distr, NanMixture):
+            loss = distr.loss(
+                F.where(
+                    future_observed_values,
+                    future_target,
+                    0.0 / future_target.zeros_like(),
+                )
+            )
+            return loss
+        else:
+            loss = distr.loss(future_target)
+            weighted_loss = weighted_average(
+                F=F, x=loss, weights=future_observed_values, axis=1
+            )
+            # (batch_size, )
+            return weighted_loss
 
 
 class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
