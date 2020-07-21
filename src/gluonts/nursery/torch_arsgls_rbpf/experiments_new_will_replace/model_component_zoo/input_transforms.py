@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch_extensions.mlp import MLP
 from utils.utils import one_hot
-from models_new_will_replace.dynamical_system import ControlInputs
+from models_new_will_replace.base_gls import ControlInputs
 from models_new_will_replace.sgls_rbpf import (
     ControlInputsSGLS,
     ControlInputsSGLSISSM,

@@ -44,7 +44,7 @@ from torch_extensions.distributions.parametrised_distribution import (
 from models.gls_parameters.gls_parameters import GLSParameters
 from models.dynamical_system import DynamicalSystem
 from experiments.model_component_zoo.input_transforms import InputTransformer
-from models_new_will_replace.dynamical_system import ControlInputs
+from models_new_will_replace.base_gls import ControlInputs
 from data.gluonts_nips_datasets.gluonts_nips_datasets import (
     transform_gluonts_to_pytorch,
 )

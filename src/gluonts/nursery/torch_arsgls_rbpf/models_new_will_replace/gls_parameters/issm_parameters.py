@@ -11,6 +11,7 @@ from models_new_will_replace.gls_parameters.issm import (
 from torch_extensions.ops import batch_diag_matrix, matvec
 from models_new_will_replace.gls_parameters.gls_parameters import GLSParameters
 from models_new_will_replace.sgls_rbpf import ControlInputsSGLSISSM
+from models_new_will_replace.base_gls import GLSParams
 
 
 class ISSMParameters(GLSParameters):
@@ -60,7 +61,7 @@ class ISSMParameters(GLSParameters):
             requires_grad=self.LRinv_logdiag.requires_grad,
         )
 
-    def forward(self, switch, controls: ControlInputsSGLSISSM) -> Box:
+    def forward(self, switch, controls: ControlInputsSGLSISSM) -> GLSParams:
         weights = self.link_transformers(switch=switch)
 
         # biases
@@ -110,4 +111,4 @@ class ISSMParameters(GLSParameters):
         R = batch_diag_matrix(matvec(R_diag_projector, R_diag))
         LQ = batch_diag_matrix(LQ_diag)
         LR = batch_diag_matrix(matvec(R_diag_projector, LR_diag))
-        return Box(A=A, b=b, C=C, d=d, Q=Q, R=R, LR=LR, LQ=LQ)
+        return GLSParams(A=A, b=b, C=C, d=d, Q=Q, R=R, LR=LR, LQ=LQ)

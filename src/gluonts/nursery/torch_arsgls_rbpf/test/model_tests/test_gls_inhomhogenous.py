@@ -20,7 +20,7 @@ def _make_models_and_data(device, dtype, n_data=20, n_timesteps=10, seed=42):
         true_model = GaussianLinearSystemHomogenous(
             n_target=1, n_state=2, n_ctrl_state=1, n_ctrl_target=3,
         )
-        samples = true_model.sample(
+        samples = true_model.sample_generative(
             n_steps_forecast=n_timesteps,
             n_batch=n_data,
             future_controls=controls,
