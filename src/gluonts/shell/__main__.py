@@ -155,8 +155,7 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
     from gluonts.shell import train
 
     logger.info("Run 'train' command")
-    path = Path(data_path)
-    train_paths = TrainPaths(path)
+    train_paths = TrainPaths(Path(data_path))
 
     try:
         env = TrainEnv(train_paths)
