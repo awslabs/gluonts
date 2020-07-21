@@ -176,7 +176,7 @@ def temporary_train_env(
     Parameters
     ----------
     hyperparameters
-        The name of the repository dataset to use when instantiating the
+        The hyperparameters to use when instantiating the
         training environment.
     dataset_name
         The name of the repository dataset to use when instantiating the
