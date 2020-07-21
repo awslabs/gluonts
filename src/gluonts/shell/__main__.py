@@ -154,9 +154,11 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
     from gluonts.shell import train
 
     logger.info("Run 'train' command")
-    env = TrainEnv(Path(data_path))
+    data_path = Path(data_path)
+    failure_path = data_path / "output" / "failure"
 
     try:
+        env = TrainEnv(data_path)
         if forecaster is None:
             try:
                 forecaster = env.hyperparameters["forecaster_name"]
@@ -171,7 +173,7 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
         assert forecaster is not None
         train.run_train_and_test(env, forecaster_type_by_name(forecaster))
     except Exception as error:
-        with open(env.path.output / "failure", "w") as out_file:
+        with open(failure_path, "w") as out_file:
             out_file.write(str(error))
             out_file.write("\n\n")
             out_file.write(traceback.format_exc())
