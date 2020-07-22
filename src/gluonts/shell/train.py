@@ -140,7 +140,7 @@ def run_test(
         logger.info(f"#test_score ({env.current_host}, {name}): {score}")
 
     # store metrics
-    with open(env.path.model / "agg_metrics.json", "w") as f:
-        json.dump(agg_metrics, f)
-    with open(env.path.model / "item_metrics.csv", "w") as f:
-        item_metrics.to_csv(f, index=False)
+    with open(env.path.model / "agg_metrics.json", "w") as agg_metric_file:
+        json.dump(agg_metrics, agg_metric_file)
+    with open(env.path.model / "item_metrics.csv", "w") as item_metrics_file:
+        item_metrics.to_csv(item_metrics_file, index=False)
