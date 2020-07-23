@@ -14,7 +14,7 @@ RUN echo '#!/bin/bash\necho Building container with GPU support' > /usr/bin/nvid
 
 ADD . /gluonts
 
-RUN pip3.7 install mxnet-cu92
+RUN pip3.7 install mxnet-cu92>=1.6.0
 RUN pip3.7 install /gluonts[shell]
 
 ENTRYPOINT ["python3.7", "-m", "gluonts.shell"]
