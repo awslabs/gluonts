@@ -23,7 +23,7 @@ from typing import Tuple
 
 # First-party imports
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.distribution import DistributionOutput, NanMixture
+from gluonts.mx.distribution import DistributionOutput
 from gluonts.support.util import weighted_average
 
 
@@ -108,11 +108,11 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
         Returns
         -------
         Tuple[Tensor, Tensor Tensor]
-            A tuple of three tensors ``distr_args``, ``loc``, and ``scale``: the 
-            first contains the output distribution parameters, and the others are 
+            A tuple of three tensors ``distr_args``, ``loc``, and ``scale``: the
+            first contains the output distribution parameters, and the others are
             location and scale of the distribution.
- 
-        
+
+
         """
         scaled_target, target_scale = self.scaler(
             past_target, F.ones_like(past_target),
@@ -158,24 +158,15 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
             distr_args, loc=loc, scale=scale
         )
 
-        if isinstance(distr, NanMixture):
-            # demasking the missing values for the future_targets
+        # (batch_size, prediction_length, target_dim)
+        loss = distr.loss(future_target)
 
-            loss = distr.loss(
-                F.where(
-                    future_observed_values,
-                    future_target,
-                    0.0 / future_target.zeros_like(),
-                )
-            )
-            return loss
-        else:
-            loss = distr.loss(future_target)
-            weighted_loss = weighted_average(
-                F=F, x=loss, weights=future_observed_values, axis=1
-            )
-            # (batch_size, )
-            return weighted_loss
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=future_observed_values, axis=1
+        )
+
+        # (batch_size, )
+        return weighted_loss
 
 
 class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
@@ -238,7 +229,7 @@ class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
         -------
         distr_args: the parameters of distribution
         loc: an array of zeros with the same shape of scale
-        scale: 
+        scale:
         """
         distr_args, loc, scale = self.get_distr_args(F, past_target)
         return distr_args, loc, scale
