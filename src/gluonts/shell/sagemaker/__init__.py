@@ -38,7 +38,7 @@ DATASET_NAMES = "train", "test"
 
 
 class TrainEnv:
-    def __init__(self, path: TrainPaths = TrainPaths(Path("/opt/ml"))) -> None:
+    def __init__(self, path: TrainPaths) -> None:
         self.path = path
         self.inputdataconfig = _load_inputdataconfig(self.path.inputdataconfig)
         self.channels = _load_channels(self.path, self.inputdataconfig)
