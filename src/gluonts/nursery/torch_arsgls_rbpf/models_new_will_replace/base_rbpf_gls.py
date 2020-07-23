@@ -27,16 +27,21 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
         past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_targets_is_observed: Optional[
+                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
     ) -> torch.Tensor:
         return self.loss_filter(
             past_targets=past_targets,
             past_controls=past_controls,
+            past_targets_is_observed=past_targets_is_observed,
         )
 
     def loss_filter(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
         past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_targets_is_observed: Optional[
+            Union[Sequence[torch.Tensor], torch.Tensor]] = None,
     ) -> torch.Tensor:
         """
         Computes an estimate of the negative log marginal likelihood.
@@ -47,7 +52,9 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
         their product yields an (unbiased) estimate of the marginal likelihood.
         """
         latents_filtered = self.filter(
-            past_targets=past_targets, past_controls=past_controls,
+            past_targets=past_targets,
+            past_controls=past_controls,
+            past_targets_is_observed=past_targets_is_observed,
         )
         log_weights = [lats.log_weights for lats in latents_filtered]
         log_conditionals = [torch.logsumexp(lws, dim=0) for lws in log_weights]
@@ -97,5 +104,19 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
             ).rsample()
             resampled_initial_latent.variables.m = None
             resampled_initial_latent.variables.V = None
+            resampled_initial_latent.variables.Cov = None
 
         return resampled_initial_latent, controls
+
+    def smooth_step(
+        self,
+        lats_smooth_tp1: (LatentsRBSMC, None),
+        lats_filter_t: (LatentsRBSMC, None),
+    ) -> LatentsRBSMC:
+        # TODO: Could do a no-brainer like in the KVAE,
+        #  where GLS params are taken from forward.
+        #  Similarly, EM loss should actually be the identical analytical loss,
+        #  but with better numerical, speed, memory properties due to E-step.
+        raise NotImplementedError(
+            "Did not develop smoothing yet for this class of models. "
+        )

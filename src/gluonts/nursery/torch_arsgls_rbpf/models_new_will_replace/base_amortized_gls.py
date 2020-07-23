@@ -184,7 +184,7 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
             n_steps_forecast: int,
             n_batch: int,
             n_particle: int,
-            future_controls: Optional[Sequence[torch.Tensor]] = None,
+            future_controls: Optional[Sequence[ControlInputs]] = None,
             deterministic=False,
             **kwargs,
     ) -> Sequence[Prediction]:
@@ -207,6 +207,7 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
             future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
             deterministic: bool = False,
     ) -> Sequence[Prediction]:
+        # initial_latent is considered t == -1
 
         if future_controls is not None:
             assert n_steps_forecast == len(future_controls)
@@ -216,35 +217,66 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
             if future_controls is None
             else future_controls
         )
-        forecasted = [None] * n_steps_forecast
+        samples = [None] * n_steps_forecast
 
         for t in range(n_steps_forecast):
-            forecasted[t] = self.sample_step(
-                lats_tm1=forecasted[t - 1].latents if t > 0 else initial_latent,
+            samples[t] = self.sample_step(
+                lats_tm1=samples[t - 1].latents if t > 0 else initial_latent,
                 ctrl_t=controls[t],
                 deterministic=deterministic,
             )
-        return forecasted
+        return samples
 
     def filter(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
         past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_targets_is_observed: Optional[Union[Sequence[torch.Tensor], torch.Tensor]] = None,
     ) -> Sequence[Latents]:
 
         n_timesteps = len(past_targets)
-        filtered = [None] * n_timesteps
         controls = (
             [None] * n_timesteps if past_controls is None else past_controls
         )
+        filtered = [None] * n_timesteps
 
         for t in range(n_timesteps):
             filtered[t] = self.filter_step(
                 lats_tm1=filtered[t - 1] if t > 0 else None,
                 tar_t=past_targets[t],
                 ctrl_t=controls[t],
+                tar_is_obs_t=past_targets_is_observed[t]
+                if past_targets_is_observed is not None
+                else None,
             )
         return filtered
+
+    def smooth(
+        self,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_targets_is_observed: Optional[
+                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+    ) -> Sequence[Latents]:
+        """ Forward-Backward Smoothing (Rauch-Tung-Striebel) """
+
+        n_timesteps = len(past_targets)
+        smoothed = [None] * n_timesteps
+
+        filtered = self.filter(
+            past_targets=past_targets,
+            past_controls=past_controls,
+            past_targets_is_observed=past_targets_is_observed,
+        )
+
+        smoothed[-1] = filtered[-1]  # start backward recursion from last filter
+        smoothed[-1].variables.Cov = torch.zeros_like(smoothed[-1].variables.V)
+        for t in reversed(range(n_timesteps - 1)):
+            smoothed[t] = self.smooth_step(
+                lats_smooth_tp1=smoothed[t+1],
+                lats_filter_t=filtered[t],
+            )
+        return smoothed
 
     @abc.abstractmethod
     def emit(
@@ -260,6 +292,15 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         lats_tm1: (Latents, None),
         tar_t: torch.Tensor,
         ctrl_t: ControlInputs,
+        tar_is_obs_t: Optional[torch.Tensor] = None,
+    ) -> Latents:
+        raise NotImplementedError("must be implemented by child class")
+
+    @abc.abstractmethod
+    def smooth_step(
+        self,
+        lats_smooth_tp1: (Latents, None),
+        lats_filter_t: (Latents, None),
     ) -> Latents:
         raise NotImplementedError("must be implemented by child class")
 
@@ -273,7 +314,11 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         raise NotImplementedError("must be implemented by child class")
 
     @abc.abstractmethod
-    def _sample_initial_latents(self, n_particle, n_batch) -> Latents:
+    def _sample_initial_latents(
+        self,
+        n_particle,
+        n_batch
+    ) -> Latents:
         raise NotImplementedError("must be implemented by child class")
 
     @abc.abstractmethod
