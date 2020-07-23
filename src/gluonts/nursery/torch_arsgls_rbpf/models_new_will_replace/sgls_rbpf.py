@@ -106,7 +106,11 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
         lats_tm1: (LatentsSGLS, None),
         tar_t: torch.Tensor,
         ctrl_t: ControlInputsSGLS,
+        tar_is_obs_t: Optional[torch.Tensor] = None,
     ):
+        if tar_is_obs_t is not None:
+            raise NotImplementedError("cannot handle missing data atm.")
+
         is_initial_step = lats_tm1 is None
         if is_initial_step:
             n_particle, n_batch = self.n_particle, len(tar_t)
@@ -122,6 +126,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
                 variables=GLSVariablesSGLS(
                     m=state_prior.loc,
                     V=state_prior.covariance_matrix,
+                    Cov=None,
                     x=None,
                     switch=None,
                 ),
@@ -142,7 +147,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
                 tensors_to_resample={
                     key: val
                     for key, val in lats_tm1.variables.__dict__.items()
-                    if key != "x"  # below set to None explicitly
+                    if key not in ("x", "Cov")  # below set to None explicitly
                 },
                 resampling_indices_fn=self.resampling_indices_fn,
                 criterion_fn=self.resampling_criterion_fn,
@@ -152,7 +157,9 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             lats_tm1 = LatentsSGLS(
                 log_weights=None,  # Not used. We use log_norm_weights instead.
                 gls_params=None,  # not used outside this function. Read above.
-                variables=GLSVariablesSGLS(**resampled_tensors, x=None),
+                variables=GLSVariablesSGLS(
+                    **resampled_tensors, x=None, Cov=None,
+                ),
             )
             switch_model_dist = self._make_switch_transition_dist(
                 lat_vars_tm1=lats_tm1.variables, ctrl_t=ctrl_t,
@@ -208,7 +215,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             log_weights=log_weights_t,
             gls_params=None,  # not used outside this function
             variables=GLSVariablesSGLS(
-                m=m_t, V=V_t, x=None, switch=s_t,
+                m=m_t, V=V_t, x=None, Cov=None, switch=s_t,
             ),
         )
 
@@ -258,7 +265,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             log_weights=lats_tm1.log_weights,  # does not change w/o evidence.
             gls_params=None,  # not used outside this function
             variables=GLSVariablesSGLS(
-                x=x_t, m=None, V=None, switch=s_t,
+                x=x_t, m=None, V=None, Cov=None, switch=s_t,
             ),
         )
 
@@ -274,7 +281,11 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
 
         return Prediction(latents=lats_t, emissions=emissions_t)
 
-    def _sample_initial_latents(self, n_particle, n_batch) -> LatentsSGLS:
+    def _sample_initial_latents(
+        self,
+        n_particle,
+        n_batch,
+    ) -> LatentsSGLS:
         state_prior = self.state_prior_model(
             None, batch_shape_to_prepend=(n_particle, n_batch)
         )
@@ -287,6 +298,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
                 x=x_initial,
                 m=None,
                 V=None,
+                Cov=None,
                 switch=s_initial,
             )
         )

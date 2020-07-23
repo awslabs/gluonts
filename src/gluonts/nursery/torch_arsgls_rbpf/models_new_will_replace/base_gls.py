@@ -82,6 +82,7 @@ class GLSVariables:
     # would need to set all fields then with default values too.
     m: (torch.Tensor, None)
     V: (torch.Tensor, None)
+    Cov: (torch.Tensor, None)
     x: (torch.Tensor, None)
 
     def __len__(self):
@@ -178,6 +179,8 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
         past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_targets_is_observed: Optional[
+                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
     ) -> Sequence[Latents]:
         raise NotImplementedError("Should be implemented by child class")
 
@@ -185,6 +188,8 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
         past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_targets_is_observed: Optional[
+                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
     ) -> Sequence[Latents]:
         raise NotImplementedError("Should be implemented by child class")
 
@@ -193,7 +198,7 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         n_steps_forecast: int,
         n_batch: int,
         future_controls: Optional[Union[Sequence[torch.Tensor], ControlInputs]],
-        deterministic: bool,
+        deterministic: bool = False,
         **kwargs,
     ) -> Sequence[Prediction]:
         raise NotImplementedError("Should be implemented by child class")
@@ -203,7 +208,7 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         n_steps_forecast: int,
         initial_latent: Latents,
         future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
-        deterministic: bool,
+        deterministic: bool = False,
     ) -> Sequence[Prediction]:
         raise NotImplementedError("Should be implemented by child class")
 
@@ -213,7 +218,9 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
         past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
         future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
-        deterministic: bool,
+        past_targets_is_observed: Optional[
+            Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+        deterministic: bool = False,
     ) -> Sequence[Prediction]:
         raise NotImplementedError("Should be implemented by child class")
 
@@ -221,5 +228,7 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
         past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_targets_is_observed: Optional[
+            Union[Sequence[torch.Tensor], torch.Tensor]] = None,
     ) -> torch.Tensor:
         raise NotImplementedError("Should be implemented by child class")
