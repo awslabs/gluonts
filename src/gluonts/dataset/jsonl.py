@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import gzip
 import functools
 from pathlib import Path
 from typing import NamedTuple
@@ -59,6 +60,7 @@ class JsonLinesFile:
 
     def __init__(self, path: Path, cache: bool = False) -> None:
         self.path = path
+        self.open = gzip.open if path.suffix == ".gz" else open
         self.cache = cache
         self._len = None
         self._data_cache: list = []
@@ -68,7 +70,7 @@ class JsonLinesFile:
         # with lower and upper bound, where each worker is assigned one segment
         bounds = get_bounds_for_mp_data_loading(len(self))
         if not self.cache or (self.cache and not self._data_cache):
-            with open(self.path) as jsonl_file:
+            with self.open(self.path) as jsonl_file:
                 for line_number, raw in enumerate(jsonl_file):
                     if not bounds.lower <= line_number < bounds.upper:
                         continue
@@ -91,10 +93,10 @@ class JsonLinesFile:
             # 1MB
             BUF_SIZE = 1024 ** 2
 
-            with open(self.path) as file_obj:
+            with self.open(self.path, "rb") as file_obj:
                 read_chunk = functools.partial(file_obj.read, BUF_SIZE)
                 file_len = sum(
-                    chunk.count("\n") for chunk in iter(read_chunk, "")
+                    chunk.count(b"\n") for chunk in iter(read_chunk, b"")
                 )
                 self._len = file_len
         return self._len
