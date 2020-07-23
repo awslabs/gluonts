@@ -46,7 +46,7 @@ from gluonts.dataset.artificial import ConstantDataset
 
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation import Evaluator
 
@@ -469,12 +469,12 @@ def test_general_functionality() -> None:
         prediction_length=prediction_length, freq=freq, trainer=trainer
     )
 
+    predictor = estimator.train(training_data=train_ds)
+
     agg_metrics, item_metrics = backtest_metrics(
-        train_dataset=train_ds,
         test_dataset=test_ds,
-        forecaster=estimator,
+        predictor=predictor,
         evaluator=Evaluator(calculate_owa=False),
-        num_workers=NUM_WORKERS_MP,
     )
 
     # just some sanity check

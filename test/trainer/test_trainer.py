@@ -18,7 +18,7 @@ from typing import Any, List
 import pytest
 
 # First-party imports
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 
 def test_epochs() -> None:

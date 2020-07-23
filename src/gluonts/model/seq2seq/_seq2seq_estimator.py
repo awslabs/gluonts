@@ -19,27 +19,27 @@ import mxnet as mx
 
 # First-party imports
 from gluonts import transform
-from gluonts.block.decoder import OneShotDecoder
-from gluonts.block.enc2dec import PassThroughEnc2Dec
-from gluonts.block.encoder import (
-    HierarchicalCausalConv1DEncoder,
-    MLPEncoder,
-    Seq2SeqEncoder,
-    RNNEncoder,
-)
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.block.quantile_output import QuantileOutput
-from gluonts.block.scaler import NOPScaler, Scaler
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.forecast import QuantileForecast, Quantile
+from gluonts.model.forecast import Quantile
+from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.block.decoder import OneShotDecoder
+from gluonts.mx.block.enc2dec import PassThroughEnc2Dec
+from gluonts.mx.block.encoder import (
+    HierarchicalCausalConv1DEncoder,
+    MLPEncoder,
+    RNNEncoder,
+    Seq2SeqEncoder,
+)
+from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.block.scaler import NOPScaler, Scaler
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import ExpectedNumInstanceSampler
-from gluonts.model.forecast_generator import QuantileForecastGenerator
 
 # Relative imports
 from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork

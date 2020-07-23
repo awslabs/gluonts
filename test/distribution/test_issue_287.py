@@ -14,10 +14,10 @@
 import mxnet as mx
 import numpy as np
 import pytest
-from gluonts.distribution import DistributionOutput
-from gluonts.distribution.neg_binomial import NegativeBinomialOutput
-from gluonts.distribution.gamma import GammaOutput
-from gluonts.distribution.beta import BetaOutput
+from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.distribution.neg_binomial import NegativeBinomialOutput
+from gluonts.mx.distribution.gamma import GammaOutput
+from gluonts.mx.distribution.beta import BetaOutput
 
 test_cases = [NegativeBinomialOutput, GammaOutput, BetaOutput]
 

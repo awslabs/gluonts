@@ -12,48 +12,53 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, List
+from typing import List, Optional
 
 # Third-party imports
 import numpy as np
 
 # First-party imports
-from gluonts.block.decoder import Seq2SeqDecoder
-from gluonts.block.enc2dec import FutureFeatIntegratorEnc2Dec
-from gluonts.block.encoder import Seq2SeqEncoder
-from gluonts.block.quantile_output import QuantileOutput
-from gluonts.core.component import validated, DType
+from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+
 from gluonts.distribution import DistributionOutput, StudentTOutput, GaussianOutput
 from gluonts.model.forecast_generator import DistributionForecastGenerator
+
+from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.block.decoder import Seq2SeqDecoder
+from gluonts.mx.block.enc2dec import FutureFeatIntegratorEnc2Dec
+from gluonts.mx.block.encoder import Seq2SeqEncoder
+from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.trainer import Trainer
+>>>>>>> master
 from gluonts.support.util import copy_parameters
-from gluonts.trainer import Trainer
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
+    AddConstFeature,
+    AddObservedValuesIndicator,
     AddTimeFeatures,
     Chain,
+    RemoveFields,
+    RenameFields,
+    SetField,
     TestSplitSampler,
     Transformation,
     VstackFeatures,
-    RenameFields,
-    AddConstFeature,
-    RemoveFields,
-    AddObservedValuesIndicator,
-    SetField,
 )
 
 # Relative imports
 from ._forking_network import (
     ForkingSeq2SeqNetworkBase,
+
     ForkingSeq2SeqTrainingNetwork,
     ForkingSeq2SeqDistributionTrainingNetwork,
     ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqDistributionNetwork,
+
 )
 from ._transform import ForkingSequenceSplitter
 
@@ -98,30 +103,37 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     prediction_length
         length of the decoding sequence.
     context_length
-        length of the encoding sequence (default: 4 * prediction_length)
+        length of the encoding sequence. (default: 4 * prediction_length)
+    use_past_feat_dynamic_real
+        Whether to use the ``past_feat_dynamic_real`` field from the data. (default: False)
     use_feat_dynamic_real
-        Whether to use the ``feat_dynamic_real`` field from the data (default: False)
+        Whether to use the ``feat_dynamic_real`` field from the data. (default: False)
     use_feat_static_cat:
-        Whether to use the ``feat_static_cat`` field from the data (default: False)
+        Whether to use the ``feat_static_cat`` field from the data. (default: False)
     cardinality: List[int] = None,
         Number of values of each categorical feature.
-        This must be set if ``use_feat_static_cat == True`` (default: None)
+        This must be set if ``use_feat_static_cat == True``. (default: None)
     embedding_dimension: List[int] = None,
-        Dimension of the embeddings for categorical features
+        Dimension of the embeddings for categorical features.
         (default: [min(50, (cat+1)//2) for cat in cardinality])
     add_time_feature
-        Adds a set of time features.  (default: False)
+        Adds a set of time features. (default: True)
     add_age_feature
         Adds an age feature. (default: False)
         The age feature starts with a small value at the start of the time series and grows over time.
+    enable_encoder_dynamic_feature
+        Whether the encoder should also be provided with the dynamic features (``age``, ``time``
+        and ``feat_dynamic_real`` if enabled respectively). (default: True)
     enable_decoder_dynamic_feature
         Whether the decoder should also be provided with the dynamic features (``age``, ``time``
         and ``feat_dynamic_real`` if enabled respectively). (default: True)
-        It makes sense to disable this, if you dont have ``feat_dynamic_real`` for the prediction range.
+        It makes sense to disable this, if you don't have ``feat_dynamic_real`` for the prediction range.
     trainer
         trainer (default: Trainer())
     scaling
-        Whether to automatically scale the target values (default: False)
+        Whether to automatically scale the target values. (default: False)
+    scaling_decoder_dynamic_feature
+        Whether to automatically scale the dynamic features for the decoder. (default: False)
     dtype
         (default: np.float32)
     """
@@ -137,15 +149,18 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         distr_output: DistributionOutput = GaussianOutput(),
         sampling: bool = True,
         context_length: Optional[int] = None,
+        use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
         cardinality: List[int] = None,
         embedding_dimension: List[int] = None,
         add_time_feature: bool = True,
-        add_age_feature: bool = True,
+        add_age_feature: bool = False,
+        enable_encoder_dynamic_feature: bool = True,
         enable_decoder_dynamic_feature: bool = True,
         trainer: Trainer = Trainer(),
         scaling: bool = False,
+        scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer)
@@ -176,6 +191,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             if context_length is not None
             else 4 * self.prediction_length
         )
+        self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
         self.cardinality = (
@@ -191,8 +207,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.use_dynamic_feat = (
             use_feat_dynamic_real or add_age_feature or add_time_feature
         )
+        self.enable_encoder_dynamic_feature = enable_encoder_dynamic_feature
         self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
         self.scaling = scaling
+        self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
         self.sampling = sampling
         self.distr_output = distr_output
@@ -208,6 +226,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         # --- GENERAL TRANSFORMATION CHAIN ---
 
         # determine unused input
+        if not self.use_past_feat_dynamic_real:
+            remove_field_names.append(FieldName.PAST_FEAT_DYNAMIC_REAL)
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
         if not self.use_feat_static_cat:
@@ -250,6 +270,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             dynamic_feat_fields.append(FieldName.FEAT_AGE)
 
         if self.use_feat_dynamic_real:
+            # Backwards compatibility:
+            chain.append(
+                RenameFields({"dynamic_feat": FieldName.FEAT_DYNAMIC_REAL})
+            )
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
         # we need to make sure that there is always some dynamic input
@@ -260,12 +284,14 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     target_field=FieldName.TARGET,
                     output_field=FieldName.FEAT_CONST,
                     pred_length=self.prediction_length,
+                    const=0.0,  # For consistency in case with no dynamic features
                     dtype=self.dtype,
                 ),
             )
             dynamic_feat_fields.append(FieldName.FEAT_CONST)
 
-        # now we map all the dynamic input onto FieldName.FEAT_DYNAMIC
+        # now we map all the dynamic input of length context_length + prediction_length onto FieldName.FEAT_DYNAMIC
+        # we exclude past_feat_dynamic_real since its length is only context_length
         if len(dynamic_feat_fields) > 1:
             chain.append(
                 VstackFeatures(
@@ -299,21 +325,61 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 dec_len=self.prediction_length,
                 encoder_series_fields=[
                     FieldName.OBSERVED_VALUES,
+                    # RTS with past and future values which is never empty because added dummy constant variable
+                    FieldName.FEAT_DYNAMIC,
+                ]
+                + (
+                    # RTS with only past values are only used by the encoder
+                    [FieldName.PAST_FEAT_DYNAMIC_REAL]
+                    if self.use_past_feat_dynamic_real
+                    else []
+                ),
+                encoder_disabled_fields=(
+                    [FieldName.FEAT_DYNAMIC]
+                    if not self.enable_encoder_dynamic_feature
+                    else []
+                )
+                + (
+                    [FieldName.PAST_FEAT_DYNAMIC_REAL]
+                    if not self.enable_encoder_dynamic_feature
+                    and self.use_past_feat_dynamic_real
+                    else []
+                ),
+                decoder_series_fields=[
+                    FieldName.OBSERVED_VALUES,
+                    # Decoder will use all fields under FEAT_DYNAMIC which are the RTS with past and future values
                     FieldName.FEAT_DYNAMIC,
                 ],
-                decoder_series_fields=[FieldName.OBSERVED_VALUES]
-                + (
+                decoder_disabled_fields=(
                     [FieldName.FEAT_DYNAMIC]
-                    if self.enable_decoder_dynamic_feature
+                    if not self.enable_decoder_dynamic_feature
                     else []
                 ),
                 prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
             ),
         )
 
+        # past_feat_dynamic features generated above in ForkingSequenceSplitter from those under feat_dynamic - we need
+        # to stack with the other short related time series from the system labeled as past_past_feat_dynamic_real.
+        # The system labels them as past_feat_dynamic_real and the additional past_ is added to the string
+        # in the ForkingSequenceSplitter
+        if self.use_past_feat_dynamic_real:
+            # Stack features from ForkingSequenceSplitter horizontally since they were transposed
+            # so shape is now (enc_len, num_past_feature_dynamic)
+            chain.append(
+                VstackFeatures(
+                    output_field=FieldName.PAST_FEAT_DYNAMIC,
+                    input_fields=[
+                        "past_" + FieldName.PAST_FEAT_DYNAMIC_REAL,
+                        FieldName.PAST_FEAT_DYNAMIC,
+                    ],
+                    h_stack=True,
+                )
+            )
+
         return Chain(chain)
 
-    ef create_training_network(self) -> ForkingSeq2SeqNetworkBase:
+    def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
         if self.sampling:
             return ForkingSeq2SeqTrainingNetwork(
                 encoder=self.encoder,
@@ -353,6 +419,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 Quantile.from_float(quantile).name
                 for quantile in self.quantile_output.quantiles
             ]
+
 
             prediction_network = ForkingSeq2SeqPredictionNetwork(
                 encoder=trained_network.encoder,

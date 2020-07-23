@@ -18,8 +18,8 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.distribution import LowrankMultivariateGaussian
-from gluonts.distribution.lowrank_gp import LowrankGPOutput, GPArgProj
+from gluonts.mx.distribution import LowrankMultivariateGaussian
+from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput, GPArgProj
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.evaluation import MultivariateEvaluator
 from gluonts.model.gpvar import GPVAREstimator
@@ -122,10 +122,11 @@ def test_smoke(
         ),
     )
 
+    predictor = estimator.train(training_data=dataset.train)
+
     agg_metrics, _ = backtest_metrics(
-        train_dataset=dataset.train,
         test_dataset=dataset.test,
-        forecaster=estimator,
+        predictor=predictor,
         num_samples=10,
         evaluator=MultivariateEvaluator(
             quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)

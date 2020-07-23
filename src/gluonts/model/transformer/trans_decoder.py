@@ -21,11 +21,11 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 from gluonts.model.transformer.layers import (
-    TransformerProcessBlock,
-    TransformerFeedForward,
-    MultiHeadSelfAttention,
-    MultiHeadAttention,
     InputLayer,
+    MultiHeadAttention,
+    MultiHeadSelfAttention,
+    TransformerFeedForward,
+    TransformerProcessBlock,
 )
 
 

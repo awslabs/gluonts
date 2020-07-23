@@ -17,11 +17,14 @@ from typing import List
 # Third-party imports
 import mxnet as mx
 
-# First-party imports
-from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
-from gluonts.distribution import Distribution, DistributionOutput
 from gluonts.model.common import Tensor
+from typing import Tuple
+
+# First-party imports
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution import DistributionOutput
+from gluonts.support.util import weighted_average
 
 
 class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
@@ -90,7 +93,11 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             )
             self.scaler = MeanScaler() if mean_scaling else NOPScaler()
 
-    def get_distr_args(self, F, past_target: Tensor):
+
+    def get_distr_args(
+        self, F, past_target: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+
         """
         Given past target values, applies the feed-forward network and
         maps the output to the parameter of probability distribution for future observations.
@@ -102,9 +109,13 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             Shape: (batch_size, context_length, target_dim).
         Returns
         -------
-        distr_args: the parameters of distribution
-        loc: an array of zeros with the same shape of scale
-        scale: 
+
+        Tuple[Tensor, Tensor Tensor]
+            A tuple of three tensors ``distr_args``, ``loc``, and ``scale``: the 
+            first contains the output distribution parameters, and the others are 
+            location and scale of the distribution.
+ 
+
         
         """
         scaled_target, target_scale = self.scaler(
@@ -120,7 +131,11 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
 class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
-        self, F, past_target: Tensor, future_target: Tensor
+        self,
+        F,
+        past_target: Tensor,
+        future_target: Tensor,
+        future_observed_values: Tensor,
     ) -> Tensor:
         """
         Computes a probability distribution for future data given the past,
@@ -134,6 +149,11 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         future_target
             Tensor with future observations.
             Shape: (batch_size, prediction_length, target_dim).
+
+        future_observed_values
+            Tensor indicating which values in the target are observed, and
+            which ones are imputed instead.
+
         Returns
         -------
         Tensor
@@ -147,8 +167,12 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         # (batch_size, prediction_length, target_dim)
         loss = distr.loss(future_target)
 
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=future_observed_values, axis=1
+        )
+
         # (batch_size, )
-        return loss.mean(axis=1)
+        return weighted_loss
 
 
 class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
@@ -189,6 +213,9 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
 
 
 class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
+
+    @validated()
+
     def __init__(
         self, num_parallel_samples: int = 100, *args, **kwargs
     ) -> None:
@@ -214,4 +241,3 @@ class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
         """
         distr_args, loc, scale = self.get_distr_args(F, past_target)
         return distr_args, loc, scale
-
