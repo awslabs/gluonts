@@ -9,22 +9,17 @@ from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import RepresentableBlockPredictor
-from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
     time_features_from_frequency_str,
 )
 from gluonts.transform import (
-    AddAgeFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
-    InstanceSplitter,
-    RemoveFields,
-    SetField,
     Transformation,
     VstackFeatures,
 )
@@ -34,6 +29,7 @@ from ._network import (
     TemporalFusionTransformerTrainingNetwork,
     TemporalFusionTransformerPredictionNetwork,
 )
+from ._engine import Trainer, QuantileForecastGenerator
 
 
 class TemporalFusionTransformerEstimator(GluonEstimator):
@@ -70,7 +66,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
 
         self.freq = freq
         self.prediction_length = prediction_length
-        self.context_lenfth = context_length or prediction_length
+        self.context_length = context_length or prediction_length
         self.dropout_rate = dropout_rate
         self.hidden_dim = hidden_dim
         self.variable_dim = variable_dim or hidden_dim
@@ -82,25 +78,26 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             self.freq
         )
         self.static_cardinalities = static_cardinalities or {}
-        self.dynamic_cardinalities = dynamic_cardinalities or {}
         self.static_feature_dims = static_feature_dims or {}
+        self.dynamic_cardinalities = dynamic_cardinalities or {}
         self.dynamic_feature_dims = dynamic_feature_dims or {}
         self.past_dynamic_features = past_dynamic_features or []
 
-        self.d_past_feat_dynamic_real = []
-        self.c_past_feat_dynamic_cat = []
-        self.d_feat_dynamic_real = []
-        self.c_feat_dynamic_cat = []
-        for name, cardinality in self.dynamic_cardinalities.items():
-            if name in self.past_dynamic_features:
-                self.c_past_feat_dynamic_cat[name] = cardinality
+        self.past_dynamic_cardinalities = {}
+        self.past_dynamic_feature_dims = {}
+        for name in self.past_dynamic_features:
+            if name in self.dynamic_cardinalities:
+                self.past_dynamic_cardinalities[
+                    name
+                ] = self.dynamic_cardinalities.pop(name)
+            elif name in self.dynamic_feature_dims:
+                self.past_dynamic_feature_dims[
+                    name
+                ] = self.dynamic_feature_dims.pop(name)
             else:
-                self.c_feat_dynamic_cat[name] = cardinality
-        for name, dim in self.dynamic_feature_dims.items():
-            if name in self.past_dynamic_features:
-                self.d_past_feat_dynamic_real[name] = dim
-            else:
-                self.d_feat_dynamic_real[name] = dim
+                raise ValueError(
+                    f"Feature name {name} is not provided in feature dicts"
+                )
 
     def create_transformation(self) -> Transformation:
         transforms = (
@@ -132,10 +129,9 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             ]
         )
 
-        time_series_fields = [
-            FieldName.FEAT_TIME,
-            FieldName.OBSERVED_VALUES,
-        ]
+        ts_fields = []
+        past_ts_fields = []
+
         if self.static_cardinalities:
             transforms.append(
                 VstackFeatures(
@@ -143,6 +139,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     input_fields=list(self.static_cardinalities.keys()),
                 )
             )
+
         if self.static_feature_dims:
             transforms.append(
                 VstackFeatures(
@@ -150,6 +147,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     input_fields=list(self.static_feature_dims.keys()),
                 )
             )
+
         if self.dynamic_cardinalities:
             transforms.append(
                 VstackFeatures(
@@ -157,25 +155,46 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     input_fields=list(self.dynamic_cardinalities.keys()),
                 )
             )
-            time_series_fields.append(FieldName.FEAT_DYNAMIC_CAT)
+            ts_fields.append(FieldName.FEAT_DYNAMIC_CAT)
+
+        input_fields = [FieldName.FEAT_TIME]
         if self.dynamic_feature_dims:
+            input_fields += list(self.dynamic_feature_dims.keys())
+        transforms.append(
+            VstackFeatures(
+                input_fields=input_fields,
+                output_field=FieldName.FEAT_DYNAMIC_REAL,
+            )
+        )
+        ts_fields.append(FieldName.FEAT_DYNAMIC_REAL)
+
+        if self.past_dynamic_cardinalities:
             transforms.append(
                 VstackFeatures(
-                    output_field=FieldName.FEAT_DYNAMIC_REAL,
-                    input_fields=list(self.dynamic_feature_dims.keys()),
+                    output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
+                    input_fields=list(self.past_dynamic_cardinalities.keys()),
                 )
             )
-            time_series_fields.append(FieldName.FEAT_DYNAMIC_REAL)
+            past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC + "cat")
+
+        if self.past_dynamic_feature_dims:
+            transforms.append(
+                VstackFeatures(
+                    output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
+                    input_fields=list(self.past_dynamic_feature_dims.keys()),
+                )
+            )
+            past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC_REAL)
+
         transforms.append(
             TFTInstanceSplitter(
                 train_sampler=ExpectedNumInstanceSampler(
                     num_instances=self.num_instance_per_series,
                 ),
-                past_length=self.history_length,
+                past_length=self.context_length,
                 future_length=self.prediction_length,
-                target_field=FieldName.TARGET,
-                time_series_fields=time_series_fields,
-                past_time_series_fields=self.past_dynamic_features,
+                time_series_fields=ts_fields,
+                past_time_series_fields=past_ts_fields,
             )
         )
 
@@ -191,10 +210,15 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             d_hidden=self.hidden_dim,
             n_head=self.num_heads,
             n_output=self.num_outputs,
-            d_past_feat_dynamic_real=self.d_past_feat_dynamic_real,
-            c_past_feat_dynamic_cat=self.c_past_feat_dynamic_cat,
-            d_feat_dynamic_real=self.d_feat_dynamic_real,
-            c_feat_dynamic_cat=self.c_feat_dynamic_cat,
+            d_past_feat_dynamic_real=list(
+                self.past_dynamic_feature_dims.values()
+            ),
+            c_past_feat_dynamic_cat=list(
+                self.past_dynamic_cardinalities.values()
+            ),
+            d_feat_dynamic_real=[1] * len(self.time_features)
+            + list(self.dynamic_feature_dims.values()),
+            c_feat_dynamic_cat=list(self.dynamic_cardinalities.values()),
             d_feat_static_real=list(self.static_feature_dims.values()),
             c_feat_static_cat=list(self.static_cardinalities.values()),
             dropout=self.dropout_rate,
@@ -211,10 +235,15 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             d_hidden=self.hidden_dim,
             n_head=self.num_heads,
             n_output=self.num_outputs,
-            d_past_feat_dynamic_real=self.d_past_feat_dynamic_real,
-            c_past_feat_dynamic_cat=self.c_past_feat_dynamic_cat,
-            d_feat_dynamic_real=self.d_feat_dynamic_real,
-            c_feat_dynamic_cat=self.c_feat_dynamic_cat,
+            d_past_feat_dynamic_real=list(
+                self.past_dynamic_feature_dims.values()
+            ),
+            c_past_feat_dynamic_cat=list(
+                self.past_dynamic_cardinalities.values()
+            ),
+            d_feat_dynamic_real=[1] * len(self.time_features)
+            + list(self.dynamic_feature_dims.values()),
+            c_feat_dynamic_cat=list(self.dynamic_cardinalities.values()),
             d_feat_static_real=list(self.static_feature_dims.values()),
             c_feat_static_cat=list(self.static_cardinalities.values()),
             dropout=self.dropout_rate,
@@ -227,4 +256,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
+            forecast_generator=QuantileForecastGenerator(
+                quantiles=[str(q) for q in prediction_network.quantiles],
+            ),
         )

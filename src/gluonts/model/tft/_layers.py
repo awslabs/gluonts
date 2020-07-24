@@ -14,7 +14,7 @@ from gluonts.mx.block.feature import FeatureEmbedder
 class GatedLinearUnit(HybridBlock):
     @validated()
     def __init__(self, axis: int = -1, nonlinear: bool = True, **kwargs):
-        super(GatedLinearUnit, self).__init__(**kwrags)
+        super(GatedLinearUnit, self).__init__(**kwargs)
         self.axis = axis
         self.nonlinear = nonlinear
 
@@ -151,14 +151,13 @@ class VariableSelectionNetwork(HybridBlock):
             raise ValueError("static variable is not accpeted.")
         flatten = F.concat(*variables, dim=-1)
         if static is not None:
-            static = F.expand_dims(static, axis=1)
             static = F.broadcast_like(static, variables[0])
         weight = self.weight_network(flatten, static)
         weight = F.expand_dims(weight, axis=-2)
         weight = F.softmax(weight, axis=-1)
         var_encodings = []
-        for net, var in zip(variables, self.variable_network):
-            var_encodings.append(net(v))
+        for var, net in zip(variables, self.variable_network):
+            var_encodings.append(net(var))
         var_encodings = F.stack(*var_encodings, axis=-1)
         var_encodings = F.sum(var_encodings * weight, axis=-1)
         return var_encodings, weight
@@ -261,12 +260,11 @@ class SelfAttention(HybridBlock):
         unidir_mask = F.broadcast_like(unidir_mask, score)
         score = F.where(unidir_mask, score, F.ones_like(score) * float("-inf"))
         if key_mask is not None:
-            mem_mask = key_mask.squeeze(axis=-1)
-            mem_mask = mem_mask.expand_dims(axis=1)  # head
-            mem_mask = mem_mask.expand_dims(axis=2)  # query
-            mem_mask = F.broadcast_like(mem_mask, score)
+            key_mask = key_mask.expand_dims(axis=1)  # head
+            key_mask = key_mask.expand_dims(axis=2)  # query
+            key_mask = F.broadcast_like(key_mask, score)
             score = F.where(
-                mem_mask, score, F.ones_like(score) * float("-inf")
+                key_mask, score, F.ones_like(score) * float("-inf")
             )
         return score
 
@@ -286,7 +284,7 @@ class SelfAttention(HybridBlock):
         v = self.out_proj(v)
         return v
 
-    def hybrid_forward(self, F, x: Tensor, mask: Optional[Tensor],) -> Tensor:
+    def hybrid_forward(self, F, x: Tensor, mask: Optional[Tensor]) -> Tensor:
         q, k, v = self._compute_qkv(F, x)
         score = self._compute_attn_score(F, q, k, mask)
         v = self._compute_attn_output(F, score, v)
@@ -301,15 +299,20 @@ class TemporalFusionEncoder(HybridBlock):
         prediction_length: int,
         d_input: int,
         d_hidden: int,
+        **kwargs,
     ) -> None:
-        super(TemporalFusionEncoder, self).__init__()
+        super(TemporalFusionEncoder, self).__init__(**kwargs)
         self.context_length = context_length
         self.prediction_length = prediction_length
         with self.name_scope():
             self.encoder_lstm = rnn.HybridSequentialRNNCell(prefix="encoder_")
-            self.encoder_lstm.add(rnn.LSTMCell(hidden_size=d_hidden))
+            self.encoder_lstm.add(
+                rnn.LSTMCell(hidden_size=d_hidden, input_size=d_input,)
+            )
             self.decoder_lstm = rnn.HybridSequentialRNNCell(prefix="decoder_")
-            self.decoder_lstm.add(rnn.LSTMCell(hidden_size=d_hidden))
+            self.decoder_lstm.add(
+                rnn.LSTMCell(hidden_size=d_hidden, input_size=d_input,)
+            )
             self.gate = nn.HybridSequential()
             self.gate.add(nn.Dense(d_hidden * 2, flatten=False))
             self.gate.add(GatedLinearUnit(axis=-1, nonlinear=False))
@@ -326,7 +329,7 @@ class TemporalFusionEncoder(HybridBlock):
         ctx_encodings, states = self.encoder_lstm.unroll(
             length=self.context_length,
             inputs=ctx_input,
-            begin_states=states,
+            begin_state=states,
             merge_outputs=True,
         )
         tgt_encodings, _ = self.decoder_lstm.unroll(
@@ -364,22 +367,20 @@ class TemporalFusionDecoder(HybridBlock):
             self.enrich = GatedResidualNetwork(
                 d_hidden=d_hidden, d_static=d_var, dropout=dropout,
             )
-            self.att_net = nn.HybridSequential(prefix="attention_")
-            self.att_net.add(
-                SelfAttention(
-                    context_length=context_length,
-                    prediction_length=prediction_length,
-                    d_hidden=d_hidden,
-                    n_head=n_head,
-                    share_values=True,
-                    dropout=dropout,
-                )
+            self.attention = SelfAttention(
+                context_length=context_length,
+                prediction_length=prediction_length,
+                d_hidden=d_hidden,
+                n_head=n_head,
+                share_values=True,
+                dropout=dropout,
             )
+            self.att_net = nn.HybridSequential(prefix="attention_")
             self.att_net.add(nn.Dropout(dropout))
             self.att_net.add(
                 nn.Dense(
                     units=d_hidden * 2,
-                    flatten=True,
+                    flatten=False,
                     weight_initializer=init.Xavier(),
                 )
             )
@@ -390,19 +391,27 @@ class TemporalFusionDecoder(HybridBlock):
             self.ff_net.add(
                 nn.Dense(
                     units=d_hidden * 2,
-                    flatten=True,
+                    flatten=False,
                     weight_initializer=init.Xavier(),
                 )
             )
             self.ff_net.add(GatedLinearUnit(axis=-1, nonlinear=False,))
             self.ff_lnorm = nn.LayerNorm(axis=-1)
 
-    def hybrid_forward(self, F, x: Tensor, static: Tensor,) -> Tensor:
-        static = F.expand_dims(static, axis=1)
-        static = F.broadcast_like(static, x)
-        skip = x
+    def hybrid_forward(
+        self, F, x: Tensor, static: Tensor, mask: Tensor
+    ) -> Tensor:
+        static = F.tile(
+            static, reps=(1, self.context_length + self.prediction_length, 1)
+        )
+        skip = F.slice_axis(x, axis=1, begin=self.context_length, end=None)
         x = self.enrich(x, static)
-        att = self.att_net(x)
+        mask_pad = F.slice_axis(F.ones_like(mask), axis=1, begin=0, end=1)
+        mask_pad = F.tile(mask_pad, reps=(1, self.prediction_length))
+        mask = F.concat(mask, mask_pad, dim=1)
+        att = self.attention(x, mask)
+        att = self.att_net(att)
+        x = F.slice_axis(x, axis=1, begin=self.context_length, end=None)
         x = self.att_lnorm(x + att)
         x = self.ff_net(x)
         x = self.ff_lnorm(x + skip)

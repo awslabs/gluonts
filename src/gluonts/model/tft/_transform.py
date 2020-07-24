@@ -20,6 +20,7 @@ class TFTInstanceSplitter(InstanceSplitter):
         is_pad_field: str = FieldName.IS_PAD,
         start_field: str = FieldName.START,
         forecast_start_field: str = FieldName.FORECAST_START,
+        observed_value_field: str = FieldName.OBSERVED_VALUES,
         lead_time: int = 0,
         output_NTC: bool = True,
         time_series_fields: Optional[List[str]] = None,
@@ -43,6 +44,7 @@ class TFTInstanceSplitter(InstanceSplitter):
         self.is_pad_field = is_pad_field
         self.start_field = start_field
         self.forecast_start_field = forecast_start_field
+        self.observed_value_field = observed_value_field
 
         self.ts_fields = time_series_fields or []
         self.past_ts_fields = past_time_series_fields or []
@@ -52,9 +54,8 @@ class TFTInstanceSplitter(InstanceSplitter):
     ) -> Iterator[DataEntry]:
         pl = self.future_length
         lt = self.lead_time
-        slice_cols = self.ts_fields + [self.target_field]
         target = data[self.target_field]
-        len_target = len_target = target.shape[-1]
+        len_target = target.shape[-1]
 
         minimum_length = (
             self.future_length
@@ -88,47 +89,51 @@ class TFTInstanceSplitter(InstanceSplitter):
             assert self.pick_incomplete or len_target >= self.past_length
             sampled_indices = np.array([len_target], dtype=int)
 
-        for i in sampling_indices:
+        slice_cols = (
+            self.ts_fields
+            + self.past_ts_fields
+            + [self.target_field, self.observed_value_field]
+        )
+        for i in sampled_indices:
             pad_length = max(self.past_length - i, 0)
-            if not self.pick_incomplete:
-                assert (
-                    pad_length == 0
-                ), f"pad_length should be zero, got {pad_length}"
+            if not self.pick_incomplete and pad_length > 0:
+                raise RuntimeError(
+                    f"pad_length should be zero, got {pad_length}"
+                )
             d = data.copy()
-            for ts_field in slice_cols:
+
+            for field in slice_cols:
                 if i >= self.past_length:
-                    # truncate to past_length
-                    past_piece = d[ts_field][..., i - self.past_length : i]
+                    past_piece = d[field][..., i - self.past_length : i]
                 else:
                     pad_block = (
                         np.ones(
-                            d[ts_field].shape[:-1] + (pad_length,),
-                            dtype=d[ts_field].dtype,
+                            d[field].shape[:-1] + (pad_length,),
+                            dtype=d[field].dtype,
                         )
                         * self.dummy_value
                     )
                     past_piece = np.concatenate(
-                        [pad_block, d[ts_field][..., :i]], axis=-1
+                        [pad_block, d[field][..., :i]], axis=-1
                     )
-                d[self._past(ts_field)] = past_piece
-                if ts_field not in self.past_ts_fields:
-                    d[self._future(ts_field)] = d[ts_field][
-                        ..., (i + lt) : (i + lt + pl)
-                    ]
-                del d[ts_field]
+                future_piece = d[field][..., (i + lt) : (i + lt + pl)]
+                if field in self.ts_fields:
+                    piece = np.concatenate([past_piece, future_piece], axis=-1)
+                    if self.output_NTC:
+                        piece = piece.transpose()
+                    d[field] = piece
+                else:
+                    if self.output_NTC:
+                        past_piece = past_piece.transpose()
+                        future_piece = future_piece.transpose()
+                    d[self._past(field)] = past_piece
+                    if field not in self.past_ts_fields:
+                        d[self._future(field)] = future_piece
+                    del d[field]
+
             pad_indicator = np.zeros(self.past_length)
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1
-
-            if self.output_NTC:
-                for ts_field in slice_cols:
-                    d[self._past(ts_field)] = d[
-                        self._past(ts_field)
-                    ].transpose()
-                    d[self._future(ts_field)] = d[
-                        self._future(ts_field)
-                    ].transpose()
-
             d[self._past(self.is_pad_field)] = pad_indicator
             d[self.forecast_start_field] = shift_timestamp(
                 d[self.start_field], i + lt
