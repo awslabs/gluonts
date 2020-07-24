@@ -24,7 +24,7 @@ from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 
-from gluonts.distribution import DistributionOutput, StudentTOutput, GaussianOutput
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput, GaussianOutput
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
