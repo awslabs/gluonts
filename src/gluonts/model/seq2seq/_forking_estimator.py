@@ -33,7 +33,7 @@ from gluonts.mx.block.enc2dec import FutureFeatIntegratorEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.trainer import Trainer
->>>>>>> master
+
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
