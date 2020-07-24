@@ -360,7 +360,7 @@ class ForkingSeq2SeqDistributionNetwork(ForkingSeq2SeqNetworkBase):
         future_feat_dynamic: Tensor,
         feat_static_cat: Tensor,
         past_observed_values: Tensor,
-    ) -> List[Tensor,Tensor,Tensor]:
+    ) -> Tensor:
         """
         Parameters
         ----------
