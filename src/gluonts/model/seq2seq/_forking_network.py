@@ -21,11 +21,11 @@ from mxnet import gluon
 
 # First-party imports
 
-from gluonts.block.decoder import Seq2SeqDecoder
-from gluonts.block.enc2dec import Seq2SeqEnc2Dec
-from gluonts.block.encoder import Seq2SeqEncoder
-from gluonts.block.quantile_output import QuantileOutput
-from gluonts.distribution import DistributionOutput
+from gluonts.mx.block.decoder import Seq2SeqDecoder
+from gluonts.mx.block.enc2dec import Seq2SeqEnc2Dec
+from gluonts.mx.block.encoder import Seq2SeqEncoder
+from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.distribution import DistributionOutput
 from gluonts.core.component import validated
 
 from gluonts.core.component import DType, validated
