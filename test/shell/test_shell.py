@@ -13,17 +13,19 @@
 
 # Standard library imports
 import json
-from typing import ContextManager, Optional
+from typing import ContextManager
 import sys
+from distutils.util import strtobool
 
 # Third-party imports
 import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.core.component import equals
 from gluonts.dataset.common import FileDataset, ListDataset
+from gluonts.core.component import equals
 from gluonts.model.trivial.mean import MeanPredictor
+from gluonts.model.seq2seq import MQCNNEstimator
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
 
@@ -51,14 +53,11 @@ def train_env(listify_dataset) -> ContextManager[TrainEnv]:
         "prediction_length": prediction_length,
         "num_samples": num_samples,
         "listify_dataset": listify_dataset,
+        "num_workers": 3,
+        "num_prefetch": 4,
+        "shuffle_buffer_length": 256,
     }
-    train_auxillary_parameters = {
-        "num_workers": 2,
-        "num_batches_shuffle": 8,
-        "is_cached": True
-    }
-
-    with testutil.temporary_train_env(hyperparameters, train_auxillary_parameters, "constant") as env:
+    with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
 
 
@@ -104,34 +103,36 @@ def batch_transform(monkeypatch, train_env):
     return inference_config
 
 
-@pytest.mark.parametrize("listify_dataset", [True, False])
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_listify_dataset(train_env: TrainEnv, listify_dataset):
     for dataset_name in train_env.datasets.keys():
         assert (
             isinstance(train_env.datasets[dataset_name], ListDataset)
-            if listify_dataset
+            if strtobool(listify_dataset)
             else isinstance(train_env.datasets[dataset_name], FileDataset)
         )
 
 
-@pytest.mark.parametrize("listify_dataset", [True, False])
-def test_train_shell(train_env: TrainEnv, caplog) -> None:
-    run_train_and_test(env=train_env, forecaster_type=MeanPredictor)
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
+@pytest.mark.parametrize("forecaster_type", [MeanPredictor, MQCNNEstimator])
+def test_train_shell(train_env: TrainEnv, caplog, forecaster_type) -> None:
+    run_train_and_test(env=train_env, forecaster_type=forecaster_type)
 
-    for _, _, line in caplog.record_tuples:
-        if "#test_score (local, QuantileLoss" in line:
-            assert line.endswith("0.0")
-        if "local, wQuantileLoss" in line:
-            assert line.endswith("0.0")
-        if "local, Coverage" in line:
-            assert line.endswith("0.0")
-        if "MASE" in line or "MSIS" in line:
-            assert line.endswith("0.0")
-        if "abs_target_sum" in line:
-            assert line.endswith("270.0")
+    if forecaster_type == MeanPredictor:
+        for _, _, line in caplog.record_tuples:
+            if "#test_score (local, QuantileLoss" in line:
+                assert line.endswith("0.0")
+            if "local, wQuantileLoss" in line:
+                assert line.endswith("0.0")
+            if "local, Coverage" in line:
+                assert line.endswith("0.0")
+            if "MASE" in line or "MSIS" in line:
+                assert line.endswith("0.0")
+            if "abs_target_sum" in line:
+                assert line.endswith("270.0")
 
 
-@pytest.mark.parametrize("listify_dataset", [True, False])
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_server_shell(
     train_env: TrainEnv, static_server: "testutil.ServerFacade", caplog
 ) -> None:
@@ -173,7 +174,7 @@ def test_server_shell(
         assert equals(exp_samples, act_samples)
 
 
-@pytest.mark.parametrize("listify_dataset", [True, False])
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_dynamic_shell(
     train_env: TrainEnv, dynamic_server: "testutil.ServerFacade", caplog
 ) -> None:
@@ -216,7 +217,7 @@ def test_dynamic_shell(
         assert equals(exp_samples, act_samples)
 
 
-@pytest.mark.parametrize("listify_dataset", [True, False])
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_dynamic_batch_shell(
     batch_transform,
     train_env: TrainEnv,

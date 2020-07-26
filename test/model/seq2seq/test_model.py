@@ -176,10 +176,8 @@ def test_backwards_compatibility():
         "use_past_feat_dynamic_real": True,
         "enable_encoder_dynamic_feature": True,
         "enable_decoder_dynamic_feature": True,
-        "num_workers": 0,
         "scaling": True,
         "scaling_decoder_dynamic_feature": True,
-        "num_batches_shuffle": 8,
     }
 
     dataset_train, dataset_test = make_dummy_datasets_with_features(
