@@ -559,7 +559,7 @@ class ParallelDataLoader(object):
         but will consume more shared_memory. Using smaller number may forfeit the purpose of using
         multiple worker processes, try reduce `num_workers` in this case.
         By default it defaults to `num_workers * 2`.
-     shuffle_buffer_length
+    shuffle_buffer_length
         The length of the buffer used to do pseudo shuffle.
         If not None, the loader will perform pseudo shuffle when generating batches.
         Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
