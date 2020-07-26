@@ -259,14 +259,9 @@ class GluonEstimator(Estimator):
         validation_data: Optional[Dataset] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        num_batches_shuffle: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Predictor:
-        shuffle_buffer_length = (
-            self.trainer.batch_size * num_batches_shuffle
-            if num_batches_shuffle is not None
-            else None
-        )
         return self.train_model(
             training_data,
             validation_data,
