@@ -84,7 +84,7 @@ ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
 def _is_stackable(
-    arrays: List[Union[np.ndarray, mx.nd.NDArray, Any]], axis: int = 0,
+    arrays: List[Union[np.ndarray, mx.nd.NDArray, Any]], axis: int = 0
 ) -> bool:
     """
     Check if elements are scalars, have too few dimensions, or their
@@ -97,7 +97,7 @@ def _is_stackable(
 
 
 def _pad_arrays(
-    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0,
+    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0
 ) -> List[Union[np.ndarray, mx.nd.NDArray]]:
     assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
     is_mx = isinstance(data[0], mx.nd.NDArray)
@@ -237,9 +237,7 @@ def _sequential_sample_generator(
     cyclic: bool,
 ) -> Iterator[DataEntry]:
     while True:
-        yield from transformation(
-            data_it=dataset, is_train=is_train,
-        )
+        yield from transformation(data_it=dataset, is_train=is_train)
         # Dont cycle if not training time
         if not cyclic:
             return
@@ -360,6 +358,7 @@ class ShuffleIter(Iterator[DataEntry]):
     A wrapper class which takes a serialized iterator as an input and generates a
     pseudo randomized iterator using the same elements from the input iterator.
     """
+
     def __init__(
         self, base_iterator: Iterator[DataEntry], shuffle_buffer_length: int
     ) -> None:
@@ -688,7 +687,7 @@ class ParallelDataLoader(object):
         self.cycle_num += 1
         if self.num_workers == 0:
             generator = _sequential_sample_generator(
-                self.dataset, self.transformation, self.is_train, self.cyclic,
+                self.dataset, self.transformation, self.is_train, self.cyclic
             )
             if self.shuffle_buffer_length is not None:
                 generator = ShuffleIter(

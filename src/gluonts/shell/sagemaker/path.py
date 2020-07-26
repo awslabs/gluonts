@@ -25,7 +25,6 @@ class TrainPaths:
         self.output: Path = self.base / "output"
 
         self.hyperparameters: Path = self.config / "hyperparameters.json"
-        self.train_auxillary_parameters: Path = self.config / "trainauxparameters.json"
         self.inputdataconfig: Path = self.config / "inputdataconfig.json"
         self.resourceconfig: Path = self.config / "resourceconfig.json"
 

@@ -22,8 +22,8 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.dataset.common import FileDataset, ListDataset
 from gluonts.core.component import equals
+from gluonts.dataset.common import FileDataset, ListDataset
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.model.seq2seq import MQCNNEstimator
 from gluonts.shell.sagemaker import ServeEnv, TrainEnv
