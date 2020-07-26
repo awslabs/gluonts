@@ -4,20 +4,19 @@ import mxnet as mx
 from mxnet import init
 from mxnet.gluon import nn, HybridBlock, Parameter
 from mxnet.gluon.contrib.nn import HybridConcurrent
+
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder, FeatureAssembler
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-
+from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.support.util import weighted_average
 from ._layers import (
     CausalConv1D,
     GroupSelfAttention,
     DualSelfAttention,
     PosFFN,
 )
-
-OptTensor = Union[List, Tensor]
-is_tensor = lambda obj: isinstance(obj, (mx.ndarray.NDArray, mx.symbol.Symbol))
 
 
 class SelfAttentionBlock(HybridBlock):
@@ -159,27 +158,32 @@ class SelfAttentionNetwork(HybridBlock):
                 embedding_dims=[self.d_hidden] * len(cardinalities),
                 prefix="embedder_",
             )
-            self.output_proj = nn.Dense(
-                n_output,
-                flatten=False,
-                weight_initializer=init.Xavier(),
-                prefix="output_proj_",
-            )
+            self.output = QuantileOutput(quantiles=self.quantiles)
+            self.output_proj = self.output.get_quantile_proj()
+            self.loss = self.output.get_loss()
 
     def _preprocess(
         self,
         F,
         past_target: Tensor,
-        past_feat_dynamic_real: Tensor,
-        past_feat_dynamic_cat: OptTensor,
         past_observed_values: Tensor,
         past_is_pad: Tensor,
-        future_target: OptTensor,
-        future_feat_dynamic_real: OptTensor,
-        future_feat_dynamic_cat: OptTensor,
-        feat_static_real: OptTensor,
-        feat_static_cat: OptTensor,
-    ) -> Tuple[Tensor, OptTensor, Tensor, Tensor, OptTensor, Tensor, Tensor]:
+        past_feat_dynamic_real: Tensor,
+        past_feat_dynamic_cat: Optional[Tensor] = None,
+        future_target: Optional[Tensor] = None,
+        future_feat_dynamic_real: Optional[Tensor] = None,
+        future_feat_dynamic_cat: Optional[Tensor] = None,
+        feat_static_real: Optional[Tensor] = None,
+        feat_static_cat: Optional[Tensor] = None,
+    ) -> Tuple[
+        Tensor,
+        Optional[Tensor],
+        Tensor,
+        Tensor,
+        Optional[Tensor],
+        Tensor,
+        Tensor,
+    ]:
         obs = past_target * past_observed_values
         count = F.sum(past_observed_values, axis=1, keepdims=True)
         offset = F.sum(obs, axis=1, keepdims=True) / count
@@ -194,16 +198,16 @@ class SelfAttentionNetwork(HybridBlock):
             )
 
         def _assemble_covariates(
-            feat_dynamic_real: OptTensor,
-            feat_dynamic_cat: OptTensor,
-            feat_static_real: OptTensor,
-            feat_static_cat: OptTensor,
+            feat_dynamic_real: Optional[Tensor],
+            feat_dynamic_cat: Optional[Tensor],
+            feat_static_real: Optional[Tensor],
+            feat_static_cat: Optional[Tensor],
             is_past: bool,
         ) -> Tensor:
             covariates = []
-            if is_tensor(feat_dynamic_real):
+            if feat_dynamic_real is not None:
                 covariates.append(feat_dynamic_real)
-            if is_tensor(feat_static_real):
+            if feat_static_real is not None:
                 covariates.append(
                     feat_static_real.expand_dims(axis=1).repeat(
                         axis=1,
@@ -219,9 +223,9 @@ class SelfAttentionNetwork(HybridBlock):
                 covariates = None
 
             categories = []
-            if is_tensor(feat_dynamic_cat):
+            if feat_dynamic_cat is not None:
                 categories.append(feat_dynamic_cat)
-            if is_tensor(feat_static_cat):
+            if feat_static_cat is not None:
                 categories.append(
                     feat_static_cat.expand_dims(axis=1).repeat(
                         axis=1,
@@ -304,41 +308,20 @@ class SelfAttentionNetwork(HybridBlock):
 
 
 class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
-    def quantile_loss(
-        self,
-        F,
-        target: Tensor,
-        quantile_forecast: Tensor,
-        observed_values: Tensor,
-    ) -> Tensor:
-        forecasts = F.split(
-            quantile_forecast, axis=-1, num_outputs=self.n_output
-        )
-        losses = []
-        for forecast, quantile in zip(forecasts, self.quantiles):
-            forecast = F.squeeze(forecast, axis=-1)
-            diff = forecast - target
-            weight = F.broadcast_lesser_equal(target, forecast) - quantile
-            loss = F.abs(diff * weight) * 2.0
-            loss = F.where(observed_values, loss, F.zeros_like(loss))
-            losses.append(loss)
-        loss = F.stack(*losses, axis=-1).sum(axis=-1)
-        return loss
-
     def hybrid_forward(
         self,
         F,
         past_target: Tensor,
-        past_feat_dynamic_real: OptTensor,
-        past_feat_dynamic_cat: OptTensor,
         past_observed_values: Tensor,
         past_is_pad: Tensor,
         future_target: Tensor,
-        future_feat_dynamic_real: OptTensor,
-        future_feat_dynamic_cat: OptTensor,
         future_observed_values: Tensor,
-        feat_static_real: OptTensor,
-        feat_static_cat: OptTensor,
+        past_feat_dynamic_real: Optional[Tensor] = None,
+        past_feat_dynamic_cat: Optional[Tensor] = None,
+        future_feat_dynamic_real: Optional[Tensor] = None,
+        future_feat_dynamic_cat: Optional[Tensor] = None,
+        feat_static_real: Optional[Tensor] = None,
+        feat_static_cat: Optional[Tensor] = None,
     ) -> Tensor:
         (
             past_target,
@@ -351,10 +334,10 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
         ) = self._preprocess(
             F,
             past_target,
-            past_feat_dynamic_real,
-            past_feat_dynamic_cat,
             past_observed_values,
             past_is_pad,
+            past_feat_dynamic_real,
+            past_feat_dynamic_cat,
             future_target,
             future_feat_dynamic_real,
             future_feat_dynamic_cat,
@@ -378,10 +361,8 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
             F, self.prediction_length, target, covars, observed_values
         )
         preds = self._postprocess(F, preds, offset, scale)
-        loss = self.quantile_loss(
-            F, future_target, preds, future_observed_values
-        )
-
+        loss = self.loss(future_target, preds)
+        loss = weighted_average(F, loss, future_observed_values)
         return loss.mean()
 
 
@@ -390,10 +371,10 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
         self,
         F,
         past_target: Tensor,
-        past_feat_dynamic_real: Optional[Tensor],
-        past_feat_dynamic_cat: Optional[Tensor],
         past_observed_values: Tensor,
         past_is_pad: Tensor,
+        past_feat_dynamic_real: Optional[Tensor],
+        past_feat_dynamic_cat: Optional[Tensor],
         future_feat_dynamic_real: Optional[Tensor],
         future_feat_dynamic_cat: Optional[Tensor],
         feat_static_real: Optional[Tensor],
@@ -410,10 +391,10 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
         ) = self._preprocess(
             F,
             past_target,
-            past_feat_dynamic_real,
-            past_feat_dynamic_cat,
             past_observed_values,
             past_is_pad,
+            past_feat_dynamic_real,
+            past_feat_dynamic_cat,
             None,
             future_feat_dynamic_real,
             future_feat_dynamic_cat,
@@ -445,4 +426,5 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
             )
         preds = F.concat(*preds, dim=1)
         preds = self._postprocess(F, preds, offset, scale)
+        preds = F.swapaxes(preds, dim1=1, dim2=2)
         return preds

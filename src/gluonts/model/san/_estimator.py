@@ -6,8 +6,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-from gluonts.mx.trainer import Trainer
+from gluonts.model.predictor import RepresentableBlockPredictor
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
@@ -32,6 +31,10 @@ from gluonts.transform import (
 from ._network import (
     SelfAttentionTrainingNetwork,
     SelfAttentionPredictionNetwork,
+)
+from ._engine import (
+    Trainer,
+    QuantileForecastGenerator,
 )
 
 
@@ -85,25 +88,37 @@ class SelfAttentionEstimator(GluonEstimator):
         self.use_feat_static_real = use_feat_static_real
 
     def create_transformation(self) -> Transformation:
-        def _feature_transform(field: str) -> Transformation:
-            dtype = np.int32 if field.split("_")[-1] == "cat" else np.float32
-            if getattr(self, f"use_{field}"):
-                return AsNumpyArray(field=field, expected_ndim=1, dtype=dtype)
-            else:
-                return SetField(output_field=field, value=None)
-
+        transforms = []
+        if self.use_feat_dynamic_real:
+            transforms.append(
+                AsNumpyArray(
+                    field=FieldName.FEAT_DYNAMIC_REAL, expected_ndim=1,
+                )
+            )
+        if self.use_feat_dynamic_cat:
+            transforms.append(
+                AsNumpyArray(
+                    field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=1,
+                )
+            )
+        if self.use_feat_static_real:
+            transforms.append(
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1,
+                )
+            )
+        if self.use_feat_static_cat:
+            transforms.append(
+                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1,)
+            )
         time_series_fields = [FieldName.OBSERVED_VALUES]
         if self.use_feat_dynamic_cat:
             time_series_fields.append(FieldName.FEAT_DYNAMIC_CAT)
         if self.use_feat_dynamic_real or (self.time_features is not None):
             time_series_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
-        chain = Chain(
+        transforms.extend(
             [
-                _feature_transform(FieldName.FEAT_DYNAMIC_REAL),
-                _feature_transform(FieldName.FEAT_DYNAMIC_CAT),
-                _feature_transform(FieldName.FEAT_STATIC_REAL),
-                _feature_transform(FieldName.FEAT_STATIC_CAT),
                 AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
@@ -124,11 +139,12 @@ class SelfAttentionEstimator(GluonEstimator):
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_DYNAMIC_REAL,
-                    input_fields=[
-                        FieldName.FEAT_TIME,
-                        FieldName.FEAT_AGE,
-                        FieldName.FEAT_DYNAMIC_REAL,
-                    ],
+                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE,]
+                    + (
+                        [FieldName.FEAT_DYNAMIC_REAL]
+                        if self.use_feat_dynamic_real
+                        else []
+                    ),
                 ),
                 InstanceSplitter(
                     target_field=FieldName.TARGET,
@@ -142,23 +158,8 @@ class SelfAttentionEstimator(GluonEstimator):
                     pick_incomplete=False,
                 ),
             ]
-            + (
-                [
-                    RemoveFields(field_names=[FieldName.FEAT_DYNAMIC_CAT]),
-                    SetField(
-                        output_field=f"past_{FieldName.FEAT_DYNAMIC_CAT}",
-                        value=None,
-                    ),
-                    SetField(
-                        output_field=f"future_{FieldName.FEAT_DYNAMIC_CAT}",
-                        value=None,
-                    ),
-                ]
-                if not self.use_feat_dynamic_cat
-                else []
-            )
         )
-        return chain
+        return Chain(transforms)
 
     def create_training_network(self) -> SelfAttentionTrainingNetwork:
         return SelfAttentionTrainingNetwork(
@@ -179,7 +180,7 @@ class SelfAttentionEstimator(GluonEstimator):
 
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
-    ) -> Predictor:
+    ) -> RepresentableBlockPredictor:
         prediction_network = SelfAttentionPredictionNetwork(
             context_length=self.context_length,
             prediction_length=self.prediction_length,
