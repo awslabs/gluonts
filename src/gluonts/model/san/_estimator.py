@@ -57,6 +57,7 @@ class SelfAttentionEstimator(GluonEstimator):
         pre_layer_norm: bool = False,
         dropout: float = 0.1,
         temperature: float = 1.0,
+        num_instances_per_series: int = 100,
         time_features: Optional[List[TimeFeature]] = None,
         use_feat_dynamic_real: bool = True,
         use_feat_dynamic_cat: bool = False,
@@ -78,6 +79,7 @@ class SelfAttentionEstimator(GluonEstimator):
         self.pre_layer_norm = pre_layer_norm
         self.dropout = dropout
         self.temperature = temperature
+        self.num_instances_per_series = num_instances_per_series
 
         self.time_features = time_features or time_features_from_frequency_str(
             self.freq
@@ -151,7 +153,9 @@ class SelfAttentionEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=ExpectedNumInstanceSampler(
+                        num_instances=self.num_instances_per_series,
+                    ),
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     time_series_fields=time_series_fields,
