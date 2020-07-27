@@ -42,10 +42,10 @@ class ActivationRegularizationLoss(Loss):
         The scaling coefficient of the regularization.
     weight : float or None
         Global scalar weight for loss.
-    time_axis : int, default 0
-        The axis that represents time-step.
     batch_axis : int, default 0
         The axis that represents mini-batch.
+    time_axis : int, default 0
+        The axis that represents time-step.
     """
 
     @validated()
@@ -61,8 +61,8 @@ class ActivationRegularizationLoss(Loss):
             weight, batch_axis, **kwargs
         )
         self._alpha = alpha
-        self._time_axis = time_axis
         self._batch_axis = batch_axis
+        self._time_axis = time_axis
 
     def __repr__(self):
         s = "ActivationRegularizationLoss (alpha={alpha})"
@@ -117,10 +117,10 @@ class TemporalActivationRegularizationLoss(Loss):
         The scaling coefficient of the regularization.
     weight : float or None
         Global scalar weight for loss.
-    time_axis : int, default 0
-        The axis that represents time-step.
     batch_axis : int, default 0
         The axis that represents mini-batch.
+    time_axis : int, default 0
+        The axis that represents time-step.
     """
 
     @validated()
@@ -136,8 +136,8 @@ class TemporalActivationRegularizationLoss(Loss):
             weight, batch_axis, **kwargs
         )
         self._beta = beta
-        self._time_axis = time_axis
         self._batch_axis = batch_axis
+        self._time_axis = time_axis
 
     def __repr__(self):
         s = "TemporalActivationRegularizationLoss (beta={beta})"
