@@ -56,6 +56,7 @@ def train_env(listify_dataset) -> ContextManager[TrainEnv]:
         "num_workers": 3,
         "num_prefetch": 4,
         "shuffle_buffer_length": 256,
+        "epochs": 3,
     }
     with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
