@@ -13,7 +13,11 @@
 
 # Standard library imports
 import logging
+import multiprocessing
 from typing import Any, Optional, Type, Union
+
+# Third-party imports
+import numpy as np
 
 # First-party imports
 import gluonts
@@ -82,7 +86,10 @@ def run_train_and_test(
         predictor = forecaster
     else:
         predictor = run_train(
-            forecaster, env.datasets["train"], env.datasets.get("validation")
+            forecaster=forecaster,
+            train_dataset=env.datasets["train"],
+            validation_dataset=env.datasets.get("validation"),
+            hyperparameters=env.hyperparameters,
         )
 
     predictor.serialize(env.path.model)
@@ -94,10 +101,30 @@ def run_train_and_test(
 def run_train(
     forecaster: Estimator,
     train_dataset: Dataset,
+    hyperparameters: dict,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
+    num_workers = (
+        int(hyperparameters["num_workers"])
+        if "num_workers" in hyperparameters.keys()
+        else None
+    )
+    shuffle_buffer_length = (
+        int(hyperparameters["shuffle_buffer_length"])
+        if "shuffle_buffer_length" in hyperparameters.keys()
+        else None
+    )
+    num_prefetch = (
+        int(hyperparameters["num_prefetch"])
+        if "num_prefetch" in hyperparameters.keys()
+        else None
+    )
     return forecaster.train(
-        training_data=train_dataset, validation_data=validation_dataset
+        training_data=train_dataset,
+        validation_data=validation_dataset,
+        num_workers=num_workers,
+        num_prefetch=num_prefetch,
+        shuffle_buffer_length=shuffle_buffer_length,
     )
 
 

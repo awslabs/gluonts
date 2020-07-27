@@ -16,10 +16,6 @@ from functools import partial
 from random import randint
 from typing import List, Tuple
 
-# Third-party imports
-import numpy as np
-import pytest
-
 # First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
