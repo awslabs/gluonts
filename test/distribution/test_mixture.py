@@ -57,10 +57,13 @@ def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
 
 
 NUM_SAMPLES = 1_000
-NUM_SAMPLES_LARGE = 1_000_000
+NUM_SAMPLES_LARGE = 100_000
 
 
 SHAPE = (2, 1, 3)
+
+np.random.seed(123)
+mx.random.seed(123)
 
 
 @pytest.mark.parametrize(
@@ -97,7 +100,6 @@ def test_mixture(
     distr1: Distribution, distr2: Distribution, p: Tensor, serialize_fn
 ) -> None:
     # sample from component distributions, and select samples
-
     samples1 = distr1.sample(num_samples=NUM_SAMPLES_LARGE)
     samples2 = distr2.sample(num_samples=NUM_SAMPLES_LARGE)
 
