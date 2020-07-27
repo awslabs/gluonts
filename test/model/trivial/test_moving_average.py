@@ -17,109 +17,63 @@ from gluonts.model.trivial.mean import MovingAveragePredictor
 
 # Third-party imports
 import numpy as np
+import pytest
 
 
-def set_data(target, freq):
-    """
-    Sets test data in the right format
-    """
-
-    start = "2020"
-    ds = ListDataset([{"target": target, "start": start}], freq=freq)
-    data = list(ds)
-
-    return data
-
-
-def get_predictions(data, prediction_length, context_length, freq):
-    """
-    Gets predictions based on moving average
-    """
-
+def get_predictions(
+    target, prediction_length=1, context_length=1, freq="D", start="2020"
+):
     mp = MovingAveragePredictor(
         prediction_length=prediction_length,
         context_length=context_length,
         freq=freq,
     )
-    predictions = mp.predict_item(data[0]).samples[0]
+
+    ds = ListDataset([{"target": target, "start": start}], freq=freq)
+    item = next(iter(ds))
+    predictions = mp.predict_item(item).samples[0]
 
     return predictions
 
 
-def check_equality_constant_sequence(
-    predictions, constant_value, prediction_length
-):
-    """
-    Checks if prediction values coincide with expected values.  This is for the case where the input is constant:
-    expected = [constant_value, constant_value, ..., constant_value]
-    """
+@pytest.mark.parametrize(
+    "data, expected_output, prediction_length, context_length",
+    [
+        ([1, 1, 1], [1], 1, 1),
+        ([1, 1, 1], [1, 1], 2, 1),
+        ([1, 1, 1], [1, 1, 1], 3, 1),
+        ([1, 1, 1], [1], 1, 2),
+        ([1, 1, 1], [1, 1], 2, 2),
+        ([1, 1, 1], [1, 1, 1], 3, 2),
+        ([1, 1, 1], [1], 1, 3),
+        ([1, 1, 1], [1, 1], 2, 3),
+        ([1, 1, 1], [1, 1, 1], 3, 3),
+        ([], [np.nan] * 1, 1, 1),
+        ([], [np.nan] * 2, 2, 1),
+        ([], [np.nan] * 3, 3, 1),
+        ([np.nan], [np.nan] * 1, 1, 1),
+        ([1, 3, np.nan], [2], 1, 3),
+        ([1, 3, np.nan], [2, 2.5], 2, 3),
+        ([1, 3, np.nan], [2, 2.5, 2.25], 3, 3),
+        ([1, 2, 3], [3], 1, 1),
+        ([1, 2, 3], [3, 3], 2, 1),
+        ([1, 2, 3], [3, 3, 3], 3, 1),
+        ([1, 2, 3], [2.5], 1, 2),
+        ([1, 2, 3], [2.5, 2.75], 2, 2),
+        ([1, 2, 3], [2.5, 2.75, 2.625], 3, 2),
+        ([1, 2, 3], [2], 1, 3),
+        ([1, 2, 3], [2, 7 / 3], 2, 3),
+        ([1, 2, 3], [2, 7 / 3, 22 / 9], 3, 3),
+    ],
+)
+def testing(data, expected_output, prediction_length, context_length):
 
-    expected = [constant_value] * prediction_length
+    predictions = get_predictions(
+        data,
+        prediction_length=prediction_length,
+        context_length=context_length,
+    )
 
-    if np.isnan(constant_value):
-        return list(np.isnan(predictions)) == list(np.isnan(expected))
-    else:
-        return list(predictions) == expected
+    np.testing.assert_equal(predictions, expected_output)
 
-
-def run_evaluations(
-    data,
-    freq,
-    constant_value,
-    context_length_values=range(1, 10),
-    prediction_length_values=range(1, 10),
-):
-    """
-    Executes generic tests based on settings provided by input parameters
-    Performs asserts on the output and shape of output.
-    """
-
-    for context_length in context_length_values:
-        for prediction_length in prediction_length_values:
-            predictions = get_predictions(
-                data, prediction_length, context_length, freq
-            )
-            assert check_equality_constant_sequence(
-                predictions, constant_value, prediction_length
-            )
-            assert predictions.shape == (prediction_length,)
-
-
-def test_constant_sequence():
-    constant_value = 1
-    target_length = 3
-    target = [constant_value] * target_length  # [1, 1, 1]
-    freq = "D"
-    data = set_data(target, freq)
-
-    run_evaluations(data, freq, constant_value)
-
-
-def test_length_one_sequence():
-    constant_value = 1
-    # target_length = 1
-    target = [constant_value]
-    freq = "D"
-    data = set_data(target, freq)
-
-    run_evaluations(data, freq, constant_value)
-
-
-def test_empty_sequence():
-    constant_value = np.nan
-    target_length = 0
-    target = []
-    freq = "D"
-    data = set_data(target, freq)
-
-    run_evaluations(data, freq, constant_value)
-
-
-def test_nan_sequence():
-    constant_value = np.nan
-    target_length = 3
-    target = [constant_value] * target_length  # [1, 1, 1]
-    freq = "D"
-    data = set_data(target, freq)
-
-    run_evaluations(data, freq, constant_value)
+    np.testing.assert_equal(predictions.shape, (prediction_length,))

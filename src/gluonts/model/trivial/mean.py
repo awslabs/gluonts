@@ -26,7 +26,7 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
-from gluonts.support.pandas import frequency_add
+from gluonts.support.pandas import frequency_add, forecast_start
 
 
 class MeanPredictor(RepresentablePredictor, FallbackPredictor):
@@ -105,7 +105,7 @@ class MovingAveragePredictor(RepresentablePredictor):
 
     @validated()
     def __init__(
-        self, prediction_length: int, freq: str, context_length: int,
+        self, prediction_length: int, freq: str, context_length: int = 1,
     ) -> None:
         super().__init__(freq=freq, prediction_length=prediction_length)
 
@@ -122,7 +122,7 @@ class MovingAveragePredictor(RepresentablePredictor):
             window = target[-self.context_length :]
             target.append(np.nanmean(window))
 
-        start_date = frequency_add(item["start"], len(item["target"]))
+        start_date = forecast_start(item)
         return SampleForecast(
             samples=np.array([target[-self.prediction_length :]]),
             start_date=start_date,
