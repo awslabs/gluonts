@@ -159,7 +159,7 @@ class SelfAttentionEstimator(GluonEstimator):
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     time_series_fields=time_series_fields,
-                    pick_incomplete=False,
+                    pick_incomplete=True,
                 ),
             ]
         )

@@ -269,17 +269,13 @@ class SelfAttention(HybridBlock):
             )
             unidir_mask = F.broadcast_lesser_equal(k_idx, q_idx)
             unidir_mask = F.broadcast_like(unidir_mask, score)
-            score = F.where(
-                unidir_mask, score, F.ones_like(score) * float("-inf")
-            )
+            score = F.where(unidir_mask, score, F.ones_like(score) * 1e-9)
         if key_mask is not None:
             mem_mask = key_mask.squeeze(axis=-1)
             mem_mask = mem_mask.expand_dims(axis=1)  # head
             mem_mask = mem_mask.expand_dims(axis=2)  # query
             mem_mask = F.broadcast_like(mem_mask, score)
-            score = F.where(
-                mem_mask, score, F.ones_like(score) * float("-inf")
-            )
+            score = F.where(mem_mask, score, F.ones_like(score) * 1e-9)
         return score
 
     def _compute_attn_score(
