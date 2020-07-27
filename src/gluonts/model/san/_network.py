@@ -171,8 +171,12 @@ class SelfAttentionNetwork(HybridBlock):
     ]:
         obs = past_target * past_observed_values
         count = F.sum(past_observed_values, axis=1, keepdims=True)
-        offset = F.sum(obs, axis=1, keepdims=True) / count
-        scale = F.sum(obs ** 2, axis=1, keepdims=True) / count
+        offset = F.sum(obs, axis=1, keepdims=True) / (
+            count + self.normalizer_eps
+        )
+        scale = F.sum(obs ** 2, axis=1, keepdims=True) / (
+            count + self.normalizer_eps
+        )
         scale = scale - offset ** 2
         scale = scale.sqrt()
 
