@@ -104,7 +104,11 @@ def run_train(
     hyperparameters: dict,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
-    num_workers = int(hyperparameters.get("num_workers", 2))
+    num_workers = (
+        int(hyperparameters["num_workers"])
+        if "num_workers" in hyperparameters.keys()
+        else None
+    )
     shuffle_buffer_length = (
         int(hyperparameters["shuffle_buffer_length"])
         if "shuffle_buffer_length" in hyperparameters.keys()

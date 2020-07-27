@@ -512,9 +512,9 @@ class _MultiWorkerIter(object):
                     "\n Please consider to reduce `num_workers` or increase shared_memory in system."
                 )
                 raise
-            except Exception:
+            except Exception as e:
                 logger.error(
-                    "An unexpected error occurred in the WorkerIterator."
+                    f"An unexpected error occurred in the WorkerIterator: {e}."
                 )
                 self._worker_pool.terminate()
                 raise
