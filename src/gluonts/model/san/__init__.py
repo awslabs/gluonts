@@ -1,5 +1,5 @@
 from ._estimator import SelfAttentionEstimator
-from ._engine import Trainer as SelfAttentionEstimator
+from ._engine import Trainer as SelfAttentionTrainer
 
 __all__ = [
     "SelfAttentionEstimator",
