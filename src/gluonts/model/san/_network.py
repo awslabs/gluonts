@@ -137,11 +137,12 @@ class SelfAttentionNetwork(HybridBlock):
                 weight_initializer=init.Xavier(),
                 prefix="covar_proj_",
             )
-            self.embedder = FeatureEmbedder(
-                cardinalities=cardinalities,
-                embedding_dims=[self.d_hidden] * len(cardinalities),
-                prefix="embedder_",
-            )
+            if cardinalities:
+                self.embedder = FeatureEmbedder(
+                    cardinalities=cardinalities,
+                    embedding_dims=[self.d_hidden] * len(cardinalities),
+                    prefix="embedder_",
+                )
             self.output = QuantileOutput(quantiles=self.quantiles)
             self.output_proj = self.output.get_quantile_proj()
             self.loss = self.output.get_loss()
