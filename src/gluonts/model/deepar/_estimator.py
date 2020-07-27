@@ -130,6 +130,7 @@ class DeepAREstimator(GluonEstimator):
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
+        dropoutcell_type: str = "ZoneoutCell",
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
@@ -154,6 +155,16 @@ class DeepAREstimator(GluonEstimator):
         ), "The value of `context_length` should be > 0"
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
+        supported_dropoutcell_types = [
+            "ZoneoutCell",
+            "RNNZoneoutCell",
+            "VariationalDropoutCell",
+            "VariationalZoneoutCell",
+        ]
+        assert dropoutcell_type in supported_dropoutcell_types, (
+            "`dropoutcell_type` should be one of %s"
+            % (str(supported_dropoutcell_types))
+        )
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert (cardinality and use_feat_static_cat) or (
             not (cardinality or use_feat_static_cat)
@@ -178,6 +189,7 @@ class DeepAREstimator(GluonEstimator):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
+        self.dropoutcell_type = dropoutcell_type
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
@@ -317,6 +329,7 @@ class DeepAREstimator(GluonEstimator):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             distr_output=self.distr_output,
+            dropoutcell_type=self.dropoutcell_type,
             dropout_rate=self.dropout_rate,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
@@ -337,6 +350,7 @@ class DeepAREstimator(GluonEstimator):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             distr_output=self.distr_output,
+            dropoutcell_type=self.dropoutcell_type,
             dropout_rate=self.dropout_rate,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
