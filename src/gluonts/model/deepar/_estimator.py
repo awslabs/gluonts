@@ -143,6 +143,8 @@ class DeepAREstimator(GluonEstimator):
         num_parallel_samples: int = 100,
         imputation_method: Optional[MissingValueImputation] = None,
         dtype: DType = np.float32,
+        alpha: float = 0,
+        beta: float = 0,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
 
@@ -167,6 +169,8 @@ class DeepAREstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
+        assert alpha >= 0, "The value of `alpha` should be >= 0"
+        assert beta >= 0, "The value of `beta` should be >= 0"
 
         self.freq = freq
         self.context_length = (
@@ -211,6 +215,9 @@ class DeepAREstimator(GluonEstimator):
             if imputation_method is not None
             else DummyValueImputation(self.distr_output.value_in_support)
         )
+
+        self.alpha = alpha
+        self.beta = beta
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -323,6 +330,8 @@ class DeepAREstimator(GluonEstimator):
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             dtype=self.dtype,
+            alpha=self.alpha,
+            beta=self.beta,
         )
 
     def create_predictor(

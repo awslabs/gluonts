@@ -28,6 +28,10 @@ from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
 from gluonts.support.util import weighted_average
+from gluonts.mx.block.regularization import (
+    ActivationRegularizationLoss,
+    TemporalActivationRegularizationLoss,
+)
 
 
 def prod(xs):
@@ -291,6 +295,26 @@ class DeepARNetwork(mx.gluon.HybridBlock):
 
 
 class DeepARTrainingNetwork(DeepARNetwork):
+    @validated()
+    def __init__(self, alpha: float = 0, beta: float = 0, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        # regularization weights
+        self.alpha = alpha
+        self.beta = beta
+
+        if alpha:
+            self.ar_loss = ActivationRegularizationLoss(
+                alpha, time_axis=1, batch_axis=0
+            )
+        if beta:
+            self.tar_loss = TemporalActivationRegularizationLoss(
+                beta, time_axis=1, batch_axis=0
+            )
+
+        if alpha or beta:
+            self.rnn_outputs = None
+
     def distribution(
         self,
         feat_static_cat: Tensor,
@@ -334,6 +358,10 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_time_feat=future_time_feat,
             future_target=future_target,
         )
+
+        # store output of rnn layers, so that it can be used for regularization later
+        # assume no dropout for outputs, so can be directly used for activation regularization
+        self.rnn_outputs = rnn_outputs
 
         distr_args = self.proj_distr_args(rnn_outputs)
 
@@ -424,6 +452,17 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         # need to mask possible nans and -inf
         loss = F.where(condition=loss_weights, x=loss, y=F.zeros_like(loss))
+
+        # rnn_outputs is already merged into a single tensor
+        assert not isinstance(self.rnn_outputs, list)
+        # it seems that the trainer only uses the first return value for backward
+        # so we only add regularization to weighted_loss
+        if self.alpha:
+            ar_loss = self.ar_loss(self.rnn_outputs)
+            weighted_loss = F.elemwise_add(weighted_loss, ar_loss)
+        if self.beta:
+            tar_loss = self.tar_loss(self.rnn_outputs)
+            weighted_loss = F.elemwise_add(weighted_loss, tar_loss)
 
         return weighted_loss, loss
 
