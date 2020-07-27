@@ -1,6 +1,10 @@
 from ._estimator import SelfAttentionEstimator
+from ._engine import Trainer as SelfAttentionEstimator
 
-__all__ = ["SelfAttentionEstimator"]
+__all__ = [
+    "SelfAttentionEstimator",
+    "SelfAttentionTrainer",
+]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:
