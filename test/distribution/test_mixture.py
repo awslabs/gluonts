@@ -57,7 +57,7 @@ def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
 
 
 NUM_SAMPLES = 1_000
-NUM_SAMPLES_LARGE = 100_000
+NUM_SAMPLES_LARGE = 1_000_000
 
 
 SHAPE = (2, 1, 3)
