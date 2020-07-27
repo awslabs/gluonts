@@ -70,10 +70,9 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         std = np.nanstd(target)
         normal = np.random.standard_normal(self.shape)
 
-        start_date = forecast_start(item)
         return SampleForecast(
             samples=std * normal + mean,
-            start_date=start_date,
+            start_date=forecast_start(item),
             freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
@@ -112,9 +111,10 @@ class MovingAveragePredictor(RepresentablePredictor):
     ) -> None:
         super().__init__(freq=freq, prediction_length=prediction_length)
 
-        # assert (
-        #     context_length >= 1
-        # ), "The value of `context_length` should be >= 1"
+        if context_length is not None:
+            assert (
+                context_length >= 1
+            ), "The value of `context_length` should be >= 1 or None"
 
         self.context_length = context_length
 
@@ -129,10 +129,9 @@ class MovingAveragePredictor(RepresentablePredictor):
 
             target.append(np.nanmean(window))
 
-        start_date = forecast_start(item)
         return SampleForecast(
             samples=np.array([target[-self.prediction_length :]]),
-            start_date=start_date,
+            start_date=forecast_start(item),
             freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
