@@ -529,7 +529,10 @@ class QuantileForecast(Forecast):
         """
         Forecast mean.
         """
-        return self._forecast_dict.get("mean", self._nan_out)
+        if "mean" in self._forecast_dict:
+            return self._forecast_dict["mean"]
+
+        return self.quantile("p50")
 
     def dim(self) -> int:
         if self._dim is not None:
