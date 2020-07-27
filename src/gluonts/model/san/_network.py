@@ -373,12 +373,12 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
         past_target: Tensor,
         past_observed_values: Tensor,
         past_is_pad: Tensor,
-        past_feat_dynamic_real: Optional[Tensor],
-        past_feat_dynamic_cat: Optional[Tensor],
-        future_feat_dynamic_real: Optional[Tensor],
-        future_feat_dynamic_cat: Optional[Tensor],
-        feat_static_real: Optional[Tensor],
-        feat_static_cat: Optional[Tensor],
+        past_feat_dynamic_real: Optional[Tensor] = None,
+        past_feat_dynamic_cat: Optional[Tensor] = None,
+        future_feat_dynamic_real: Optional[Tensor] = None,
+        future_feat_dynamic_cat: Optional[Tensor] = None,
+        feat_static_real: Optional[Tensor] = None,
+        feat_static_cat: Optional[Tensor] = None,
     ) -> Tensor:
         (
             past_target,
