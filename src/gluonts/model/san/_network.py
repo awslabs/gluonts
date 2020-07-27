@@ -343,6 +343,7 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
             F, self.prediction_length, target, covars, observed_values
         )
         preds = self._postprocess(F, preds, offset, scale)
+        future_target = future_target * (scale + self.normalizer_eps) + offset
         loss = self.loss(future_target, preds)
         loss = weighted_average(F, loss, future_observed_values)
         return loss.mean()
