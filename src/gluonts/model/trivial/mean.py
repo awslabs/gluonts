@@ -114,7 +114,7 @@ class MovingAveragePredictor(RepresentablePredictor):
         if context_length is not None:
             assert (
                 context_length >= 1
-            ), "The value of `context_length` should be >= 1 or None"
+            ), "The value of 'context_length' must be >= 1 or None"
 
         self.context_length = context_length
 
