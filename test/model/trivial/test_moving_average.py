@@ -31,7 +31,7 @@ def get_predictions(
 
     ds = ListDataset([{"target": target, "start": start}], freq=freq)
     item = next(iter(ds))
-    predictions = mp.predict_item(item).samples[0]
+    predictions = mp.predict_item(item).mean
 
     return predictions
 
@@ -64,6 +64,12 @@ def get_predictions(
         ([1, 2, 3], [2], 1, 3),
         ([1, 2, 3], [2, 7 / 3], 2, 3),
         ([1, 2, 3], [2, 7 / 3, 22 / 9], 3, 3),
+        ([1, 1, 1], [1], 1, None),
+        ([1, 1, 1], [1, 1], 2, None),
+        ([1, 1, 1], [1, 1, 1], 3, None),
+        ([1, 3, np.nan], [2], 1, None),
+        ([1, 3, np.nan], [2, 2], 2, None),
+        ([1, 3, np.nan], [2, 2, 2], 3, None),
     ],
 )
 def testing(data, expected_output, prediction_length, context_length):
@@ -75,5 +81,3 @@ def testing(data, expected_output, prediction_length, context_length):
     )
 
     np.testing.assert_equal(predictions, expected_output)
-
-    np.testing.assert_equal(predictions.shape, (prediction_length,))

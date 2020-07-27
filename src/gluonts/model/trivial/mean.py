@@ -26,7 +26,7 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
-from gluonts.support.pandas import frequency_add, forecast_start
+from gluonts.support.pandas import forecast_start
 
 
 class MeanPredictor(RepresentablePredictor, FallbackPredictor):
@@ -70,7 +70,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         std = np.nanstd(target)
         normal = np.random.standard_normal(self.shape)
 
-        start_date = frequency_add(item["start"], len(item["target"]))
+        start_date = forecast_start(item)
         return SampleForecast(
             samples=std * normal + mean,
             start_date=start_date,
@@ -105,13 +105,16 @@ class MovingAveragePredictor(RepresentablePredictor):
 
     @validated()
     def __init__(
-        self, prediction_length: int, freq: str, context_length: int = 1,
+        self,
+        prediction_length: int,
+        freq: str,
+        context_length: Optional[int] = None,
     ) -> None:
         super().__init__(freq=freq, prediction_length=prediction_length)
 
-        assert (
-            context_length >= 1
-        ), "The value of `context_length` should be >= 1"
+        # assert (
+        #     context_length >= 1
+        # ), "The value of `context_length` should be >= 1"
 
         self.context_length = context_length
 
@@ -119,7 +122,11 @@ class MovingAveragePredictor(RepresentablePredictor):
         target = item["target"].tolist()
 
         for _ in range(self.prediction_length):
-            window = target[-self.context_length :]
+            if self.context_length is not None:
+                window = target[-self.context_length :]
+            else:
+                window = target
+
             target.append(np.nanmean(window))
 
         start_date = forecast_start(item)
