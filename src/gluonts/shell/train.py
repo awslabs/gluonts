@@ -104,10 +104,7 @@ def run_train(
     hyperparameters: dict,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
-    num_workers = min(
-        int(hyperparameters.get("num_workers", 4)),
-        int(np.ceil(np.sqrt(multiprocessing.cpu_count()))),
-    )
+    num_workers = int(hyperparameters.get("num_workers", 2))
     shuffle_buffer_length = (
         int(hyperparameters["shuffle_buffer_length"])
         if "shuffle_buffer_length" in hyperparameters.keys()
