@@ -12,9 +12,7 @@ from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.support.util import weighted_average
 from ._layers import (
-    CausalConv1D,
-    GroupSelfAttention,
-    DualSelfAttention,
+    SelfAttention,
     PosFFN,
 )
 
@@ -25,8 +23,8 @@ class SelfAttentionBlock(HybridBlock):
         self,
         d_hidden: int,
         m_ffn: int,
-        n_groups: int,
         n_head: int,
+        kernel_sizes: List[int],
         dist_enc: Optional[str],
         pre_ln: bool,
         dropout: float,
@@ -39,9 +37,9 @@ class SelfAttentionBlock(HybridBlock):
         self.pre_ln = pre_ln
 
         with self.name_scope():
-            self.attention = GroupSelfAttention(
+            self.attention = SelfAttention(
                 d_hidden=d_hidden,
-                n_groups=n_groups,
+                kernel_sizes=kernel_sizes,
                 n_head=n_head,
                 bias=True,
                 bidirectional=False,
@@ -49,6 +47,7 @@ class SelfAttentionBlock(HybridBlock):
                 share_values=False,
                 dropout=dropout,
                 temperature=temperature,
+                prefix="attn_",
             )
             self.lnorm = nn.LayerNorm(axis=-1)
             self.dropout = nn.Dropout(dropout)
@@ -57,22 +56,19 @@ class SelfAttentionBlock(HybridBlock):
                 d_hidden=d_hidden * m_ffn,
                 pre_ln=pre_ln,
                 dropout=dropout,
+                prefix="ffn_",
             )
 
-    def hybrid_forward(
-        self, F, value: Tensor, shape: Tensor, mask: Tensor,
-    ):
-        v = value
-        # s = shape
+    def hybrid_forward(self, F, x: Tensor, mask: Tensor,) -> Tensor:
+        skip = x
         if self.pre_ln:
-            value = self.lnorm(value)
-        value = self.attention(value, shape, mask)
-        value = value + v
-        # shape = shape + s
+            x = self.lnorm(x)
+        x = self.attention(x, mask)
+        x = x + skip
         if not self.pre_ln:
-            value = self.lnorm(value)
-        value = self.ffn(value)
-        return value
+            x = self.lnorm(x)
+        x = self.ffn(x)
+        return x
 
 
 class SelfAttentionNetwork(HybridBlock):
@@ -87,7 +83,7 @@ class SelfAttentionNetwork(HybridBlock):
         n_layers: int,
         n_output: int,
         cardinalities: List[int],
-        kernel_sizes: List[int],
+        kernel_sizes: Optional[List[int]],
         dist_enc: Optional[str],
         pre_ln: bool,
         dropout: float,
@@ -96,13 +92,10 @@ class SelfAttentionNetwork(HybridBlock):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        if len(kernel_sizes) == 0:
+        if kernel_sizes is None or len(kernel_sizes) == 0:
             self.kernel_sizes = (1,)
-            self.n_groups = 1
         else:
             self.kernel_sizes = kernel_sizes
-            self.n_groups = len(kernel_sizes)
-        assert d_hidden % self.n_groups == 0
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.d_hidden = d_hidden
@@ -111,32 +104,15 @@ class SelfAttentionNetwork(HybridBlock):
             [[i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)],
             [0.5],
         )
-        self.n_output = n_output
         self.normalizer_eps = normalizer_eps
 
         with self.name_scope():
-            self.shape_proj = HybridConcurrent(axis=-1, prefix="shape_proj_")
-            for ksize in self.kernel_sizes:
-                self.shape_proj.add(
-                    CausalConv1D(
-                        channels=self.d_hidden // self.n_groups,
-                        kernel_size=ksize,
-                        prefix=f"conv{ksize}_",
-                    )
-                )
-            self.value_proj = nn.Dense(
-                units=self.d_hidden,
-                use_bias=False,
-                flatten=False,
-                weight_initializer=init.Xavier(),
-                prefix="value_proj_",
-            )
             self._blocks = []
             for layer in range(n_layers):
                 block = SelfAttentionBlock(
                     d_hidden=self.d_hidden,
                     m_ffn=m_ffn,
-                    n_groups=self.n_groups,
+                    kernel_sizes=self.kernel_sizes,
                     n_head=n_head,
                     dist_enc=dist_enc,
                     pre_ln=pre_ln,
@@ -146,6 +122,14 @@ class SelfAttentionNetwork(HybridBlock):
                 self.register_child(block=block, name=f"block_{layer+1}")
                 self._blocks.append(block)
 
+            self.target_proj = nn.Dense(
+                units=self.d_hidden,
+                in_units=1,
+                use_bias=True,
+                flatten=False,
+                weight_initializer=init.Xavier(),
+                prefix="target_proj_",
+            )
             self.covar_proj = nn.Dense(
                 units=self.d_hidden,
                 use_bias=True,
@@ -295,13 +279,11 @@ class SelfAttentionNetwork(HybridBlock):
     ) -> Tensor:
         target = F.expand_dims(target, axis=-1)
         mask = F.expand_dims(mask, axis=-1)
-        value = self.value_proj(target)
-        shape = self.shape_proj(target)
+        value = self.target_proj(target)
         if covars is not None:
-            shape = shape + covars
+            value = value + covars
         for block in self._blocks:
-            value = block(value, shape, mask)
-            shape = value + shape
+            value = block(value, mask)
         value = F.slice_axis(value, axis=1, begin=-horizon, end=None)
         preds = self.output_proj(value)
         return preds

@@ -4,6 +4,8 @@ import numpy as np
 import mxnet as mx
 from mxnet import init
 from mxnet.gluon import nn, Parameter, HybridBlock
+from mxnet.gluon.contrib.nn import HybridConcurrent
+
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
@@ -50,111 +52,46 @@ class SinusoidalPositionalEmbedding(HybridBlock):
         return F.concat(F.sin(pos_seq), F.cos(pos_seq), dim=-1)
 
 
-class Attention(HybridBlock):
+class CausalConv1D(HybridBlock):
     @validated()
     def __init__(
         self,
-        d_hidden: int,
-        n_head: int = 1,
-        bias: bool = True,
-        dropout: float = 0.0,
-        temperature: float = 1.0,
+        channels: int,
+        kernel_size: int,
+        activation: str = "tanh",
         **kwargs,
     ):
-        super(Attention, self).__init__(**kwargs)
-        if d_hidden % n_head != 0:
-            raise ValueError(
-                f"hidden dim {d_hidden} cannot be split into {n_head} heads."
-            )
-        self.d_hidden = d_hidden
-        self.n_head = n_head
-        self.d_head = d_hidden // n_head
-        self.bias = bias
-        self.temperature = temperature
-
+        super(CausalConv1D, self).__init__(**kwargs)
+        self.kernel_size = kernel_size
+        self.channels = channels
         with self.name_scope():
-            self.dropout = nn.Dropout(dropout)
+            self.net = nn.Conv1D(
+                channels,
+                kernel_size,
+                use_bias=False,
+                activation="tanh",
+                weight_initializer=init.Xavier(),
+            )
 
-    def _split_head(self, F, x: Tensor) -> Tensor:
-        """
-        Split hidden state into multi-heads
-        
-        Args
-        ----------
-            x : Tensor [batch, length, d_hidden]
-        
-        Returns
-        -------
-            Tensor [batch, n_head, length, d_head]
-        """
-        x = F.reshape(data=x, shape=(0, 0, -4, self.n_head, self.d_head))
-        x = F.swapaxes(data=x, dim1=1, dim2=2)
+    def hybrid_forward(self, F, x: Tensor, *args) -> Tensor:
+        pad = (
+            F.zeros_like(x)
+            .slice_axis(axis=1, begin=0, end=1)
+            .tile(reps=(1, self.kernel_size - 1, 1))
+        )
+        x = F.concat(pad, x, dim=1)
+        x = F.swapaxes(x, dim1=1, dim2=2)
+        x = self.net(x)
+        x = F.swapaxes(x, dim1=1, dim2=2)
         return x
 
-    def _merge_head(self, F, x: Tensor) -> Tensor:
-        """
-        Merge multi-heads into one hidden state
-        
-        Args
-        ----------
-            x : Tensor [batch, n_head, length, d_head]
-        
-        Returns
-        -------
-            Tensor [batch, length, d_hidden]
-        """
-        x = F.swapaxes(data=x, dim1=1, dim2=2)
-        x = F.reshape(data=x, shape=(0, 0, self.d_hidden))
-        return x
 
-    def _compute_qkv(self, F, *args, **kwargs):
-        raise NotImplementedError
-
-    def _compute_attn_score(self, F, q: Tensor, k: Tensor, **kwargs) -> Tensor:
-        raise NotImplementedError
-
-    def _compute_attn_output(
-        self, F, score: Tensor, v: Tensor, **kwargs
-    ) -> Tensor:
-        raise NotImplementedError
-
-
-class GroupSelfAttention(Attention):
-    """
-    Self-attention module with q,k,v from the same input
-
-    Parameters
-    ----------
-    d_hidden : int
-        hidden dimension
-    n_groups: int
-        number of groups in given shape repr
-    n_head : int, optional
-        number of attention heads, by default 1
-    bias : bool, optional
-        add bias term in input and output projections, by default True
-    bidirectional : bool, optional
-        if False, add a mask to avoid backward attention, by default False
-    dist_encoding : Optional[str], optional
-        add relative distance embeddings to dot-product attention, can be 
-            'add' (linearly combine key and dist),
-            'dot' (dot product between key and dist), 
-            or None (disabled),
-        by default None
-    share_values : bool, optional
-        if True, a value reprensentation is shared by all attention heads, by default False
-        ref. https://arxiv.org/abs/1912.09363
-    dropout : float, optional
-        dropout rate, by default 0.0
-    temperature : float, optional
-        softmax temperature, by default 1.0
-    """
-
+class SelfAttention(HybridBlock):
     @validated()
     def __init__(
         self,
         d_hidden: int,
-        n_groups: int,
+        kernel_sizes: List[int],
         n_head: int = 1,
         bias: bool = True,
         bidirectional: bool = False,
@@ -164,35 +101,68 @@ class GroupSelfAttention(Attention):
         temperature: float = 1.0,
         **kwargs,
     ):
-        try:
-            assert d_hidden % n_groups == 0
-            assert n_head % n_groups == 0
-        except AssertionError:
-            raise ValueError(
-                "Both d_hidden and n_head must be divisible by n_groups"
-            )
-        super(GroupSelfAttention, self).__init__(
-            d_hidden=d_hidden,
-            n_head=n_head,
-            bias=bias,
-            dropout=dropout,
-            temperature=temperature,
-            **kwargs,
-        )
+        """
+        Self-attention module with q,k,v from the same input
+
+        Parameters
+        ----------
+        d_hidden : int
+            hidden dimension
+        kernel_sizes: int
+            kernel sizes of convolutions to generate queries and keys
+        n_head : int, optional
+            number of attention heads, by default 1
+        bias : bool, optional
+            add bias term in input and output projections, by default True
+        bidirectional : bool, optional
+            if False, add a mask to avoid backward attention, by default False
+        dist_enc : Optional[str], optional
+            add relative distance embeddings to dot-product attention, can be 
+                'add' (linearly combine key and dist),
+                'dot' (dot product between key and dist), 
+                or None (disabled),
+            by default None
+        share_values : bool, optional
+            if True, a value reprensentation is shared by all attention heads, by default False
+            ref. https://arxiv.org/abs/1912.09363
+        dropout : float, optional
+            dropout rate, by default 0.0
+        temperature : float, optional
+            softmax temperature, by default 1.0
+        """
+        super(SelfAttention, self).__init__(**kwargs)
+        n_groups = len(kernel_sizes)
+        assert (
+            d_hidden % n_head == 0
+        ), f"hidden dim {d_hidden} cannot be split into {n_head} heads."
+        assert (
+            d_hidden % n_groups == 0
+        ), f"hidden dim {d_hidden} cannot be split into {n_groups} groups."
+        assert (
+            n_head % n_groups == 0
+        ), f"num_heads {n_heads} cannot be allocated for {n_groups} groups."
+        self.d_hidden = d_hidden
+        self.kernel_sizes = kernel_sizes
         self.n_groups = n_groups
-        self.bidirectional = bidirectional
+        self.d_group = self.d_hidden // self.n_groups
+        self.n_head = n_head
+        self.d_head = self.d_hidden // self.n_head
+        self.bias = bias
         self.dist_enc = dist_enc
+        self.bidirectional = bidirectional
         self.share_values = share_values
+        self.temperature = temperature
 
         with self.name_scope():
-            self.qk_proj = nn.Conv1D(
-                channels=d_hidden * 2,
-                kernel_size=1,
-                groups=n_groups,
-                use_bias=bias,
-                weight_initializer=init.Xavier(),
-                prefix="qk_proj_",
-            )
+            self.qk_proj = HybridConcurrent(axis=-1, prefix="qk_proj_")
+            for ksize in self.kernel_sizes:
+                self.qk_proj.add(
+                    CausalConv1D(
+                        channels=self.d_group * 2,
+                        kernel_size=ksize,
+                        prefix=f"conv{ksize}_",
+                    )
+                )
             self.v_proj = nn.Dense(
                 units=self.d_head if self.share_values else d_hidden,
                 use_bias=bias,
@@ -233,18 +203,48 @@ class GroupSelfAttention(Attention):
                         init=init.Xavier(),
                     )
 
-    def _compute_qkv(
-        self, F, value: Tensor, shape: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
-        qk = F.swapaxes(shape, dim1=1, dim2=2)
-        qk = self.qk_proj(qk)
-        qk = F.swapaxes(qk, dim1=1, dim2=2)
-        qk = F.split(qk, num_outputs=2 * self.n_groups, axis=-1)
+            self.dropout = nn.Dropout(dropout)
+
+    def _split_head(self, F, x: Tensor) -> Tensor:
+        """
+        Split hidden state into multi-heads
+        
+        Args
+        ----------
+            x : Tensor [batch, length, d_hidden]
+        
+        Returns
+        -------
+            Tensor [batch, n_head, length, d_head]
+        """
+        x = F.reshape(data=x, shape=(0, 0, -4, self.n_head, self.d_head))
+        x = F.swapaxes(data=x, dim1=1, dim2=2)
+        return x
+
+    def _merge_head(self, F, x: Tensor) -> Tensor:
+        """
+        Merge multi-heads into one hidden state
+        
+        Args
+        ----------
+            x : Tensor [batch, n_head, length, d_head]
+        
+        Returns
+        -------
+            Tensor [batch, length, d_hidden]
+        """
+        x = F.swapaxes(data=x, dim1=1, dim2=2)
+        x = F.reshape(data=x, shape=(0, 0, self.d_hidden))
+        return x
+
+    def _compute_qkv(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        qk = self.qk_proj(x)
+        qk = F.split(qk, num_outputs=self.n_groups * 2, axis=-1)
         q = F.concat(*qk[0::2], dim=-1)
         k = F.concat(*qk[1::2], dim=-1)
         q = self._split_head(F, q)
         k = self._split_head(F, k)
-        v = self.v_proj(value)
+        v = self.v_proj(x)
         if self.share_values:
             v = F.broadcast_like(v.expand_dims(axis=1), k)
         else:
@@ -364,60 +364,17 @@ class GroupSelfAttention(Attention):
     def hybrid_forward(
         self,
         F,
-        value: Tensor,
-        shape: Tensor,
+        x: Tensor,
         mask: Tensor,
         _ctt_bias_weight: Optional[Tensor] = None,
         _pos_bias_weight: Optional[Tensor] = None,
     ) -> Tensor:
-        q, k, v = self._compute_qkv(F, value, shape)
+        q, k, v = self._compute_qkv(F, x)
         score = self._compute_attn_score(
             F, q, k, mask, _ctt_bias_weight, _pos_bias_weight
         )
         v = self._compute_attn_output(F, score, v)
         return v
-
-
-class DualSelfAttention(GroupSelfAttention):
-    @validated()
-    def __init__(self, **kwargs):
-        super(DualSelfAttention, self).__init__(**kwargs)
-        with self.name_scope():
-            self.pat_proj = nn.Conv1D(
-                channels=self.d_hidden,
-                kernel_size=1,
-                groups=self.n_groups,
-                use_bias=self.bias,
-                weight_initializer=init.Xavier(),
-                prefix="pat_proj_",
-            )
-
-    def _compute_attn_output(
-        self, F, score: Tensor, v: Tensor, k: Tensor
-    ) -> Tuple[Tensor, Tensor]:
-        v = super(DualSelfAttention, self)._compute_attn_output(F, score, v)
-        s = F.batch_dot(score, k)
-        s = self._merge_head(F, s)
-        s = F.swapaxes(s, dim1=1, dim2=2)
-        s = self.pat_proj(s)
-        s = F.swapaxes(s, dim1=1, dim2=2)
-        return v, s
-
-    def hybrid_forward(
-        self,
-        F,
-        value: Tensor,
-        shape: Tensor,
-        mask: Optional[Tensor],
-        _ctt_bias_weight: Optional[Tensor] = None,
-        _pos_bias_weight: Optional[Tensor] = None,
-    ) -> Tuple[Tensor, Tensor]:
-        q, k, v = self._compute_qkv(F, value, shape)
-        score = self._compute_attn_score(
-            F, q, k, mask, _ctt_bias_weight, _pos_bias_weight
-        )
-        v, s = self._compute_attn_output(F, score, v, k)
-        return v, s
 
 
 class PosFFN(HybridBlock):
@@ -462,37 +419,3 @@ class PosFFN(HybridBlock):
         if not self.pre_ln:
             y = self.lnorm(y)
         return y
-
-
-class CausalConv1D(HybridBlock):
-    @validated()
-    def __init__(
-        self,
-        channels: int,
-        kernel_size: int,
-        activation: str = "tanh",
-        **kwargs,
-    ):
-        super(CausalConv1D, self).__init__(**kwargs)
-        self.kernel_size = kernel_size
-        self.channels = channels
-        with self.name_scope():
-            self.net = nn.Conv1D(
-                channels,
-                kernel_size,
-                use_bias=False,
-                activation="tanh",
-                weight_initializer=init.Xavier(),
-            )
-
-    def hybrid_forward(self, F, x: Tensor, *args) -> Tensor:
-        pad = (
-            F.zeros_like(x)
-            .slice_axis(axis=1, begin=0, end=1)
-            .tile(reps=(1, self.kernel_size - 1, 1))
-        )
-        x = F.concat(pad, x, dim=1)
-        x = F.swapaxes(x, dim1=1, dim2=2)
-        x = self.net(x)
-        x = F.swapaxes(x, dim1=1, dim2=2)
-        return x
