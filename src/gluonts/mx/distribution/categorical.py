@@ -91,7 +91,7 @@ class Categorical(Distribution):
             return indices
 
         return _sample_multiple(s, self.probs, num_samples=num_samples).astype(
-            "int32"
+            dtype
         )
 
     @property

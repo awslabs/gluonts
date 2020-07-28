@@ -20,6 +20,7 @@ from .box_cox_transform import (
     InverseBoxCoxTransformOutput,
 )
 from .categorical import Categorical, CategoricalOutput
+from .deterministic import Deterministic, DeterministicOutput
 from .dirichlet import Dirichlet, DirichletOutput
 from .dirichlet_multinomial import (
     DirichletMultinomial,
@@ -40,6 +41,7 @@ from .multivariate_gaussian import (
     MultivariateGaussian,
     MultivariateGaussianOutput,
 )
+from .nan_mixture import NanMixture, NanMixtureOutput
 from .neg_binomial import NegativeBinomial, NegativeBinomialOutput
 from .piecewise_linear import (
     PiecewiseLinear,
@@ -71,6 +73,8 @@ __all__ = [
     "LowrankMultivariateGaussianOutput",
     "MixtureDistributionOutput",
     "MixtureDistribution",
+    "NanMixture",
+    "NanMixtureOutput",
     "NegativeBinomialOutput",
     "NegativeBinomial",
     "UniformOutput",
@@ -95,6 +99,8 @@ __all__ = [
     "CategoricalOutput",
     "LogitNormal",
     "LogitNormalOutput",
+    "Deterministic",
+    "DeterministicOutput",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
