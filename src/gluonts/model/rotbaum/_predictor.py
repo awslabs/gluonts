@@ -19,6 +19,7 @@ from typing import Iterator, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 from itertools import chain
+import concurrent.futures
 
 # First-party imports
 from gluonts.core.component import validated
@@ -111,7 +112,6 @@ class TreePredictor(RepresentablePredictor):
         model_params=None,
         freq=None,
     ) -> None:
-
         self.preprocess_object = PreprocessOnlyLagFeatures(
             context_length,
             forecast_horizon=prediction_length,
@@ -125,14 +125,14 @@ class TreePredictor(RepresentablePredictor):
         self.model_list = None
 
     @validated()
-    def __call__(self, training_data: Dataset):
+    def __call__(self, training_data):
         assert training_data
         if self.freq is not None:
             assert self.freq == next(iter(training_data))["start"].freq
         else:
             self.freq = next(iter(training_data))["start"].freq
         self.preprocess_object.preprocess_from_list(
-            ts_list=training_data, change_internal_variables=True
+            ts_list=list(training_data), change_internal_variables=True
         )
         feature_data, target_data = (
             self.preprocess_object.feature_data,
@@ -141,13 +141,14 @@ class TreePredictor(RepresentablePredictor):
         n_models = self.prediction_length
         print(f"Length of forecast horizon: {n_models}")
         self.model_list = [QRX() for _ in range(n_models)]
-
-        for n_step, model in enumerate(self.model_list):
-            print(
-                f"Training model for step no. {n_step + 1} in the forecast "
-                f"horizon"
-            )
-            model.fit(feature_data, np.array(target_data)[:, n_step])
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for n_step, model in enumerate(self.model_list):
+                print(
+                    f"Training model for step no. {n_step + 1} in the forecast "
+                    f"horizon"
+                )
+                executor.submit(model.fit, feature_data,
+                                np.array(target_data)[:, n_step])
 
         return self
 
@@ -158,7 +159,7 @@ class TreePredictor(RepresentablePredictor):
         which are the predictions for that quantile as you run over
         (time_steps, time_series) lexicographically. So: first it would give
         the quantile prediction for the first time step for all time series,
-        then the second time step for all time series, and so forth.
+        then the second time step for all time series ˜˜ , and so forth.
         """
         context_length = self.preprocess_object.context_window_size
 

@@ -68,6 +68,7 @@ class QRX:
         self.processed_df = None
         self.cell_values = None
         self.cell_values_dict = None
+        self.quantile_dicts = {}
 
     @staticmethod
     def _create_xgboost_model(model_params: Optional[dict] = None):
@@ -96,10 +97,13 @@ class QRX:
             list of lists
         y_train: list
         """
-        self.model.fit(x_train, y_train)
+        self.quantile_dicts = {}
+        x_train, y_train = np.array(x_train), np.array(y_train) #xgboost
+        # doens't like lists
+        self.model.fit(np.array(x_train), np.array(y_train))
         y_train_pred = self.model.predict(x_train)
         self.df = pd.DataFrame(
-            {"x": x_train, "y_true": y_train, "y_pred": y_train_pred}
+            {"x": list(x_train), "y_true": y_train, "y_pred": y_train_pred}
         )
         self.cell_values_dict = self.preprocess_df(
             self.df, clump_size=self.clump_size
@@ -246,11 +250,17 @@ class QRX:
             list of floats
         """
         predicted_values = []
-        quantile_dic = self._get_quantiles_from_dic_with_list_values(
-            self.cell_values_dict, quantile
-        )
+        if quantile in self.quantile_dicts:
+            quantile_dic = self.quantile_dicts[quantile]
+        else:
+            quantile_dic = self._get_quantiles_from_dic_with_list_values(
+                self.cell_values_dict, quantile
+            )
+            self.quantile_dicts[quantile] = quantile_dic
+        # Remember dic per quantile and use if already done
         for pt in x_test:
-            pred = self.model.predict(pt)[0]
+            pred = self.model.predict(np.array([pt]))[0] #xgboost doesn't like
+            # lists
             closest_pred = self.get_closest_pt(self.cell_values, pred)
             predicted_values.append(quantile_dic[closest_pred])
         return predicted_values
@@ -271,7 +281,7 @@ class QRX:
         """
         predicted_samples = []
         for pt in x_test:
-            pred = self.model.predict(pt)[0]
+            pred = self.model.predict(np.array([pt]))[0]
             closest_pred = self.get_closest_pt(self.cell_values, pred)
             predicted_samples.append(self.cell_values_dict[closest_pred])
         return predicted_samples
