@@ -1,4 +1,4 @@
-name: Doc Build
+name: Docs
 
 on: [push, pull_request]
 
@@ -21,6 +21,7 @@ jobs:
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-docs.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
+        pip install -r requirements/requirements-extras-m-competitions.txt
 
     - name: Build docs
       run: |

@@ -18,7 +18,7 @@ import pytest
 from flaky import flaky
 
 # First-party imports
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     Uniform,
     StudentT,
     NegativeBinomial,
@@ -33,6 +33,7 @@ from gluonts.distribution import (
     TransformedDistribution,
     Dirichlet,
     DirichletMultinomial,
+    Categorical,
 )
 from gluonts.core.serde import dump_json, load_json, dump_code, load_code
 
@@ -89,6 +90,28 @@ test_cases = [
             "bin_centers": mx.nd.array(
                 [[-5, -3, -1.2, -0.5, 0, 0.1, 0.2]]
             ).repeat(axis=0, repeats=2),
+        },
+    ),
+    (
+        Binned,
+        {
+            "bin_log_probs": mx.nd.array(
+                [[0.1, 0.2, 0.1, 0.05, 0.2, 0.1, 0.25]]
+            )
+            .log()
+            .repeat(axis=0, repeats=2),
+            "bin_centers": mx.nd.array(
+                [[-5, -3, -1.2, -0.5, 0, 0.1, 0.2]]
+            ).repeat(axis=0, repeats=2),
+            "label_smoothing": 0.1,
+        },
+    ),
+    (
+        Categorical,
+        {
+            "log_probs": mx.nd.array([[0.1, 0.2, 0.1, 0.05, 0.2, 0.1, 0.25]])
+            .log()
+            .repeat(axis=0, repeats=2),
         },
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 0])}),

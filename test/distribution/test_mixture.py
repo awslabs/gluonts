@@ -19,8 +19,8 @@ import pytest
 # First-party imports
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.common import Tensor, NPArrayLike
-from gluonts.distribution.distribution import Distribution
-from gluonts.distribution import (
+from gluonts.mx.distribution.distribution import Distribution
+from gluonts.mx.distribution import (
     Gaussian,
     StudentT,
     MixtureDistribution,
@@ -57,10 +57,13 @@ def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
 
 
 NUM_SAMPLES = 1_000
-NUM_SAMPLES_LARGE = 100_000
+NUM_SAMPLES_LARGE = 1_000_000
 
 
 SHAPE = (2, 1, 3)
+
+np.random.seed(35120171)
+mx.random.seed(35120171)
 
 
 @pytest.mark.parametrize(
@@ -97,7 +100,6 @@ def test_mixture(
     distr1: Distribution, distr2: Distribution, p: Tensor, serialize_fn
 ) -> None:
     # sample from component distributions, and select samples
-
     samples1 = distr1.sample(num_samples=NUM_SAMPLES_LARGE)
     samples2 = distr2.sample(num_samples=NUM_SAMPLES_LARGE)
 
@@ -127,9 +129,12 @@ def test_mixture(
 
     # check mean and stddev
     calc_mean = mixture.mean.asnumpy()
+    calc_std = mixture.stddev.asnumpy()
     sample_mean = samples_mix.asnumpy().mean(axis=0)
+    sample_std = samples_mix.asnumpy().std(axis=0)
 
     assert np.allclose(calc_mean, sample_mean, atol=1e-1)
+    assert np.allclose(calc_std, sample_std, atol=2e-1)
 
     # check that histograms are close
     assert (

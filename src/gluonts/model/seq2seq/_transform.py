@@ -12,7 +12,8 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Iterator, List
+from collections import Counter
+from typing import Iterator, List, Optional
 
 # Third-party imports
 import numpy as np
@@ -20,7 +21,18 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 from gluonts.transform import FlatMapTransformation, shift_timestamp
+
+
+def pad_to_size(xs, size):
+    """Pads `xs` with 0 on the left on the last axis."""
+    pad_length = size - xs.shape[-1]
+    if pad_length <= 0:
+        return xs
+
+    pad_width = ([(0, 0)] * (xs.ndim - 1)) + [(pad_length, 0)]
+    return np.pad(xs, mode="constant", pad_width=pad_width)
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
@@ -32,25 +44,56 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         train_sampler,
         enc_len: int,
         dec_len: int,
-        time_series_fields: List[str] = None,
-        target_in="target",
+        target_field: str = FieldName.TARGET,
+        encoder_series_fields: Optional[List[str]] = None,
+        decoder_series_fields: Optional[List[str]] = None,
+        encoder_disabled_fields: Optional[List[str]] = None,
+        decoder_disabled_fields: Optional[List[str]] = None,
+        prediction_time_decoder_exclude: Optional[List[str]] = None,
         is_pad_out: str = "is_pad",
-        start_in: str = "start",
-        forecast_start_out: str = "forecast_start",
+        start_input_field: str = "start",
     ) -> None:
+
         assert enc_len > 0, "The value of `enc_len` should be > 0"
         assert dec_len > 0, "The value of `dec_len` should be > 0"
 
         self.train_sampler = train_sampler
         self.enc_len = enc_len
         self.dec_len = dec_len
-        self.ts_fields = (
-            time_series_fields if time_series_fields is not None else []
+        self.target_field = target_field
+
+        self.encoder_series_fields = (
+            encoder_series_fields + [self.target_field]
+            if encoder_series_fields is not None
+            else [self.target_field]
         )
-        self.target_in = target_in
+        self.decoder_series_fields = (
+            decoder_series_fields + [self.target_field]
+            if decoder_series_fields is not None
+            else [self.target_field]
+        )
+
+        self.encoder_disabled_fields = (
+            encoder_disabled_fields
+            if encoder_disabled_fields is not None
+            else []
+        )
+
+        self.decoder_disabled_fields = (
+            decoder_disabled_fields
+            if decoder_disabled_fields is not None
+            else []
+        )
+
+        # Fields that are not used at prediction time for the decoder
+        self.prediction_time_decoder_exclude = (
+            prediction_time_decoder_exclude + [self.target_field]
+            if prediction_time_decoder_exclude is not None
+            else [self.target_field]
+        )
+
         self.is_pad_out = is_pad_out
-        self.start_in = start_in
-        self.forecast_start_out = forecast_start_out
+        self.start_in = start_input_field
 
     def _past(self, col_name):
         return f"past_{col_name}"
@@ -61,63 +104,99 @@ class ForkingSequenceSplitter(FlatMapTransformation):
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
-        dec_len = self.dec_len
-        slice_cols = self.ts_fields + [self.target_in]
-        target = data[self.target_in]
+        target = data[self.target_field]
 
         if is_train:
+            # We currently cannot handle time series that are shorter than the
+            # prediction length during training, so we just skip these.
+            # If we want to include them we would need to pad and to mask
+            # the loss.
             if len(target) < self.dec_len:
-                # We currently cannot handle time series that are shorter than the
-                # prediction length during training, so we just skip these.
-                # If we want to include them we would need to pad and to mask
-                # the loss.
-                sampling_indices: List[int] = []
-            else:
-                sampling_indices = self.train_sampler(
-                    target, 0, len(target) - self.dec_len
-                )
+                return
+
+            sampling_indices = self.train_sampler(
+                target, 0, len(target) - self.dec_len
+            )
         else:
             sampling_indices = [len(target)]
 
-        for i in sampling_indices:
-            pad_length = max(self.enc_len - i, 0)
+        # Loops over all encoder and decoder fields even those that are disabled to
+        # set to dummy zero fields in those cases
+        ts_fields_counter = Counter(
+            set(self.encoder_series_fields + self.decoder_series_fields)
+        )
 
-            d = data.copy()
-            for ts_field in slice_cols:
-                if i > self.enc_len:
-                    # truncate to past_length
-                    past_piece = d[ts_field][..., i - self.enc_len : i]
-                elif i < self.enc_len:
-                    pad_block = np.zeros(
-                        d[ts_field].shape[:-1] + (pad_length,)
-                    )
-                    past_piece = np.concatenate(
-                        [pad_block, d[ts_field][..., :i]], axis=-1
-                    )
+        for sampling_idx in sampling_indices:
+            # ensure start index is not negative
+            start_idx = max(0, sampling_idx - self.enc_len)
+
+            # irrelevant data should have been removed by now in the
+            # transformation chain, so copying everything is ok
+            out = data.copy()
+
+            for ts_field in list(ts_fields_counter.keys()):
+
+                # target is 1d, this ensures ts is always 2d
+                ts = np.atleast_2d(out[ts_field])
+
+                if ts_fields_counter[ts_field] == 1:
+                    del out[ts_field]
                 else:
-                    past_piece = d[ts_field][..., :i]
+                    ts_fields_counter[ts_field] -= 1
 
-                d[self._past(ts_field)] = np.expand_dims(past_piece, -1)
+                # take enc_len values from ts, depending on sampling_idx
+                slice = ts[:, start_idx:sampling_idx]
 
-                if is_train and ts_field is self.target_in:
+                past_piece = np.zeros(shape=(len(ts), self.enc_len))
+
+                if ts_field not in self.encoder_disabled_fields:
+                    # if we have less than enc_len values, pad_left with 0
+                    past_piece = pad_to_size(slice, self.enc_len)
+
+                out[self._past(ts_field)] = past_piece.transpose()
+
+                # exclude some fields at prediction time
+                if (
+                    not is_train
+                    and ts_field in self.prediction_time_decoder_exclude
+                ):
+                    continue
+
+                # This is were some of the forking magic happens:
+                # For each of the encoder_len time-steps at which the decoder is applied we slice the
+                # corresponding inputs called decoder_fields to the appropriate dec_len
+                if ts_field in self.decoder_series_fields:
+
                     forking_dec_field = np.zeros(
-                        shape=(self.enc_len, self.dec_len)
+                        shape=(self.enc_len, self.dec_len, len(ts))
                     )
 
-                    for j in range(self.enc_len):
-                        start_idx = i - self.enc_len + j + 1
-                        if start_idx >= 0:
-                            forking_dec_field[j, :] = d[ts_field][
-                                ..., start_idx : start_idx + dec_len
-                            ]
+                    # in case it's not disabled we copy the actual values
+                    if ts_field not in self.decoder_disabled_fields:
+                        skip = max(0, self.enc_len - sampling_idx)
+                        # This section takes by far the longest time computationally:
+                        # This scales linearly in self.enc_len and linearly in self.dec_len
+                        for dec_field, idx in zip(
+                            forking_dec_field[skip:],
+                            range(start_idx + 1, start_idx + self.enc_len + 1),
+                        ):
+                            dec_field[:] = ts[:, idx : idx + self.dec_len].T
+                    if forking_dec_field.shape[-1] == 1:
+                        out[self._future(ts_field)] = np.squeeze(
+                            forking_dec_field, axis=-1
+                        )
+                    else:
+                        out[self._future(ts_field)] = forking_dec_field
 
-                    d[self._future(ts_field)] = forking_dec_field
-
-                del d[ts_field]
-
+            # So far pad indicator not in use
             pad_indicator = np.zeros(self.enc_len)
-            if pad_length > 0:
-                pad_indicator[:pad_length] = 1
-            d[self._past(self.is_pad_out)] = pad_indicator
-            d[self.forecast_start_out] = shift_timestamp(d[self.start_in], i)
-            yield d
+            pad_length = max(0, self.enc_len - sampling_idx)
+            pad_indicator[:pad_length] = True
+            out[self._past(self.is_pad_out)] = pad_indicator
+
+            # So far pad forecast_start not in use
+            out[FieldName.FORECAST_START] = shift_timestamp(
+                out[self.start_in], sampling_idx
+            )
+
+            yield out

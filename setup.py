@@ -176,16 +176,19 @@ class StyleCheckCommand(distutils.cmd.Command):
             sys.exit(exit_code)
 
 
+docs_require = find_requirements("requirements-docs.txt")
 tests_require = find_requirements("requirements-test.txt")
 sagemaker_api_require = find_requirements(
     "requirements-extras-sagemaker-sdk.txt"
 )
 shell_require = find_requirements("requirements-extras-shell.txt")
-setup_requires = find_requirements(
-    "requirements-setup.txt"
-) + find_requirements("requirements-docs.txt")
+setup_requires = find_requirements("requirements-setup.txt")
 dev_require = (
-    tests_require + shell_require + setup_requires + sagemaker_api_require
+    docs_require
+    + tests_require
+    + shell_require
+    + setup_requires
+    + sagemaker_api_require
 )
 
 setup_kwargs: dict = dict(
@@ -211,6 +214,7 @@ setup_kwargs: dict = dict(
     tests_require=tests_require,
     extras_require={
         "dev": dev_require,
+        "docs": docs_require,
         "R": find_requirements("requirements-extras-r.txt"),
         "Prophet": find_requirements("requirements-extras-prophet.txt"),
         "shell": shell_require,
@@ -257,4 +261,6 @@ if HAS_SPHINX:
 # -----------------------------------------------------------------------------
 
 # do the work
-setup(**setup_kwargs)
+
+if __name__ == "__main__":
+    setup(**setup_kwargs)

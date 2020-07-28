@@ -30,7 +30,6 @@ from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 # First-party imports
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_code
-from gluonts.monkey_patch import monkey_patch_property_metaclass  # noqa: F401
 
 # Relative imports
 from . import fqname_for
@@ -264,17 +263,21 @@ def equals_parameter_dict(
     if type(this) != type(that):
         return False
 
-    this_prefix_length = len(this.prefix)
-    that_prefix_length = len(that.prefix)
+    def strip_prefix_enumeration(key, prefix):
+        if key.startswith(prefix):
+            name = key[len(prefix) :]
+        else:
+            prefix, args = key.split("_", 1)
+            name = prefix.rstrip("0123456789") + args
 
-    this_param_names_stripped = {
-        key[this_prefix_length:] if key.startswith(this.prefix) else key
-        for key in this.keys()
-    }
-    that_param_names_stripped = {
-        key[that_prefix_length:] if key.startswith(that.prefix) else key
-        for key in that.keys()
-    }
+        return name
+
+    this_param_names_stripped = [
+        strip_prefix_enumeration(key, this.prefix) for key in this.keys()
+    ]
+    that_param_names_stripped = [
+        strip_prefix_enumeration(key, that.prefix) for key in that.keys()
+    ]
 
     if not this_param_names_stripped == that_param_names_stripped:
         return False
@@ -390,15 +393,13 @@ def validated(base_model=None):
 
         if base_model is None:
             PydanticModel = create_model(
-                model_name=f"{init_clsnme}Model",
+                f"{init_clsnme}Model",
                 __config__=BaseValidatedInitializerModel.Config,
                 **init_fields,
             )
         else:
             PydanticModel = create_model(
-                model_name=f"{init_clsnme}Model",
-                __base__=base_model,
-                **init_fields,
+                f"{init_clsnme}Model", __base__=base_model, **init_fields,
             )
 
         def validated_repr(self) -> str:

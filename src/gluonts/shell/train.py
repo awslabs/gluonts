@@ -13,24 +13,29 @@
 
 # Standard library imports
 import logging
-from typing import Any, Type, Union, Optional
+import multiprocessing
+from typing import Any, Optional, Type, Union
+
+# Third-party imports
+import numpy as np
 
 # First-party imports
 import gluonts
 from gluonts.core import fqname_for
 from gluonts.core.component import check_gpu_support
 from gluonts.core.serde import dump_code
-from gluonts.evaluation import Evaluator, backtest
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.stat import calculate_dataset_statistics
+from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.transform import FilterTransformation, TransformedDataset
 from gluonts.support.util import maybe_len
+from gluonts.transform import FilterTransformation, TransformedDataset
+
+# Third party imports
+import json
 
 # Relative imports
 from .sagemaker import TrainEnv
-
 
 logger = logging.getLogger(__name__)
 
@@ -54,13 +59,18 @@ def run_train_and_test(
 ) -> None:
     check_gpu_support()
 
+    # train_stats = calculate_dataset_statistics(env.datasets["train"])
+    # log_metric("train_dataset_stats", train_stats)
+
     forecaster_fq_name = fqname_for(forecaster_type)
     forecaster_version = forecaster_type.__version__
 
     logger.info(f"Using gluonts v{gluonts.__version__}")
     logger.info(f"Using forecaster {forecaster_fq_name} v{forecaster_version}")
 
-    forecaster = forecaster_type.from_hyperparameters(**env.hyperparameters)
+    forecaster = forecaster_type.from_inputs(
+        env.datasets["train"], **env.hyperparameters
+    )
 
     logger.info(
         f"The forecaster can be reconstructed with the following expression: "
@@ -76,7 +86,10 @@ def run_train_and_test(
         predictor = forecaster
     else:
         predictor = run_train(
-            forecaster, env.datasets["train"], env.datasets.get("validation")
+            forecaster=forecaster,
+            train_dataset=env.datasets["train"],
+            validation_dataset=env.datasets.get("validation"),
+            hyperparameters=env.hyperparameters,
         )
 
     predictor.serialize(env.path.model)
@@ -88,13 +101,31 @@ def run_train_and_test(
 def run_train(
     forecaster: Estimator,
     train_dataset: Dataset,
+    hyperparameters: dict,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
-    log_metric(
-        "train_dataset_stats", calculate_dataset_statistics(train_dataset)
+    num_workers = (
+        int(hyperparameters["num_workers"])
+        if "num_workers" in hyperparameters.keys()
+        else None
     )
-
-    return forecaster.train(train_dataset, validation_dataset)
+    shuffle_buffer_length = (
+        int(hyperparameters["shuffle_buffer_length"])
+        if "shuffle_buffer_length" in hyperparameters.keys()
+        else None
+    )
+    num_prefetch = (
+        int(hyperparameters["num_prefetch"])
+        if "num_prefetch" in hyperparameters.keys()
+        else None
+    )
+    return forecaster.train(
+        training_data=train_dataset,
+        validation_data=validation_dataset,
+        num_workers=num_workers,
+        num_prefetch=num_prefetch,
+        shuffle_buffer_length=shuffle_buffer_length,
+    )
 
 
 def run_test(
@@ -125,7 +156,7 @@ def run_test(
         dataset=test_dataset, predictor=predictor, num_samples=100
     )
 
-    agg_metrics, _item_metrics = Evaluator()(
+    agg_metrics, item_metrics = Evaluator()(
         ts_iterator=ts_it,
         fcst_iterator=forecast_it,
         num_series=len(test_dataset),
@@ -134,3 +165,9 @@ def run_test(
     # we only log aggregate metrics for now as item metrics may be very large
     for name, score in agg_metrics.items():
         logger.info(f"#test_score ({env.current_host}, {name}): {score}")
+
+    # store metrics
+    with open(env.path.model / "agg_metrics.json", "w") as agg_metric_file:
+        json.dump(agg_metrics, agg_metric_file)
+    with open(env.path.model / "item_metrics.csv", "w") as item_metrics_file:
+        item_metrics.to_csv(item_metrics_file, index=False)

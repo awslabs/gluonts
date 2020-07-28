@@ -23,7 +23,7 @@ from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 
 from ._base import FlatMapTransformation
-from .sampler import InstanceSampler, ContinuousTimePointSampler
+from .sampler import ContinuousTimePointSampler, InstanceSampler
 
 
 def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
@@ -97,20 +97,22 @@ class InstanceSplitter(FlatMapTransformation):
         length of the target seen before making prediction
     future_length
         length of the target that must be predicted
+    lead_time
+        gap between the past and future windows (default: 0)
     output_NTC
         whether to have time series output in (time, dimension) or in
-        (dimension, time) layout
+        (dimension, time) layout (default: True)
     time_series_fields
         fields that contains time-series, they are split in the same interval
-        as the target
+        as the target (default: None)
     pick_incomplete
         whether training examples can be sampled with only a part of
         past_length time-units
         present for the time series. This is useful to train models for
         cold-start. In such case, is_pad_out contains an indicator whether
-        data is padded or not.
+        data is padded or not. (default: True)
     dummy_value
-        Value to use for padding.
+        Value to use for padding. (default: 0.0)
     """
 
     @validated()
@@ -123,6 +125,7 @@ class InstanceSplitter(FlatMapTransformation):
         train_sampler: InstanceSampler,
         past_length: int,
         future_length: int,
+        lead_time: int = 0,
         output_NTC: bool = True,
         time_series_fields: Optional[List[str]] = None,
         pick_incomplete: bool = True,
@@ -134,6 +137,7 @@ class InstanceSplitter(FlatMapTransformation):
         self.train_sampler = train_sampler
         self.past_length = past_length
         self.future_length = future_length
+        self.lead_time = lead_time
         self.output_NTC = output_NTC
         self.ts_fields = (
             time_series_fields if time_series_fields is not None else []
@@ -155,6 +159,7 @@ class InstanceSplitter(FlatMapTransformation):
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
         pl = self.future_length
+        lt = self.lead_time
         slice_cols = self.ts_fields + [self.target_field]
         target = data[self.target_field]
 
@@ -164,16 +169,19 @@ class InstanceSplitter(FlatMapTransformation):
             self.future_length
             if self.pick_incomplete
             else self.past_length + self.future_length
-        )
+        ) + self.lead_time
 
         if is_train:
             sampling_bounds = (
                 (
                     0,
-                    len_target - self.future_length,
+                    len_target - self.future_length - self.lead_time,
                 )  # TODO: create parameter lower sampling bound for NBEATS
                 if self.pick_incomplete
-                else (self.past_length, len_target - self.future_length)
+                else (
+                    self.past_length,
+                    len_target - self.future_length - self.lead_time,
+                )
             )
 
             # We currently cannot handle time series that are
@@ -213,7 +221,9 @@ class InstanceSplitter(FlatMapTransformation):
                 else:
                     past_piece = d[ts_field][..., :i]
                 d[self._past(ts_field)] = past_piece
-                d[self._future(ts_field)] = d[ts_field][..., i : i + pl]
+                d[self._future(ts_field)] = d[ts_field][
+                    ..., i + lt : i + lt + pl
+                ]
                 del d[ts_field]
             pad_indicator = np.zeros(self.past_length)
             if pad_length > 0:
@@ -230,7 +240,7 @@ class InstanceSplitter(FlatMapTransformation):
 
             d[self._past(self.is_pad_field)] = pad_indicator
             d[self.forecast_start_field] = shift_timestamp(
-                d[self.start_field], i
+                d[self.start_field], i + lt
             )
             yield d
 

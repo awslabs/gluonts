@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     Uniform,
     StudentT,
     NegativeBinomial,
@@ -30,6 +30,7 @@ from gluonts.distribution import (
     Poisson,
     Binned,
     TransformedDistribution,
+    Categorical,
 )
 
 from gluonts.core.serde import load_json, dump_json
@@ -86,6 +87,30 @@ test_cases = [
             ).repeat(axis=0, repeats=2),
         },
     ),
+    (
+        Binned,
+        {
+            "bin_log_probs": mx.nd.array(
+                [[1e-300, 0.3, 0.1, 0.05, 0.2, 0.1, 0.25]]
+            )
+            .log()
+            .repeat(axis=0, repeats=2),
+            "bin_centers": mx.nd.array(
+                [[-5, -3, -1.2, -0.5, 0, 0.1, 0.2]]
+            ).repeat(axis=0, repeats=2),
+            "label_smoothing": 0.1,
+        },
+    ),
+    (
+        Categorical,
+        {
+            "log_probs": mx.nd.array(
+                [[1e-300, 0.3, 0.1, 0.05, 0.2, 0.1, 0.25]]
+            )
+            .log()
+            .repeat(axis=0, repeats=2),
+        },
+    ),
     (Poisson, {"rate": mx.nd.array([1000.0, 1.0])}),
 ]
 
@@ -129,6 +154,11 @@ test_output = {
         "mean": mx.nd.array([-0.985, -0.985]),
         "stddev": mx.nd.array([1.377416, 1.377416]),
         "variance": mx.nd.array([1.8972749, 1.8972749]),
+    },
+    "Categorical": {
+        "mean": mx.nd.array([3.45, 3.45]),
+        "stddev": mx.nd.array([1.9868319, 1.9868319]),
+        "variance": mx.nd.array([3.947501, 3.947501]),
     },
     "Poisson": {
         "mean": mx.nd.array([1000.0, 1.0]),

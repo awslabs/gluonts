@@ -19,11 +19,12 @@ from pathlib import Path
 from gluonts.dataset.artificial import ConstantDataset
 from gluonts.dataset.common import TrainDatasets, load_datasets
 from gluonts.dataset.repository._artificial import generate_artificial_dataset
-from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
-from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._gp_copula_2019 import (
     generate_gp_copula_dataset,
 )
+from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
+from gluonts.dataset.repository._m4 import generate_m4_dataset
+from gluonts.dataset.repository._m5 import generate_m5_dataset
 from gluonts.support.util import get_download_path
 
 m4_freq = "Hourly"
@@ -100,6 +101,9 @@ dataset_recipes = OrderedDict(
             m4_freq="Yearly",
             pandas_freq="12M",
             prediction_length=6,
+        ),
+        "m5": partial(
+            generate_m5_dataset, pandas_freq="D", prediction_length=28
         ),
     }
 )

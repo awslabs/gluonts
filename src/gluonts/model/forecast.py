@@ -14,7 +14,7 @@
 # Standard library imports
 import re
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Union, Callable
+from typing import Callable, Dict, List, NamedTuple, Optional, Set, Union
 
 # Third-party imports
 import mxnet as mx
@@ -22,10 +22,11 @@ import numpy as np
 import pandas as pd
 import pydantic
 
+from gluonts.core.component import validated
+
 # First-party imports
 from gluonts.core.exception import GluonTSUserError
-from gluonts.distribution import Distribution
-from gluonts.core.component import validated
+from gluonts.mx.distribution import Distribution
 
 
 class Quantile(NamedTuple):
@@ -528,7 +529,10 @@ class QuantileForecast(Forecast):
         """
         Forecast mean.
         """
-        return self._forecast_dict.get("mean", self._nan_out)
+        if "mean" in self._forecast_dict:
+            return self._forecast_dict["mean"]
+
+        return self.quantile("p50")
 
     def dim(self) -> int:
         if self._dim is not None:

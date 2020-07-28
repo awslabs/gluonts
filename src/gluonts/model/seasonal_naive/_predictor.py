@@ -12,18 +12,18 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Iterator, Optional
+from typing import Optional
 
 # Third-party imports
 import numpy as np
-import pandas as pd
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import DataEntry
 from gluonts.evaluation import get_seasonality
-from gluonts.model.forecast import SampleForecast
+from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
+from gluonts.support.pandas import forecast_start
 
 
 class SeasonalNaivePredictor(RepresentablePredictor):
@@ -56,7 +56,7 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         prediction_length: int,
         season_length: Optional[int] = None,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         assert (
             season_length is None or season_length > 0
@@ -70,16 +70,11 @@ class SeasonalNaivePredictor(RepresentablePredictor):
             else get_seasonality(freq)
         )
 
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[SampleForecast]:
-        for data in dataset:
-            start = pd.Timestamp(data["start"], freq=self.freq)
-            target = np.asarray(data["target"], np.float32)
-            yield self._predict_time_series(start_time=start, target=target)
-
-    def _predict_time_series(
-        self, start_time: pd.Timestamp, target: np.ndarray
-    ) -> SampleForecast:
+    def predict_item(self, item: DataEntry) -> Forecast:
+        target = np.asarray(item["target"], np.float32)
         len_ts = len(target)
+        forecast_start_time = forecast_start(item)
+
         assert (
             len_ts >= 1
         ), "all time series should have at least one data point"
@@ -95,5 +90,4 @@ class SeasonalNaivePredictor(RepresentablePredictor):
                 shape=(1, self.prediction_length), fill_value=target.mean()
             )
 
-        forecast_time = start_time + len_ts * start_time.freq
-        return SampleForecast(samples, forecast_time, start_time.freqstr)
+        return SampleForecast(samples, forecast_start_time, self.freq)

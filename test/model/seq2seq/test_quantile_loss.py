@@ -15,7 +15,7 @@
 from mxnet import nd
 
 # First-party imports
-from gluonts.block.quantile_output import QuantileLoss
+from gluonts.mx.block.quantile_output import QuantileLoss
 
 
 def test_compute_quantile_loss() -> None:

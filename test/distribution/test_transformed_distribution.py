@@ -17,11 +17,11 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.distribution import Uniform
-from gluonts.distribution.transformed_distribution import (
+from gluonts.mx.distribution import Uniform
+from gluonts.mx.distribution.transformed_distribution import (
     TransformedDistribution,
 )
-from gluonts.distribution import bijection
+from gluonts.mx.distribution import bijection
 from gluonts.core.serde import dump_json, load_json
 
 

@@ -18,19 +18,18 @@ from typing import Dict
 
 # Third-party imports
 import sagemaker
-from sagemaker.model import FrameworkModel, MODEL_SERVER_WORKERS_PARAM_NAME
-from sagemaker.predictor import (
-    RealTimePredictor,
-    json_serializer,
-    json_deserializer,
-)
+from pkg_resources import parse_version
 from sagemaker import session
 from sagemaker.fw_utils import model_code_key_prefix
-from pkg_resources import parse_version
+from sagemaker.model import MODEL_SERVER_WORKERS_PARAM_NAME, FrameworkModel
+from sagemaker.predictor import (
+    RealTimePredictor,
+    json_deserializer,
+    json_serializer,
+)
 
 # First-party imports
-from .defaults import GLUONTS_VERSION, LOWEST_MMS_VERSION, FRAMEWORK_NAME
-
+from .defaults import FRAMEWORK_NAME, GLUONTS_VERSION, LOWEST_MMS_VERSION
 
 logger = logging.getLogger(__name__)
 

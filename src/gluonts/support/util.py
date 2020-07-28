@@ -22,12 +22,12 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     Optional,
-    cast,
-    Union,
     Tuple,
-    Iterable,
+    Union,
+    cast,
 )
 
 # Third-party imports
@@ -47,12 +47,12 @@ class Timer:
     """Context manager for measuring the time of enclosed code fragments."""
 
     def __enter__(self):
-        self.start = time.clock()
+        self.start = time.perf_counter()
         self.interval = None
         return self
 
     def __exit__(self, *args):
-        self.end = time.clock()
+        self.end = time.perf_counter()
         self.interval = self.end - self.start
 
 
@@ -168,7 +168,7 @@ def copy_parameters(
 
 def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
     params = inspect.signature(hb.hybrid_forward).parameters
-    param_names = list(params)
+    param_names = [k for k, v in params.items() if not str(v).startswith("*")]
     assert param_names[0] == "F", (
         f"Expected first argument of HybridBlock to be `F`, "
         f"but found `{param_names[0]}`"

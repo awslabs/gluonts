@@ -22,11 +22,11 @@ from pydantic import PositiveInt
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
-from gluonts.support.pandas import frequency_add
+from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
+from gluonts.model.trivial.constant import ConstantPredictor
+from gluonts.support.pandas import forecast_start
 
 
 class MeanPredictor(RepresentablePredictor, FallbackPredictor):
@@ -55,7 +55,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         num_samples: int = 100,
         context_length: Optional[int] = None,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
         self.context_length = context_length
         self.num_samples = num_samples
         self.shape = (self.num_samples, self.prediction_length)
@@ -70,10 +70,68 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         std = np.nanstd(target)
         normal = np.random.standard_normal(self.shape)
 
-        start_date = frequency_add(item["start"], len(item["target"]))
         return SampleForecast(
             samples=std * normal + mean,
-            start_date=start_date,
+            start_date=forecast_start(item),
+            freq=self.freq,
+            item_id=item.get(FieldName.ITEM_ID),
+        )
+
+
+class MovingAveragePredictor(RepresentablePredictor):
+    """
+    A :class:`Predictor` that predicts the moving average based on the
+    last `context_length` elements of the input target.
+
+    If `prediction_length` = 1, the output is the moving average
+    based on the last `context_length` elements of the input target.
+
+    If `prediction_length` > 1, the output is the moving average based on the
+    last `context_length` elements of the input target, where
+    previously calculated moving averages are appended at the end of the input target.
+    Hence, for `prediction_length` larger than `context_length`, there will be
+    cases where the moving average is calculated on top of previous moving averages.
+
+    Parameters
+    ----------
+    context_length
+        Length of the target context used to condition the predictions.
+    prediction_length
+        Length of the prediction horizon.
+    freq
+        Frequency of the predicted data.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        prediction_length: int,
+        freq: str,
+        context_length: Optional[int] = None,
+    ) -> None:
+        super().__init__(freq=freq, prediction_length=prediction_length)
+
+        if context_length is not None:
+            assert (
+                context_length >= 1
+            ), "The value of 'context_length' should be >= 1 or None"
+
+        self.context_length = context_length
+
+    def predict_item(self, item: DataEntry) -> SampleForecast:
+        target = item["target"].tolist()
+
+        for _ in range(self.prediction_length):
+            if self.context_length is not None:
+                window = target[-self.context_length :]
+            else:
+                window = target
+
+            target.append(np.nanmean(window))
+
+        return SampleForecast(
+            samples=np.array([target[-self.prediction_length :]]),
+            start_date=forecast_start(item),
             freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
@@ -103,6 +161,7 @@ class MeanEstimator(Estimator):
         freq: str,
         num_samples: PositiveInt,
     ) -> None:
+        super().__init__()
         self.prediction_length = prediction_length
         self.freq = freq
         self.num_samples = num_samples

@@ -14,7 +14,8 @@ your own models and quickly experiment with different solutions.
 
 * [Documentation (stable version)][stable docs url]
 * [Documentation (latest)][latest docs url]
-* [Paper](https://arxiv.org/abs/1906.05264)
+* [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
+* [ArXiv Paper](https://arxiv.org/abs/1906.05264)
 
 [stable docs url]: https://gluon-ts.mxnet.io/
 [latest docs url]: https://gluon-ts.s3-accelerate.dualstack.amazonaws.com/master/index.html
@@ -25,7 +26,7 @@ GluonTS requires Python 3.6, and the easiest
 way to install it is via `pip`:
 
 ```bash
-pip install --upgrade mxnet==1.4.1 gluonts
+pip install --upgrade mxnet==1.6 gluonts
 ```
 
 ## Quick start guide
@@ -134,18 +135,33 @@ If you wish to contribute to the project, please refer to our
 ## Citing
 
 If you use GluonTS in a scientific publication, we encourage you to add
-the following reference to the associated
-[paper](https://arxiv.org/abs/1906.05264):
+the following references to the related papers:
 
 ```
-@article{gluonts,
-  title={{GluonTS: Probabilistic Time Series Modeling in Python}},
-  author={Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
-          Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
-          and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
-          Türkmen, A. C. and Wang, Y.},
-  journal={arXiv preprint arXiv:1906.05264},
-  year={2019}
+@article{gluonts_jmlr,
+  author  = {Alexander Alexandrov and Konstantinos Benidis and Michael Bohlke-Schneider
+    and Valentin Flunkert and Jan Gasthaus and Tim Januschowski and Danielle C. Maddix
+    and Syama Rangapuram and David Salinas and Jasper Schulz and Lorenzo Stella and
+    Ali Caner Türkmen and Yuyang Wang},
+  title   = {{GluonTS: Probabilistic and Neural Time Series Modeling in Python}},
+  journal = {Journal of Machine Learning Research},
+  year    = {2020},
+  volume  = {21},
+  number  = {116},
+  pages   = {1-6},
+  url     = {http://jmlr.org/papers/v21/19-820.html}
+}
+```
+
+```
+@article{gluonts_arxiv,
+  author  = {Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
+    Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
+    and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
+    Türkmen, A. C. and Wang, Y.},
+  title   = {{GluonTS: Probabilistic Time Series Modeling in Python}},
+  journal = {arXiv preprint arXiv:1906.05264},
+  year    = {2019}
 }
 ```
 

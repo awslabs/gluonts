@@ -12,4 +12,4 @@ conda activate ./conda/${env_name}
 conda list
 printenv
 
-pip install -v -e ".[shell,Prophet]"
+pip install -v -e ".[docs,shell,Prophet]"

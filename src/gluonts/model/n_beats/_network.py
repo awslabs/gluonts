@@ -20,8 +20,8 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.evaluation import get_seasonality
 from gluonts.model.common import Tensor
-from gluonts.evaluation._base import get_seasonality
 
 VALID_N_BEATS_STACK_TYPES = "G", "S", "T"
 VALID_LOSS_FUNCTIONS = "sMAPE", "MASE", "MAPE"
@@ -135,7 +135,11 @@ class NBEATSBlock(mx.gluon.HybridBlock):
             self.fc_stack = mx.gluon.nn.HybridSequential()
             for i in range(self.num_block_layers):
                 self.fc_stack.add(
-                    mx.gluon.nn.Dense(units=self.width, activation="relu")
+                    mx.gluon.nn.Dense(
+                        units=self.width,
+                        activation="relu",
+                        prefix=f"fc_stack_dense_{i}_",
+                    )
                 )
 
             # Subclasses will have to initialize these attributes appropriately:
@@ -204,16 +208,20 @@ class NBEATSGenericBlock(NBEATSBlock):
         with self.name_scope():
             if self.has_backcast:
                 self.theta_backcast = mx.gluon.nn.Dense(
-                    units=self.expansion_coefficient_length  # linear activation:
+                    units=self.expansion_coefficient_length,
+                    prefix=f"theta_backcast_dense_",  # linear activation:
                 )
                 self.backcast = mx.gluon.nn.Dense(
-                    units=self.context_length  # linear activation:
+                    units=self.context_length,
+                    prefix=f"backcast_dense_",  # linear activation:
                 )
             self.theta_forecast = mx.gluon.nn.Dense(
-                units=self.expansion_coefficient_length  # linear activation:
+                units=self.expansion_coefficient_length,
+                prefix=f"theta_forecast_dense_",  # linear activation:
             )
             self.forecast = mx.gluon.nn.Dense(
-                units=self.prediction_length  # linear activation:
+                units=self.prediction_length,
+                prefix=f"theta_dense_",  # linear activation:
             )
 
 
@@ -255,16 +263,20 @@ class NBEATSSeasonalBlock(NBEATSBlock):
         with self.name_scope():
             if self.has_backcast:
                 self.theta_backcast = mx.gluon.nn.Dense(
-                    units=2 * self.num_coefficients  # linear activation:
+                    units=2 * self.num_coefficients,
+                    prefix=f"theta_backcast_dense_",  # linear activation:
                 )
                 self.backcast = mx.gluon.nn.HybridLambda(
-                    lambda F, thetas: F.dot(thetas, self.backcast_basis)
+                    lambda F, thetas: F.dot(thetas, self.backcast_basis),
+                    prefix=f"backcast_lambda_",
                 )
             self.theta_forecast = mx.gluon.nn.Dense(
-                units=2 * self.num_coefficients  # linear activation:
+                units=2 * self.num_coefficients,
+                prefix=f"theta_forecast_dense_",  # linear activation:
             )
             self.forecast = mx.gluon.nn.HybridLambda(
-                lambda F, thetas: F.dot(thetas, self.forecast_basis)
+                lambda F, thetas: F.dot(thetas, self.forecast_basis),
+                prefix=f"forecast_lambda_",
             )
 
     def initialize_basis(self, F):
@@ -322,16 +334,20 @@ class NBEATSTrendBlock(NBEATSBlock):
         with self.name_scope():
             if self.has_backcast:
                 self.theta_backcast = mx.gluon.nn.Dense(
-                    units=self.expansion_coefficient_length  # linear activation:
+                    units=self.expansion_coefficient_length,
+                    prefix=f"theta_backcast_dense_",  # linear activation:
                 )
                 self.backcast = mx.gluon.nn.HybridLambda(
-                    lambda F, thetas: F.dot(thetas, self.backcast_basis)
+                    lambda F, thetas: F.dot(thetas, self.backcast_basis),
+                    prefix=f"backcast_lambda_",
                 )
             self.theta_forecast = mx.gluon.nn.Dense(
-                units=self.expansion_coefficient_length  # linear activation:
+                units=self.expansion_coefficient_length,
+                prefix=f"theta_forecast_dense_",  # linear activation:
             )
             self.forecast = mx.gluon.nn.HybridLambda(
-                lambda F, thetas: F.dot(thetas, self.forecast_basis)
+                lambda F, thetas: F.dot(thetas, self.forecast_basis),
+                prefix=f"forecast_lambda_",
             )
 
     def initialize_basis(self, F):

@@ -32,7 +32,6 @@ from gluonts.shell.sagemaker import ServeEnv
 
 from .app import make_app
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s %(message)s",
@@ -55,6 +54,9 @@ class Settings(BaseSettings):
     sagemaker_server_address: IPv4Address = IPv4Address("0.0.0.0")
     sagemaker_server_port: int = 8080
     sagemaker_server_timeout: int = 100
+
+    gluonts_batch_timeout: int = 0
+    gluonts_batch_fallback_predictor: str = "gluonts.model.trivial.mean.MeanPredictor"
 
     sagemaker_batch: bool = False
     sagemaker_batch_strategy: str = "SINGLE_RECORD"
@@ -156,6 +158,7 @@ def make_gunicorn_app(
         predictor_factory,
         execution_params,
         batch_transform_config=env.batch_config,
+        settings=settings,
     )
 
     gunicorn_app = Application(

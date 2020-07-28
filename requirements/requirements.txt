@@ -1,11 +1,6 @@
-# fixes conflict with dateutil requirement
-# see: https://github.com/boto/botocore/commit/e87e7a745fd972815b235a9ee685232745aa94f9
-python-dateutil==2.8.0
-
-boto3~=1.0
 holidays>=0.9,<0.10
 matplotlib~=3.0
-numpy~=1.14
+numpy~=1.16
 pandas~=1.0
 pydantic~=1.1
 tqdm~=4.23

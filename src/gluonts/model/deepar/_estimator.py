@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import List, Optional
+
 # Standard library imports
 import numpy as np
-from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
@@ -21,16 +22,17 @@ from mxnet.gluon import HybridBlock
 # First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.distribution import DistributionOutput, StudentTOutput
+from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
-    time_features_from_frequency_str,
     get_lags_for_frequency,
+    time_features_from_frequency_str,
 )
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
@@ -43,6 +45,10 @@ from gluonts.transform import (
     SetField,
     Transformation,
     VstackFeatures,
+)
+from gluonts.transform.feature import (
+    DummyValueImputation,
+    MissingValueImputation,
 )
 
 # Relative imports
@@ -110,6 +116,8 @@ class DeepAREstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
+    imputation_method
+        One of the methods from ImputationStrategy
     """
 
     @validated()
@@ -133,6 +141,7 @@ class DeepAREstimator(GluonEstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        imputation_method: Optional[MissingValueImputation] = None,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
@@ -146,8 +155,8 @@ class DeepAREstimator(GluonEstimator):
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (cardinality is not None and use_feat_static_cat) or (
-            cardinality is None and not use_feat_static_cat
+        assert (cardinality and use_feat_static_cat) or (
+            not (cardinality or use_feat_static_cat)
         ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
         assert cardinality is None or all(
             [c > 0 for c in cardinality]
@@ -197,6 +206,22 @@ class DeepAREstimator(GluonEstimator):
 
         self.num_parallel_samples = num_parallel_samples
 
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(self.distr_output.value_in_support)
+        )
+
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        stats = calculate_dataset_statistics(train_iter)
+
+        return {
+            "use_feat_dynamic_real": stats.num_feat_dynamic_real > 0,
+            "use_feat_static_cat": bool(stats.feat_static_cat),
+            "cardinality": [len(cats) for cats in stats.feat_static_cat],
+        }
+
     def create_transformation(self) -> Transformation:
         remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
         if not self.use_feat_static_real:
@@ -240,8 +265,8 @@ class DeepAREstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
-                    dummy_value=self.distr_output.value_in_support,
                     dtype=self.dtype,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,

@@ -17,12 +17,12 @@ from typing import Any, Dict, List
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 
-from ._base import SimpleTransformation, MapTransformation
+from ._base import MapTransformation, SimpleTransformation
 
 
 class RenameFields(SimpleTransformation):
     """
-    Rename fields using a mapping
+    Rename fields using a mapping, if source field present.
 
     Parameters
     ----------
@@ -39,23 +39,31 @@ class RenameFields(SimpleTransformation):
 
     def transform(self, data: DataEntry):
         for key, new_key in self.mapping.items():
-            if key not in data:
-                continue
-            assert new_key not in data
-            data[new_key] = data[key]
-            del data[key]
+            if key in data:
+                # no implicit overriding
+                assert new_key not in data
+                data[new_key] = data[key]
+                del data[key]
         return data
 
 
 class RemoveFields(SimpleTransformation):
+    """"
+    Remove field names if present.
+
+    Parameters
+    ----------
+    field_names
+        List of names of the fields that will be removed
+    """
+
     @validated()
     def __init__(self, field_names: List[str]) -> None:
         self.field_names = field_names
 
     def transform(self, data: DataEntry) -> DataEntry:
         for k in self.field_names:
-            if k in data.keys():
-                del data[k]
+            data.pop(k, None)
         return data
 
 

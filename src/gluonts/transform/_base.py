@@ -14,7 +14,7 @@
 # Standard library imports
 import abc
 from functools import reduce
-from typing import Callable, Iterator, Iterable, List
+from typing import Callable, Iterable, Iterator, List
 
 # First-party imports
 from gluonts.core.component import validated
@@ -34,9 +34,6 @@ class Transformation(metaclass=abc.ABCMeta):
         self, data_it: Iterable[DataEntry], is_train: bool
     ) -> Iterator[DataEntry]:
         pass
-
-    def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
-        return data_it  # default is to pass through without estimation
 
     def chain(self, other: "Transformation") -> "Chain":
         return Chain(self, other)
@@ -67,11 +64,6 @@ class Chain(Transformation):
         for t in self.transformations:
             tmp = t(tmp, is_train)
         return tmp
-
-    def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
-        return reduce(
-            lambda x, y: y.estimate(x), self.transformations, data_it
-        )
 
 
 class Identity(Transformation):

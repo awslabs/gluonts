@@ -13,11 +13,15 @@
 
 # Standard library imports
 import logging
+import multiprocessing
 import re
+import sys
+from collections import Sized
 from functools import lru_cache
 from itertools import chain, tee
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     Iterator,
@@ -25,16 +29,16 @@ from typing import (
     Optional,
     Tuple,
     Union,
-    Callable,
 )
 
 # Third-party imports
 import numpy as np
 import pandas as pd
 
+from gluonts.gluonts_tqdm import tqdm
+
 # First-party imports
 from gluonts.model.forecast import Forecast, Quantile
-from gluonts.gluonts_tqdm import tqdm
 
 
 @lru_cache()
@@ -80,11 +84,24 @@ class Evaluator:
         uses the default seasonality
         for the given series frequency as returned by `get_seasonality`
     alpha
-        parameter of the MSIS metric from M4 competition that
-        defines the confidence interval
-        for alpha=0.05 the 95% considered is considered in the metric,
-        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4
-        -Competitors-Guide.pdf for more detail on MSIS
+        Parameter of the MSIS metric from the M4 competition that
+        defines the confidence interval.
+        For alpha=0.05 (default) the 95% considered is considered in the metric,
+        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+        for more detail on MSIS
+    calculate_owa
+        Determines whether the OWA metric should also be calculated,
+        which is computationally expensive to evaluate and thus slows
+        down the evaluation process considerably.
+        By default False.
+    num_workers
+        The number of multiprocessing workers that will be used to process
+        the data in parallel.
+        Default is multiprocessing.cpu_count().
+        Setting it to 0 means no multiprocessing.
+    chunk_size
+        Controls the approximate chunk size each workers handles at a time.
+        Default is 32.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -94,10 +111,21 @@ class Evaluator:
         quantiles: Iterable[Union[float, str]] = default_quantiles,
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
+        calculate_owa: bool = False,
+        num_workers: Optional[int] = None,
+        chunk_size: Optional[int] = None,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
+        self.calculate_owa = calculate_owa
+
+        self.num_workers = (
+            num_workers
+            if num_workers is not None
+            else multiprocessing.cpu_count()
+        )
+        self.chunk_size = chunk_size if chunk_size is not None else 32
 
     def __call__(
         self,
@@ -135,8 +163,20 @@ class Evaluator:
             total=num_series,
             desc="Running evaluation",
         ) as it, np.errstate(invalid="ignore"):
-            for ts, forecast in it:
-                rows.append(self.get_metrics_per_ts(ts, forecast))
+            if self.num_workers > 0 and not sys.platform == "win32":
+                mp_pool = multiprocessing.Pool(
+                    initializer=_worker_init(self), processes=self.num_workers
+                )
+                rows = mp_pool.map(
+                    func=_worker_fun,
+                    iterable=iter(it),
+                    chunksize=self.chunk_size,
+                )
+                mp_pool.close()
+                mp_pool.join()
+            else:
+                for ts, forecast in it:
+                    rows.append(self.get_metrics_per_ts(ts, forecast))
 
         assert not any(
             True for _ in ts_iterator
@@ -160,7 +200,7 @@ class Evaluator:
     @staticmethod
     def extract_pred_target(
         time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Union[pd.Series, pd.DataFrame]:
+    ) -> np.ndarray:
         """
 
         Parameters
@@ -170,7 +210,7 @@ class Evaluator:
 
         Returns
         -------
-        Union[pandas.Series, pandas.DataFrame]
+        np.ndarray
             time series cut in the Forecast object dates
         """
         assert forecast.index.intersection(time_series.index).equals(
@@ -185,8 +225,42 @@ class Evaluator:
             np.squeeze(time_series.loc[forecast.index].transpose())
         )
 
+    # This method is needed for the owa calculation
+    # It extracts the training sequence from the Series or DataFrame to a numpy array
+    @staticmethod
+    def extract_past_data(
+        time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+    ) -> np.ndarray:
+        """
+
+        Parameters
+        ----------
+        time_series
+        forecast
+
+        Returns
+        -------
+        np.ndarray
+            time series without the forecast dates
+        """
+
+        assert forecast.index.intersection(time_series.index).equals(
+            forecast.index
+        ), (
+            "Index of forecast is outside the index of target\n"
+            f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
+        )
+
+        # Remove the prediction range
+        # If the prediction range is not in the end of the time series,
+        # everything after the prediction range is truncated
+        date_before_forecast = forecast.index[0] - forecast.index[0].freq
+        return np.atleast_1d(
+            np.squeeze(time_series.loc[:date_before_forecast].transpose())
+        )
+
     def seasonal_error(
-        self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+        self, past_data: np.ndarray, forecast: Forecast
     ) -> float:
         r"""
         .. math::
@@ -196,28 +270,21 @@ class Evaluator:
         where m is the seasonal frequency
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
-        # Remove the prediction range
-        # If the prediction range is not in the end of the time series,
-        # everything after the prediction range is truncated
-        forecast_date = pd.Timestamp(forecast.start_date, freq=forecast.freq)
-        date_before_forecast = forecast_date - 1 * forecast_date.freq
-        ts = time_series[:date_before_forecast]
-
         # Check if the length of the time series is larger than the seasonal frequency
         seasonality = (
             self.seasonality
             if self.seasonality
             else get_seasonality(forecast.freq)
         )
-        if seasonality < len(ts):
+        if seasonality < len(past_data):
             forecast_freq = seasonality
         else:
             # edge case: the seasonal freq is larger than the length of ts
             # revert to freq=1
             # logging.info('The seasonal frequency is larger than the length of the time series. Reverting to freq=1.')
             forecast_freq = 1
-        y_t = np.ma.masked_invalid(ts.values[:-forecast_freq])
-        y_tm = np.ma.masked_invalid(ts.values[forecast_freq:])
+        y_t = past_data[:-forecast_freq]
+        y_tm = past_data[forecast_freq:]
 
         seasonal_mae = np.mean(abs(y_t - y_tm))
 
@@ -229,21 +296,16 @@ class Evaluator:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
+        # required for seasonal_error and owa calculation
+        past_data = np.array(self.extract_past_data(time_series, forecast))
+        past_data = np.ma.masked_invalid(past_data)
+
         try:
             mean_fcst = forecast.mean
         except:
             mean_fcst = None
         median_fcst = forecast.quantile(0.5)
-        seasonal_error = self.seasonal_error(time_series, forecast)
-        # For MSIS: alpha/2 quantile may not exist. Find the closest.
-        lower_q = min(
-            self.quantiles, key=lambda q: abs(q.value - self.alpha / 2)
-        )
-        upper_q = min(
-            reversed(self.quantiles),
-            key=lambda q: abs(q.value - (1 - self.alpha / 2)),
-        )
-
+        seasonal_error = self.seasonal_error(past_data, forecast)
         metrics = {
             "item_id": forecast.item_id,
             "MSE": self.mse(pred_target, mean_fcst)
@@ -254,15 +316,31 @@ class Evaluator:
             "abs_target_mean": self.abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
             "MASE": self.mase(pred_target, median_fcst, seasonal_error),
+            "MAPE": self.mape(pred_target, median_fcst),
             "sMAPE": self.smape(pred_target, median_fcst),
-            "MSIS": self.msis(
+            "OWA": np.nan,  # by default not calculated
+        }
+
+        try:
+            metrics["MSIS"] = self.msis(
                 pred_target,
-                forecast.quantile(lower_q.value),
-                forecast.quantile(upper_q.value),
+                forecast.quantile(self.alpha / 2),
+                forecast.quantile(1.0 - self.alpha / 2),
                 seasonal_error,
                 self.alpha,
-            ),
-        }
+            )
+        except Exception:
+            logging.warning("Could not calculate MSIS metric.")
+            metrics["MSIS"] = np.nan
+
+        if self.calculate_owa:
+            metrics["OWA"] = self.owa(
+                pred_target,
+                median_fcst,
+                past_data,
+                seasonal_error,
+                forecast.start_date,
+            )
 
         for quantile in self.quantiles:
             forecast_quantile = forecast.quantile(quantile.value)
@@ -286,7 +364,9 @@ class Evaluator:
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
             "MASE": "mean",
+            "MAPE": "mean",
             "sMAPE": "mean",
+            "OWA": "mean",
             "MSIS": "mean",
         }
         for quantile in self.quantiles:
@@ -370,6 +450,22 @@ class Evaluator:
         )
 
     @staticmethod
+    def mape(target, forecast):
+        r"""
+        .. math::
+
+            mape = mean(|Y - Y_hat| / |Y|))
+        """
+
+        denominator = np.abs(target)
+        flag = denominator == 0
+
+        mape = np.mean(
+            (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
+        )
+        return mape
+
+    @staticmethod
     def smape(target, forecast):
         r"""
         .. math::
@@ -386,6 +482,42 @@ class Evaluator:
             (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
         )
         return smape
+
+    @staticmethod
+    def owa(
+        target: np.ndarray,
+        forecast: np.ndarray,
+        past_data: np.ndarray,
+        seasonal_error: float,
+        start_date: pd.Timestamp,
+    ) -> float:
+        r"""
+        .. math::
+
+            owa = 0.5*(smape/smape_naive + mase/mase_naive)
+
+        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+        """
+        # avoid import error due to circular dependency
+        from gluonts.model.naive_2 import naive_2
+
+        # calculate the forecast of the seasonal naive predictor
+        naive_median_fcst = naive_2(
+            past_data, len(target), freq=start_date.freqstr
+        )
+
+        owa = 0.5 * (
+            (
+                Evaluator.smape(target, forecast)
+                / Evaluator.smape(target, naive_median_fcst)
+            )
+            + (
+                Evaluator.mase(target, forecast, seasonal_error)
+                / Evaluator.mase(target, naive_median_fcst, seasonal_error)
+            )
+        )
+
+        return owa
 
     @staticmethod
     def msis(target, lower_quantile, upper_quantile, seasonal_error, alpha):
@@ -655,3 +787,21 @@ class MultivariateEvaluator(Evaluator):
                     all_agg_metrics[prefix + metric] = value
 
         return all_agg_metrics, all_metrics_per_ts
+
+
+# This is required for the multiprocessing to work.
+_worker_evaluator: Optional[Evaluator] = None
+
+
+def _worker_init(evaluator: Evaluator):
+    global _worker_evaluator
+    _worker_evaluator = evaluator
+
+
+def _worker_fun(inp: tuple):
+    ts, forecast = inp
+    global _worker_evaluator
+    assert isinstance(
+        _worker_evaluator, Evaluator
+    ), "Something went wrong with the worker initialization."
+    return _worker_evaluator.get_metrics_per_ts(ts, forecast)

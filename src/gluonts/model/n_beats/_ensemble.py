@@ -11,22 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import copy
+import logging
+import os
+
 # Standard library imports
 from itertools import product
 from pathlib import Path
-from typing import List, Optional, Iterator, Callable
-import copy
-import os
-import logging
+from typing import Callable, Iterator, List, Optional
 
 # Third-party imports
 import mxnet as mx
 import numpy as np
 from pydantic import ValidationError
 
-# First-party imports
-from gluonts.core.component import validated, from_hyperparameters
 from gluonts.core import fqname_for
+
+# First-party imports
+from gluonts.core.component import from_hyperparameters, validated
+from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
@@ -34,12 +37,12 @@ from gluonts.dataset.loader import DataBatch
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-from gluonts.core.exception import GluonTSHyperparametersError
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
+
+from ._estimator import NBEATSEstimator
 
 # Relative imports
 from ._network import VALID_LOSS_FUNCTIONS
-from ._estimator import NBEATSEstimator
 
 # None is also a valid parameter
 AGGREGATION_METHODS = "median", "mean", "none"
@@ -77,7 +80,7 @@ class NBEATSEnsemblePredictor(Predictor):
         predictors: List[RepresentableBlockPredictor],
         aggregation_method: Optional[str] = "median",
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         assert aggregation_method in AGGREGATION_METHODS
 

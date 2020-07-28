@@ -12,55 +12,53 @@
 # permissions and limitations under the License.
 
 
+import json
+
 # Standard library imports
 import logging
-import json
 import tarfile
 from functools import partial
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple, Dict, Union
 from tempfile import TemporaryDirectory
+from typing import Dict, List, NamedTuple, Optional, Tuple, Union
 
+import pandas as pd
+import s3fs
 
 # Third-party imports
 import sagemaker
 from sagemaker.estimator import Framework
 from sagemaker.fw_utils import empty_framework_version_warning, parse_s3_url
 from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
-import s3fs
-import pandas as pd
 
 # First-party imports
 from gluonts.core import serde
-from gluonts.model.estimator import Estimator
 from gluonts.dataset.repository import datasets
+from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 
 from .defaults import (
-    GLUONTS_VERSION,
     ENTRY_POINTS_FOLDER,
-    TRAIN_SCRIPT,
-    MONITORED_METRICS,
     FRAMEWORK_NAME,
-    LOWEST_SCRIPT_MODE_VERSION,
+    GLUONTS_VERSION,
     LATEST_GLUONTS_VERSION,
-    PYTHON_VERSION,
+    LOWEST_SCRIPT_MODE_VERSION,
+    MONITORED_METRICS,
     NUM_SAMPLES,
+    PYTHON_VERSION,
     QUANTILES,
+    TRAIN_SCRIPT,
 )
 from .model import GluonTSModel
-from .utils import make_metrics, make_job_name
+from .utils import make_job_name, make_metrics
 
 # OVERALL TODOS:
-#    > TEST EVERYTHING
-#    > Add python tests cases and scripts
-#    > Finish documentation
 #    > Add hyper parameter optimization (HPO) support
 #    > Add local mode support
-#    > Add officially provided images //images work now
 #    > Add support for multiple instances
 #    > GluonTSPredictor: implement/override predict function
 #    > GluonTSModel: implement correct deserialization
+#    > train_entry_point.py: implement model_fn, input_fn, predict_fn, and output_fn
 
 # HPO implementation sketch:
 #    > Example HPO of model: MODEL_HPM:Trainer:batch_size:64
@@ -268,9 +266,8 @@ class GluonTSFramework(Framework):
         # must be set
         self.py_version = PYTHON_VERSION
 
-        self._s3fs = s3fs.S3FileSystem(
-            session=self.sagemaker_session.boto_session
-        )
+        # automatically retrieves credentials using context manager, see: https://s3fs.readthedocs.io/en/latest/
+        self._s3fs = s3fs.S3FileSystem()
 
     def create_model(
         self,

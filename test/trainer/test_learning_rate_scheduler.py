@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.trainer import learning_rate_scheduler as lrs
+from gluonts.mx.trainer import learning_rate_scheduler as lrs
 
 
 @pytest.mark.parametrize(

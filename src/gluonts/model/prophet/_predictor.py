@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Callable, Dict, Iterator, NamedTuple, Optional, List
+from typing import Callable, Dict, Iterator, List, NamedTuple, Optional
 
 # Third-party imports
 import numpy as np
@@ -21,7 +21,7 @@ import pandas as pd
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
-from gluonts.model.forecast import SampleForecast, Config
+from gluonts.model.forecast import Config, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 
 try:
@@ -127,7 +127,7 @@ class ProphetPredictor(RepresentablePredictor):
         prophet_params: Optional[Dict] = None,
         init_model: Callable = lambda m: m,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         if not PROPHET_IS_INSTALLED:
             raise ImportError(USAGE_MESSAGE)

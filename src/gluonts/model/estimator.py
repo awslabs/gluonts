@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import NamedTuple, Optional
+from typing import Iterator, NamedTuple, Optional
 
 # Third-party imports
 import numpy as np
@@ -27,8 +27,8 @@ from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.predictor import Predictor
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import get_hybrid_forward_input_names
-from gluonts.trainer import Trainer
 from gluonts.transform import Transformation
 
 
@@ -44,6 +44,14 @@ class Estimator:
 
     prediction_length: int
     freq: str
+    lead_time: int
+
+    def __init__(self, lead_time: int = 0, **kwargs) -> None:
+        # TODO validation of prediction_length and freq could also
+        # TODO be bubbled-up here from subclasses classes
+        assert lead_time >= 0, "The value of `lead_time` should be >= 0"
+
+        self.lead_time = lead_time
 
     def train(
         self, training_data: Dataset, validation_data: Optional[Dataset] = None
@@ -69,6 +77,18 @@ class Estimator:
     def from_hyperparameters(cls, **hyperparameters):
         return from_hyperparameters(cls, **hyperparameters)
 
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        return {}
+
+    @classmethod
+    def from_inputs(cls, train_iter, **params):
+        # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
+        auto_params = cls.derive_auto_fields(train_iter)
+        # user specified 'params' will take precedence:
+        params = {**auto_params, **params}
+        return cls.from_hyperparameters(**params)
+
 
 class DummyEstimator(Estimator):
     """
@@ -85,6 +105,7 @@ class DummyEstimator(Estimator):
 
     @validated()
     def __init__(self, predictor_cls: type, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.predictor = predictor_cls(**kwargs)
 
     def train(
@@ -110,7 +131,10 @@ class GluonEstimator(Estimator):
     """
 
     @validated()
-    def __init__(self, trainer: Trainer, dtype: DType = np.float32) -> None:
+    def __init__(
+        self, trainer: Trainer, lead_time: int = 0, dtype: DType = np.float32
+    ) -> None:
+        super().__init__(lead_time=lead_time)
         self.trainer = trainer
         self.dtype = dtype
 
@@ -127,6 +151,7 @@ class GluonEstimator(Estimator):
 
         try:
             trainer = from_hyperparameters(Trainer, **hyperparameters)
+
             return cls(
                 **Model(**{**hyperparameters, "trainer": trainer}).__dict__
             )
@@ -171,11 +196,15 @@ class GluonEstimator(Estimator):
         raise NotImplementedError
 
     def train_model(
-        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
+        **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
-
-        transformation.estimate(iter(training_data))
 
         training_data_loader = TrainDataLoader(
             dataset=training_data,
@@ -184,6 +213,10 @@ class GluonEstimator(Estimator):
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
             dtype=self.dtype,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
+            **kwargs,
         )
 
         validation_data_loader = None
@@ -194,6 +227,9 @@ class GluonEstimator(Estimator):
                 batch_size=self.trainer.batch_size,
                 ctx=self.trainer.ctx,
                 dtype=self.dtype,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                **kwargs,
             )
 
         # ensure that the training network is created within the same MXNet
@@ -218,6 +254,19 @@ class GluonEstimator(Estimator):
             )
 
     def train(
-        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
+        **kwargs,
     ) -> Predictor:
-        return self.train_model(training_data, validation_data).predictor
+        return self.train_model(
+            training_data,
+            validation_data,
+            num_workers,
+            num_prefetch,
+            shuffle_buffer_length,
+            **kwargs,
+        ).predictor

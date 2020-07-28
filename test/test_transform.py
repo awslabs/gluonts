@@ -29,6 +29,16 @@ from gluonts.dataset.common import ProcessStartField, DataEntry, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 
+from gluonts.transform import (
+    MissingValueImputation,
+    LeavesMissingValues,
+    DummyValueImputation,
+    MeanValueImputation,
+    LastValueImputation,
+    CausalMeanValueImputation,
+    RollingMeanValueImputation,
+)
+
 FREQ = "1D"
 
 TEST_VALUES = {
@@ -40,6 +50,7 @@ TEST_VALUES = {
     ],
     "use_prediction_features": [True, False],
     "allow_target_padding": [True, False],
+    "lead_time": [0, 1, 10, 20],
 }
 
 
@@ -182,8 +193,9 @@ def test_AddAgeFeatures(start, target, is_train: bool):
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
+@pytest.mark.parametrize("lead_time", TEST_VALUES["lead_time"])
 def test_InstanceSplitter(
-    start, target, is_train: bool, pick_incomplete: bool
+    start, target, lead_time: int, is_train: bool, pick_incomplete: bool
 ):
     train_length = 100
     pred_length = 13
@@ -195,6 +207,7 @@ def test_InstanceSplitter(
         train_sampler=transform.UniformSplitSampler(p=1.0),
         past_length=train_length,
         future_length=pred_length,
+        lead_time=lead_time,
         time_series_fields=["some_time_feature"],
         pick_incomplete=pick_incomplete,
     )
@@ -221,6 +234,7 @@ def test_InstanceSplitter(
             0,
             len(target)
             - pred_length
+            - lead_time
             + 1
             - (0 if pick_incomplete else train_length),
         )
@@ -410,7 +424,7 @@ def test_multi_dim_transformation(is_train):
             transform.AddObservedValuesIndicator(
                 target_field=FieldName.TARGET,
                 output_field="observed_values",
-                convert_nans=False,
+                imputation_method=None,
             ),
             transform.VstackFeatures(
                 output_field="dynamic_feat",
@@ -873,6 +887,92 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         assert d["future_valid_length"] == d["past_valid_length"] == 0
         assert np.prod(np.shape(d["past_target"])) == 0
         assert np.prod(np.shape(d["future_target"])) == 0
+
+
+def test_AddObservedIndicator():
+    """
+    Tests the different methods to impute missing values.
+    """
+
+    array_values = [
+        np.array([np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]),
+        np.array([np.nan]),
+        np.array([10.0]),
+    ]
+
+    l_methods = [
+        "dummy_value",
+        "mean",
+        "causal_mean",
+        "last_value",
+        "rolling_mean1",
+        "rolling_mean10",
+    ]
+
+    d_method_instances = {
+        "dummy_value": DummyValueImputation(),
+        "mean": MeanValueImputation(),
+        "causal_mean": CausalMeanValueImputation(),
+        "last_value": LastValueImputation(),
+        "rolling_mean1": RollingMeanValueImputation(1),
+        "rolling_mean10": RollingMeanValueImputation(10),
+    }
+
+    d_expected_results = {
+        "dummy_value": [
+            np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "mean": [
+            np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "causal_mean": [
+            np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9 / 7]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "last_value": [
+            np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "rolling_mean10": [
+            np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.1, 1.0, 1.2]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+        "rolling_mean1": [
+            np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
+            np.array([0.0]),
+            np.array([10.0]),
+        ],
+    }
+
+    expected_missindicators = [
+        np.array([0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
+        np.array([0.0]),
+        np.array([1.0]),
+    ]
+
+    for i, array_value in enumerate(array_values):
+        for method in l_methods:
+            transfo = transform.AddObservedValuesIndicator(
+                target_field=FieldName.TARGET,
+                output_field=FieldName.OBSERVED_VALUES,
+                imputation_method=d_method_instances[method],
+            )
+
+            d = {"target": array_value.copy()}
+
+            res = transfo.transform(d)
+
+            assert np.array_equal(d_expected_results[method][i], res["target"])
+            assert np.array_equal(
+                expected_missindicators[i], res[FieldName.OBSERVED_VALUES]
+            )
 
 
 def make_dataset(N, train_length):

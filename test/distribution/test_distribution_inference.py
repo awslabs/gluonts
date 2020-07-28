@@ -26,11 +26,11 @@ from pydantic import PositiveFloat, PositiveInt
 
 # First-party imports
 from gluonts.model.common import NPArrayLike
-from gluonts.distribution.box_cox_transform import (
+from gluonts.mx.distribution.box_cox_transform import (
     InverseBoxCoxTransform,
     InverseBoxCoxTransformOutput,
 )
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     DistributionOutput,
     StudentT,
     StudentTOutput,
@@ -58,11 +58,15 @@ from gluonts.distribution import (
     PiecewiseLinearOutput,
     Binned,
     BinnedOutput,
+    Categorical,
+    CategoricalOutput,
+    LogitNormal,
+    LogitNormalOutput,
 )
-from gluonts.distribution.transformed_distribution_output import (
+from gluonts.mx.distribution.transformed_distribution_output import (
     TransformedDistributionOutput,
 )
-from gluonts.distribution.transformed_distribution import (
+from gluonts.mx.distribution.transformed_distribution import (
     TransformedDistribution,
 )
 
@@ -808,6 +812,46 @@ def test_binned_likelihood(
     ), f"bin_prob did not match: bin_prob = {bin_prob}, bin_prob_hat = {bin_prob_hat}"
 
 
+@pytest.mark.parametrize("num_cats", [6])
+@pytest.mark.parametrize(
+    "cat_probs", [np.array([0.3, 0.1, 0.05, 0.2, 0.1, 0.25])]
+)
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_categorical_likelihood(
+    num_cats: int, cat_probs: np.ndarray, hybridize: bool
+):
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+    cat_prob = mx.nd.array(cat_probs)
+    cat_probs = mx.nd.zeros((NUM_SAMPLES, num_cats)) + cat_prob
+
+    distr = Categorical(cat_probs.log())
+    samples = distr.sample()
+
+    cat_prob_init = mx.nd.random_uniform(1 - TOL, 1 + TOL, num_cats) * cat_prob
+    cat_prob_init = cat_prob_init / cat_prob_init.sum()
+
+    init_biases = [cat_prob_init]
+
+    cat_log_prob_hat = maximum_likelihood_estimate_sgd(
+        CategoricalOutput(num_cats),
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(25),
+    )
+    cat_prob_hat = np.exp(cat_log_prob_hat)
+
+    prob_deviation = np.abs(cat_prob_hat - cat_prob.asnumpy()).flatten()
+    tolerance = (TOL * cat_prob.asnumpy()).flatten()
+
+    assert np.all(
+        np.less(prob_deviation, tolerance)
+    ), f"cat_prob did not match: cat_prob = {cat_prob}, cat_prob_hat = {cat_prob_hat}"
+
+
 @pytest.mark.parametrize("rate", [1.0])
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_poisson_likelihood(rate: float, hybridize: bool) -> None:
@@ -836,3 +880,39 @@ def test_poisson_likelihood(rate: float, hybridize: bool) -> None:
     assert (
         np.abs(rate_hat[0] - rate) < TOL * rate
     ), f"mu did not match: rate = {rate}, rate_hat = {rate_hat}"
+
+
+@pytest.mark.parametrize("mu, sigma", [(1.0, 0.1)])
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_logit_normal_likelihood(mu: float, sigma: float, hybridize: bool):
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+
+    # generate samples
+    mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
+    sigmas = mx.nd.zeros((NUM_SAMPLES,)) + sigma
+
+    distr = LogitNormal(mus, sigmas)
+    samples = distr.sample()
+
+    init_biases = [
+        mu - START_TOL_MULTIPLE * TOL * mu,
+        inv_softplus(sigma - START_TOL_MULTIPLE * TOL * sigma),
+    ]
+
+    mu_hat, sigma_hat = maximum_likelihood_estimate_sgd(
+        LogitNormalOutput(),
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.001),
+        num_epochs=PositiveInt(5),
+    )
+
+    assert (
+        np.abs(mu_hat - mu) < TOL * mu
+    ), f"mu did not match: mu = {mu}, mu_hat = {mu_hat}"
+    assert (
+        np.abs(sigma_hat - sigma) < TOL * sigma
+    ), f"sigma did not match: sigma = {sigma}, sigma_hat = {sigma_hat}"

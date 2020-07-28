@@ -12,9 +12,9 @@
 # permissions and limitations under the License.
 
 
-from typing import List, Iterator
+from typing import Iterator, List
 
-from gluonts.dataset.common import Dataset, DataEntry
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.transform import Chain, Transformation
 
 

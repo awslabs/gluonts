@@ -17,7 +17,7 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     TransformedDistribution,
     StudentT,
     Gamma,
@@ -31,9 +31,9 @@ from gluonts.distribution import (
     MixtureDistribution,
     Binned,
 )
-import gluonts.distribution.bijection as bij
-from gluonts.distribution.box_cox_transform import BoxCoxTransform
-from gluonts.distribution.gaussian import Gaussian
+import gluonts.mx.distribution.bijection as bij
+from gluonts.mx.distribution.box_cox_transform import BoxCoxTransform
+from gluonts.mx.distribution.gaussian import Gaussian
 
 
 @pytest.mark.parametrize(

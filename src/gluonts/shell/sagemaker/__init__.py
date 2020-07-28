@@ -11,16 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import os
+# Standard library imports
+from distutils.util import strtobool
 import json
+import logging
+import os
 from pathlib import Path
+from pydantic import BaseModel
 from typing import Dict, Optional
 
-from pydantic import BaseModel
-
-from gluonts.dataset.common import FileDataset, MetaData
+# First party imports
+from gluonts.dataset.common import Dataset, FileDataset, ListDataset, MetaData
 from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.support.util import map_dct_values
+
+# Relevant imports
 from .params import decode_sagemaker_parameters
 from .path import ServePaths, TrainPaths
 
@@ -34,8 +39,8 @@ DATASET_NAMES = "train", "test"
 
 
 class TrainEnv:
-    def __init__(self, path: Path = Path("/opt/ml")) -> None:
-        self.path = TrainPaths(path)
+    def __init__(self, path: TrainPaths) -> None:
+        self.path = path
         self.inputdataconfig = _load_inputdataconfig(self.path.inputdataconfig)
         self.channels = _load_channels(self.path, self.inputdataconfig)
         self.hyperparameters = _load_hyperparameters(
@@ -128,10 +133,21 @@ def _get_current_host(resourceconfig: Path) -> str:
 
 def _load_datasets(
     hyperparameters: dict, channels: Dict[str, Path]
-) -> Dict[str, FileDataset]:
+) -> Dict[str, Dataset]:
+    logger = logging.getLogger(__name__)
     freq = hyperparameters["freq"]
-    return {
-        name: FileDataset(channels[name], freq)
-        for name in DATASET_NAMES
-        if name in channels
-    }
+    listify_dataset = strtobool(hyperparameters.get("listify_dataset", "no"))
+    logger.info(f"gluonts[cached]: listify_dataset = {listify_dataset}")
+    dataset_dict = {}
+    for name in DATASET_NAMES:
+        if name in channels:
+            file_dataset = FileDataset(channels[name], freq)
+            dataset_dict[name] = (
+                ListDataset(file_dataset, freq)
+                if listify_dataset
+                else file_dataset
+            )
+            logger.info(
+                f"gluonts[cached]: Type of {name} dataset is {type(dataset_dict[name])}"
+            )
+    return dataset_dict

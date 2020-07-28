@@ -23,7 +23,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.forecast import SampleForecast
-from gluonts.model.predictor import RepresentablePredictor, FallbackPredictor
+from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 
 
@@ -78,7 +78,7 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         # line on default
         num_samples: int = 1,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
         self.value = value
         self.num_samples = num_samples
 
