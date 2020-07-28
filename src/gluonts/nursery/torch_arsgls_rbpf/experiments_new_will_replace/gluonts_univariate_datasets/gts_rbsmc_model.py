@@ -1,18 +1,28 @@
+import sys
+import multiprocessing
+import pandas as pd
 from torch.optim import Adam
-from typing import Optional, Sequence
-from box import Box
+from typing import Optional, Sequence, Iterator, Dict, Union, List, Tuple
 
 import numpy as np
 import torch
+from torch import Tensor
 from pytorch_lightning import LightningModule
+import pytorch_lightning as pl
 from torch import nn
+from torch.optim.optimizer import Optimizer
 
+from gluonts.evaluation._base import Evaluator, _worker_init, _worker_fun
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     InferenceDataLoader,
     TrainDataLoader,
     ValidationDataLoader,
 )
+from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.model.predictor import RepresentablePredictor
+from gluonts.dataset.common import Dataset
+from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -28,8 +38,11 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     VstackFeatures,
 )
+from inference.smc.resampling import make_criterion_fn_with_ess_threshold
 
+from models_new_will_replace.base_rbpf_gls import BaseRBSMCGaussianLinearSystem
 from models_new_will_replace.base_amortized_gls import BaseAmortizedGaussianLinearSystem
+from models_new_will_replace.base_gls import BaseGaussianLinearSystem
 from models_new_will_replace.base_gls import Prediction, Latents
 
 from data.gluonts_nips_datasets.gluonts_nips_datasets import get_dataset
@@ -152,8 +165,14 @@ class GluontsUnivariateDataLoaderWrapper:
     - with TBF format (Time, Batch, Feature).
     """
 
-    def __init__(self, gluonts_loader, float_dtype: Optional[torch.dtype] = None):
+    def __init__(
+            self,
+            gluonts_loader,
+            is_for_predictor: int = False,
+            float_dtype: Optional[torch.dtype] = None,
+    ):
         self._gluonts_loader = gluonts_loader
+        self._is_for_predictor = is_for_predictor
         self.float_dtype = float_dtype
         self.int_dtype = torch.int64
 
@@ -175,14 +194,30 @@ class GluontsUnivariateDataLoaderWrapper:
         ]
 
     def __iter__(self):
-        for batch_gluonts in self._gluonts_loader:
-            yield self._to_time_first(
-                self._to_pytorch(
-                    self._extract_relevant_data(
-                        batch_gluonts,
+        if self._is_for_predictor:
+            for batch_gluonts in self._gluonts_loader:
+                yield (
+                    self._to_time_first(
+                        self._to_pytorch(
+                            self._extract_relevant_data(
+                                batch_gluonts,
+                            )
+                        )
+                    ),
+                    {
+                        k: v for k, v in batch_gluonts.items()
+                        if k in [FieldName.ITEM_ID, "forecast_start"]
+                    },
+                )
+        else:
+            for batch_gluonts in self._gluonts_loader:
+                yield self._to_time_first(
+                    self._to_pytorch(
+                        self._extract_relevant_data(
+                            batch_gluonts,
+                        )
                     )
                 )
-            )
 
     def _extract_relevant_data(self, gluonts_batch: dict):
         return {
@@ -209,11 +244,77 @@ class GluontsUnivariateDataLoaderWrapper:
         }
 
 
+# class BatchwiseEvaluator(Evaluator):
+#     """
+#     GluonTS Evaluator with streaming is a little cumbersome to work with,
+#     lets add some functionality to fix this.
+#     This is pretty much a copy of __call__, except that we do not aggregate,
+#     and the inputs are not iterators but a Sequence of specified forecast type.
+#     """
+#     def evaluate_forecasts(
+#         self,
+#         # ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
+#         # fcst_iterator: Iterable[Forecast],
+#         # num_series: Optional[int] = None,
+#         forecasts: Sequence[Union[SampleForecast, Prediction]],
+#         future_targets: Sequence[torch.Tensor],
+#     ):  # -> Tuple[Dict[str, float], pd.DataFrame]:
+#
+#         # data = data_entry.copy()
+#         # index = pd.date_range(
+#         #     start=data["start"],
+#         #     freq=freq,
+#         #     periods=data["target"].shape[-1],
+#         # )
+#         # data["ts"] = pd.DataFrame(
+#         #     index=index, data=data["target"].transpose()
+#         # )
+#
+#         if isinstance(forecasts[0], Prediction):
+#             forecasts = [self.to_gts_forecast(fcst) for fcst in forecasts]
+#         # ts_iterator = iter(ts_iterator)
+#         fcst_iterator = iter(forecasts)
+#
+#         rows = []
+#
+#         with zip(ts_iterator, fcst_iterator) \
+#                 as it, np.errstate(invalid="ignore"):
+#             if self.num_workers > 0 and not sys.platform == "win32":
+#                 mp_pool = multiprocessing.Pool(
+#                     initializer=_worker_init(self), processes=self.num_workers
+#                 )
+#                 rows = mp_pool.map(
+#                     func=_worker_fun,
+#                     iterable=iter(it),
+#                     chunksize=self.chunk_size,
+#                 )
+#                 mp_pool.close()
+#                 mp_pool.join()
+#             else:
+#                 for ts, forecast in it:
+#                     rows.append(self.get_metrics_per_ts(ts, forecast))
+#
+#         assert not any(
+#             True for _ in ts_iterator
+#         ), "ts_iterator has more elements than fcst_iterator"
+#
+#         assert not any(
+#             True for _ in fcst_iterator
+#         ), "fcst_iterator has more elements than ts_iterator"
+#
+#
+#         # If all entries of a target array are NaNs, the resulting metric will have value "masked". Pandas does not
+#         # handle masked values correctly. Thus we set dtype=np.float64 to convert masked values back to NaNs which
+#         # are handled correctly by pandas Dataframes during aggregation.
+#         metrics_per_ts = pd.DataFrame(rows, dtype=np.float64)
+#         return metrics_per_ts
+
+
 class GluontsUnivariateDataModel(LightningModule):
     # TODO: let this take a config / hyperparam file with Hydra.
     def __init__(
         self,
-        ssm: BaseAmortizedGaussianLinearSystem,  # TODO: what about kvae?
+        ssm: BaseAmortizedGaussianLinearSystem,
         ctrl_transformer: nn.Module,  # TODO: make API
         tar_transformer: torch.distributions.AffineTransform,
         dataset_name: str,
@@ -224,9 +325,12 @@ class GluontsUnivariateDataModel(LightningModule):
         past_length,
         prediction_length_full,
         prediction_length_rolling,
+        n_epochs_no_resampling=0,
+        n_epochs_freeze_gls_params=0,
         num_batches_per_epoch=50,
         extract_tail_chunks_for_train: bool = False,
         val_full_length=True,
+        deterministic_forecast: bool = False,
     ):
         super().__init__()
         self.tar_transformer = tar_transformer
@@ -240,11 +344,19 @@ class GluontsUnivariateDataModel(LightningModule):
         self.prediction_length_full = prediction_length_full
         self.val_full_length = val_full_length
         self.batch_sizes = batch_sizes
+        self.n_epochs_no_resampling = n_epochs_no_resampling
+        self.n_epochs_freeze_gls_params = n_epochs_freeze_gls_params
         self.num_batches_per_epoch = num_batches_per_epoch
 
         self.lr = lr
         self.weight_decay = weight_decay
         self.n_epochs = n_epochs
+        self.deterministic_forecast = deterministic_forecast
+
+        self.forecast_evaluator = Evaluator(
+            quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9),
+            num_workers=0,  # has been buggy with > 0. Maybe check again.
+        )
 
     def forward(
         self,
@@ -252,17 +364,17 @@ class GluontsUnivariateDataModel(LightningModule):
         past_seasonal_indicators: torch.Tensor,
         past_time_feat: torch.Tensor,
         past_target: torch.Tensor,
-        future_seasonal_indicators: [torch.Tensor] = None,
+        future_seasonal_indicators: Optional[torch.Tensor] = None,
         future_time_feat: Optional[torch.Tensor] = None,
-        future_target: Optional[torch.Tensor] = None,
+        # future_target: Optional[torch.Tensor] = None,
         n_steps_forecast: int = 0,
         deterministic=False,
     ) -> (Sequence[Prediction], Sequence[Latents]):
         past_target = self.tar_transformer.inv(past_target)
         past_controls = self.ctrl_transformer(
             feat_static_cat=feat_static_cat,
-            past_seasonal_indicators=past_seasonal_indicators,
-            past_time_feat=past_time_feat,
+            seasonal_indicators=past_seasonal_indicators,
+            time_feat=past_time_feat,
         )
         future_controls = (
             self.ctrl_transformer(
@@ -273,7 +385,7 @@ class GluontsUnivariateDataModel(LightningModule):
             if future_time_feat is not None
             else None
         )
-        predictions = self.ssm.predict(
+        predictions_inferred, predictions_forecast = self.ssm.predict(
             n_steps_forecast=n_steps_forecast,
             past_targets=past_target,
             past_controls=past_controls,
@@ -286,13 +398,22 @@ class GluontsUnivariateDataModel(LightningModule):
         #  and shift transform; *In case of Gaussian likelihood* no need to
         #  correct through  change of variables (using log-abs-det).
         #  But we could use an arbitrary bijection for any likelihood function?
-        for t in range(len(predictions)):
-            predictions[t].emissions = self.tar_transformer(
-                predictions[t].emissions,
+        for t in range(len(predictions_inferred)):
+            predictions_inferred[t].emissions = self.tar_transformer(
+                predictions_inferred[t].emissions,
             )
-        return predictions
+        for t in range(len(predictions_forecast)):
+            predictions_forecast[t].emissions = self.tar_transformer(
+                predictions_forecast[t].emissions,
+            )
+        return predictions_inferred, predictions_forecast
 
     def prepare_data(self):
+        """
+        prepare data is called only once - also if doing multi-GPU.
+        A few things such as input_transform and predictors depend on data.
+        So we do those here as well.
+        """
         self.dataset = get_dataset(self.dataset_name)
 
         input_transforms = {}
@@ -333,6 +454,23 @@ class GluontsUnivariateDataModel(LightningModule):
             )
         self.input_transforms = input_transforms
 
+        self.predictors = {
+            "full": SGLSPredictor(
+                model=self,
+                input_transform=self.input_transforms['test_full'],
+                batch_size=self.batch_sizes['test_full'],
+                prediction_length=self.prediction_length_full,
+                freq=self.dataset.metadata.freq,
+            ),
+            "rolling": SGLSPredictor(
+                model=self,
+                input_transform=self.input_transforms['test_rolling'],
+                batch_size=self.batch_sizes['test_rolling'],
+                prediction_length=self.prediction_length_rolling,
+                freq=self.dataset.metadata.freq,
+            ),
+        }
+
     def train_dataloader(self):
         return GluontsUnivariateDataLoaderWrapper(
             TrainDataLoader(
@@ -347,26 +485,115 @@ class GluontsUnivariateDataModel(LightningModule):
             float_dtype=self.dtype,
         )
 
-    # def val_dataloader(self):
-    #     return GluontsUnivariateDataLoaderWrapper(
-    #         TrainDataLoader(
-    #             dataset=self.dataset.train,
-    #             transform=self.input_transforms["val"],
-    #             batch_size=self.batch_sizes["val"],
-    #             num_workers=0,
-    #             ctx=None,
-    #             dtype=np.float32,
-    #         )
-    #     )
+    def val_dataloader(self):
+        return GluontsUnivariateDataLoaderWrapper(
+            ValidationDataLoader(
+                dataset=self.dataset.train,
+                transform=self.input_transforms["val"],
+                batch_size=self.batch_sizes["val"],
+                num_workers=0,
+                ctx=None,
+                dtype=np.float32,
+            )
+        )
+
+    def test_dataloader(self):
+        return GluontsUnivariateDataLoaderWrapper(
+            TrainDataLoader(
+                dataset=self.dataset.train,
+                transform=self.input_transforms["val"],
+                batch_size=self.batch_sizes["val"],
+                num_workers=0,
+                ctx=None,
+                dtype=np.float32,
+            )
+        )
+        inference_loader = GluontsUnivariateDataLoaderWrapper(
+            InferenceDataLoader(
+                dataset=dataset,
+                transform=self.input_transform,
+                batch_size=self.batch_size,
+                num_workers=0,
+                num_prefetch=0,
+                ctx=None,
+                dtype=np.float32,
+                **kwargs,
+            )
+        )
+
+    def optimizer_step(
+            self,
+            epoch: int,
+            batch_idx: int,
+            optimizer: Optimizer,
+            optimizer_idx: int,
+            *args,
+            **kwargs,
+    ) -> None:
+
+        # 1) Set to no re-sampling if configured.
+        # Note that this will omit the very first iteration
+        # since the computation happens before this function,
+        # but it should not be a problem. Want to get rid of this anyways.
+        if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
+            set_no_resampling = \
+                (epoch < self.n_epochs_no_resampling) and (batch_idx == 0)
+            set_resampling = \
+                (epoch >= self.n_epochs_no_resampling) and (batch_idx == 0)
+
+            if set_no_resampling:
+                self._resampling_criterion_fn = self.ssm.resampling_criterion_fn
+                self.ssm.resampling_criterion_fn = \
+                    make_criterion_fn_with_ess_threshold(
+                        min_ess_ratio=0.0,
+                    )
+            if set_resampling:
+                self.ssm.resampling_criterion_fn = self._resampling_criterion_fn
+
+        # 2) warmup only certain parameters (all except GLS) if configured.
+        is_warmup = (epoch < self.n_epochs_freeze_gls_params)
+        if is_warmup:
+            lr_gls = optimizer.param_groups[0]['lr']
+            optimizer.param_groups[0]['lr'] = 0
+            optimizer_output = super().optimizer_step(
+                epoch, batch_idx, optimizer, optimizer_idx, *args, **kwargs,
+            )
+            optimizer.param_groups[0]['lr'] = lr_gls
+        else:
+            optimizer_output = super().optimizer_step(
+                epoch, batch_idx, optimizer, optimizer_idx, *args, **kwargs,
+            )
+        return optimizer_output
 
     def configure_optimizers(self):
+        param_names_gls = [
+            name
+            for name in dict(self.named_parameters()).keys()
+            if
+            ("gls_base_parameters" in name) and (not "link_transformers" in name)
+        ]
+        params_gls = tuple(
+            param
+            for name, param in self.named_parameters()
+            if name in param_names_gls
+        )
+        params_except_gls = tuple(
+            param
+            for name, param in self.named_parameters()
+            if name not in param_names_gls
+        )
+        assert len(params_except_gls) < len(tuple(self.parameters()))
+
         optimizer = Adam(
-            params=self.parameters(),
-            lr=self.lr,
+            params=[
+                {"params": params_gls, "lr": self.lr},
+                {"params": params_except_gls, "lr": self.lr},
+            ],
             betas=(0.9, 0.95),
             amsgrad=False,
             weight_decay=self.weight_decay,
         )
+
         n_iter_lr_decay_one_oom = max(int(self.n_epochs / 2), 1)
         decay_rate = (1 / 10) ** (1 / n_iter_lr_decay_one_oom)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(
@@ -375,7 +602,48 @@ class GluontsUnivariateDataModel(LightningModule):
         return [optimizer], [scheduler]
 
     def training_step(self, batch, batch_idx):
-        return {"loss": self.loss(**batch)}
+        loss = self.loss(**batch)
+        result = pl.TrainResult(loss)
+        result.log('train_loss', loss)
+        return result
+
+    def validation_step(self, batch, batch_idx):
+        with torch.no_grad():
+            loss = self.loss(**batch)
+        result = pl.EvalResult(checkpoint_on=loss)
+        result.log('val_loss', loss)
+        return result
+
+    def validation_epoch_end(
+        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+    ) -> Dict[str, Dict[str, Tensor]]:
+        # GluonTS has streaming setting and predictors take dataset objects.
+        # This does not fit with validation_step working on batches.
+        # Therefore, we do the forecast metrics evaluation here with a wrapper.
+        dataset = self.dataset.train  # there is no val dataset -> use train
+
+        agg_metrics = {}
+        for which, predictor in self.predictors.items():
+            if which == "rolling":
+                continue  # its a bit expensive to validate rolling
+            forecast_it, ts_it = make_evaluation_predictions(
+                dataset,
+                predictor=predictor,
+                num_samples=self.ssm.n_particle,
+            )
+            _agg_metrics, _ = self.forecast_evaluator(
+                ts_it, forecast_it, num_series=len(dataset),
+            )
+            for key, val in _agg_metrics.items():
+                agg_metrics[f"{key}_{which}"] = val
+        # TODO: do something with "outputs"
+        result = pl.EvalResult(
+            checkpoint_on=torch.tensor(agg_metrics["mean_wQuantileLoss_full"]),
+        )
+        for k, v in agg_metrics.items():
+            prog_bar = True if k == "mean_wQuantileLoss_full" else False
+            result.log(k, v, prog_bar=prog_bar)
+        return result
 
     def loss(
         self,
@@ -398,3 +666,68 @@ class GluontsUnivariateDataModel(LightningModule):
         )
         loss = loss_samplewise.sum(dim=0) / (T * B)
         return loss
+
+
+class SGLSPredictor(RepresentablePredictor):
+    """ wrapper to to allow make_evaluation_predictions to evaluate this model. """
+
+    def __init__(
+        self,
+        model: GluontsUnivariateDataModel,
+        input_transform,
+        batch_size: int,
+        prediction_length: int,
+        freq: str,
+        lead_time: int = 0,
+    ):
+        super().__init__(
+            prediction_length=prediction_length, freq=freq, lead_time=lead_time,
+        )
+        self.model = model
+        self.input_transform = input_transform
+        self.batch_size = batch_size
+
+    def predict(
+            self, dataset: Dataset, **kwargs,
+    ) -> Iterator[Dict[Forecast, torch.Tensor]]:
+        if 'num_samples' in kwargs:
+            assert kwargs.pop('num_samples') == self.model.ssm.n_particle
+
+        inference_loader = GluontsUnivariateDataLoaderWrapper(
+            InferenceDataLoader(
+                dataset=dataset,
+                transform=self.input_transform,
+                batch_size=self.batch_size,
+                num_workers=0,
+                num_prefetch=0,
+                ctx=None,
+                dtype=np.float32,
+            ),
+            is_for_predictor=True,
+        )
+        for batch, batch_metainfo in inference_loader:  # put manually on GPU.
+            batch = {k: v.to(self.model.device) for k, v in batch.items()}
+            assert len(batch['future_time_feat']) == self.prediction_length
+
+            predictions_inferred, predictions_forecast = self.model(
+                **batch,
+                n_steps_forecast=self.prediction_length,
+                deterministic=self.model.deterministic_forecast,
+            )
+            forecast_gts = torch.stack(
+                [fcst.emissions for fcst in predictions_forecast], dim=0,
+            )
+            forecast_gts = forecast_gts.transpose(0, 2)  # TPBF -> BPTF
+            forecast_gts = forecast_gts.detach().cpu().numpy()
+            # squeezing is bad, but gluonts backtest requires it.
+            forecast_gts = forecast_gts.squeeze(axis=-1)
+
+            for idx_sample_in_batch, _fcst_gts in enumerate(forecast_gts):
+                yield SampleForecast(
+                    samples=_fcst_gts,
+                    start_date=batch_metainfo["forecast_start"][idx_sample_in_batch],
+                    freq=self.freq,
+                    item_id=batch_metainfo[FieldName.ITEM_ID][idx_sample_in_batch],
+                )
+
+            assert idx_sample_in_batch + 1 == len(batch_metainfo["forecast_start"])
