@@ -149,6 +149,8 @@ class PreprocessGeneric:
             - self.forecast_horizon
             + 1
         )
+        if max_num_context_windows < 1:
+            return [], []
         if self.num_samples > 0:
             locations = [
                 np.random.randint(max_num_context_windows)

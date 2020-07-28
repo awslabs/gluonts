@@ -56,6 +56,7 @@ class RotbaumForecast(Forecast):
         self.freq = freq
         self.prediction_length = prediction_length
         self.item_id = None
+        self.lead_time = None
 
     @validated()
     def quantile(self, q: float) -> np.array:
@@ -106,12 +107,14 @@ class TreePredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        context_length: int,
-        prediction_length: int,
+        context_length: Optional[int],
+        prediction_length: Optional[int],
         n_ignore_last: int = 0,
+        lead_time: int = 0,
         model_params=None,
         freq=None,
     ) -> None:
+        self.lead_time = lead_time
         self.preprocess_object = PreprocessOnlyLagFeatures(
             context_length,
             forecast_horizon=prediction_length,
@@ -144,11 +147,12 @@ class TreePredictor(RepresentablePredictor):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             for n_step, model in enumerate(self.model_list):
                 print(
-                    f"Training model for step no. {n_step + 1} in the forecast "
-                    f"horizon"
+                    f"Training model for step no. {n_step + 1} in the forecast"
+                    f" horizon"
                 )
-                executor.submit(model.fit, feature_data,
-                                np.array(target_data)[:, n_step])
+                executor.submit(
+                    model.fit, feature_data, np.array(target_data)[:, n_step]
+                )
 
         return self
 

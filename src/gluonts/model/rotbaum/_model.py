@@ -98,7 +98,7 @@ class QRX:
         y_train: list
         """
         self.quantile_dicts = {}
-        x_train, y_train = np.array(x_train), np.array(y_train) #xgboost
+        x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
         # doens't like lists
         self.model.fit(np.array(x_train), np.array(y_train))
         y_train_pred = self.model.predict(x_train)
@@ -259,7 +259,9 @@ class QRX:
             self.quantile_dicts[quantile] = quantile_dic
         # Remember dic per quantile and use if already done
         for pt in x_test:
-            pred = self.model.predict(np.array([pt]))[0] #xgboost doesn't like
+            pred = self.model.predict(np.array([pt]))[
+                0
+            ]  # xgboost doesn't like
             # lists
             closest_pred = self.get_closest_pt(self.cell_values, pred)
             predicted_values.append(quantile_dic[closest_pred])
