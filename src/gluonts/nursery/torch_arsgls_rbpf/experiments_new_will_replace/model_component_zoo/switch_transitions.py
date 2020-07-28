@@ -1,25 +1,12 @@
 import torch
 from torch import nn
 from torch.distributions import OneHotCategorical, MultivariateNormal
-from inference.analytical_gausian_linear.inference_step import (
-    filter_forward_prediction_step,
-)
-from models_new_will_replace.gls_parameters.state_to_switch_parameters import (
-    StateToSwitchParams,
-)
 from torch_extensions.distributions.conditional_parametrised_distribution import (
     ParametrisedConditionalDistribution,
 )
 from torch_extensions.mlp import MLP
-from torch_extensions.ops import batch_diag_matrix, matvec
+from torch_extensions.ops import batch_diag_matrix
 from utils.utils import SigmoidLimiter, Lambda
-from models_new_will_replace.sgls_rbpf import GLSVariablesSGLS
-from torch_extensions.ops import (
-    symmetrize,
-    matvec,
-    cholesky,
-    matmul,
-)
 
 
 def _extract_dims_from_cfg(config):
@@ -120,8 +107,10 @@ class SwitchTransitionModelGaussian(SwitchTransitionBase):
 
 class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
     """
-    Intended to be used with State-to-Switch recurrence, which already has a
-    set of noise base matrices and does not necessarily a second noise source.
+    The output of this transition function is a Gaussian with zero variance.
+    This is intended to be used with State-to-Switch recurrence,
+    which already has a set of noise covariance base matrices
+    and does not necessarily need a second noise source.
     """
     def __init__(self, config):
         super().__init__()
@@ -158,61 +147,3 @@ class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
     def forward(self, controls, switch):
         h = torch.cat((controls, switch), dim=-1) if controls is not None else switch
         return self.conditional_dist(h)
-
-
-# class StateToSwitchBaseMat(nn.Module):
-#     def __init__(self, config, switch_link=None):
-#         super().__init__()
-#
-#         n_state, n_switch = config.dims.state, config.dims.switch
-#         n_base_F, n_base_S = config.n_base_F, config.n_base_S
-#         init_scale_S_diag = config.init_scale_S_diag
-#
-#         switch_link_type = (
-#             config.recurrent_link_type if switch_link is None else None
-#         )
-#
-#         self.base_parameters = StateToSwitchParams(
-#             n_switch=n_switch,
-#             n_state=n_state,
-#             n_base_F=n_base_F,
-#             n_base_S=n_base_S,
-#             init_scale_S_diag=init_scale_S_diag,
-#             switch_link=switch_link,
-#             switch_link_type=switch_link_type,
-#         )
-#
-#     def forward(self, lat_vars: GLSVariablesSGLS) -> MultivariateNormal:
-#         if len({lat_vars.x is None, lat_vars.m is None}) != 2:
-#             raise Exception("Provide samples XOR dist params (-> marginalize).")
-#         marginalize_states = lat_vars.m is not None
-#
-#         if marginalize_states:
-#             return self.marginalize(lat_vars=lat_vars)
-#         else:
-#             return self.conditional(lat_vars=lat_vars)
-#
-#     @staticmethod
-#     def marginalize(
-#             lat_vars: GLSVariablesSGLS,
-#             transition_matrix: torch.Tensor,
-#             covariance_matrix: torch.Tensor,
-#     ) -> MultivariateNormal:
-#         base_params = self.base_parameters(switch=lat_vars.switch)
-#
-#         m = matvec(transition_matrix, lat_vars.m)
-#         V = matmul(transition_matrix,
-#                    matmul(lat_vars.V, transition_matrix.transpose(-1, -2))) \
-#             + covariance_matrix
-#         return MultivariateNormal(loc=m, scale_tril=cholesky(symmetrize(V)))
-#
-#     @staticmethod
-#     def conditional(
-#             lat_vars: GLSVariablesSGLS,
-#             transition_matrix: torch.Tensor,
-#             covariance_matrix: torch.Tensor,
-#     ) -> MultivariateNormal:
-#         m = matvec(transition_matrix, lat_vars.x)
-#         V = covariance_matrix
-#         return MultivariateNormal(loc=m, scale_tril=cholesky(V))
-
