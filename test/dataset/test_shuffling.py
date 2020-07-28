@@ -19,12 +19,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.loader import PseudoShuffledIterator
 
 
-@pytest.mark.parametrize(
-    "data", [
-        range(20),
-        constant_dataset()[1],
-    ]
-)
+@pytest.mark.parametrize("data", [range(20), constant_dataset()[1],])
 def test_shuffle_iter(data: Iterable) -> None:
     list_data = list(data)
     shuffled_iter = PseudoShuffledIterator(
