@@ -13,7 +13,9 @@
 
 # Standard library imports
 import logging
-from typing import List, Optional
+import re
+from typing import Dict, List, Optional
+from functools import partial
 
 # Third-party imports
 import mxnet as mx
@@ -49,6 +51,7 @@ from gluonts.transform import (
     SimpleTransformation,
     VstackFeatures,
 )
+from gluonts.mx.batchify import batchify
 
 
 class QuantizeScaled(SimpleTransformation):
@@ -276,11 +279,10 @@ class WaveNetEstimator(GluonEstimator):
             transform=transformation,
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
-            ctx=self.trainer.ctx,
+            batchify_fn=partial(batchify, ctx=self.trainer.ctx),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
-            **kwargs,
         )
 
         validation_data_loader = None

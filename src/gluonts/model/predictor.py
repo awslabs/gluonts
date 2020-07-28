@@ -24,16 +24,13 @@ from pydoc import locate
 from tempfile import TemporaryDirectory
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
-    Dict,
     Iterator,
     List,
     Optional,
-    Tuple,
     Type,
-    Union,
 )
+from functools import partial
 
 # Third-party imports
 import mxnet as mx
@@ -52,8 +49,7 @@ from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
-from gluonts.mx.context import get_mxnet_context
-from gluonts.mx.distribution import Distribution, DistributionOutput
+
 from gluonts.support.util import (
     export_repr_block,
     export_symb_block,
@@ -63,6 +59,7 @@ from gluonts.support.util import (
     import_symb_block,
 )
 from gluonts.transform import Transformation
+from gluonts.mx.batchify import batchify
 
 from .forecast_generator import ForecastGenerator, SampleForecastGenerator
 
@@ -321,17 +318,20 @@ class GluonPredictor(Predictor):
         num_samples: Optional[int] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        batchify_fn: Optional[Callable] = None,
         **kwargs,
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
-            ctx=self.ctx,
-            dtype=self.dtype,
+            batchify_fn=partial(
+                batchify if batchify_fn is None else batchify_fn,
+                ctx=self.ctx,
+                dtype=self.dtype,
+            ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
-            **kwargs,
         )
         yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,
