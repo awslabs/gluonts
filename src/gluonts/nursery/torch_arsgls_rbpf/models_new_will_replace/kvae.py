@@ -320,7 +320,7 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
                 )
         else:
             if past_targets_is_observed is None:
-                return self._loss_em_mc(  # TODO
+                return self._loss_em_mc_efficient(
                     past_targets=past_targets,
                     past_controls=past_controls,
                 )
@@ -411,7 +411,8 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         z_particle_first = z.transpose(0, 1)
         measurement_dist = self.measurement_model(z_particle_first)
         # B3) VAE related losses
-        _l_meas_timewise = -measurement_dist.log_prob(past_targets).mean(dim=1)
+        # We use z_particle_first for correct broadcasting -> dim=0 is particle.
+        _l_meas_timewise = -measurement_dist.log_prob(past_targets).mean(dim=0)
         if past_targets_is_observed is not None:
             _l_meas_timewise = _l_meas_timewise * past_targets_is_observed
         l_measurement = _l_meas_timewise.sum(dim=0)
@@ -426,7 +427,7 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         )
         _l_variational_timewise = auxiliary_variational_dist.log_prob(
             z_particle_first
-        ).mean(dim=1)
+        ).mean(dim=0)  # again dim=0 is particle dim here.
         if past_targets_is_observed is not None:
             _l_variational_timewise = _l_variational_timewise * past_targets_is_observed
         l_inv_measurement = _l_variational_timewise.sum(dim=0)
@@ -441,6 +442,7 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
                 l_inv_measurement,
             )
         )
+
         l_total = (
             self.reconstruction_weight * l_measurement
             + l_inv_measurement
@@ -758,6 +760,7 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
                 l_inv_measurement,
             )
         )
+
         l_total = (
                 self.reconstruction_weight * l_measurement
                 + l_inv_measurement
