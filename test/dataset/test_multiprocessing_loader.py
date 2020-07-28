@@ -125,7 +125,7 @@ def get_dataset_and_transformation():
             dataset=list_dataset,
             transform=transformation,
             batch_size=BATCH_SIZE,
-            batchify_fn=batchify,
+            batchify_fn=partial(batchify, ctx=current_context()),
             num_workers=None,  # This is the crucial difference
         )
     )
@@ -166,7 +166,7 @@ def test_validation_loader_equivalence() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        batchify_fn=batchify,
+        batchify_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
     )
 
@@ -248,7 +248,7 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             dataset=dataset,
             transform=transformation,
             batch_size=batch_size,
-            batchify_fn=batchify,
+            batchify_fn=partial(batchify, ctx=current_context()),
             num_workers=num_workers,
             num_batches_per_epoch=num_batches_per_epoch,
         )
@@ -290,7 +290,7 @@ def test_inference_loader_equivalence() -> None:
             dataset=list_dataset,
             transform=transformation,
             batch_size=BATCH_SIZE,
-            batchify_fn=batchify,
+            batchify_fn=partial(batchify, ctx=current_context()),
             num_workers=None,  # This is the crucial difference
         )
     )
@@ -299,7 +299,7 @@ def test_inference_loader_equivalence() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        batchify_fn=batchify,
+        batchify_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
     )
 
@@ -344,8 +344,8 @@ def test_training_loader_batch_size_hard_constraint() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        batchify_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
         num_batches_per_epoch=30,
     )
 
@@ -353,8 +353,8 @@ def test_training_loader_batch_size_hard_constraint() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        batchify_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
         num_batches_per_epoch=30,
         shuffle_buffer_length=3 * BATCH_SIZE,
     )
@@ -446,7 +446,7 @@ def test_training_loader_soft_constraint_02() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        batchify_fn=batchify,
+        batchify_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         num_batches_per_epoch=int(0.5 * exp_num_batches),
     )
@@ -482,7 +482,7 @@ def test_training_loader_soft_constraint_03() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
-        batchify_fn=batchify,
+        batchify_fn=partial(batchify, ctx=current_context()),
         num_workers=1,  # This is the crucial difference
         num_batches_per_epoch=int(3 * exp_num_batches),
     )
