@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from itertools import islice
+from functools import partial
 
 from gluonts.mx.distribution import StudentTOutput, StudentT
 from gluonts.dataset.artificial import constant_dataset
@@ -19,7 +20,8 @@ from gluonts.dataset.loader import TrainDataLoader
 from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.model.deepar import DeepAREstimator
 import mxnet as mx
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
+from gluonts.mx.batchify import batchify
 
 
 ds_info, train_ds, test_ds = constant_dataset()
@@ -50,7 +52,7 @@ def test_distribution():
         transform=train_output.transformation,
         batch_size=batch_size,
         num_batches_per_epoch=estimator.trainer.num_batches_per_epoch,
-        ctx=mx.cpu(),
+        batchify_fn=partial(batchify, ctx=mx.cpu()),
     )
 
     seq_len = 2 * ds_info.prediction_length

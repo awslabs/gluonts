@@ -12,7 +12,8 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Iterator, NamedTuple, Optional
+from typing import NamedTuple, Optional, Callable
+from functools import partial
 
 # Third-party imports
 import numpy as np
@@ -30,6 +31,7 @@ from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.transform import Transformation
+from gluonts.mx.batchify import batchify
 
 
 class Estimator:
@@ -202,7 +204,7 @@ class GluonEstimator(Estimator):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs,
+        batchify_fn: Optional[Callable] = None,
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
@@ -211,12 +213,14 @@ class GluonEstimator(Estimator):
             transform=transformation,
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
-            ctx=self.trainer.ctx,
-            dtype=self.dtype,
+            batchify_fn=partial(
+                batchify if batchify_fn is None else batchify_fn,
+                ctx=self.trainer.ctx,
+                dtype=self.dtype,
+            ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
-            **kwargs,
         )
 
         validation_data_loader = None
@@ -225,11 +229,13 @@ class GluonEstimator(Estimator):
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
+                batchify_fn=partial(
+                    batchify if batchify_fn is None else batchify_fn,
+                    ctx=self.trainer.ctx,
+                    dtype=self.dtype,
+                ),
                 num_workers=num_workers,
                 num_prefetch=num_prefetch,
-                **kwargs,
             )
 
         # ensure that the training network is created within the same MXNet
@@ -260,7 +266,7 @@ class GluonEstimator(Estimator):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs,
+        batchify_fn: Optional[Callable] = None,
     ) -> Predictor:
         return self.train_model(
             training_data,
@@ -268,5 +274,5 @@ class GluonEstimator(Estimator):
             num_workers,
             num_prefetch,
             shuffle_buffer_length,
-            **kwargs,
+            batchify_fn,
         ).predictor

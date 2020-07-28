@@ -3,6 +3,7 @@ import functools
 
 import numpy as np
 import mxnet as mx
+from gluonts.core.component import DType
 
 from gluonts.dataset.common import DataBatch
 
@@ -50,13 +51,17 @@ def _pad_arrays(
 def stack(
     data,
     ctx: Optional[mx.context.Context] = None,
+    dtype: Optional[DType] = np.float32,
     variable_length: bool = False,
 ):
     if variable_length and not _is_stackable(data):
         data = _pad_arrays(data, axis=0)
-
+    if isinstance(data[0], mx.nd.NDArray):
+        # TODO: think about using shared context NDArrays
+        #  https://github.com/awslabs/gluon-ts/blob/42bee73409f801e7bca73245ca21cd877891437c/src/gluonts/dataset/parallelized_loader.py#L157
+        return mx.nd.stack(*data)
     if isinstance(data[0], np.ndarray):
-        data = mx.nd.array(data, ctx=ctx)
+        data = mx.nd.array(data, dtype=dtype, ctx=ctx)
     elif isinstance(data[0], (list, tuple)):
         return list(stack(t, ctx=ctx) for t in zip(*data))
     return data
@@ -65,12 +70,14 @@ def stack(
 def batchify(
     data: List[dict],
     ctx: Optional[mx.context.Context] = None,
+    dtype: Optional[DType] = np.float32,
     variable_length: bool = False,
 ) -> DataBatch:
     return {
         key: stack(
             data=[item[key] for item in data],
             ctx=ctx,
+            dtype=dtype,
             variable_length=variable_length,
         )
         for key in data[0].keys()

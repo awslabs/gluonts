@@ -12,9 +12,9 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from functools import partial
 from pathlib import Path
-from typing import Iterator, List, Optional, cast
+from typing import Iterator, List, Optional, cast, Callable
+from functools import partial
 
 # Third-party imports
 import mxnet as mx
@@ -24,7 +24,6 @@ import numpy as np
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.dataset.parallelized_loader import batchify
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
 from gluonts.model.predictor import (
@@ -33,6 +32,7 @@ from gluonts.model.predictor import (
     SymbolBlockPredictor,
 )
 from gluonts.transform import Transformation
+from gluonts.mx.batchify import batchify
 
 # Relative imports
 from .forecast import PointProcessSampleForecast
@@ -175,6 +175,7 @@ class PointProcessGluonPredictor(GluonPredictor):
         num_samples: Optional[int] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
+        batchify_fn: Optional[Callable] = None,
         **kwargs,
     ) -> Iterator[Forecast]:
         yield from super().predict(
@@ -182,7 +183,11 @@ class PointProcessGluonPredictor(GluonPredictor):
             num_samples=num_samples,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
-            batchify_fn=partial(batchify, variable_length=True),
+            batchify_fn=partial(
+                batchify if batchify_fn is None else batchify_fn,
+                variable_length=True,
+            ),
+            **kwargs,
         )
 
     def serialize_prediction_net(self, path: Path) -> None:
