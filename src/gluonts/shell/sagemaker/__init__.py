@@ -14,13 +14,14 @@
 # Standard library imports
 from distutils.util import strtobool
 import json
+import logging
 import os
 from pathlib import Path
 from pydantic import BaseModel
 from typing import Dict, Optional
 
 # First party imports
-from gluonts.dataset.common import FileDataset, ListDataset, MetaData
+from gluonts.dataset.common import Dataset, FileDataset, ListDataset, MetaData
 from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.support.util import map_dct_values
 
@@ -132,9 +133,11 @@ def _get_current_host(resourceconfig: Path) -> str:
 
 def _load_datasets(
     hyperparameters: dict, channels: Dict[str, Path]
-) -> Dict[str, FileDataset]:
+) -> Dict[str, Dataset]:
+    logger = logging.getLogger(__name__)
     freq = hyperparameters["freq"]
     listify_dataset = strtobool(hyperparameters.get("listify_dataset", "no"))
+    logger.info(f"gluonts[cached]: listify_dataset = {listify_dataset}")
     dataset_dict = {}
     for name in DATASET_NAMES:
         if name in channels:
@@ -144,5 +147,7 @@ def _load_datasets(
                 if listify_dataset
                 else file_dataset
             )
-
+            logger.info(
+                f"gluonts[cached]: Type of {name} dataset is {type(dataset_dict[name])}"
+            )
     return dataset_dict
