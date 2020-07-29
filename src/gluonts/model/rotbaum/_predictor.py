@@ -111,6 +111,7 @@ class TreePredictor(RepresentablePredictor):
         prediction_length: Optional[int],
         n_ignore_last: int = 0,
         lead_time: int = 0,
+        max_workers: int = 10,
         model_params=None,
         freq=None,
     ) -> None:
@@ -125,6 +126,7 @@ class TreePredictor(RepresentablePredictor):
         self.model_params = model_params
         self.prediction_length = prediction_length
         self.freq = freq
+        self.max_workers = max_workers
         self.model_list = None
 
     @validated()
@@ -144,7 +146,8 @@ class TreePredictor(RepresentablePredictor):
         n_models = self.prediction_length
         print(f"Length of forecast horizon: {n_models}")
         self.model_list = [QRX() for _ in range(n_models)]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.max_workers) as executor:
             for n_step, model in enumerate(self.model_list):
                 print(
                     f"Training model for step no. {n_step + 1} in the forecast"
