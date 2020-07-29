@@ -144,7 +144,7 @@ class TreePredictor(RepresentablePredictor):
         n_models = self.prediction_length
         print(f"Length of forecast horizon: {n_models}")
         self.model_list = [QRX() for _ in range(n_models)]
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             for n_step, model in enumerate(self.model_list):
                 print(
                     f"Training model for step no. {n_step + 1} in the forecast"
