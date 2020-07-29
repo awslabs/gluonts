@@ -33,7 +33,7 @@ def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
     Basic wrapping around pandas ``ts + offset`` with caching and exception
     handling.
     """
-    return _shift_timestamp_helper(ts, ts.freq, offset)
+    return _shift_timestamp_helper(ts, ts.freq.freqstr, offset)
 
 
 @lru_cache(maxsize=10000)
