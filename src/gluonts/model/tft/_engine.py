@@ -3,10 +3,12 @@ import logging
 import tempfile
 import inspect
 import uuid
+import time
+import os
 
 import numpy as np
 import mxnet as mx
-from mxnet.gluon import nn, HybridBlock, Trainer
+from mxnet.gluon import nn, HybridBlock, Trainer as MXTrainer
 
 from gluonts.mx.trainer import Trainer as BaseTrainer
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
@@ -93,7 +95,7 @@ class Trainer(BaseTrainer):
                     clip_gradient=self.clip_gradient,
                 )
 
-                trainer = Trainer(
+                trainer = MXTrainer(
                     net.collect_params(),
                     optimizer=optimizer,
                     kvstore="device",  # FIXME: initialize properly
