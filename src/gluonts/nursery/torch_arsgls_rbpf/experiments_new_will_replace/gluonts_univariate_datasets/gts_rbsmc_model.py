@@ -1,3 +1,4 @@
+import os
 import sys
 import multiprocessing
 import pandas as pd
@@ -47,6 +48,8 @@ from models_new_will_replace.base_gls import Prediction, Latents
 
 from data.gluonts_nips_datasets.gluonts_nips_datasets import get_dataset
 from models_new_will_replace.gls_parameters.issm import CompositeISSM
+from utils.utils import shorten_iter
+from visualization.plot_forecasts import make_val_plots_gts
 
 
 def create_input_transform(
@@ -193,6 +196,14 @@ class GluontsUnivariateDataLoaderWrapper:
             "future_seasonal_indicators",
         ]
 
+    def __len__(self):
+        # neccessary for validation if we do not want to eval all data.
+        # this may be used wrong for infinite train loader....
+        if hasattr(self._gluonts_loader, "__len__"):
+            return len(self._gluonts_loader)
+        return (self._gluonts_loader.parallel_data_loader.dataset_len
+                // self._gluonts_loader.batch_size) + 1
+
     def __iter__(self):
         if self._is_for_predictor:
             for batch_gluonts in self._gluonts_loader:
@@ -242,72 +253,6 @@ class GluontsUnivariateDataLoaderWrapper:
             else val
             for key, val in torch_batch.items()
         }
-
-
-# class BatchwiseEvaluator(Evaluator):
-#     """
-#     GluonTS Evaluator with streaming is a little cumbersome to work with,
-#     lets add some functionality to fix this.
-#     This is pretty much a copy of __call__, except that we do not aggregate,
-#     and the inputs are not iterators but a Sequence of specified forecast type.
-#     """
-#     def evaluate_forecasts(
-#         self,
-#         # ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
-#         # fcst_iterator: Iterable[Forecast],
-#         # num_series: Optional[int] = None,
-#         forecasts: Sequence[Union[SampleForecast, Prediction]],
-#         future_targets: Sequence[torch.Tensor],
-#     ):  # -> Tuple[Dict[str, float], pd.DataFrame]:
-#
-#         # data = data_entry.copy()
-#         # index = pd.date_range(
-#         #     start=data["start"],
-#         #     freq=freq,
-#         #     periods=data["target"].shape[-1],
-#         # )
-#         # data["ts"] = pd.DataFrame(
-#         #     index=index, data=data["target"].transpose()
-#         # )
-#
-#         if isinstance(forecasts[0], Prediction):
-#             forecasts = [self.to_gts_forecast(fcst) for fcst in forecasts]
-#         # ts_iterator = iter(ts_iterator)
-#         fcst_iterator = iter(forecasts)
-#
-#         rows = []
-#
-#         with zip(ts_iterator, fcst_iterator) \
-#                 as it, np.errstate(invalid="ignore"):
-#             if self.num_workers > 0 and not sys.platform == "win32":
-#                 mp_pool = multiprocessing.Pool(
-#                     initializer=_worker_init(self), processes=self.num_workers
-#                 )
-#                 rows = mp_pool.map(
-#                     func=_worker_fun,
-#                     iterable=iter(it),
-#                     chunksize=self.chunk_size,
-#                 )
-#                 mp_pool.close()
-#                 mp_pool.join()
-#             else:
-#                 for ts, forecast in it:
-#                     rows.append(self.get_metrics_per_ts(ts, forecast))
-#
-#         assert not any(
-#             True for _ in ts_iterator
-#         ), "ts_iterator has more elements than fcst_iterator"
-#
-#         assert not any(
-#             True for _ in fcst_iterator
-#         ), "fcst_iterator has more elements than ts_iterator"
-#
-#
-#         # If all entries of a target array are NaNs, the resulting metric will have value "masked". Pandas does not
-#         # handle masked values correctly. Thus we set dtype=np.float64 to convert masked values back to NaNs which
-#         # are handled correctly by pandas Dataframes during aggregation.
-#         metrics_per_ts = pd.DataFrame(rows, dtype=np.float64)
-#         return metrics_per_ts
 
 
 class GluontsUnivariateDataModel(LightningModule):
@@ -498,28 +443,27 @@ class GluontsUnivariateDataModel(LightningModule):
         )
 
     def test_dataloader(self):
-        return GluontsUnivariateDataLoaderWrapper(
-            TrainDataLoader(
-                dataset=self.dataset.train,
-                transform=self.input_transforms["val"],
-                batch_size=self.batch_sizes["val"],
-                num_workers=0,
-                ctx=None,
-                dtype=np.float32,
-            )
-        )
-        inference_loader = GluontsUnivariateDataLoaderWrapper(
+        test_loader_full = GluontsUnivariateDataLoaderWrapper(
             InferenceDataLoader(
-                dataset=dataset,
-                transform=self.input_transform,
-                batch_size=self.batch_size,
+                dataset=self.dataset.test,
+                transform=self.input_transforms["test_full"],
+                batch_size=self.batch_sizes["test_full"],
                 num_workers=0,
-                num_prefetch=0,
                 ctx=None,
                 dtype=np.float32,
-                **kwargs,
             )
         )
+        # test_loader_rolling = GluontsUnivariateDataLoaderWrapper(
+        #     InferenceDataLoader(
+        #         dataset=self.dataset.test,
+        #         transform=self.input_transforms["test_rolling"],
+        #         batch_size=self.batch_sizes["test_rolling"],
+        #         num_workers=0,
+        #         ctx=None,
+        #         dtype=np.float32,
+        #     )
+        # )
+        return test_loader_full
 
     def optimizer_step(
             self,
@@ -612,7 +556,37 @@ class GluontsUnivariateDataModel(LightningModule):
             loss = self.loss(**batch)
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
+
+        if batch_idx == 0:
+            for idx_timeseries in [0, 1, 2]:
+                make_val_plots_gts(
+                    model=self,
+                    data=batch,
+                    idx_particle=None,
+                    n_steps_forecast=self.prediction_length_full,
+                    idx_ts=idx_timeseries,
+                    show=False,
+                    # assumes we set the log_paths attribute of trainer.
+                    # That is bad but lightning trainer does not have a
+                    # well organized log folder structure! How else to do it?
+                    savepath=os.path.join(
+                        self.trainer.log_paths.plot,
+                        f"forecast_b{idx_timeseries}_ep{self.current_epoch}.pdf",
+                    ),
+                )
         return result
+
+    def test_step(self, batch, batch_idx):
+        # TODO: forecast metrics are computed currently in
+        #  end_test / validation_epoch_end, because of streaming setting of
+        #  gluonTS evaluation functions. I don't know of a proper
+        #  way with reusing existing functions...
+        return
+        # with torch.no_grad():
+        #     loss = self.loss(**batch)
+        # result = pl.EvalResult()
+        # result.log('test_loss', loss)
+        # return result
 
     def validation_epoch_end(
         self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
@@ -631,8 +605,13 @@ class GluontsUnivariateDataModel(LightningModule):
                 predictor=predictor,
                 num_samples=self.ssm.n_particle,
             )
+            assert len(self.trainer.num_val_batches) == 1
+            num_series = self.trainer.num_val_batches[0] * self.batch_sizes["val"]
+            forecast_it = shorten_iter(forecast_it, num_series)
+            ts_it = shorten_iter(ts_it, num_series)
+
             _agg_metrics, _ = self.forecast_evaluator(
-                ts_it, forecast_it, num_series=len(dataset),
+                ts_it, forecast_it, num_series=num_series,
             )
             for key, val in _agg_metrics.items():
                 agg_metrics[f"{key}_{which}"] = val
@@ -643,6 +622,32 @@ class GluontsUnivariateDataModel(LightningModule):
         for k, v in agg_metrics.items():
             prog_bar = True if k == "mean_wQuantileLoss_full" else False
             result.log(k, v, prog_bar=prog_bar)
+
+        return result
+
+    def test_end(
+            self,
+            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+    ) -> Dict[str, Dict[str, Tensor]]:
+        dataset = self.dataset.test
+
+        agg_metrics = {}
+        for which, predictor in self.predictors.items():
+            forecast_it, ts_it = make_evaluation_predictions(
+                dataset,
+                predictor=predictor,
+                num_samples=self.ssm.n_particle,
+            )
+
+            _agg_metrics, _ = self.forecast_evaluator(
+                ts_it, forecast_it, num_series=len(dataset),
+            )
+            for key, val in _agg_metrics.items():
+                agg_metrics[f"{key}_{which}"] = val
+
+        result = pl.EvalResult()
+        for k, v in agg_metrics.items():
+            result.log(k, v)
         return result
 
     def loss(
@@ -662,7 +667,9 @@ class GluontsUnivariateDataModel(LightningModule):
             time_feat=past_time_feat,
         )
         loss_samplewise = self.ssm.loss(
-            past_targets=past_target, past_controls=past_controls, **kwargs,
+            past_targets=past_target,
+            past_controls=past_controls,
+            **{k: v for k, v in kwargs.items() if not "future" in k},
         )
         loss = loss_samplewise.sum(dim=0) / (T * B)
         return loss
