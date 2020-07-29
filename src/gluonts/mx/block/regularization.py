@@ -31,10 +31,10 @@ class ActivationRegularizationLoss(Loss):
     :math:`\alpha` is scaling coefficient.
     The implementation follows the work::
     @article{merity2017revisiting,
-        title={Revisiting Activation Regularization for Language RNNs},
-        author={Merity, Stephen and McCann, Bryan and Socher, Richard},
-        journal={arXiv preprint arXiv:1708.01009},
-        year={2017}
+    title={Revisiting Activation Regularization for Language RNNs},
+    author={Merity, Stephen and McCann, Bryan and Socher, Richard},
+    journal={arXiv preprint arXiv:1708.01009},
+    year={2017}
     }
     Parameters
     ----------
@@ -106,10 +106,10 @@ class TemporalActivationRegularizationLoss(Loss):
     :math:`h_{t+1}` is the output of the RNN at timestep t+1, :math:`\beta` is scaling coefficient.
     The implementation follows the work::
     @article{merity2017revisiting,
-        title={Revisiting Activation Regularization for Language RNNs},
-        author={Merity, Stephen and McCann, Bryan and Socher, Richard},
-        journal={arXiv preprint arXiv:1708.01009},
-        year={2017}
+    title={Revisiting Activation Regularization for Language RNNs},
+    author={Merity, Stephen and McCann, Bryan and Socher, Richard},
+    journal={arXiv preprint arXiv:1708.01009},
+    year={2017}
     }
     Parameters
     ----------
