@@ -181,10 +181,9 @@ class DataLoader(Iterable[DataBatch]):
         self.num_prefetch = num_prefetch
         self.shuffle_buffer_length = shuffle_buffer_length
 
-        # TODO: figure out why applying the MultiProcessIterator leads to failing test in test_multiprocessing_loader.py
-        #  the shuffled_iterator on its own does not lead to failed tests.
+        # TODO: MultiProcessIterator is depleting ValidationDataLoader and InferenceDataLoader
         base_iterator = (
-            iter(dataset)
+            dataset
             if num_workers is None
             else MultiProcessIterator(
                 dataset, num_workers=num_workers, max_queue_size=num_prefetch,
@@ -226,10 +225,13 @@ class TrainDataLoader(DataLoader):
     ) -> None:
         self.num_batches_per_epoch = num_batches_per_epoch
 
-        transformed_dataset = TransformedDataset(
-            base_dataset=CyclicIterable(dataset),
-            transformation=transform,
-            is_train=True,
+        # FIXME Why is wrapping the TransformedDataset into an `iter` required for TrainDataLoader?
+        transformed_dataset = iter(
+            TransformedDataset(
+                base_dataset=CyclicIterable(dataset),
+                transformation=transform,
+                is_train=True,
+            )
         )
 
         super().__init__(
@@ -250,6 +252,7 @@ class TrainDataLoader(DataLoader):
         )
 
 
+# TODO: this loader depletes after one iteration through it
 class ValidationDataLoader(DataLoader):
     def __init__(
         self,
@@ -270,12 +273,13 @@ class ValidationDataLoader(DataLoader):
             transformed_dataset,
             batch_size=batch_size,
             batchify_fn=batchify_fn,
-            num_workers=num_workers,
+            num_workers=None,  # FIXME
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
         )
 
 
+# TODO: this loader depletes after one iteration through it
 class InferenceDataLoader(DataLoader):
     def __init__(
         self,
@@ -296,7 +300,7 @@ class InferenceDataLoader(DataLoader):
             transformed_dataset,
             batch_size=batch_size,
             batchify_fn=batchify_fn,
-            num_workers=num_workers,
+            num_workers=None,  # FIXME
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
         )
