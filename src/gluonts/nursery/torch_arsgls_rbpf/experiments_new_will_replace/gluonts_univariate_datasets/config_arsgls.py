@@ -73,21 +73,24 @@ add_trend_map = {
     "electricity_nips": False,
     "traffic_nips": False,
     "solar_nips": False,
-    "wiki-rolling_nips": False,
+    "wiki-rolling_nips": False,  # not used in paper
+    "wiki2000_nips": False,
 }
 normalisation_params = {
     "exchange_rate_nips": [0.68114537, 0.4800387],
     "electricity_nips": [611.15765, 3574.196],
     "traffic_nips": [0.05299745, 0.045804948],
     "solar_nips": [40.349354, 61.589676],
-    "wiki-rolling_nips": [3720.5366, 10840.078],
+    "wiki-rolling_nips": [3720.5366, 10840.078],  # not used in paper
+    "wiki2000_nips": [3720.5366, 10840.078],
 }
 past_lengths = {
     "exchange_rate_nips": 4 * 31,
     "electricity_nips": 2 * 168,
     "traffic_nips": 2 * 168,
     "solar_nips": 2 * 168,
-    "wiki-rolling_nips": 4 * 31,
+    "wiki-rolling_nips": 4 * 31,  # not used in paper
+    "wiki2000_nips": 4 * 31,
 }
 
 
