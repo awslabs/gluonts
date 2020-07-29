@@ -30,12 +30,12 @@ class ActivationRegularizationLoss(Loss):
     where :math:`L_2(\cdot) = {||\cdot||}_2, h_t` is the output of the RNN at timestep t.
     :math:`\alpha` is scaling coefficient.
     The implementation follows the work::
-        @article{merity2017revisiting,
-          title={Revisiting Activation Regularization for Language RNNs},
-          author={Merity, Stephen and McCann, Bryan and Socher, Richard},
-          journal={arXiv preprint arXiv:1708.01009},
-          year={2017}
-        }
+    @article{merity2017revisiting,
+        title={Revisiting Activation Regularization for Language RNNs},
+        author={Merity, Stephen and McCann, Bryan and Socher, Richard},
+        journal={arXiv preprint arXiv:1708.01009},
+        year={2017}
+    }
     Parameters
     ----------
     alpha : float, default 0
@@ -105,12 +105,12 @@ class TemporalActivationRegularizationLoss(Loss):
     where :math:`L_2(\cdot) = {||\cdot||}_2, h_t` is the output of the RNN at timestep t,
     :math:`h_{t+1}` is the output of the RNN at timestep t+1, :math:`\beta` is scaling coefficient.
     The implementation follows the work::
-        @article{merity2017revisiting,
-          title={Revisiting Activation Regularization for Language RNNs},
-          author={Merity, Stephen and McCann, Bryan and Socher, Richard},
-          journal={arXiv preprint arXiv:1708.01009},
-          year={2017}
-        }
+    @article{merity2017revisiting,
+        title={Revisiting Activation Regularization for Language RNNs},
+        author={Merity, Stephen and McCann, Bryan and Socher, Richard},
+        journal={arXiv preprint arXiv:1708.01009},
+        year={2017}
+    }
     Parameters
     ----------
     beta : float, default 0
