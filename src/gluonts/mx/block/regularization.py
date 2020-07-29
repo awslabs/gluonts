@@ -26,7 +26,7 @@ class ActivationRegularizationLoss(Loss):
     r"""Computes Activation Regularization Loss. (alias: AR)
     The formulation is as below:
     .. math::
-        L = \alpha L_2(h_t)
+    L = \alpha L_2(h_t)
     where :math:`L_2(\cdot) = {||\cdot||}_2, h_t` is the output of the RNN at timestep t.
     :math:`\alpha` is scaling coefficient.
     The implementation follows the work::
@@ -101,7 +101,7 @@ class TemporalActivationRegularizationLoss(Loss):
     r"""Computes Temporal Activation Regularization Loss. (alias: TAR)
     The formulation is as below:
     .. math::
-        L = \beta L_2(h_t-h_{t+1})
+    L = \beta L_2(h_t-h_{t+1})
     where :math:`L_2(\cdot) = {||\cdot||}_2, h_t` is the output of the RNN at timestep t,
     :math:`h_{t+1}` is the output of the RNN at timestep t+1, :math:`\beta` is scaling coefficient.
     The implementation follows the work::
