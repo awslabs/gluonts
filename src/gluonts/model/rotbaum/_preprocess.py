@@ -56,6 +56,7 @@ class PreprocessGeneric:
         forecast_horizon: int = 1,
         stratify_targets: bool = False,
         n_ignore_last: int = 0,
+        max_n_datapts: int = 400000,
         **kwargs
     ):
         """
@@ -78,12 +79,16 @@ class PreprocessGeneric:
             this stratifies the targets.)
         n_ignore_last: int
             Cut the last n_ignore_last steps of the time series.
+        max_n_datapts: int
+            Maximal number of context windows to sample from the entire
+            dataset.
         """
         assert not (stratify_targets and (forecast_horizon == 1))
         self.context_window_size = context_window_size
         self.forecast_horizon = forecast_horizon
         self.stratify_targets = stratify_targets
         self.n_ignore_last = n_ignore_last
+        self.max_n_datapts = max_n_datapts
         self.kwargs = kwargs
         self.num_samples = None
         self.feature_data = None
@@ -249,7 +254,7 @@ class PreprocessGeneric:
         max_size_ts = max(
             [len(time_series["target"]) for time_series in ts_list]
         )
-        n_windows_per_time_series = 400000 // n_time_series
+        n_windows_per_time_series = self.max_n_datapts // n_time_series
         if n_time_series * 1000 < n_windows_per_time_series:
             n_windows_per_time_series = n_time_series * 1000
         elif n_windows_per_time_series == 0:

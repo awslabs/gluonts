@@ -48,7 +48,7 @@ class RotbaumForecast(Forecast):
         featurized_data: List,
         start_date: pd.Timestamp,
         freq,
-        prediction_length: int,
+        prediction_length: int
     ):
         self.models = models
         self.featurized_data = featurized_data
@@ -112,6 +112,7 @@ class TreePredictor(RepresentablePredictor):
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_workers: int = 10,
+        max_n_datapts: int = 400000,
         model_params=None,
         freq=None,
     ) -> None:
@@ -121,6 +122,7 @@ class TreePredictor(RepresentablePredictor):
             forecast_horizon=prediction_length,
             stratify_targets=False,
             n_ignore_last=n_ignore_last,
+            max_n_datapts=max_n_datapts
         )
         self.context_length = context_length
         self.model_params = model_params
