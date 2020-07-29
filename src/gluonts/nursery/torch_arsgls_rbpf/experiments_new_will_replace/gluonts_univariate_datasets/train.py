@@ -17,9 +17,6 @@ from data.gluonts_nips_datasets.gluonts_nips_datasets import (
 )
 from utils.utils import prepare_logging
 from inference.smc.resampling import make_criterion_fn_with_ess_threshold
-from visualization.plot_forecasts import (
-    make_val_plots_auxiliary as make_val_plots,
-)
 
 from experiments_new_will_replace.gluonts_univariate_datasets.config_arsgls import (
     make_model,
@@ -34,7 +31,7 @@ if __name__ == "__main__":
         "-root_log_path", type=str, default="/home/ubuntu/logs"
     )
     parser.add_argument(
-        "-dataset_name", type=str, default="exchange_rate_nips"
+        "-dataset_name", type=str, default="wiki-rolling_nips"
     )
     parser.add_argument("-experiment_name", type=str)
     parser.add_argument("-run_nr", type=int)
@@ -49,7 +46,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # random seeds
-    # seed = 11
     seed = args.run_nr if args.run_nr is not None else 0
     mx.random.seed(seed)
     np.random.seed(seed)
@@ -94,61 +90,14 @@ if __name__ == "__main__":
 
     # ***** Optimizer *****
 
-    trainer = Trainer(gpus=args.gpus, gradient_clip_val=config.grad_clip_norm)
+    trainer = Trainer(
+        gpus=args.gpus,
+        default_root_dir=log_paths.root,
+        gradient_clip_val=config.grad_clip_norm,
+        limit_val_batches=(500 // config.batch_size_val) + 1,
+        max_epochs=config.n_epochs,
+    )
+    trainer.log_paths = log_paths
+
     trainer.fit(model)
-
-
-    # model, validator = train(
-    #     config=config,
-    #     log_paths=log_paths,
-    #     model=model,
-    #     n_epochs=config.n_epochs,
-    #     lr=config.lr,
-    #     train_loader=train_loader,
-    #     gpus=[int(gpu) for gpu in args.gpus],
-    #     dtype=getattr(torch, args.dtype),
-    #     input_transforms=input_transforms,
-    #     cardinalities=cardinalities,
-    #     num_samples_eval=config.num_samples_eval,
-    # )
-    # m = model.module if hasattr(model, "module") else model
-
-    test(
-        model=model,
-        dataset=dataset,
-        log_paths=log_paths,
-        input_transforms=input_transforms,
-        cardinalities=cardinalities,
-        config=config,
-        which="best",
-    )
-    test(
-        model=model,
-        dataset=dataset,
-        log_paths=log_paths,
-        input_transforms=input_transforms,
-        cardinalities=cardinalities,
-        config=config,
-        which="final",
-    )
-    # TODO: val plots and others
-    # TODO: eval all metrics
-    # TODO: saving based on metrics
-
-# TODO: annealing kind of stuff. Add standard annealing later also.
-# # Start training without base matrices -> the link should learn to pick matrices first.
-# if idx_epoch < config.n_epochs_freeze_gls_params:
-#     optimizer = optimizer_except_gls
-# else:
-#     optimizer = optimizer_all
-#     if idx_epoch > config.n_epochs_freeze_gls_params:
-#         scheduler.step()
-# # Start with never re-sampling, set re-sampling criterion to ESS = 0.5 later.
-# if idx_epoch < config.n_epochs_no_resampling:
-#     m.resampling_criterion_fn = make_criterion_fn_with_ess_threshold(
-#         min_ess_ratio=0.0
-#     )
-# else:
-#     m.resampling_criterion_fn = make_criterion_fn_with_ess_threshold(
-#         min_ess_ratio=0.5
-#     )
+    trainer.test(model)

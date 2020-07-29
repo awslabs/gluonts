@@ -3,117 +3,51 @@ import numpy as np
 import torch
 
 from torch_extensions.ops import matmul, batch_diag, batch_diag_matrix
+from inference.smc.normalize import normalize_log_weights
 
 
-def make_val_plots(
+def make_val_plots_gts(
     model,
     data,
-    idx_timeseries,
+    idx_ts,
     n_steps_forecast,
     savepath,
-    y_gt=None,
+    future_target_gt=None,
     idx_particle=None,
     show=False,
 ):
-    module = model.module if hasattr(model, "module") else model
-    device = module.state_prior_model.m.device
-    # data = next(iter(test_loader))
+    device = model.device
     data = {name: val.to(device) for name, val in data.items()}
     data = {
-        key: val[:, idx_timeseries : idx_timeseries + 1]
+        key: val[:, idx_ts: idx_ts + 1]
+        if not "static" in key
+        else val[idx_ts: idx_ts + 1]
         for key, val in data.items()
     }
-    y = data["y"]
-    data["y"] = y[:-n_steps_forecast, :]
+    # We don't get future_target from gluonTS (probably there is an easy way).
+    # Instead we split past_target into two parts.
+    past_keys = [key for key in data.keys() if "past" in key]
+    for key in past_keys:
+        tmp = data[key]
+        data[key] = tmp[:-n_steps_forecast, :]
+        data[key.replace("past", "future")] = tmp[-n_steps_forecast:, :]
 
-    if y_gt is not None:
-        y_plot = torch.cat(
-            [
-                data["y"],
-                y_gt[
-                    -n_steps_forecast:, idx_timeseries : idx_timeseries + 1 :
-                ],
-            ],
-            dim=0,
-        )
+    if future_target_gt is not None:
+        ftar_gt = future_target_gt[-n_steps_forecast:, idx_ts: idx_ts + 1:]
+        y_plot = torch.cat([data["past_target"], ftar_gt])
     else:
-        y_plot = y
+        y_plot = torch.cat([data["past_target"], data["future_target"]])
 
-    # losses_time_batch_wise, y_forecast, mpy_filter, Vpy_filter = model(
-    #     **data, make_forecast=True, n_steps_forecast=config.n_steps_forecast)
-    (
-        log_norm_weights_trajectory,
-        s_trajectory,
-        m_trajectory,
-        V_trajectory,
-        mpy_trajectory,
-        Vpy_trajectory,
-        gls_params_trajectory,
-    ) = module.filter_forecast(n_steps_forecast=n_steps_forecast, **data)
-    norm_weights_trajectory = torch.exp(log_norm_weights_trajectory)
-
-    fig, axs = plot_predictive_distribution(
-        y=y_plot.detach(),
-        mpy=mpy_trajectory.detach(),
-        Vpy=Vpy_trajectory.detach(),
-        norm_weights=norm_weights_trajectory.detach(),
-        n_steps_forecast=n_steps_forecast,
-        idx_timeseries=0,
-        # we already provide only data for series with idx_timeseries.
-        idx_particle=idx_particle,
-        show=show,
-        savepath=savepath,
+    data.pop("future_target")
+    predictions_filtered, predictions_forecast = model(
+        **data, n_steps_forecast=n_steps_forecast,
     )
-    plt.close(fig)
-
-
-# TODO: everything duplicated except filter_forecast does not return m, V
-def make_val_plots_auxiliary(
-    model,
-    data,
-    idx_timeseries,
-    n_steps_forecast,
-    savepath,
-    y_gt=None,
-    idx_particle=None,
-    show=False,
-):
-    module = model.module if hasattr(model, "module") else model
-    device = module.state_prior_model.m.device
-    # data = next(iter(test_loader))
-    data = {name: val.to(device) for name, val in data.items()}
-    data = {
-        key: val[:, idx_timeseries : idx_timeseries + 1]
-        for key, val in data.items()
-    }
-    y = data["y"]
-    data["y"] = y[:-n_steps_forecast, :]
-
-    if y_gt is not None:
-        y_plot = torch.cat(
-            [
-                data["y"],
-                y_gt[
-                    -n_steps_forecast:, idx_timeseries : idx_timeseries + 1 :
-                ],
-            ],
-            dim=0,
-        )
-    else:
-        y_plot = y
-
-    # losses_time_batch_wise, y_forecast, mpy_filter, Vpy_filter = model(
-    #     **data, make_forecast=True, n_steps_forecast=config.n_steps_forecast)
-    (
-        log_norm_weights_trajectory,
-        s_trajectory,
-        z_trajectory,
-        y_trajectory_dist,
-        gls_params_trajectory,
-    ) = module.filter_forecast(n_steps_forecast=n_steps_forecast, **data)
-    mpy_trajectory = y_trajectory_dist.mean
-    Vpy_trajectory = batch_diag_matrix(y_trajectory_dist.variance)
-    norm_weights_trajectory = torch.exp(log_norm_weights_trajectory)
+    predictions = predictions_filtered + predictions_forecast
+    mpy_trajectory = torch.stack([p.emissions for p in predictions])
+    # TODO: API: maybe provide the likelihood density again instead of samples?
+    Vpy_trajectory = batch_diag_matrix(torch.zeros_like(mpy_trajectory))
+    log_weights = torch.stack([p.latents.log_weights for p in predictions])
+    norm_weights_trajectory = torch.exp(normalize_log_weights(log_weights))
 
     fig, axs = plot_predictive_distribution(
         y=y_plot.detach(),
