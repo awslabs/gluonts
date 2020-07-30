@@ -48,7 +48,7 @@ class RotbaumForecast(Forecast):
         featurized_data: List,
         start_date: pd.Timestamp,
         freq,
-        prediction_length: int
+        prediction_length: int,
     ):
         self.models = models
         self.featurized_data = featurized_data
@@ -122,7 +122,7 @@ class TreePredictor(RepresentablePredictor):
             forecast_horizon=prediction_length,
             stratify_targets=False,
             n_ignore_last=n_ignore_last,
-            max_n_datapts=max_n_datapts
+            max_n_datapts=max_n_datapts,
         )
         self.context_length = context_length
         self.model_params = model_params
@@ -149,7 +149,8 @@ class TreePredictor(RepresentablePredictor):
         print(f"Length of forecast horizon: {n_models}")
         self.model_list = [QRX() for _ in range(n_models)]
         with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.max_workers) as executor:
+            max_workers=self.max_workers
+        ) as executor:
             for n_step, model in enumerate(self.model_list):
                 print(
                     f"Training model for step no. {n_step + 1} in the forecast"
