@@ -123,6 +123,25 @@ class QRX:
         while the keys are the same number of keys as in dic, the number of
         objects in the values can be significantly smaller.
 
+        Examples:
+        >>> QRX.clump({0.1: [3, 3],
+                   0.3: [0],
+                   1.5: [-8]}
+                   , 0)
+        {0.1: [3, 3], 0.3: [0], 1.5: [-8]}
+
+        >>> QRX.clump({0.1: [3, 3],
+                   0.3: [0],
+                   1.5: [-8]}
+                   , 1)
+        {0.1: [3, 3], 0.3: [0, -8], 1.5: [0, -8]}
+
+        >>> QRX.clump({0.1: [3, 3],
+                   0.3: [0],
+                   1.5: [-8]}
+                   , 2)
+        {0.1: [3, 3, 0], 0.3: [3, 3, 0], 1.5: [-8]}
+
         Parameters
         ----------
         dic: dict
