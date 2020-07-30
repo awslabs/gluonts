@@ -13,35 +13,14 @@
 
 # Standard library imports
 
-from typing import Iterator, List, Optional, Tuple, Union, Dict
+from typing import List, Tuple, Dict
 
 # Third-party imports
 import numpy as np
+import logging
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
-from gluonts.dataset.field_names import FieldName
-from gluonts.time_feature import (
-    TimeFeature,
-    time_features_from_frequency_str,
-    get_lags_for_frequency,
-)
-from gluonts.trainer import Trainer
-from gluonts.transform import (
-    AddAgeFeature,
-    AddObservedValuesIndicator,
-    AddTimeFeatures,
-    AsNumpyArray,
-    Chain,
-    ExpectedNumInstanceSampler,
-    InstanceSplitter,
-    RemoveFields,
-    SetField,
-    Transformation,
-    VstackFeatures,
-)
-from gluonts.support.pandas import frequency_add
 
 
 class PreprocessGeneric:
@@ -225,7 +204,7 @@ class PreprocessGeneric:
             )
             feature_data += list(ts_feature_data)
             target_data += list(ts_target_data)
-        print(
+        logging.info(
             "Done preprocessing. Resulting number of datapoints is: {}".format(
                 len(feature_data)
             )

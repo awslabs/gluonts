@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 from itertools import chain
 import concurrent.futures
+import logging
 
 # First-party imports
 from gluonts.core.component import validated
@@ -142,13 +143,13 @@ class TreePredictor(RepresentablePredictor):
             self.preprocess_object.target_data,
         )
         n_models = self.prediction_length
-        print(f"Length of forecast horizon: {n_models}")
+        logging.info(f"Length of forecast horizon: {n_models}")
         self.model_list = [QRX() for _ in range(n_models)]
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.max_workers
         ) as executor:
             for n_step, model in enumerate(self.model_list):
-                print(
+                logging.info(
                     f"Training model for step no. {n_step + 1} in the forecast"
                     f" horizon"
                 )
