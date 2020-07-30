@@ -58,7 +58,6 @@ class RotbaumForecast(Forecast):
         self.item_id = None
         self.lead_time = None
 
-    @validated()
     def quantile(self, q: float) -> np.array:
         """
         Returns np.array, where the i^th entry is the estimate of the q
@@ -68,11 +67,9 @@ class RotbaumForecast(Forecast):
         assert 0 <= q <= 1
         return np.array(
             list(
-                chain(
-                    *[
-                        model.predict(self.featurized_data, q)
-                        for model in self.models
-                    ]
+                chain.from_iterable(
+                    model.predict(self.featurized_data, q)
+                    for model in self.models
                 )
             )
         )
@@ -131,7 +128,6 @@ class TreePredictor(RepresentablePredictor):
         self.max_workers = max_workers
         self.model_list = None
 
-    @validated()
     def __call__(self, training_data):
         assert training_data
         if self.freq is not None:
@@ -162,7 +158,6 @@ class TreePredictor(RepresentablePredictor):
 
         return self
 
-    @validated()
     def predict(self, dataset: Dataset) -> Iterator[Forecast]:
         """
         Returns a dictionary taking each quantile to a list of floats,

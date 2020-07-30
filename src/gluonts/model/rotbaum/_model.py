@@ -84,7 +84,6 @@ class QRX:
             }
         return xgboost.sklearn.XGBModel(**model_params)
 
-    @validated()
     def fit(self, x_train, y_train):
         """
         Fits self.model and partitions R^n into cells. More accurately,
@@ -186,9 +185,8 @@ class QRX:
         Given a sorted list of floats, returns the number closest to num.
         Implements a binary search.
         """
-        list_length = len(sorted_list)
-        assert list_length != 0
-        if list_length == 1:
+        assert sorted_list
+        if len(sorted_list) == 1:
             return sorted_list[0]
         else:
             halfway_indx = (len(sorted_list) - 1) // 2
@@ -234,7 +232,6 @@ class QRX:
         df_by_id = df_by_id[["id", "quantiles"]].merge(df, on="id")
         return dict(zip(df_by_id["keys"], df_by_id["quantiles"]))
 
-    @validated()
     def predict(self, x_test, quantile: float) -> List:
         """
         Quantile prediction.
@@ -267,7 +264,6 @@ class QRX:
             predicted_values.append(quantile_dic[closest_pred])
         return predicted_values
 
-    @validated()
     def estimate_dist(self, x_test: List[List[float]]) -> List:
         """
         Get estimate of sampling of Y|X=x for each x in x_test

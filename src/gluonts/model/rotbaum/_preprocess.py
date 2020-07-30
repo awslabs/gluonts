@@ -50,6 +50,7 @@ class PreprocessGeneric:
     make_features needs to be custom-made by inherited classes.
     """
 
+    @validated()
     def __init__(
         self,
         context_window_size: int,
@@ -110,7 +111,6 @@ class PreprocessGeneric:
         """
         raise NotImplementedError()
 
-    @validated()
     def preprocess_from_single_ts(self, time_series: Dict) -> Tuple:
         """
         Takes a single time series, ts_list, and returns preprocessed data.
@@ -196,7 +196,6 @@ class PreprocessGeneric:
                 )
         return feature_data, target_data
 
-    @validated()
     def preprocess_from_list(
         self, ts_list, change_internal_variables: bool = True
     ) -> Tuple:
@@ -236,7 +235,6 @@ class PreprocessGeneric:
         else:
             return feature_data, target_data
 
-    @validated()
     def get_num_samples(self, ts_list) -> int:
         """
         Outputs a reasonable choice for number of windows to sample from
@@ -314,7 +312,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             },
         )
 
-    @validated()
     def make_features(self, time_series: Dict, starting_index: int) -> List:
         """
         Makes features for the context window starting at starting_index.
@@ -332,7 +329,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         """
         end_index = starting_index + self.context_window_size
         if starting_index < 0:
-            prefix = [None] * (-starting_index)
+            prefix = [None] * abs(starting_index)
         else:
             prefix = []
         time_series_window = time_series["target"][starting_index:end_index]
