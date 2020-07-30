@@ -66,6 +66,7 @@ add_trend_map = {
     "electricity_nips": False,
     "traffic_nips": False,
     "solar_nips": False,
+    "wiki-rolling_nips": False,
     "wiki2000_nips": False,
 }
 normalisation_params = {
@@ -73,6 +74,7 @@ normalisation_params = {
     "electricity_nips": [611.15765, 3574.196],
     "traffic_nips": [0.05299745, 0.045804948],
     "solar_nips": [40.349354, 61.589676],
+    "wiki-rolling_nips": [3720.5366, 10840.078],
     "wiki2000_nips": [3720.5366, 10840.078],
 }
 past_lengths = {
@@ -80,6 +82,7 @@ past_lengths = {
     "electricity_nips": 2 * 168,
     "traffic_nips": 2 * 168,
     "solar_nips": 2 * 168,
+    "wiki-rolling_nips": 4 * 31,
     "wiki2000_nips": 4 * 31,
 }
 
@@ -149,8 +152,8 @@ def make_default_config(dataset_name):
 
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
-        particle=20,
-        batch=10,
+        particle=10,
+        batch=50,
         state=n_latent,
         target=1,
         switch=10,
@@ -181,7 +184,7 @@ def make_default_config(dataset_name):
         else 5e-3,
         weight_decay=1e-5,
         grad_clip_norm=10.0,
-        num_samples_eval=100,
+        num_samples_eval=100,  # particles
         batch_size_val=15,  # 10
         # gpus=tuple(range(3, 4)),
         # dtype=torch.float64,
