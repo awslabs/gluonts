@@ -111,8 +111,8 @@ class TreePredictor(RepresentablePredictor):
         prediction_length: Optional[int],
         n_ignore_last: int = 0,
         lead_time: int = 0,
-        max_workers: int = 10,
-        max_n_datapts: int = 400000,
+        max_n_datapts: int = 1000000,
+        max_workers=None,
         model_params=None,
         freq=None,
     ) -> None:
