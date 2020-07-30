@@ -21,7 +21,6 @@ from experiments.gluonts_nips_experiments.config import (
     make_experiment_config,
 )
 from inference.smc.resampling import make_criterion_fn_with_ess_threshold
-from visualization.plot_forecasts import make_val_plots
 from experiments.gluonts_nips_experiments.evaluate import test
 
 
@@ -46,6 +45,8 @@ def train(
     config,
     log_paths,
     model,
+    dataset,
+    val_loader,
     n_epochs,
     lr,
     train_loader,
@@ -147,6 +148,8 @@ def train(
             epoch_iter.set_postfix(
                 batch=f"{idx_batch}/{len(train_loader)}", refresh=True
             )
+            # batch = np.load("/home/richardk/Desktop/tmp.npy", allow_pickle=True).item()
+            # torch.manual_seed(0)
             batch = transform_gluonts_to_pytorch(
                 batch=batch,
                 bias_y=config.normalisation_params[0],
@@ -158,6 +161,8 @@ def train(
             )
             optimizer.zero_grad()
             loss = model(**batch).mean(dim=(0, 1))  # sum over time and batch
+            # print(idx_batch, loss)
+
             loss.backward()
             norm = torch.nn.utils.clip_grad_norm_(
                 model.parameters(), config.grad_clip_norm
@@ -192,23 +197,6 @@ def train(
                 time_features=config.time_feat,
                 **cardinalities,
             )
-            if config.dataset_name == "electricity_nips":
-                idxs_time_series = [0, 8, 9]
-            else:
-                idxs_time_series = [0]
-            for idx_timeseries in idxs_time_series:
-                make_val_plots(
-                    model=model,
-                    data=val_data,
-                    idx_particle=None,
-                    n_steps_forecast=config.prediction_length_full,
-                    idx_timeseries=idx_timeseries,
-                    show=False,
-                    savepath=os.path.join(
-                        log_paths.plot,
-                        f"forecast_b{idx_timeseries}_ep{idx_epoch}.pdf",
-                    ),
-                )
 
             metric = agg_metrics["mean_wQuantileLoss"]
             if best_metric / metric - 1 > 1e-2:
@@ -229,7 +217,7 @@ if __name__ == "__main__":
         "-root_log_path", type=str, default="/home/ubuntu/logs"
     )
     parser.add_argument(
-        "-dataset_name", type=str, default="exchange_rate_nips"
+        "-dataset_name", type=str, default="wiki-rolling_nips"
     )
     parser.add_argument("-experiment_name", type=str)
     parser.add_argument("-run_nr", type=int)
@@ -293,6 +281,8 @@ if __name__ == "__main__":
         config=config,
         log_paths=log_paths,
         model=model,
+        dataset=dataset,
+        val_loader=val_loader,
         n_epochs=config.n_epochs,
         lr=config.lr,
         train_loader=train_loader,

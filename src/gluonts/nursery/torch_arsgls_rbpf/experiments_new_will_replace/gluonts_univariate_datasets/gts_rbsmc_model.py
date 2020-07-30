@@ -268,6 +268,8 @@ class GluontsUnivariateDataModel(LightningModule):
         n_epochs,
         batch_sizes,
         past_length,
+        n_particle_train,
+        n_particle_eval,
         prediction_length_full,
         prediction_length_rolling,
         n_epochs_no_resampling=0,
@@ -297,6 +299,10 @@ class GluontsUnivariateDataModel(LightningModule):
         self.weight_decay = weight_decay
         self.n_epochs = n_epochs
         self.deterministic_forecast = deterministic_forecast
+
+        assert n_particle_train == self.ssm.n_particle
+        self._n_particle_train = n_particle_train
+        self._n_particle_eval = n_particle_eval
 
         self.forecast_evaluator = Evaluator(
             quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9),
@@ -438,8 +444,8 @@ class GluontsUnivariateDataModel(LightningModule):
                 batch_size=self.batch_sizes["val"],
                 num_workers=0,
                 ctx=None,
-                dtype=np.float32,
-            )
+            ),
+            float_dtype=self.dtype,
         )
 
     def test_dataloader(self):
@@ -451,7 +457,8 @@ class GluontsUnivariateDataModel(LightningModule):
                 num_workers=0,
                 ctx=None,
                 dtype=np.float32,
-            )
+            ),
+            float_dtype=self.dtype,
         )
         # test_loader_rolling = GluontsUnivariateDataLoaderWrapper(
         #     InferenceDataLoader(
@@ -474,27 +481,7 @@ class GluontsUnivariateDataModel(LightningModule):
             *args,
             **kwargs,
     ) -> None:
-
-        # 1) Set to no re-sampling if configured.
-        # Note that this will omit the very first iteration
-        # since the computation happens before this function,
-        # but it should not be a problem. Want to get rid of this anyways.
-        if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
-            set_no_resampling = \
-                (epoch < self.n_epochs_no_resampling) and (batch_idx == 0)
-            set_resampling = \
-                (epoch >= self.n_epochs_no_resampling) and (batch_idx == 0)
-
-            if set_no_resampling:
-                self._resampling_criterion_fn = self.ssm.resampling_criterion_fn
-                self.ssm.resampling_criterion_fn = \
-                    make_criterion_fn_with_ess_threshold(
-                        min_ess_ratio=0.0,
-                    )
-            if set_resampling:
-                self.ssm.resampling_criterion_fn = self._resampling_criterion_fn
-
-        # 2) warmup only certain parameters (all except GLS) if configured.
+        # warmup only certain parameters (all except GLS) if configured.
         is_warmup = (epoch < self.n_epochs_freeze_gls_params)
         if is_warmup:
             lr_gls = optimizer.param_groups[0]['lr']
@@ -588,6 +575,38 @@ class GluontsUnivariateDataModel(LightningModule):
         # result.log('test_loss', loss)
         # return result
 
+    def on_train_epoch_start(self) -> None:
+        super().on_train_epoch_start()
+        self.ssm.n_particle = self._n_particle_train
+
+        # Set to no re-sampling if configured.
+        # Note that this will omit the very first iteration
+        # since the computation happens before this function,
+        # but it should not be a problem. Want to get rid of this anyways.
+        if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
+            # <= and >= because we want to set self._resampling_criterion_fn.
+            set_no_resampling = \
+                (self.current_epoch <= self.n_epochs_no_resampling)
+            set_resampling = \
+                (self.current_epoch >= self.n_epochs_no_resampling)
+
+            if set_no_resampling:
+                self._resampling_criterion_fn = self.ssm.resampling_criterion_fn
+                self.ssm.resampling_criterion_fn = \
+                    make_criterion_fn_with_ess_threshold(
+                        min_ess_ratio=0.0,
+                    )
+            if set_resampling:
+                self.ssm.resampling_criterion_fn = self._resampling_criterion_fn
+
+    def on_validation_epoch_start(self) -> None:
+        super().on_validation_epoch_start()
+        self.ssm.n_particle = self._n_particle_eval
+
+    def on_test_epoch_start(self) -> None:
+        super().on_test_epoch_start()
+        self.ssm.n_particle = self._n_particle_eval
+
     def validation_epoch_end(
         self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
@@ -607,8 +626,11 @@ class GluontsUnivariateDataModel(LightningModule):
             )
             assert len(self.trainer.num_val_batches) == 1
             num_series = self.trainer.num_val_batches[0] * self.batch_sizes["val"]
-            forecast_it = shorten_iter(forecast_it, num_series)
-            ts_it = shorten_iter(ts_it, num_series)
+            if num_series >= len(dataset):
+                num_series = len(dataset)
+            else:
+                forecast_it = shorten_iter(forecast_it, num_series)
+                ts_it = shorten_iter(ts_it, num_series)
 
             _agg_metrics, _ = self.forecast_evaluator(
                 ts_it, forecast_it, num_series=num_series,
@@ -711,6 +733,7 @@ class SGLSPredictor(RepresentablePredictor):
                 dtype=np.float32,
             ),
             is_for_predictor=True,
+            float_dtype=self.model.dtype,
         )
         for batch, batch_metainfo in inference_loader:  # put manually on GPU.
             batch = {k: v.to(self.model.device) for k, v in batch.items()}

@@ -8,7 +8,7 @@ from torch.optim.adam import Adam
 from pytorch_lightning import Trainer
 
 import consts
-from experiments.validator import Validator
+
 from data.gluonts_nips_datasets.gluonts_nips_datasets import (
     create_loaders,
     transform_gluonts_to_pytorch,
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         dataset=dataset, add_trend=config.add_trend
     )
 
-    model = make_model(config=config)
+    model = make_model(config=config).to(dtype=getattr(torch, args.dtype))
 
     # ***** Optimizer *****
 
