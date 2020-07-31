@@ -139,13 +139,9 @@ class PreprocessGeneric:
         tuple
             list of feature datapoints, list of target datapoints
         """
+        altered_time_series = time_series.copy()
         if self.n_ignore_last > 0:
-            altered_time_series = {
-                "target": time_series["target"][: -self.n_ignore_last],
-                "start": time_series["start"],
-            }
-        else:
-            altered_time_series = time_series
+            altered_time_series["target"] = altered_time_series["target"][: -self.n_ignore_last]
         feature_data = []
         target_data = []
         max_num_context_windows = (
@@ -272,6 +268,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         stratify_targets=False,
         n_ignore_last=0,
         num_samples=-1,
+        use_feat_static_real=False,
+        use_feat_static_cat=False
         **kwargs
     ):
         super().__init__(
@@ -282,6 +280,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             num_samples=num_samples,
             **kwargs
         )
+        self.use_feat_static_real = use_feat_static_real
+        self.use_feat_static_cat = use_feat_static_cat
 
     @classmethod
     def _pre_transform(cls, time_series_window) -> Tuple:
@@ -339,5 +339,12 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         only_lag_features, transform_dict = self._pre_transform(
             time_series_window
         )
+
+        feat_static_real = list(time_series['feat_static_real']) if self.use_feat_static_real else []
+        feat_static_cat = list(time_series['feat_static_cat']) if self.use_feat_static_cat else []
+        
+        assert (not feat_static_cat) or all([(np.floor(elem) == elem) for elem in feat_static_cat])
+        
+        feat_statics = feat_static_real + feat_static_cat
         only_lag_features = list(only_lag_features)
-        return prefix + only_lag_features + list(transform_dict.values())
+        return prefix + only_lag_features + list(transform_dict.values()) + feat_statics

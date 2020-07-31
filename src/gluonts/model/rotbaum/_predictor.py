@@ -115,6 +115,8 @@ class TreePredictor(RepresentablePredictor):
         max_n_datapts: int = 400000,
         model_params=None,
         freq=None,
+        use_feat_static_real=False,
+        use_feat_static_cat=False,
     ) -> None:
         self.lead_time = lead_time
         self.preprocess_object = PreprocessOnlyLagFeatures(
@@ -122,7 +124,9 @@ class TreePredictor(RepresentablePredictor):
             forecast_horizon=prediction_length,
             stratify_targets=False,
             n_ignore_last=n_ignore_last,
-            max_n_datapts=max_n_datapts
+            max_n_datapts=max_n_datapts,
+            use_feat_static_real=use_feat_static_real,
+            use_feat_static_cat=use_feat_static_cat
         )
         self.context_length = context_length
         self.model_params = model_params
