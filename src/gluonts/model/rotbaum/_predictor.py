@@ -83,11 +83,9 @@ class RotbaumForecast(Forecast):
         """
         return np.array(
             list(
-                chain(
-                    *[
+                chain.from_iterable(
                         model.estimate_dist(self.featurized_data)
                         for model in self.models
-                    ]
                 )
             )
         )
