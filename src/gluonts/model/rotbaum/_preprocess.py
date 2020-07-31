@@ -269,7 +269,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         n_ignore_last=0,
         num_samples=-1,
         use_feat_static_real=False,
-        use_feat_static_cat=False
+        use_feat_static_cat=False,
         **kwargs
     ):
         super().__init__(
