@@ -22,6 +22,7 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     Transformation,
     VstackFeatures,
+    SetField,
 )
 
 from ._transform import TFTInstanceSplitter
@@ -98,14 +99,32 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 raise ValueError(
                     f"Feature name {name} is not provided in feature dicts"
                 )
+        if (len(self.static_feature_dims) == 0) and (
+            len(self.static_cardinalities) == 0
+        ):
+            self.add_dummy_static = True
+            self.static_cardinalities[FieldName.FEAT_STATIC_CAT] = 1
+        else:
+            self.add_dummy_static = False
 
     def create_transformation(self) -> Transformation:
         transforms = (
             [AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)]
+            + (
+                [
+                    AsNumpyArray(field=name, expected_ndim=1)
+                    for name in self.static_cardinalities.keys()
+                ]
+                if not self.add_dummy_static
+                else [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_CAT, value=[0.0]
+                    )
+                ]
+            )
             + [
                 AsNumpyArray(field=name, expected_ndim=1)
                 for name in chain(
-                    self.static_cardinalities.keys(),
                     self.static_feature_dims.keys(),
                     self.dynamic_cardinalities.keys(),
                 )
