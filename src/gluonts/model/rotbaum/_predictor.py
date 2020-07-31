@@ -110,6 +110,7 @@ class TreePredictor(RepresentablePredictor):
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
+        clump_size: int = 100,
         max_workers=None,
         model_params=None,
         freq=None,
@@ -127,6 +128,7 @@ class TreePredictor(RepresentablePredictor):
         self.prediction_length = prediction_length
         self.freq = freq
         self.max_workers = max_workers
+        self.clump_size = clump_size
         self.model_list = None
 
     def __call__(self, training_data):
@@ -144,7 +146,9 @@ class TreePredictor(RepresentablePredictor):
         )
         n_models = self.prediction_length
         logging.info(f"Length of forecast horizon: {n_models}")
-        self.model_list = [QRX() for _ in range(n_models)]
+        self.model_list = [
+            QRX(clump_size=self.clump_size) for _ in range(n_models)
+        ]
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.max_workers
         ) as executor:
