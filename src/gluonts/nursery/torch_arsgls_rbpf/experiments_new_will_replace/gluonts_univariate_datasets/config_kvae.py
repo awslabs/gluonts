@@ -1,4 +1,3 @@
-from typing import Tuple
 from dataclasses import dataclass
 import torch
 from torch import nn
@@ -9,44 +8,39 @@ from data.gluonts_nips_datasets.gluonts_nips_datasets import (
     get_cardinalities,
     get_dataset,
 )
+
 from experiments_new_will_replace.model_component_zoo import (
     gls_parameters,
-    switch_transitions,
     input_transforms,
 )
 from experiments.model_component_zoo import (
-    switch_priors,
     state_priors,
     encoders,
     decoders,
 )
-
-from models_new_will_replace.arsgls_rbpf import (
-    AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC,
-)
+from models_new_will_replace.kvae import KalmanVariationalAutoEncoder
 from experiments_new_will_replace.gluonts_univariate_datasets.gts_rbsmc_model \
     import GluontsUnivariateDataModel
-from experiments_new_will_replace.model_component_zoo\
-    .recurrent_base_parameters import StateToSwitchParamsDefault
+
 
 @dataclass()
-class ArsglsGtsExpConfigGtsExpConfig(BaseConfig):
+class KvaeGtsExpConfig(BaseConfig):
     prediction_length_rolling: int
     prediction_length_full: int
-    switch_prior_model_dims: tuple
-    switch_prior_model_activations: (nn.Module, tuple)
+    # switch_prior_model_dims: tuple
+    # switch_prior_model_activations: (nn.Module, tuple)
     input_transform_dims: tuple
     input_transform_activations: (nn.Module, tuple)
-    switch_transition_model_dims: tuple
-    switch_transition_model_activations: (nn.Module, tuple)
-    dims_encoder: Tuple[Tuple[int]]
-    dims_decoder: tuple
-    activations_encoders: Tuple[(tuple, nn.Module)]
-    activations_decoder: (tuple, nn.Module)
-    b_fn_dims: tuple
-    b_fn_activations: (nn.Module, tuple)
-    d_fn_dims: tuple
-    d_fn_activations: (nn.Module, tuple)
+    # switch_transition_model_dims: tuple
+    # switch_transition_model_activations: (nn.Module, tuple)
+    # state_to_switch_encoder_dims: tuple
+    # state_to_switch_encoder_activations: (nn.Module, tuple)
+    # obs_to_switch_encoder_dims: tuple
+    # obs_to_switch_encoder_activations: (nn.Module, tuple)
+    # b_fn_dims: tuple
+    # b_fn_activations: (nn.Module, tuple)
+    # d_fn_dims: tuple
+    # d_fn_activations: (nn.Module, tuple)
     time_feat: TimeFeatType
     recurrent_link_type: SwitchLinkType
     freq: str
@@ -59,11 +53,19 @@ class ArsglsGtsExpConfigGtsExpConfig(BaseConfig):
     batch_size_val: int
     # dtype: torch.dtype
     make_cov_from_cholesky_avg: bool
-    is_recurrent: bool
-    n_epochs_no_resampling: int
-    # use_encoder: bool
+    # is_recurrent: bool
+    # n_epochs_no_resampling: int
+    # obs_to_switch_encoder: bool
+    # state_to_switch_encoder: bool
+
+    n_hidden_rnn: int
+    rao_blackwellized: bool
+    reconstruction_weight: float
+    dims_encoder: tuple
+    dims_decoder: tuple
+    activations_encoder: (tuple, nn.Module)
+    activations_decoder: (tuple, nn.Module)
     grad_clip_norm: float
-    n_epochs_freeze_gls_params: int
     weight_decay: float
 
 
@@ -84,13 +86,11 @@ normalisation_params = {
     "wiki-rolling_nips": [3720.5366, 10840.078],  # not used in paper
     "wiki2000_nips": [3720.5366, 10840.078],
 }
-
-# because of GPU memory issues and performance, our models use only 2 weeks.
 past_lengths = {
     "exchange_rate_nips": 4 * 31,
-    "electricity_nips": 2 * 168,
-    "traffic_nips": 2 * 168,
-    "solar_nips": 2 * 168,
+    "electricity_nips": 4 * 168,
+    "traffic_nips": 4 * 168,
+    "solar_nips": 4 * 168,
     "wiki-rolling_nips": 4 * 31,  # not used in paper
     "wiki2000_nips": 4 * 31,
 }
@@ -161,14 +161,11 @@ def make_default_config(dataset_name):
 
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
-        particle=10,
-        batch=64,
-        state=16,
+        particle=1,
+        batch=50,
+        state=16,  # n_latent,
         target=1,
-        switch=10,
-        # ctrl_state=None,
-        # ctrl_switch=n_staticfeat + n_timefeat,
-        # ctrl_obs=n_staticfeat + n_timefeat,
+        switch=None,
         ctrl_state=n_ctrl,
         ctrl_switch=n_ctrl,
         ctrl_target=n_ctrl,
@@ -178,65 +175,56 @@ def make_default_config(dataset_name):
         auxiliary=10,
     )
 
-    config = ArsglsGtsExpConfigGtsExpConfig(
-        experiment_name="auxiliary",
+    config = KvaeGtsExpConfig(
+        experiment_name="kvae",
         dataset_name=dataset_name,
         #
         n_epochs=50,
-        n_epochs_no_resampling=5,
-        n_epochs_freeze_gls_params=0,
         n_epochs_until_validate_loss=1,
         lr=1e-2 if dataset_name in ["solar_nips"] else 5e-3,
+        grad_clip_norm=5.0,
         weight_decay=1e-5,
-        grad_clip_norm=10.0,
         num_samples_eval=100,
-        batch_size_val=50,  # 10
-        # gpus=tuple(range(3, 4)),
-        # dtype=torch.float64,
+        # Note: These batch sizes barely fit on the GPU. for Multivariate must be reduced.
+        batch_size_val=10
+        if dataset_name in ["exchange_rate_nips", "wiki2000_nips", "wiki2000_nips"]
+        else 2,
         # architecture, prior, etc.
         state_prior_scale=1.0,
         state_prior_loc=0.0,
         make_cov_from_cholesky_avg=True,
         extract_tail_chunks_for_train=False,
-        switch_link_type=SwitchLinkType.individual,
+        switch_link_type=SwitchLinkType.shared,
+        # they have 1 Dense layer after LSTM.
         recurrent_link_type=SwitchLinkType.shared,
-        is_recurrent=True,
-        n_base_A=10,
-        n_base_B=10,
-        n_base_C=10,
-        n_base_D=10,
-        n_base_Q=10,
-        n_base_R=10,
-        n_base_F=10,
-        n_base_S=10,
+        n_hidden_rnn=50,
+        rao_blackwellized=False,
+        reconstruction_weight=1.0,  # They use 0.3 w/o rao-BW.
+        dims_encoder=(64, 64),
+        dims_decoder=(64, 64),
+        activations_encoder=LeakyReLU(0.1, inplace=True),
+        activations_decoder=LeakyReLU(0.1, inplace=True),
+        n_base_A=20,
+        n_base_B=20,
+        n_base_C=20,
+        n_base_D=None,  # they dont have D
+        n_base_Q=20,
+        n_base_R=20,
+        n_base_F=None,
+        n_base_S=None,
         requires_grad_R=True,
         requires_grad_Q=True,
-        # use_encoder: True,
-        switch_prior_model_dims=tuple(),
         input_transform_dims=tuple() + (n_ctrl,),
-        switch_transition_model_dims=(64,),
-        dims_encoder=((64, 64), (64,)),
-        dims_decoder=(64, 64),
-        b_fn_dims=tuple(),
-        d_fn_dims=tuple(),  # (64,),
-        switch_prior_model_activations=LeakyReLU(0.1, inplace=True),
         input_transform_activations=LeakyReLU(0.1, inplace=True),
-        switch_transition_model_activations=LeakyReLU(0.1, inplace=True),
-        activations_encoders=(
-            LeakyReLU(0.1, inplace=True),
-            LeakyReLU(0.1, inplace=True),
-        ),
-        activations_decoder=LeakyReLU(0.1, inplace=True),
-        b_fn_activations=LeakyReLU(0.1, inplace=True),
-        d_fn_activations=LeakyReLU(0.1, inplace=True),
         # initialisation
-        init_scale_A=None,  # 0.95,
+        init_scale_A=0.95,
         init_scale_B=1e-4,
         init_scale_C=None,
         init_scale_D=None,
         init_scale_R_diag=[1e-4, 1e-1],
         init_scale_Q_diag=[1e-4, 1e-1],
-        init_scale_S_diag=[1e-4, 1e-1],
+        init_scale_S_diag=None,
+        # init_scale_S_diag=[1e-5, 1e0],
         # set from outside due to dependencies.
         dims=dims,
         freq=freq,
@@ -250,34 +238,29 @@ def make_default_config(dataset_name):
 
 
 def make_model(config):
-    dims = config.dims
-    input_transformer = input_transforms.InputTransformEmbeddingAndMLP(
-        config=config
-    )
-    gls_base_parameters = gls_parameters.GLSParametersASGLS(config=config)
-    switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
+    input_transformer = input_transforms.InputTransformEmbeddingAndMLPKVAE(
         config=config
     )
     state_prior_model = state_priors.StatePriorModelNoInputs(config=config)
-    switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
-    measurment_model = decoders.AuxiliaryToObsDecoderMlpGaussian(config=config)
-    encoder = encoders.ObsToAuxiliaryLadderEncoderMlpGaussian(config=config)
-    recurrent_base_parameters = StateToSwitchParamsDefault(config=config)
+    gls_base_params = gls_parameters.GLSParametersKVAE(config=config)
+    decoder = decoders.AuxiliaryToObsDecoderMlpGaussian(config=config)
+    encoder = encoders.ObsToAuxiliaryEncoderMlpGaussian(config=config)
+    rnn = nn.LSTMCell(
+        input_size=config.dims.auxiliary, hidden_size=config.n_hidden_rnn
+    )
 
-    ssm = AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC(
-        n_state=dims.state,
-        n_target=dims.target,
-        n_ctrl_state=dims.ctrl_state,
-        n_ctrl_target=dims.ctrl_target,
-        n_particle=dims.particle,
-        n_switch=dims.switch,
-        gls_base_parameters=gls_base_parameters,
-        recurrent_base_parameters=recurrent_base_parameters,
-        measurement_model=measurment_model,
+    ssm = KalmanVariationalAutoEncoder(
+        n_state=config.dims.state,
+        n_target=config.dims.target,
+        n_auxiliary=config.dims.auxiliary,
+        n_ctrl_state=config.dims.ctrl_state,
+        n_particle=config.dims.particle,
+        gls_base_parameters=gls_base_params,
+        measurement_model=decoder,
         encoder=encoder,
-        switch_transition_model=switch_transition_model,
+        rnn_switch_model=rnn,
         state_prior_model=state_prior_model,
-        switch_prior_model=switch_prior_model,
+        reconstruction_weight=config.reconstruction_weight,
     )
     model = GluontsUnivariateDataModel(
         ssm=ssm,
@@ -301,8 +284,6 @@ def make_model(config):
         n_particle_eval=config.num_samples_eval,
         prediction_length_full=config.prediction_length_full,
         prediction_length_rolling=config.prediction_length_rolling,
-        n_epochs_no_resampling=config.n_epochs_no_resampling,
-        n_epochs_freeze_gls_params=config.n_epochs_freeze_gls_params,
         num_batches_per_epoch=50,
         extract_tail_chunks_for_train=config.extract_tail_chunks_for_train,
     )
@@ -314,7 +295,7 @@ def make_model(config):
 def make_experiment_config(dataset_name, experiment_name):
     config = make_default_config(dataset_name=dataset_name)
     if experiment_name is not None and experiment_name != "default":
-        if experiment_name == "auxiliary":
+        if experiment_name in ["kvae", "kvae_mc", "kvae_rb"]:
             return config
         else:
             raise NotImplementedError("")

@@ -29,7 +29,7 @@ from experiments_new_will_replace.model_component_zoo\
 
 
 @dataclass()
-class GtsExpConfig(BaseConfig):
+class RsglsIssmGtsExpConfig(BaseConfig):
     prediction_length_rolling: int
     prediction_length_full: int
     switch_prior_model_dims: tuple
@@ -176,7 +176,7 @@ def make_default_config(dataset_name):
         auxiliary=None,
     )
 
-    config = GtsExpConfig(
+    config = RsglsIssmGtsExpConfig(
         experiment_name="default",
         dataset_name=dataset_name,
         #
