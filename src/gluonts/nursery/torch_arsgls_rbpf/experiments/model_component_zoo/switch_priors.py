@@ -10,8 +10,9 @@ from torch_extensions.distributions.parametrised_distribution import (
     ParametrisedMultivariateNormal,
 )
 from torch_extensions.mlp import MLP
-from torch_extensions.ops import batch_diag_matrix
-from utils.utils import Lambda, make_inv_tril_parametrization
+from utils.utils import make_inv_tril_parametrization
+from torch_extensions.batch_diag_matrix import BatchDiagMatrix
+from torch_extensions.affine import Bias
 
 
 def _extract_dims_from_cfg(config):
@@ -105,11 +106,10 @@ class SwitchPriorModelGaussian(nn.Module):
                         ),
                         "scale_tril": nn.Sequential(
                             nn.Linear(dim_in_dist_params, dim_out),
-                            Lambda(fn=lambda x: x - 4.0),
-                            # start out with small variances.
+                            Bias(loc=-4.0),  # start out with small variances.
                             nn.Softplus(),
-                            Lambda(fn=lambda x: x + 1e-6),  # FP64
-                            Lambda(fn=batch_diag_matrix),
+                            Bias(loc=1e-6),
+                            BatchDiagMatrix(),
                         ),
                     }
                 ),

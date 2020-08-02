@@ -159,7 +159,7 @@ def make_default_config(dataset_name):
 
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
-        particle=1,
+        particle=10,
         batch=64,
         state=16,
         target=1,
@@ -188,7 +188,7 @@ def make_default_config(dataset_name):
         weight_decay=1e-5,
         grad_clip_norm=10.0,
         num_samples_eval=100,
-        batch_size_val=25,  # 10
+        batch_size_val=50,  # 10
         # gpus=tuple(range(3, 4)),
         # dtype=torch.float64,
         # architecture, prior, etc.

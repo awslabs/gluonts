@@ -11,14 +11,14 @@ from torch_extensions.distributions.conditional_parametrised_distribution import
 )
 from torch_extensions.layers_with_init import Linear, Conv2d
 from torch_extensions.mlp import MLP
-from torch_extensions.ops import batch_diag_matrix
 from utils.utils import (
     SigmoidLimiter,
-    Lambda,
     compute_cnn_output_filters_and_dims,
     Reshape,
     IndependentNormal,
 )
+from torch_extensions.batch_diag_matrix import BatchDiagMatrix
+from torch_extensions.affine import Bias
 
 
 def _extract_dims_from_cfg_obs(config):
@@ -107,10 +107,10 @@ class ObsToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
                     ),
                     "scale_tril": nn.Sequential(
                         Linear(dim_in_dist_params, dim_out),
-                        Lambda(fn=lambda x: x - 2),
+                        Bias(loc=-2),
                         nn.Softplus(),
-                        Lambda(fn=lambda x: x + 1e-6),
-                        Lambda(fn=batch_diag_matrix),
+                        Bias(loc=1e-6),
+                        BatchDiagMatrix(),
                     ),
                 }
             ),
@@ -175,8 +175,8 @@ class StateToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
                     "scale_tril": nn.Sequential(
                         Linear(dim_in_dist_params, dim_out),
                         nn.Softplus(),
-                        Lambda(fn=lambda x: x + 1e-6),
-                        Lambda(fn=batch_diag_matrix),
+                        Bias(loc=1e-6),
+                        BatchDiagMatrix(),
                     ),
                 }
             ),
@@ -236,6 +236,15 @@ class ObsToSwitchEncoderConvCategorical(ParametrisedConditionalDistribution):
         )
 
 
+class ScaledSqrtSigmoid(nn.Module):
+    def __init__(self, max_scale):
+        super().__init__()
+        self.max_scale = max_scale
+
+    def forward(self, x: torch.Tensor):
+        return self.max_scale * torch.sqrt(nn.functional.sigmoid(x))
+
+
 class ObsToAuxiliaryEncoderConvGaussian(ParametrisedConditionalDistribution):
     def __init__(self, config):
         shp_enc_out, dim_out_flat_conv = compute_cnn_output_filters_and_dims(
@@ -288,12 +297,13 @@ class ObsToAuxiliaryEncoderConvGaussian(ParametrisedConditionalDistribution):
                             in_features=dim_out_flat_conv,
                             out_features=config.dims.auxiliary,
                         ),
-                        Lambda(
-                            fn=lambda x: torch.sqrt(
-                                (config.init_scale_Q_diag ** 2)
-                                * nn.functional.sigmoid(x)
-                            )
-                        ),
+                        ScaledSqrtSigmoid(max_scale=config.init_scale_Q_diag),
+                        # Lambda(
+                        #     fn=lambda x: torch.sqrt(
+                        #         (config.init_scale_Q_diag ** 2)
+                        #         * nn.functional.sigmoid(x)
+                        #     )
+                        # ),
                     ),
                 }
             ),
@@ -326,11 +336,11 @@ class ObsToAuxiliaryEncoderMlpGaussian(ParametrisedConditionalDistribution):
                     ),
                     "scale_tril": nn.Sequential(
                         Linear(dim_in_dist_params, dim_out),
-                        Lambda(fn=lambda x: x - 2),
+                        Bias(loc=-2.0),
                         # start with smaller scale to reduce noise early.
                         nn.Softplus(),
-                        Lambda(fn=lambda x: x + 1e-6),
-                        Lambda(fn=batch_diag_matrix),
+                        Bias(loc=1e-6),
+                        BatchDiagMatrix(),
                     ),
                 }
             ),
@@ -392,10 +402,10 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
                             ),
                             "scale_tril": nn.Sequential(
                                 Linear(dim_in_dist_params_1, dim_out_1),
-                                Lambda(fn=lambda x: x - 2),
+                                Bias(loc=-2.0),
                                 nn.Softplus(),
-                                Lambda(fn=lambda x: x + 1e-6),
-                                Lambda(fn=batch_diag_matrix),
+                                Bias(loc=1e-6),
+                                BatchDiagMatrix(),
                             ),
                         }
                     ),
@@ -409,10 +419,10 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
                             ),
                             "scale_tril": nn.Sequential(
                                 Linear(dim_in_dist_params_2, dim_out_2),
-                                Lambda(fn=lambda x: x - 2),
+                                Bias(loc=-2.0),
                                 nn.Softplus(),
-                                Lambda(fn=lambda x: x + 1e-6),
-                                Lambda(fn=batch_diag_matrix),
+                                Bias(loc=1e-6),
+                                BatchDiagMatrix(),
                             ),
                         }
                     ),
@@ -509,10 +519,10 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
                             ),
                             "scale_tril": nn.Sequential(
                                 Linear(dim_in_dist_params_1, dim_out_1),
-                                Lambda(fn=lambda x: x - 2),
+                                Bias(loc=-2.0),
                                 nn.Softplus(),
-                                Lambda(fn=lambda x: x + 1e-6),
-                                Lambda(fn=batch_diag_matrix),
+                                Bias(loc=1e-6),
+                                BatchDiagMatrix(),
                             ),
                         }
                     ),
@@ -526,12 +536,10 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
                             ),
                             "scale_tril": nn.Sequential(
                                 Linear(dim_in_dist_params_2, dim_out_2),
-                                # Lambda(fn=lambda x: torch.sqrt(  # as in KVAE
-                                #     (config.init_scale_Q_diag ** 2) * nn.functional.sigmoid(x))),
-                                Lambda(fn=lambda x: x - 2),
+                                Bias(loc=-2.0),
                                 nn.Softplus(),
-                                Lambda(fn=lambda x: x + 1e-6),
-                                Lambda(fn=batch_diag_matrix),
+                                Bias(loc=1e-6),
+                                BatchDiagMatrix(),
                             ),
                         }
                     ),

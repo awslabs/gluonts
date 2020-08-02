@@ -1,3 +1,4 @@
+import abc
 from typing import Tuple, Sequence, Dict
 import math
 import numpy as np
@@ -111,7 +112,41 @@ def log_effective_sample_size(log_norm_weights: torch.Tensor, dim: int = -2):
     return -log_sum_squared_weights
 
 
+class ResampleCriterion(torch.nn.Module):
+    """
+    Base class for re-sampling criterion functions.
+    The criterion function should have the API as specified below,
+    Since some external constants may be needed, we implement this as a
+    callable module.
+    Note that a local function definition inside a function is not possible
+    since pytorch's distributed implementation requires pickleable objects.
+    """
+    @abc.abstractmethod
+    def forward(self, log_norm_weights: torch.Tensor, dim: int):
+        raise NotImplementedError("Must be implemented by child class")
+
+
+class EffectiveSampleSizeResampleCriterion(ResampleCriterion):
+    def __init__(self, min_ess_ratio: float = 0.5):
+        super().__init__()
+        self.min_ess_ratio = min_ess_ratio
+
+    def forward(self, log_norm_weights: torch.Tensor, dim: int):
+        log_ess = log_effective_sample_size(
+            log_norm_weights=log_norm_weights, dim=dim
+        )
+        log_min_particles = torch.log(
+            torch.tensor(
+                self.min_ess_ratio * log_norm_weights.shape[dim],
+                dtype=log_norm_weights.dtype,
+                device=log_norm_weights.device,
+            )
+        )
+        return log_ess < log_min_particles
+
+
 def make_criterion_fn_with_ess_threshold(min_ess_ratio: float = 0.5):
+    # TODO: Remove this. Replaced by module above, since it cannot be pickled.
     min_ess_ratio = min_ess_ratio if min_ess_ratio is not None else 0.5
 
     def criterion_fn(log_norm_weights, dim):

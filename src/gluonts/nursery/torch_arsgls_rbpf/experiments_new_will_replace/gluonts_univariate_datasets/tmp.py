@@ -1,7 +1,7 @@
 import torch
 from pytorch_lightning import LightningModule, Trainer
 
-from inference.smc.resampling import make_criterion_fn_with_ess_threshold
+from inference.smc.resampling import EffectiveSampleSizeResampleCriterion
 from data.gluonts_nips_datasets.gluonts_nips_datasets import (
     create_loaders,
     get_dataset,
@@ -170,7 +170,7 @@ sgls = SwitchingGaussianLinearSystemBaseRBSMC(
     switch_transition_model=switch_transition_model,
     state_prior_model=state_prior_model,
     switch_prior_model=switch_prior_model,
-    resampling_criterion_fn=make_criterion_fn_with_ess_threshold(0.5),
+    resampling_criterion_fn=EffectiveSampleSizeResampleCriterion(0.5),
 ).to(dtype)
 
 csgls = CategoricalSwitchingGaussianLinearSystemRBSMC(
@@ -186,7 +186,7 @@ csgls = CategoricalSwitchingGaussianLinearSystemRBSMC(
     switch_transition_model=switch_transition_model_cat,
     state_prior_model=state_prior_model,
     switch_prior_model=switch_prior_model_cat,
-    resampling_criterion_fn=make_criterion_fn_with_ess_threshold(0.5),
+    resampling_criterion_fn=EffectiveSampleSizeResampleCriterion(0.5),
     temperature=torch.Tensor([1.0]),
 ).to(dtype)
 
@@ -389,9 +389,9 @@ for name in ["sgls", "rsgls", "asgls", "arsgls"]:
         = models[name].ctrl_transformer.mlp.linear_0.bias.data
 
     models[name].ssm.resampling_criterion_fn = \
-        make_criterion_fn_with_ess_threshold(1.0)
+        EffectiveSampleSizeResampleCriterion(1.0)
     models_old[name].resampling_criterion_fn = \
-        make_criterion_fn_with_ess_threshold(1.0)
+        EffectiveSampleSizeResampleCriterion(1.0)
 
 import numpy as np
 TB = np.prod(batch_old['y'].shape[:2])

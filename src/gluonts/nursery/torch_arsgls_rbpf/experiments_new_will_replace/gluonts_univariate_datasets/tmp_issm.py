@@ -1,7 +1,7 @@
 import torch
 from pytorch_lightning import LightningModule, Trainer
 
-from inference.smc.resampling import make_criterion_fn_with_ess_threshold
+from inference.smc.resampling import EffectiveSampleSizeResampleCriterion
 from data.gluonts_nips_datasets.gluonts_nips_datasets import (
     create_loaders,
     get_dataset,
@@ -207,7 +207,7 @@ sgls = SwitchingGaussianLinearSystemBaseRBSMC(
     switch_transition_model=switch_transition_model,
     state_prior_model=state_prior_model,
     switch_prior_model=switch_prior_model,
-    resampling_criterion_fn=make_criterion_fn_with_ess_threshold(0.5),
+    resampling_criterion_fn=EffectiveSampleSizeResampleCriterion(0.5),
 ).to(dtype)
 
 
