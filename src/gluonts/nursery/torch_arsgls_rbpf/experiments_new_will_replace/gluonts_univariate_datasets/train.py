@@ -6,7 +6,7 @@ from pytorch_lightning import Trainer
 
 import consts
 from utils.utils import prepare_logging
-from experiments_new_will_replace.gluonts_univariate_datasets.config_arsgls import (
+from experiments_new_will_replace.gluonts_univariate_datasets.config_kvae import (
     make_model,
     make_experiment_config,
 )
@@ -14,7 +14,7 @@ from experiments_new_will_replace.gluonts_univariate_datasets.config_arsgls impo
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(  # TODO: unused?
+    parser.add_argument(
         "-root_log_path", type=str, default="/home/ubuntu/logs"
     )
     parser.add_argument(

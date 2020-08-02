@@ -544,23 +544,24 @@ class GluontsUnivariateDataModel(LightningModule):
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
 
-        if batch_idx == 0:
-            for idx_timeseries in [0, 1, 2]:
-                make_val_plots_gts(
-                    model=self,
-                    data=batch,
-                    idx_particle=None,
-                    n_steps_forecast=self.prediction_length_full,
-                    idx_ts=idx_timeseries,
-                    show=False,
-                    # assumes we set the log_paths attribute of trainer.
-                    # That is bad but lightning trainer does not have a
-                    # well organized log folder structure! How else to do it?
-                    savepath=os.path.join(
-                        self.trainer.default_root_dir, "plots",
-                        f"forecast_b{idx_timeseries}_ep{self.current_epoch}.pdf",
-                    ),
-                )
+        if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
+            if batch_idx == 0:
+                for idx_timeseries in [0, 1, 2]:
+                    make_val_plots_gts(
+                        model=self,
+                        data=batch,
+                        idx_particle=None,
+                        n_steps_forecast=self.prediction_length_full,
+                        idx_ts=idx_timeseries,
+                        show=False,
+                        # assumes we set the log_paths attribute of trainer.
+                        # That is bad but lightning trainer does not have a
+                        # well organized log folder structure! How else to do it?
+                        savepath=os.path.join(
+                            self.trainer.default_root_dir, "plots",
+                            f"forecast_b{idx_timeseries}_ep{self.current_epoch}.pdf",
+                        ),
+                    )
         return result
 
     def test_step(self, batch, batch_idx):
