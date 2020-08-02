@@ -4,8 +4,12 @@ import torch
 from torch.distributions import MultivariateNormal
 
 from inference.smc.normalize import normalize_log_weights
-from inference.smc.resampling import make_criterion_fn_with_ess_threshold, \
-    systematic_resampling_indices, resample, make_argmax_log_weights
+from inference.smc.resampling import (
+    EffectiveSampleSizeResampleCriterion,
+    systematic_resampling_indices,
+    resample,
+    make_argmax_log_weights,
+)
 from models_new_will_replace.base_amortized_gls import \
     BaseAmortizedGaussianLinearSystem, LatentsRBSMC
 from models_new_will_replace.base_gls import ControlInputs
@@ -15,7 +19,9 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
     def __init__(
         self,
         *args,
-        resampling_criterion_fn=make_criterion_fn_with_ess_threshold(0.5),
+        resampling_criterion_fn=EffectiveSampleSizeResampleCriterion(
+            min_ess_ratio=0.5
+        ),
         resampling_indices_fn: callable = systematic_resampling_indices,
         **kwargs,
     ):
@@ -82,7 +88,7 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
                 if v is not None
             },
             resampling_indices_fn=self.resampling_indices_fn,
-            criterion_fn=make_criterion_fn_with_ess_threshold(
+            criterion_fn=EffectiveSampleSizeResampleCriterion(
                 min_ess_ratio=1.0,  # re-sample always / all.
             ),
         )

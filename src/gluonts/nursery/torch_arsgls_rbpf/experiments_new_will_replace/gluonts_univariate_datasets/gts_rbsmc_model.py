@@ -39,7 +39,7 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     VstackFeatures,
 )
-from inference.smc.resampling import make_criterion_fn_with_ess_threshold
+from inference.smc.resampling import EffectiveSampleSizeResampleCriterion
 
 from models_new_will_replace.base_rbpf_gls import BaseRBSMCGaussianLinearSystem
 from models_new_will_replace.base_amortized_gls import BaseAmortizedGaussianLinearSystem
@@ -557,7 +557,7 @@ class GluontsUnivariateDataModel(LightningModule):
                     # That is bad but lightning trainer does not have a
                     # well organized log folder structure! How else to do it?
                     savepath=os.path.join(
-                        self.trainer.log_paths.plot,
+                        self.trainer.default_root_dir, "plots",
                         f"forecast_b{idx_timeseries}_ep{self.current_epoch}.pdf",
                     ),
                 )
@@ -574,6 +574,12 @@ class GluontsUnivariateDataModel(LightningModule):
         # result = pl.EvalResult()
         # result.log('test_loss', loss)
         # return result
+
+    def on_train_start(self) -> None:
+        os.makedirs(
+            os.path.join(self.trainer.default_root_dir, "plot"),
+            exist_ok=True,
+        )
 
     def on_train_epoch_start(self) -> None:
         super().on_train_epoch_start()
@@ -593,7 +599,7 @@ class GluontsUnivariateDataModel(LightningModule):
             if set_no_resampling:
                 self._resampling_criterion_fn = self.ssm.resampling_criterion_fn
                 self.ssm.resampling_criterion_fn = \
-                    make_criterion_fn_with_ess_threshold(
+                    EffectiveSampleSizeResampleCriterion(
                         min_ess_ratio=0.0,
                     )
             if set_resampling:
@@ -757,7 +763,8 @@ class SGLSPredictor(RepresentablePredictor):
                     samples=_fcst_gts,
                     start_date=batch_metainfo["forecast_start"][idx_sample_in_batch],
                     freq=self.freq,
-                    item_id=batch_metainfo[FieldName.ITEM_ID][idx_sample_in_batch],
+                    item_id=batch_metainfo[FieldName.ITEM_ID][idx_sample_in_batch]
+                    if FieldName.ITEM_ID in batch_metainfo else None,
                 )
 
             assert idx_sample_in_batch + 1 == len(batch_metainfo["forecast_start"])

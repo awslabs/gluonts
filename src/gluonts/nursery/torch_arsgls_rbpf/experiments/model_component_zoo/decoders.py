@@ -11,8 +11,9 @@ from utils.utils import (
     IndependentBernoulli,
 )
 from torch.distributions import MultivariateNormal
-from utils.utils import Lambda
-from torch_extensions.ops import batch_diag_matrix
+from torch_extensions.batch_diag_matrix import BatchDiagMatrix
+from torch_extensions.affine import Bias
+from torch_extensions.constant import Constant
 from torch_extensions.mlp import MLP
 
 
@@ -105,11 +106,11 @@ class AuxiliaryToObsDecoderMlpGaussian(ParametrisedConditionalDistribution):
                     ),
                     "scale_tril": nn.Sequential(
                         Linear(dim_in_dist_params, dim_out),
-                        Lambda(fn=lambda x: x - 2),
+                        Bias(loc=-2.0),
                         # start with smaller scale to reduce noise early.
                         nn.Softplus(),
-                        Lambda(fn=lambda x: x + 1e-6),
-                        Lambda(fn=batch_diag_matrix),
+                        Bias(loc=1e-6),
+                        BatchDiagMatrix(),
                     ),
                 }
             ),

@@ -20,7 +20,7 @@ from models_new_will_replace.sgls_rbpf import (
 
 from inference.smc.resampling import (
     resample,
-    make_criterion_fn_with_ess_threshold,
+    EffectiveSampleSizeResampleCriterion,
     systematic_resampling_indices,
 )
 from inference.smc.normalize import normalize_log_weights
@@ -91,7 +91,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
         state_prior_model: ParametrisedMultivariateNormal,
         switch_prior_model: ParametrisedDistribution,
         switch_transition_model: nn.Module,
-        resampling_criterion_fn=make_criterion_fn_with_ess_threshold(0.5),
+        resampling_criterion_fn=EffectiveSampleSizeResampleCriterion(0.5),
         resampling_indices_fn: callable = systematic_resampling_indices,
     ):
         super().__init__(

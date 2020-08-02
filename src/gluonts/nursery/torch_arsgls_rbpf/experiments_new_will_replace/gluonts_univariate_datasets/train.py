@@ -6,6 +6,7 @@ import mxnet as mx
 import torch
 from torch.optim.adam import Adam
 from pytorch_lightning import Trainer
+import pytorch_lightning as pl
 
 import consts
 
@@ -27,14 +28,14 @@ from experiments.gluonts_nips_experiments.auxiliary_evaluate import test
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+    parser.add_argument(  # TODO: unused?
         "-root_log_path", type=str, default="/home/ubuntu/logs"
     )
     parser.add_argument(
         "-dataset_name", type=str, default="wiki-rolling_nips"
     )
     parser.add_argument("-experiment_name", type=str)
-    parser.add_argument("-run_nr", type=int)
+    parser.add_argument("-run_nr", type=int, default=None)
     parser.add_argument(
         "-gpus",
         "--gpus",
@@ -44,6 +45,19 @@ if __name__ == "__main__":
     )
     parser.add_argument("-dtype", type=str, default="float64")
     args = parser.parse_args()
+
+    if not len(args.gpus) <= 1:
+        raise Exception(
+            "multi-GPU does not work anymore since we switched to "
+            "Pytorch-Lightning. The reason is that the SSMs are implemented "
+            "with time-first not batch-first. Although torch DataParallel can "
+            "handle this (dim arg), pytorch lightning does not."
+            "Will add support for this later through one of these options: "
+            "1) Make PR to lightning that allows time-first. "
+            "2) Re-write SSMs for batch-first. "
+            "3) In lightning Wrapper, just transpose before SSMs, "
+            "leaving SSM implementations as they are. (favorite solution)"
+        )
 
     # random seeds
     seed = args.run_nr if args.run_nr is not None else 0
@@ -96,8 +110,8 @@ if __name__ == "__main__":
         gradient_clip_val=config.grad_clip_norm,
         limit_val_batches=(500 // config.batch_size_val) + 1,
         max_epochs=config.n_epochs,
+        # logger=pl.loggers.MLFlowLogger(),
     )
-    trainer.log_paths = log_paths
 
     trainer.fit(model)
     trainer.test(model)

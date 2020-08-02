@@ -1,12 +1,17 @@
 import torch
 from torch import nn
-from torch.distributions import OneHotCategorical, MultivariateNormal
+from torch.distributions import (
+    OneHotCategorical,
+    MultivariateNormal,
+)
 from torch_extensions.distributions.conditional_parametrised_distribution import (
     ParametrisedConditionalDistribution,
 )
 from torch_extensions.mlp import MLP
-from torch_extensions.ops import batch_diag_matrix
-from utils.utils import SigmoidLimiter, Lambda
+from torch_extensions.batch_diag_matrix import BatchDiagMatrix
+from torch_extensions.affine import Bias
+from torch_extensions.constant import Constant
+from utils.utils import SigmoidLimiter
 
 
 def _extract_dims_from_cfg(config):
@@ -90,10 +95,11 @@ class SwitchTransitionModelGaussian(SwitchTransitionBase):
                     "scale_tril": nn.Sequential(
                         nn.Linear(dim_in_dist_params, dim_out),
                         # TODO: hard-coded const for small initial scale
-                        Lambda(fn=lambda x: x - 4.0),
+                        # Lambda(fn=lambda x: x - 4.0),
+                        Bias(loc=-4.0),
                         nn.Softplus(),
-                        Lambda(fn=lambda x: x + 1e-6),  # FP64
-                        Lambda(fn=batch_diag_matrix),
+                        Bias(loc=1e-6),  # FP64
+                        BatchDiagMatrix(),
                     ),
                 }
             ),
@@ -133,11 +139,10 @@ class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
                     "loc": nn.Sequential(
                         nn.Linear(dim_in_dist_params, dim_out),
                     ),
-                    "scale_tril": Lambda(
-                        fn=lambda h: torch.zeros(
-                            h.shape[:-1] + (dim_out, dim_out,),
-                            device=h.device, dtype=h.dtype,
-                        )
+                    "scale_tril": Constant(
+                        val=0,
+                        shp_append=(dim_out, dim_out),
+                        n_dims_from_input=-1,  # x.shape[:-1]
                     ),
                 }
             ),
