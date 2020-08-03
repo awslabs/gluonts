@@ -84,8 +84,8 @@ class RotbaumForecast(Forecast):
         return np.array(
             list(
                 chain.from_iterable(
-                        model.estimate_dist(self.featurized_data)
-                        for model in self.models
+                    model.estimate_dist(self.featurized_data)
+                    for model in self.models
                 )
             )
         )
@@ -103,12 +103,12 @@ class TreePredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        context_length: Optional[int],
-        prediction_length: Optional[int],
+        prediction_length: int,
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
         clump_size: int = 100,
+        context_length: Optional[int] = None,
         max_workers=None,
         model_params=None,
         freq=None,
@@ -121,7 +121,17 @@ class TreePredictor(RepresentablePredictor):
             n_ignore_last=n_ignore_last,
             max_n_datapts=max_n_datapts,
         )
-        self.context_length = context_length
+
+        assert (
+            context_length is None or context_length > 0
+        ), "The value of `context_length` should be > 0"
+        assert (
+            prediction_length > 0
+        ), "The value of `prediction_length` should be > 0"
+
+        self.context_length = (
+            context_length if context_length is not None else prediction_length
+        )
         self.model_params = model_params
         self.prediction_length = prediction_length
         self.freq = freq

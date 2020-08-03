@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+#TODO: Add support for categorical and dynamic features.
+
 # Third-party imports
 import pytest
 
