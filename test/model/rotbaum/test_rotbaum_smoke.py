@@ -28,19 +28,19 @@ from gluonts.model.rotbaum import TreeEstimator
         make_dummy_datasets_with_features(cardinality=[5]),
         # Multiple static categorical features
         make_dummy_datasets_with_features(cardinality=[3, 10, 42]),
-        # Multiple static categorical features (ignored)
+        # Multiple static categorical features
         make_dummy_datasets_with_features(cardinality=[3, 10, 42]),
         # Single dynamic real feature
         make_dummy_datasets_with_features(num_feat_dynamic_real=1),
         # Multiple dynamic real feature
         make_dummy_datasets_with_features(num_feat_dynamic_real=3),
-        # Multiple dynamic real feature (ignored)
+        # Multiple dynamic real feature
         make_dummy_datasets_with_features(num_feat_dynamic_real=3),
         # Both static categorical and dynamic real features
         make_dummy_datasets_with_features(
             cardinality=[3, 10, 42], num_feat_dynamic_real=3
         ),
-        # Both static categorical and dynamic real features (ignored)
+        # Both static categorical and dynamic real features
         make_dummy_datasets_with_features(
             cardinality=[3, 10, 42], num_feat_dynamic_real=3
         ),
