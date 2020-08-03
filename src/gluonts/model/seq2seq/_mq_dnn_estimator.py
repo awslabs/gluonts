@@ -25,7 +25,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
 
-from gluonts.distribution import DistributionOutput, StudentTOutput, GaussianOutput
+from gluonts.distribution import DistributionOutput, StudentTOutput
 
 from gluonts.mx.block.decoder import ForkingMLPDecoder
 from gluonts.mx.block.encoder import (
@@ -116,7 +116,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         freq: str,
         prediction_length: int,
         sampling: bool = True,
-        distr_output: DistributionOutput = GaussianOutput(),
+        distr_output: DistributionOutput = StudentTOutput(),
         context_length: Optional[int] = None,
         use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
