@@ -48,6 +48,24 @@ class InputTransformer(nn.Module):
             )
 
 
+class NoControlsDummyInputTransformer(InputTransformer):
+    def __init__(self, config=None):
+        super().__init__()
+
+    def forward(
+            self,
+            feat_static_cat: Optional[torch.Tensor] = None,
+            time_feat: Optional[torch.Tensor] = None,
+            seasonal_indicators: Optional[torch.Tensor] = None,
+    ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
+        assert feat_static_cat is None
+        assert time_feat is None
+        assert seasonal_indicators is None
+        return self._all_same_controls(
+            ctrl_features=None,
+            seasonal_indicators=None,
+        )
+
 class InputTransformEmbedder(InputTransformer):
     def __init__(self, config):
         super().__init__()
