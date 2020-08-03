@@ -1,7 +1,4 @@
 import os
-import sys
-import multiprocessing
-import pandas as pd
 from torch.optim import Adam
 from typing import Optional, Sequence, Iterator, Dict, Union, List, Tuple
 
@@ -10,7 +7,6 @@ import torch
 from torch import Tensor
 from pytorch_lightning import LightningModule
 import pytorch_lightning as pl
-from torch import nn
 from torch.optim.optimizer import Optimizer
 
 from gluonts.evaluation._base import Evaluator, _worker_init, _worker_fun
@@ -43,13 +39,15 @@ from inference.smc.resampling import EffectiveSampleSizeResampleCriterion
 
 from models_new_will_replace.base_rbpf_gls import BaseRBSMCGaussianLinearSystem
 from models_new_will_replace.base_amortized_gls import BaseAmortizedGaussianLinearSystem
-from models_new_will_replace.base_gls import BaseGaussianLinearSystem
 from models_new_will_replace.base_gls import Prediction, Latents
 
 from data.gluonts_nips_datasets.gluonts_nips_datasets import get_dataset
 from models_new_will_replace.gls_parameters.issm import CompositeISSM
 from utils.utils import shorten_iter
-from visualization.plot_forecasts import make_val_plots_gts
+from visualization.plot_forecasts import make_val_plots_univariate
+from experiments_new_will_replace.model_component_zoo.input_transforms import (
+    InputTransformer,
+)
 
 
 def create_input_transform(
@@ -260,7 +258,7 @@ class GluontsUnivariateDataModel(LightningModule):
     def __init__(
         self,
         ssm: BaseAmortizedGaussianLinearSystem,
-        ctrl_transformer: nn.Module,  # TODO: make API
+        ctrl_transformer: InputTransformer,
         tar_transformer: torch.distributions.AffineTransform,
         dataset_name: str,
         lr,
@@ -311,13 +309,12 @@ class GluontsUnivariateDataModel(LightningModule):
 
     def forward(
         self,
-        feat_static_cat: torch.Tensor,
-        past_seasonal_indicators: torch.Tensor,
-        past_time_feat: torch.Tensor,
         past_target: torch.Tensor,
+        feat_static_cat: Optional[torch.Tensor] = None,
+        past_seasonal_indicators: Optional[torch.Tensor] = None,
+        past_time_feat: Optional[torch.Tensor] = None,
         future_seasonal_indicators: Optional[torch.Tensor] = None,
         future_time_feat: Optional[torch.Tensor] = None,
-        # future_target: Optional[torch.Tensor] = None,
         n_steps_forecast: int = 0,
         deterministic=False,
     ) -> (Sequence[Prediction], Sequence[Latents]):
@@ -546,22 +543,28 @@ class GluontsUnivariateDataModel(LightningModule):
 
         if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
             if batch_idx == 0:
-                for idx_timeseries in [0, 1, 2]:
-                    make_val_plots_gts(
-                        model=self,
-                        data=batch,
-                        idx_particle=None,
-                        n_steps_forecast=self.prediction_length_full,
-                        idx_ts=idx_timeseries,
-                        show=False,
-                        # assumes we set the log_paths attribute of trainer.
-                        # That is bad but lightning trainer does not have a
-                        # well organized log folder structure! How else to do it?
-                        savepath=os.path.join(
-                            self.trainer.default_root_dir, "plots",
-                            f"forecast_b{idx_timeseries}_ep{self.current_epoch}.pdf",
-                        ),
-                    )
+                # We don't get future_target from gluonTS
+                # (probably there is an easy way though).
+                # Instead, we split past_target into two parts.
+                past_keys = [key for key in batch.keys() if "past" in key]
+                for k_past in past_keys:
+                    k_future = k_past.replace("past", "future")
+                    tmp = batch[k_past]
+                    batch[k_past] = tmp[:self.past_length, :]
+                    batch[k_future] = tmp[self.past_length:, :]
+
+                make_val_plots_univariate(
+                    model=self,
+                    data=batch,
+                    idx_particle=None,
+                    n_steps_forecast=self.prediction_length_full,
+                    idxs_ts=[0, 1, 2],
+                    show=False,
+                    savepath=os.path.join(
+                        self.trainer.default_root_dir, "plots",
+                        f"forecast_ep{self.current_epoch}",
+                    ),
+                )
         return result
 
     def test_step(self, batch, batch_idx):
