@@ -190,19 +190,22 @@ class Pendulum3DCoordEnvironment(Environment):
         return mu_pendulum_pixel, cov_pendulum_pixel
 
 
-def generate_dataset(seed=42):
+def generate_dataset(
+        seed=42,
+        dataset_path=None,
+        n_train=5000,
+        n_val=1000,
+        n_test=1000,
+        n_timesteps=150,
+        perspective=(0.0, 0.0),
+):
     from utils.local_seed import local_seed
 
-    n_train = 5000
-    n_test = 1000
-    n_timesteps = 150
-    perspective = (0.0, 0.0)
-
-    data_path = os.path.join(
-        consts.data_dir, consts.Datasets.pendulum_3D_coord
-    )
-    if not os.path.exists(data_path):
-        os.makedirs(data_path)
+    if dataset_path is None:
+        dataset_path = os.path.join(
+            consts.data_dir, consts.Datasets.pendulum_3D_coord
+        )
+    os.makedirs(dataset_path, exist_ok=True)
 
     def generate_sequence(
         n_timesteps_obs, n_steps_sim_per_obs=10, dt_sim=0.01
@@ -250,19 +253,30 @@ def generate_dataset(seed=42):
             states_train,
         ) = generate_dataset(n_data=n_train, n_timesteps=n_timesteps)
         (
+            observations_val,
+            observations_gt_val,
+            states_val,
+        ) = generate_dataset(n_data=n_val, n_timesteps=n_timesteps)
+        (
             observations_test,
             observations_gt_test,
             states_test,
         ) = generate_dataset(n_data=n_test, n_timesteps=n_timesteps)
 
     np.savez(
-        os.path.join(data_path, "train.npz"),
+        os.path.join(dataset_path, "train.npz"),
         obs=observations_train,
         obs_gt=observations_gt_train,
         state=states_train,
     )
     np.savez(
-        os.path.join(data_path, "test.npz"),
+        os.path.join(dataset_path, "val.npz"),
+        obs=observations_val,
+        obs_gt=observations_gt_val,
+        state=states_val,
+    )
+    np.savez(
+        os.path.join(dataset_path, "test.npz"),
         obs=observations_test,
         obs_gt=observations_gt_test,
         state=states_test,
