@@ -297,7 +297,10 @@ class ForkingSeq2SeqDistributionTrainingNetwork(ForkingSeq2SeqNetworkBase):
             distr_args, scale=target_scale.expand_dims(axis=1)
         )
         loss = distr.loss(future_target)
-        return loss.mean(axis = 1)
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=future_observed_values, axis=1
+        )
+        return weighted_loss 
 
 
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
