@@ -38,8 +38,8 @@ class RsglsIssmGtsExpConfig(BaseConfig):
     input_transform_activations: (nn.Module, tuple)
     switch_transition_model_dims: tuple
     switch_transition_model_activations: (nn.Module, tuple)
-    state_to_switch_encoder_dims: tuple
-    state_to_switch_encoder_activations: (nn.Module, tuple)
+    # state_to_switch_encoder_dims: tuple
+    # state_to_switch_encoder_activations: (nn.Module, tuple)
     obs_to_switch_encoder_dims: tuple
     obs_to_switch_encoder_activations: (nn.Module, tuple)
     b_fn_dims: tuple
@@ -60,8 +60,8 @@ class RsglsIssmGtsExpConfig(BaseConfig):
     make_cov_from_cholesky_avg: bool
     is_recurrent: bool
     n_epochs_no_resampling: int
-    obs_to_switch_encoder: bool
-    state_to_switch_encoder: bool
+    # obs_to_switch_encoder: bool
+    # state_to_switch_encoder: bool
     grad_clip_norm: float
     n_epochs_freeze_gls_params: int
     weight_decay: float
@@ -213,19 +213,19 @@ def make_default_config(dataset_name):
         n_base_S=20,
         requires_grad_R=True,
         requires_grad_Q=True,
-        obs_to_switch_encoder=True,
-        state_to_switch_encoder=False,
+        # obs_to_switch_encoder=True,
+        # state_to_switch_encoder=False,
         switch_prior_model_dims=tuple(),
         input_transform_dims=tuple() + (n_ctrl,),
         switch_transition_model_dims=(64,),
-        state_to_switch_encoder_dims=(64,),
+        # state_to_switch_encoder_dims=(64,),
         obs_to_switch_encoder_dims=(64,),
         b_fn_dims=tuple(),
         d_fn_dims=tuple(),  # (64,),
         switch_prior_model_activations=LeakyReLU(0.1, inplace=True),
         input_transform_activations=LeakyReLU(0.1, inplace=True),
         switch_transition_model_activations=LeakyReLU(0.1, inplace=True),
-        state_to_switch_encoder_activations=LeakyReLU(0.1, inplace=True),
+        # state_to_switch_encoder_activations=LeakyReLU(0.1, inplace=True),
         obs_to_switch_encoder_activations=LeakyReLU(0.1, inplace=True),
         b_fn_activations=LeakyReLU(0.1, inplace=True),
         d_fn_activations=LeakyReLU(0.1, inplace=True),
@@ -255,16 +255,17 @@ def make_model(config):
         config=config
     )
     gls_base_parameters = gls_parameters.GlsParametersISSM(config=config)
-    obs_to_switch_encoder = (
-        encoders.ObsToSwitchEncoderGaussianMLP(config=config)
-        if config.obs_to_switch_encoder
-        else None
-    )
-    state_to_switch_encoder = (
-        encoders.StateToSwitchEncoderGaussianMLP(config=config)
-        if config.state_to_switch_encoder
-        else None
-    )
+    # obs_to_switch_encoder = (
+    #     encoders.ObsToSwitchEncoderGaussianMLP(config=config)
+    #     if config.obs_to_switch_encoder
+    #     else None
+    # )
+    # state_to_switch_encoder = (
+    #     encoders.StateToSwitchEncoderGaussianMLP(config=config)
+    #     if config.state_to_switch_encoder
+    #     else None
+    # )
+    encoder = encoders.ObsToSwitchEncoderGaussianMLP(config=config)
     switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
         config=config,
     )
@@ -281,7 +282,7 @@ def make_model(config):
         n_switch=dims.switch,
         gls_base_parameters=gls_base_parameters,
         recurrent_base_parameters=recurrent_base_parameters,
-        encoder=obs_to_switch_encoder,
+        encoder=encoder,
         switch_transition_model=switch_transition_model,
         state_prior_model=state_prior_model,
         switch_prior_model=switch_prior_model,
