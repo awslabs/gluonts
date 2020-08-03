@@ -51,7 +51,6 @@ def test_rotbaum_smoke(datasets):
     hps = {
         "freq": "D",
         "prediction_length": 3,
-        "quantiles": [0.5, 0.1],
         "context_length": 3,
     }
     estimator = TreeEstimator.from_inputs(dataset_train, **hps)
