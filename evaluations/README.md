@@ -23,7 +23,7 @@ One can create the corresponding Estimators using the `from_hyperparameters` fun
 
 - gluon-ts commit: `4aec7ee`
 - instance type: `ml.p2.xlarge`
-- updated dockerfiles where used (see https://github.com/awslabs/gluon-ts/pull/946)
+- updated dockerfiles were used (see https://github.com/awslabs/gluon-ts/pull/946)
 - 5 runs per model & dataset
 
 # Results
