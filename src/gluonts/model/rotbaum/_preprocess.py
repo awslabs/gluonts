@@ -141,7 +141,9 @@ class PreprocessGeneric:
         """
         altered_time_series = time_series.copy()
         if self.n_ignore_last > 0:
-            altered_time_series["target"] = altered_time_series["target"][: -self.n_ignore_last]
+            altered_time_series["target"] = altered_time_series["target"][
+                : -self.n_ignore_last
+            ]
         feature_data = []
         target_data = []
         max_num_context_windows = (
@@ -340,11 +342,26 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             time_series_window
         )
 
-        feat_static_real = list(time_series['feat_static_real']) if self.use_feat_static_real else []
-        feat_static_cat = list(time_series['feat_static_cat']) if self.use_feat_static_cat else []
-        
-        assert (not feat_static_cat) or all([(np.floor(elem) == elem) for elem in feat_static_cat])
-        
+        feat_static_real = (
+            list(time_series["feat_static_real"])
+            if self.use_feat_static_real
+            else []
+        )
+        feat_static_cat = (
+            list(time_series["feat_static_cat"])
+            if self.use_feat_static_cat
+            else []
+        )
+
+        assert (not feat_static_cat) or all(
+            [(np.floor(elem) == elem) for elem in feat_static_cat]
+        )
+
         feat_statics = feat_static_real + feat_static_cat
         only_lag_features = list(only_lag_features)
-        return prefix + only_lag_features + list(transform_dict.values()) + feat_statics
+        return (
+            prefix
+            + only_lag_features
+            + list(transform_dict.values())
+            + feat_statics
+        )

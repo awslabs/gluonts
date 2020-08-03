@@ -49,7 +49,7 @@ class RotbaumForecast(Forecast):
         featurized_data: List,
         start_date: pd.Timestamp,
         freq,
-        prediction_length: int
+        prediction_length: int,
     ):
         self.models = models
         self.featurized_data = featurized_data
@@ -127,7 +127,7 @@ class TreePredictor(RepresentablePredictor):
             n_ignore_last=n_ignore_last,
             max_n_datapts=max_n_datapts,
             use_feat_static_real=use_feat_static_real,
-            use_feat_static_cat=use_feat_static_cat
+            use_feat_static_cat=use_feat_static_cat,
         )
         self.context_length = context_length
         self.model_params = model_params
@@ -140,7 +140,7 @@ class TreePredictor(RepresentablePredictor):
     def __call__(self, training_data):
         assert training_data
         if self.freq is not None:
-            if next(iter(trainind_data))['start'].freq is None:
+            if next(iter(training_data))["start"].freq is None:
                 assert self.freq == next(iter(training_data))["start"].freq
         else:
             self.freq = next(iter(training_data))["start"].freq
@@ -155,7 +155,8 @@ class TreePredictor(RepresentablePredictor):
         print(f"Length of forecast horizon: {n_models}")
         self.model_list = [QRX() for _ in range(n_models)]
         with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.max_workers) as executor:
+            max_workers=self.max_workers
+        ) as executor:
             for n_step, model in enumerate(self.model_list):
                 print(
                     f"Training model for step no. {n_step + 1} in the forecast"
@@ -168,9 +169,9 @@ class TreePredictor(RepresentablePredictor):
         return self
 
     @validated()
-    def predict(self, dataset: Dataset,
-        num_samples: Optional[int] = None
-        ) -> Iterator[Forecast]:
+    def predict(
+        self, dataset: Dataset, num_samples: Optional[int] = None
+    ) -> Iterator[Forecast]:
         """
         Returns a dictionary taking each quantile to a list of floats,
         which are the predictions for that quantile as you run over
