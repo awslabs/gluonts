@@ -140,7 +140,7 @@ class TreePredictor(RepresentablePredictor):
     def __call__(self, training_data):
         assert training_data
         if self.freq is not None:
-            if next(iter(training_data))["start"].freq is None:
+            if next(iter(training_data))["start"].freq is not None:
                 assert self.freq == next(iter(training_data))["start"].freq
         else:
             self.freq = next(iter(training_data))["start"].freq
