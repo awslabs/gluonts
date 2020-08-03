@@ -29,11 +29,11 @@ jobs:
         cd gluon-ts
         python -m pip install --upgrade pip
         pip install -r requirements/requirements-mxnet.txt
+        pip install -r requirements/requirements-pytorch.txt
         pip install gluonts
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
-        pip install -r requriements/requirements-pytorch.txt
       shell: powershell
     - name: Test with pytest
       run: |
