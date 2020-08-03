@@ -142,8 +142,8 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
                 latent.variables.V = None
 
         emission_dist_inferred = [
-            self.emit(lats_t=lats, ctrl_t=ctrls)
-            for lats, ctrls in zip(latents_inferred, past_controls)
+            self.emit(lats_t=latents_inferred[t], ctrl_t=past_controls[t])
+            for t in range(len(latents_inferred))
         ]
         emissions_inferred = [
             e.mean if deterministic else e.sample() for e in emission_dist_inferred

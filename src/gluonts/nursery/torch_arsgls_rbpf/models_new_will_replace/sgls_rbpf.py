@@ -325,7 +325,8 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
     def _make_encoder_dists(
         self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
     ) -> Box:
-        encoded = self.encoder([tar_t, ctrl_t.encoder])
+        enc_inp = [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
+        encoded = self.encoder(enc_inp)
         if isinstance(encoded, torch.distributions.Distribution):
             return Box(switch=encoded)
         elif hasattr(encoded, "switch"):
@@ -348,13 +349,15 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
         return switch_model_dist
 
     def _make_switch_transition_dist(
-        self, lat_vars_tm1: GLSVariablesSGLS, ctrl_t: ControlInputsSGLS,
+            self,
+            lat_vars_tm1: GLSVariablesSGLS,
+            ctrl_t: Optional[ControlInputsSGLS],
     ) -> torch.distributions.MultivariateNormal:
-        # TODO: make base class and eventually move the prepend in.
+        controls = prepend_batch_dims(ctrl_t.switch, shp=(self.n_particle,)) \
+            if (ctrl_t is not None and ctrl_t.switch is not None) \
+            else None
         switch_model_dist = self.switch_transition_model(
-            controls=prepend_batch_dims(ctrl_t.switch, shp=(self.n_particle,))
-            if ctrl_t.switch is not None
-            else None,
+            controls=controls,
             switch=lat_vars_tm1.switch,
         )
         return switch_model_dist
