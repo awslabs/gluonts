@@ -184,7 +184,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
 
         # the output shape should be: (batch_size, enc_len, dec_len, final_dims)
-        return dec_output
+        return dec_output, scale
 
 
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
@@ -284,7 +284,7 @@ class ForkingSeq2SeqDistributionTrainingNetwork(ForkingSeq2SeqNetworkBase):
             past_target,
             F.ones_like(past_target),  # TODO: pass the actual observed here
         )
-        dec_output = self.get_decoder_network_output(
+        dec_output,scale = self.get_decoder_network_output(
             F,
             past_target,
             past_feat_dynamic,
@@ -385,16 +385,9 @@ class ForkingSeq2SeqDistributionNetwork(ForkingSeq2SeqNetworkBase):
         loc: an array of zeros with the same shape of scale
         scale: 
         """
-        scaled_past_target, scale = self.scaler(
-            past_target.slice_axis(
-                axis=1, begin=-self.context_length, end=None
-            ),
-            past_observed_values.slice_axis(
-                axis=1, begin=-self.context_length, end=None
-            ),
-        )
+        
 
-        dec_output = self.get_decoder_network_output(
+        dec_output, scale = self.get_decoder_network_output(
             F,
             past_target,
             past_feat_dynamic,
@@ -402,7 +395,9 @@ class ForkingSeq2SeqDistributionNetwork(ForkingSeq2SeqNetworkBase):
             feat_static_cat,
             past_observed_values,
         )
-        distr_args = self.distr_args_proj(dec_output)
+        fcst_output = F.slice_axis(dec_output, axis=1, begin=-1, end=None)
+        fcst_output = F.squeeze(fcst_output, axis=1)
+        distr_args = self.distr_args_proj(fcst_output)
 
         loc = F.zeros_like(scale)
         return distr_args, loc, scale
