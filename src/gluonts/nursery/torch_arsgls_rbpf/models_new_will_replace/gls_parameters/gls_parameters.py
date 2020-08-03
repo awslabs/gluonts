@@ -396,7 +396,7 @@ class GLSParameters(nn.Module):
             b = b_lin + b_nonlin
         return b
 
-    def forward(self, switch, controls: ControlInputs) -> GLSParams:
+    def forward(self, switch, controls: Optional[ControlInputs]) -> GLSParams:
         weights = self.link_transformers(switch)
 
         # biases to state (B/b) and observation (D/d)
@@ -411,10 +411,16 @@ class GLSParameters(nn.Module):
             else None
         )
         b = self.compute_bias(
-            s=switch, u=controls.state, bias_fn=self.b_fn, bias_matrix=B,
+            s=switch,
+            u=controls.state if controls is not None else None,
+            bias_fn=self.b_fn,
+            bias_matrix=B,
         )
         d = self.compute_bias(
-            s=switch, u=controls.target, bias_fn=self.d_fn, bias_matrix=D,
+            s=switch,
+            u=controls.target if controls is not None else None,
+            bias_fn=self.d_fn,
+            bias_matrix=D,
         )
 
         # transition (A) and emission (C)

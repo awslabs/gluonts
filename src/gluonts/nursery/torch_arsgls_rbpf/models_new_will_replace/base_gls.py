@@ -11,7 +11,12 @@ class ControlInputs:
     target: torch.Tensor
 
     def __len__(self):
-        return len(self.state)
+        if self.state is not None:
+            return len(self.state)
+        elif self.target is not None:
+            return len(self.target)
+        else:
+            raise Exception("cannot infer length of controls if None are used.")
 
     def __getitem__(self, item):
         return self.__class__(**{k: v[item] if v is not None else None for k, v in self.__dict__.items()})
@@ -24,7 +29,7 @@ class ControlInputs:
             )
 
     def __post_init__(self):
-        if not len(set(len(v) for v in self.__dict__.values() if v is not None)) == 1:
+        if not len(set(len(v) for v in self.__dict__.values() if v is not None)) <= 1:
             raise Exception("Not all data in this class has same length.")
 
     def to(self, device=None, dtype=None):
