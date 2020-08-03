@@ -166,7 +166,9 @@ class TreePredictor(RepresentablePredictor):
         return self
 
     @validated()
-    def predict(self, dataset: Dataset) -> Iterator[Forecast]:
+    def predict(self, dataset: Dataset,
+        num_samples: Optional[int] = None
+        ) -> Iterator[Forecast]:
         """
         Returns a dictionary taking each quantile to a list of floats,
         which are the predictions for that quantile as you run over
@@ -175,6 +177,11 @@ class TreePredictor(RepresentablePredictor):
         then the second time step for all time series ˜˜ , and so forth.
         """
         context_length = self.preprocess_object.context_window_size
+
+        if num_samples:
+            log_once(
+                "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
+            )
 
         for ts in dataset:
             featurized_data = self.preprocess_object.make_features(
