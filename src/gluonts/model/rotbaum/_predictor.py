@@ -25,6 +25,7 @@ import concurrent.futures
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.forecast_generator import log_once
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 
