@@ -40,11 +40,12 @@ class DeepTPPEstimator(GluonEstimator):
     """
     DeepTPP is a multivariate point process model based on an RNN.
 
-    After each event (t_i, m_i), the inter-arrival time tau_i = t_i - t_{i-1}
-    and the mark m_i are fed into the RNN. The state h_i of the RNN represents
-    the history embedding. We use h_i to parametrize the distribution over the
-    next inter-arrival time p(tau_{i+1} | h_i) and the distribution over the
-    next mark p(m_{i+1} | h_i). The distribution over the marks is always
+    After each event :math:`(\tau_i, m_i)`, we feed the inter-arrival time
+    :math:`\tau_i` and the mark :math:`m_i` into the RNN. The state :math:`h_i`
+    of the RNN represents the history embedding. We use :math:`h_i` to
+    parametrize the distribution over the next inter-arrival time
+    :math:`p(\tau_{i+1} | h_i)` and the distribution over the next mark
+    :math:`p(m_{i+1} | h_i)`. The distribution over the marks is always
     categorical, but different choices are possible for the distribution over
     inter-arrival times - see :code:`gluonts.model.tpp.distribution`.
 
