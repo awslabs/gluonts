@@ -248,7 +248,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
         s_t = (
             switch_model_dist_t.mean
             if deterministic
-            else switch_model_dist_t.rsample()
+            else switch_model_dist_t.sample()
         )
         gls_params_t = self.gls_base_parameters(
             switch=s_t,
@@ -265,14 +265,14 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
             scale_tril=gls_params_t.LR,  # stable with scale and 0 variance.
         )
 
-        x_t = x_dist_t.mean if deterministic else x_dist_t.rsample()
+        x_t = x_dist_t.mean if deterministic else x_dist_t.sample()
 
         z_dist_t = torch.distributions.MultivariateNormal(
             loc=matvec(gls_params_t.C, x_t)
             + (gls_params_t.d if gls_params_t.d is not None else 0.0),
             scale_tril=cholesky(gls_params_t.Q),
         )
-        z_t = z_dist_t.mean if deterministic else z_dist_t.rsample()
+        z_t = z_dist_t.mean if deterministic else z_dist_t.sample()
 
         lats_t = LatentsASGLS(
             log_weights=lats_tm1.log_weights,  # does not change w/o evidence.
@@ -284,7 +284,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
         emission_dist = self.emit(lats_t=lats_t, ctrl_t=ctrl_t)
         emissions_t = emission_dist.mean \
             if deterministic \
-            else emission_dist.rsample()
+            else emission_dist.sample()
 
         return Prediction(latents=lats_t, emissions=emissions_t)
 
@@ -318,7 +318,8 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
     def _make_encoder_dists(
         self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
     ) -> Box:
-        encoded = self.encoder([tar_t, ctrl_t.encoder])
+        enc_inp = [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
+        encoded = self.encoder(enc_inp)
         if not isinstance(encoded, Sequence):
             raise Exception(f"Expected sequence, got {type(encoded)}")
         if not len(encoded) == 2:
