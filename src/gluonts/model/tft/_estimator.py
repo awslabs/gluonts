@@ -60,12 +60,12 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         num_outputs: int = 3,
         num_instance_per_series: int = 100,
         dropout_rate: float = 0.1,
-        time_features: Optional[List[TimeFeature]] = None,
-        static_cardinalities: Optional[Dict[str, int]] = None,
-        dynamic_cardinalities: Optional[Dict[str, int]] = None,
-        static_feature_dims: Optional[Dict[str, int]] = None,
-        dynamic_feature_dims: Optional[Dict[str, int]] = None,
-        past_dynamic_features: Optional[List[str]] = None,
+        time_features: List[TimeFeature] = [],
+        static_cardinalities: Dict[str, int] = {},
+        dynamic_cardinalities: Dict[str, int] = {},
+        static_feature_dims: Dict[str, int] = {},
+        dynamic_feature_dims: Dict[str, int] = {},
+        past_dynamic_features: List[str] = [],
     ) -> None:
         super(TemporalFusionTransformerEstimator, self).__init__(
             trainer=trainer
@@ -88,14 +88,15 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         self.num_outputs = num_outputs
         self.num_instance_per_series = num_instance_per_series
 
-        self.time_features = time_features or time_features_from_frequency_str(
-            self.freq
-        )
-        self.static_cardinalities = static_cardinalities or {}
-        self.static_feature_dims = static_feature_dims or {}
-        self.dynamic_cardinalities = dynamic_cardinalities or {}
-        self.dynamic_feature_dims = dynamic_feature_dims or {}
-        self.past_dynamic_features = past_dynamic_features or []
+        if not time_features:
+            self.time_features = time_features_from_frequency_str(self.freq)
+        else:
+            self.time_features = time_features
+        self.static_cardinalities = static_cardinalities
+        self.dynamic_cardinalities = dynamic_cardinalities
+        self.static_feature_dims = static_feature_dims
+        self.dynamic_feature_dims = dynamic_feature_dims
+        self.past_dynamic_features = past_dynamic_features
 
         self.past_dynamic_cardinalities = {}
         self.past_dynamic_feature_dims = {}

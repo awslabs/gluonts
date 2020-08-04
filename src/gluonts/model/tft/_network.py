@@ -11,14 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# Standard library imports
 from typing import List, Optional, Tuple
 
+# Third-party imports
 import numpy as np
 import mxnet as nx
 from mxnet import gluon
 from mxnet import init
 from mxnet.gluon import nn, HybridBlock
 
+# First-party imports
 from gluonts.core.component import validated, DType
 from gluonts.model.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder as BaseFeatureEmbedder
@@ -73,16 +76,16 @@ class FeatureProjector(HybridBlock):
         super().__init__(**kwargs)
 
         assert (
-            len(feature_dims) > 0
+            feature_dims
         ), "Length of `cardinalities` list must be greater than zero"
         assert len(feature_dims) == len(
             embedding_dims
         ), "Length of `embedding_dims` and `embedding_dims` should match"
         assert all(
-            [c > 0 for c in feature_dims]
+            c > 0 for c in feature_dims
         ), "Elements of `feature_dims` should be > 0"
         assert all(
-            [d > 0 for d in embedding_dims]
+            d > 0 for d in embedding_dims
         ), "Elements of `embedding_dims` should be > 0"
 
         self.feature_dims = feature_dims
@@ -198,40 +201,40 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                 flatten=False,
                 prefix=f"target_projection_",
             )
-            if len(self.d_past_feat_dynamic_real) > 0:
+            if self.d_past_feat_dynamic_real:
                 self.past_feat_dynamic_proj = FeatureProjector(
                     feature_dims=self.d_past_feat_dynamic_real,
                     embedding_dims=[self.d_var]
                     * len(self.d_past_feat_dynamic_real),
                     prefix="past_feat_dynamic_",
                 )
-            if len(self.c_past_feat_dynamic_cat) > 0:
+            if self.c_past_feat_dynamic_cat:
                 self.past_feat_dynamic_embed = FeatureEmbedder(
                     cardinalities=self.c_past_feat_dynamic_cat,
                     embedding_dims=[self.d_var]
                     * len(self.c_past_feat_dynamic_cat),
                     prefix="past_feat_dynamic_",
                 )
-            if len(self.d_feat_dynamic_real) > 0:
+            if self.d_feat_dynamic_real:
                 self.feat_dynamic_proj = FeatureProjector(
                     feature_dims=self.d_feat_dynamic_real,
                     embedding_dims=[self.d_var]
                     * len(self.d_feat_dynamic_real),
                     prefix="feat_dynamic_",
                 )
-            if len(self.c_feat_dynamic_cat) > 0:
+            if self.c_feat_dynamic_cat:
                 self.feat_dynamic_embed = FeatureEmbedder(
                     cardinalities=self.c_feat_dynamic_cat,
                     embedding_dims=[self.d_var] * len(self.c_feat_dynamic_cat),
                     prefix="feat_dynamic_",
                 )
-            if len(self.d_feat_static_real) > 0:
+            if self.d_feat_static_real:
                 self.feat_static_proj = FeatureProjector(
                     feature_dims=self.d_feat_static_real,
                     embedding_dims=[self.d_var] * len(self.d_feat_static_real),
                     prefix="feat_static_",
                 )
-            if len(self.c_feat_static_cat) > 0:
+            if self.c_feat_static_cat:
                 self.feat_static_embed = FeatureEmbedder(
                     cardinalities=self.c_feat_static_cat,
                     embedding_dims=[self.d_var] * len(self.c_feat_static_cat),
