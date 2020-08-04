@@ -13,7 +13,8 @@
 
 # Standard library imports
 from enum import Enum
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Iterator, List, Optional
+
 
 # Third-party imports
 import numpy as np
@@ -25,7 +26,7 @@ import logging
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 
@@ -109,6 +110,7 @@ class TreePredictor(RepresentablePredictor):
         max_n_datapts: int = 1000000,
         clump_size: int = 100,
         context_length: Optional[int] = None,
+        xgboost_params: Optional[dict] = None,
         max_workers=None,
         model_params=None,
         freq=None,
@@ -121,6 +123,7 @@ class TreePredictor(RepresentablePredictor):
             n_ignore_last=n_ignore_last,
             max_n_datapts=max_n_datapts,
         )
+        self.xgboost_params = xgboost_params
 
         assert (
             context_length is None or context_length > 0
@@ -155,7 +158,8 @@ class TreePredictor(RepresentablePredictor):
         n_models = self.prediction_length
         logging.info(f"Length of forecast horizon: {n_models}")
         self.model_list = [
-            QRX(clump_size=self.clump_size) for _ in range(n_models)
+            QRX(xgboost_params=self.xgboost_params, clump_size=self.clump_size)
+            for _ in range(n_models)
         ]
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.max_workers
