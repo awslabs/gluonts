@@ -109,7 +109,7 @@ def plot_results(
     else:
         raise Exception()
 
-    n_loops = int(np.ceil(n_data / config.batch_size_test))
+    n_loops = int(np.ceil(n_data / config.batch_size_eval))
     (
         z_filter,
         z_forecast,
@@ -125,10 +125,10 @@ def plot_results(
             for key, val in test_data.items()
         }
         if (idx_test_data == n_loops - 1) and (
-            n_data % config.batch_size_test
+            n_data % config.batch_size_eval
         ) != 0:
             _test_data = {
-                key: val[:, : (n_data % config.batch_size_test)]
+                key: val[:, : (n_data % config.batch_size_eval)]
                 for key, val in _test_data.items()
             }
         if idx_test_data >= n_loops:
@@ -419,7 +419,7 @@ if __name__ == "__main__":
             ),
             batch_size=config.dims.batch
             if data_subset_name == "train"
-            else config.batch_size_test,
+            else config.batch_size_eval,
             shuffle=True if data_subset_name == "train" else False,
             num_workers=0,
             collate_fn=time_first_collate_fn,

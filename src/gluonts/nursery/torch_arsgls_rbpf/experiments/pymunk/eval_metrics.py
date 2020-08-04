@@ -61,7 +61,7 @@ def compute_metrics(model, model_name, test_loader, config, n_particle=100):
     for deterministic in [False]:
         for idx_test_data, test_data in enumerate(tqdm.tqdm(test_loader)):
             print(
-                f"eval test batch: {idx_test_data}/{int(np.ceil(1000 / config.batch_size_test))}"
+                f"eval test batch: {idx_test_data}/{int(np.ceil(1000 / config.batch_size_eval))}"
             )
             # Data and groundtruth
             test_data_filter = {
@@ -240,7 +240,7 @@ if __name__ == "__main__":
             ),
             batch_size=config.dims.batch
             if data_subset_name == "train"
-            else config.batch_size_test,
+            else config.batch_size_eval,
             shuffle=True if data_subset_name == "train" else False,
             num_workers=0,
             collate_fn=time_first_collate_fn,
