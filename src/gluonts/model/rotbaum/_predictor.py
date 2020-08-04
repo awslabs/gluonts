@@ -143,11 +143,9 @@ class TreePredictor(RepresentablePredictor):
     @validated()
     def __call__(self, training_data):
         assert training_data
-        if self.freq is not None:
-            if next(iter(training_data))["start"].freq is not None:
-                assert self.freq == next(iter(training_data))["start"].freq
-        else:
-            self.freq = next(iter(training_data))["start"].freq
+        assert self.freq is not None:
+        if next(iter(training_data))["start"].freq is not None:
+            assert self.freq == next(iter(training_data))["start"].freq
         self.preprocess_object.preprocess_from_list(
             ts_list=list(training_data), change_internal_variables=True
         )
@@ -171,6 +169,10 @@ class TreePredictor(RepresentablePredictor):
                 )
 
         return self
+
+    @validated()
+    def train(self, training_data):
+        self.__call__(training_data)
 
     @validated()
     def predict(

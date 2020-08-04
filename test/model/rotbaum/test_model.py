@@ -17,53 +17,29 @@ from itertools import chain
 
 # First-party imports
 from gluonts.model.rotbaum import TreePredictor
-
+from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.evaluation import Evaluator
 
 def test_accuracy(accuracy_test, dsinfo):
-    def quantile_loss(true, pred, quantile):
-        denom = sum(np.abs(true))
-        num = sum(
-            [
-                (1 - quantile) * abs(y_hat - y)
-                if y_hat > y
-                else quantile * abs(y_hat - y)
-                for y_hat, y in zip(pred, true)
-            ]
-        )
-        if denom != 0:
-            return 2 * num / denom
-        else:
-            return None
 
-    record = {}
     predictor = TreePredictor(
-        context_length=2, prediction_length=dsinfo["prediction_length"]
+        context_length=2, prediction_length=dsinfo["prediction_length"], freq = dsinfo["freq"]
     )
-    predictor_instance = predictor(dsinfo.train_ds)
-    data_for_pred = [
-        {
-            "start": ts["start"],
-            "target": ts["target"][: -dsinfo["prediction_length"]],
-        }
-        for ts in dsinfo.test_ds
-    ]
-    data_true = [
-        {
-            "start": ts["start"],
-            "target": ts["target"][-dsinfo["prediction_length"] :],
-        }
-        for ts in dsinfo.test_ds
-    ]
-    for quantile in [0.1, 0.5, 0.9]:
-        predictions = list(predictor_instance.predict(data_for_pred))
-        preds = [t.quantile(quantile) for t in predictions]
-        record[f"quantile_loss_{quantile}"] = quantile_loss(
-            list(chain(*[ts["target"] for ts in data_true])),
-            list(chain(*preds)),
-            quantile,
-        )
+    predictor(dsinfo.train_ds)
+
+    forecast_it, ts_it = make_evaluation_predictions(
+        dataset=dsinfo.test_ds,  # test dataset
+        predictor=predictor,  # predictor
+        num_samples=1,  # number of sample paths we want for evaluation
+    )
+
+    evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9], num_workers=0)
+    record, item_metrics = evaluator(iter(ts_it), iter(forecast_it), num_series=len(dsinfo.test_ds))
+
     if dsinfo["name"] == "constant":
         for q in [0.1, 0.5, 0.9]:
-            assert record[f"quantile_loss_{q}"] == 0
+            print(record[f"wQuantileLoss[{q}]"])
+            assert record[f"wQuantileLoss[{q}]"] == 0
     if dsinfo["name"] == "synthetic":
-        assert 1.1 < record[f"quantile_loss_{0.5}"] < 1.2
+        print(record[f"wQuantileLoss[0.5]"])
+        assert 1.1 < record[f"wQuantileLoss[0.5]"] < 1.2
