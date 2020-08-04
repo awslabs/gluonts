@@ -29,7 +29,7 @@ def test_accuracy(accuracy_test, dsinfo):
     predictor(dsinfo.train_ds)
 
 
-    record, item_metrics = backtest_metrics(
+    agg_metrics, item_metrics = backtest_metrics(
             test_dataset=dsinfo.test_ds,
             predictor=predictor,
             evaluator=Evaluator(quantiles=[0.1, 0.5, 0.9], num_workers=0),
@@ -37,8 +37,8 @@ def test_accuracy(accuracy_test, dsinfo):
 
     if dsinfo["name"] == "constant":
         for q in [0.1, 0.5, 0.9]:
-            print(record[f"wQuantileLoss[{q}]"])
-            assert record[f"wQuantileLoss[{q}]"] == 0
+            assert agg_metrics[f"wQuantileLoss[{q}]"] == 0
     if dsinfo["name"] == "synthetic":
-        print(record[f"wQuantileLoss[0.5]"])
-        assert 1.1 < record[f"wQuantileLoss[0.5]"] < 1.2
+        assert 1.1 < agg_metrics[f"wQuantileLoss[0.5]"] < 1.2
+        accuracy = 10.0
+        assert agg_metrics["ND"] <= accuracy
