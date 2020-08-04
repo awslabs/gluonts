@@ -77,6 +77,8 @@ class ParametrisedConditionalDistribution(nn.Module):
         if isinstance(x, (tuple, list, set)):
             if self.allow_cat_inputs:
                 x = torch.cat(x, dim=-1)
+            elif len(x) == 1:
+                x = x[0]
             else:
                 raise ValueError(
                     f"got input of type {type(x)}, "
