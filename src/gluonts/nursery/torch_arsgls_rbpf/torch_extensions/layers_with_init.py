@@ -20,7 +20,7 @@ class Linear(nn.Linear):
     #         init.zeros_(self.bias)
 
 
-class LSTM(nn.LSTM):
+class LSTMCell(nn.LSTMCell):
     pass
     # def reset_parameters(self):
     #     for name, weight in self.named_parameters():
