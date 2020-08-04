@@ -119,7 +119,7 @@ class TreePredictor(RepresentablePredictor):
         use_feat_static_real=False,
         use_feat_static_cat=False,
         use_feat_dynamic_real=False,
-        use_feat_dynamic_cat=False
+        use_feat_dynamic_cat=False,
     ) -> None:
         self.lead_time = lead_time
         self.preprocess_object = PreprocessOnlyLagFeatures(
@@ -131,7 +131,7 @@ class TreePredictor(RepresentablePredictor):
             use_feat_static_real=use_feat_static_real,
             use_feat_static_cat=use_feat_static_cat,
             use_feat_dynamic_real=use_feat_dynamic_real,
-            use_feat_dynamic_cat=use_feat_dynamic_cat
+            use_feat_dynamic_cat=use_feat_dynamic_cat,
         )
         self.context_length = context_length
         self.model_params = model_params

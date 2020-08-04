@@ -156,7 +156,9 @@ class PreprocessGeneric:
             if not self.use_feat_static_real and not self.use_feat_static_cat:
                 return [], []
             else:
-                return self.make_features(altered_time_series, len(altered_time_series['target']))
+                return self.make_features(
+                    altered_time_series, len(altered_time_series["target"])
+                )
 
         if self.num_samples > 0:
             locations = [
@@ -276,8 +278,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         num_samples=-1,
         use_feat_static_real=False,
         use_feat_static_cat=False,
-        use_feat_dynamic_real = False,
-        use_feat_dynamic_cat = False,
+        use_feat_dynamic_real=False,
+        use_feat_dynamic_cat=False,
         **kwargs
     ):
         super().__init__(
@@ -373,11 +375,11 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
 
         assert (not feat_static_cat) or all(
             [(np.floor(elem) == elem) for elem in feat_static_cat]
-        ) # asserts that the categorical features are encoded
+        )  # asserts that the categorical features are encoded
 
         assert (not feat_static_cat) or all(
             [(np.floor(elem) == elem) for elem in feat_dynamic_cat]
-        ) # asserts that the categorical features are encoded
+        )  # asserts that the categorical features are encoded
 
         feat_dynamics = feat_dynamic_real + feat_dynamic_cat
         feat_statics = feat_static_real + feat_static_cat
