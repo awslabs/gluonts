@@ -288,6 +288,7 @@ class PendulumModel(LightningModule):
                 make_val_plots_univariate(
                     model=self,
                     data=remove_groundtruth(batch),
+                    future_target_groundtruth=batch['y_gt'][self.past_length:],
                     idx_particle=None,
                     n_steps_forecast=self.prediction_length,
                     idxs_ts=[0, 1, 2],

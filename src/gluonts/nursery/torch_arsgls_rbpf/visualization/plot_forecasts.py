@@ -19,15 +19,20 @@ def make_val_plots_univariate(
     idxs_ts,
     n_steps_forecast,
     savepath,
+    future_target_groundtruth=None,
     idx_particle=None,
     show=False,
 ):
     device = model.device
     data = {name: val.to(device) for name, val in data.items()}
-    y_plot = torch.cat(
-        [data["past_target"], data["future_target"]])
-
     future_target = data.pop("future_target")
+
+    future_target_plot = future_target_groundtruth \
+        if future_target_groundtruth is not None \
+        else future_target
+    y_plot = torch.cat([data["past_target"], future_target_plot])
+
+
     predictions_filtered, predictions_forecast = model(
         **data, n_steps_forecast=n_steps_forecast,
     )
