@@ -297,7 +297,7 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         emission_dist_t = self.emit(lats_t=lats_t, ctrl_t=ctrl_t)
         emissions_t = emission_dist_t.mean \
             if deterministic \
-            else emission_dist_t.rsample()
+            else emission_dist_t.sample()
 
         return Prediction(
             latents=lats_t,

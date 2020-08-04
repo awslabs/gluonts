@@ -262,7 +262,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             scale_tril=gls_params_t.LR,  # stable with scale and 0 variance.
         )
 
-        x_t = x_dist_t.mean if deterministic else x_dist_t.rsample()
+        x_t = x_dist_t.mean if deterministic else x_dist_t.sample()
         lats_t = LatentsSGLS(
             log_weights=lats_tm1.log_weights,  # does not change w/o evidence.
             gls_params=None,  # not used outside this function
@@ -279,7 +279,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
         )
         emissions_t = emission_dist_t.mean \
             if deterministic \
-            else emission_dist_t.rsample()
+            else emission_dist_t.sample()
 
         return Prediction(latents=lats_t, emissions=emissions_t)
 
