@@ -37,7 +37,7 @@ from ._network import DeepTPPTrainingNetwork, DeepTPPPredictionNetwork
 
 
 class DeepTPPEstimator(GluonEstimator):
-    """
+    r"""
     DeepTPP is a multivariate point process model based on an RNN.
 
     After each event :math:`(\tau_i, m_i)`, we feed the inter-arrival time

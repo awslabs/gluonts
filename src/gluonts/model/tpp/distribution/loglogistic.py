@@ -28,14 +28,19 @@ from .base import TPPDistribution, TPPDistributionOutput
 
 
 class Loglogistic(TPPDistribution):
-    """
+    r"""
     Log-logistic distribution.
 
     A very heavy-tailed distribution over positive real numbers.
+    https://en.wikipedia.org/wiki/Log-logistic_distribution
 
-    Drawing `x ~ Loglogistic(mu, sigma)` is equivalent to:
-    `y ~ Logistic(mu, sigma)`  # `CDF(y) = sigmoid((y - mu) / sigma)`
-    `x = exp(y)`
+    Drawing :math:`x \sim \operatorname{Loglogistic}(\mu, \sigma)` is equivalent
+    to:
+
+    .. math::
+
+        y &\sim \operatorname{Logistic}(\mu, \sigma)\\
+        x &= \exp(y)
     """
 
     is_reparametrizable = True
@@ -68,14 +73,14 @@ class Loglogistic(TPPDistribution):
         )
 
     def log_intensity(self, x: Tensor) -> Tensor:
-        """
+        r"""
         Logarithm of the intensity (a.k.a. hazard) function.
 
-        The intensity is defined as `lambda(x) = p(x) / S(x)`.
+        The intensity is defined as :math:`\lambda(x) = p(x) / S(x)`.
 
-        We define `z = (log(x) - mu) / sigma` and obtain the intensity as
-        `lambda(x) = sigmoid(z) / (sigma * log(x))`, or equivalently
-        `log(lambda(x)) = z - log(1 + exp(z)) - log(sigma) - log(x)`.
+        We define :math:`z = (\log(x) - \mu) / \sigma` and obtain the intensity
+        as :math:`\lambda(x) = sigmoid(z) / (\sigma * \log(x))`, or equivalently
+        :math:`\log \lambda(x) = z - \log(1 + \exp(z)) - \log(\sigma) - \log(x)`.
         """
         log_x = x.clip(1e-20, np.inf).log()
         z = (log_x - self.mu) / self.sigma
@@ -83,11 +88,12 @@ class Loglogistic(TPPDistribution):
         return z - self.sigma.log() - F.Activation(z, "softrelu") - log_x
 
     def log_survival(self, x: Tensor) -> Tensor:
-        """
-        Logarithm of the survival function `log(S(x)) = log(1 - CDF(x))`.
+        r"""
+        Logarithm of the survival function :math:`\log S(x) = \log(1 - CDF(x))`.
 
-        We define `z = (log(x) - mu) / sigma` and obtain the survival function
-        as `S(x) = sigmoid(-z)`, or equivalently `log(S(x)) = -log(1 + exp(z))`.
+        We define :math:`z = (\log(x) - \mu) / \sigma` and obtain the survival
+        function as :math:`S(x) = sigmoid(-z)`, or equivalently
+        :math:`\log S(x) = -\log(1 + \exp(z))`.
         """
         log_x = x.clip(1e-20, np.inf).log()
         z = (log_x - self.mu) / self.sigma
@@ -103,11 +109,12 @@ class Loglogistic(TPPDistribution):
         dtype=np.float32,
         lower_bound: Optional[Tensor] = None,
     ) -> Tensor:
-        """
+        r"""
         Draw samples from the distribution.
 
-        We generate samples as `u ~ Unif(0, 1), x = S^{-1}(u)`, where `S^{-1}`
-        is the inverse of the survival function `S(x) = 1 - CDF(x)`.
+        We generate samples as :math:`u \sim Uniform(0, 1), x = S^{-1}(u)`,
+        where :math:`S^{-1}` is the inverse of the survival function
+        :math:`S(x) = 1 - CDF(x)`.
 
         Parameters
         ----------
@@ -135,7 +142,7 @@ class Loglogistic(TPPDistribution):
         u = F.uniform(0, 1, shape=sample_shape)
         # Make sure that the generated samples are larger than condition_above.
         # This is easy to ensure when using inverse-survival sampling: we simply
-        # multiply `u ~ Unif(0, 1)` by `S(y)` to ensure that `x > y`.
+        # multiply `u ~ Uniform(0, 1)` by `S(y)` to ensure that `x > y`.
         with autograd.pause():
             if lower_bound is not None:
                 survival = self.log_survival(lower_bound).exp()

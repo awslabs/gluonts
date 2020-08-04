@@ -40,15 +40,17 @@ class TPPDistribution(Distribution):
     """
 
     def log_intensity(self, x: Tensor) -> Tensor:
-        """
+        r"""
         Logarithm of the intensity (a.k.a. hazard) function.
 
-        The intensity is defined as `lambda(x) = p(x) / S(x)`.
+        The intensity is defined as :math:`\lambda(x) = p(x) / S(x)`.
         """
         raise NotImplementedError()
 
     def log_survival(self, x: Tensor) -> Tensor:
-        """Logarithm of the survival function `log(S(x)) = log(1 - CDF(x))`."""
+        r"""
+        Logarithm of the survival function `\log S(x) = \log(1 - CDF(x))`.
+        """
         raise NotImplementedError()
 
     def log_prob(self, x: Tensor) -> Tensor:
@@ -108,9 +110,10 @@ class TPPTransformedDistribution(TransformedDistribution):
             raise ValueError("The transformations must be increasing.")
 
     def log_intensity(self, y: Tensor) -> Tensor:
-        """Logarithm of the intensity (a.k.a. hazard) function.
+        r"""
+        Logarithm of the intensity (a.k.a. hazard) function.
 
-        The intensity is defined as `lambda(y) = p(y) / S(y)`.
+        The intensity is defined as :math:`\lambda(y) = p(y) / S(y)`.
         """
         F = getF(y)
         lp = 0.0
@@ -123,7 +126,9 @@ class TPPTransformedDistribution(TransformedDistribution):
         return self.base_distribution.log_intensity(x) + lp
 
     def log_survival(self, y: Tensor) -> Tensor:
-        """Logarithm of the survival function `log(S(y)) = log(1 - CDF(y))`."""
+        r"""
+        Logarithm of the survival function :math:`\log S(y) = \log(1 - CDF(y))`.
+        """
         x = y
         for t in self.transforms[::-1]:
             x = t.f_inv(x)

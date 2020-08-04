@@ -238,6 +238,7 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
         Parameters
         ----------
         F
+            MXNet backend.
         past_target
             Tensor with past observations.
             Shape: (batch_size, context_length, target_dim). Has to comply
