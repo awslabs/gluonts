@@ -28,6 +28,7 @@ jobs:
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-rotbaumtxt
     - name: Test with pytest
       run: |
         pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test
