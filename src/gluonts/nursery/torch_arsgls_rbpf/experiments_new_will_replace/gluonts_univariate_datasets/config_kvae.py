@@ -21,6 +21,7 @@ from experiments.model_component_zoo import (
 from models_new_will_replace.kvae import KalmanVariationalAutoEncoder
 from experiments_new_will_replace.gluonts_univariate_datasets.gts_rbsmc_model \
     import GluontsUnivariateDataModel
+from torch_extensions.layers_with_init import LSTMCell
 
 
 @dataclass()
@@ -245,7 +246,7 @@ def make_model(config):
     gls_base_params = gls_parameters.GLSParametersKVAE(config=config)
     decoder = decoders.AuxiliaryToObsDecoderMlpGaussian(config=config)
     encoder = encoders.ObsToAuxiliaryEncoderMlpGaussian(config=config)
-    rnn = nn.LSTMCell(
+    rnn = LSTMCell(
         input_size=config.dims.auxiliary, hidden_size=config.n_hidden_rnn
     )
 
