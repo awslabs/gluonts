@@ -19,6 +19,7 @@ from itertools import chain
 from gluonts.model.rotbaum import TreePredictor
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.evaluation import Evaluator
+from gluonts.evaluation.backtest import backtest_metrics
 
 def test_accuracy(accuracy_test, dsinfo):
 
@@ -27,14 +28,12 @@ def test_accuracy(accuracy_test, dsinfo):
     )
     predictor(dsinfo.train_ds)
 
-    forecast_it, ts_it = make_evaluation_predictions(
-        dataset=dsinfo.test_ds,  # test dataset
-        predictor=predictor,  # predictor
-        num_samples=1,  # number of sample paths we want for evaluation
-    )
 
-    evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9], num_workers=0)
-    record, item_metrics = evaluator(iter(ts_it), iter(forecast_it), num_series=len(dsinfo.test_ds))
+    record, item_metrics = backtest_metrics(
+            test_dataset=dsinfo.test_ds,
+            predictor=predictor,
+            evaluator=Evaluator(quantiles=[0.1, 0.5, 0.9], num_workers=0),
+        )
 
     if dsinfo["name"] == "constant":
         for q in [0.1, 0.5, 0.9]:
