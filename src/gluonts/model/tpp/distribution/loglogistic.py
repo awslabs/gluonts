@@ -33,9 +33,9 @@ class Loglogistic(TPPDistribution):
 
     A very heavy-tailed distribution over positive real numbers.
 
-    Drawing x ~ Loglogistic(mu, s) is equivalent to:
-    y ~ Logistic(mu, s)  # distribution with CDF(y) = sigmoid((y - mu) / s)
-    x = exp(y)
+    Drawing `x ~ Loglogistic(mu, sigma)` is equivalent to:
+    `y ~ Logistic(mu, sigma)`  # `CDF(y) = sigmoid((y - mu) / sigma)`
+    `x = exp(y)`
     """
 
     is_reparametrizable = True
@@ -71,11 +71,11 @@ class Loglogistic(TPPDistribution):
         """
         Logarithm of the intensity (a.k.a. hazard) function.
 
-        The intensity is defined as lambda(x) = p(x) / S(x).
+        The intensity is defined as `lambda(x) = p(x) / S(x)`.
 
-        We define z = (log(x) - mu) / s and obtain the intensity as
-        lambda(x) = sigmoid(z) / (s * log(x)), or equivalently
-        log(lambda(x)) = z - log(1 + exp(z)) - log(s) - log(x).
+        We define `z = (log(x) - mu) / sigma` and obtain the intensity as
+        `lambda(x) = sigmoid(z) / (sigma * log(x))`, or equivalently
+        `log(lambda(x)) = z - log(1 + exp(z)) - log(sigma) - log(x)`.
         """
         log_x = x.clip(1e-20, np.inf).log()
         z = (log_x - self.mu) / self.sigma
@@ -84,10 +84,10 @@ class Loglogistic(TPPDistribution):
 
     def log_survival(self, x: Tensor) -> Tensor:
         """
-        Logarithm of the survival function log S(x) = log(1 - CDF(x)).
+        Logarithm of the survival function `log(S(x)) = log(1 - CDF(x))`.
 
-        We define z = (log(x) - mu) / s and obtain the survival function as
-        S(x) = sigmoid(-z), or equivalently log(S(x)) = -log(1 + exp(z)).
+        We define `z = (log(x) - mu) / sigma` and obtain the survival function
+        as `S(x) = sigmoid(-z)`, or equivalently `log(S(x)) = -log(1 + exp(z))`.
         """
         log_x = x.clip(1e-20, np.inf).log()
         z = (log_x - self.mu) / self.sigma
@@ -106,8 +106,8 @@ class Loglogistic(TPPDistribution):
         """
         Draw samples from the distribution.
 
-        We generate samples as u ~ Unif(0, 1), x = S^{-1}(u), where S^{-1}
-        is the inverse of the survival function S(x) = 1 - CDF(x).
+        We generate samples as `u ~ Unif(0, 1), x = S^{-1}(u)`, where `S^{-1}`
+        is the inverse of the survival function `S(x) = 1 - CDF(x)`.
 
         Parameters
         ----------
@@ -118,14 +118,14 @@ class Loglogistic(TPPDistribution):
         lower_bound
             If None, generate samples as usual. If lower_bound is provided,
             all generated samples will be larger than the specified values.
-            That is, we sample from p(x | x > lower_bound).
-            Shape: (*batch_size)
+            That is, we sample from `p(x | x > lower_bound)`.
+            Shape: `(*batch_size)`
 
         Returns
         -------
         x
             Sampled inter-event times.
-            Shape: (num_samples, *batch_size)
+            Shape: `(num_samples, *batch_size)`
         """
         F = getF(self.mu)
         if num_samples is not None:
@@ -135,7 +135,7 @@ class Loglogistic(TPPDistribution):
         u = F.uniform(0, 1, shape=sample_shape)
         # Make sure that the generated samples are larger than condition_above.
         # This is easy to ensure when using inverse-survival sampling: we simply
-        # multiply u ~ Unif(0, 1) by S(y) to ensure the sample x is > y
+        # multiply `u ~ Unif(0, 1)` by `S(y)` to ensure that `x > y`.
         with autograd.pause():
             if lower_bound is not None:
                 survival = self.log_survival(lower_bound).exp()
@@ -168,8 +168,8 @@ class LoglogisticOutput(TPPDistributionOutput):
         Returns
         -------
         Tuple[Tensor, Tensor]
-            Two squeezed tensors of shape `(*batch_shape)`: The first one is the
-            `mu` parameter , and the second one is `s` (strictly positive).
+            Two squeezed tensors of shape `(*batch_shape)`. The sigma parameter
+            is strictly positive.
         """
         sigma = F.Activation(sigma, "softrelu")
         return mu.squeeze(axis=-1), sigma.squeeze(axis=-1)

@@ -32,10 +32,10 @@ class Weibull(TPPDistribution):
     Weibull distribution.
 
     We use the parametrization of the Weibull distribution using the rate
-    parameter b > 0 and the shape parameter k > 0. The PDF is
-    p(x) = b * k * x^(k - 1) * exp(-b * x^(k)). An alternative parametrization
+    parameter `b > 0` and the shape parameter `k > 0`. The PDF is
+    `p(x) = b * k * x^(k - 1) * exp(-b * x^(k))`. An alternative parametrization
     is often used (e.g. on Wikipedia), where we use the scale parameter
-    lambda > 0 and the shape parameter k > 0, and lambda = b^(-1/k).
+    `lambda > 0` and the shape parameter `k > 0`, and `lambda = b^(-1/k)`.
     """
 
     is_reparametrizable = True
@@ -67,20 +67,20 @@ class Weibull(TPPDistribution):
         """
         Logarithm of the intensity (a.k.a. hazard) function.
 
-        The intensity is defined as lambda(x) = p(x) / S(x).
+        The intensity is defined as `lambda(x) = p(x) / S(x)`.
 
         The intensity of the Weibull distribution is
-        lambda(x) = b * k * x^(k - 1).
+        `lambda(x) = b * k * x^(k - 1)`.
         """
         log_x = x.clip(1e-10, np.inf).log()
         return self.rate.log() + self.shape.log() + (self.shape - 1) * log_x
 
     def log_survival(self, x: Tensor) -> Tensor:
         """
-        Logarithm of the survival function log S(x) = log(1 - CDF(x)).
+        Logarithm of the survival function `log(S(x)) = log(1 - CDF(x))`.
 
         The survival function of the Weibull distribution is
-        S(x) = exp(-b * x^k).
+        `S(x) = exp(-b * x^k)`.
         """
         # We need to add eps=1e-10 to avoid numerical instability of pow()
         return -self.rate * (x + 1e-10) ** self.shape
@@ -97,8 +97,9 @@ class Weibull(TPPDistribution):
         """
         Draw samples from the distribution.
 
-        We generate samples as u ~ Unif(0, 1), x = S^{-1}(u), where S^{-1}
-        is the inverse of the survival function S(x) = 1 - CDF(x).
+        We generate samples as `u ~ Uniform(0, 1), x = S^{-1}(u)`,
+        where `S^{-1}` is the inverse of the survival function
+        `S(x) = 1 - CDF(x)`.
 
         Parameters
         ----------
@@ -109,14 +110,14 @@ class Weibull(TPPDistribution):
         lower_bound
             If None, generate samples as usual. If lower_bound is provided,
             all generated samples will be larger than the specified values.
-            That is, we sample from p(x | x > lower_bound).
-            Shape: (*batch_size)
+            That is, we sample from `p(x | x > lower_bound)`.
+            Shape: `(*batch_size)`
 
         Returns
         -------
         x
             Sampled inter-event times.
-            Shape: (num_samples, *batch_size)
+            Shape: `(num_samples, *batch_size)`
         """
         F = getF(self.rate)
         if num_samples is not None:
@@ -126,7 +127,7 @@ class Weibull(TPPDistribution):
         u = F.uniform(0, 1, shape=sample_shape)
         # Make sure that the generated samples are larger than condition_above.
         # This is easy to ensure when using inverse-survival sampling: we simply
-        # multiply u ~ Unif(0, 1) by S(y) to ensure the sample x is > y
+        # multiply `u ~ Unif(0, 1)` by `S(y)` to ensure that `x > y`.
         with autograd.pause():
             if lower_bound is not None:
                 survival = self.log_survival(lower_bound).exp()
@@ -159,7 +160,7 @@ class WeibullOutput(TPPDistributionOutput):
         Returns
         -------
         Tuple[Tensor, Tensor]
-            Two squeezed tensors of shape `(*batch_shape)`: Both tensors are
+            Two squeezed tensors of shape `(*batch_shape)`. Both tensors are
             strictly positive.
         """
         rate = F.Activation(rate, "softrelu")

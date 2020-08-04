@@ -54,16 +54,16 @@ class DeepTPPEstimator(GluonEstimator):
     References
     ----------
     .. [DDT+16] Du, Nan, et al. "Recurrent Marked Temporal Point Processes:
-    Embedding Event History to Vector." The 22nd ACM SIGKDD International
-    Conference on Knowledge Discovery and Data Mining. ACM, 2016.
+      Embedding Event History to Vector." The 22nd ACM SIGKDD International
+      Conference on Knowledge Discovery and Data Mining. ACM, 2016.
 
     .. [TWJ19] Turkmen, Caner, et al. "Intermittent Demand Forecasting with Deep
-    Renewal Processes." Learning with Temporal Point Processes Workshop,
-    NeurIPS. 2019.
+      Renewal Processes." Learning with Temporal Point Processes Workshop,
+      NeurIPS. 2019.
 
     .. [SBG20] Shchur, Oleksandr, et al. "Intensity-free Learning of Temporal
-    Point Processes." International Conference on Learning Representations.
-    2020.
+      Point Processes." International Conference on Learning Representations.
+      2020.
 
 
     Parameters

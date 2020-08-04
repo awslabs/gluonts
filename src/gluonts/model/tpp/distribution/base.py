@@ -43,12 +43,12 @@ class TPPDistribution(Distribution):
         """
         Logarithm of the intensity (a.k.a. hazard) function.
 
-        The intensity is defined as lambda(x) = p(x) / S(x).
+        The intensity is defined as `lambda(x) = p(x) / S(x)`.
         """
         raise NotImplementedError()
 
     def log_survival(self, x: Tensor) -> Tensor:
-        """Logarithm of the survival function log S(x) = log(1 - CDF(x))."""
+        """Logarithm of the survival function `log(S(x)) = log(1 - CDF(x))`."""
         raise NotImplementedError()
 
     def log_prob(self, x: Tensor) -> Tensor:
@@ -100,7 +100,6 @@ class TPPTransformedDistribution(TransformedDistribution):
 
         This condition significantly simplifies the log_survival and
         sample_conditional functions.
-
         """
         sign = 1.0
         for t in transforms:
@@ -111,7 +110,7 @@ class TPPTransformedDistribution(TransformedDistribution):
     def log_intensity(self, y: Tensor) -> Tensor:
         """Logarithm of the intensity (a.k.a. hazard) function.
 
-        The intensity is defined as lambda(y) = p(y) / S(y).
+        The intensity is defined as `lambda(y) = p(y) / S(y)`.
         """
         F = getF(y)
         lp = 0.0
@@ -124,7 +123,7 @@ class TPPTransformedDistribution(TransformedDistribution):
         return self.base_distribution.log_intensity(x) + lp
 
     def log_survival(self, y: Tensor) -> Tensor:
-        """Logarithm of the survival function log S(y) = log(1 - CDF(y))."""
+        """Logarithm of the survival function `log(S(y)) = log(1 - CDF(y))`."""
         x = y
         for t in self.transforms[::-1]:
             x = t.f_inv(x)
@@ -149,14 +148,14 @@ class TPPTransformedDistribution(TransformedDistribution):
         lower_bound
             If None, generate samples as usual. If lower_bound is provided,
             all generated samples will be larger than the specified values.
-            That is, we sample from p(x | x > lower_bound).
-            Shape: (*batch_size)
+            That is, we sample from `p(x | x > lower_bound)`.
+            Shape: `(*batch_size)`
 
         Returns
         -------
         x
             Transformed samples drawn from the base distribution.
-            Shape: (num_samples, *batch_size)
+            Shape: `(num_samples, *batch_size)`
 
         """
         with autograd.pause():
