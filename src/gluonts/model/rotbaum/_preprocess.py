@@ -153,7 +153,11 @@ class PreprocessGeneric:
             + 1
         )
         if max_num_context_windows < 1:
-            return [], []
+            if not self.use_feat_static_real and not self.use_feat_static_cat:
+                return [], []
+            else:
+                return self.make_features(altered_time_series, len(altered_time_series['target']))
+
         if self.num_samples > 0:
             locations = [
                 np.random.randint(max_num_context_windows)
@@ -272,6 +276,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         num_samples=-1,
         use_feat_static_real=False,
         use_feat_static_cat=False,
+        use_feat_dynamic_real = False,
+        use_feat_dynamic_cat = False,
         **kwargs
     ):
         super().__init__(
@@ -284,6 +290,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         )
         self.use_feat_static_real = use_feat_static_real
         self.use_feat_static_cat = use_feat_static_cat
+        self.use_feat_dynamic_real = use_feat_dynamic_real
+        self.use_feat_dynamic_cat = use_feat_dynamic_cat
 
     @classmethod
     def _pre_transform(cls, time_series_window) -> Tuple:
@@ -352,11 +360,26 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             if self.use_feat_static_cat
             else []
         )
+        feat_dynamic_real = (
+            [elem for ent in time_series["feat_dynamic_real"] for elem in ent]
+            if self.use_feat_dynamic_real
+            else []
+        )
+        feat_dynamic_cat = (
+            [elem for ent in time_series["feat_dynamic_cat"] for elem in ent]
+            if self.use_feat_dynamic_cat
+            else []
+        )
 
         assert (not feat_static_cat) or all(
             [(np.floor(elem) == elem) for elem in feat_static_cat]
-        )
+        ) # asserts that the categorical features are encoded
 
+        assert (not feat_static_cat) or all(
+            [(np.floor(elem) == elem) for elem in feat_dynamic_cat]
+        ) # asserts that the categorical features are encoded
+
+        feat_dynamics = feat_dynamic_real + feat_dynamic_cat
         feat_statics = feat_static_real + feat_static_cat
         only_lag_features = list(only_lag_features)
         return (
@@ -364,4 +387,5 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             + only_lag_features
             + list(transform_dict.values())
             + feat_statics
+            + feat_dynamics
         )
