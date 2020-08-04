@@ -11,12 +11,28 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
-from ._base import Evaluator, MultivariateEvaluator
+import pytest
 
-__all__ = ["Evaluator", "MultivariateEvaluator"]
+from gluonts.time_feature import get_seasonality
 
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+
+@pytest.mark.parametrize(
+    "freq, expected_seasonality",
+    [
+        ("1H", 24),
+        ("H", 24),
+        ("2H", 12),
+        ("3H", 8),
+        ("4H", 6),
+        ("15H", 1),
+        ("5B", 1),
+        ("1B", 5),
+        ("2W", 1),
+        ("3M", 4),
+        ("1D", 1),
+        ("7D", 1),
+        ("8D", 1),
+    ],
+)
+def test_get_seasonality(freq, expected_seasonality):
+    assert get_seasonality(freq) == expected_seasonality
