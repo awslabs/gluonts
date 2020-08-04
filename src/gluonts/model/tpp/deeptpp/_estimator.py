@@ -49,22 +49,11 @@ class DeepTPPEstimator(GluonEstimator):
     categorical, but different choices are possible for the distribution over
     inter-arrival times - see :code:`gluonts.model.tpp.distribution`.
 
-    The model is a generalization of the approaches described in [DDT+16],
-    [TWJ19] and [SBG20].
+    The model is a generalization of the approaches described in [DDT+16]_,
+    [TWJ19]_ and [SBG20]_.
 
     References
     ----------
-    .. [DDT+16] Du, Nan, et al. "Recurrent Marked Temporal Point Processes:
-      Embedding Event History to Vector." The 22nd ACM SIGKDD International
-      Conference on Knowledge Discovery and Data Mining. ACM, 2016.
-
-    .. [TWJ19] Turkmen, Caner, et al. "Intermittent Demand Forecasting with Deep
-      Renewal Processes." Learning with Temporal Point Processes Workshop,
-      NeurIPS. 2019.
-
-    .. [SBG20] Shchur, Oleksandr, et al. "Intensity-free Learning of Temporal
-      Point Processes." International Conference on Learning Representations.
-      2020.
 
 
     Parameters
