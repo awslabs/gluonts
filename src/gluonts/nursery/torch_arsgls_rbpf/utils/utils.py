@@ -264,9 +264,29 @@ class Bias(nn.Module):
         return self._value.repeat(x.shape[:-1] + (1,))
 
 
-class IndependentNormal(Independent):  # MultivariateNormalDiag
+class IndependentNormal(Independent):
+    """
+    Diagonal Normal that can be used similar to Multivariate Normal but is more
+    memory and computationally efficient. Cholesky -> sqrt. Inverse -> **-1.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(Normal(*args, **kwargs), 1)
+
+    @property
+    def loc(self):
+        return self.base_dist.loc
+
+    @property
+    def covariance_matrix(self):
+        return batch_diag_matrix(self.base_dist.variance)
+
+    @property
+    def scale_tril(self):
+        return batch_diag_matrix(self.base_dist.scale)
+
+    @property
+    def precision_matrix(self):
+        return batch_diag_matrix(self.base_dist.variance ** -1)
 
 
 class IndependentBernoulli(Independent):
