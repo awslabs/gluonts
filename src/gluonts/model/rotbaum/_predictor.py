@@ -108,13 +108,13 @@ class TreePredictor(RepresentablePredictor):
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
-        clump_size: int = 100,  # Used only if use_quantile_reg is False
+        clump_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
         freq=None,
         method: str = "QRX",
-        quantiles=None,  # Need to specify only if use_quantile_reg is True
+        quantiles=None,  # Used only for "QuantileRegression" method.
     ) -> None:
         assert method in [
             "QRX",
