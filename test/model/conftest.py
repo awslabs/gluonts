@@ -97,7 +97,9 @@ def accuracy_test(dsinfo):
         agg_metrics, item_metrics = backtest_metrics(
             test_dataset=dsinfo.test_ds,
             predictor=predictor,
-            evaluator=Evaluator(calculate_owa=statsmodels is not None),
+            evaluator=Evaluator(
+                calculate_owa=statsmodels is not None, num_workers=0
+            ),
         )
 
         if dsinfo.name == "synthetic":

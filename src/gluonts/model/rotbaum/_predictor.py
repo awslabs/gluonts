@@ -14,6 +14,7 @@
 # Standard library imports
 from enum import Enum
 from typing import Iterator, List, Optional
+from pathlib import Path
 
 
 # Third-party imports
@@ -22,12 +23,15 @@ import pandas as pd
 from itertools import chain
 import concurrent.futures
 import logging
+import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, equals
+from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import Dataset
-from gluonts.model.forecast import Forecast
-from gluonts.model.predictor import RepresentablePredictor
+from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.forecast_generator import log_once
+from gluonts.model.predictor import GluonPredictor
 from gluonts.support.pandas import forecast_start
 
 # Relative imports
@@ -92,7 +96,7 @@ class RotbaumForecast(Forecast):
         )
 
 
-class TreePredictor(RepresentablePredictor):
+class TreePredictor(GluonPredictor):
     """
     A predictor that uses a QRX model for each of the steps in the forecast
     horizon. (In other words, there's a total of prediction_length many
@@ -104,15 +108,20 @@ class TreePredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
         clump_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
+        xgboost_params: Optional[dict] = None,
+        use_feat_static_real: bool = False,
+        use_feat_static_cat: bool = False,
+        use_feat_dynamic_real: bool = False,
+        use_feat_dynamic_cat: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
-        freq=None,
         method: str = "QRX",
         quantiles=None,  # Used only for "QuantileRegression" method.
     ) -> None:
@@ -129,6 +138,10 @@ class TreePredictor(RepresentablePredictor):
             stratify_targets=False,
             n_ignore_last=n_ignore_last,
             max_n_datapts=max_n_datapts,
+            use_feat_static_real=use_feat_static_real,
+            use_feat_static_cat=use_feat_static_cat,
+            use_feat_dynamic_real=use_feat_dynamic_real,
+            use_feat_dynamic_cat=use_feat_dynamic_cat,
         )
 
         assert (
@@ -136,7 +149,11 @@ class TreePredictor(RepresentablePredictor):
         ), "The value of `context_length` should be > 0"
         assert (
             prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
+            or use_feat_dynamic_cat
+            or use_feat_dynamic_real
+            or use_feat_static_cat
+            or use_feat_static_real
+        ), "The value of `prediction_length` should be > 0 or there should be features for model training and prediction"
 
         self.context_length = (
             context_length if context_length is not None else prediction_length
@@ -151,10 +168,9 @@ class TreePredictor(RepresentablePredictor):
 
     def __call__(self, training_data):
         assert training_data
-        if self.freq is not None:
+        assert self.freq is not None
+        if next(iter(training_data))["start"].freq is not None:
             assert self.freq == next(iter(training_data))["start"].freq
-        else:
-            self.freq = next(iter(training_data))["start"].freq
         self.preprocess_object.preprocess_from_list(
             ts_list=list(training_data), change_internal_variables=True
         )
@@ -195,7 +211,14 @@ class TreePredictor(RepresentablePredictor):
 
         return self
 
-    def predict(self, dataset: Dataset) -> Iterator[Forecast]:
+    @validated()
+    def train(self, training_data):
+        self.__call__(training_data)
+
+    @validated()
+    def predict(
+        self, dataset: Dataset, num_samples: Optional[int] = None
+    ) -> Iterator[Forecast]:
         """
         Returns a dictionary taking each quantile to a list of floats,
         which are the predictions for that quantile as you run over
@@ -204,6 +227,11 @@ class TreePredictor(RepresentablePredictor):
         then the second time step for all time series ˜˜ , and so forth.
         """
         context_length = self.preprocess_object.context_window_size
+
+        if num_samples:
+            log_once(
+                "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
+            )
 
         for ts in dataset:
             featurized_data = self.preprocess_object.make_features(
@@ -216,3 +244,22 @@ class TreePredictor(RepresentablePredictor):
                 prediction_length=self.prediction_length,
                 freq=self.freq,
             )
+
+    def serialize(self, path: Path) -> None:
+        # call Predictor.serialize() in order to serialize the class name
+        super().serialize(path)
+        with (path / "predictor.json").open("w") as fp:
+            print(dump_json(self), file=fp)
+
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "RepresentablePredictor":
+        with (path / "predictor.json").open("r") as fp:
+            return load_json(fp.read())
+
+    def __eq__(self, that):
+        """
+        Two RepresentablePredictor instances are considered equal if they
+        have the same constructor arguments.
+        """
+        return equals(self, that)

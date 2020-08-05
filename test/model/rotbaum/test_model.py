@@ -14,59 +14,27 @@
 # Third-party imports
 import numpy as np
 from itertools import chain
+import pytest
 
 # First-party imports
-from gluonts.model.rotbaum import TreePredictor
-
-# TODO: switch to using backtest_metrics rather than separate quantile_loss
-# TODO: function.
+from gluonts.model.rotbaum import TreeEstimator
 
 
-def test_accuracy(accuracy_test, dsinfo):
-    def quantile_loss(true, pred, quantile):
-        denom = sum(np.abs(true))
-        num = sum(
-            [
-                (1 - quantile) * abs(y_hat - y)
-                if y_hat > y
-                else quantile * abs(y_hat - y)
-                for y_hat, y in zip(pred, true)
-            ]
-        )
-        if denom != 0:
-            return 2 * num / denom
-        else:
-            return None
+@pytest.fixture()
+def hyperparameters(dsinfo):
+    return dict(context_length=2, quantiles=[0.1, 0.5, 0.9], num_workers=0,)
 
-    record = {}
-    predictor = TreePredictor(
-        context_length=2, prediction_length=dsinfo["prediction_length"]
-    )
-    predictor_instance = predictor(dsinfo.train_ds)
-    data_for_pred = [
-        {
-            "start": ts["start"],
-            "target": ts["target"][: -dsinfo["prediction_length"]],
-        }
-        for ts in dsinfo.test_ds
-    ]
-    data_true = [
-        {
-            "start": ts["start"],
-            "target": ts["target"][-dsinfo["prediction_length"] :],
-        }
-        for ts in dsinfo.test_ds
-    ]
-    for quantile in [0.1, 0.5, 0.9]:
-        predictions = list(predictor_instance.predict(data_for_pred))
-        preds = [t.quantile(quantile) for t in predictions]
-        record[f"quantile_loss_{quantile}"] = quantile_loss(
-            list(chain(*[ts["target"] for ts in data_true])),
-            list(chain(*preds)),
-            quantile,
-        )
-    if dsinfo["name"] == "constant":
-        for q in [0.1, 0.5, 0.9]:
-            assert record[f"quantile_loss_{q}"] == 0
-    if dsinfo["name"] == "synthetic":
-        assert 1.1 < record[f"quantile_loss_{0.5}"] < 1.2
+
+@pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
+def test_accuracy(accuracy_test, hyperparameters, quantiles):
+    hyperparameters.update(quantiles=quantiles, max_workers=32)
+
+    accuracy_test(TreeEstimator, hyperparameters, accuracy=0.20)
+
+
+def test_repr(repr_test, hyperparameters):
+    repr_test(TreeEstimator, hyperparameters)
+
+
+def test_serialize(serialize_test, hyperparameters):
+    serialize_test(TreeEstimator, hyperparameters)
