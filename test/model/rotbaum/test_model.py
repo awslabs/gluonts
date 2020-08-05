@@ -24,6 +24,24 @@ from gluonts.evaluation.backtest import backtest_metrics
 # TODO: function.
 # TODO: implement using accuracy_test like other gluonts models
 
+# @pytest.fixture()
+# def hyperparameters(dsinfo):
+#     return dict(
+#         context_length=2,
+#         quantiles=[0.1, 0.5, 0.9],
+#         num_workers=0,
+#     )
+
+# @pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
+# def test_accuracy(
+#     accuracy_test, hyperparameters, quantiles
+# ):
+#     hyperparameters.update(
+#         quantiles=quantiles, max_workers=32
+#     )
+
+#     accuracy_test(TreeEstimator, hyperparameters, accuracy=0.20)
+
 def test_accuracy(accuracy_test, dsinfo):
 
     estimator = TreeEstimator(
@@ -36,7 +54,7 @@ def test_accuracy(accuracy_test, dsinfo):
     agg_metrics, item_metrics = backtest_metrics(
         test_dataset=dsinfo.test_ds,
         predictor=predictor,
-        evaluator=Evaluator(quantiles=[0.1, 0.5, 0.9], num_workers=0),
+        evaluator=Evaluator(quantiles=[0.1, 0.5, 0.9]),
     )
 
     if dsinfo["name"] == "constant":
