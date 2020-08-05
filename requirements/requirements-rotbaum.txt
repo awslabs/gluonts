@@ -1,3 +1,4 @@
 xgboost>=0.90
-scikit-learn>=0.23.1
+scikit-learn~=0.22
 lightgbm>=2.3.1
+skgarden>=0.1.2

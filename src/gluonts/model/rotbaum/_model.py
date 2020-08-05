@@ -19,9 +19,25 @@ import numpy as np
 import pandas as pd
 import xgboost
 from lightgbm import LGBMRegressor
+from skgarden import RandomForestQuantileRegressor
 
 # First-party imports
 from gluonts.core.component import validated
+
+
+class QRF:
+    @validated()
+    def __init__(self, params: Optional[dict] = None):
+        """
+        Implements quantile regression using lightgbm.
+        """
+        self.model = RandomForestQuantileRegressor(**params)
+
+    def fit(self, x_train, y_train):
+        self.model.fit(np.array(x_train), np.array(y_train))
+
+    def predict(self, x_test, quantile):
+        return self.model.predict(x_test, quantile=100 * quantile)
 
 
 class QuantileReg:

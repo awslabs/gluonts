@@ -32,7 +32,7 @@ from gluonts.support.pandas import forecast_start
 
 # Relative imports
 from ._preprocess import PreprocessOnlyLagFeatures
-from ._model import QRX, QuantileReg
+from ._model import QRX, QuantileReg, QRF
 
 
 class RotbaumForecast(Forecast):
@@ -116,8 +116,8 @@ class TreePredictor(RepresentablePredictor):
         method: str = "QRX",
         quantiles=None,  # Need to specify only if use_quantile_reg is True
     ) -> None:
-        assert method in ["QRX", "QuantileRegression"], (
-            "method has to be either 'QRX' or 'QuantileRegression'"
+        assert method in ["QRX", "QuantileRegression", "QRF"], (
+            "method has to be either 'QRX', 'QuantileRegression', or 'QRF'"
         )
         self.method = method
         self.lead_time = lead_time
@@ -139,7 +139,7 @@ class TreePredictor(RepresentablePredictor):
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
-        self.model_params = model_params
+        self.model_params = model_params if model_params else {}
         self.prediction_length = prediction_length
         self.freq = freq
         self.max_workers = max_workers
@@ -167,6 +167,10 @@ class TreePredictor(RepresentablePredictor):
                 QuantileReg(params=self.model_params, quantiles=self.quantiles)
                 for _ in range(n_models)
             ]
+        elif self.method == 'QRF':
+            self.model_list = [
+                QRF(params=self.model_params)
+                for _ in range(n_models)]
         elif self.method == 'QRX':
             self.model_list = [
                 QRX(
