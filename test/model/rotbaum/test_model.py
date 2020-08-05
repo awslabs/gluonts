@@ -23,19 +23,21 @@ from gluonts.evaluation.backtest import backtest_metrics
 # TODO: function.
 # TODO: implement using accuracy_test like other gluonts models
 
+
 def test_accuracy(accuracy_test, dsinfo):
 
     predictor = TreePredictor(
-        context_length=2, prediction_length=dsinfo["prediction_length"], freq = dsinfo["freq"]
+        context_length=2,
+        prediction_length=dsinfo["prediction_length"],
+        freq=dsinfo["freq"],
     )
     predictor(dsinfo.train_ds)
 
-
     agg_metrics, item_metrics = backtest_metrics(
-            test_dataset=dsinfo.test_ds,
-            predictor=predictor,
-            evaluator=Evaluator(quantiles=[0.1, 0.5, 0.9], num_workers=0),
-        )
+        test_dataset=dsinfo.test_ds,
+        predictor=predictor,
+        evaluator=Evaluator(quantiles=[0.1, 0.5, 0.9], num_workers=0),
+    )
 
     if dsinfo["name"] == "constant":
         for q in [0.1, 0.5, 0.9]:
