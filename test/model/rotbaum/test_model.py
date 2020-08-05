@@ -19,6 +19,7 @@ import pytest
 # First-party imports
 from gluonts.model.rotbaum import TreeEstimator
 
+
 @pytest.fixture()
 def hyperparameters(dsinfo):
     return dict(context_length=2, quantiles=[0.1, 0.5, 0.9], num_workers=0,)
@@ -29,6 +30,7 @@ def test_accuracy(accuracy_test, hyperparameters, quantiles):
     hyperparameters.update(quantiles=quantiles, max_workers=32)
 
     accuracy_test(TreeEstimator, hyperparameters, accuracy=0.20)
+
 
 def test_repr(repr_test, hyperparameters):
     repr_test(TreeEstimator, hyperparameters)
