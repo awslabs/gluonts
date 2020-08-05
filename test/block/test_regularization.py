@@ -21,6 +21,7 @@ from gluonts.mx.block.regularization import (
     TemporalActivationRegularizationLoss,
 )
 
+
 @pytest.mark.parametrize("alpha", [0, 1, 2, 3, 4, 5, 6, 7, 10, 20])
 def test_ActivationRegularizationLoss(alpha: float):
     ar = ActivationRegularizationLoss(alpha, batch_axis=0)
@@ -35,6 +36,7 @@ def test_ActivationRegularizationLoss(alpha: float):
         for array in inputs
     ]
     assert nd.norm(nd.add_n(*outputs) - ar_result).asscalar() < 1e-30
+
 
 @pytest.mark.parametrize("beta", [0, 1, 2, 3, 4, 5, 6, 7, 10, 20])
 def test_TemporalActivationRegularizationLoss(beta: float):
