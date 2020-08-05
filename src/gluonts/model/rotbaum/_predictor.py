@@ -25,13 +25,8 @@ import logging
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
-<<<<<<< HEAD
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.forecast_generator import log_once
-=======
-from gluonts.model.forecast import Forecast
->>>>>>> c9d6a3ca8af3172fbe71887a79222a822520cb77
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 
@@ -142,7 +137,11 @@ class TreePredictor(RepresentablePredictor):
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert (
-            prediction_length > 0 or use_feat_dynamic_cat or use_feat_dynamic_real or use_feat_static_cat or use_feat_static_real
+            prediction_length > 0
+            or use_feat_dynamic_cat
+            or use_feat_dynamic_real
+            or use_feat_static_cat
+            or use_feat_static_real
         ), "The value of `prediction_length` should be > 0 or there should be features for model training and prediction"
 
         self.context_length = (
@@ -157,7 +156,7 @@ class TreePredictor(RepresentablePredictor):
 
     def __call__(self, training_data):
         assert training_data
-        assert self.freq is not None:
+        assert self.freq is not None
         if next(iter(training_data))["start"].freq is not None:
             assert self.freq == next(iter(training_data))["start"].freq
         self.preprocess_object.preprocess_from_list(
