@@ -18,8 +18,6 @@ from typing import List, Optional, Dict
 import numpy as np
 import pandas as pd
 import xgboost
-from lightgbm import LGBMRegressor
-from skgarden import RandomForestQuantileRegressor
 
 # First-party imports
 from gluonts.core.component import validated
@@ -29,8 +27,10 @@ class QRF:
     @validated()
     def __init__(self, params: Optional[dict] = None):
         """
-        Implements quantile regression using lightgbm.
+        Implements Quantile Random Forests using skgarden.
         """
+        from skgarden import RandomForestQuantileRegressor
+
         self.model = RandomForestQuantileRegressor(**params)
 
     def fit(self, x_train, y_train):
@@ -46,6 +46,8 @@ class QuantileReg:
         """
         Implements quantile regression using lightgbm.
         """
+        from lightgbm import LGBMRegressor
+
         self.quantiles = quantiles
         self.models = dict(
             (
