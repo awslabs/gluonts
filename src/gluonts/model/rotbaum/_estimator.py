@@ -42,7 +42,6 @@ class ThirdPartyEstimator(GluonEstimator):
     def __init__(self, predictor_cls: type, **kwargs) -> None:
         self.predictor = predictor_cls(**kwargs)
 
-    @override()
     def train(
         self, training_data: Dataset, validation_dataset=None
     ) -> Predictor:

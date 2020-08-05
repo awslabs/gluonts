@@ -116,10 +116,10 @@ class TreePredictor(GluonPredictor):
         clump_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         xgboost_params: Optional[dict] = None,
-        use_feat_static_real:bool=False,
-        use_feat_static_cat:bool=False,
-        use_feat_dynamic_real:bool=False,
-        use_feat_dynamic_cat:bool=False,
+        use_feat_static_real: bool = False,
+        use_feat_static_cat: bool = False,
+        use_feat_dynamic_real: bool = False,
+        use_feat_dynamic_cat: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
         method: str = "QRX",
@@ -245,21 +245,18 @@ class TreePredictor(GluonPredictor):
                 freq=self.freq,
             )
 
-    @override()
     def serialize(self, path: Path) -> None:
         # call Predictor.serialize() in order to serialize the class name
         super().serialize(path)
         with (path / "predictor.json").open("w") as fp:
             print(dump_json(self), file=fp)
 
-    @override()
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "RepresentablePredictor":
         with (path / "predictor.json").open("r") as fp:
             return load_json(fp.read())
 
-    @override()
     def __eq__(self, that):
         """
         Two RepresentablePredictor instances are considered equal if they
