@@ -84,7 +84,7 @@ class Evaluator:
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
         calculate_owa: bool = False,
-        num_workers: Optional[int] = None,
+        num_workers: Optional[int] = 0,
         chunk_size: Optional[int] = None,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))

@@ -136,7 +136,7 @@ class PreprocessGeneric:
                 return [], []
             else:
                 return self.make_features(
-                    altered_time_series, len(altered_time_series["target"])
+                    altered_time_series, len(altered_time_series["target"]) # will return featurized data containing no target
                 )
 
         if self.num_samples > 0:

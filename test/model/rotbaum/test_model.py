@@ -14,24 +14,24 @@
 # Third-party imports
 import numpy as np
 from itertools import chain
+import pytest
 
 # First-party imports
-from gluonts.model.rotbaum import TreePredictor
+from gluonts.model.rotbaum import TreePredictor, TreeEstimator
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import backtest_metrics
 
 # TODO: function.
 # TODO: implement using accuracy_test like other gluonts models
 
-
 def test_accuracy(accuracy_test, dsinfo):
 
-    predictor = TreePredictor(
+    estimator = TreeEstimator(
         context_length=2,
         prediction_length=dsinfo["prediction_length"],
         freq=dsinfo["freq"],
     )
-    predictor(dsinfo.train_ds)
+    predictor = estimator.train(dsinfo.train_ds)
 
     agg_metrics, item_metrics = backtest_metrics(
         test_dataset=dsinfo.test_ds,
