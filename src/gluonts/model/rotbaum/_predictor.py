@@ -32,7 +32,7 @@ from gluonts.support.pandas import forecast_start
 
 # Relative imports
 from ._preprocess import PreprocessOnlyLagFeatures
-from ._model import QRX
+from ._model import QRX, QuantileReg
 
 
 class RotbaumForecast(Forecast):
@@ -108,13 +108,18 @@ class TreePredictor(RepresentablePredictor):
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
-        clump_size: int = 100,
+        clump_size: int = 100,  # Used only if use_quantile_reg is False
         context_length: Optional[int] = None,
-        xgboost_params: Optional[dict] = None,
-        max_workers=None,
-        model_params=None,
+        model_params: Optional[dict] = None,
+        max_workers: Optional[int] = None,
         freq=None,
+        method: str = "QRX",
+        quantiles=None,  # Need to specify only if use_quantile_reg is True
     ) -> None:
+        assert method in ["QRX", "QuantileRegression"], (
+            "method has to be either 'QRX' or 'QuantileRegression'"
+        )
+        self.method = method
         self.lead_time = lead_time
         self.preprocess_object = PreprocessOnlyLagFeatures(
             context_length,
@@ -123,7 +128,6 @@ class TreePredictor(RepresentablePredictor):
             n_ignore_last=n_ignore_last,
             max_n_datapts=max_n_datapts,
         )
-        self.xgboost_params = xgboost_params
 
         assert (
             context_length is None or context_length > 0
@@ -140,6 +144,7 @@ class TreePredictor(RepresentablePredictor):
         self.freq = freq
         self.max_workers = max_workers
         self.clump_size = clump_size
+        self.quantiles = quantiles
         self.model_list = None
 
     def __call__(self, training_data):
@@ -157,10 +162,19 @@ class TreePredictor(RepresentablePredictor):
         )
         n_models = self.prediction_length
         logging.info(f"Length of forecast horizon: {n_models}")
-        self.model_list = [
-            QRX(xgboost_params=self.xgboost_params, clump_size=self.clump_size)
-            for _ in range(n_models)
-        ]
+        if self.method == 'QuantileRegression':
+            self.model_list = [
+                QuantileReg(params=self.model_params, quantiles=self.quantiles)
+                for _ in range(n_models)
+            ]
+        elif self.method == 'QRX':
+            self.model_list = [
+                QRX(
+                    xgboost_params=self.model_params,
+                    clump_size=self.clump_size,
+                )
+                for _ in range(n_models)
+            ]
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.max_workers
         ) as executor:

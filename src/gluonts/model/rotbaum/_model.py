@@ -18,9 +18,33 @@ from typing import List, Optional, Dict
 import numpy as np
 import pandas as pd
 import xgboost
+from lightgbm import LGBMRegressor
 
 # First-party imports
 from gluonts.core.component import validated
+
+
+class QuantileReg:
+    @validated()
+    def __init__(self, quantiles: List, params: Optional[dict] = None):
+        """
+        Implements quantile regression using lightgbm.
+        """
+        self.quantiles = quantiles
+        self.models = dict(
+            (
+                quantile,
+                LGBMRegressor(objective="quantile", alpha=quantile, **params),
+            )
+            for quantile in quantiles
+        )
+
+    def fit(self, x_train, y_train):
+        for model in self.models.values():
+            model.fit(np.array(x_train), np.array(y_train))
+
+    def predict(self, x_test, quantile):
+        return self.models[quantile].predict(x_test)
 
 
 class QRX:
