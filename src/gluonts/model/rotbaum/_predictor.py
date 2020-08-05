@@ -253,9 +253,7 @@ class TreePredictor(GluonPredictor):
             print(dump_json(self), file=fp)
 
     def serialize_prediction_net(self, path: Path) -> None:
-        super().serialize(path)
-        with (path / "prediction_net.json").open("w") as fp:
-            print(dump_json(self), file=fp)
+        return None
 
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None
