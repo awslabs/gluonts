@@ -33,6 +33,7 @@ from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.forecast_generator import log_once
 from gluonts.model.predictor import GluonPredictor
 from gluonts.support.pandas import forecast_start
+from gluonts.dataset.loader import DataBatch
 
 # Relative imports
 from ._preprocess import PreprocessOnlyLagFeatures
@@ -251,11 +252,21 @@ class TreePredictor(GluonPredictor):
         with (path / "predictor.json").open("w") as fp:
             print(dump_json(self), file=fp)
 
+    def serialize_prediction_net(self, path: Path) -> None:
+        super().serialize(path)
+        with (path / "prediction_net.json").open("w") as fp:
+            print(dump_json(self), file=fp)
+
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "RepresentablePredictor":
         with (path / "predictor.json").open("r") as fp:
             return load_json(fp.read())
+
+    def as_symbol_block_predictor(
+        self, batch: DataBatch
+    ) -> "SymbolBlockPredictor":
+        return None
 
     def __eq__(self, that):
         """
