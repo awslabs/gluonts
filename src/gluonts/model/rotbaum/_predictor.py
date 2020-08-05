@@ -13,19 +13,25 @@
 
 # Standard library imports
 from enum import Enum
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Iterator, List, Optional
+
 
 # Third-party imports
 import numpy as np
 import pandas as pd
 from itertools import chain
 import concurrent.futures
+import logging
 
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+<<<<<<< HEAD
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.forecast_generator import log_once
+=======
+from gluonts.model.forecast import Forecast
+>>>>>>> c9d6a3ca8af3172fbe71887a79222a822520cb77
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 
@@ -59,7 +65,6 @@ class RotbaumForecast(Forecast):
         self.item_id = None
         self.lead_time = None
 
-    @validated()
     def quantile(self, q: float) -> np.array:
         """
         Returns np.array, where the i^th entry is the estimate of the q
@@ -69,11 +74,9 @@ class RotbaumForecast(Forecast):
         assert 0 <= q <= 1
         return np.array(
             list(
-                chain(
-                    *[
-                        model.predict(self.featurized_data, q)
-                        for model in self.models
-                    ]
+                chain.from_iterable(
+                    model.predict(self.featurized_data, q)
+                    for model in self.models
                 )
             )
         )
@@ -86,11 +89,9 @@ class RotbaumForecast(Forecast):
         """
         return np.array(
             list(
-                chain(
-                    *[
-                        model.estimate_dist(self.featurized_data)
-                        for model in self.models
-                    ]
+                chain.from_iterable(
+                    model.estimate_dist(self.featurized_data)
+                    for model in self.models
                 )
             )
         )
@@ -108,13 +109,15 @@ class TreePredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        context_length: Optional[int],
-        prediction_length: Optional[int],
         freq: str,
+        prediction_length: int,
         n_ignore_last: int = 0,
         lead_time: int = 0,
-        max_workers: int = 10,
-        max_n_datapts: int = 400000,
+        max_n_datapts: int = 1000000,
+        clump_size: int = 100,
+        context_length: Optional[int] = None,
+        xgboost_params: Optional[dict] = None,
+        max_workers=None,
         model_params=None,
         use_feat_static_real=False,
         use_feat_static_cat=False,
@@ -133,14 +136,25 @@ class TreePredictor(RepresentablePredictor):
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
         )
-        self.context_length = context_length
+        self.xgboost_params = xgboost_params
+
+        assert (
+            context_length is None or context_length > 0
+        ), "The value of `context_length` should be > 0"
+        assert (
+            prediction_length > 0 or use_feat_dynamic_cat or use_feat_dynamic_real or use_feat_static_cat or use_feat_static_real
+        ), "The value of `prediction_length` should be > 0 or there should be features for model training and prediction"
+
+        self.context_length = (
+            context_length if context_length is not None else prediction_length
+        )
         self.model_params = model_params
         self.prediction_length = prediction_length
         self.freq = freq
         self.max_workers = max_workers
+        self.clump_size = clump_size
         self.model_list = None
 
-    @validated()
     def __call__(self, training_data):
         assert training_data
         assert self.freq is not None:
@@ -154,13 +168,16 @@ class TreePredictor(RepresentablePredictor):
             self.preprocess_object.target_data,
         )
         n_models = self.prediction_length
-        print(f"Length of forecast horizon: {n_models}")
-        self.model_list = [QRX() for _ in range(n_models)]
+        logging.info(f"Length of forecast horizon: {n_models}")
+        self.model_list = [
+            QRX(xgboost_params=self.xgboost_params, clump_size=self.clump_size)
+            for _ in range(n_models)
+        ]
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.max_workers
         ) as executor:
             for n_step, model in enumerate(self.model_list):
-                print(
+                logging.info(
                     f"Training model for step no. {n_step + 1} in the forecast"
                     f" horizon"
                 )

@@ -17,9 +17,11 @@ from itertools import chain
 
 # First-party imports
 from gluonts.model.rotbaum import TreePredictor
-from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import backtest_metrics
+
+# TODO: function.
+# TODO: implement using accuracy_test like other gluonts models
 
 def test_accuracy(accuracy_test, dsinfo):
 

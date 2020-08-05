@@ -13,35 +13,14 @@
 
 # Standard library imports
 
-from typing import Iterator, List, Optional, Tuple, Union, Dict
+from typing import List, Tuple, Dict
 
 # Third-party imports
 import numpy as np
+import logging
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
-from gluonts.dataset.field_names import FieldName
-from gluonts.time_feature import (
-    TimeFeature,
-    time_features_from_frequency_str,
-    get_lags_for_frequency,
-)
-from gluonts.trainer import Trainer
-from gluonts.transform import (
-    AddAgeFeature,
-    AddObservedValuesIndicator,
-    AddTimeFeatures,
-    AsNumpyArray,
-    Chain,
-    ExpectedNumInstanceSampler,
-    InstanceSplitter,
-    RemoveFields,
-    SetField,
-    Transformation,
-    VstackFeatures,
-)
-from gluonts.support.pandas import frequency_add
 
 
 class PreprocessGeneric:
@@ -50,6 +29,7 @@ class PreprocessGeneric:
     make_features needs to be custom-made by inherited classes.
     """
 
+    @validated()
     def __init__(
         self,
         context_window_size: int,
@@ -110,7 +90,6 @@ class PreprocessGeneric:
         """
         raise NotImplementedError()
 
-    @validated()
     def preprocess_from_single_ts(self, time_series: Dict) -> Tuple:
         """
         Takes a single time series, ts_list, and returns preprocessed data.
@@ -200,7 +179,6 @@ class PreprocessGeneric:
                 )
         return feature_data, target_data
 
-    @validated()
     def preprocess_from_list(
         self, ts_list, change_internal_variables: bool = True
     ) -> Tuple:
@@ -230,7 +208,7 @@ class PreprocessGeneric:
             )
             feature_data += list(ts_feature_data)
             target_data += list(ts_target_data)
-        print(
+        logging.info(
             "Done preprocessing. Resulting number of datapoints is: {}".format(
                 len(feature_data)
             )
@@ -240,7 +218,6 @@ class PreprocessGeneric:
         else:
             return feature_data, target_data
 
-    @validated()
     def get_num_samples(self, ts_list) -> int:
         """
         Outputs a reasonable choice for number of windows to sample from
@@ -326,7 +303,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             },
         )
 
-    @validated()
     def make_features(self, time_series: Dict, starting_index: int) -> List:
         """
         Makes features for the context window starting at starting_index.
@@ -344,7 +320,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         """
         end_index = starting_index + self.context_window_size
         if starting_index < 0:
-            prefix = [None] * (-starting_index)
+            prefix = [None] * abs(starting_index)
         else:
             prefix = []
         time_series_window = time_series["target"][starting_index:end_index]
