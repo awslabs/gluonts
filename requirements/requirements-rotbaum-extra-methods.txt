@@ -1,2 +1,2 @@
 lightgbm>=2.3.1
-skgarden>=0.1.2
+scikit-garden>=0.1.2
