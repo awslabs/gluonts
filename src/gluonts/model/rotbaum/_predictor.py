@@ -14,6 +14,7 @@
 # Standard library imports
 from enum import Enum
 from typing import Iterator, List, Optional
+from pathlib import Path
 
 
 # Third-party imports
@@ -22,13 +23,15 @@ import pandas as pd
 from itertools import chain
 import concurrent.futures
 import logging
+import mxnet as mx
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, equals
+from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.forecast_generator import log_once
-from gluonts.model.predictor import RepresentablePredictor
+from gluonts.model.predictor import GluonPredictor
 from gluonts.support.pandas import forecast_start
 
 # Relative imports
@@ -93,7 +96,7 @@ class RotbaumForecast(Forecast):
         )
 
 
-class TreePredictor(RepresentablePredictor):
+class TreePredictor(GluonPredictor):
     """
     A predictor that uses a QRX model for each of the steps in the forecast
     horizon. (In other words, there's a total of prediction_length many
@@ -220,3 +223,26 @@ class TreePredictor(RepresentablePredictor):
                 prediction_length=self.prediction_length,
                 freq=self.freq,
             )
+
+    @override()
+    def serialize(self, path: Path) -> None:
+        # call Predictor.serialize() in order to serialize the class name
+        super().serialize(path)
+        with (path / "predictor.json").open("w") as fp:
+            print(dump_json(self), file=fp)
+
+    @override()
+    def deserialize(
+        cls, path: Path, ctx: Optional[mx.Context] = None
+    ) -> "RepresentablePredictor":
+        with (path / "predictor.json").open("r") as fp:
+            return load_json(fp.read())
+
+    @override()
+    def __eq__(self, that):
+        """
+        Two RepresentablePredictor instances are considered equal if they
+        have the same constructor arguments.
+        """
+        return equals(self, that)
+

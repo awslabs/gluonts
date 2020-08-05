@@ -11,16 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# Third-party imports
+from mxnet.gluon import HybridBlock
+
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.estimator import Estimator, Predictor
+from gluonts.model.estimator import GluonEstimator, Predictor, TrainOutput
+from gluonts.transform import FilterTransformation, Transformation
 
 # Relative imports
 from ._predictor import TreePredictor
 
 
-class ThirdPartyEstimator(Estimator):
+class ThirdPartyEstimator(GluonEstimator):
     """
     An `Estimator` that uses an external fitting mechanism, thus eliminating
     the need for a Trainer. Differs from DummyEstimator in that DummyEstimator
@@ -38,10 +42,27 @@ class ThirdPartyEstimator(Estimator):
     def __init__(self, predictor_cls: type, **kwargs) -> None:
         self.predictor = predictor_cls(**kwargs)
 
+    @override()
     def train(
         self, training_data: Dataset, validation_dataset=None
     ) -> Predictor:
         return self.predictor(training_data)
+
+    def train_model(self):
+        return TrainOutput(
+            transformation=self.create_transformation(),
+            trained_net=self.create_training_network(),
+            predictor=self.create_predictor(),
+        )
+
+    def create_predictor(self) -> Predictor:
+        return self.predictor
+
+    def create_transformation(self) -> Transformation:
+        return FilterTransformation(lambda x: True)
+
+    def create_training_network(self) -> HybridBlock:
+        return HybridBlock()
 
 
 class TreeEstimator(ThirdPartyEstimator):
