@@ -325,7 +325,7 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
                 time_distr_args, scale=self.output_scale,
             )
             if first_step:
-                # Time from teh last event until the next event
+                # Time from the last event until the next event
                 next_ia_times = time_distr.sample(
                     lower_bound=past_time_remaining_repeat
                 )

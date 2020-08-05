@@ -39,7 +39,7 @@ class PointProcessSampleForecast(Forecast):
     samples
         A multidimensional array of samples, of shape
         (number_of_samples, max_pred_length, target_dim). The target_dim is
-        equal to 2, where the first dimension contains teh inter-arrival times
+        equal to 2, where the first dimension contains the inter-arrival times
         and the second - categorical marks.
     valid_length
         An array of integers denoting the valid lengths of each sample

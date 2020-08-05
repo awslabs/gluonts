@@ -75,7 +75,7 @@ class DeepTPPEstimator(GluonEstimator):
     trainer
         :code:`gluonts.trainer.Trainer` object which will be used to train the
         estimator. Note that :code:`Trainer(hybridize=False)` must be set as
-        :code:`RMTPPEstimator` currently does not support hybridization.
+        :code:`DeepTPPEstimator` currently does not support hybridization.
     num_hidden_dimensions
         Number of hidden units in the GRU network.
     num_parallel_samples
