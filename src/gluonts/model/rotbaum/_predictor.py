@@ -116,9 +116,11 @@ class TreePredictor(RepresentablePredictor):
         method: str = "QRX",
         quantiles=None,  # Need to specify only if use_quantile_reg is True
     ) -> None:
-        assert method in ["QRX", "QuantileRegression", "QRF"], (
-            "method has to be either 'QRX', 'QuantileRegression', or 'QRF'"
-        )
+        assert method in [
+            "QRX",
+            "QuantileRegression",
+            "QRF",
+        ], "method has to be either 'QRX', 'QuantileRegression', or 'QRF'"
         self.method = method
         self.lead_time = lead_time
         self.preprocess_object = PreprocessOnlyLagFeatures(
@@ -162,16 +164,16 @@ class TreePredictor(RepresentablePredictor):
         )
         n_models = self.prediction_length
         logging.info(f"Length of forecast horizon: {n_models}")
-        if self.method == 'QuantileRegression':
+        if self.method == "QuantileRegression":
             self.model_list = [
                 QuantileReg(params=self.model_params, quantiles=self.quantiles)
                 for _ in range(n_models)
             ]
-        elif self.method == 'QRF':
+        elif self.method == "QRF":
             self.model_list = [
-                QRF(params=self.model_params)
-                for _ in range(n_models)]
-        elif self.method == 'QRX':
+                QRF(params=self.model_params) for _ in range(n_models)
+            ]
+        elif self.method == "QRX":
             self.model_list = [
                 QRX(
                     xgboost_params=self.model_params,
