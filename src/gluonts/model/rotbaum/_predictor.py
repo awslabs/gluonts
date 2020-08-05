@@ -36,7 +36,7 @@ from gluonts.support.pandas import forecast_start
 
 # Relative imports
 from ._preprocess import PreprocessOnlyLagFeatures
-from ._model import QRX
+from ._model import QRX, QuantileReg, QRF
 
 
 class RotbaumForecast(Forecast):
@@ -113,16 +113,24 @@ class TreePredictor(GluonPredictor):
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
-        clump_size: int = 100,
+        clump_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         xgboost_params: Optional[dict] = None,
-        max_workers=None,
-        model_params=None,
-        use_feat_static_real=False,
-        use_feat_static_cat=False,
-        use_feat_dynamic_real=False,
-        use_feat_dynamic_cat=False,
+        use_feat_static_real:bool=False,
+        use_feat_static_cat:bool=False,
+        use_feat_dynamic_real:bool=False,
+        use_feat_dynamic_cat:bool=False,
+        model_params: Optional[dict] = None,
+        max_workers: Optional[int] = None,
+        method: str = "QRX",
+        quantiles=None,  # Used only for "QuantileRegression" method.
     ) -> None:
+        assert method in [
+            "QRX",
+            "QuantileRegression",
+            "QRF",
+        ], "method has to be either 'QRX', 'QuantileRegression', or 'QRF'"
+        self.method = method
         self.lead_time = lead_time
         self.preprocess_object = PreprocessOnlyLagFeatures(
             context_length,
@@ -135,7 +143,6 @@ class TreePredictor(GluonPredictor):
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
         )
-        self.xgboost_params = xgboost_params
 
         assert (
             context_length is None or context_length > 0
@@ -151,11 +158,12 @@ class TreePredictor(GluonPredictor):
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
-        self.model_params = model_params
+        self.model_params = model_params if model_params else {}
         self.prediction_length = prediction_length
         self.freq = freq
         self.max_workers = max_workers
         self.clump_size = clump_size
+        self.quantiles = quantiles
         self.model_list = None
 
     def __call__(self, training_data):
@@ -172,10 +180,23 @@ class TreePredictor(GluonPredictor):
         )
         n_models = self.prediction_length
         logging.info(f"Length of forecast horizon: {n_models}")
-        self.model_list = [
-            QRX(xgboost_params=self.xgboost_params, clump_size=self.clump_size)
-            for _ in range(n_models)
-        ]
+        if self.method == "QuantileRegression":
+            self.model_list = [
+                QuantileReg(params=self.model_params, quantiles=self.quantiles)
+                for _ in range(n_models)
+            ]
+        elif self.method == "QRF":
+            self.model_list = [
+                QRF(params=self.model_params) for _ in range(n_models)
+            ]
+        elif self.method == "QRX":
+            self.model_list = [
+                QRX(
+                    xgboost_params=self.model_params,
+                    clump_size=self.clump_size,
+                )
+                for _ in range(n_models)
+            ]
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.max_workers
         ) as executor:

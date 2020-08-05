@@ -22,7 +22,6 @@ import numpy as np
 # First-party imports
 import gluonts
 from gluonts.core import fqname_for
-from gluonts.core.component import check_gpu_support
 from gluonts.core.serde import dump_code
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
@@ -57,8 +56,6 @@ def log_metric(metric: str, value: Any) -> None:
 def run_train_and_test(
     env: TrainEnv, forecaster_type: Type[Union[Estimator, Predictor]]
 ) -> None:
-    check_gpu_support()
-
     # train_stats = calculate_dataset_statistics(env.datasets["train"])
     # log_metric("train_dataset_stats", train_stats)
 

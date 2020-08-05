@@ -19,9 +19,10 @@ import numpy as np
 from mxnet.gluon import nn
 
 # First-party imports
-from gluonts.core.component import get_mxnet_context, validated
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.common import Tensor
+from gluonts.mx.context import get_mxnet_context
 
 from .representation import Representation
 
@@ -30,7 +31,7 @@ class Embedding(Representation):
     """
     A class representing an embedding operation on top of a given binning.
     Note that this representation is intended to applied on top of categorical/binned data.
-    
+
     Parameters
     ----------
     num_bins

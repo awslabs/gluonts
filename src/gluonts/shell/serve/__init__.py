@@ -25,7 +25,6 @@ from pydantic import BaseSettings
 # First-party imports
 import gluonts
 from gluonts.core import fqname_for
-from gluonts.core.component import check_gpu_support
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 from gluonts.shell.sagemaker import ServeEnv
@@ -120,8 +119,6 @@ def make_gunicorn_app(
     forecaster_type: Optional[Type[Union[Estimator, Predictor]]],
     settings: Settings,
 ) -> Application:
-    check_gpu_support()
-
     if forecaster_type is not None:
         logger.info(f"Using dynamic predictor factory")
 

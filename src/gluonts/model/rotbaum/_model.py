@@ -23,6 +23,48 @@ import xgboost
 from gluonts.core.component import validated
 
 
+class QRF:
+    @validated()
+    def __init__(self, params: Optional[dict] = None):
+        """
+        Implements Quantile Random Forests using skgarden.
+        """
+        from skgarden import RandomForestQuantileRegressor
+
+        self.model = RandomForestQuantileRegressor(**params)
+
+    def fit(self, x_train, y_train):
+        self.model.fit(np.array(x_train), np.array(y_train))
+
+    def predict(self, x_test, quantile):
+        return self.model.predict(x_test, quantile=100 * quantile)
+
+
+class QuantileReg:
+    @validated()
+    def __init__(self, quantiles: List, params: Optional[dict] = None):
+        """
+        Implements quantile regression using lightgbm.
+        """
+        from lightgbm import LGBMRegressor
+
+        self.quantiles = quantiles
+        self.models = dict(
+            (
+                quantile,
+                LGBMRegressor(objective="quantile", alpha=quantile, **params),
+            )
+            for quantile in quantiles
+        )
+
+    def fit(self, x_train, y_train):
+        for model in self.models.values():
+            model.fit(np.array(x_train), np.array(y_train))
+
+    def predict(self, x_test, quantile):
+        return self.models[quantile].predict(x_test)
+
+
 class QRX:
     @validated()
     def __init__(
