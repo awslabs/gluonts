@@ -245,4 +245,3 @@ class TreePredictor(GluonPredictor):
         have the same constructor arguments.
         """
         return equals(self, that)
-
