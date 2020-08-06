@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 # Third-party imports
 import mxnet as mx
@@ -323,7 +323,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         future_target: Tensor,
         future_observed_values: Tensor,
         return_rnn_outputs: bool = False,
-    ) -> Distribution:
+    ) -> Union[Distribution, Tuple[Distribution, Tensor]]:
         """
 
         Returns the distribution predicted by the model on the range of
@@ -341,6 +341,9 @@ class DeepARTrainingNetwork(DeepARNetwork):
         Distribution
             a distribution object whose mean has shape:
             (batch_size, context_length + prediction_length).
+        rnn_outputs
+            (optional) when return_rnn_outputs=True, rnn_outputs will be returned
+            so that it could be used for regularization
         """
         # unroll the decoder in "training mode"
         # i.e. by providing future data as well
