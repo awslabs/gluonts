@@ -118,7 +118,6 @@ class TreePredictor(GluonPredictor):
         max_n_datapts: int = 1000000,
         clump_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
-        xgboost_params: Optional[dict] = None,
         use_feat_static_real: bool = False,
         use_feat_static_cat: bool = False,
         use_feat_dynamic_real: bool = False,
