@@ -16,6 +16,7 @@ from enum import Enum
 from typing import Iterator, List, Optional
 from pathlib import Path
 import json
+import warnings
 
 
 # Third-party imports
@@ -134,8 +135,11 @@ class TreePredictor(GluonPredictor):
         ], "method has to be either 'QRX', 'QuantileRegression', or 'QRF'"
         self.method = method
         self.lead_time = lead_time
+        self.context_length = (
+            context_length if context_length is not None else prediction_length
+        )
         self.preprocess_object = PreprocessOnlyLagFeatures(
-            context_length,
+            self.context_length,
             forecast_horizon=prediction_length,
             stratify_targets=False,
             n_ignore_last=n_ignore_last,
@@ -155,11 +159,9 @@ class TreePredictor(GluonPredictor):
             or use_feat_dynamic_real
             or use_feat_static_cat
             or use_feat_static_real
-        ), "The value of `prediction_length` should be > 0 or there should be features for model training and prediction"
+        ), 'The value of `prediction_length` should be > 0 or there should be features for model training and ' \
+           'prediction '
 
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
         self.model_params = model_params if model_params else {}
         self.prediction_length = prediction_length
         self.freq = freq
@@ -167,6 +169,11 @@ class TreePredictor(GluonPredictor):
         self.clump_size = clump_size
         self.quantiles = quantiles
         self.model_list = None
+
+        logging.info(
+            'If using the Evaluator class with a TreePredictor, set num_workers=0. The TreePredictor and Evaluator ' \
+            'classes both use multiprocessing which is slow in tandem.'
+        )
 
     def __call__(self, training_data):
         assert training_data
