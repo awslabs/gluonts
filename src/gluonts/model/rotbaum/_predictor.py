@@ -265,7 +265,7 @@ class TreePredictor(GluonPredictor):
 
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None
-    ) -> "RepresentablePredictor":
+    ) -> "TreePredictor":
         path = path if path is not None else Path(".")
 
         with (path / "predictor.json").open("r") as fp:
