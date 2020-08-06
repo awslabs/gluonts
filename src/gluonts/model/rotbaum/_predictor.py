@@ -249,35 +249,35 @@ class TreePredictor(GluonPredictor):
             )
 
     def serialize(self, path: Path) -> None:
-        path = path if path is not None else ""
+        path = path if path is not None else Path(".")
 
-        with (path + "/type.txt").open("w") as fp:
+        with (path / "type.txt").open("w") as fp:
             fp.write(fqname_for(self.__class__))
-        with (path + "/version.json").open("w") as fp:
+        with (path / "version.json").open("w") as fp:
             json.dump(
                 {"model": self.__version__, "gluonts": gluonts.__version__}, fp
             )
-        with (path + "/predictor.json").open("w") as fp:
+        with (path / "predictor.json").open("w") as fp:
             print(dump_json(self), file=fp)
 
     def serialize_prediction_net(self, path: Path) -> None:
-        path = path if path is not None else ""
+        path = path if path is not None else Path(".")
 
-        with (path + "/type.txt").open("w") as fp:
+        with (path / "type.txt").open("w") as fp:
             fp.write(fqname_for(self.__class__))
-        with (path + "/version.json").open("w") as fp:
+        with (path / "version.json").open("w") as fp:
             json.dump(
                 {"model": self.__version__, "gluonts": gluonts.__version__}, fp
             )
-        with (path + "/prediction_net.json").open("w") as fp:
+        with (path / "prediction_net.json").open("w") as fp:
             print(dump_json(self), file=fp)
 
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "RepresentablePredictor":
-        path = path if path is not None else ""
+        path = path if path is not None else Path(".")
 
-        with (path + "/predictor.json").open("r") as fp:
+        with (path / "predictor.json").open("r") as fp:
             return load_json(fp.read())
 
     def as_symbol_block_predictor(
