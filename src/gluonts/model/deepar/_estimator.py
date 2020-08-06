@@ -118,6 +118,10 @@ class DeepAREstimator(GluonEstimator):
         This is a model optimization that does not affect the accuracy (default: 100)
     imputation_method
         One of the methods from ImputationStrategy
+    alpha
+        The scaling coefficient of the activation regularization
+    beta
+        The scaling coefficient of the temporal activation regularization
     """
 
     @validated()

@@ -29,22 +29,16 @@ class ActivationRegularizationLoss(Loss):
     L = \alpha L_2(h_t)
     where :math:`L_2(\cdot) = {||\cdot||}_2, h_t` is the output of the RNN at timestep t.
     :math:`\alpha` is scaling coefficient.
-    The implementation follows the work::
-    @article{merity2017revisiting,
-    title={Revisiting Activation Regularization for Language RNNs},
-    author={Merity, Stephen and McCann, Bryan and Socher, Richard},
-    journal={arXiv preprint arXiv:1708.01009},
-    year={2017}
-    }
+    The implementation follows [MMS17]_.
     Parameters
     ----------
-    alpha : float, default 0
+    alpha
         The scaling coefficient of the regularization.
-    weight : float or None
+    weight
         Global scalar weight for loss.
-    batch_axis : int, default 0
+    batch_axis
         The axis that represents mini-batch.
-    time_axis : int, default 0
+    time_axis
         The axis that represents time-step.
     """
 
@@ -72,11 +66,11 @@ class ActivationRegularizationLoss(Loss):
         """
         Parameters
         ----------
-        states : list
-            the stack outputs from RNN, which consists of output from each time step (TNC).
+        states
+            the stack outputs from RNN, which consists of output from each time step.
         Returns
         --------
-        loss : NDArray
+        loss
             loss tensor with shape (batch_size,). Dimensions other than batch_axis are averaged out.
         """
         if self._alpha != 0:
@@ -104,22 +98,16 @@ class TemporalActivationRegularizationLoss(Loss):
     L = \beta L_2(h_t-h_{t+1})
     where :math:`L_2(\cdot) = {||\cdot||}_2, h_t` is the output of the RNN at timestep t,
     :math:`h_{t+1}` is the output of the RNN at timestep t+1, :math:`\beta` is scaling coefficient.
-    The implementation follows the work::
-    @article{merity2017revisiting,
-    title={Revisiting Activation Regularization for Language RNNs},
-    author={Merity, Stephen and McCann, Bryan and Socher, Richard},
-    journal={arXiv preprint arXiv:1708.01009},
-    year={2017}
-    }
+    The implementation follows [MMS17]_.
     Parameters
     ----------
-    beta : float, default 0
+    beta
         The scaling coefficient of the regularization.
-    weight : float or None
+    weight
         Global scalar weight for loss.
-    batch_axis : int, default 0
+    batch_axis
         The axis that represents mini-batch.
-    time_axis : int, default 0
+    time_axis
         The axis that represents time-step.
     """
 
@@ -147,11 +135,11 @@ class TemporalActivationRegularizationLoss(Loss):
         """
         Parameters
         ----------
-        states : list
-            the stack outputs from RNN, which consists of output from each time step (TNC).
+        states
+            the stack outputs from RNN, which consists of output from each time step.
         Returns
         --------
-        loss : NDArray
+        loss
             loss tensor with shape (batch_size,). Dimensions other than batch_axis are averaged out.
         """
         if self._beta != 0:

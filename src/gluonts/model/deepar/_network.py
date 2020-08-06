@@ -312,9 +312,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
                 beta, time_axis=1, batch_axis=0
             )
 
-        if alpha or beta:
-            self.rnn_outputs = None
-
     def distribution(
         self,
         feat_static_cat: Tensor,
@@ -325,6 +322,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         future_time_feat: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
+        return_rnn_outputs: bool = False,
     ) -> Distribution:
         """
 
@@ -359,13 +357,18 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_target=future_target,
         )
 
-        # store output of rnn layers, so that it can be used for regularization later
-        # assume no dropout for outputs, so can be directly used for activation regularization
-        self.rnn_outputs = rnn_outputs
-
         distr_args = self.proj_distr_args(rnn_outputs)
 
-        return self.distr_output.distribution(distr_args, scale=scale)
+        # return the output of rnn layers if return_rnn_outputs=True, so that it can be used for regularization later
+        # assume no dropout for outputs, so can be directly used for activation regularization
+        return (
+            (
+                self.distr_output.distribution(distr_args, scale=scale),
+                rnn_outputs,
+            )
+            if return_rnn_outputs
+            else self.distr_output.distribution(distr_args, scale=scale)
+        )
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
@@ -401,7 +404,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         """
 
-        distr = self.distribution(
+        distr, rnn_outputs = self.distribution(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
             past_time_feat=past_time_feat,
@@ -410,6 +413,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_time_feat=future_time_feat,
             future_target=future_target,
             future_observed_values=future_observed_values,
+            return_rnn_outputs=True,
         )
 
         # put together target sequence
@@ -454,14 +458,14 @@ class DeepARTrainingNetwork(DeepARNetwork):
         loss = F.where(condition=loss_weights, x=loss, y=F.zeros_like(loss))
 
         # rnn_outputs is already merged into a single tensor
-        assert not isinstance(self.rnn_outputs, list)
+        assert not isinstance(rnn_outputs, list)
         # it seems that the trainer only uses the first return value for backward
         # so we only add regularization to weighted_loss
         if self.alpha:
-            ar_loss = self.ar_loss(self.rnn_outputs)
+            ar_loss = self.ar_loss(rnn_outputs)
             weighted_loss = F.elemwise_add(weighted_loss, ar_loss)
         if self.beta:
-            tar_loss = self.tar_loss(self.rnn_outputs)
+            tar_loss = self.tar_loss(rnn_outputs)
             weighted_loss = F.elemwise_add(weighted_loss, tar_loss)
 
         return weighted_loss, loss

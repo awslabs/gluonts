@@ -25,3 +25,4 @@ Bibliography
 
 .. [YRD15] Yu, Hsiang-Fu, Nikhil Rao, and Inderjit S. Dhillon. "High-dimensional time series prediction with missing values." arXiv preprint arXiv:1509.08333 (2015).
 
+.. [MMS17] Merity, Stephen, Bryan McCann, and Richard Socher. "Revisiting activation regularization for language rnns." arXiv preprint arXiv:1708.01009 (2017).
