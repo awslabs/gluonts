@@ -15,6 +15,7 @@
 from enum import Enum
 from typing import Iterator, List, Optional
 from pathlib import Path
+import json
 
 
 # Third-party imports
@@ -26,6 +27,7 @@ import logging
 import mxnet as mx
 
 # First-party imports
+import gluonts
 from gluonts.core.component import validated, equals
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import Dataset
@@ -247,19 +249,24 @@ class TreePredictor(GluonPredictor):
             )
 
     def serialize(self, path: Path) -> None:
-        # call Predictor.serialize() in order to serialize the class name
-        super().serialize(path)
+
+        with (path / "type.txt").open("w") as fp:
+            fp.write(fqname_for(self.__class__))
+        with (path / "version.json").open("w") as fp:
+            json.dump(
+                {"model": self.__version__, "gluonts": gluonts.__version__}, fp
+            )
         with (path / "predictor.json").open("w") as fp:
             print(dump_json(self), file=fp)
 
     def serialize_prediction_net(self, path: Path) -> None:
-        super().serialize(path)
-        with (path / "prediction_net.json").open("w") as fp:
-            print(dump_json(self), file=fp)
+        self.serialize(path)
 
+    @classmethod
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None
-    ) -> "RepresentablePredictor":
+    ) -> "TreePredictor":
+
         with (path / "predictor.json").open("r") as fp:
             return load_json(fp.read())
 
