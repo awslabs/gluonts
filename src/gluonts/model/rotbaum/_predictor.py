@@ -249,7 +249,6 @@ class TreePredictor(GluonPredictor):
             )
 
     def serialize(self, path: Path) -> None:
-        path = path if path is not None else Path(".")
 
         with (path / "type.txt").open("w") as fp:
             fp.write(fqname_for(self.__class__))
@@ -266,7 +265,6 @@ class TreePredictor(GluonPredictor):
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "TreePredictor":
-        path = path if path is not None else Path(".")
 
         with (path / "predictor.json").open("r") as fp:
             return load_json(fp.read())
