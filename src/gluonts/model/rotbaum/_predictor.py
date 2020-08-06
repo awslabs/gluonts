@@ -262,6 +262,7 @@ class TreePredictor(GluonPredictor):
     def serialize_prediction_net(self, path: Path) -> None:
         self.serialize(path)
 
+    @classmethod
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "TreePredictor":
