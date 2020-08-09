@@ -159,8 +159,10 @@ class TreePredictor(GluonPredictor):
             or use_feat_dynamic_real
             or use_feat_static_cat
             or use_feat_static_real
-        ), 'The value of `prediction_length` should be > 0 or there should be features for model training and ' \
-           'prediction '
+        ), (
+            "The value of `prediction_length` should be > 0 or there should be features for model training and "
+            "prediction "
+        )
 
         self.model_params = model_params if model_params else {}
         self.prediction_length = prediction_length
@@ -171,8 +173,8 @@ class TreePredictor(GluonPredictor):
         self.model_list = None
 
         logging.info(
-            'If using the Evaluator class with a TreePredictor, set num_workers=0. The TreePredictor and Evaluator ' \
-            'classes both use multiprocessing which is slow in tandem.'
+            "If using the Evaluator class with a TreePredictor, set num_workers=0. The TreePredictor and Evaluator "
+            "classes both use multiprocessing which is slow in tandem."
         )
 
     def __call__(self, training_data):
