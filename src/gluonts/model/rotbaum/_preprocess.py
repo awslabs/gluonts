@@ -356,8 +356,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             [(np.floor(elem) == elem) for elem in feat_static_cat]
         )  # asserts that the categorical features are encoded
 
-        assert (not feat_static_cat) or all(
-            [(np.floor(elem) == elem) for elem in feat_dynamic_cat]
+        assert (not feat_dynamic_cat) or all(
+            [(np.floor(elem) == elem) for ent in feat_dynamic_cat for elem in ent]
         )  # asserts that the categorical features are encoded
 
         feat_dynamics = feat_dynamic_real + feat_dynamic_cat
