@@ -93,7 +93,7 @@ class Output:
     def dtype(self, dtype: DType):
         self._dtype = dtype
 
-    def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
+    def get_args_proj(self, prefix: Optional[str] = None) -> gluon.HybridBlock:
         return ArgProj(
             args_dim=self.args_dim,
             domain_map=gluon.nn.HybridLambda(self.domain_map),
