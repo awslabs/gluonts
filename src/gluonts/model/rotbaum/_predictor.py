@@ -16,7 +16,6 @@ from enum import Enum
 from typing import Iterator, List, Optional
 from pathlib import Path
 import json
-import warnings
 
 
 # Third-party imports
@@ -123,6 +122,9 @@ class TreePredictor(GluonPredictor):
         use_feat_static_cat: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_dynamic_cat: bool = False,
+        static_cardinality: Optional[List] = None,
+        dynamic_cardinality: Optional[List] = None,
+        one_hot_encode: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
         method: str = "QRX",
@@ -148,6 +150,8 @@ class TreePredictor(GluonPredictor):
             use_feat_static_cat=use_feat_static_cat,
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
+            static_cardinality=static_cardinality,
+            one_hot_encode=one_hot_encode
         )
 
         assert (
@@ -172,7 +176,9 @@ class TreePredictor(GluonPredictor):
         self.quantiles = quantiles
         self.model_list = None
 
-        logging.info(
+        self.logger = logging.getLogger("TreePredictor")
+
+        self.logger.info(
             "If using the Evaluator class with a TreePredictor, set num_workers=0. The TreePredictor and Evaluator "
             "classes both use multiprocessing which is slow in tandem."
         )
@@ -212,7 +218,7 @@ class TreePredictor(GluonPredictor):
             max_workers=self.max_workers
         ) as executor:
             for n_step, model in enumerate(self.model_list):
-                logging.info(
+                self.logger.info(
                     f"Training model for step no. {n_step + 1} in the forecast"
                     f" horizon"
                 )
