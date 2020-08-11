@@ -45,7 +45,7 @@ class ActivationRegularizationLoss(Loss):
     @validated()
     def __init__(
         self,
-        alpha: float = 0,
+        alpha: float = 0.0,
         weight: Optional[float] = None,
         batch_axis: int = 1,
         time_axis: int = 0,
