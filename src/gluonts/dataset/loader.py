@@ -183,7 +183,7 @@ class DataLoader(Iterable[DataBatch]):
 
         # TODO: MultiProcessIterator is depleting ValidationDataLoader and InferenceDataLoader
         base_iterator = (
-            dataset
+            iter(dataset)
             if num_workers is None
             else MultiProcessIterator(
                 dataset, num_workers=num_workers, max_queue_size=num_prefetch,
@@ -225,13 +225,10 @@ class TrainDataLoader(DataLoader):
     ) -> None:
         self.num_batches_per_epoch = num_batches_per_epoch
 
-        # FIXME Why is wrapping the TransformedDataset into an `iter` required for TrainDataLoader?
-        transformed_dataset = iter(
-            TransformedDataset(
-                base_dataset=CyclicIterable(dataset),
-                transformation=transform,
-                is_train=True,
-            )
+        transformed_dataset = TransformedDataset(
+            base_dataset=CyclicIterable(dataset),
+            transformation=transform,
+            is_train=True,
         )
 
         super().__init__(
