@@ -41,6 +41,8 @@ from gluonts.dataset.loader import DataBatch
 from ._preprocess import PreprocessOnlyLagFeatures
 from ._model import QRX, QuantileReg, QRF
 
+logger = logging.getLogger("Rotbaum")
+
 
 class RotbaumForecast(Forecast):
     """
@@ -171,9 +173,7 @@ class TreePredictor(GluonPredictor):
         self.quantiles = quantiles
         self.model_list = None
 
-        self.logger = logging.getLogger("TreePredictor")
-
-        self.logger.info(
+        logger.info(
             "If using the Evaluator class with a TreePredictor, set num_workers=0. The TreePredictor and Evaluator "
             "classes both use multiprocessing which is slow in tandem."
         )
@@ -213,7 +213,7 @@ class TreePredictor(GluonPredictor):
             max_workers=self.max_workers
         ) as executor:
             for n_step, model in enumerate(self.model_list):
-                self.logger.info(
+                logger.info(
                     f"Training model for step no. {n_step + 1} in the forecast"
                     f" horizon"
                 )

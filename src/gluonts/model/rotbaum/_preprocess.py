@@ -13,7 +13,7 @@
 
 # Standard library imports
 
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 # Third-party imports
 import numpy as np
@@ -260,6 +260,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         use_feat_static_cat=False,
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
+        static_cardinality: Optional[List] = None,
+        one_hot_encode: bool = True,  # should improve performance but will slow down model
         **kwargs
     ):
         super().__init__(
@@ -270,10 +272,27 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             num_samples=num_samples,
             **kwargs
         )
+
+        assert (
+            use_feat_static_cat or not static_cardinality
+        ), "You should set `static_cardinality` if and only if `use_feat_static_cat=True`"
+        # assert (
+        #         use_feat_dynamic_cat or not dynamic_cardinality
+        # ), "You should set `static_cardinality` if and only if `use_feat_static_cat=True`"
+        assert static_cardinality is None or all(
+            c > 0 for c in static_cardinality
+        ), "Elements of `static_cardinality` should be > 0"
+        # assert dynamic_cardinality is None or all(
+        #     c > 0 for c in dynamic_cardinality
+        # ), "Elements of `dynamic_cardinality` should be > 0"
+
         self.use_feat_static_real = use_feat_static_real
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
+        self.static_cardinality = static_cardinality
+        # self.dynamic_cardinality = dynamic_cardinality
+        self.one_hot_encode = one_hot_encode
 
     @classmethod
     def _pre_transform(cls, time_series_window) -> Tuple:
@@ -306,6 +325,22 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             },
         )
 
+    def create_cat_feats(self, feat_list: List) -> List:
+        ret = [[0] * cardinality for cardinality in self.static_cardinality]
+        for i, feat in enumerate(feat_list):
+            ret[i][int(feat) - 1] = 1
+
+        # else: # is dynamic
+        #     dynamic_length = len(feat_list[0])
+        #     ret = [[0]*cardinality*dynamic_length for cardinality in self.dynamic_cardinality]
+        #     for i in range(len(feat_list)):
+        #         for j, dyn_feat in enumerate(feat_list[i]):
+        #                 ret[i][i*dyn_feat + dyn_feat]
+
+        for i in range(1, len(ret)):
+            ret[0] += ret[i]
+        return ret[0]
+
     def make_features(self, time_series: Dict, starting_index: int) -> List:
         """
         Makes features for the context window starting at starting_index.
@@ -336,11 +371,15 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             if self.use_feat_static_real
             else []
         )
-        feat_static_cat = (
-            list(time_series["feat_static_cat"])
-            if self.use_feat_static_cat
-            else []
-        )
+        if self.use_feat_static_cat:
+            feat_static_cat = (
+                self.create_cat_feats(time_series["feat_static_cat"])
+                if self.one_hot_encode
+                else list(time_series["feat_static_cat"])
+            )
+        else:
+            feat_static_cat = []
+
         feat_dynamic_real = (
             [elem for ent in time_series["feat_dynamic_real"] for elem in ent]
             if self.use_feat_dynamic_real
@@ -351,13 +390,21 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             if self.use_feat_dynamic_cat
             else []
         )
+        # if self.use_feat_dynamic_cat:
+        #     feat_dynamic_cat = (
+        #         self.create_cat_feats(time_series["feat_dynamic_cat"], is_static=False)
+        #         if self.one_hot_encode
+        #         else [elem for ent in time_series["feat_dynamic_cat"] for elem in ent]
+        #     )
+        # else:
+        #     feat_dynamic_cat = []
 
         assert (not feat_static_cat) or all(
-            [(np.floor(elem) == elem) for elem in feat_static_cat]
+            (np.floor(elem) == elem) for elem in feat_static_cat
         )  # asserts that the categorical features are encoded
 
         assert (not feat_dynamic_cat) or all(
-            [(np.floor(elem) == elem) for elem in feat_dynamic_cat]
+            (np.floor(elem) == elem) for elem in feat_dynamic_cat
         )  # asserts that the categorical features are encoded
 
         feat_dynamics = feat_dynamic_real + feat_dynamic_cat

@@ -63,7 +63,8 @@ class RemoveFields(SimpleTransformation):
 
     def transform(self, data: DataEntry) -> DataEntry:
         for k in self.field_names:
-            data.pop(k, None)
+            if k in data:
+                del data["k"]
         return data
 
 
