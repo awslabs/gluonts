@@ -41,7 +41,7 @@ from gluonts.dataset.loader import DataBatch
 from ._preprocess import PreprocessOnlyLagFeatures
 from ._model import QRX, QuantileReg, QRF
 
-logger = logging.getLogger("Rotbaum")
+logger = logging.getLogger("TreePredictor")
 
 
 class RotbaumForecast(Forecast):
