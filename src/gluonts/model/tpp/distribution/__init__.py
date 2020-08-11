@@ -11,18 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .forecast import PointProcessSampleForecast
-from .predictor import PointProcessGluonPredictor
-from .deeptpp import DeepTPPEstimator
+from .base import (
+    TPPDistribution,
+    TPPDistributionOutput,
+    TPPTransformedDistribution,
+)
+from .loglogistic import Loglogistic, LoglogisticOutput
+from .weibull import Weibull, WeibullOutput
 
 __all__ = [
-    "PointProcessGluonPredictor",
-    "PointProcessSampleForecast",
-    "DeepTPPEstimator",
+    "TPPDistribution",
+    "TPPDistributionOutput",
+    "TPPTransformedDistribution",
+    "Loglogistic",
+    "LoglogisticOutput",
+    "Weibull",
+    "WeibullOutput",
 ]
-
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
