@@ -24,7 +24,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements/requirements-mxnet.txt
-        pip install -r requirements/requirements-pytorch.txt
+        pip install -r requirements/requirements-pytorch.txt --no-cache-dir
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
