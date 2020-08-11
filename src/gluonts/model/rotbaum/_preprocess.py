@@ -276,22 +276,15 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         assert (
             use_feat_static_cat or not static_cardinality
         ), "You should set `static_cardinality` if and only if `use_feat_static_cat=True`"
-        # assert (
-        #         use_feat_dynamic_cat or not dynamic_cardinality
-        # ), "You should set `static_cardinality` if and only if `use_feat_static_cat=True`"
         assert static_cardinality is None or all(
             c > 0 for c in static_cardinality
         ), "Elements of `static_cardinality` should be > 0"
-        # assert dynamic_cardinality is None or all(
-        #     c > 0 for c in dynamic_cardinality
-        # ), "Elements of `dynamic_cardinality` should be > 0"
 
         self.use_feat_static_real = use_feat_static_real
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
         self.static_cardinality = static_cardinality
-        # self.dynamic_cardinality = dynamic_cardinality
         self.one_hot_encode = one_hot_encode
 
     @classmethod
@@ -329,13 +322,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         ret = [[0] * cardinality for cardinality in self.static_cardinality]
         for i, feat in enumerate(feat_list):
             ret[i][int(feat) - 1] = 1
-
-        # else: # is dynamic
-        #     dynamic_length = len(feat_list[0])
-        #     ret = [[0]*cardinality*dynamic_length for cardinality in self.dynamic_cardinality]
-        #     for i in range(len(feat_list)):
-        #         for j, dyn_feat in enumerate(feat_list[i]):
-        #                 ret[i][i*dyn_feat + dyn_feat]
 
         for i in range(1, len(ret)):
             ret[0] += ret[i]
@@ -390,14 +376,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             if self.use_feat_dynamic_cat
             else []
         )
-        # if self.use_feat_dynamic_cat:
-        #     feat_dynamic_cat = (
-        #         self.create_cat_feats(time_series["feat_dynamic_cat"], is_static=False)
-        #         if self.one_hot_encode
-        #         else [elem for ent in time_series["feat_dynamic_cat"] for elem in ent]
-        #     )
-        # else:
-        #     feat_dynamic_cat = []
 
         assert (not feat_static_cat) or all(
             (np.floor(elem) == elem) for elem in feat_static_cat
