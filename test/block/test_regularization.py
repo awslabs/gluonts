@@ -14,6 +14,7 @@
 # Third-party imports
 from mxnet import nd
 import pytest
+import numpy as np
 
 # First-party imports
 from gluonts.mx.block.regularization import (
