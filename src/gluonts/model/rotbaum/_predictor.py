@@ -152,7 +152,7 @@ class TreePredictor(GluonPredictor):
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
             static_cardinality=static_cardinality,
-            one_hot_encode=one_hot_encode
+            one_hot_encode=one_hot_encode,
         )
 
         assert (
