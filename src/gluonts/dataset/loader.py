@@ -167,38 +167,11 @@ class MultiProcessIterator(Iterator):
 
 class DataLoader(Iterable[DataBatch]):
     def __init__(
-        self,
-        dataset: Dataset,
-        batch_size: int,
-        batchify_fn: Callable,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
+        self, dataset: Dataset, batch_size: int, batchify_fn: Callable,
     ) -> None:
+        self.dataset = dataset
         self.batch_size = batch_size
         self.batchify_fn = batchify_fn
-        self.num_workers = num_workers
-        self.num_prefetch = num_prefetch
-        self.shuffle_buffer_length = shuffle_buffer_length
-
-        # TODO: MultiProcessIterator is depleting ValidationDataLoader and InferenceDataLoader
-        base_iterator = (
-            iter(dataset)
-            if num_workers is None
-            else MultiProcessIterator(
-                dataset, num_workers=num_workers, max_queue_size=num_prefetch,
-            )
-        )
-
-        shuffled_iterator: Iterable[DataEntry] = (
-            base_iterator
-            if shuffle_buffer_length is None
-            else PseudoShuffledIterator(
-                base_iterator, shuffle_buffer_length=shuffle_buffer_length,
-            )
-        )
-
-        self.dataset = shuffled_iterator
 
     def __iter__(self):
         iterator = iter(self.dataset)
@@ -231,13 +204,26 @@ class TrainDataLoader(DataLoader):
             is_train=True,
         )
 
+        base_iterator = (
+            iter(transformed_dataset)
+            if num_workers is None
+            else MultiProcessIterator(
+                transformed_dataset,
+                num_workers=num_workers,
+                max_queue_size=num_prefetch,
+            )
+        )
+
+        shuffled_iterator: Iterable[DataEntry] = (
+            base_iterator
+            if shuffle_buffer_length is None
+            else PseudoShuffledIterator(
+                base_iterator, shuffle_buffer_length=shuffle_buffer_length,
+            )
+        )
+
         super().__init__(
-            transformed_dataset,
-            batch_size=batch_size,
-            batchify_fn=batchify_fn,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
+            shuffled_iterator, batch_size=batch_size, batchify_fn=batchify_fn,
         )
 
     def __len__(self):
@@ -249,7 +235,6 @@ class TrainDataLoader(DataLoader):
         )
 
 
-# TODO: this loader depletes after one iteration through it
 class ValidationDataLoader(DataLoader):
     def __init__(
         self,
@@ -258,6 +243,7 @@ class ValidationDataLoader(DataLoader):
         transform: Transformation,
         batch_size: int,
         batchify_fn: Callable,
+        # FIXME: the following aren't used
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
@@ -270,13 +256,9 @@ class ValidationDataLoader(DataLoader):
             transformed_dataset,
             batch_size=batch_size,
             batchify_fn=batchify_fn,
-            num_workers=None,  # FIXME
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
         )
 
 
-# TODO: this loader depletes after one iteration through it
 class InferenceDataLoader(DataLoader):
     def __init__(
         self,
@@ -285,6 +267,7 @@ class InferenceDataLoader(DataLoader):
         transform: Transformation,
         batch_size: int,
         batchify_fn: Callable,
+        # FIXME: the following aren't used
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
@@ -297,7 +280,4 @@ class InferenceDataLoader(DataLoader):
             transformed_dataset,
             batch_size=batch_size,
             batchify_fn=batchify_fn,
-            num_workers=None,  # FIXME
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
         )
