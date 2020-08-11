@@ -35,7 +35,7 @@ def test_ActivationRegularizationLoss(alpha: float):
         alpha * nd.mean((array * array), axis=0, exclude=True)
         for array in inputs
     ]
-    assert nd.norm(nd.add_n(*outputs) - ar_result).asscalar() < 1e-30
+    assert np.isclose(nd.add_n(*outputs).asnumpy(), ar_result.asnumpy()).all()
 
 
 @pytest.mark.parametrize("beta", [0, 1, 2, 3, 4, 5, 6, 7, 10, 20])
