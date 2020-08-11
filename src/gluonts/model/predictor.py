@@ -48,8 +48,8 @@ from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
+from gluonts.mx.context import get_mxnet_context
 from gluonts.model.forecast import Forecast
-
 from gluonts.support.util import (
     export_repr_block,
     export_symb_block,
