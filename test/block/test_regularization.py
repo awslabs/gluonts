@@ -56,4 +56,4 @@ def test_TemporalActivationRegularizationLoss(beta: float):
         )
         for array in inputs
     ]
-    assert nd.norm(nd.add_n(*outputs) - tar_result).asscalar() < 1e-30
+    assert np.isclose(nd.add_n(*outputs).asnumpy(), tar_result.asnumpy()).all()
