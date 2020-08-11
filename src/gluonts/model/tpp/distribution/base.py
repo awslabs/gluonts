@@ -56,6 +56,9 @@ class TPPDistribution(Distribution):
     def log_prob(self, x: Tensor) -> Tensor:
         return self.log_intensity(x) + self.log_survival(x)
 
+    def cdf(self, y: Tensor) -> Tensor:
+        return 1.0 - self.log_survival(y).exp()
+
     def sample(
         self,
         num_samples=None,
@@ -133,6 +136,9 @@ class TPPTransformedDistribution(TransformedDistribution):
         for t in self.transforms[::-1]:
             x = t.f_inv(x)
         return self.base_distribution.log_survival(x)
+
+    def cdf(self, y: Tensor) -> Tensor:
+        return 1.0 - self.log_survival(y).exp()
 
     def sample(
         self,

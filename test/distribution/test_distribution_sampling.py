@@ -36,6 +36,7 @@ from gluonts.mx.distribution import (
     Categorical,
 )
 from gluonts.core.serde import dump_json, load_json, dump_code, load_code
+from gluonts.model.tpp.distribution import Loglogistic, Weibull
 
 from gluonts.testutil import empirical_cdf
 
@@ -115,14 +116,30 @@ test_cases = [
         },
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 0])}),
+    (
+        Loglogistic,
+        {"mu": mx.nd.array([-1.0, 0.75]), "sigma": mx.nd.array([0.1, 0.3])},
+    ),
+    (
+        Weibull,
+        {"rate": mx.nd.array([0.5, 2.0]), "shape": mx.nd.array([1.5, 5.0])},
+    ),
 ]
 
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
-DISTRIBUTIONS_WITH_CDF = [Gaussian, Uniform, Laplace, Binned]
+DISTRIBUTIONS_WITH_CDF = [
+    Gaussian,
+    Uniform,
+    Laplace,
+    Binned,
+    Loglogistic,
+    Weibull,
+]
 DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = [Gaussian, Uniform, Laplace, Binned]
+DISTRIBUTIONS_WITHOUT_STDDEV = [Loglogistic, Weibull]
 
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
@@ -146,8 +163,11 @@ def test_sampling(distr_class, params, serialize_fn) -> None:
         np_samples.mean(axis=0), distr.mean.asnumpy(), atol=1e-2, rtol=1e-2
     )
 
-    emp_std = np_samples.std(axis=0)
-    assert np.allclose(emp_std, distr.stddev.asnumpy(), atol=1e-1, rtol=1e-1)
+    if distr_class not in DISTRIBUTIONS_WITHOUT_STDDEV:
+        emp_std = np_samples.std(axis=0)
+        assert np.allclose(
+            emp_std, distr.stddev.asnumpy(), atol=1e-1, rtol=1e-1
+        )
 
     if distr_class in DISTRIBUTIONS_WITH_CDF:
         emp_cdf, edges = empirical_cdf(np_samples)
