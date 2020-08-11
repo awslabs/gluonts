@@ -122,9 +122,6 @@ class TreePredictor(GluonPredictor):
         use_feat_static_cat: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_dynamic_cat: bool = False,
-        static_cardinality: Optional[List] = None,
-        dynamic_cardinality: Optional[List] = None,
-        one_hot_encode: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
         method: str = "QRX",
@@ -150,8 +147,6 @@ class TreePredictor(GluonPredictor):
             use_feat_static_cat=use_feat_static_cat,
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
-            static_cardinality=static_cardinality,
-            one_hot_encode=one_hot_encode
         )
 
         assert (
