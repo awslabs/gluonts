@@ -12,9 +12,10 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from ._base import Evaluator, MultivariateEvaluator
+from ._predictor import TreePredictor
+from ._estimator import TreeEstimator
 
-__all__ = ["Evaluator", "MultivariateEvaluator"]
+__all__ = ["TreeEstimator", "TreePredictor"]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:

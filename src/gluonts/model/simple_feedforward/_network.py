@@ -108,11 +108,11 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
         Returns
         -------
         Tuple[Tensor, Tensor Tensor]
-            A tuple of three tensors ``distr_args``, ``loc``, and ``scale``: the 
-            first contains the output distribution parameters, and the others are 
+            A tuple of three tensors ``distr_args``, ``loc``, and ``scale``: the
+            first contains the output distribution parameters, and the others are
             location and scale of the distribution.
- 
-        
+
+
         """
         scaled_target, target_scale = self.scaler(
             past_target, F.ones_like(past_target),
@@ -229,7 +229,7 @@ class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
         -------
         distr_args: the parameters of distribution
         loc: an array of zeros with the same shape of scale
-        scale: 
+        scale:
         """
         distr_args, loc, scale = self.get_distr_args(F, past_target)
         return distr_args, loc, scale
