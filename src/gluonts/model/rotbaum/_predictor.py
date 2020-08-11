@@ -178,8 +178,7 @@ class TreePredictor(GluonPredictor):
         self.model_list = None
 
         logger.info(
-            "If using the Evaluator class with a TreePredictor, set num_workers=0. The TreePredictor and Evaluator "
-            "classes both use multiprocessing which is slow in tandem."
+            "If using the Evaluator class with a TreePredictor, set num_workers=0."
         )
 
     def __call__(self, training_data):

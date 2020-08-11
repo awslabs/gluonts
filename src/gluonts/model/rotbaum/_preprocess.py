@@ -261,7 +261,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
         static_cardinality: Optional[List] = None,
-        one_hot_encode: bool = True,  # should improve performance but will slow down model
+        one_hot_encode: bool = True,  # should improve accuracy but will slow down model
         **kwargs
     ):
         super().__init__(
