@@ -9,6 +9,8 @@ Bibliography
 
 .. [BKK18] Bai, Shaojie, J. Zico Kolter, and Vladlen Koltun. "An empirical evaluation of generic convolutional and recurrent networks for sequence modeling." arXiv preprint arXiv:1803.01271 (2018).
 
+.. [DDT+16] Du, Nan, et al. "Recurrent Marked Temporal Point Processes: Embedding Event History to Vector." The 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. ACM, 2016.
+
 .. [LCY+18] Lai, Guokun, et al. "Modeling long-and short-term temporal patterns with deep neural networks." The 41st International ACM SIGIR Conference on Research & Development in Information Retrieval. ACM, 2018.
 
 .. [MKH19] Muller, Rafael, Simon Kornblith, and Geoffrey E. Hinton. "When does label smoothing help?." Advances in Neural Information Processing Systems. 2019.
@@ -20,6 +22,10 @@ Bibliography
 .. [RSG+18] Rangapuram, Syama Sundar, et al. "Deep state space models for time series forecasting." Advances in Neural Information Processing Systems. 2018.
 
 .. [SFG17] Salinas, David, Valentin Flunkert, and Jan Gasthaus. "DeepAR: Probabilistic forecasting with autoregressive recurrent networks." arXiv preprint arXiv:1704.04110 (2017).
+
+.. [SBG20] Shchur, Oleksandr, et al. "Intensity-free Learning of Temporal Point Processes." International Conference on Learning Representations. 2020.
+
+.. [TWJ19] Turkmen, Caner, et al. "Intermittent Demand Forecasting with Deep Renewal Processes." Learning with Temporal Point Processes Workshop, NeurIPS. 2019.
 
 .. [WTN+17] Wen, Ruofeng, et al. "A multi-horizon quantile recurrent forecaster." arXiv preprint arXiv:1711.11053 (2017).
 

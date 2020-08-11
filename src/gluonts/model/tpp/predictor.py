@@ -56,10 +56,12 @@ class PointProcessForecastGenerator(ForecastGenerator):
             outputs, valid_length = (
                 x.asnumpy() for x in prediction_net(*inputs)
             )
+            # outputs (num_parallel_samples, batch_size, max_seq_len, 2)
+            # valid_length (num_parallel_samples, batch_size)
 
             # sample until enough point process trajectories are collected
             if num_samples:
-                num_collected_samples = outputs[0].shape[0]
+                num_collected_samples = outputs.shape[0]
                 collected_samples, collected_vls = [outputs], [valid_length]
                 while num_collected_samples < num_samples:
                     outputs, valid_length = (
@@ -69,26 +71,24 @@ class PointProcessForecastGenerator(ForecastGenerator):
                     collected_samples.append(outputs)
                     collected_vls.append(valid_length)
 
-                    num_collected_samples += outputs[0].shape[0]
+                    num_collected_samples += outputs.shape[0]
 
-                outputs = [
-                    np.concatenate(s)[:num_samples]
-                    for s in zip(*collected_samples)
-                ]
-                valid_length = [
-                    np.concatenate(s)[:num_samples]
-                    for s in zip(*collected_vls)
-                ]
+                outputs = np.concatenate(collected_samples)[:num_samples]
+                valid_length = np.concatenate(collected_vls)[:num_samples]
+                # outputs (num_samples, batch_size, max_seq_len, 2)
+                # valid_length (num_samples, batch_size)
 
-                assert len(outputs[0]) == num_samples
-                assert len(valid_length[0]) == num_samples
+                assert outputs.shape[0] == num_samples
+                assert valid_length.shape[0] == num_samples
 
-            assert len(batch["forecast_start"]) == len(outputs)
+            assert outputs.ndim == 4
+            assert valid_length.ndim == 2
 
-            for i, output in enumerate(outputs):
+            batch_size = outputs.shape[1]
+            for i in range(batch_size):
                 yield PointProcessSampleForecast(
-                    output,
-                    valid_length=valid_length[i],
+                    outputs[:, i],
+                    valid_length=valid_length[:, i],
                     start_date=batch["forecast_start"][i],
                     freq=freq,
                     prediction_interval_length=prediction_net.prediction_interval_length,
