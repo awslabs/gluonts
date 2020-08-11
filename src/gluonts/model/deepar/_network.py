@@ -471,7 +471,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
             tar_loss = self.tar_loss(rnn_outputs)
             weighted_loss = weighted_loss + tar_loss
 
-
         return weighted_loss, loss
 
 
