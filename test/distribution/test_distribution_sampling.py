@@ -65,8 +65,8 @@ test_cases = [
         StudentT,
         {
             "mu": mx.nd.array([1000.0, -1000.0]),
-            "sigma": mx.nd.array([1.0, 2.0]),
-            "nu": mx.nd.array([4.2, 3.0]),
+            "sigma": mx.nd.array([1.0, 1.5]),
+            "nu": mx.nd.array([4.2, 5.0]),
         },
     ),
     (
