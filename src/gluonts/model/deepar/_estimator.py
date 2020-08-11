@@ -147,8 +147,8 @@ class DeepAREstimator(GluonEstimator):
         num_parallel_samples: int = 100,
         imputation_method: Optional[MissingValueImputation] = None,
         dtype: DType = np.float32,
-        alpha: float = 0,
-        beta: float = 0,
+        alpha: float = 0.0,
+        beta: float = 0.0,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
 
