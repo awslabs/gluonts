@@ -466,10 +466,11 @@ class DeepARTrainingNetwork(DeepARNetwork):
         # so we only add regularization to weighted_loss
         if self.alpha:
             ar_loss = self.ar_loss(rnn_outputs)
-            weighted_loss = F.elemwise_add(weighted_loss, ar_loss)
+            weighted_loss = weighted_loss + ar_loss
         if self.beta:
             tar_loss = self.tar_loss(rnn_outputs)
-            weighted_loss = F.elemwise_add(weighted_loss, tar_loss)
+            weighted_loss = weighted_loss + tar_loss
+
 
         return weighted_loss, loss
 
