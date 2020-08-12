@@ -273,9 +273,11 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             **kwargs
         )
 
-        assert (
-            one_hot_encode or not static_cardinality
-        ), "You should set `static_cardinality` if and only if `one_hot_encode=True`"
+        if one_hot_encode:
+            assert (
+                static_cardinality
+            ), "You should set `static_cardinality` if `one_hot_encode=True`"
+
         assert static_cardinality is None or all(
             c > 0 for c in static_cardinality
         ), "Elements of `static_cardinality` should be > 0"
