@@ -26,4 +26,4 @@ docker run <image_id> --help
 * Dockerfile.gpu
     -  Gluon-TS models on a GPU accelerated machine. 
 * Dockerfile.r
-    - This is used when one wants to run the models in the [gluonts.model.r_forecast](https://gluon-ts.mxnet.io/api/gluonts/gluonts.model.r_forecast.html) package.
+    - This provides dependencies for models defined in [gluonts.model.r_forecast](https://gluon-ts.mxnet.io/api/gluonts/gluonts.model.r_forecast.html).
