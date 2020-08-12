@@ -3,7 +3,7 @@
 To build these dockerfiles go to the Gluon-TS root directory and enter this command:
 
 ```bash 
-docker build . -f examples/dockerfiles/<the dockerfile>
+docker build . -f examples/dockerfiles/<dockerfile>
 ```
 
 Or alternatively in the current directory:
