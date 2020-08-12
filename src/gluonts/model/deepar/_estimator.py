@@ -162,8 +162,7 @@ class DeepAREstimator(GluonEstimator):
             "VariationalZoneoutCell",
         ]
         assert dropoutcell_type in supported_dropoutcell_types, (
-            "`dropoutcell_type` should be one of %s"
-            % (str(supported_dropoutcell_types))
+            f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
         )
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert (cardinality and use_feat_static_cat) or (
