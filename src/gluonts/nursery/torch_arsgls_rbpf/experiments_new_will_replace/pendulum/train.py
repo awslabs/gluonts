@@ -1,3 +1,4 @@
+import os
 import argparse
 import numpy as np
 import mxnet as mx
@@ -51,22 +52,12 @@ if __name__ == "__main__":
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    # # TODO: config -> hydra or something like that
-    # config = make_experiment_config(
-    #     dataset_name=args.dataset_name, experiment_name=args.experiment_name,
-    # )
-    # TODO: Should not need anymore
-    log_paths = prepare_logging(
-        config=config, consts=consts, run_nr=args.run_nr,
-    )
-
     model = make_model(config=config).to(dtype=getattr(torch, args.dtype))
 
     trainer = Trainer(
         gpus=args.gpus,
-        default_root_dir=log_paths.root,
+        default_root_dir=os.path.join(consts.log_dir, config.dataset_name),
         gradient_clip_val=config.grad_clip_norm,
-        # limit_val_batches=(500 // config.batch_size_val) + 1,
         max_epochs=config.n_epochs,
     )
 

@@ -264,6 +264,7 @@ def make_model(config):
         reconstruction_weight=config.reconstruction_weight,
     )
     model = GluontsUnivariateDataModel(
+        config=config,
         ssm=ssm,
         ctrl_transformer=input_transformer,
         tar_transformer=torch.distributions.AffineTransform(

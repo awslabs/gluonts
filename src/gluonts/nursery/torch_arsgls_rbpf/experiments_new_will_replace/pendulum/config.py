@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 import torch
 from torch import nn
+
+import consts
 from experiments.base_config import BaseConfig, SwitchLinkType
 from utils.utils import TensorDims
 from experiments.model_component_zoo import (
@@ -72,7 +74,7 @@ dims = TensorDims(
     ctrl_state=None,
 )
 config = PendulumSGLSConfig(
-    dataset_name="pendulum",
+    dataset_name=consts.Datasets.pendulum_3D_coord,
     experiment_name="default",
     gpus=tuple(range(0, 4)),
     dtype=torch.float64,
@@ -161,7 +163,9 @@ def make_model(config):
         switch_prior_model=switch_prior_model,
     )
     model = PendulumModel(
+        config=config,
         ssm=ssm,
+        dataset_name=config.dataset_name,
         lr=config.lr,
         weight_decay=config.weight_decay,
         n_epochs=config.n_epochs,
