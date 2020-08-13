@@ -288,6 +288,7 @@ def make_model(config):
         switch_prior_model=switch_prior_model,
     )
     model = GluontsUnivariateDataModel(
+        config=config,
         ssm=ssm,
         ctrl_transformer=input_transformer,
         tar_transformer=torch.distributions.AffineTransform(

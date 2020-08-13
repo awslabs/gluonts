@@ -45,8 +45,8 @@ def compute_metrics(model, batch):
     batch = {k: v for k, v in batch.items() if k != "future_target"}  # dont pop
 
     metrics = Box()
-    acc_fcst_rand, acc_filt_rand, = [], []
-    acc_fcst_det, acc_filt_det, = [], []
+    acc_fcst_rand, acc_filt_rand, acc_all_rand = [], [], []
+    acc_fcst_det, acc_filt_det, acc_all_det = [], [], []
     w_dists_rand, w_dists_det = [], []
     for deterministic in [False]:
         past_target_with_particle_dim = past_target.unsqueeze(dim=1)
@@ -95,24 +95,31 @@ def compute_metrics(model, batch):
         )
 
         # Compute Pixel Accuracy
-        acc_filt = (
-            np.equal(filtered_emissions, past_target_with_particle_dim)
-                .astype(np.float64)
-                .mean(axis=-1)
-        )
-
-        acc_fcst = (
-            np.equal(forecasted_emissions, future_target_with_particle_dim)
+        # acc_filt = (
+        #     np.equal(filtered_emissions, past_target_with_particle_dim)
+        #         .astype(np.float64)
+        #         .mean(axis=-1)
+        # )
+        #
+        # acc_fcst = (
+        #     np.equal(forecasted_emissions, future_target_with_particle_dim)
+        #         .astype(np.float64)
+        #         .mean(axis=-1)
+        # )
+        acc = (
+            np.equal(all_emissions, all_target_with_particle_dim)
                 .astype(np.float64)
                 .mean(axis=-1)
         )
 
         if deterministic:
-            acc_fcst_det.append(acc_fcst)
-            acc_filt_det.append(acc_filt)
+            # acc_fcst_det.append(acc_fcst)
+            # acc_filt_det.append(acc_filt)
+            acc_all_det.append(acc)
         else:
-            acc_fcst_rand.append(acc_fcst)
-            acc_filt_rand.append(acc_filt)
+            # acc_fcst_rand.append(acc_fcst)
+            # acc_filt_rand.append(acc_filt)
+            acc_all_rand.append(acc)
 
         # Compute Wasserstein Distance
         assert all_emissions.shape == all_target_with_particle_dim.shape
@@ -142,25 +149,26 @@ def compute_metrics(model, batch):
             w_dists_rand.append(w_dists)
 
     # stack on batch dim and mean
-    metrics.acc_fcst_rand = np.concatenate(acc_fcst_rand, axis=-1).mean(
-        axis=(1, 2)
-    )
-    metrics.acc_filt_rand = np.concatenate(acc_filt_rand, axis=-1).mean(
-        axis=(1, 2)
-    )
+    metrics.acc_rand = np.concatenate(acc_all_rand, axis=-1)
+    # metrics.acc_fcst_rand = np.concatenate(acc_fcst_rand, axis=-1)
+    # # .mean(axis=(1, 2))
+    # metrics.acc_filt_rand = np.concatenate(acc_filt_rand, axis=-1)
+    # # .mean(axis=(1, 2))
+
     # metrics.acc_fcst_det = np.concatenate(acc_fcst_det, axis=-1).mean(axis=[1, 2])
     # metrics.acc_filt_det = np.concatenate(acc_filt_det, axis=-1).mean(axis=[1, 2])
     # mean, std among particle axis. Always mean over data.
-    metrics.w_dists_rand_mean = (
-        np.concatenate(w_dists_rand, axis=-1).mean(axis=1).mean(axis=-1)
+    metrics.wasserstein_rand = (
+        np.concatenate(w_dists_rand, axis=-1)  # .mean(axis=1).mean(axis=-1)
     )
-    metrics.w_dists_rand_std = (
-        np.concatenate(w_dists_rand, axis=-1).std(axis=1).mean(axis=-1)
-    )
-    metrics.w_dists_rand_var = (
-        np.concatenate(w_dists_rand, axis=-1).var(axis=1).mean(axis=-1)
-    )
+    # metrics.w_dists_rand_std = (
+    #     np.concatenate(w_dists_rand, axis=-1).std(axis=1).mean(axis=-1)
+    # )
+    # metrics.w_dists_rand_var = (
+    #     np.concatenate(w_dists_rand, axis=-1).var(axis=1).mean(axis=-1)
+    # )
     return metrics
+
 
 def load_model_config(log_paths):
     spec = importlib.util.spec_from_file_location(

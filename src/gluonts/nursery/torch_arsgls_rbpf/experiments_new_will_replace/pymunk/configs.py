@@ -3,6 +3,8 @@ from typing import Tuple
 from dataclasses import dataclass, asdict
 import numpy as np
 from torch import nn
+
+import consts
 from experiments.base_config import BaseConfig
 from utils.utils import TensorDims
 from experiments.model_component_zoo import (
@@ -85,8 +87,8 @@ dims_kvae = TensorDims(
 )
 dims_asgls = TensorDims(
     timesteps=20,
-    particle=32,
-    batch=31,
+    particle=20,
+    batch=32,
     state=10,  # 10
     target=int(np.prod(dims_img)),
     switch=5,
@@ -96,7 +98,7 @@ dims_asgls = TensorDims(
 )
 
 base_config = PymunkConfig(
-    dataset_name="box",  # "box_gravity" "polygon" "pong"
+    dataset_name=consts.Datasets.box,
     experiment_name="arsgls",  # kvae
     dims=None,  # dummy
     batch_size_eval=10,
@@ -109,15 +111,15 @@ base_config = PymunkConfig(
     grad_clip_norm=150.0,
     weight_decay=0.0,
     n_epochs_no_resampling=0,
-    n_base_A=10,  # 10
+    n_base_A=10,
     n_base_B=None,
     # Not used in image environments. But consider for other data.
-    n_base_C=10,  # 10
+    n_base_C=10,
     n_base_D=None,
-    n_base_Q=10,  # 10
-    n_base_R=10,  # 10
-    n_base_S=10,  # 10
-    n_base_F=10,  # 10
+    n_base_Q=10,
+    n_base_R=10,
+    n_base_S=10,
+    n_base_F=10,
     requires_grad_R=False,
     requires_grad_Q=False,
     init_scale_A=1.0,
@@ -262,6 +264,7 @@ def make_model(config):
         raise Exception("bad experiment name")
 
     model = PymunkModel(
+        config=config,
         ssm=ssm,
         dataset_name=config.dataset_name,
         lr=config.lr,
