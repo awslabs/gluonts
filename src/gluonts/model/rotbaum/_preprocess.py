@@ -415,11 +415,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             (np.floor(elem) == elem) for elem in feat_static_cat
         )  # asserts that the categorical features are encoded
 
-        assert (not feat_dynamic_cat) or all(
-            (np.floor(elem) == elem)
-            for elem in feat_dynamic_cat  # this line is really slow
-        )  # asserts that the categorical features are encoded
-
         feat_dynamics = feat_dynamic_real + feat_dynamic_cat
         feat_statics = feat_static_real + feat_static_cat
         only_lag_features = list(only_lag_features)
