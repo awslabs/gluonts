@@ -17,6 +17,7 @@ from typing import List, Tuple, Dict, Optional
 
 # Third-party imports
 import numpy as np
+import pandas as pd
 import logging
 
 # First-party imports
@@ -132,7 +133,7 @@ class PreprocessGeneric:
             + 1
         )
         if max_num_context_windows < 1:
-            if not self.use_feat_static_real and not self.use_feat_static_cat:
+            if not self.use_feat_static_real and not self.cardinality:
                 return [], []
             else:
                 return self.make_features(
@@ -205,6 +206,14 @@ class PreprocessGeneric:
         """
         feature_data, target_data = [], []
         self.num_samples = self.get_num_samples(ts_list)
+
+        if isinstance(self.cardinality, str):
+            self.cardinality = (
+                self.create_cardinalities(ts_list)
+                if self.cardinality == "auto"
+                else []
+            )
+
         for time_series in ts_list:
             ts_feature_data, ts_target_data = self.preprocess_from_single_ts(
                 time_series=time_series
@@ -247,6 +256,9 @@ class PreprocessGeneric:
             n_windows_per_time_series = -1
         return n_windows_per_time_series
 
+    def create_cardinalities(self):
+        raise NotImplementedError
+
 
 class PreprocessOnlyLagFeatures(PreprocessGeneric):
     def __init__(
@@ -257,10 +269,9 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         n_ignore_last=0,
         num_samples=-1,
         use_feat_static_real=False,
-        use_feat_static_cat=False,
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
-        static_cardinality: Optional[List] = None,
+        cardinality="auto",
         one_hot_encode: bool = True,  # should improve accuracy but will slow down model
         **kwargs
     ):
@@ -274,19 +285,18 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         )
 
         if one_hot_encode:
-            assert (
-                static_cardinality
-            ), "You should set `static_cardinality` if `one_hot_encode=True`"
+            assert (isinstance(cardinality, List) and cardinality) or (
+                isinstance(cardinality, str) and cardinality != "ignore"
+            ), "You should set `one_hot_encode=True` if and only if cardinality is not empty or ignored"
 
-        assert static_cardinality is None or all(
-            c > 0 for c in static_cardinality
-        ), "Elements of `static_cardinality` should be > 0"
+        assert cardinality in set(["ignore", "auto"]) or all(
+            c > 0 for c in cardinality
+        ), "Elements of `cardinalities` should be > 0 if not automatically inferred or ignored"
 
         self.use_feat_static_real = use_feat_static_real
-        self.use_feat_static_cat = use_feat_static_cat
+        self.cardinality = cardinality
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
-        self.static_cardinality = static_cardinality
         self.one_hot_encode = one_hot_encode
 
     @classmethod
@@ -320,14 +330,36 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             },
         )
 
-    def create_cat_feats(self, feat_list: List) -> List:
-        ret = [[0] * cardinality for cardinality in self.static_cardinality]
-        for i, feat in enumerate(feat_list):
-            ret[i][int(feat) - 1] = 1
+    def _one_hot(self, feat_list: List):
+        xs = [0] * sum(self.cardinality)
 
-        for i in range(1, len(ret)):
-            ret[0] += ret[i]
-        return ret[0]
+        current = 0
+
+        for feat, cardinality in zip(feat_list, self.cardinality):
+            assert (
+                np.floor(feat) == feat
+            )  # asserts that the categorical features are encoded
+            idx = int(cardinality - feat - 1)
+            xs[current + idx] = 1
+            current += cardinality
+
+        return xs
+
+    def create_cardinalities(self, time_series):
+        mat = [None] * len(time_series)
+        for i, elem in enumerate(time_series):
+            mat[i] = np.array(elem["feat_static_cat"])
+        mat = np.array(mat)
+        assert (mat[i].size == mat[0].size for i in range(len(mat)))
+        ret = (
+            [
+                int(len(pd.unique(pd.Series(mat[:, i]))))
+                for i in range(len(mat[0]))
+            ]
+            if mat[0].size != 0
+            else []
+        )
+        return ret
 
     def make_features(self, time_series: Dict, starting_index: int) -> List:
         """
@@ -359,9 +391,9 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             if self.use_feat_static_real
             else []
         )
-        if self.use_feat_static_cat:
+        if self.cardinality:
             feat_static_cat = (
-                self.create_cat_feats(time_series["feat_static_cat"])
+                self._one_hot(time_series["feat_static_cat"])
                 if self.one_hot_encode
                 else list(time_series["feat_static_cat"])
             )
@@ -384,7 +416,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         )  # asserts that the categorical features are encoded
 
         assert (not feat_dynamic_cat) or all(
-            (np.floor(elem) == elem) for elem in feat_dynamic_cat
+            (np.floor(elem) == elem)
+            for elem in feat_dynamic_cat  # this line is really slow
         )  # asserts that the categorical features are encoded
 
         feat_dynamics = feat_dynamic_real + feat_dynamic_cat

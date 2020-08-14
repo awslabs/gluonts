@@ -121,10 +121,9 @@ class TreePredictor(GluonPredictor):
         clump_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         use_feat_static_real: bool = False,
-        use_feat_static_cat: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_dynamic_cat: bool = False,
-        static_cardinality: Optional[List] = None,
+        cardinality="auto",
         one_hot_encode: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
@@ -148,10 +147,9 @@ class TreePredictor(GluonPredictor):
             n_ignore_last=n_ignore_last,
             max_n_datapts=max_n_datapts,
             use_feat_static_real=use_feat_static_real,
-            use_feat_static_cat=use_feat_static_cat,
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
-            static_cardinality=static_cardinality,
+            cardinality=cardinality,
             one_hot_encode=one_hot_encode,
         )
 
@@ -162,8 +160,9 @@ class TreePredictor(GluonPredictor):
             prediction_length > 0
             or use_feat_dynamic_cat
             or use_feat_dynamic_real
-            or use_feat_static_cat
             or use_feat_static_real
+            or cardinality
+            != "ignore"  # TODO: Figure out how to include 'auto' with no feat_static_cat in this check
         ), (
             "The value of `prediction_length` should be > 0 or there should be features for model training and "
             "prediction "
