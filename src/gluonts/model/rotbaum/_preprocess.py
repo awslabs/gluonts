@@ -346,6 +346,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         return xs
 
     def create_cardinalities(self, time_series):
+        if "feat_static_cat" not in time_series[0]:
+            return []
         mat = [None] * len(time_series)
         for i, elem in enumerate(time_series):
             mat[i] = np.array(elem["feat_static_cat"])
