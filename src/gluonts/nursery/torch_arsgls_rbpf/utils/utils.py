@@ -1,4 +1,4 @@
-from models_new_will_replace.base_gls import ControlInputs
+from models.base_gls import ControlInputs
 import os
 import inspect
 from copy import copy

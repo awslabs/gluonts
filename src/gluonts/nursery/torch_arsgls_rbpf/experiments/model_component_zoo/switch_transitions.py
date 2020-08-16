@@ -1,21 +1,17 @@
 import torch
 from torch import nn
-from torch.distributions import OneHotCategorical, MultivariateNormal
-from inference.analytical_gausian_linear.inference_step import (
-    filter_forward_prediction_step,
-)
-from models.gls_parameters.state_to_switch_parameters import (
-    StateToSwitchParams,
+from torch.distributions import (
+    OneHotCategorical,
+    MultivariateNormal,
 )
 from torch_extensions.distributions.conditional_parametrised_distribution import (
     ParametrisedConditionalDistribution,
 )
 from torch_extensions.mlp import MLP
-from torch_extensions.ops import matvec
-from torch_extensions.recurrent_transition import GaussianRecurrentTransition
-from utils.utils import SigmoidLimiter
-from torch_extensions.affine import Bias
 from torch_extensions.batch_diag_matrix import BatchDiagMatrix
+from torch_extensions.affine import Bias
+from torch_extensions.constant import Constant
+from utils.utils import SigmoidLimiter
 
 
 def _extract_dims_from_cfg(config):
@@ -31,7 +27,14 @@ def _extract_dims_from_cfg(config):
     return dim_in, dim_out, dims_stem, activations_stem, dim_in_dist_params
 
 
-class SwitchTransitionModelCategorical(nn.Module):
+class SwitchTransitionBase(nn.Module):
+    def forward(
+            self, controls: torch.Tensor, switch: torch.Tensor
+    ) -> torch.distributions.Distribution:
+        raise NotImplementedError()
+
+
+class SwitchTransitionModelCategorical(SwitchTransitionBase):
     def __init__(self, config):
         super().__init__()
         (
@@ -59,15 +62,16 @@ class SwitchTransitionModelCategorical(nn.Module):
             dist_cls=OneHotCategorical,
         )
 
-    def forward(self, u, s, x=None, m=None, V=None):
-        h = torch.cat((u, s), dim=-1) if u is not None else s
+    def forward(self, controls, switch):
+        h = torch.cat((controls, switch), dim=-1) \
+            if controls is not None \
+            else switch
         switch_to_switch_dist = self.conditional_dist(h)
         return switch_to_switch_dist
 
 
-class SwitchTransitionModelGaussian(nn.Module):
+class SwitchTransitionModelGaussian(SwitchTransitionBase):
     def __init__(self, config):
-        """ due to parameter sharing we cannot instantiate this one entirely from config file. """
         super().__init__()
         (
             dim_in,
@@ -76,46 +80,45 @@ class SwitchTransitionModelGaussian(nn.Module):
             activations_stem,
             dim_in_dist_params,
         ) = _extract_dims_from_cfg(config)
-        n_state, n_switch, is_recurrent = (
-            config.dims.state,
-            config.dims.switch,
-            config.is_recurrent,
-        )
-        self.conditional_dist = GaussianRecurrentTransition(
-            conditional_dist_tranform=ParametrisedConditionalDistribution(
-                stem=MLP(
-                    dim_in=dim_in,
-                    dims=dims_stem,
-                    activations=activations_stem,
-                ),
-                dist_params=nn.ModuleDict(
-                    {
-                        "loc": nn.Sequential(
-                            nn.Linear(dim_in_dist_params, dim_out),
-                        ),
-                        "scale_tril": nn.Sequential(
-                            nn.Linear(dim_in_dist_params, dim_out),
-                            Bias(loc=-4.0),
-                            nn.Softplus(),
-                            Bias(loc=1e-6),
-                            BatchDiagMatrix(),
 
-                        ),
-                    }
-                ),
-                dist_cls=MultivariateNormal,
+        self.conditional_dist = ParametrisedConditionalDistribution(
+            stem=MLP(
+                dim_in=dim_in,
+                dims=dims_stem,
+                activations=activations_stem,
             ),
-            n_state=n_state,
-            n_switch=n_switch,
-            is_recurrent=is_recurrent,
+            dist_params=nn.ModuleDict(
+                {
+                    "loc": nn.Sequential(
+                        nn.Linear(dim_in_dist_params, dim_out),
+                    ),
+                    "scale_tril": nn.Sequential(
+                        nn.Linear(dim_in_dist_params, dim_out),
+                        # TODO: hard-coded const for small initial scale
+                        # Lambda(fn=lambda x: x - 4.0),
+                        Bias(loc=-4.0),
+                        nn.Softplus(),
+                        Bias(loc=1e-6),  # FP64
+                        BatchDiagMatrix(),
+                    ),
+                }
+            ),
+            dist_cls=MultivariateNormal,
         )
 
-    def forward(self, u, s, x=None, m=None, V=None):
-        return self.conditional_dist(u=u, s=s, x=x, m=m, V=V)
+    def forward(self, controls, switch):
+        h = torch.cat((controls, switch), dim=-1) if controls is not None else switch
+        return self.conditional_dist(h)
 
 
-class SwitchTransitionModelGaussianRecurrentBaseMat(nn.Module):
-    def __init__(self, config, switch_link=None):
+class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
+    """
+    The output of this transition function is a Gaussian with zero variance.
+    This is intended to be used with State-to-Switch recurrence,
+    which already has a set of noise covariance base matrices
+    and does not necessarily need a second noise source.
+    """
+    def __init__(self, config):
         super().__init__()
         (
             dim_in,
@@ -124,46 +127,28 @@ class SwitchTransitionModelGaussianRecurrentBaseMat(nn.Module):
             activations_stem,
             dim_in_dist_params,
         ) = _extract_dims_from_cfg(config)
-        activations_stem = (
-            (activations_stem,)
-            if isinstance(activations_stem, nn.Module)
-            else activations_stem
-        )
-        n_state, n_switch = config.dims.state, config.dims.switch
-        self.is_recurrent = config.is_recurrent
 
-        n_base_F, n_base_S = config.n_base_F, config.n_base_S
-        init_scale_S_diag = config.init_scale_S_diag
-        switch_link_type = (
-            config.recurrent_link_type if switch_link is None else None
-        )
-
-        self.base_parameters = StateToSwitchParams(
-            n_switch=n_switch,
-            n_state=n_state,
-            n_base_F=n_base_F,
-            n_base_S=n_base_S,
-            init_scale_S_diag=init_scale_S_diag,
-            switch_link=switch_link,
-            switch_link_type=switch_link_type,
-        )
-        self.transform = MLP(
-            dim_in=dim_in,
-            dims=dims_stem + (dim_out,),
-            activations=activations_stem + (None,),
+        self.conditional_dist = ParametrisedConditionalDistribution(
+            stem=MLP(
+                dim_in=dim_in,
+                dims=dims_stem,
+                activations=activations_stem,
+            ),
+            dist_params=nn.ModuleDict(
+                {
+                    "loc": nn.Sequential(
+                        nn.Linear(dim_in_dist_params, dim_out),
+                    ),
+                    "scale_tril": Constant(
+                        val=0,
+                        shp_append=(dim_out, dim_out),
+                        n_dims_from_input=-1,  # x.shape[:-1]
+                    ),
+                }
+            ),
+            dist_cls=MultivariateNormal,
         )
 
-    def forward(self, u, s, x=None, m=None, V=None):
-        assert len({(x is None), (m is None and V is None)}) == 2
-        base_params = self.base_parameters(switch=s)
-        F, S = base_params.F, base_params.S
-        if not self.is_recurrent:
-            F *= 0
-        h = torch.cat((u, s), dim=-1) if u is not None else s
-        b = self.transform(h)
-
-        if m is not None:  # marginalise
-            mp, Vp = filter_forward_prediction_step(m=m, V=V, A=F, R=S, b=b)
-        else:  # single sample fwd
-            mp, Vp = matvec(F, x) + b, S
-        return MultivariateNormal(loc=mp, covariance_matrix=Vp)
+    def forward(self, controls, switch):
+        h = torch.cat((controls, switch), dim=-1) if controls is not None else switch
+        return self.conditional_dist(h)
