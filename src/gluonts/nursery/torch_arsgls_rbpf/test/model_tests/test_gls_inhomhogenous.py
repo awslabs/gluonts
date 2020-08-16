@@ -1,10 +1,10 @@
 from box import Box
 import torch
 
-from models_new_will_replace.gls_inhomogenous import (
+from models.gls_inhomogenous import (
     GaussianLinearSystemInhomogenous,
 )
-from models_new_will_replace.gls_homogenous import (
+from models.gls_homogenous import (
     GaussianLinearSystemHomogenous,
 )
 from utils.utils import make_dummy_ssm_params, make_dummy_input_data

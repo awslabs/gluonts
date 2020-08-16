@@ -3,22 +3,27 @@ from typing import Tuple
 from dataclasses import dataclass, asdict
 import numpy as np
 from torch import nn
+
+import consts
 from experiments.base_config import BaseConfig
 from utils.utils import TensorDims
 from experiments.model_component_zoo import (
-    gls_parameters,
     encoders,
     decoders,
     state_priors,
-    switch_transitions,
-    switch_priors,
+    switch_priors, gls_parameters, switch_transitions,
 )
-from models.kalman_variational_autoencoder import KalmanVariationalAutoEncoder
-from models.auxiliary_switching_gaussian_linear_system import (
-    RecurrentAuxiliarySwitchingLinearDynamicalSystem,
-)
+
+from experiments.model_component_zoo.recurrent_base_parameters \
+    import StateToSwitchParamsDefault
+
+from models.kvae import KalmanVariationalAutoEncoder
+from models.arsgls_rbpf import \
+    AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC
+
 from experiments.base_config import SwitchLinkType
-from torch_extensions.layers_with_init import LSTM, Linear
+from torch_extensions.layers_with_init import LSTMCell
+from experiments.pymunk.pymunk_model import PymunkModel
 
 
 @dataclass()
@@ -33,7 +38,10 @@ class PymunkConfig(BaseConfig):
     decay_steps: int
     lr_decay_rate: float
     grad_clip_norm: float
-    batch_size_test: int
+    batch_size_eval: int
+    weight_decay: float
+    num_samples_eval: int
+    n_epochs_no_resampling: int
 
 
 @dataclass()
@@ -67,44 +75,47 @@ dims_kvae = TensorDims(
     particle=1,
     batch=32,
     state=4,
-    obs=int(np.prod(dims_img)),
+    target=int(np.prod(dims_img)),
     switch=None,  # --> n_hidden_rnn
     auxiliary=2,
-    ctrl_obs=None,
+    ctrl_target=None,
     ctrl_state=None,
 )
 dims_asgls = TensorDims(
     timesteps=20,
-    particle=32,
-    batch=33,
+    particle=20,
+    batch=32,
     state=10,  # 10
-    obs=int(np.prod(dims_img)),
+    target=int(np.prod(dims_img)),
     switch=5,
     auxiliary=2,
-    ctrl_obs=None,
+    ctrl_target=None,
     ctrl_state=None,
 )
 
 base_config = PymunkConfig(
-    dataset_name="box",  # "box_gravity" "polygon" "pong"
+    dataset_name=consts.Datasets.box,
     experiment_name="arsgls",  # kvae
     dims=None,  # dummy
-    batch_size_test=3,
+    batch_size_eval=10,
+    num_samples_eval=100,
     prediction_length=40,
     n_epochs=200,
     lr=7e-3,
     lr_decay_rate=0.85,
     decay_steps=20,
     grad_clip_norm=150.0,
-    n_base_A=10,  # 10
+    weight_decay=0.0,
+    n_epochs_no_resampling=0,
+    n_base_A=10,
     n_base_B=None,
     # Not used in image environments. But consider for other data.
-    n_base_C=10,  # 10
+    n_base_C=10,
     n_base_D=None,
-    n_base_Q=10,  # 10
-    n_base_R=10,  # 10
-    n_base_S=10,  # 10
-    n_base_F=10,  # 10
+    n_base_Q=10,
+    n_base_R=10,
+    n_base_S=10,
+    n_base_F=10,
     requires_grad_R=False,
     requires_grad_Q=False,
     init_scale_A=1.0,
@@ -136,7 +147,7 @@ kvae_config = PymunkKVAEConfig(
 )
 kvae_config.dims = dims_kvae
 
-asgls_config = PymunkASGLSConfig(
+arsgls_config = PymunkASGLSConfig(
     **asdict(base_config),
     recurrent_link_type=SwitchLinkType.shared,
     b_fn_dims=tuple(),
@@ -153,51 +164,61 @@ asgls_config = PymunkASGLSConfig(
     switch_prior_scale=1.0,
     switch_prior_loc=0.0,
 )
-asgls_config.dims = dims_asgls
+arsgls_config.dims = dims_asgls
 
-# maybe change the following:
-if True:
-    asgls_config.requires_grad_R = True
-    asgls_config.requires_grad_Q = True
-    asgls_config.init_scale_R_diag = [1e-3, 1e-1]
-    asgls_config.init_scale_Q_diag = [1e-3, 1e-1]
-    asgls_config.init_scale_S_diag = [1e-3, 1e-1]
+if True:  # well, well! this is just for quick testing :-)
+    arsgls_config.requires_grad_R = True
+    arsgls_config.requires_grad_Q = True
+    arsgls_config.init_scale_R_diag = [1e-3, 1e-1]
+    arsgls_config.init_scale_Q_diag = [1e-3, 1e-1]
+    arsgls_config.init_scale_S_diag = [1e-3, 1e-1]
     # asgls_config.state_prior_loc = 0.0
     # asgls_config.state_prior_scale = math.sqrt(1.0)
 
 
-def make_kvae(config):
+def make_experiment_config(experiment_name, dataset_name):
+    if experiment_name == "kvae":
+        config = kvae_config
+    elif experiment_name == "arsgls":
+        config = arsgls_config
+    else:
+        raise Exception(f"unknown experiment/model: {experiment_name}")
+    config.experiment_name = experiment_name
+    config.dataset_name = dataset_name
+    return config
+
+
+def _make_kvae(config):
     gls_base_params = gls_parameters.GLSParametersKVAE(config=config)
     decoder = decoders.AuxiliaryToObsDecoderConvBernoulli(config=config)
     encoder = encoders.ObsToAuxiliaryEncoderConvGaussian(config=config)
     state_prior_model = state_priors.StatePriorModeFixedlNoInputs(
         config=config
     )
-    rnn = LSTM(
-        input_size=config.dims.auxiliary, hidden_size=config.n_hidden_rnn
+    rnn = LSTMCell(
+        input_size=config.dims.auxiliary, hidden_size=config.n_hidden_rnn,
     )
 
-    model = KalmanVariationalAutoEncoder(
+    ssm = KalmanVariationalAutoEncoder(
         n_state=config.dims.state,
-        n_obs=config.dims.target,
+        n_target=config.dims.target,
         n_auxiliary=config.dims.auxiliary,
         n_ctrl_state=config.dims.ctrl_state,
         n_particle=config.dims.particle,
         gls_base_parameters=gls_base_params,
         measurement_model=decoder,
-        obs_to_auxiliary_encoder=encoder,
+        encoder=encoder,
         rnn_switch_model=rnn,
         state_prior_model=state_prior_model,
         reconstruction_weight=config.reconstruction_weight,
     )
-    return model
+    return ssm
 
 
-def make_asgls(config):
+def _make_asgls(config):
     dims = config.dims
-    input_transformer = None
     gls_base_parameters = gls_parameters.GLSParametersASGLS(config=config)
-    switch_transition_model = switch_transitions.SwitchTransitionModelGaussianRecurrentBaseMat(
+    switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
         config=config
     )
     state_prior_model = state_priors.StatePriorModeFixedlNoInputs(
@@ -210,19 +231,51 @@ def make_asgls(config):
     obs_encoder = encoders.ObsToAuxiliaryLadderEncoderConvMlpGaussian(
         config=config
     )
+    recurrent_base_parameters = StateToSwitchParamsDefault(config=config)
 
-    model = RecurrentAuxiliarySwitchingLinearDynamicalSystem(
+    ssm = AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC(
         n_state=dims.state,
-        n_obs=dims.target,
+        n_target=dims.target,
         n_ctrl_state=dims.ctrl_state,
+        n_ctrl_target=dims.ctrl_target,
         n_particle=dims.particle,
         n_switch=dims.switch,
         gls_base_parameters=gls_base_parameters,
+        recurrent_base_parameters=recurrent_base_parameters,
         measurement_model=measurment_model,
-        obs_encoder=obs_encoder,
-        input_transformer=input_transformer,
+        encoder=obs_encoder,
         switch_transition_model=switch_transition_model,
         state_prior_model=state_prior_model,
         switch_prior_model=switch_prior_model,
+    )
+    return ssm
+
+
+def make_model(config):
+    if config.experiment_name == "kvae":
+        ssm = _make_kvae(config=config)
+    elif config.experiment_name == "arsgls":
+        ssm = _make_asgls(config=config)
+    else:
+        raise Exception("bad experiment name")
+
+    model = PymunkModel(
+        config=config,
+        ssm=ssm,
+        dataset_name=config.dataset_name,
+        lr=config.lr,
+        weight_decay=config.weight_decay,
+        n_epochs=config.n_epochs,
+        batch_sizes={
+            "train": config.dims.batch,
+            "val": config.batch_size_eval,
+            "test": config.batch_size_eval,
+        },
+        past_length=config.dims.timesteps,
+        n_particle_train=config.dims.particle,
+        n_particle_eval=config.num_samples_eval,
+        prediction_length=config.prediction_length,
+        n_epochs_no_resampling=config.n_epochs_no_resampling,
+        num_batches_per_epoch=50,
     )
     return model

@@ -1,38 +1,42 @@
 from dataclasses import dataclass
 import torch
 from torch import nn
+
+import consts
 from experiments.base_config import BaseConfig, SwitchLinkType
 from utils.utils import TensorDims
 from experiments.model_component_zoo import (
-    gls_parameters,
-    switch_transitions,
     switch_priors,
     state_priors,
-    encoders,
+    encoders, gls_parameters, switch_transitions,
 )
-from models.switching_gaussian_linear_system import (
-    RecurrentSwitchingLinearDynamicalSystem,
+from models.rsgls_rbpf import (
+    RecurrentSwitchingGaussianLinearSystemRBSMC,
 )
-from models_new_will_replace.dynamical_system import ControlInputs
+from experiments.model_component_zoo.recurrent_base_parameters import StateToSwitchParamsDefault
+from experiments.pendulum.pendulum_rbsmc_model \
+    import PendulumModel
 
 
 @dataclass()
 class PendulumSGLSConfig(BaseConfig):
-    n_steps_forecast: int
+    prediction_length: int
+    batch_size_eval: int
+    num_samples_eval: int
     switch_prior_model_dims: tuple
     switch_prior_model_activations: (nn.Module, tuple)
     switch_transition_model_dims: tuple
     switch_transition_model_activations: (nn.Module, tuple)
-    state_to_switch_encoder_dims: tuple
-    state_to_switch_encoder_activations: nn.Module
+    # state_to_switch_encoder_dims: tuple
+    # state_to_switch_encoder_activations: nn.Module
     obs_to_switch_encoder_dims: tuple
     obs_to_switch_encoder_activations: nn.Module
     n_epochs_until_validate_loss: int
     recurrent_link_type: SwitchLinkType
     is_recurrent: bool
 
-    obs_to_switch_encoder: bool
-    state_to_switch_encoder: bool
+    # obs_to_switch_encoder: bool
+    # state_to_switch_encoder: bool
 
     switch_prior_loc: float
     switch_prior_scale: float
@@ -46,6 +50,8 @@ class PendulumSGLSConfig(BaseConfig):
     d_fn_activations: (nn.Module, tuple)
 
     n_epochs_no_resampling: int
+    weight_decay: float
+    grad_clip_norm: float
 
 
 dims = TensorDims(
@@ -53,22 +59,26 @@ dims = TensorDims(
     particle=64,
     batch=100,
     state=3,
-    obs=2,
+    target=2,
     switch=5,
     auxiliary=None,
-    ctrl_obs=None,
+    ctrl_target=None,
     ctrl_state=None,
 )
 config = PendulumSGLSConfig(
-    dataset_name="pendulum",
+    dataset_name=consts.Datasets.pendulum_3D_coord,
     experiment_name="default",
     gpus=tuple(range(0, 4)),
     dtype=torch.float64,
+    batch_size_eval=1000,
+    num_samples_eval=100,
     lr=1e-2,
+    weight_decay=1e-5,
+    grad_clip_norm=10.0,
     n_epochs=50,
     n_epochs_no_resampling=5,
     n_epochs_until_validate_loss=1,
-    n_steps_forecast=100,
+    prediction_length=100,
     dims=dims,
     init_scale_A=1.0,
     init_scale_B=None,
@@ -78,15 +88,12 @@ config = PendulumSGLSConfig(
     init_scale_Q_diag=[1e-4, 1e-1],
     init_scale_S_diag=[1e-4, 1e-1],
     #
-    obs_to_switch_encoder=False,
-    state_to_switch_encoder=True,
-    #
     switch_transition_model_dims=tuple((32,)),
-    state_to_switch_encoder_dims=(32,),
+    # state_to_switch_encoder_dims=(32,),
     obs_to_switch_encoder_dims=tuple(),
     switch_prior_model_dims=tuple(),
     switch_transition_model_activations=nn.LeakyReLU(0.1, inplace=True),
-    state_to_switch_encoder_activations=nn.LeakyReLU(0.1, inplace=True),
+    # state_to_switch_encoder_activations=nn.LeakyReLU(0.1, inplace=True),
     obs_to_switch_encoder_activations=nn.LeakyReLU(0.1, inplace=True),
     switch_prior_model_activations=nn.LeakyReLU(0.1, inplace=True),
     #
@@ -119,36 +126,52 @@ def make_model(config):
     gls_base_parameters = gls_parameters.GlsParametersUnrestricted(
         config=config
     )
-    input_transformer = lambda *args, **kwargs: ControlInputs(
-        None, None, None, None
-    )
-    obs_to_switch_encoder = (
-        encoders.ObsToSwitchEncoderGaussianMLP(config=config)
-        if config.obs_to_switch_encoder
-        else None
-    )
-    state_to_switch_encoder = (
-        encoders.StateToSwitchEncoderGaussianMLP(config=config)
-        if config.state_to_switch_encoder
-        else None
-    )
+
+    # obs_to_switch_encoder = (
+    #     encoders.ObsToSwitchEncoderGaussianMLP(config=config)
+    #     if config.obs_to_switch_encoder
+    #     else None
+    # )
+    encoder = encoders.ObsToSwitchEncoderGaussianMLP(config=config)
     state_prior_model = state_priors.StatePriorModelNoInputs(config=config)
-    switch_transition_model = switch_transitions.SwitchTransitionModelGaussianRecurrentBaseMat(
-        config=config
+    switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
+        config=config,
     )
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
-    model = RecurrentSwitchingLinearDynamicalSystem(
+    recurrent_base_parameters = StateToSwitchParamsDefault(config=config)
+
+    ssm = RecurrentSwitchingGaussianLinearSystemRBSMC(
         n_state=dims.state,
-        n_obs=dims.target,
+        n_target=dims.target,
         n_ctrl_state=dims.ctrl_state,
+        n_ctrl_target=dims.ctrl_target,
         n_particle=dims.particle,
         n_switch=dims.switch,
         gls_base_parameters=gls_base_parameters,
-        input_transformer=input_transformer,
-        obs_to_switch_encoder=obs_to_switch_encoder,
-        state_to_switch_encoder=state_to_switch_encoder,
+        recurrent_base_parameters=recurrent_base_parameters,
+        encoder=encoder,
         switch_transition_model=switch_transition_model,
         state_prior_model=state_prior_model,
         switch_prior_model=switch_prior_model,
     )
+    model = PendulumModel(
+        config=config,
+        ssm=ssm,
+        dataset_name=config.dataset_name,
+        lr=config.lr,
+        weight_decay=config.weight_decay,
+        n_epochs=config.n_epochs,
+        batch_sizes={
+            "train": config.dims.batch,
+            "val": config.batch_size_eval,
+            "test": config.batch_size_eval,
+        },
+        past_length=config.dims.timesteps,
+        n_particle_train=config.dims.particle,
+        n_particle_eval=config.num_samples_eval,
+        prediction_length=config.prediction_length,
+        n_epochs_no_resampling=config.n_epochs_no_resampling,
+        num_batches_per_epoch=50,
+    )
     return model
+

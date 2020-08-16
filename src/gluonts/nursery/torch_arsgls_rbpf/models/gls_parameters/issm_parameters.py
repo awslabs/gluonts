@@ -10,6 +10,8 @@ from models.gls_parameters.issm import (
 )
 from torch_extensions.ops import batch_diag_matrix, matvec
 from models.gls_parameters.gls_parameters import GLSParameters
+from models.sgls_rbpf import ControlInputsSGLSISSM
+from models.base_gls import GLSParams
 
 
 class ISSMParameters(GLSParameters):
@@ -59,7 +61,7 @@ class ISSMParameters(GLSParameters):
             requires_grad=self.LRinv_logdiag.requires_grad,
         )
 
-    def forward(self, switch, u_state, u_obs, seasonal_indicators) -> Box:
+    def forward(self, switch, controls: ControlInputsSGLSISSM) -> GLSParams:
         weights = self.link_transformers(switch=switch)
 
         # biases
@@ -74,37 +76,39 @@ class ISSMParameters(GLSParameters):
             else None
         )
         b = self.compute_bias(
-            s=switch, u=u_state, bias_fn=self.b_fn, bias_matrix=B
+            s=switch, u=controls.state, bias_fn=self.b_fn, bias_matrix=B,
         )
         d = self.compute_bias(
-            s=switch, u=u_obs, bias_fn=self.d_fn, bias_matrix=D
+            s=switch, u=controls.target, bias_fn=self.d_fn, bias_matrix=D,
         )
 
         # transition and emission from ISSM
         _, C, R_diag_projector = self.issm(
-            seasonal_indicators=seasonal_indicators
+            seasonal_indicators=controls.seasonal_indicators,
         )
-        A = None  # instead of identity, we use None to avoid unnecessary computation
+        A = None  # instead of identity, we use None to reduce computation
 
         # covariance matrices
         if self.make_cov_from_cholesky_avg:
-            Q_diag = self.var_from_average_scales(
+            Q_diag, LQ_diag = self.var_from_average_scales(
                 weights=weights.Q,
                 Linv_logdiag=self.LQinv_logdiag_limiter(self.LQinv_logdiag),
             )
-            R_diag = self.var_from_average_scales(
+            R_diag, LR_diag = self.var_from_average_scales(
                 weights=weights.R,
                 Linv_logdiag=self.LRinv_logdiag_limiter(self.LRinv_logdiag),
             )
         else:
-            Q_diag = self.var_from_average_variances(
+            Q_diag, LQ_diag = self.var_from_average_variances(
                 weights=weights.Q,
                 Linv_logdiag=self.LQinv_logdiag_limiter(self.LQinv_logdiag),
             )
-            R_diag = self.var_from_average_variances(
+            R_diag, LR_diag = self.var_from_average_variances(
                 weights=weights.R,
                 Linv_logdiag=self.LRinv_logdiag_limiter(self.LRinv_logdiag),
             )
         Q = batch_diag_matrix(Q_diag)
         R = batch_diag_matrix(matvec(R_diag_projector, R_diag))
-        return Box(A=A, b=b, C=C, d=d, Q=Q, R=R)
+        LQ = batch_diag_matrix(LQ_diag)
+        LR = batch_diag_matrix(matvec(R_diag_projector, LR_diag))
+        return GLSParams(A=A, b=b, C=C, d=d, Q=Q, R=R, LR=LR, LQ=LQ)

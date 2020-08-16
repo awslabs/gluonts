@@ -1,13 +1,13 @@
 from box import Box
 import torch
 
-from models_new_will_replace.gls_homogenous import (
+from models.gls_homogenous import (
     GaussianLinearSystemHomogenous,
 )
 from utils.utils import make_dummy_ssm_params, make_dummy_input_data
 from utils.local_seed import local_seed
 
-from models_new_will_replace.base_gls import ControlInputs
+from models.base_gls import ControlInputs
 
 
 def _make_model_and_data(device, dtype, n_timesteps=10, n_data=20, seed=42):
