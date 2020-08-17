@@ -12,11 +12,14 @@ from data.gluonts_nips_datasets.gluonts_nips_datasets import (
 from experiments.model_component_zoo import (
     state_priors,
     encoders,
-    decoders, gls_parameters, input_transforms,
+    decoders,
+    gls_parameters,
+    input_transforms,
 )
 from models.kvae import KalmanVariationalAutoEncoder
-from experiments.gluonts_univariate_datasets.gts_rbsmc_model \
-    import GluontsUnivariateDataModel
+from experiments.gluonts_univariate_datasets.gts_rbsmc_model import (
+    GluontsUnivariateDataModel,
+)
 from torch_extensions.layers_with_init import LSTMCell
 
 
@@ -184,7 +187,8 @@ def make_default_config(dataset_name):
         num_samples_eval=100,
         # Note: These batch sizes barely fit on the GPU. for Multivariate must be reduced.
         batch_size_val=10
-        if dataset_name in ["exchange_rate_nips", "wiki2000_nips", "wiki2000_nips"]
+        if dataset_name
+        in ["exchange_rate_nips", "wiki2000_nips", "wiki2000_nips"]
         else 2,
         # architecture, prior, etc.
         state_prior_scale=1.0,

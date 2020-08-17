@@ -121,6 +121,7 @@ class ResampleCriterion(torch.nn.Module):
     Note that a local function definition inside a function is not possible
     since pytorch's distributed implementation requires pickleable objects.
     """
+
     @abc.abstractmethod
     def forward(self, log_norm_weights: torch.Tensor, dim: int):
         raise NotImplementedError("Must be implemented by child class")
@@ -246,6 +247,8 @@ def resample(
             for name, particles in tensors_to_resample.items()
         }
     else:
-        raise Exception(f"tensors_to_resample of unexpected type: "
-                        f"{type(tensors_to_resample)}")
+        raise Exception(
+            f"tensors_to_resample of unexpected type: "
+            f"{type(tensors_to_resample)}"
+        )
     return resampled_log_norm_weights, resampled_tensors

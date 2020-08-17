@@ -62,9 +62,7 @@ class ObsToSwitchEncoderCategoricalMLP(ParametrisedConditionalDistribution):
         super().__init__(
             allow_cat_inputs=True,
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {
@@ -93,9 +91,7 @@ class ObsToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
         super().__init__(
             allow_cat_inputs=True,
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {
@@ -129,9 +125,7 @@ class StateToSwitchEncoderCategoricalMLP(ParametrisedConditionalDistribution):
         ) = _extract_dims_from_cfg_state(config=config)
         super().__init__(
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {
@@ -159,9 +153,7 @@ class StateToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
         ) = _extract_dims_from_cfg_state(config=config)
         super().__init__(
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {
@@ -322,9 +314,7 @@ class ObsToAuxiliaryEncoderMlpGaussian(ParametrisedConditionalDistribution):
         super().__init__(
             allow_cat_inputs=True,
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {
@@ -547,6 +537,3 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
             ),
             dist_cls=[MultivariateNormal, MultivariateNormal],
         )
-
-
-

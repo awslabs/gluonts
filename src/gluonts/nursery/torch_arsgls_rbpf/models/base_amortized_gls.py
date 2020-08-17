@@ -6,11 +6,16 @@ import torch
 from torch import nn
 from torch.distributions import MultivariateNormal
 
-from models.base_gls import BaseGaussianLinearSystem, \
-    Latents, Prediction, ControlInputs
+from models.base_gls import (
+    BaseGaussianLinearSystem,
+    Latents,
+    Prediction,
+    ControlInputs,
+)
 from models.gls_parameters.gls_parameters import GLSParameters
-from torch_extensions.distributions.parametrised_distribution import \
-    ParametrisedMultivariateNormal
+from torch_extensions.distributions.parametrised_distribution import (
+    ParametrisedMultivariateNormal,
+)
 from torch_extensions.fusion import ProbabilisticSensorFusion
 from utils.utils import list_of_dicts_to_dict_of_list
 
@@ -107,15 +112,16 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         self.fuse_densities = ProbabilisticSensorFusion()
 
     def predict(
-            self,
-            # prediction_length would be misleading as prediction includes past.
-            n_steps_forecast: int,
-            past_targets: [Sequence[torch.Tensor], torch.Tensor],
-            past_controls: Optional[
-                Union[Sequence[ControlInputs], ControlInputs]] = None,
-            future_controls: Optional[Sequence[ControlInputs]] = None,
-            deterministic: bool = False,
-            smooth_past: bool = False,
+        self,
+        # prediction_length would be misleading as prediction includes past.
+        n_steps_forecast: int,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
+        future_controls: Optional[Sequence[ControlInputs]] = None,
+        deterministic: bool = False,
+        smooth_past: bool = False,
     ) -> Tuple[Sequence[Prediction], Sequence[Prediction]]:  # past & future
         """
         Predict latent variables and emissions (predictive distribution)
@@ -146,7 +152,8 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
             for t in range(len(latents_inferred))
         ]
         emissions_inferred = [
-            e.mean if deterministic else e.sample() for e in emission_dist_inferred
+            e.mean if deterministic else e.sample()
+            for e in emission_dist_inferred
         ]
         predictions_inferred = [
             Prediction(latents=l, emissions=e)
@@ -162,11 +169,13 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         return predictions_inferred, predictions_forecast
 
     def forecast(
-            self,
-            n_steps_forecast: int,
-            initial_latent: Latents,
-            future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
-            deterministic: bool = False,
+        self,
+        n_steps_forecast: int,
+        initial_latent: Latents,
+        future_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
+        deterministic: bool = False,
     ) -> Sequence[Prediction]:
 
         initial_latent, future_controls = self._prepare_forecast(
@@ -183,13 +192,13 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         )
 
     def sample_generative(
-            self,
-            n_steps_forecast: int,
-            n_batch: int,
-            n_particle: int,
-            future_controls: Optional[Sequence[ControlInputs]] = None,
-            deterministic=False,
-            **kwargs,
+        self,
+        n_steps_forecast: int,
+        n_batch: int,
+        n_particle: int,
+        future_controls: Optional[Sequence[ControlInputs]] = None,
+        deterministic=False,
+        **kwargs,
     ) -> Sequence[Prediction]:
 
         initial_latent = self._sample_initial_latents(
@@ -204,11 +213,13 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         )
 
     def _sample_trajectory_from_initial(
-            self,
-            n_steps_forecast: int,
-            initial_latent: Latents,
-            future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
-            deterministic: bool = False,
+        self,
+        n_steps_forecast: int,
+        initial_latent: Latents,
+        future_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
+        deterministic: bool = False,
     ) -> Sequence[Prediction]:
         # initial_latent is considered t == -1
 
@@ -233,8 +244,12 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
     def filter(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
-        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
-        past_targets_is_observed: Optional[Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
+        past_targets_is_observed: Optional[
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> Sequence[Latents]:
 
         n_timesteps = len(past_targets)
@@ -257,9 +272,12 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
     def smooth(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
-        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
         past_targets_is_observed: Optional[
-                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> Sequence[Latents]:
         """ Forward-Backward Smoothing (Rauch-Tung-Striebel) """
 
@@ -272,20 +290,19 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
             past_targets_is_observed=past_targets_is_observed,
         )
 
-        smoothed[-1] = filtered[-1]  # start backward recursion from last filter
+        smoothed[-1] = filtered[
+            -1
+        ]  # start backward recursion from last filter
         smoothed[-1].variables.Cov = torch.zeros_like(smoothed[-1].variables.V)
         for t in reversed(range(n_timesteps - 1)):
             smoothed[t] = self.smooth_step(
-                lats_smooth_tp1=smoothed[t+1],
-                lats_filter_t=filtered[t],
+                lats_smooth_tp1=smoothed[t + 1], lats_filter_t=filtered[t],
             )
         return smoothed
 
     @abc.abstractmethod
     def emit(
-            self,
-            lats_t: Latents,
-            ctrl_t: ControlInputs,
+        self, lats_t: Latents, ctrl_t: ControlInputs,
     ) -> torch.distributions.Distribution:
         raise NotImplementedError("must be implemented by child class")
 
@@ -301,9 +318,7 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
 
     @abc.abstractmethod
     def smooth_step(
-        self,
-        lats_smooth_tp1: (Latents, None),
-        lats_filter_t: (Latents, None),
+        self, lats_smooth_tp1: (Latents, None), lats_filter_t: (Latents, None),
     ) -> Latents:
         raise NotImplementedError("must be implemented by child class")
 
@@ -317,21 +332,16 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         raise NotImplementedError("must be implemented by child class")
 
     @abc.abstractmethod
-    def _sample_initial_latents(
-        self,
-        n_particle,
-        n_batch
-    ) -> Latents:
+    def _sample_initial_latents(self, n_particle, n_batch) -> Latents:
         raise NotImplementedError("must be implemented by child class")
 
     @abc.abstractmethod
     def _prepare_forecast(
-            self,
-            initial_latent: Latents,
-            controls: Optional[
-                Union[Sequence[ControlInputs], ControlInputs]] = None,
-            deterministic: bool = False,
+        self,
+        initial_latent: Latents,
+        controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
+        deterministic: bool = False,
     ):
         raise NotImplementedError("Should be implemented by child class")
-
-

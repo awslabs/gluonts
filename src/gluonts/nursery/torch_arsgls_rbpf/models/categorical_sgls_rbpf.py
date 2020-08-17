@@ -1,6 +1,7 @@
 import torch
-from torch_extensions.distributions.stable_relaxed_categorical import \
-    StableRelaxedOneHotCategorical
+from torch_extensions.distributions.stable_relaxed_categorical import (
+    StableRelaxedOneHotCategorical,
+)
 from models.sgls_rbpf import SwitchingGaussianLinearSystemBaseRBSMC
 
 
@@ -10,7 +11,9 @@ class CategoricalSwitchingGaussianLinearSystemRBSMC(
     def __init__(self, temperature, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # nn.Parameter so it is registered and works with .to(device) etc.
-        self._temperature = torch.nn.Parameter(temperature, requires_grad=False)
+        self._temperature = torch.nn.Parameter(
+            temperature, requires_grad=False
+        )
 
     @property
     def temperature(self):

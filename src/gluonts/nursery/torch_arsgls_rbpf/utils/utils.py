@@ -269,6 +269,7 @@ class IndependentNormal(Independent):
     Diagonal Normal that can be used similar to Multivariate Normal but is more
     memory and computationally efficient. Cholesky -> sqrt. Inverse -> **-1.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(Normal(*args, **kwargs), 1)
 

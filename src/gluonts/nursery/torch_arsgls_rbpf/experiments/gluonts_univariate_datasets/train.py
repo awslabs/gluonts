@@ -17,9 +17,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-root_log_path", type=str, default="/home/ubuntu/logs"
     )
-    parser.add_argument(
-        "-dataset_name", type=str, default="wiki-rolling_nips"
-    )
+    parser.add_argument("-dataset_name", type=str, default="wiki-rolling_nips")
     parser.add_argument("-experiment_name", type=str)
     parser.add_argument("-run_nr", type=int, default=None)
     parser.add_argument(

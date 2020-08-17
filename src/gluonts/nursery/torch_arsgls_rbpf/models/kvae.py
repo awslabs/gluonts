@@ -28,9 +28,7 @@ from models.base_gls import (
     Prediction,
     GLSVariables,
 )
-from models.base_amortized_gls import (
-    BaseAmortizedGaussianLinearSystem,
-)
+from models.base_amortized_gls import BaseAmortizedGaussianLinearSystem
 from models.gls_parameters.gls_parameters import GLSParameters
 from torch_extensions.distributions.parametrised_distribution import (
     ParametrisedMultivariateNormal,
@@ -295,14 +293,11 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         )
 
         emission_dist_t = self.emit(lats_t=lats_t, ctrl_t=ctrl_t)
-        emissions_t = emission_dist_t.mean \
-            if deterministic \
-            else emission_dist_t.sample()
-
-        return Prediction(
-            latents=lats_t,
-            emissions=emissions_t,
+        emissions_t = (
+            emission_dist_t.mean if deterministic else emission_dist_t.sample()
         )
+
+        return Prediction(latents=lats_t, emissions=emissions_t,)
 
     def loss(
         self,
@@ -311,14 +306,14 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
             Union[Sequence[ControlInputs], ControlInputs]
         ] = None,
         past_targets_is_observed: Optional[
-                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> torch.Tensor:
 
         if self.rao_blackwellized:
             if past_targets_is_observed is None:
                 return self._loss_em_rb_efficient(
-                    past_targets=past_targets,
-                    past_controls=past_controls,
+                    past_targets=past_targets, past_controls=past_controls,
                 )
             else:
                 raise NotImplementedError(
@@ -327,8 +322,7 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         else:
             if past_targets_is_observed is None:
                 return self._loss_em_mc_efficient(
-                    past_targets=past_targets,
-                    past_controls=past_controls,
+                    past_targets=past_targets, past_controls=past_controls,
                 )
             else:
                 return self._loss_em_mc(
@@ -344,7 +338,8 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
             Union[Sequence[ControlInputs], ControlInputs]
         ] = None,
         past_targets_is_observed: Optional[
-            Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> torch.Tensor:
         """" Monte Carlo loss as computed in KVAE paper """
         n_batch = len(past_targets[0])
@@ -433,9 +428,13 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         )
         _l_variational_timewise = auxiliary_variational_dist.log_prob(
             z_particle_first
-        ).mean(dim=0)  # again dim=0 is particle dim here.
+        ).mean(
+            dim=0
+        )  # again dim=0 is particle dim here.
         if past_targets_is_observed is not None:
-            _l_variational_timewise = _l_variational_timewise * past_targets_is_observed
+            _l_variational_timewise = (
+                _l_variational_timewise * past_targets_is_observed
+            )
         l_inv_measurement = _l_variational_timewise.sum(dim=0)
 
         assert all(
@@ -545,12 +544,8 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         initial_latents = LatentsKVAE(
             gls_params=None,
             variables=GLSVariablesKVAE(
-                x=None,
-                m=None,
-                V=None,
-                auxiliary=z_initial,
-                rnn_state=None,
-            )
+                x=None, m=None, V=None, auxiliary=z_initial, rnn_state=None,
+            ),
         )
         return initial_latents
 
@@ -563,11 +558,11 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
 
     # Below are some more efficient method implementations that batch time-dim.
     def _loss_em_rb_efficient(
-            self,
-            past_targets: [Sequence[torch.Tensor], torch.Tensor],
-            past_controls: Optional[
-                Union[Sequence[ControlInputs], ControlInputs]
-            ] = None,
+        self,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
     ) -> torch.Tensor:
         """
         Rao-Blackwellization for part of the loss (the EM loss term of the SSM).
@@ -595,11 +590,11 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         (
             LQinv_tril,
             LQinv_logdiag,
-        ) = make_inv_tril_parametrization_from_cholesky(gls_params.LQ, )
+        ) = make_inv_tril_parametrization_from_cholesky(gls_params.LQ,)
         (
             LRinv_tril,
             LRinv_logdiag,
-        ) = make_inv_tril_parametrization_from_cholesky(gls_params.LR, )
+        ) = make_inv_tril_parametrization_from_cholesky(gls_params.LR,)
 
         state_prior = self.state_prior_model(
             None, batch_shape_to_prepend=(self.n_particle, n_batch),
@@ -638,13 +633,13 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         l_em = _l_em_particle_batch_wise.sum(dim=0) / dims.particle
 
         l_measurement = (
-                -self.measurement_model(z_particle_first)
-                .log_prob(past_targets)
-                .sum(dim=(0, 1))
-                / dims.particle
+            -self.measurement_model(z_particle_first)
+            .log_prob(past_targets)
+            .sum(dim=(0, 1))
+            / dims.particle
         )
         l_auxiliary_encoder = (
-                q.log_prob(z_particle_first).sum(dim=(0, 1)) / dims.particle
+            q.log_prob(z_particle_first).sum(dim=(0, 1)) / dims.particle
         )
 
         assert all(
@@ -652,18 +647,18 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
             for l in (l_measurement, l_auxiliary_encoder, l_em)
         )
         l_total = (
-                self.reconstruction_weight * l_measurement
-                + l_auxiliary_encoder
-                + l_em
+            self.reconstruction_weight * l_measurement
+            + l_auxiliary_encoder
+            + l_em
         )
         return l_total
 
     def _loss_em_mc_efficient(
-            self,
-            past_targets: [Sequence[torch.Tensor], torch.Tensor],
-            past_controls: Optional[
-                Union[Sequence[ControlInputs], ControlInputs]
-            ] = None,
+        self,
+        past_targets: [Sequence[torch.Tensor], torch.Tensor],
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
     ) -> torch.Tensor:
         """
         Monte Carlo loss as computed in KVAE paper.
@@ -676,7 +671,8 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         # A) SSM related distributions:
         # A1) smoothing.
         latents_smoothed = self._smooth_efficient(
-            past_targets=past_targets, past_controls=past_controls,
+            past_targets=past_targets,
+            past_controls=past_controls,
             return_time_tensor=True,
         )
 
@@ -695,42 +691,40 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         #  # A, B, R are already 0:T-1.
         transition_dist = MultivariateNormal(
             loc=matvec(gls_params.A[:-1], x[:-1])
-                + (
-                    matvec(gls_params.B[:-1], past_controls.state[:-1])
-                    if gls_params.B is not None
-                    else 0.0
-                ),
+            + (
+                matvec(gls_params.B[:-1], past_controls.state[:-1])
+                if gls_params.B is not None
+                else 0.0
+            ),
             covariance_matrix=gls_params.R[:-1],
         )
         # A3) posterior predictive (auxiliary) distribution.
         auxiliary_predictive_dist = MultivariateNormal(
             loc=matvec(gls_params.C, x)
-                + (
-                    matvec(gls_params.D, past_controls.target)
-                    if gls_params.D is not None
-                    else 0.0
-                ),
+            + (
+                matvec(gls_params.D, past_controls.target)
+                if gls_params.D is not None
+                else 0.0
+            ),
             covariance_matrix=gls_params.Q,
         )
 
         # A4) SSM related losses
         l_prior = (
-                -prior_dist.log_prob(x[0:1]).sum(dim=(0, 1)) / self.n_particle
+            -prior_dist.log_prob(x[0:1]).sum(dim=(0, 1)) / self.n_particle
         )  # time and particle dim
         l_transition = (
-                -transition_dist.log_prob(x[1:]).sum(
-                    dim=(0, 1)) / self.n_particle
+            -transition_dist.log_prob(x[1:]).sum(dim=(0, 1)) / self.n_particle
         )  # time and particle dim
         l_auxiliary = (
-                -auxiliary_predictive_dist.log_prob(
-                    latents_smoothed.variables.auxiliary
-                ).sum(dim=(0, 1))
-                / self.n_particle
+            -auxiliary_predictive_dist.log_prob(
+                latents_smoothed.variables.auxiliary
+            ).sum(dim=(0, 1))
+            / self.n_particle
         )  # time and particle dim
         l_entropy = (
-                state_smoothed_dist.log_prob(x).sum(
-                    dim=(0, 1))  # negative entropy
-                / self.n_particle
+            state_smoothed_dist.log_prob(x).sum(dim=(0, 1))  # negative entropy
+            / self.n_particle
         )  # time and particle dim
 
         # B) VAE related distributions
@@ -741,8 +735,8 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         measurement_dist = self.measurement_model(z_particle_first)
         # B3) VAE related losses
         l_measurement = (
-                -measurement_dist.log_prob(past_targets).sum(dim=(0, 1))
-                / self.n_particle
+            -measurement_dist.log_prob(past_targets).sum(dim=(0, 1))
+            / self.n_particle
         )  # time and particle dim
 
         auxiliary_variational_dist = MultivariateNormal(
@@ -750,10 +744,10 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
             covariance_matrix=latents_smoothed.variables.V_auxiliary_variational,
         )
         l_inv_measurement = (
-                auxiliary_variational_dist.log_prob(z_particle_first).sum(
-                    dim=(0, 1)
-                )
-                / self.n_particle
+            auxiliary_variational_dist.log_prob(z_particle_first).sum(
+                dim=(0, 1)
+            )
+            / self.n_particle
         )  # time and particle dim
 
         assert all(
@@ -768,12 +762,12 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
         )
 
         l_total = (
-                self.reconstruction_weight * l_measurement
-                + l_inv_measurement
-                + l_auxiliary
-                + l_prior
-                + l_transition
-                + l_entropy
+            self.reconstruction_weight * l_measurement
+            + l_inv_measurement
+            + l_auxiliary
+            + l_prior
+            + l_transition
+            + l_entropy
         )
         return l_total
 
@@ -806,7 +800,9 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
 
         # Encode observations y[0:T] to obtain all pseudo-observation z[0:T]
         auxiliary_variational_dist = self.encoder(past_targets)
-        z = auxiliary_variational_dist.rsample([self.n_particle]).transpose(0, 1)
+        z = auxiliary_variational_dist.rsample([self.n_particle]).transpose(
+            0, 1
+        )
         # Use as RNN input [z_initial, z[0:T-1]], i.e. previous pseudo-observation.
         z_initial = self.z_initial[None, None, None, :].repeat(
             1, self.n_particle, n_batch, 1,
@@ -968,4 +964,3 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
             return smoothed_latents_with_time_dim
         else:
             return list(iter(smoothed_latents_with_time_dim))
-

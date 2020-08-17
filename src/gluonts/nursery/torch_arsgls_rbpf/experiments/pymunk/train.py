@@ -14,7 +14,9 @@ from experiments.pymunk.configs import (
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-root_log_path", type=str, default="/home/ubuntu/logs")
+    parser.add_argument(
+        "-root_log_path", type=str, default="/home/ubuntu/logs"
+    )
     parser.add_argument("-dataset_name", type=str, default="box")
     parser.add_argument("-experiment_name", type=str, default="kvae")
     parser.add_argument("-run_nr", type=int, default=None)

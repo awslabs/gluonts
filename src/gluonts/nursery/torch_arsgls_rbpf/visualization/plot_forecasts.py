@@ -27,11 +27,12 @@ def make_val_plots_univariate(
     data = {name: val.to(device) for name, val in data.items()}
     future_target = data.pop("future_target")
 
-    future_target_plot = future_target_groundtruth \
-        if future_target_groundtruth is not None \
+    future_target_plot = (
+        future_target_groundtruth
+        if future_target_groundtruth is not None
         else future_target
+    )
     y_plot = torch.cat([data["past_target"], future_target_plot])
-
 
     predictions_filtered, predictions_forecast = model(
         **data, n_steps_forecast=n_steps_forecast,

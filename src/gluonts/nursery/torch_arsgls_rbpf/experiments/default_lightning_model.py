@@ -21,9 +21,7 @@ from experiments.model_component_zoo.input_transforms import (
 
 class DefaultExtractTarget(object):
     def __init__(
-            self,
-            past_length: int,
-            prediction_length: Optional[int] = None,
+        self, past_length: int, prediction_length: Optional[int] = None,
     ):
         self.past_length = past_length
         self.prediction_length = prediction_length
@@ -33,15 +31,17 @@ class DefaultExtractTarget(object):
         target = item["y"]
         if self.prediction_length is not None:
             if not len(target) >= self.past_length + self.prediction_length:
-                raise Exception(f"len(target)=={len(target)}, "
-                                f"past_length=={self.past_length}, "
-                                f"prediction_length=={self.prediction_length}")
-            transformed_item['past_target'] = target[:self.past_length]
-            transformed_item['future_target'] = \
-                target[self.past_length:
-                       self.past_length + self.prediction_length]
+                raise Exception(
+                    f"len(target)=={len(target)}, "
+                    f"past_length=={self.past_length}, "
+                    f"prediction_length=={self.prediction_length}"
+                )
+            transformed_item["past_target"] = target[: self.past_length]
+            transformed_item["future_target"] = target[
+                self.past_length : self.past_length + self.prediction_length
+            ]
         else:
-            transformed_item['past_target'] = target
+            transformed_item["past_target"] = target
 
         return transformed_item
 
@@ -54,6 +54,7 @@ class DefaultLightningModel(LightningModule):
     Furtunately, lightning seems to move towards having a separate
     dataloader class.
     """
+
     def __init__(
         self,
         config,  # TODO: remove this once we log hparams with hydra or similar
@@ -68,7 +69,8 @@ class DefaultLightningModel(LightningModule):
         n_particle_eval,
         prediction_length,
         ctrl_transformer: Optional[
-            InputTransformer] = NoControlsDummyInputTransformer(),
+            InputTransformer
+        ] = NoControlsDummyInputTransformer(),
         tar_transformer: Optional[torch.distributions.AffineTransform] = None,
         n_epochs_no_resampling=0,
         n_epochs_freeze_gls_params=0,
@@ -173,9 +175,8 @@ class DefaultLightningModel(LightningModule):
         param_names_gls = [
             name
             for name in dict(self.named_parameters()).keys()
-            if
-            ("gls_base_parameters" in name) and (
-                not "link_transformers" in name)
+            if ("gls_base_parameters" in name)
+            and (not "link_transformers" in name)
         ]
         params_gls = tuple(
             param
@@ -207,23 +208,23 @@ class DefaultLightningModel(LightningModule):
         return [optimizer], [scheduler]
 
     def optimizer_step(
-            self,
-            epoch: int,
-            batch_idx: int,
-            optimizer: Optimizer,
-            optimizer_idx: int,
-            *args,
-            **kwargs,
+        self,
+        epoch: int,
+        batch_idx: int,
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        *args,
+        **kwargs,
     ) -> None:
         # warmup only certain parameters (all except GLS) if configured.
-        is_warmup = (epoch < self.n_epochs_freeze_gls_params)
+        is_warmup = epoch < self.n_epochs_freeze_gls_params
         if is_warmup:
-            lr_gls = optimizer.param_groups[0]['lr']
-            optimizer.param_groups[0]['lr'] = 0
+            lr_gls = optimizer.param_groups[0]["lr"]
+            optimizer.param_groups[0]["lr"] = 0
             optimizer_output = super().optimizer_step(
                 epoch, batch_idx, optimizer, optimizer_idx, *args, **kwargs,
             )
-            optimizer.param_groups[0]['lr'] = lr_gls
+            optimizer.param_groups[0]["lr"] = lr_gls
         else:
             optimizer_output = super().optimizer_step(
                 epoch, batch_idx, optimizer, optimizer_idx, *args, **kwargs,
@@ -233,7 +234,7 @@ class DefaultLightningModel(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.loss(**batch)
         result = pl.TrainResult(loss)
-        result.log('train_loss', loss)
+        result.log("train_loss", loss)
         return result
 
     def on_train_epoch_start(self) -> None:
@@ -246,19 +247,22 @@ class DefaultLightningModel(LightningModule):
         # but it should not be a problem. Want to get rid of this anyways.
         if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
             # <= and >= because we want to set self._resampling_criterion_fn.
-            set_no_resampling = \
-                (self.current_epoch <= self.n_epochs_no_resampling)
-            set_resampling = \
-                (self.current_epoch >= self.n_epochs_no_resampling)
+            set_no_resampling = (
+                self.current_epoch <= self.n_epochs_no_resampling
+            )
+            set_resampling = self.current_epoch >= self.n_epochs_no_resampling
 
             if set_no_resampling:
-                self._resampling_criterion_fn = self.ssm.resampling_criterion_fn
-                self.ssm.resampling_criterion_fn = \
-                    EffectiveSampleSizeResampleCriterion(
-                        min_ess_ratio=0.0,
-                    )
+                self._resampling_criterion_fn = (
+                    self.ssm.resampling_criterion_fn
+                )
+                self.ssm.resampling_criterion_fn = EffectiveSampleSizeResampleCriterion(
+                    min_ess_ratio=0.0,
+                )
             if set_resampling:
-                self.ssm.resampling_criterion_fn = self._resampling_criterion_fn
+                self.ssm.resampling_criterion_fn = (
+                    self._resampling_criterion_fn
+                )
 
     def on_validation_epoch_start(self) -> None:
         super().on_validation_epoch_start()
@@ -271,8 +275,7 @@ class DefaultLightningModel(LightningModule):
     def on_fit_start(self):
         for folder in ["plots", "metrics"]:
             os.makedirs(
-                os.path.join(self.logger.log_dir, folder),
-                exist_ok=True,
+                os.path.join(self.logger.log_dir, folder), exist_ok=True,
             )
         # copy config.py and consts.py files. # TODO: Replace this with hydra.
         copyfile(

@@ -343,9 +343,9 @@ def loss_forward(
             y=y[t], m=mp, V=Vp, Q=Q, C=C, d=d[t], return_loss_components=True
         )
         loss += (
-                0.5 * torch.sum(dobs_norm ** 2, dim=-1)
-                - 0.5 * 2 * torch.sum(torch.log(batch_diag(LVpyinv)), dim=(-1,))
-                + 0.5 * dims.target * LOG_2PI
+            0.5 * torch.sum(dobs_norm ** 2, dim=-1)
+            - 0.5 * 2 * torch.sum(torch.log(batch_diag(LVpyinv)), dim=(-1,))
+            + 0.5 * dims.target * LOG_2PI
         )
 
     return loss
@@ -421,9 +421,7 @@ def loss_em(
     )
     loss_trans = 0.5 * (
         torch.sum(Rinv * quad_trans, dim=(-1, -2))
-        - 2.0
-        * (dims.timesteps - 1)
-        * torch.sum(LRinv_logdiag, dim=-1)
+        - 2.0 * (dims.timesteps - 1) * torch.sum(LRinv_logdiag, dim=-1)
         + (dims.timesteps - 1) * dims.state * LOG_2PI
     )
 
@@ -434,9 +432,9 @@ def loss_em(
         delta_obs.transpose(0, 1).transpose(-1, -2), delta_obs.transpose(0, 1)
     ) + matmul(C, matmul(V_sum, C.transpose(-1, -2)))
     loss_obs = 0.5 * (
-            torch.sum(Qinv * quad_obs, dim=(-1, -2))
-            - 2.0 * dims.timesteps * torch.sum(LQinv_logdiag, dim=-1)
-            + dims.timesteps * dims.target * LOG_2PI
+        torch.sum(Qinv * quad_obs, dim=(-1, -2))
+        - 2.0 * dims.timesteps * torch.sum(LQinv_logdiag, dim=-1)
+        + dims.timesteps * dims.target * LOG_2PI
     )
 
     loss = loss_trans + loss_obs + loss_init + loss_entropy
@@ -444,9 +442,7 @@ def loss_em(
 
 
 def compute_entropy(
-    dims: TensorDims,
-    V: torch.Tensor,
-    Cov: torch.Tensor,
+    dims: TensorDims, V: torch.Tensor, Cov: torch.Tensor,
 ):
     """ Compute entropy of Gaussian posterior from E-step (in Markovian SSM) """
     entropy = 0.0

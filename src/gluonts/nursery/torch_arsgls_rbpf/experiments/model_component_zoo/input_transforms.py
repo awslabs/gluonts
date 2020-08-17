@@ -15,16 +15,19 @@ class InputTransformer(nn.Module):
         super().__init__()
 
     def forward(
-            self,
-            feat_static_cat: torch.Tensor,
-            time_feat: torch.Tensor,
-            seasonal_indicators: Optional[torch.Tensor] = None,
+        self,
+        feat_static_cat: torch.Tensor,
+        time_feat: torch.Tensor,
+        seasonal_indicators: Optional[torch.Tensor] = None,
     ) -> ControlInputs:
         raise NotImplementedError("child classes must implement this")
 
-    def _repeat_static_feats(self, feat_static: torch.Tensor, n_timesteps: int):
+    def _repeat_static_feats(
+        self, feat_static: torch.Tensor, n_timesteps: int
+    ):
         return feat_static[None, ...].repeat(
-            (n_timesteps,) + (1,) * feat_static.ndim)
+            (n_timesteps,) + (1,) * feat_static.ndim
+        )
 
     def _all_same_controls(
         self,
@@ -53,18 +56,18 @@ class NoControlsDummyInputTransformer(InputTransformer):
         super().__init__()
 
     def forward(
-            self,
-            feat_static_cat: Optional[torch.Tensor] = None,
-            time_feat: Optional[torch.Tensor] = None,
-            seasonal_indicators: Optional[torch.Tensor] = None,
+        self,
+        feat_static_cat: Optional[torch.Tensor] = None,
+        time_feat: Optional[torch.Tensor] = None,
+        seasonal_indicators: Optional[torch.Tensor] = None,
     ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         assert feat_static_cat is None
         assert time_feat is None
         assert seasonal_indicators is None
         return self._all_same_controls(
-            ctrl_features=None,
-            seasonal_indicators=None,
+            ctrl_features=None, seasonal_indicators=None,
         )
+
 
 class InputTransformEmbedder(InputTransformer):
     def __init__(self, config):
@@ -75,10 +78,10 @@ class InputTransformEmbedder(InputTransformer):
         )
 
     def forward(
-            self,
-            feat_static_cat: torch.Tensor,
-            time_feat: torch.Tensor,
-            seasonal_indicators: Optional[torch.Tensor] = None,
+        self,
+        feat_static_cat: torch.Tensor,
+        time_feat: torch.Tensor,
+        seasonal_indicators: Optional[torch.Tensor] = None,
     ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         feat_static_embed_repeat = self._repeat_static_feats(
             feat_static=self.embedding(
@@ -86,7 +89,9 @@ class InputTransformEmbedder(InputTransformer):
             ),
             n_timesteps=len(time_feat),
         )
-        ctrl_features = torch.cat([feat_static_embed_repeat, time_feat], dim=-1)
+        ctrl_features = torch.cat(
+            [feat_static_embed_repeat, time_feat], dim=-1
+        )
         return self._all_same_controls(
             ctrl_features=ctrl_features,
             seasonal_indicators=seasonal_indicators,
@@ -104,10 +109,10 @@ class InputTransformOneHotMLP(InputTransformer):
         )
 
     def forward(
-            self,
-            feat_static_cat: torch.Tensor,
-            time_feat: torch.Tensor,
-            seasonal_indicators: Optional[torch.Tensor] = None,
+        self,
+        feat_static_cat: torch.Tensor,
+        time_feat: torch.Tensor,
+        seasonal_indicators: Optional[torch.Tensor] = None,
     ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         feat_static_onehot_repeat = self._repeat_static_feats(
             feat_static=one_hot(
@@ -134,14 +139,13 @@ class InputTransformMLP(InputTransformer):
         )
 
     def forward(
-            self,
-            feat_static_cat: torch.Tensor,
-            time_feat: torch.Tensor,
-            seasonal_indicators: Optional[torch.Tensor] = None,
+        self,
+        feat_static_cat: torch.Tensor,
+        time_feat: torch.Tensor,
+        seasonal_indicators: Optional[torch.Tensor] = None,
     ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         feat_static_repeat = self._repeat_static_feats(
-            feat_static=feat_static_cat,
-            n_timesteps=len(time_feat),
+            feat_static=feat_static_cat, n_timesteps=len(time_feat),
         )
         ctrl_features = self.mlp(
             torch.cat((feat_static_repeat, time_feat), dim=-1),
@@ -168,10 +172,10 @@ class InputTransformEmbeddingAndMLP(InputTransformer):
         self.time_feat_factor = 5.0
 
     def forward(
-            self,
-            feat_static_cat: torch.Tensor,
-            time_feat: torch.Tensor,
-            seasonal_indicators: Optional[torch.Tensor] = None,
+        self,
+        feat_static_cat: torch.Tensor,
+        time_feat: torch.Tensor,
+        seasonal_indicators: Optional[torch.Tensor] = None,
     ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         feat_static_embed_repeat = self._repeat_static_feats(
             feat_static=self.embedding(
@@ -180,9 +184,10 @@ class InputTransformEmbeddingAndMLP(InputTransformer):
             n_timesteps=len(time_feat),
         )
         ctrl_features = self.mlp(
-            torch.cat([
-                feat_static_embed_repeat, time_feat * self.time_feat_factor
-            ], dim=-1),
+            torch.cat(
+                [feat_static_embed_repeat, time_feat * self.time_feat_factor],
+                dim=-1,
+            ),
         )
         return self._all_same_controls(
             ctrl_features=ctrl_features,
@@ -192,10 +197,10 @@ class InputTransformEmbeddingAndMLP(InputTransformer):
 
 class InputTransformEmbeddingAndMLPKVAE(InputTransformEmbeddingAndMLP):
     def forward(
-            self,
-            feat_static_cat: torch.Tensor,
-            time_feat: torch.Tensor,
-            seasonal_indicators: Optional[torch.Tensor] = None,
+        self,
+        feat_static_cat: torch.Tensor,
+        time_feat: torch.Tensor,
+        seasonal_indicators: Optional[torch.Tensor] = None,
     ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
         controls = super().forward(
             feat_static_cat=feat_static_cat,

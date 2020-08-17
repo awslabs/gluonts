@@ -16,18 +16,24 @@ from utils.utils import flatten_iterable, one_hot
 
 def gaussian_linear_combination(distributions_and_weights: Dict):
     assert isinstance(distributions_and_weights, dict)
-    assert all(isinstance(dist, MultivariateNormal)
-                for dist in distributions_and_weights.keys())
+    assert all(
+        isinstance(dist, MultivariateNormal)
+        for dist in distributions_and_weights.keys()
+    )
 
     return MultivariateNormal(
-        loc=sum([
-            dist.loc * weight for dist, weight in
-            distributions_and_weights.items()
-        ]),
-        covariance_matrix=sum([
-            dist.covariance_matrix * weight for dist, weight in
-            distributions_and_weights.items()
-        ]),
+        loc=sum(
+            [
+                dist.loc * weight
+                for dist, weight in distributions_and_weights.items()
+            ]
+        ),
+        covariance_matrix=sum(
+            [
+                dist.covariance_matrix * weight
+                for dist, weight in distributions_and_weights.items()
+            ]
+        ),
     )
 
 
@@ -205,5 +211,3 @@ def plot_gaussian_fusion():
     plt.xlabel("x")
     plt.grid()
     plt.show()
-
-

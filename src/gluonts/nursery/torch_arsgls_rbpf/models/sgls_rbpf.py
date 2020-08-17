@@ -41,6 +41,7 @@ from torch_extensions.distributions.conditional_parametrised_distribution import
 )
 from models.gls_parameters.gls_parameters import GLSParameters
 
+
 @dataclass
 class ControlInputsSGLS(ControlInputs):
     switch: torch.Tensor
@@ -174,10 +175,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             ).switch,
         )
         s_t = switch_proposal_dist.rsample()
-        gls_params_t = self.gls_base_parameters(
-            switch=s_t,
-            controls=ctrl_t,
-        )
+        gls_params_t = self.gls_base_parameters(switch=s_t, controls=ctrl_t,)
 
         mp, Vp = filter_forward_prediction_step(
             m=lats_tm1.variables.m,
@@ -196,11 +194,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             d=gls_params_t.d,
         )
         mpy_t, Vpy_t = filter_forward_predictive_distribution(
-            m=mp,
-            V=Vp,
-            Q=gls_params_t.Q,
-            C=gls_params_t.C,
-            d=gls_params_t.d,
+            m=mp, V=Vp, Q=gls_params_t.Q, C=gls_params_t.C, d=gls_params_t.d,
         )
         measurement_dist = MultivariateNormal(
             loc=mpy_t, scale_tril=cholesky(Vpy_t),
@@ -238,8 +232,7 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             )
         else:
             switch_model_dist_t = self._make_switch_transition_dist(
-                lat_vars_tm1=lats_tm1.variables,
-                ctrl_t=ctrl_t,
+                lat_vars_tm1=lats_tm1.variables, ctrl_t=ctrl_t,
             )
 
         s_t = (
@@ -247,18 +240,15 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             if deterministic
             else switch_model_dist_t.sample()
         )
-        gls_params_t = self.gls_base_parameters(
-            switch=s_t,
-            controls=ctrl_t,
-        )
+        gls_params_t = self.gls_base_parameters(switch=s_t, controls=ctrl_t,)
 
         x_dist_t = torch.distributions.MultivariateNormal(
             loc=(
-                    matvec(gls_params_t.A, lats_tm1.variables.x)
-                    if gls_params_t.A is not None
-                    else lats_tm1.variables.x
-                )
-                + (gls_params_t.b if gls_params_t.b is not None else 0.0),
+                matvec(gls_params_t.A, lats_tm1.variables.x)
+                if gls_params_t.A is not None
+                else lats_tm1.variables.x
+            )
+            + (gls_params_t.b if gls_params_t.b is not None else 0.0),
             scale_tril=gls_params_t.LR,  # stable with scale and 0 variance.
         )
 
@@ -274,20 +264,16 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
         # emission_dist = self.emit(lats_t=lats_t, ctrl_t=ctrl_t)
         emission_dist_t = torch.distributions.MultivariateNormal(
             loc=matvec(gls_params_t.C, x_t)
-                + (gls_params_t.d if gls_params_t.d is not None else 0.0),
+            + (gls_params_t.d if gls_params_t.d is not None else 0.0),
             scale_tril=cholesky(gls_params_t.Q),
         )
-        emissions_t = emission_dist_t.mean \
-            if deterministic \
-            else emission_dist_t.sample()
+        emissions_t = (
+            emission_dist_t.mean if deterministic else emission_dist_t.sample()
+        )
 
         return Prediction(latents=lats_t, emissions=emissions_t)
 
-    def _sample_initial_latents(
-        self,
-        n_particle,
-        n_batch,
-    ) -> LatentsSGLS:
+    def _sample_initial_latents(self, n_particle, n_batch,) -> LatentsSGLS:
         state_prior = self.state_prior_model(
             None, batch_shape_to_prepend=(n_particle, n_batch)
         )
@@ -297,35 +283,30 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             log_weights=torch.zeros_like(state_prior.loc[..., 0]),
             gls_params=None,  # initial step has none
             variables=GLSVariablesSGLS(
-                x=x_initial,
-                m=None,
-                V=None,
-                Cov=None,
-                switch=s_initial,
-            )
+                x=x_initial, m=None, V=None, Cov=None, switch=s_initial,
+            ),
         )
 
     def emit(
-            self,
-            lats_t: LatentsSGLS,
-            ctrl_t: ControlInputsSGLS,
+        self, lats_t: LatentsSGLS, ctrl_t: ControlInputsSGLS,
     ) -> torch.distributions.MultivariateNormal:
         # Unfortunately need to recompute gls_params.
         # Trade-off: faster, lower memory training vs. slower sampling/forecast
         gls_params_t = self.gls_base_parameters(
-            switch=lats_t.variables.switch,
-            controls=ctrl_t,
+            switch=lats_t.variables.switch, controls=ctrl_t,
         )
         return torch.distributions.MultivariateNormal(
             loc=matvec(gls_params_t.C, lats_t.variables.x)
-                + (gls_params_t.d if gls_params_t.d is not None else 0.0),
+            + (gls_params_t.d if gls_params_t.d is not None else 0.0),
             scale_tril=cholesky(gls_params_t.Q),
         )
 
     def _make_encoder_dists(
         self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
     ) -> Box:
-        enc_inp = [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
+        enc_inp = (
+            [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
+        )
         encoded = self.encoder(enc_inp)
         if isinstance(encoded, torch.distributions.Distribution):
             return Box(switch=encoded)
@@ -349,16 +330,17 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
         return switch_model_dist
 
     def _make_switch_transition_dist(
-            self,
-            lat_vars_tm1: GLSVariablesSGLS,
-            ctrl_t: Optional[ControlInputsSGLS],
+        self,
+        lat_vars_tm1: GLSVariablesSGLS,
+        ctrl_t: Optional[ControlInputsSGLS],
     ) -> torch.distributions.MultivariateNormal:
-        controls = prepend_batch_dims(ctrl_t.switch, shp=(self.n_particle,)) \
-            if (ctrl_t is not None and ctrl_t.switch is not None) \
+        controls = (
+            prepend_batch_dims(ctrl_t.switch, shp=(self.n_particle,))
+            if (ctrl_t is not None and ctrl_t.switch is not None)
             else None
+        )
         switch_model_dist = self.switch_transition_model(
-            controls=controls,
-            switch=lat_vars_tm1.switch,
+            controls=controls, switch=lat_vars_tm1.switch,
         )
         return switch_model_dist
 
@@ -371,5 +353,3 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
             [switch_model_dist, switch_encoder_dist]
         )
         return switch_proposal_dist
-
-

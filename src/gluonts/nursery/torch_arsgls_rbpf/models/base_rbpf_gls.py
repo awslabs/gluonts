@@ -10,8 +10,10 @@ from inference.smc.resampling import (
     resample,
     make_argmax_log_weights,
 )
-from models.base_amortized_gls import \
-    BaseAmortizedGaussianLinearSystem, LatentsRBSMC
+from models.base_amortized_gls import (
+    BaseAmortizedGaussianLinearSystem,
+    LatentsRBSMC,
+)
 from models.base_gls import ControlInputs
 
 
@@ -32,9 +34,12 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
     def loss(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
-        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
         past_targets_is_observed: Optional[
-                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> torch.Tensor:
         return self.loss_filter(
             past_targets=past_targets,
@@ -45,9 +50,12 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
     def loss_filter(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
-        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
         past_targets_is_observed: Optional[
-            Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> torch.Tensor:
         """
         Computes an estimate of the negative log marginal likelihood.
@@ -68,11 +76,12 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
         return -log_marginal
 
     def _prepare_forecast(
-            self,
-            initial_latent: LatentsRBSMC,
-            controls: Optional[
-                Union[Sequence[ControlInputs], ControlInputs]] = None,
-            deterministic: bool = False,
+        self,
+        initial_latent: LatentsRBSMC,
+        controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
+        deterministic: bool = False,
     ):
         cls = initial_latent.variables.__class__
 
@@ -84,7 +93,8 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
                 else make_argmax_log_weights(initial_latent.log_weights),
             ),
             tensors_to_resample={
-                k: v for k, v in initial_latent.variables.__dict__.items()
+                k: v
+                for k, v in initial_latent.variables.__dict__.items()
                 if v is not None
             },
             resampling_indices_fn=self.resampling_indices_fn,
@@ -99,7 +109,7 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
         # pack re-sampled back into object of our API type.
         resampled_initial_latent = initial_latent.__class__(
             log_weights=resampled_log_norm_weights,
-            variables=cls(**resampled_tensors, ),
+            variables=cls(**resampled_tensors,),
             gls_params=None,  # remember to also re-sample these if need to use.
         )
 

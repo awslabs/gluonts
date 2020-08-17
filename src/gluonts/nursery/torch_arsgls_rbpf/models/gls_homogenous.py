@@ -11,8 +11,13 @@ from inference.analytical_gausian_linear.inference_sequence_homogenous import (
     loss_em,
     loss_forward,
 )
-from models.base_gls import BaseGaussianLinearSystem, \
-    Prediction, Latents, GLSVariables, ControlInputs
+from models.base_gls import (
+    BaseGaussianLinearSystem,
+    Prediction,
+    Latents,
+    GLSVariables,
+    ControlInputs,
+)
 
 from utils.utils import TensorDims
 
@@ -172,8 +177,7 @@ class GaussianLinearSystemHomogenous(BaseGaussianLinearSystem):
     ) -> Sequence[Latents]:
 
         m_smooth, V_smooth, Cov_smooth = self._smooth_forward_backward(
-            past_targets=past_targets,
-            past_controls=past_controls
+            past_targets=past_targets, past_controls=past_controls
         )
         return [
             Latents(variables=GLSVariables(m=m, V=V, x=None))
@@ -246,8 +250,7 @@ class GaussianLinearSystemHomogenous(BaseGaussianLinearSystem):
         past_controls: Optional[ControlInputs] = None,
     ) -> torch.Tensor:
         return self._loss_em(
-            past_targets=past_targets,
-            past_controls=past_controls,
+            past_targets=past_targets, past_controls=past_controls,
         )
 
     def _smooth_forward_backward(

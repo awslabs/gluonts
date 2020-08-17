@@ -92,9 +92,7 @@ class AuxiliaryToObsDecoderMlpGaussian(ParametrisedConditionalDistribution):
 
         super().__init__(
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {

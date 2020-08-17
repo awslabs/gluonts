@@ -89,10 +89,10 @@ class GLSParameters(nn.Module):
             if n is not None
         ]
         if switch_link_type == SwitchLinkType.identity:
-            assert (
-                len(set(n_bases)) == 1 and n_bases[0] == n_switch
-            ), f"n_base: {n_bases} should match switch dim {n_switch} " \
-               f"when using identity link."
+            assert len(set(n_bases)) == 1 and n_bases[0] == n_switch, (
+                f"n_base: {n_bases} should match switch dim {n_switch} "
+                f"when using identity link."
+            )
         elif switch_link_type == SwitchLinkType.shared:
             assert len(set(n_bases)) == 1
 
@@ -331,9 +331,11 @@ class GLSParameters(nn.Module):
         Linv_tril: (torch.Tensor, None),
     ):
         if Linv_tril is None:
-            mat_diag_weighted, Lmat_diag_weighted = GLSParameters\
-                .var_from_average_scales(
-                    weights=weights, Linv_logdiag=Linv_logdiag,
+            (
+                mat_diag_weighted,
+                Lmat_diag_weighted,
+            ) = GLSParameters.var_from_average_scales(
+                weights=weights, Linv_logdiag=Linv_logdiag,
             )
             mat_weighted = batch_diag_matrix(mat_diag_weighted)
             Lmat_weighted = batch_diag_matrix(Lmat_diag_weighted)
@@ -355,9 +357,11 @@ class GLSParameters(nn.Module):
         Linv_tril: (torch.Tensor, None),
     ):
         if Linv_tril is None:
-            mat_diag_weighted, Lmat_diag_weighted = GLSParameters\
-                .var_from_average_variances(
-                    weights=weights, Linv_logdiag=Linv_logdiag,
+            (
+                mat_diag_weighted,
+                Lmat_diag_weighted,
+            ) = GLSParameters.var_from_average_variances(
+                weights=weights, Linv_logdiag=Linv_logdiag,
             )
             mat_weighted = batch_diag_matrix(mat_diag_weighted)
             Lmat_weighted = batch_diag_matrix(Lmat_diag_weighted)
@@ -376,9 +380,11 @@ class GLSParameters(nn.Module):
         Linv_tril: (torch.Tensor, None),
     ):
         if Linv_tril is None:
-            mat_diag_weighted, Lmat_diag_weighted = GLSParameters\
-                .var_from_average_log_scales(
-                    weights=weights, Linv_logdiag=Linv_logdiag,
+            (
+                mat_diag_weighted,
+                Lmat_diag_weighted,
+            ) = GLSParameters.var_from_average_log_scales(
+                weights=weights, Linv_logdiag=Linv_logdiag,
             )
             mat_weighted = batch_diag_matrix(mat_diag_weighted)
             Lmat_weighted = batch_diag_matrix(Lmat_diag_weighted)
@@ -452,7 +458,4 @@ class GLSParameters(nn.Module):
             )
         # return B and D because the loss and smoothing functions use B / D atm
         # and do not support b / d (although that is straightforward to do).
-        return GLSParams(
-            A=A, b=b, C=C, d=d, Q=Q, R=R, B=B, D=D, LQ=LQ, LR=LR,
-        )
-
+        return GLSParams(A=A, b=b, C=C, d=d, Q=Q, R=R, B=B, D=D, LQ=LQ, LR=LR,)

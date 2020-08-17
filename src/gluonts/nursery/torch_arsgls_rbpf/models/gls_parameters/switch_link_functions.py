@@ -7,11 +7,11 @@ from torch_extensions.mlp import MLP
 
 class IndividualLink(nn.ModuleDict):
     def __init__(
-            self,
-            dim_in,
-            names_and_dims_out: Dict[str, int],
-            dims_hidden: Tuple[int] = tuple(),
-            activations_hidden: nn.Module = nn.ReLU(),
+        self,
+        dim_in,
+        names_and_dims_out: Dict[str, int],
+        dims_hidden: Tuple[int] = tuple(),
+        activations_hidden: nn.Module = nn.ReLU(),
     ):
         super().__init__()
         if isinstance(activations_hidden, nn.Module):
@@ -33,12 +33,12 @@ class IndividualLink(nn.ModuleDict):
 
 class SharedLink(nn.Module):
     def __init__(
-            self,
-            dim_in,
-            dim_out,
-            names: (list, tuple),
-            dims_hidden: Tuple[int] = tuple(),
-            activations_hidden: nn.Module = nn.ReLU(),
+        self,
+        dim_in,
+        dim_out,
+        names: (list, tuple),
+        dims_hidden: Tuple[int] = tuple(),
+        activations_hidden: nn.Module = nn.ReLU(),
     ):
         super().__init__()
         if isinstance(activations_hidden, nn.Module):

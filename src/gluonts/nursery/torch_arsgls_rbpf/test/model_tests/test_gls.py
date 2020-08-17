@@ -1,9 +1,7 @@
 from box import Box
 import torch
 
-from models.gls_homogenous import (
-    GaussianLinearSystemHomogenous,
-)
+from models.gls_homogenous import GaussianLinearSystemHomogenous
 from utils.utils import make_dummy_ssm_params, make_dummy_input_data
 from utils.local_seed import local_seed
 
@@ -25,11 +23,10 @@ def _make_model_and_data(device, dtype, n_timesteps=10, n_data=20, seed=42):
             future_controls=controls,
             deterministic=False,
         )
-        emissions = torch.stack([sample.emissions for sample in samples], dim=0)
-        data = Box(
-            past_controls=controls,
-            past_targets=emissions,
+        emissions = torch.stack(
+            [sample.emissions for sample in samples], dim=0
         )
+        data = Box(past_controls=controls, past_targets=emissions,)
 
     model = (
         GaussianLinearSystemHomogenous(

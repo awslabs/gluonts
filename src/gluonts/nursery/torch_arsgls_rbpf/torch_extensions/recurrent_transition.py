@@ -19,13 +19,13 @@ class GaussianRecurrentTransition(nn.Module):
     ):
         super().__init__()
         self.conditional_dist_transform = conditional_dist_tranform
-        init_scale = 1/4.0  # TODO: hard-coded.
+        init_scale = 1 / 4.0  # TODO: hard-coded.
         if is_recurrent:
             self.F = nn.Parameter(
                 # torch.nn.init.xavier_normal(torch.empty(
                 # n_switch, n_state)) * init_scale,
-                torch.nn.init.orthogonal_(
-                    torch.empty(n_switch, n_state)) * init_scale,
+                torch.nn.init.orthogonal_(torch.empty(n_switch, n_state))
+                * init_scale,
                 requires_grad=True,
             )
         else:

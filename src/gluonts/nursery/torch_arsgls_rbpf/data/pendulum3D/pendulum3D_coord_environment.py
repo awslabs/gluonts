@@ -191,13 +191,13 @@ class Pendulum3DCoordEnvironment(Environment):
 
 
 def generate_dataset(
-        seed=42,
-        dataset_path=None,
-        n_train=5000,
-        n_val=1000,
-        n_test=1000,
-        n_timesteps=150,
-        perspective=(0.0, 0.0),
+    seed=42,
+    dataset_path=None,
+    n_train=5000,
+    n_val=1000,
+    n_test=1000,
+    n_timesteps=150,
+    perspective=(0.0, 0.0),
 ):
     from utils.local_seed import local_seed
 

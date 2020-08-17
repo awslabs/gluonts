@@ -26,8 +26,7 @@ class CastDtype(object):
 
     def __call__(self, item: dict) -> dict:
         return {
-            k: v.to(self.model.dtype)
-            if v.is_floating_point() else v
+            k: v.to(self.model.dtype) if v.is_floating_point() else v
             for k, v in item.items()
         }
 
@@ -41,14 +40,13 @@ class PymunkModel(DefaultLightningModel):
         data_path = os.path.join(
             consts.data_dir, getattr(consts.Datasets, self.dataset_name),
         )
-        if not os.path.exists(os.path.join(data_path, 'train.npz')):
+        if not os.path.exists(os.path.join(data_path, "train.npz")):
             dataset_pkg = getattr(data.pymunk_kvae, self.dataset_name)
             dataset_pkg.generate_dataset()
 
     def train_dataloader(self):
         tar_extract_collate_fn = DefaultExtractTarget(
-            past_length=self.past_length,
-            prediction_length=None,
+            past_length=self.past_length, prediction_length=None,
         )
         to_model_dtype = CastDtype(model=self)
         train_collate_fn = Compose(
@@ -57,10 +55,10 @@ class PymunkModel(DefaultLightningModel):
         return DataLoader(
             dataset=PymunkDataset(
                 file_path=os.path.join(
-                    consts.data_dir, self.dataset_name, 'train.npz',
+                    consts.data_dir, self.dataset_name, "train.npz",
                 ),
             ),
-            batch_size=self.batch_sizes['train'],
+            batch_size=self.batch_sizes["train"],
             shuffle=True,
             num_workers=8,
             collate_fn=train_collate_fn,
@@ -78,10 +76,10 @@ class PymunkModel(DefaultLightningModel):
         return DataLoader(
             dataset=PymunkDataset(
                 file_path=os.path.join(
-                    consts.data_dir, self.dataset_name, 'test.npz',
+                    consts.data_dir, self.dataset_name, "test.npz",
                 ),
             ),
-            batch_size=self.batch_sizes['test'],
+            batch_size=self.batch_sizes["test"],
             shuffle=False,
             num_workers=8,
             collate_fn=test_collate_fn,
@@ -112,11 +110,13 @@ class PymunkModel(DefaultLightningModel):
     def test_end(self, outputs):
         result = pl.EvalResult()
         agg_metrics = {}
-        metric_names = [k for k in outputs.keys() if k != 'meta']
+        metric_names = [k for k in outputs.keys() if k != "meta"]
         for metric_name in metric_names:
             metrics_cat = np.concatenate(outputs[metric_name], axis=-1)
             assert metrics_cat.shape[:-1] == (
-                self.past_length + self.prediction_length, self.ssm.n_particle,)
+                self.past_length + self.prediction_length,
+                self.ssm.n_particle,
+            )
             # mean, std, var over particle dim. Always mean over batch/data.
             agg_metrics["mean"] = metrics_cat.mean(axis=1).mean(axis=-1)
             agg_metrics["std"] = metrics_cat.std(axis=1).mean(axis=-1)
@@ -135,9 +135,7 @@ class PymunkModel(DefaultLightningModel):
         # numpy instead and make a standard matplotlib plot.
         np.savez(
             os.path.join(
-                self.logger.log_dir,
-                "metrics",
-                "sequence_metrics.npz",
+                self.logger.log_dir, "metrics", "sequence_metrics.npz",
             ),
             self.log_metrics,
         )
@@ -155,7 +153,7 @@ class PymunkModel(DefaultLightningModel):
                 self.past_length - 1,
                 linestyle="--",
                 color="black",
-                label='_nolegend_',
+                label="_nolegend_",
             )
             plt.legend()
             plt.xlabel("t")
@@ -170,5 +168,3 @@ class PymunkModel(DefaultLightningModel):
             plt.close(fig)
 
         return result
-
-

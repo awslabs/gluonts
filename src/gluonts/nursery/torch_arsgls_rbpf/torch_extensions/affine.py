@@ -5,9 +5,9 @@ from torch import nn
 
 class Affine(nn.Module):
     def __init__(
-            self,
-            loc: Union[float, torch.Tensor],
-            scale: Union[float, torch.Tensor],
+        self,
+        loc: Union[float, torch.Tensor],
+        scale: Union[float, torch.Tensor],
     ):
         super().__init__()
         self.loc = loc
@@ -19,8 +19,7 @@ class Affine(nn.Module):
 
 class Bias(nn.Module):
     def __init__(
-            self,
-            loc: Union[float, torch.Tensor],
+        self, loc: Union[float, torch.Tensor],
     ):
         super().__init__()
         self.loc = loc
@@ -31,8 +30,7 @@ class Bias(nn.Module):
 
 class Factor(nn.Module):
     def __init__(
-            self,
-            scale: Union[float, torch.Tensor],
+        self, scale: Union[float, torch.Tensor],
     ):
         super().__init__()
         self.scale = scale

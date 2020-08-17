@@ -80,8 +80,7 @@ def cov_and_chol_from_invcholesky_param(Linv_tril, Linv_logdiag):
 
 def cov_from_invcholesky_param(Linv_tril, Linv_logdiag):
     return cov_and_chol_from_invcholesky_param(
-        Linv_tril=Linv_tril,
-        Linv_logdiag=Linv_logdiag
+        Linv_tril=Linv_tril, Linv_logdiag=Linv_logdiag
     )[0]
 
 

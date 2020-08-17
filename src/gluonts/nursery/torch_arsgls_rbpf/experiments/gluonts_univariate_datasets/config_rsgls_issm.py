@@ -12,14 +12,18 @@ from data.gluonts_nips_datasets.gluonts_nips_datasets import (
 from experiments.model_component_zoo import (
     switch_priors,
     state_priors,
-    encoders, gls_parameters, input_transforms, switch_transitions,
+    encoders,
+    gls_parameters,
+    input_transforms,
+    switch_transitions,
 )
-from models.rsgls_rbpf import (
-    RecurrentSwitchingGaussianLinearSystemRBSMC,
+from models.rsgls_rbpf import RecurrentSwitchingGaussianLinearSystemRBSMC
+from experiments.gluonts_univariate_datasets.gts_rbsmc_model import (
+    GluontsUnivariateDataModel,
 )
-from experiments.gluonts_univariate_datasets.gts_rbsmc_model \
-    import GluontsUnivariateDataModel
-from experiments.model_component_zoo.recurrent_base_parameters import StateToSwitchParamsDefault
+from experiments.model_component_zoo.recurrent_base_parameters import (
+    StateToSwitchParamsDefault,
+)
 
 
 @dataclass()

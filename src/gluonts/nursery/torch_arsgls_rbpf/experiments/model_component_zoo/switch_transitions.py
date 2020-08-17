@@ -29,7 +29,7 @@ def _extract_dims_from_cfg(config):
 
 class SwitchTransitionBase(nn.Module):
     def forward(
-            self, controls: torch.Tensor, switch: torch.Tensor
+        self, controls: torch.Tensor, switch: torch.Tensor
     ) -> torch.distributions.Distribution:
         raise NotImplementedError()
 
@@ -47,9 +47,7 @@ class SwitchTransitionModelCategorical(SwitchTransitionBase):
         dim_in_dist_params = dims_stem[-1] if len(dims_stem) > 0 else dim_in
         self.conditional_dist = ParametrisedConditionalDistribution(
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {
@@ -63,9 +61,11 @@ class SwitchTransitionModelCategorical(SwitchTransitionBase):
         )
 
     def forward(self, controls, switch):
-        h = torch.cat((controls, switch), dim=-1) \
-            if controls is not None \
+        h = (
+            torch.cat((controls, switch), dim=-1)
+            if controls is not None
             else switch
+        )
         switch_to_switch_dist = self.conditional_dist(h)
         return switch_to_switch_dist
 
@@ -83,9 +83,7 @@ class SwitchTransitionModelGaussian(SwitchTransitionBase):
 
         self.conditional_dist = ParametrisedConditionalDistribution(
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {
@@ -107,7 +105,11 @@ class SwitchTransitionModelGaussian(SwitchTransitionBase):
         )
 
     def forward(self, controls, switch):
-        h = torch.cat((controls, switch), dim=-1) if controls is not None else switch
+        h = (
+            torch.cat((controls, switch), dim=-1)
+            if controls is not None
+            else switch
+        )
         return self.conditional_dist(h)
 
 
@@ -118,6 +120,7 @@ class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
     which already has a set of noise covariance base matrices
     and does not necessarily need a second noise source.
     """
+
     def __init__(self, config):
         super().__init__()
         (
@@ -130,9 +133,7 @@ class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
 
         self.conditional_dist = ParametrisedConditionalDistribution(
             stem=MLP(
-                dim_in=dim_in,
-                dims=dims_stem,
-                activations=activations_stem,
+                dim_in=dim_in, dims=dims_stem, activations=activations_stem,
             ),
             dist_params=nn.ModuleDict(
                 {
@@ -150,5 +151,9 @@ class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
         )
 
     def forward(self, controls, switch):
-        h = torch.cat((controls, switch), dim=-1) if controls is not None else switch
+        h = (
+            torch.cat((controls, switch), dim=-1)
+            if controls is not None
+            else switch
+        )
         return self.conditional_dist(h)

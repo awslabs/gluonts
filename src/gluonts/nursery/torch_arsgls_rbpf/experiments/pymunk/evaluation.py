@@ -20,6 +20,7 @@ from inference.smc.normalize import normalize_log_weights
 def all_to_numpy(*args):
     return tuple(arg.detach().cpu().numpy() for arg in args)
 
+
 def compute_wasserstein_distance(img_gt, img_model, metric="euclidean"):
     assert img_gt.ndim == img_model.ndim == 2
 
@@ -42,7 +43,9 @@ def compute_wasserstein_distance(img_gt, img_model, metric="euclidean"):
 def compute_metrics(model, batch):
     future_target = batch["future_target"]
     past_target = batch["past_target"]
-    batch = {k: v for k, v in batch.items() if k != "future_target"}  # dont pop
+    batch = {
+        k: v for k, v in batch.items() if k != "future_target"
+    }  # dont pop
 
     metrics = Box()
     acc_fcst_rand, acc_filt_rand, acc_all_rand = [], [], []
@@ -73,9 +76,7 @@ def compute_metrics(model, batch):
         forecasted_emissions = torch.stack(
             [f.emissions for f in forecasted_predictions],
         )
-        all_emissions = torch.cat(
-            [filtered_emissions, forecasted_emissions],
-        )
+        all_emissions = torch.cat([filtered_emissions, forecasted_emissions],)
 
         # Convert all to numpy
         (
@@ -91,7 +92,7 @@ def compute_metrics(model, batch):
             all_emissions,
             past_target_with_particle_dim,
             future_target_with_particle_dim,
-            all_target_with_particle_dim
+            all_target_with_particle_dim,
         )
 
         # Compute Pixel Accuracy
@@ -108,8 +109,8 @@ def compute_metrics(model, batch):
         # )
         acc = (
             np.equal(all_emissions, all_target_with_particle_dim)
-                .astype(np.float64)
-                .mean(axis=-1)
+            .astype(np.float64)
+            .mean(axis=-1)
         )
 
         if deterministic:
@@ -124,8 +125,8 @@ def compute_metrics(model, batch):
         # Compute Wasserstein Distance
         assert all_emissions.shape == all_target_with_particle_dim.shape
         assert (
-                all_emissions.shape[0]
-                == model.past_length + model.prediction_length
+            all_emissions.shape[0]
+            == model.past_length + model.prediction_length
         )
         assert all_emissions.shape[1] == model.ssm.n_particle
         assert all_emissions.shape[3] == 32 * 32
@@ -158,9 +159,9 @@ def compute_metrics(model, batch):
     # metrics.acc_fcst_det = np.concatenate(acc_fcst_det, axis=-1).mean(axis=[1, 2])
     # metrics.acc_filt_det = np.concatenate(acc_filt_det, axis=-1).mean(axis=[1, 2])
     # mean, std among particle axis. Always mean over data.
-    metrics.wasserstein_rand = (
-        np.concatenate(w_dists_rand, axis=-1)  # .mean(axis=1).mean(axis=-1)
-    )
+    metrics.wasserstein_rand = np.concatenate(
+        w_dists_rand, axis=-1
+    )  # .mean(axis=1).mean(axis=-1)
     # metrics.w_dists_rand_std = (
     #     np.concatenate(w_dists_rand, axis=-1).std(axis=1).mean(axis=-1)
     # )
@@ -263,12 +264,12 @@ if __name__ == "__main__":
 
 
 def plot_pymunk_results(
-        model,
-        batch,
-        plot_path,
-        deterministic,
-        max_data_plot=5,
-        max_imgs_per_row=20,
+    model,
+    batch,
+    plot_path,
+    deterministic,
+    max_data_plot=5,
+    max_imgs_per_row=20,
 ):
     def make_name_extension(deterministic, idx_data, groundtruth=None):
         ext = f"{'det' if deterministic else 'rand'}_B{idx_data}"
@@ -304,7 +305,7 @@ def plot_pymunk_results(
         plt.close(fig)
 
     # extract only as much data as needed for the plots.
-    n_data_plot = min(batch['past_target'].shape[1], max_data_plot)
+    n_data_plot = min(batch["past_target"].shape[1], max_data_plot)
 
     batch = {k: v[:, :n_data_plot] for k, v in batch.items()}
     future_target = batch["future_target"]
@@ -329,12 +330,8 @@ def plot_pymunk_results(
         [fp.latents.variables.auxiliary for fp in forecasted_predictions],
     )
 
-    y_filter = torch.stack(
-        [fp.emissions for fp in filtered_predictions],
-    )
-    y_forecast = torch.stack(
-        [fp.emissions for fp in forecasted_predictions],
-    )
+    y_filter = torch.stack([fp.emissions for fp in filtered_predictions],)
+    y_forecast = torch.stack([fp.emissions for fp in forecasted_predictions],)
 
     if isinstance(model.ssm, BaseRBSMCGaussianLinearSystem):
         log_weights_filter = torch.stack(
@@ -385,39 +382,39 @@ def plot_pymunk_results(
     )
 
     assert (
-            len(z_filter)
-            == len(y_filter)
-            == len(log_norm_weights_filter)
-            == model.past_length
+        len(z_filter)
+        == len(y_filter)
+        == len(log_norm_weights_filter)
+        == model.past_length
     )
     assert (
-            len(z_forecast)
-            == len(y_forecast)
-            == len(log_norm_weights_forecast)
-            == model.prediction_length
+        len(z_forecast)
+        == len(y_forecast)
+        == len(log_norm_weights_forecast)
+        == model.prediction_length
     )
     assert (
-            len(z_trajectory)
-            == len(y_trajectory)
-            == len(log_norm_weights_trajectory)
-            == model.past_length + model.prediction_length
+        len(z_trajectory)
+        == len(y_trajectory)
+        == len(log_norm_weights_trajectory)
+        == model.past_length + model.prediction_length
     )
 
     if deterministic:
         assert (
-                y_trajectory.shape[1:3]
-                == y_filter.shape[1:3]
-                == y_forecast.shape[1:3]
-                == z_trajectory.shape[1:3]
-                == (1, n_data_plot,)
+            y_trajectory.shape[1:3]
+            == y_filter.shape[1:3]
+            == y_forecast.shape[1:3]
+            == z_trajectory.shape[1:3]
+            == (1, n_data_plot,)
         )
     else:
         assert (
-                y_trajectory.shape[1:3]
-                == y_filter.shape[1:3]
-                == y_forecast.shape[1:3]
-                == z_trajectory.shape[1:3]
-                == (model.ssm.n_particle, n_data_plot,)
+            y_trajectory.shape[1:3]
+            == y_filter.shape[1:3]
+            == y_forecast.shape[1:3]
+            == z_trajectory.shape[1:3]
+            == (model.ssm.n_particle, n_data_plot,)
         )
 
     # ********** Plots **********
@@ -436,9 +433,9 @@ def plot_pymunk_results(
                     t_trajectory[:, None].repeat(model.ssm.n_particle, axis=1),
                     z_trajectory[:, :, idx_data, idx_dim],
                     s=(
-                            log_norm_weights_trajectory[:, :, idx_data]
-                            + np.log(model.ssm.n_particle)
-                            + 5
+                        log_norm_weights_trajectory[:, :, idx_data]
+                        + np.log(model.ssm.n_particle)
+                        + 5
                     ).clip(0, np.inf),
                     alpha=0.5,
                 )
@@ -471,11 +468,11 @@ def plot_pymunk_results(
         )
         for idx_particle in range(n_particles_visual):
             img_filt = y_filter[
-                       :n_steps_visual, idx_particle, idx_data, :
-                       ].reshape([-1, 32, 32])
+                :n_steps_visual, idx_particle, idx_data, :
+            ].reshape([-1, 32, 32])
             img_fcst = y_forecast[
-                       :n_steps_visual, idx_particle, idx_data, :
-                       ].reshape([-1, 32, 32])
+                :n_steps_visual, idx_particle, idx_data, :
+            ].reshape([-1, 32, 32])
             for is_fcst in [True, False]:
                 for is_groundtruth in [True, False]:
                     if is_groundtruth:
@@ -506,9 +503,7 @@ def plot_pymunk_results(
         )
         for idx_time in range(model.prediction_length):
             if is_groundtruth:
-                img = future_target[idx_time, idx_data, :].reshape(
-                    [32, 32],
-                )
+                img = future_target[idx_time, idx_data, :].reshape([32, 32],)
             else:
                 img = y_forecast[idx_time, idx_particle, idx_data, :].reshape(
                     [32, 32]

@@ -35,8 +35,7 @@ from gluonts.transform import (
 
 from models.base_rbpf_gls import BaseRBSMCGaussianLinearSystem
 
-from experiments.default_lightning_model import \
-    DefaultLightningModel
+from experiments.default_lightning_model import DefaultLightningModel
 from data.gluonts_nips_datasets.gluonts_nips_datasets import get_dataset
 from models.gls_parameters.issm import CompositeISSM
 from utils.utils import shorten_iter
@@ -160,10 +159,10 @@ class GluontsUnivariateDataLoaderWrapper:
     """
 
     def __init__(
-            self,
-            gluonts_loader,
-            is_for_predictor: int = False,
-            float_dtype: Optional[torch.dtype] = None,
+        self,
+        gluonts_loader,
+        is_for_predictor: int = False,
+        float_dtype: Optional[torch.dtype] = None,
     ):
         self._gluonts_loader = gluonts_loader
         self._is_for_predictor = is_for_predictor
@@ -192,8 +191,10 @@ class GluontsUnivariateDataLoaderWrapper:
         # this may be used wrong for infinite train loader....
         if hasattr(self._gluonts_loader, "__len__"):
             return len(self._gluonts_loader)
-        return (self._gluonts_loader.parallel_data_loader.dataset_len
-                // self._gluonts_loader.batch_size) + 1
+        return (
+            self._gluonts_loader.parallel_data_loader.dataset_len
+            // self._gluonts_loader.batch_size
+        ) + 1
 
     def __iter__(self):
         if self._is_for_predictor:
@@ -201,13 +202,12 @@ class GluontsUnivariateDataLoaderWrapper:
                 yield (
                     self._to_time_first(
                         self._to_pytorch(
-                            self._extract_relevant_data(
-                                batch_gluonts,
-                            )
+                            self._extract_relevant_data(batch_gluonts,)
                         )
                     ),
                     {
-                        k: v for k, v in batch_gluonts.items()
+                        k: v
+                        for k, v in batch_gluonts.items()
                         if k in [FieldName.ITEM_ID, "forecast_start"]
                     },
                 )
@@ -215,9 +215,7 @@ class GluontsUnivariateDataLoaderWrapper:
             for batch_gluonts in self._gluonts_loader:
                 yield self._to_time_first(
                     self._to_pytorch(
-                        self._extract_relevant_data(
-                            batch_gluonts,
-                        )
+                        self._extract_relevant_data(batch_gluonts,)
                     )
                 )
 
@@ -233,8 +231,10 @@ class GluontsUnivariateDataLoaderWrapper:
             key: torch.tensor(
                 gluonts_batch[key].asnumpy(),
                 dtype=self.int_dtype
-                if key in self._int_data_keys else self.float_dtype
-            ) for key, val in gluonts_batch.items()
+                if key in self._int_data_keys
+                else self.float_dtype,
+            )
+            for key, val in gluonts_batch.items()
         }
 
     def _to_time_first(self, torch_batch):
@@ -319,15 +319,15 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         self.predictors = {
             "full": SGLSPredictor(
                 model=self,
-                input_transform=self.input_transforms['test_full'],
-                batch_size=self.batch_sizes['test_full'],
+                input_transform=self.input_transforms["test_full"],
+                batch_size=self.batch_sizes["test_full"],
                 prediction_length=self.prediction_length_full,
                 freq=self.dataset.metadata.freq,
             ),
             "rolling": SGLSPredictor(
                 model=self,
-                input_transform=self.input_transforms['test_rolling'],
-                batch_size=self.batch_sizes['test_rolling'],
+                input_transform=self.input_transforms["test_rolling"],
+                batch_size=self.batch_sizes["test_rolling"],
                 prediction_length=self.prediction_length_rolling,
                 freq=self.dataset.metadata.freq,
             ),
@@ -387,7 +387,7 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         with torch.no_grad():
             loss = self.loss(**batch)
         result = pl.EvalResult(checkpoint_on=loss)
-        result.log('val_loss', loss)
+        result.log("val_loss", loss)
 
         if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
             if batch_idx == 0:
@@ -398,8 +398,8 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
                 for k_past in past_keys:
                     k_future = k_past.replace("past", "future")
                     tmp = batch[k_past]
-                    batch[k_past] = tmp[:self.past_length, :]
-                    batch[k_future] = tmp[self.past_length:, :]
+                    batch[k_past] = tmp[: self.past_length, :]
+                    batch[k_future] = tmp[self.past_length :, :]
 
                 make_val_plots_univariate(
                     model=self,
@@ -409,7 +409,8 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
                     idxs_ts=[0, 1, 2],
                     show=False,
                     savepath=os.path.join(
-                        self.logger.log_dir, "plots",
+                        self.logger.log_dir,
+                        "plots",
                         f"forecast_ep{self.current_epoch}",
                     ),
                 )
@@ -428,7 +429,8 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         # return result
 
     def validation_epoch_end(
-        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+        self,
+        outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]],
     ) -> Dict[str, Dict[str, Tensor]]:
         # GluonTS has streaming setting and predictors take dataset objects.
         # This does not fit with validation_step working on batches.
@@ -440,12 +442,12 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
             if which == "rolling":
                 continue  # its a bit expensive to validate rolling
             forecast_it, ts_it = make_evaluation_predictions(
-                dataset,
-                predictor=predictor,
-                num_samples=self.ssm.n_particle,
+                dataset, predictor=predictor, num_samples=self.ssm.n_particle,
             )
             assert len(self.trainer.num_val_batches) == 1
-            num_series = self.trainer.num_val_batches[0] * self.batch_sizes["val"]
+            num_series = (
+                self.trainer.num_val_batches[0] * self.batch_sizes["val"]
+            )
             if num_series >= len(dataset):
                 num_series = len(dataset)
             else:
@@ -468,17 +470,15 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         return result
 
     def test_end(
-            self,
-            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+        self,
+        outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]],
     ) -> Dict[str, Dict[str, Tensor]]:
         dataset = self.dataset.test
 
         agg_metrics = {}
         for which, predictor in self.predictors.items():
             forecast_it, ts_it = make_evaluation_predictions(
-                dataset,
-                predictor=predictor,
-                num_samples=self.ssm.n_particle,
+                dataset, predictor=predictor, num_samples=self.ssm.n_particle,
             )
 
             _agg_metrics, _ = self.forecast_evaluator(
@@ -491,6 +491,7 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         for k, v in agg_metrics.items():
             result.log(k, v)
         return result
+
 
 class SGLSPredictor(RepresentablePredictor):
     """ wrapper to to allow make_evaluation_predictions to evaluate this model. """
@@ -505,17 +506,19 @@ class SGLSPredictor(RepresentablePredictor):
         lead_time: int = 0,
     ):
         super().__init__(
-            prediction_length=prediction_length, freq=freq, lead_time=lead_time,
+            prediction_length=prediction_length,
+            freq=freq,
+            lead_time=lead_time,
         )
         self.model = model
         self.input_transform = input_transform
         self.batch_size = batch_size
 
     def predict(
-            self, dataset: Dataset, **kwargs,
+        self, dataset: Dataset, **kwargs,
     ) -> Iterator[Dict[Forecast, torch.Tensor]]:
-        if 'num_samples' in kwargs:
-            assert kwargs.pop('num_samples') == self.model.ssm.n_particle
+        if "num_samples" in kwargs:
+            assert kwargs.pop("num_samples") == self.model.ssm.n_particle
 
         inference_loader = GluontsUnivariateDataLoaderWrapper(
             InferenceDataLoader(
@@ -532,7 +535,7 @@ class SGLSPredictor(RepresentablePredictor):
         )
         for batch, batch_metainfo in inference_loader:  # put manually on GPU.
             batch = {k: v.to(self.model.device) for k, v in batch.items()}
-            assert len(batch['future_time_feat']) == self.prediction_length
+            assert len(batch["future_time_feat"]) == self.prediction_length
 
             predictions_inferred, predictions_forecast = self.model(
                 **batch,
@@ -550,10 +553,17 @@ class SGLSPredictor(RepresentablePredictor):
             for idx_sample_in_batch, _fcst_gts in enumerate(forecast_gts):
                 yield SampleForecast(
                     samples=_fcst_gts,
-                    start_date=batch_metainfo["forecast_start"][idx_sample_in_batch],
+                    start_date=batch_metainfo["forecast_start"][
+                        idx_sample_in_batch
+                    ],
                     freq=self.freq,
-                    item_id=batch_metainfo[FieldName.ITEM_ID][idx_sample_in_batch]
-                    if FieldName.ITEM_ID in batch_metainfo else None,
+                    item_id=batch_metainfo[FieldName.ITEM_ID][
+                        idx_sample_in_batch
+                    ]
+                    if FieldName.ITEM_ID in batch_metainfo
+                    else None,
                 )
 
-            assert idx_sample_in_batch + 1 == len(batch_metainfo["forecast_start"])
+            assert idx_sample_in_batch + 1 == len(
+                batch_metainfo["forecast_start"]
+            )

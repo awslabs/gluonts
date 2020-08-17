@@ -11,15 +11,19 @@ from experiments.model_component_zoo import (
     encoders,
     decoders,
     state_priors,
-    switch_priors, gls_parameters, switch_transitions,
+    switch_priors,
+    gls_parameters,
+    switch_transitions,
 )
 
-from experiments.model_component_zoo.recurrent_base_parameters \
-    import StateToSwitchParamsDefault
+from experiments.model_component_zoo.recurrent_base_parameters import (
+    StateToSwitchParamsDefault,
+)
 
 from models.kvae import KalmanVariationalAutoEncoder
-from models.arsgls_rbpf import \
-    AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC
+from models.arsgls_rbpf import (
+    AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC,
+)
 
 from experiments.base_config import SwitchLinkType
 from torch_extensions.layers_with_init import LSTMCell

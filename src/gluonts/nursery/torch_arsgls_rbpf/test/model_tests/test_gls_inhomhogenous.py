@@ -1,12 +1,8 @@
 from box import Box
 import torch
 
-from models.gls_inhomogenous import (
-    GaussianLinearSystemInhomogenous,
-)
-from models.gls_homogenous import (
-    GaussianLinearSystemHomogenous,
-)
+from models.gls_inhomogenous import GaussianLinearSystemInhomogenous
+from models.gls_homogenous import GaussianLinearSystemHomogenous
 from utils.utils import make_dummy_ssm_params, make_dummy_input_data
 from utils.local_seed import local_seed
 
@@ -26,11 +22,10 @@ def _make_models_and_data(device, dtype, n_data=20, n_timesteps=10, seed=42):
             future_controls=controls,
             deterministic=False,
         )
-        emissions = torch.stack([sample.emissions for sample in samples], dim=0)
-        data = Box(
-            past_controls=controls,
-            past_targets=emissions,
+        emissions = torch.stack(
+            [sample.emissions for sample in samples], dim=0
         )
+        data = Box(past_controls=controls, past_targets=emissions,)
 
     model_homogenous = GaussianLinearSystemHomogenous(
         n_target=1, n_state=2, n_ctrl_state=1, n_ctrl_target=3,
@@ -137,7 +132,9 @@ def _test_inference_identical_to_homogenous(
         **data
     )
 
-    m_fb_h, V_fb_h, Cov_fb_h = model_homogenous._smooth_forward_backward(**data)
+    m_fb_h, V_fb_h, Cov_fb_h = model_homogenous._smooth_forward_backward(
+        **data
+    )
     m_gl_h, V_gl_h, Cov_gl_h = model_homogenous._smooth_global(**data)
 
     # fw-bw: inhomogenous and batch-individual vs. just inhomogenous

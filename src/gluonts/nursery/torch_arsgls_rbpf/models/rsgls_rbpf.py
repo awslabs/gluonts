@@ -2,16 +2,20 @@ import torch
 from torch.distributions import MultivariateNormal
 
 from models.sgls_rbpf import ControlInputsSGLS
-from models.sgls_rbpf import SwitchingGaussianLinearSystemBaseRBSMC, \
-    GLSVariablesSGLS
-from torch_extensions.distributions.parametrised_distribution import \
-    prepend_batch_dims
+from models.sgls_rbpf import (
+    SwitchingGaussianLinearSystemBaseRBSMC,
+    GLSVariablesSGLS,
+)
+from torch_extensions.distributions.parametrised_distribution import (
+    prepend_batch_dims,
+)
 from models.gls_parameters.state_to_switch_parameters import (
     StateToSwitchParams,
 )
 from torch_extensions.fusion import gaussian_linear_combination
-from inference.analytical_gausian_linear.inference_step import \
-    filter_forward_prediction_step
+from inference.analytical_gausian_linear.inference_step import (
+    filter_forward_prediction_step,
+)
 from torch_extensions.ops import matvec
 
 
@@ -20,6 +24,7 @@ class RecurrentMixin:
     Mixin to avoid diamond multiple inheritance.
     To be used for SGLS or ASGLS. Overrides switch transition distribution.
     """
+
     def __init__(self, recurrent_base_parameters, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.recurrent_base_parameters = recurrent_base_parameters
@@ -37,17 +42,20 @@ class RecurrentMixin:
         (not PDFs!) is Gaussian, for which locs and covariances are the summed.
         """
         if len({lat_vars_tm1.x is None, lat_vars_tm1.m is None}) != 2:
-            raise Exception("Provide samples XOR dist params (-> marginalize).")
+            raise Exception(
+                "Provide samples XOR dist params (-> marginalize)."
+            )
         marginalize_states = lat_vars_tm1.m is not None
 
         # i) switch-to-switch conditional
         switch_to_switch_dist = super()._make_switch_transition_dist(
-            lat_vars_tm1=lat_vars_tm1,
-            ctrl_t=ctrl_t,
+            lat_vars_tm1=lat_vars_tm1, ctrl_t=ctrl_t,
         )
 
         # ii) state-to-switch
-        rec_base_params = self.recurrent_base_parameters(switch=lat_vars_tm1.switch)
+        rec_base_params = self.recurrent_base_parameters(
+            switch=lat_vars_tm1.switch
+        )
         if marginalize_states:
             m, V = filter_forward_prediction_step(
                 m=lat_vars_tm1.m,
@@ -62,10 +70,9 @@ class RecurrentMixin:
         state_to_switch_dist = MultivariateNormal(loc=m, covariance_matrix=V)
 
         # combine i) & ii): sum variables (=convolve PDFs).
-        switch_model_dist = gaussian_linear_combination({
-            state_to_switch_dist: 1.0,
-            switch_to_switch_dist: 1.0,
-        })
+        switch_model_dist = gaussian_linear_combination(
+            {state_to_switch_dist: 1.0, switch_to_switch_dist: 1.0,}
+        )
         return switch_model_dist
 
 

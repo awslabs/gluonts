@@ -13,15 +13,22 @@ from experiments.model_component_zoo import (
     switch_priors,
     state_priors,
     encoders,
-    decoders, gls_parameters, input_transforms, switch_transitions,
+    decoders,
+    gls_parameters,
+    input_transforms,
+    switch_transitions,
 )
 
 from models.arsgls_rbpf import (
     AuxiliaryRecurrentSwitchingGaussianLinearSystemRBSMC,
 )
-from experiments.gluonts_univariate_datasets.gts_rbsmc_model \
-    import GluontsUnivariateDataModel
-from experiments.model_component_zoo.recurrent_base_parameters import StateToSwitchParamsDefault
+from experiments.gluonts_univariate_datasets.gts_rbsmc_model import (
+    GluontsUnivariateDataModel,
+)
+from experiments.model_component_zoo.recurrent_base_parameters import (
+    StateToSwitchParamsDefault,
+)
+
 
 @dataclass()
 class ArsglsGtsExpConfigGtsExpConfig(BaseConfig):

@@ -61,6 +61,7 @@ class LatentsSGLS(LatentsRBSMC):
     def __post_init__(self):
         assert isinstance(self.variables, GLSVariablesSGLS)
 
+
 @dataclass
 class GLSVariablesASGLS(GLSVariablesSGLS):
 
@@ -180,10 +181,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
             switch_encoder_dist=encoder_dists.switch,
         )
         s_t = switch_proposal_dist.rsample()
-        gls_params_t = self.gls_base_parameters(
-            switch=s_t,
-            controls=ctrl_t,
-        )
+        gls_params_t = self.gls_base_parameters(switch=s_t, controls=ctrl_t,)
         mp, Vp = filter_forward_prediction_step(
             m=lats_tm1.variables.m,
             V=lats_tm1.variables.V,
@@ -241,8 +239,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
             )
         else:
             switch_model_dist_t = self._make_switch_transition_dist(
-                lat_vars_tm1=lats_tm1.variables,
-                ctrl_t=ctrl_t,
+                lat_vars_tm1=lats_tm1.variables, ctrl_t=ctrl_t,
             )
 
         s_t = (
@@ -250,18 +247,15 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
             if deterministic
             else switch_model_dist_t.sample()
         )
-        gls_params_t = self.gls_base_parameters(
-            switch=s_t,
-            controls=ctrl_t,
-        )
+        gls_params_t = self.gls_base_parameters(switch=s_t, controls=ctrl_t,)
 
         x_dist_t = torch.distributions.MultivariateNormal(
             loc=(
-                    matvec(gls_params_t.A, lats_tm1.variables.x)
-                    if gls_params_t.A is not None
-                    else lats_tm1.variables.x
-                )
-                + (gls_params_t.b if gls_params_t.b is not None else 0.0),
+                matvec(gls_params_t.A, lats_tm1.variables.x)
+                if gls_params_t.A is not None
+                else lats_tm1.variables.x
+            )
+            + (gls_params_t.b if gls_params_t.b is not None else 0.0),
             scale_tril=gls_params_t.LR,  # stable with scale and 0 variance.
         )
 
@@ -282,17 +276,13 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
             ),
         )
         emission_dist = self.emit(lats_t=lats_t, ctrl_t=ctrl_t)
-        emissions_t = emission_dist.mean \
-            if deterministic \
-            else emission_dist.sample()
+        emissions_t = (
+            emission_dist.mean if deterministic else emission_dist.sample()
+        )
 
         return Prediction(latents=lats_t, emissions=emissions_t)
 
-    def _sample_initial_latents(
-        self,
-        n_particle,
-        n_batch,
-    ) -> LatentsASGLS:
+    def _sample_initial_latents(self, n_particle, n_batch,) -> LatentsASGLS:
         state_prior = self.state_prior_model(
             None, batch_shape_to_prepend=(n_particle, n_batch)
         )
@@ -309,7 +299,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
                 Cov=None,
                 switch=s_initial,
                 auxiliary=z_initial,
-            )
+            ),
         )
 
     def emit(self, lats_t: LatentsASGLS, ctrl_t: ControlInputsSGLS):
@@ -318,7 +308,9 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
     def _make_encoder_dists(
         self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
     ) -> Box:
-        enc_inp = [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
+        enc_inp = (
+            [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
+        )
         encoded = self.encoder(enc_inp)
         if not isinstance(encoded, Sequence):
             raise Exception(f"Expected sequence, got {type(encoded)}")
@@ -328,10 +320,7 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
         return Box(auxiliary=encoded[0], switch=encoded[1])
 
     def _make_auxiliary_model_dist(
-        self,
-        mp: torch.Tensor,
-        Vp: torch.Tensor,
-        gls_params: Box,
+        self, mp: torch.Tensor, Vp: torch.Tensor, gls_params: Box,
     ):
         mpz, Vpz = filter_forward_predictive_distribution(
             m=mp, V=Vp, Q=gls_params.Q, C=gls_params.C, d=gls_params.d,

@@ -16,20 +16,34 @@ class ControlInputs:
         elif self.target is not None:
             return len(self.target)
         else:
-            raise Exception("cannot infer length of controls if None are used.")
+            raise Exception(
+                "cannot infer length of controls if None are used."
+            )
 
     def __getitem__(self, item):
-        return self.__class__(**{k: v[item] if v is not None else None for k, v in self.__dict__.items()})
+        return self.__class__(
+            **{
+                k: v[item] if v is not None else None
+                for k, v in self.__dict__.items()
+            }
+        )
 
     def __iter__(self):
         for idx in range(len(self)):
             yield self.__class__(
-                **{k: v[idx] if v is not None else None
-                   for k, v in self.__dict__.items()},
+                **{
+                    k: v[idx] if v is not None else None
+                    for k, v in self.__dict__.items()
+                },
             )
 
     def __post_init__(self):
-        if not len(set(len(v) for v in self.__dict__.values() if v is not None)) <= 1:
+        if (
+            not len(
+                set(len(v) for v in self.__dict__.values() if v is not None)
+            )
+            <= 1
+        ):
             raise Exception("Not all data in this class has same length.")
 
     def to(self, device=None, dtype=None):
@@ -67,18 +81,27 @@ class GLSParams:  # TODO: better naming?
         return len(self.A)
 
     def __getitem__(self, item):
-        return self.__class__(**{k: v[item] if v is not None else None for k, v in self.__dict__.items()})
+        return self.__class__(
+            **{
+                k: v[item] if v is not None else None
+                for k, v in self.__dict__.items()
+            }
+        )
 
     def __iter__(self):
         for idx in range(len(self)):
             yield self.__class__(
-                **{k: v[idx] if v is not None else None
-                   for k, v in self.__dict__.items()},
+                **{
+                    k: v[idx] if v is not None else None
+                    for k, v in self.__dict__.items()
+                },
             )
+
 
 @dataclass
 class GLSVariables:
     """ Stores either (m, V) or samples or both from a MultivariateNormal. """
+
     # Note: The performance difference to using a Multivariate
     # (computes choleksy and broadcasts) is actually small.
     # Could replace (m, V) by MultivariateNormal.
@@ -94,13 +117,20 @@ class GLSVariables:
         return len(self.m) if self.m is not None else len(self.x)
 
     def __getitem__(self, item):
-        return self.__class__(**{k: v[item] if v is not None else None for k, v in self.__dict__.items()})
+        return self.__class__(
+            **{
+                k: v[item] if v is not None else None
+                for k, v in self.__dict__.items()
+            }
+        )
 
     def __iter__(self):
         for idx in range(len(self)):
             yield self.__class__(
-                **{k: v[idx] if v is not None else None
-                   for k, v in self.__dict__.items()},
+                **{
+                    k: v[idx] if v is not None else None
+                    for k, v in self.__dict__.items()
+                },
             )
 
     def __post_init__(self):
@@ -120,6 +150,7 @@ class GLSVariables:
         # if not len(set(len(v) for v in self.__dict__.values() if v is not None)) == 1:
         #     raise Exception("Not all data in this class has same length.")
 
+
 @dataclass
 class Latents:
     variables: GLSVariables
@@ -129,13 +160,20 @@ class Latents:
         return len(self.variables)
 
     def __getitem__(self, item):
-        return self.__class__(**{k: v[item] if v is not None else None for k, v in self.__dict__.items()})
+        return self.__class__(
+            **{
+                k: v[item] if v is not None else None
+                for k, v in self.__dict__.items()
+            }
+        )
 
     def __iter__(self):
         for idx in range(len(self)):
             yield self.__class__(
-                **{k: v[idx] if v is not None else None
-                   for k, v in self.__dict__.items()},
+                **{
+                    k: v[idx] if v is not None else None
+                    for k, v in self.__dict__.items()
+                },
             )
 
 
@@ -154,13 +192,20 @@ class Prediction:
         return len(self.latents)
 
     def __getitem__(self, item):
-        return self.__class__(**{k: v[item] if v is not None else None for k, v in self.__dict__.items()})
+        return self.__class__(
+            **{
+                k: v[item] if v is not None else None
+                for k, v in self.__dict__.items()
+            }
+        )
 
     def __iter__(self):
         for idx in range(len(self)):
             yield self.__class__(
-                **{k: v[idx] if v is not None else None
-                   for k, v in self.__dict__.items()},
+                **{
+                    k: v[idx] if v is not None else None
+                    for k, v in self.__dict__.items()
+                },
             )
 
 
@@ -183,18 +228,24 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
     def filter(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
-        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
         past_targets_is_observed: Optional[
-                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> Sequence[Latents]:
         raise NotImplementedError("Should be implemented by child class")
 
     def smooth(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
-        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
         past_targets_is_observed: Optional[
-                Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> Sequence[Latents]:
         raise NotImplementedError("Should be implemented by child class")
 
@@ -202,7 +253,9 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         self,
         n_steps_forecast: int,
         n_batch: int,
-        future_controls: Optional[Union[Sequence[torch.Tensor], ControlInputs]],
+        future_controls: Optional[
+            Union[Sequence[torch.Tensor], ControlInputs]
+        ],
         deterministic: bool = False,
         **kwargs,
     ) -> Sequence[Prediction]:
@@ -212,7 +265,9 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         self,
         n_steps_forecast: int,
         initial_latent: Latents,
-        future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
+        future_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ],
         deterministic: bool = False,
     ) -> Sequence[Prediction]:
         raise NotImplementedError("Should be implemented by child class")
@@ -222,9 +277,12 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
         n_steps_forecast: int,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
         past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
-        future_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]],
+        future_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ],
         past_targets_is_observed: Optional[
-            Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
         deterministic: bool = False,
     ) -> Sequence[Prediction]:
         raise NotImplementedError("Should be implemented by child class")
@@ -232,8 +290,11 @@ class BaseGaussianLinearSystem(nn.Module, metaclass=ABCMeta):
     def loss(
         self,
         past_targets: [Sequence[torch.Tensor], torch.Tensor],
-        past_controls: Optional[Union[Sequence[ControlInputs], ControlInputs]] = None,
+        past_controls: Optional[
+            Union[Sequence[ControlInputs], ControlInputs]
+        ] = None,
         past_targets_is_observed: Optional[
-            Union[Sequence[torch.Tensor], torch.Tensor]] = None,
+            Union[Sequence[torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> torch.Tensor:
         raise NotImplementedError("Should be implemented by child class")

@@ -1,6 +1,11 @@
 import torch
-from torch.distributions import Normal, MultivariateNormal, Bernoulli, \
-    Categorical, OneHotCategorical
+from torch.distributions import (
+    Normal,
+    MultivariateNormal,
+    Bernoulli,
+    Categorical,
+    OneHotCategorical,
+)
 
 from torch_extensions.fusion import test_fusion_manually
 
