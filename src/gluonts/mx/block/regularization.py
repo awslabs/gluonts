@@ -90,8 +90,8 @@ class ActivationRegularizationLoss(Loss):
 class TemporalActivationRegularizationLoss(Loss):
     r"""Computes Temporal Activation Regularization Loss. (alias: TAR)
     The formulation is as below:
-    .. math:: L = \beta L_2(h_t-h_{t+1})
-    where :math:`L_2(\cdot) = {||\cdot||}_2^2, h_t` is the output of the RNN at timestep t,
+    .. math:: L = \beta \|(h_t-h_{t+1})\|_2^2
+    where :math:`h_t` is the output of the RNN at timestep t,
     :math:`h_{t+1}` is the output of the RNN at timestep t+1, :math:`\beta` is scaling coefficient.
     The implementation follows [MMS17]_.
     Parameters
