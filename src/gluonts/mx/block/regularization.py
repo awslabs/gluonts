@@ -25,8 +25,8 @@ from gluonts.model.common import Tensor
 class ActivationRegularizationLoss(Loss):
     r"""Computes Activation Regularization Loss. (alias: AR)
     The formulation is as below:
-    .. math:: L = \alpha L_2(h_t)
-    where :math:`L_2(\cdot) = {||\cdot||}_2^2, h_t` is the output of the RNN at timestep t.
+    .. math:: L = \alpha \|h_t\|_2^2, 
+    where :math:`h_t` is the output of the RNN at timestep t.
     :math:`\alpha` is scaling coefficient.
     The implementation follows [MMS17]_.
     Parameters
