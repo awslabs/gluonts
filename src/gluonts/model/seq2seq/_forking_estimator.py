@@ -96,8 +96,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         quantile output
     distr_output
         distribution output
-    sampling
-        True for sample prediction and False for distribution prediction
+    quantile 
+        True for quantile prediction and False for distribution prediction
     freq
         frequency of the time series.
     prediction_length
@@ -147,7 +147,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         freq: str,
         prediction_length: int,
         distr_output: DistributionOutput = GaussianOutput(),
-        sampling: bool = True,
+        quantile: bool = True,
         context_length: Optional[int] = None,
         use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
@@ -212,7 +212,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.scaling = scaling
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
-        self.sampling = sampling
+        self.quantile = quantile
         self.distr_output = distr_output
 
     def create_transformation(self) -> Transformation:
@@ -380,7 +380,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         return Chain(chain)
 
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
-        if self.sampling:
+        if self.quantile:
             return ForkingSeq2SeqTrainingNetwork(
                 encoder=self.encoder,
                 enc2dec=FutureFeatIntegratorEnc2Dec(),
@@ -414,7 +414,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         trained_network: ForkingSeq2SeqNetworkBase,
     ) -> Predictor:
         # this is specific to quantile output
-        if self.sampling:
+        if self.quantile:
             quantile_strs = [
                 Quantile.from_float(quantile).name
                 for quantile in self.quantile_output.quantiles
