@@ -336,14 +336,16 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
 
     def encode_one_hot(self, feat: int, cardinality: int) -> List[int]:
         assert (
-                np.floor(feat) == feat
+            np.floor(feat) == feat
         )  # asserts that the categorical features are label encoded
         result = [0] * cardinality
         result[feat] = 1
         return result
 
     def encode_one_hot_all(self, feat_list):
-        encoded = starmap(self.encode_one_hot, zip(feat_list, self.cardinality))
+        encoded = starmap(
+            self.encode_one_hot, zip(feat_list, self.cardinality)
+        )
         return list(chain.from_iterable(encoded))
 
     def create_cardinalities(self, time_series):
