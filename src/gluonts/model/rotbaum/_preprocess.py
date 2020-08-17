@@ -19,6 +19,7 @@ from typing import List, Tuple, Dict, Optional
 import numpy as np
 import pandas as pd
 import logging
+from itertools import chain, starmap
 
 # First-party imports
 from gluonts.core.component import validated
@@ -333,20 +334,17 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             },
         )
 
-    def _one_hot(self, feat_list: List):
-        xs = [0] * sum(self.cardinality)
-
-        current = 0
-
-        for feat, cardinality in zip(feat_list, self.cardinality):
-            assert (
+    def encode_one_hot(self, feat: int, cardinality: int) -> List[int]:
+        assert (
                 np.floor(feat) == feat
-            )  # asserts that the categorical features are encoded
-            idx = int(cardinality - feat - 1)
-            xs[current + idx] = 1
-            current += cardinality
+        )  # asserts that the categorical features are label encoded
+        result = [0] * cardinality
+        result[feat] = 1
+        return result
 
-        return xs
+    def encode_one_hot_all(self, feat_list):
+        encoded = starmap(self.encode_one_hot, zip(feat_list, self.cardinality))
+        return list(chain.from_iterable(encoded))
 
     def create_cardinalities(self, time_series):
         if "feat_static_cat" not in time_series[0]:
@@ -398,7 +396,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         )
         if self.cardinality:
             feat_static_cat = (
-                self._one_hot(time_series["feat_static_cat"])
+                self.encode_one_hot_all(time_series["feat_static_cat"])
                 if self.one_hot_encode
                 else list(time_series["feat_static_cat"])
             )
