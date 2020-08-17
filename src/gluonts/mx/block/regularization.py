@@ -26,7 +26,7 @@ class ActivationRegularizationLoss(Loss):
     r"""
     Computes Activation Regularization Loss. (alias: AR)
     The formulation is as below:
-
+    
     .. math:: L = \alpha \|h_t\|_2^2,
     where :math:`h_t` is the output of the RNN at timestep t.
     :math:`\alpha` is scaling coefficient.
