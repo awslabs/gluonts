@@ -1,18 +1,16 @@
-python-box==4.2.3
+torch==1.6.0
+torchvision==0.7.0
+pytorch-lightning==0.9.0rc15  # TODO: update this to a stable tag when available
+numpy==1.19.1
+scipy==1.5.2
+pandas==0.25.3
+matplotlib==3.3.1
 notebook==5.5.0
 wget==3.2
-matplotlib==3.2.2
-numpy==1.19.0
-scipy==1.1.0
-torch==1.5.1
-pytorch-lightning==0.8.3
-torchvision==0.6.1
-pandas==0.25.3
+python-box==4.2.3
+POT==0.7.0
 pygame==1.9.6
 pymunk==5.6.0
-#pytest==5.4.1
-#pytest-cov==2.8.1
-#pytest-remotedata==0.3.2
 pytest==5.0.0
 pytest-arraydiff==0.2
 pytest-astropy==0.3.0
@@ -21,10 +19,7 @@ pytest-openfiles==0.3.0
 pytest-remotedata==0.3.1
 python-dateutil==2.7.3
 coverage==4.5.4
-POT==0.7.0
 # gluon-TS related imports (incl. third-party requirements)
 mxnet==1.6
 pydantic==1.5.1
 holidays==0.9.12
-#gluonts==0.5.0
-#git+https://github.com/awslabs/gluon-ts.git
