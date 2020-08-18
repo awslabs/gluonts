@@ -30,7 +30,7 @@ class ActivationRegularizationLoss(Loss):
 
     where :math:`h_t` is the output of the RNN at timestep t.
     :math:`\alpha` is scaling coefficient.
-    The implementation follows [MMS17]_ .
+    The implementation follows [MMS17]_.
     Computes Activation Regularization Loss. (alias: AR)
 
     Parameters
