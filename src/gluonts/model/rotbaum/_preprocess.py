@@ -12,8 +12,8 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Union
+from enum import Enum
 
 # Third-party imports
 import numpy as np
@@ -23,6 +23,11 @@ from itertools import chain, starmap
 
 # First-party imports
 from gluonts.core.component import validated
+
+
+class CardinalityEnum(str, Enum):
+    auto = "auto"
+    ignore = "ignore"
 
 
 class PreprocessGeneric:
@@ -137,12 +142,11 @@ class PreprocessGeneric:
             if not self.use_feat_static_real and not self.cardinality:
                 return [], []
             else:
+                # will return featurized data containing no target
                 return (
                     self.make_features(
                         altered_time_series,
-                        len(
-                            altered_time_series["target"]
-                        ),  # will return featurized data containing no target
+                        len(altered_time_series["target"]),
                     ),
                     [],
                 )
@@ -275,10 +279,21 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         use_feat_static_real=False,
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
-        cardinality="auto",
-        one_hot_encode: bool = True,  # should improve accuracy but will slow down model
+        cardinality: Union[List[int], str] = "auto",
+        one_hot_encode: bool = True,  # Should improve accuracy but will slow down model
         **kwargs
     ):
+
+        if one_hot_encode:
+            assert cardinality != "ignore" or (
+                isinstance(cardinality, List)
+                and all(c > 0 for c in cardinality)
+            ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored"
+
+        assert (
+            isinstance(cardinality, List) or cardinality in CardinalityEnum
+        ), "cardinality should be a list or set to 'auto' or 'ignore'"
+
         super().__init__(
             context_window_size=context_window_size,
             forecast_horizon=forecast_horizon,
@@ -287,15 +302,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             num_samples=num_samples,
             **kwargs
         )
-
-        if one_hot_encode:
-            assert (isinstance(cardinality, List) and cardinality) or (
-                isinstance(cardinality, str) and cardinality != "ignore"
-            ), "You should set `one_hot_encode=True` if and only if cardinality is not empty or ignored"
-
-        assert cardinality in set(["ignore", "auto"]) or all(
-            c > 0 for c in cardinality
-        ), "Elements of `cardinalities` should be > 0 if not automatically inferred or ignored"
 
         self.use_feat_static_real = use_feat_static_real
         self.cardinality = cardinality
@@ -335,18 +341,21 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         )
 
     def encode_one_hot(self, feat: int, cardinality: int) -> List[int]:
-        assert (
-            np.floor(feat) == feat
-        )  # asserts that the categorical features are label encoded
         result = [0] * cardinality
         result[feat] = 1
         return result
 
-    def encode_one_hot_all(self, feat_list):
+    def encode_one_hot_all(self, feat_list: List):
+        # asserts that the categorical features are label encoded
+        np_feat_list = np.array(feat_list)
+        assert all(np.floor(np_feat_list) == np_feat_list)
+        del np_feat_list
+
         encoded = starmap(
             self.encode_one_hot, zip(feat_list, self.cardinality)
         )
-        return list(chain.from_iterable(encoded))
+        encoded_chain = chain.from_iterable(encoded)
+        return list(encoded_chain)
 
     def create_cardinalities(self, time_series):
         if "feat_static_cat" not in time_series[0]:
@@ -416,9 +425,18 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             else []
         )
 
+        # these two assertions check that the categorical features are encoded
+        np_feat_static_cat = np.array(feat_static_cat)
         assert (not feat_static_cat) or all(
-            (np.floor(elem) == elem) for elem in feat_static_cat
-        )  # asserts that the categorical features are encoded
+            np.floor(np_feat_static_cat) == np_feat_static_cat
+        )
+        del np_feat_static_cat
+
+        np_feat_dynamic_cat = np.array(feat_dynamic_cat)
+        assert (not feat_dynamic_cat) or all(
+            np.floor(np_feat_dynamic_cat) == np_feat_dynamic_cat
+        )
+        del np_feat_dynamic_cat
 
         feat_dynamics = feat_dynamic_real + feat_dynamic_cat
         feat_statics = feat_static_real + feat_static_cat
