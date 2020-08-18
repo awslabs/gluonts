@@ -21,11 +21,13 @@ from typing import Optional, Type, Union, cast
 import click
 
 # Relative imports
+from gluonts.core.exception import GluonTSForecasterNotFoundError
 from gluonts.shell.sagemaker import TrainPaths
 from gluonts.shell.serve import Settings
 
 from .sagemaker import ServeEnv, TrainEnv
-from .util import forecaster_type_by_name
+from .util import forecaster_type_by_name, Forecaster
+
 
 logger = logging.getLogger(__name__)
 

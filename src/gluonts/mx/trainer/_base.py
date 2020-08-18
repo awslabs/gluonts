@@ -26,10 +26,11 @@ import mxnet.gluon.nn as nn
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import get_mxnet_context, validated
+from gluonts.core.component import validated
 from gluonts.core.exception import GluonTSDataError, GluonTSUserError
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.gluonts_tqdm import tqdm
+from gluonts.mx.context import get_mxnet_context
 from gluonts.support.util import HybridContext
 
 # Relative imports

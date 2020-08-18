@@ -22,11 +22,10 @@ import numpy as np
 # First-party imports
 import gluonts
 from gluonts.core import fqname_for
-from gluonts.core.component import check_gpu_support
 from gluonts.core.serde import dump_code
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
-from gluonts.model.estimator import Estimator
+from gluonts.model.estimator import Estimator, GluonEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import FilterTransformation, TransformedDataset
@@ -57,8 +56,6 @@ def log_metric(metric: str, value: Any) -> None:
 def run_train_and_test(
     env: TrainEnv, forecaster_type: Type[Union[Estimator, Predictor]]
 ) -> None:
-    check_gpu_support()
-
     # train_stats = calculate_dataset_statistics(env.datasets["train"])
     # log_metric("train_dataset_stats", train_stats)
 
@@ -119,13 +116,18 @@ def run_train(
         if "num_prefetch" in hyperparameters.keys()
         else None
     )
-    return forecaster.train(
-        training_data=train_dataset,
-        validation_data=validation_dataset,
-        num_workers=num_workers,
-        num_prefetch=num_prefetch,
-        shuffle_buffer_length=shuffle_buffer_length,
-    )
+    if isinstance(forecaster, GluonEstimator):
+        return forecaster.train(
+            training_data=train_dataset,
+            validation_data=validation_dataset,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
+        )
+    else:
+        return forecaster.train(
+            training_data=train_dataset, validation_data=validation_dataset,
+        )
 
 
 def run_test(
