@@ -288,13 +288,13 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             assert cardinality != "ignore" or (
                 isinstance(cardinality, List)
                 and all(c > 0 for c in cardinality)
-            ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored: {}".format(
-                cardinality
-            )
+            ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored: {}"
 
         assert (
             isinstance(cardinality, List) or cardinality in CardinalityEnum
-        ), "cardinality should be a list or set to 'auto' or 'ignore'"
+        ), "cardinality should be a list or set to 'auto' or 'ignore': {}".format(
+            cardinality
+        )
 
         super().__init__(
             context_window_size=context_window_size,
