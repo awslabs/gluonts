@@ -288,7 +288,9 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             assert cardinality != "ignore" or (
                 isinstance(cardinality, List)
                 and all(c > 0 for c in cardinality)
-            ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored"
+            ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored: {}".format(
+                cardinality
+            )
 
         assert (
             isinstance(cardinality, List) or cardinality in CardinalityEnum

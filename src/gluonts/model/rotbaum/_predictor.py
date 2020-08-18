@@ -13,7 +13,7 @@
 
 # Standard library imports
 from enum import Enum
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Union
 from pathlib import Path
 import json
 
@@ -123,7 +123,7 @@ class TreePredictor(GluonPredictor):
         use_feat_static_real: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_dynamic_cat: bool = False,
-        cardinality="auto",
+        cardinality: Union[List[int], str] = "auto",
         one_hot_encode: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
