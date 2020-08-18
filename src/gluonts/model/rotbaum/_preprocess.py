@@ -290,8 +290,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
                 and all(c > 0 for c in cardinality)
             ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored: {}"
 
-        assert cardinality in CardinalityEnum
-
         assert (
             isinstance(cardinality, List)
             or cardinality in CardinalityEnum._value2member_map_
