@@ -18,7 +18,7 @@ from multiprocessing import Process, Manager, Queue
 from queue import Empty
 
 from gluonts.dataset.common import DataEntry, DataBatch, Dataset
-from gluonts.dataset.util import MPWorkerInfo
+from gluonts.dataset.util import MPWorkerInfo, batcher
 from gluonts.transform import Transformation
 from gluonts.transform.dataset import TransformedDataset
 
@@ -74,10 +74,12 @@ class PseudoShuffledIterator(Iterator):
         return next_sample
 
 
-class MultiProcessIterator(Iterator):
+class MultiProcessBatcher(Iterator):
     def __init__(
         self,
         base_iterable: Iterable,
+        batch_size: int,
+        batchify_fn: Callable,
         num_workers: int,
         max_queue_size: Optional[int] = None,
     ):
@@ -85,6 +87,8 @@ class MultiProcessIterator(Iterator):
         assert max_queue_size is None or max_queue_size >= num_workers
 
         self.base_iterable = base_iterable
+        self.batch_size = batch_size
+        self.batchify_fn = batchify_fn
         self.num_workers = num_workers
         self.max_queue_size = (
             max_queue_size if max_queue_size is not None else 5 * num_workers
@@ -102,6 +106,8 @@ class MultiProcessIterator(Iterator):
                     wid,
                     self.num_workers,
                     self.base_iterable,
+                    self.batch_size,
+                    self.batchify_fn,
                     self.data_queue,
                     self.done_event,
                 ),
@@ -116,6 +122,8 @@ class MultiProcessIterator(Iterator):
         worker_id: int,
         num_workers: int,
         iterable: Iterable,
+        batch_size: int,
+        batchify_fn: Callable,
         data_queue: Queue,
         end_event,
     ):
@@ -123,11 +131,12 @@ class MultiProcessIterator(Iterator):
         MPWorkerInfo.worker_id = worker_id
         MPWorkerInfo.num_workers = num_workers
 
-        for entry in iterable:
+        for batch_list in batcher(iterable, batch_size):
+            batch = batchify_fn(batch_list)
             try:
                 if end_event.is_set():
                     break
-                data_queue.put((worker_id, entry))
+                data_queue.put((worker_id, batch))
             except (EOFError, BrokenPipeError):
                 break
 
@@ -166,21 +175,7 @@ class MultiProcessIterator(Iterator):
 
 
 class DataLoader(Iterable[DataBatch]):
-    def __init__(
-        self, dataset: Dataset, batch_size: int, batchify_fn: Callable,
-    ) -> None:
-        self.dataset = dataset
-        self.batch_size = batch_size
-        self.batchify_fn = batchify_fn
-
-    def __iter__(self):
-        iterator = iter(self.dataset)
-
-        while True:
-            batch_elements = list(itertools.islice(iterator, self.batch_size))
-            if not batch_elements:
-                break
-            yield self.batchify_fn(batch_elements)
+    pass
 
 
 class TrainDataLoader(DataLoader):
@@ -196,7 +191,12 @@ class TrainDataLoader(DataLoader):
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
     ) -> None:
+        self.batch_size = batch_size
+        self.batchify_fn = batchify_fn
         self.num_batches_per_epoch = num_batches_per_epoch
+        self.num_workers = num_workers
+        self.num_prefetch = num_prefetch
+        self.shuffle_buffer_length = shuffle_buffer_length
 
         transformed_dataset = TransformedDataset(
             base_dataset=CyclicIterable(dataset),
@@ -204,26 +204,25 @@ class TrainDataLoader(DataLoader):
             is_train=True,
         )
 
-        base_iterator = (
+        shuffled_iterator: Iterable[DataEntry] = (
             iter(transformed_dataset)
+            if shuffle_buffer_length is None
+            else PseudoShuffledIterator(
+                iter(transformed_dataset),
+                shuffle_buffer_length=shuffle_buffer_length,
+            )
+        )
+
+        self.batch_iterator = (
+            map(batchify_fn, batcher(shuffled_iterator, batch_size))
             if num_workers is None
-            else MultiProcessIterator(
-                transformed_dataset,
+            else MultiProcessBatcher(
+                shuffled_iterator,
+                batch_size=batch_size,
+                batchify_fn=batchify_fn,
                 num_workers=num_workers,
                 max_queue_size=num_prefetch,
             )
-        )
-
-        shuffled_iterator: Iterable[DataEntry] = (
-            base_iterator
-            if shuffle_buffer_length is None
-            else PseudoShuffledIterator(
-                base_iterator, shuffle_buffer_length=shuffle_buffer_length,
-            )
-        )
-
-        super().__init__(
-            shuffled_iterator, batch_size=batch_size, batchify_fn=batchify_fn,
         )
 
     def __len__(self):
@@ -231,7 +230,7 @@ class TrainDataLoader(DataLoader):
 
     def __iter__(self):
         yield from itertools.islice(
-            super().__iter__(), self.num_batches_per_epoch
+            self.batch_iterator, self.num_batches_per_epoch
         )
 
 
@@ -248,14 +247,16 @@ class ValidationDataLoader(DataLoader):
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
     ) -> None:
-        transformed_dataset = TransformedDataset(
+        self.transformed_dataset = TransformedDataset(
             base_dataset=dataset, transformation=transform, is_train=True,
         )
+        self.batch_size = batch_size
+        self.batchify_fn = batchify_fn
 
-        super().__init__(
-            transformed_dataset,
-            batch_size=batch_size,
-            batchify_fn=batchify_fn,
+    def __iter__(self):
+        yield from map(
+            self.batchify_fn,
+            batcher(self.transformed_dataset, self.batch_size),
         )
 
 
@@ -272,12 +273,14 @@ class InferenceDataLoader(DataLoader):
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
     ) -> None:
-        transformed_dataset = TransformedDataset(
+        self.transformed_dataset = TransformedDataset(
             base_dataset=dataset, transformation=transform, is_train=False,
         )
+        self.batch_size = batch_size
+        self.batchify_fn = batchify_fn
 
-        super().__init__(
-            transformed_dataset,
-            batch_size=batch_size,
-            batchify_fn=batchify_fn,
+    def __iter__(self):
+        yield from map(
+            self.batchify_fn,
+            batcher(self.transformed_dataset, self.batch_size),
         )
