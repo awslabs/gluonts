@@ -345,6 +345,13 @@ class Trainer:
                         self.avg_strategy.apply(net)
 
                     should_continue = lr_scheduler.step(loss_value(epoch_loss))
+                    if isinstance(
+                        self.avg_strategy, IterationAveragingStrategy
+                    ):
+                        logging.info(
+                            "Overriding early stopping for iteration-based averaging strategies."
+                        )
+                        should_continue = True
                     if not should_continue:
                         logger.info("Stopping training")
                         break
