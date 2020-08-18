@@ -202,7 +202,7 @@ def batchify(
         referenced by identical key are reduced using the stack function"""
     return {
         key: stack(
-            data=[item.get(key, f"Key: {key} not found!") for item in data],
+            data=[item[key] for item in data],
             multi_processing=multi_processing,
             dtype=dtype,
             single_process_ctx=single_process_ctx,
