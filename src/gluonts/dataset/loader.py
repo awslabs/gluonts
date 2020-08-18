@@ -12,10 +12,8 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import itertools
 import logging
-import multiprocessing as mp
-from typing import Any, Dict, Iterable, Iterator, Optional
+from typing import Iterable, Iterator, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -63,7 +61,6 @@ class DataLoader(Iterable[DataEntry]):
         If not None, the loader will perform pseudo shuffle when generating batches.
         Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
         more time to be done.
-
     """
 
     def __init__(
@@ -88,11 +85,6 @@ class DataLoader(Iterable[DataEntry]):
         self.transform = transform
         self.cyclic = cyclic
         self.logger = logging.getLogger(__name__)
-        if num_workers is not None and num_workers > mp.cpu_count():
-            self.logger.warning(
-                f"num_workers is set to {num_workers}, but there are only {mp.cpu_count()} cpus "
-                f"please reduce the number of workers"
-            )
         self.num_workers = num_workers
         self.num_prefetch = num_prefetch
         self.shuffle_buffer_length = shuffle_buffer_length
