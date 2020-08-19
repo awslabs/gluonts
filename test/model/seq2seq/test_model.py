@@ -19,6 +19,7 @@ from gluonts.model.seq2seq import (
 )
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
+from gluonts.mx.distribution.student_t import StudentTOutput
 
 
 @pytest.fixture()
@@ -44,7 +45,10 @@ def Estimator(request):
 
 @pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
 @pytest.mark.parametrize("hybridize", [True, False])
-@pytest.mark.parametrize("sampling",[True,False])
+@pytest.mark.parametrize("distr_output",[StudentTOutput(),None])
+@pytest.mark.parametrize("quantile_output",[QuantileOutput(),None])
+                
+                         
 def test_accuracy(
     Estimator, accuracy_test, hyperparameters, hybridize, quantiles, sampling
 ):
@@ -62,7 +66,8 @@ def test_accuracy(
 @pytest.mark.parametrize("enable_encoder_dynamic_feature", [True, False])
 @pytest.mark.parametrize("enable_decoder_dynamic_feature", [True, False])
 @pytest.mark.parametrize("hybridize", [True, False])
-@pytest.mark.parametrize("sampling",[True,False])
+@pytest.mark.parametrize("distr_output",[StudentTOutput(),None])
+@pytest.mark.parametrize("quantile_output",[QuantileOutput(),None])
 def test_mqcnn_covariate_smoke_test(
     use_past_feat_dynamic_real,
     use_feat_dynamic_real,
