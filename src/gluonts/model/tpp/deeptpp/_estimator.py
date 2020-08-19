@@ -13,7 +13,7 @@
 from functools import partial
 from typing import Optional
 
-from gluonts.dataset.parallelized_loader import batchify
+from gluonts.mx.batchify import batchify
 from mxnet.gluon import HybridBlock
 
 # First-party imports
