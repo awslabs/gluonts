@@ -57,7 +57,7 @@ from ._forking_network import (
     ForkingSeq2SeqTrainingNetwork,
     ForkingSeq2SeqDistributionTrainingNetwork,
     ForkingSeq2SeqPredictionNetwork,
-    ForkingSeq2SeqDistributionNetwork,
+    ForkingSeq2SeqDistributionPredictionNetwork,
 
 )
 from ._transform import ForkingSequenceSplitter
@@ -146,8 +146,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         quantile_output: QuantileOutput,
         freq: str,
         prediction_length: int,
-        distr_output: DistributionOutput = GaussianOutput(),
-        quantile: bool = True,
+        quantile_output: Optional[QuantileOutput] = None,
+        distr_output: Optional[DistributionOutput] = None,
         context_length: Optional[int] = None,
         use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
@@ -164,7 +164,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer)
-
+        
+        assert distr_output is None != quantile_output is None
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
@@ -380,7 +381,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         return Chain(chain)
 
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
-        if self.quantile:
+        if if self.distr_output is not None:
             return ForkingSeq2SeqTrainingNetwork(
                 encoder=self.encoder,
                 enc2dec=FutureFeatIntegratorEnc2Dec(),
@@ -414,7 +415,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         trained_network: ForkingSeq2SeqNetworkBase,
     ) -> Predictor:
         # this is specific to quantile output
-        if self.quantile:
+        if self.distr_output is not None:
             quantile_strs = [
                 Quantile.from_float(quantile).name
                 for quantile in self.quantile_output.quantiles
