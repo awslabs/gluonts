@@ -100,7 +100,9 @@ class MultiProcessBatcher(Iterator):
         self.manager = Manager()
         self.data_queue = self.manager.Queue(maxsize=self.max_queue_size)
         self.terminate_event = self.manager.Event()
-        self.exhausted_events = [self.manager.Event() for _ in range(self.num_workers)]
+        self.exhausted_events = [
+            self.manager.Event() for _ in range(self.num_workers)
+        ]
         self.processes = []
 
         for wid, event in enumerate(self.exhausted_events):
@@ -114,7 +116,7 @@ class MultiProcessBatcher(Iterator):
                     self.batchify_fn,
                     self.data_queue,
                     self.terminate_event,
-                    event
+                    event,
                 ),
             )
             p.start()
@@ -156,9 +158,10 @@ class MultiProcessBatcher(Iterator):
         return self
 
     def __next__(self):
-        if all(
-            event.is_set() for event in self.exhausted_events
-        ) and self.data_queue.empty():
+        if (
+            all(event.is_set() for event in self.exhausted_events)
+            and self.data_queue.empty()
+        ):
             self._halt_processes()
             raise StopIteration()
 
