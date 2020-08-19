@@ -40,8 +40,6 @@ from gluonts.transform.feature import (
     MissingValueImputation,
 )
 
-
-
 # Relative imports
 from ._network import (
     SimpleFeedForwardSamplingNetwork,
@@ -155,7 +153,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         self.mean_scaling = mean_scaling
         self.num_parallel_samples = num_parallel_samples
         self.sampling = sampling
-
         self.imputation_method = (
             imputation_method
             if imputation_method is not None
