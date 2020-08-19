@@ -38,7 +38,7 @@ from gluonts.support.pandas import forecast_start
 from gluonts.dataset.loader import DataBatch
 
 # Relative imports
-from ._preprocess import PreprocessOnlyLagFeatures
+from ._preprocess import PreprocessOnlyLagFeatures, CardinalityLabel
 from ._model import QRX, QuantileReg, QRF
 
 logger = logging.getLogger(__name__)
@@ -149,7 +149,9 @@ class TreePredictor(GluonPredictor):
             use_feat_static_real=use_feat_static_real,
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
-            cardinality=cardinality,
+            cardinality=CardinalityLabel(cardinality)
+            if cardinality in CardinalityLabel._value2member_map_
+            else cardinality,
             one_hot_encode=one_hot_encode,
         )
 

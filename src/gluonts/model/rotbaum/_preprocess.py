@@ -20,14 +20,18 @@ import numpy as np
 import pandas as pd
 import logging
 from itertools import chain, starmap
+from typeguard import check_type
 
 # First-party imports
 from gluonts.core.component import validated
 
 
-class CardinalityEnum(str, Enum):
+class CardinalityLabel(str, Enum):
     auto = "auto"
     ignore = "ignore"
+
+
+Cardinality = Union[List[int], CardinalityLabel]
 
 
 class PreprocessGeneric:
@@ -279,7 +283,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         use_feat_static_real=False,
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
-        cardinality: Union[List[int], str] = "auto",
+        cardinality: Cardinality = CardinalityLabel.auto,
         one_hot_encode: bool = True,  # Should improve accuracy but will slow down model
         **kwargs
     ):
@@ -289,11 +293,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
                 isinstance(cardinality, List)
                 and all(c > 0 for c in cardinality)
             ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored: {}"
-
-        assert (
-            isinstance(cardinality, List)
-            or cardinality in CardinalityEnum._value2member_map_
-        ), "cardinality should be a list or set to 'auto' or 'ignore': {}"
 
         super().__init__(
             context_window_size=context_window_size,
@@ -361,20 +360,10 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
     def create_cardinalities(self, time_series):
         if "feat_static_cat" not in time_series[0]:
             return []
-        mat = [None] * len(time_series)
-        for i, elem in enumerate(time_series):
-            mat[i] = np.array(elem["feat_static_cat"])
-        mat = np.array(mat)
-        assert (mat[i].size == mat[0].size for i in range(len(mat)))
-        ret = (
-            [
-                int(len(pd.unique(pd.Series(mat[:, i]))))
-                for i in range(len(mat[0]))
-            ]
-            if mat[0].size != 0
-            else []
+        mat = np.array(
+            [elem["feat_static_cat"] for elem in time_series], dtype=int
         )
-        return ret
+        return [len(set(xs)) for xs in mat.T]
 
     def make_features(self, time_series: Dict, starting_index: int) -> List:
         """
