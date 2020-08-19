@@ -353,7 +353,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         return predictions
 
     
-class ForkingSeq2SeqDistributionNetwork(ForkingSeq2SeqNetworkBase):
+class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
