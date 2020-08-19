@@ -140,7 +140,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         
         self.sampling = sampling
         self.distr_output = distr_output
-
+        
+        assert distr_output is None != quantiles is None
         assert (
             prediction_length > 0
         ), f"Invalid prediction length: {prediction_length}."
