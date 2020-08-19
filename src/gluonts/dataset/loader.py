@@ -15,6 +15,9 @@ from typing import Iterable, Iterator, Callable, Optional
 import itertools
 import random
 from multiprocessing import Process, Manager, Queue
+from multiprocessing.reduction import ForkingPickler
+import io
+import pickle
 from queue import Empty
 
 from gluonts.dataset.common import DataEntry, DataBatch, Dataset
@@ -96,10 +99,11 @@ class MultiProcessBatcher(Iterator):
 
         self.manager = Manager()
         self.data_queue = self.manager.Queue(maxsize=self.max_queue_size)
-        self.done_event = self.manager.Event()
+        self.terminate_event = self.manager.Event()
+        self.exhausted_events = [self.manager.Event() for _ in range(self.num_workers)]
         self.processes = []
 
-        for wid in range(self.num_workers):
+        for wid, event in enumerate(self.exhausted_events):
             p = Process(
                 target=self.worker_fn,
                 args=(
@@ -109,7 +113,8 @@ class MultiProcessBatcher(Iterator):
                     self.batch_size,
                     self.batchify_fn,
                     self.data_queue,
-                    self.done_event,
+                    self.terminate_event,
+                    event
                 ),
             )
             p.start()
@@ -125,7 +130,8 @@ class MultiProcessBatcher(Iterator):
         batch_size: int,
         batchify_fn: Callable,
         data_queue: Queue,
-        end_event,
+        terminate_event,
+        exhausted_event,
     ):
         MPWorkerInfo.worker_process = True
         MPWorkerInfo.worker_id = worker_id
@@ -134,27 +140,41 @@ class MultiProcessBatcher(Iterator):
         for batch_list in batcher(iterable, batch_size):
             batch = batchify_fn(batch_list)
             try:
-                if end_event.is_set():
-                    break
-                data_queue.put((worker_id, batch))
+                if terminate_event.is_set():
+                    return
+                buf = io.BytesIO()
+                ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
+                    (worker_id, batch)
+                )
+                data_queue.put(buf.getvalue())
             except (EOFError, BrokenPipeError):
-                break
+                return
+
+        exhausted_event.set()
 
     def __iter__(self):
         return self
 
     def __next__(self):
+        if all(
+            event.is_set() for event in self.exhausted_events
+        ) and self.data_queue.empty():
+            self._halt_processes()
+            raise StopIteration()
+
         try:
-            wid, entry = self.data_queue.get(timeout=0.5)
+            # TODO make timeout configurable
+            got = self.data_queue.get(timeout=120)
+            worker_id, batch = pickle.loads(got)
         except Empty:
             raise StopIteration()
 
-        return entry
+        return batch
 
     def _empty_queue(self):
         try:
-            item = self.data_queue.get(block=False)
-            while item:
+            batch = self.data_queue.get(block=False)
+            while batch:
                 self.data_queue.get(block=False)
         except (Empty, FileNotFoundError):
             pass
@@ -162,7 +182,7 @@ class MultiProcessBatcher(Iterator):
     def _halt_processes(self):
         try:
             # Send termination message to workers
-            self.done_event.set()
+            self.terminate_event.set()
         except FileNotFoundError:
             pass
         # Empty queue to make sure workers get the message
