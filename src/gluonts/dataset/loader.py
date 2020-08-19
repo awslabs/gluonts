@@ -14,16 +14,21 @@
 from typing import Iterable, Iterator, Callable, Optional
 import itertools
 import random
+import logging
 from multiprocessing import Process, Manager, Queue
 from multiprocessing.reduction import ForkingPickler
 import io
 import pickle
+import sys
 from queue import Empty
 
 from gluonts.dataset.common import DataEntry, DataBatch, Dataset
 from gluonts.dataset.util import MPWorkerInfo, batcher
 from gluonts.transform import Transformation
 from gluonts.transform.dataset import TransformedDataset
+
+
+logger = logging.getLogger(__name__)
 
 
 class CyclicIterable(Iterable):
@@ -201,6 +206,16 @@ class DataLoader(Iterable[DataBatch]):
     pass
 
 
+def win32_guard(num_worker: int) -> Optional[int]:
+    if sys.platform == "win32":
+        logger.warning(
+            "Multiprocessing is not supported on Windows, "
+            "num_workers will be set to None."
+        )
+        return None
+    return num_worker
+
+
 class TrainDataLoader(DataLoader):
     def __init__(
         self,
@@ -217,7 +232,7 @@ class TrainDataLoader(DataLoader):
         self.batch_size = batch_size
         self.batchify_fn = batchify_fn
         self.num_batches_per_epoch = num_batches_per_epoch
-        self.num_workers = num_workers
+        self.num_workers = win32_guard(num_workers)
         self.num_prefetch = num_prefetch
         self.shuffle_buffer_length = shuffle_buffer_length
 
