@@ -90,6 +90,7 @@ class MultiProcessBatcher(Iterator):
         batchify_fn: Callable,
         num_workers: int,
         max_queue_size: Optional[int] = None,
+        todevice_fn: Callable = lambda x: x,
     ):
         assert num_workers >= 1
         assert max_queue_size is None or max_queue_size >= num_workers
@@ -97,6 +98,7 @@ class MultiProcessBatcher(Iterator):
         self.base_iterable = base_iterable
         self.batch_size = batch_size
         self.batchify_fn = batchify_fn
+        self.todevice_fn = todevice_fn
         self.num_workers = num_workers
         self.max_queue_size = (
             max_queue_size if max_queue_size is not None else 5 * num_workers
@@ -174,6 +176,7 @@ class MultiProcessBatcher(Iterator):
             # TODO make timeout configurable
             got = self.data_queue.get(timeout=120)
             worker_id, batch = pickle.loads(got)
+            batch = self.todevice_fn(batch)
         except Empty:
             raise StopIteration()
 
@@ -206,7 +209,7 @@ class DataLoader(Iterable[DataBatch]):
     pass
 
 
-def win32_guard(num_worker: int) -> Optional[int]:
+def win32_guard(num_worker: Optional[int]) -> Optional[int]:
     if sys.platform == "win32":
         logger.warning(
             "Multiprocessing is not supported on Windows, "
@@ -228,6 +231,7 @@ class TrainDataLoader(DataLoader):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
+        todevice_fn: Callable = lambda x: x,
     ) -> None:
         self.batch_size = batch_size
         self.batchify_fn = batchify_fn
@@ -253,12 +257,13 @@ class TrainDataLoader(DataLoader):
 
         self.batch_iterator = (
             map(batchify_fn, batcher(shuffled_iterator, batch_size))
-            if num_workers is None
+            if self.num_workers is None
             else MultiProcessBatcher(
                 shuffled_iterator,
                 batch_size=batch_size,
                 batchify_fn=batchify_fn,
-                num_workers=num_workers,
+                todevice_fn=todevice_fn,
+                num_workers=self.num_workers,
                 max_queue_size=num_prefetch,
             )
         )

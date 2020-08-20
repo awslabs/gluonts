@@ -16,8 +16,8 @@ import functools
 
 import numpy as np
 import mxnet as mx
-from gluonts.core.component import DType
 
+from gluonts.core.component import DType
 from gluonts.dataset.common import DataBatch
 
 
@@ -95,3 +95,18 @@ def batchify(
         )
         for key in data[0].keys()
     }
+
+
+def as_in_context(batch: dict, ctx: mx.Context = None) -> DataBatch:
+    """Move data into new context, should only be in main process."""
+    batch = {
+        k: v.as_in_context(ctx) if isinstance(v, mx.nd.NDArray)
+        # Workaround due to MXNet not being able to handle NDArrays with 0 in shape properly:
+        else (
+            stack(v, ctx=ctx, dtype=v.dtype, variable_length=False)
+            if isinstance(v[0], np.ndarray) and 0 in v[0].shape
+            else v
+        )
+        for k, v in batch.items()
+    }
+    return batch

@@ -17,6 +17,7 @@ from functools import partial
 
 # Third-party imports
 import numpy as np
+import mxnet as mx
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
 
@@ -31,7 +32,7 @@ from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.transform import Transformation
-from gluonts.mx.batchify import batchify
+from gluonts.mx.batchify import batchify, as_in_context
 
 
 class Estimator:
@@ -205,6 +206,7 @@ class GluonEstimator(Estimator):
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
         batchify_fn: Optional[Callable] = None,
+        todevice_fn: Callable = partial(as_in_context, ctx=mx.context.cpu()),
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
@@ -221,6 +223,7 @@ class GluonEstimator(Estimator):
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
+            todevice_fn=todevice_fn,
         )
 
         validation_data_loader = None
