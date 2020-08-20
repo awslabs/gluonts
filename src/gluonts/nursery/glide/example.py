@@ -1,6 +1,6 @@
 from toolz.functoolz import compose_left
 
-from gluonts.nursery.glide import ParPipeline
+from gluonts.nursery import glide
 from gluonts.dataset.common import ProcessDataEntry
 from gluonts.model.deepar import DeepAREstimator
 
@@ -24,6 +24,6 @@ data = [{"start": "2020", "target": list(range(100))}]
 
 steps = compose_left(ProcessDataEntry(freq="D"), ApplyTransformation(t),)
 
-pipe = ParPipeline(steps, [data])
+pipe = glide.ParMap(steps, [data])
 
 print(list(pipe))
