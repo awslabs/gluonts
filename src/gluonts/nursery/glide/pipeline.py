@@ -54,7 +54,7 @@ def map_to_queue(fn, emitter, queue, batch_size):
     queue.put(sentinel)
 
 
-class Pipeline:
+class Map:
     def __init__(self, fn, partitions: list):
         self.fn = fn
         self.partitions = partitions
@@ -101,7 +101,7 @@ class ParPipelineIterator:
         return self._current.pop()
 
 
-class ParPipeline:
+class ParMap:
     def __init__(self, fn, emitter, batch_size=128):
         self.fn = fn
         self.emitter = emitter

@@ -11,8 +11,32 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+"""
+gluonts.nursery.glide
+~~~~~~~~~~~~~~~~~~~~~
 
-__all__ = ["partition", "Pipeline", "ParPipeline"]
+Glide is a simple pipeline, which is able to map functions in parallel.
+
+The core idea is to work on already sharded input-data, since inter-process
+communication is expensive using multiprocessing. Thus, glide's only
+syncronisation point is a final result queue to which each process emits its
+data.
+
+To help splitting the input preemptively glides offers a `partition`-method.
+
+
+    from gluonts.nursery import glide
+
+    data = range(100)
+    parts = glide.partition(data, 3)
+
+    def double(n):
+        return n * 2
+
+    assert set(glide.ParMap(double, parts)) == set(range(0, 200, 2))
+
+"""
+__all__ = ["partition", "Map", "ParMap"]
 
 from ._partition import partition
-from .pipeline import ParPipeline, Pipeline
+from .pipeline import ParMap, Map
