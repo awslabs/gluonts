@@ -13,14 +13,12 @@
 
 
 # Standard library imports
-import collections
 import functools
 import io
 import itertools
 import logging
 import multiprocessing
 import multiprocessing.queues
-import pathlib
 import pickle
 import random
 import sys
@@ -30,7 +28,7 @@ from multiprocessing.managers import SyncManager
 from multiprocessing.pool import Pool
 from multiprocessing.reduction import ForkingPickler
 from queue import Queue
-from typing import Any, Callable, Iterable, Iterator, List, Optional, Union
+from typing import Any, Callable, Iterator, List, Optional, Union
 
 import mxnet as mx
 
@@ -86,7 +84,7 @@ ForkingPickler.register(nd.NDArray, reduce_ndarray)
 
 
 def _is_stackable(
-    arrays: List[Union[np.ndarray, mx.nd.NDArray, Any]], axis: int = 0,
+    arrays: List[Union[np.ndarray, mx.nd.NDArray, Any]], axis: int = 0
 ) -> bool:
     """
     Check if elements are scalars, have too few dimensions, or their
@@ -99,7 +97,7 @@ def _is_stackable(
 
 
 def _pad_arrays(
-    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0,
+    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0
 ) -> List[Union[np.ndarray, mx.nd.NDArray]]:
     assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
     is_mx = isinstance(data[0], mx.nd.NDArray)
@@ -239,9 +237,7 @@ def _sequential_sample_generator(
     cyclic: bool,
 ) -> Iterator[DataEntry]:
     while True:
-        yield from transformation(
-            data_it=dataset, is_train=is_train,
-        )
+        yield from transformation(data_it=dataset, is_train=is_train)
         # Dont cycle if not training time
         if not cyclic:
             return
@@ -365,7 +361,7 @@ class ShuffleIter(Iterator[DataEntry]):
 
     def __init__(
         self, base_iterator: Iterator[DataEntry], shuffle_buffer_length: int
-    ):
+    ) -> None:
         self.shuffle_buffer: list = []
         self.shuffle_buffer_length = shuffle_buffer_length
         self.base_iterator = base_iterator
@@ -418,7 +414,7 @@ class _MultiWorkerIter(object):
         dataset_len: int,
         timeout: int,
         shuffle_buffer_length: Optional[int],
-    ):
+    ) -> None:
         self._worker_pool = worker_pool
         self._batchify_fn = batchify_fn
         self._data_buffer: dict = (
@@ -471,6 +467,7 @@ class _MultiWorkerIter(object):
     def __next__(self) -> DataBatch:
         # Try to get a batch, sometimes its possible that an iterator was
         # exhausted and thus we don't get a new batch
+        logger = logging.getLogger(__name__)
         success = False
         while not success:
             try:
@@ -508,15 +505,17 @@ class _MultiWorkerIter(object):
                     # or return with the right context straight away
                     return _as_in_context(batch, self._ctx)
             except multiprocessing.context.TimeoutError:
-                print(
+                logger.error(
                     f"Worker timed out after {self._timeout} seconds. This might be caused by "
                     "\n - Slow transform. Please increase timeout to allow slower data loading in each worker. "
                     "\n - Insufficient shared_memory if `timeout` is large enough. "
                     "\n Please consider to reduce `num_workers` or increase shared_memory in system."
                 )
                 raise
-            except Exception:
-                print("An unexpected error occurred in the WorkerIterator.")
+            except Exception as e:
+                logger.error(
+                    f"An unexpected error occurred in the WorkerIterator: {e}."
+                )
                 self._worker_pool.terminate()
                 raise
         return {}
@@ -527,17 +526,6 @@ class _MultiWorkerIter(object):
             if not next_batch:
                 return
             yield next_batch
-
-    def __del__(self):
-        # Explicitly load the content from shared memory to delete it
-        # Unfortunately it seems the way the data is pickled prevents efficient implicit GarbageCollection
-        try:
-            for k in list(self._data_buffer.keys()):
-                res = pickle.loads(self._data_buffer.pop(k).get(self._timeout))
-                del res
-        except FileNotFoundError:
-            # The resources were already released
-            pass
 
 
 class ParallelDataLoader(object):
@@ -591,10 +579,11 @@ class ParallelDataLoader(object):
         num_prefetch: Optional[int] = None,
         num_workers: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
-    ):
+    ) -> None:
+        self.logger = logging.getLogger(__name__)
         # Some windows error with the ForkingPickler prevents usage currently:
         if sys.platform == "win32":
-            logging.warning(
+            self.logger.warning(
                 "You have set `num_workers` to a non zero value, "
                 "however, currently multiprocessing is not supported on windows and therefore"
                 "`num_workers will be set to 0."
@@ -604,7 +593,7 @@ class ParallelDataLoader(object):
         if num_workers is not None and num_workers > 0:
             if isinstance(dataset, FileDataset):
                 if not dataset.cache:
-                    logging.warning(
+                    self.logger.warning(
                         "You have set `num_workers` to a non zero value, "
                         "however, you have not enabled caching for your FileDataset. "
                         "To improve training performance you can enable caching for the FileDataset. "
@@ -626,8 +615,13 @@ class ParallelDataLoader(object):
         self.dataset = dataset
         self.dataset_len: int
         if isinstance(dataset, Sized):
-            assert isinstance(dataset, Sized)
-            self.dataset_len = len(dataset)
+            if isinstance(dataset, FileDataset):
+                # Take non-zero minimum dataset length to be used in num_workers calculation
+                self.dataset_len = min(
+                    filter(lambda x: x > 0, dataset.len_per_file())
+                )
+            else:
+                self.dataset_len = len(dataset)
         else:
             self.dataset_len = len(list(dataset))
         self.transformation = transformation
@@ -648,11 +642,22 @@ class ParallelDataLoader(object):
             num_workers if num_workers is not None else default_num_workers,
             self.dataset_len,
         )  # cannot have more than dataset entries
+        self.logger.info(
+            f"gluonts[multiprocessing]: num_workers={self.num_workers}"
+        )
+        if self.num_workers > multiprocessing.cpu_count():
+            self.logger.warning(
+                f"num_workers is set to {self.num_workers}, but there are only {multiprocessing.cpu_count()} cpus "
+                f"please reduce the number of workers"
+            )
         self.num_prefetch = (
             num_prefetch if num_prefetch is not None else 2 * self.num_workers
         )
+        self.logger.info(
+            f"gluonts[multiprocessing]: num_prefetch={self.num_prefetch}"
+        )
         if self.num_prefetch < self.num_workers:
-            logging.warning(
+            self.logger.warning(
                 "You have set `num_prefetch` to less than `num_workers`, which is counter productive."
                 "If you want to reduce load, reduce `num_workers`."
             )
@@ -663,6 +668,9 @@ class ParallelDataLoader(object):
         # In order to recycle unused but pre-calculated batches from last epoch for training:
         self.multi_worker_cache: Optional[Iterator[DataBatch]] = None
         self.shuffle_buffer_length: Optional[int] = shuffle_buffer_length
+        self.logger.info(
+            f"gluonts[multiprocessing]: shuffle_buffer_length={self.shuffle_buffer_length}"
+        )
 
         if self.num_workers > 0:
             # generate unique ids for processes
@@ -689,7 +697,7 @@ class ParallelDataLoader(object):
         self.cycle_num += 1
         if self.num_workers == 0:
             generator = _sequential_sample_generator(
-                self.dataset, self.transformation, self.is_train, self.cyclic,
+                self.dataset, self.transformation, self.is_train, self.cyclic
             )
             if self.shuffle_buffer_length is not None:
                 generator = ShuffleIter(

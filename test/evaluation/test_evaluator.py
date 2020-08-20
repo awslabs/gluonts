@@ -20,7 +20,6 @@ import pytest
 from gluonts.evaluation import (
     Evaluator,
     MultivariateEvaluator,
-    get_seasonality,
 )
 from gluonts.model.forecast import QuantileForecast, SampleForecast
 
@@ -644,25 +643,3 @@ def test_evaluation_with_QuantileForecast():
     agg_metric, _ = ev(iter([ts]), iter(fcst))
 
     assert np.isfinite(agg_metric["wQuantileLoss[0.5]"])
-
-
-@pytest.mark.parametrize(
-    "freq, expected_seasonality",
-    [
-        ("1H", 24),
-        ("H", 24),
-        ("2H", 12),
-        ("3H", 8),
-        ("4H", 6),
-        ("15H", 1),
-        ("5B", 1),
-        ("1B", 5),
-        ("2W", 1),
-        ("3M", 4),
-        ("1D", 1),
-        ("7D", 1),
-        ("8D", 1),
-    ],
-)
-def test_get_seasonality(freq, expected_seasonality):
-    assert get_seasonality(freq) == expected_seasonality
