@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+
 from toolz.functoolz import compose_left
 
 from gluonts.nursery import glide
@@ -6,6 +9,8 @@ from gluonts.model.deepar import DeepAREstimator
 
 
 from functools import partial
+
+from dataset import JsonLinesFile
 
 
 class ApplyTransformation:
@@ -20,10 +25,12 @@ class ApplyTransformation:
 deepar = DeepAREstimator(prediction_length=7, freq="D")
 t = deepar.create_transformation()
 
-data = [{"start": "2020", "target": list(range(100))}]
+# datasource = [{"start": "2020", "target": list(range(100))}]
+datasource = JsonLinesFile(Path(sys.argv[1]))
+
 
 steps = compose_left(ProcessDataEntry(freq="D"), ApplyTransformation(t),)
 
-pipe = glide.ParMap(steps, [data])
+pipe = glide.ParMap(steps, glide.partition(datasource, 8))
 
-print(list(pipe))
+print(sum(1 for _ in pipe))

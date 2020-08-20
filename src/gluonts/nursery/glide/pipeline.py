@@ -27,26 +27,6 @@ class sentinel:
     pass
 
 
-class ParMapper(Generic[T, U]):
-    def __init__(
-        self,
-        fn: Callable[[T], U],
-        emitter: Iterator[T],
-        queue: mp.Queue,
-        batch_size: int = 8,
-    ):
-        self.fn = fn
-        self.emitter = emitter
-        self.queue = queue
-        self.batch_size = batch_size
-
-    def __call__(self) -> None:
-        stream = map(self.fn, self.emitter)
-        for batch in batcher(self.batch_size, stream):
-            self.queue.put(batch)
-        self.queue.put(sentinel)
-
-
 def map_to_queue(fn, emitter, queue, batch_size):
     stream = map(fn, emitter)
     for batch in batcher(batch_size, stream):
@@ -102,7 +82,7 @@ class ParPipelineIterator:
 
 
 class ParMap:
-    def __init__(self, fn, emitter, batch_size=128):
+    def __init__(self, fn, emitter, batch_size=10):
         self.fn = fn
         self.emitter = emitter
         self.batch_size = batch_size

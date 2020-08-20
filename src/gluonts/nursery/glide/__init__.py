@@ -38,5 +38,5 @@ To help splitting the input preemptively glides offers a `partition`-method.
 """
 __all__ = ["partition", "Map", "ParMap"]
 
-from ._partition import partition
+from ._partition import partition, divide_into
 from .pipeline import ParMap, Map
