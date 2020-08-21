@@ -64,20 +64,20 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
     @validated()
     def __init__(
-            self,
-            encoder: Seq2SeqEncoder,
-            enc2dec: Seq2SeqEnc2Dec,
-            decoder: Seq2SeqDecoder,
-            quantile_output: QuantileOutput,
-            context_length: int,
-            cardinality: List[int],
-            embedding_dimension: List[int],
-            input_repr: Representation = Representation(),
-            output_repr: Representation = Representation(),
-            scaling: bool = False,
-            scaling_decoder_dynamic_feature: bool = False,
-            dtype: DType = np.float32,
-            **kwargs,
+        self,
+        encoder: Seq2SeqEncoder,
+        enc2dec: Seq2SeqEnc2Dec,
+        decoder: Seq2SeqDecoder,
+        quantile_output: QuantileOutput,
+        context_length: int,
+        cardinality: List[int],
+        embedding_dimension: List[int],
+        input_repr: Representation = Representation(),
+        output_repr: Representation = Representation(),
+        scaling: bool = False,
+        scaling_decoder_dynamic_feature: bool = False,
+        dtype: DType = np.float32,
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
@@ -120,13 +120,13 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
     # this method connects the sub-networks and returns the decoder output
     def get_decoder_network_output(
-            self,
-            F,
-            past_target: Tensor,
-            past_feat_dynamic: Tensor,
-            future_feat_dynamic: Tensor,
-            feat_static_cat: Tensor,
-            past_observed_values: Tensor,
+        self,
+        F,
+        past_target: Tensor,
+        past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,
     ) -> Tensor:
 
         # scale is computed on the context length last units of the past target
@@ -137,7 +137,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             ),
             past_observed_values.slice_axis(
                 axis=1, begin=-self.context_length, end=None
-            )
+            ),
         )
 
         # (batch_size, num_features)
@@ -184,15 +184,15 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
-            self,
-            F,
-            past_target: Tensor,
-            future_target: Tensor,
-            past_feat_dynamic: Tensor,
-            future_feat_dynamic: Tensor,
-            feat_static_cat: Tensor,
-            past_observed_values: Tensor,
-            future_observed_values: Tensor,
+        self,
+        F,
+        past_target: Tensor,
+        future_target: Tensor,
+        past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,
+        future_observed_values: Tensor,
     ) -> Tensor:
         """
         Parameters
@@ -249,13 +249,13 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
-            self,
-            F,
-            past_target: Tensor,
-            past_feat_dynamic: Tensor,
-            future_feat_dynamic: Tensor,
-            feat_static_cat: Tensor,
-            past_observed_values: Tensor,
+        self,
+        F,
+        past_target: Tensor,
+        past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,
     ) -> Tensor:
         """
         Parameters

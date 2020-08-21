@@ -133,7 +133,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
         input_repr: Representation = Representation(),
-        output_repr: Representation = Representation()
+        output_repr: Representation = Representation(),
     ) -> None:
 
         assert (
@@ -227,8 +227,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             trainer=trainer,
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
-            input_repr = input_repr,
-            output_repr = output_repr
+            input_repr=input_repr,
+            output_repr=output_repr,
         )
 
     @classmethod
