@@ -24,7 +24,6 @@ data.
 
 To help splitting the input preemptively glides offers a `partition`-method.
 
-
     from gluonts.nursery import glide
 
     data = range(100)
@@ -33,11 +32,17 @@ To help splitting the input preemptively glides offers a `partition`-method.
     def double(n):
         return n * 2
 
-    assert set(glide.ParMap(double, parts)) == set(range(0, 200, 2))
+    assert set(glide.ParApply(glide.lift(double), parts)) == set(range(0, 200, 2))
 
 """
-__all__ = ["partition", "Map", "ParMap"]
+__all__ = ["partition", "Apply", "ParApply"]
+
+from functools import partial
 
 from ._partition import partition, divide_into
-from .parallel import ParMap
-from .sequential import Map
+from .parallel import ParApply
+from .sequential import Apply
+
+
+def lift(fn):
+    return partial(map, fn)

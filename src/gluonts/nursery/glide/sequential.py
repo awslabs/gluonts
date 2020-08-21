@@ -14,7 +14,7 @@
 from toolz.itertoolz import concat
 
 
-class Map:
+class Apply:
     def __init__(self, fn, partitions: list, *args, **kwargs):
         self.fn = fn
         self.partitions = partitions

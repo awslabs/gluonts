@@ -27,7 +27,7 @@ def map_to_queue(fn, emitter, queue, batch_size):
     queue.put(sentinel)
 
 
-class ParMapIterator:
+class ParApplyIterator:
     def __init__(self, procs, queue):
         self.procs = procs
         self.queue = queue
@@ -62,7 +62,7 @@ class ParMapIterator:
         return self._current.pop()
 
 
-class ParMap:
+class ParApply:
     def __init__(self, fn, emitter, batch_size=1, queue_size=50):
         self.fn = fn
         self.emitter = emitter
@@ -74,7 +74,7 @@ class ParMap:
 
         Process = partial(mp.Process, target=map_to_queue, daemon=True)
 
-        it = ParMapIterator(
+        it = ParApplyIterator(
             procs=[
                 Process(args=(self.fn, emitter, queue, self.batch_size))
                 for emitter in self.emitter

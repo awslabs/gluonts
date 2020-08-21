@@ -42,10 +42,10 @@ from gluonts.dataset.common import DataBatch, DataEntry, Dataset, FileDataset
 from gluonts.dataset.util import MPWorkerInfo
 from gluonts.transform import Transformation
 
-try:
-    import multiprocessing.resource_sharer
-except ImportError:
-    pass
+# try:
+#     import multiprocessing.resource_sharer
+# except ImportError:
+#     pass
 
 
 # ForkingPickler related functions:
@@ -217,7 +217,7 @@ def _as_in_context(batch: dict, ctx: mx.Context) -> DataBatch:
     assert (
         not MPWorkerInfo.worker_process
     ), "This function is not meant to be used in workers."
-    batch = {
+    return {
         k: v.as_in_context(ctx) if isinstance(v, nd.NDArray)
         # Workaround due to MXNet not being able to handle NDArrays with 0 in shape properly:
         else (
@@ -227,7 +227,6 @@ def _as_in_context(batch: dict, ctx: mx.Context) -> DataBatch:
         )
         for k, v in batch.items()
     }
-    return batch
 
 
 def _sequential_sample_generator(
