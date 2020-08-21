@@ -20,6 +20,4 @@ class Apply:
         self.partitions = partitions
 
     def __iter__(self):
-        yield from concat(
-            map(self.fn, partition) for partition in self.partitions
-        )
+        yield from concat(self.fn(partition) for partition in self.partitions)
