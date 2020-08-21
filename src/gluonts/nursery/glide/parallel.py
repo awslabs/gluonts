@@ -12,15 +12,9 @@
 # permissions and limitations under the License.
 
 import multiprocessing as mp
-from typing import Callable, Iterator, TypeVar, Generic
+from functools import partial
 
-from toolz.itertoolz import concat
-from toolz.itertoolz import partition_all as batcher
-
-from ._partition import partition
-
-T = TypeVar("T")
-U = TypeVar("U")
+from toolz.itertoolz import partition_all as into_batches
 
 
 class sentinel:
@@ -28,24 +22,12 @@ class sentinel:
 
 
 def map_to_queue(fn, emitter, queue, batch_size):
-    stream = map(fn, emitter)
-    for batch in batcher(batch_size, stream):
+    for batch in into_batches(batch_size, fn(emitter)):
         queue.put(batch)
     queue.put(sentinel)
 
 
-class Map:
-    def __init__(self, fn, partitions: list):
-        self.fn = fn
-        self.partitions = partitions
-
-    def __iter__(self):
-        yield from concat(
-            map(self.fn, partition) for partition in self.partitions
-        )
-
-
-class ParPipelineIterator:
+class ParMapIterator:
     def __init__(self, procs, queue):
         self.procs = procs
         self.queue = queue
@@ -77,29 +59,27 @@ class ParPipelineIterator:
                     raise StopIteration
             else:
                 self._current = list(reversed(val))
-
         return self._current.pop()
 
 
 class ParMap:
-    def __init__(self, fn, emitter, batch_size=10):
+    def __init__(self, fn, emitter, batch_size=1, queue_size=50):
         self.fn = fn
         self.emitter = emitter
         self.batch_size = batch_size
+        self.queue_size = queue_size
 
     def __iter__(self):
-        queue = mp.Queue()
+        queue = mp.Queue(self.queue_size)
 
-        it = ParPipelineIterator(
-            [
-                mp.Process(
-                    target=map_to_queue,
-                    args=(self.fn, emitter, queue, self.batch_size),
-                    daemon=True,
-                )
+        Process = partial(mp.Process, target=map_to_queue, daemon=True)
+
+        it = ParMapIterator(
+            procs=[
+                Process(args=(self.fn, emitter, queue, self.batch_size))
                 for emitter in self.emitter
             ],
-            queue,
+            queue=queue,
         )
         it.start()
         return it
