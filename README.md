@@ -29,6 +29,10 @@ way to install it is via `pip`:
 pip install --upgrade mxnet==1.6 gluonts
 ```
 
+## Dockerfiles
+
+Dockerfiles compatible with Amazon Sagemaker can be found in the [examples/dockerfiles](https://github.com/awslabs/gluon-ts/tree/master/examples/dockerfiles) folder.
+
 ## Quick start guide
 
 This simple example illustrates how to train a model from GluonTS on some data,
