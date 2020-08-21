@@ -29,6 +29,7 @@ from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.support.util import weighted_average
+from gluonts.mx.representation import Representation
 
 
 class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
@@ -63,18 +64,20 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
     @validated()
     def __init__(
-        self,
-        encoder: Seq2SeqEncoder,
-        enc2dec: Seq2SeqEnc2Dec,
-        decoder: Seq2SeqDecoder,
-        quantile_output: QuantileOutput,
-        context_length: int,
-        cardinality: List[int],
-        embedding_dimension: List[int],
-        scaling: bool = False,
-        scaling_decoder_dynamic_feature: bool = False,
-        dtype: DType = np.float32,
-        **kwargs,
+            self,
+            encoder: Seq2SeqEncoder,
+            enc2dec: Seq2SeqEnc2Dec,
+            decoder: Seq2SeqDecoder,
+            quantile_output: QuantileOutput,
+            context_length: int,
+            cardinality: List[int],
+            embedding_dimension: List[int],
+            input_repr: Representation = Representation(),
+            output_repr: Representation = Representation(),
+            scaling: bool = False,
+            scaling_decoder_dynamic_feature: bool = False,
+            dtype: DType = np.float32,
+            **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
@@ -89,6 +92,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.scaling_decoder_dynamic_feature_axis = 1
         self.dtype = dtype
+        self.input_repr = input_repr
+        self.output_repr = output_repr
 
         if self.scaling:
             self.scaler = MeanScaler(keepdims=True)
@@ -115,13 +120,13 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
     # this method connects the sub-networks and returns the decoder output
     def get_decoder_network_output(
-        self,
-        F,
-        past_target: Tensor,
-        past_feat_dynamic: Tensor,
-        future_feat_dynamic: Tensor,
-        feat_static_cat: Tensor,
-        past_observed_values: Tensor,
+            self,
+            F,
+            past_target: Tensor,
+            past_feat_dynamic: Tensor,
+            future_feat_dynamic: Tensor,
+            feat_static_cat: Tensor,
+            past_observed_values: Tensor,
     ) -> Tensor:
 
         # scale is computed on the context length last units of the past target
@@ -132,7 +137,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             ),
             past_observed_values.slice_axis(
                 axis=1, begin=-self.context_length, end=None
-            ),
+            )
         )
 
         # (batch_size, num_features)
@@ -179,15 +184,15 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self,
-        F,
-        past_target: Tensor,
-        future_target: Tensor,
-        past_feat_dynamic: Tensor,
-        future_feat_dynamic: Tensor,
-        feat_static_cat: Tensor,
-        past_observed_values: Tensor,
-        future_observed_values: Tensor,
+            self,
+            F,
+            past_target: Tensor,
+            future_target: Tensor,
+            past_feat_dynamic: Tensor,
+            future_feat_dynamic: Tensor,
+            feat_static_cat: Tensor,
+            past_observed_values: Tensor,
+            future_observed_values: Tensor,
     ) -> Tensor:
         """
         Parameters
@@ -213,9 +218,17 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         -------
         loss with shape (batch_size, prediction_length)
         """
+
+        input_tar_repr, scale, _ = self.input_repr(
+            past_target, F.ones_like(past_target), None, []
+        )
+        output_tar_repr, _, _ = self.output_repr(
+            future_target, F.ones_like(future_target), None, []
+        )
+
         dec_output = self.get_decoder_network_output(
             F,
-            past_target,
+            input_tar_repr,
             past_feat_dynamic,
             future_feat_dynamic,
             feat_static_cat,
@@ -223,7 +236,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         dec_dist_output = self.quantile_proj(dec_output)
-        loss = self.loss(future_target, dec_dist_output)
+        loss = self.loss(output_tar_repr, dec_dist_output)
 
         # mask the loss based on observed indicator
         weighted_loss = weighted_average(
@@ -236,13 +249,13 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self,
-        F,
-        past_target: Tensor,
-        past_feat_dynamic: Tensor,
-        future_feat_dynamic: Tensor,
-        feat_static_cat: Tensor,
-        past_observed_values: Tensor,
+            self,
+            F,
+            past_target: Tensor,
+            past_feat_dynamic: Tensor,
+            future_feat_dynamic: Tensor,
+            feat_static_cat: Tensor,
+            past_observed_values: Tensor,
     ) -> Tensor:
         """
         Parameters
@@ -265,9 +278,16 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         prediction tensor with shape (batch_size, prediction_length)
         """
 
+        input_tar_repr, scale, _ = self.input_repr(
+            past_target, F.ones_like(past_target), None, []
+        )
+        _, _, rep_params = self.output_repr(
+            past_target, F.ones_like(past_target), None, []
+        )
+
         dec_output = self.get_decoder_network_output(
             F,
-            past_target,
+            input_tar_repr,
             past_feat_dynamic,
             future_feat_dynamic,
             feat_static_cat,
@@ -279,5 +299,9 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         fcst_output = F.squeeze(fcst_output, axis=1)
 
         predictions = self.quantile_proj(fcst_output).swapaxes(2, 1)
+
+        predictions = self.output_repr.post_transform(
+            F, predictions, scale, rep_params
+        )
 
         return predictions

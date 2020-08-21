@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional
+from typing import List, Optional, Union
 
 # Third-party imports
 import numpy as np
@@ -44,6 +44,15 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
 )
+from gluonts.mx.representation import (
+    Representation,
+    GlobalRelativeBinning,
+    Embedding,
+    RepresentationChain,
+    LocalAbsoluteBinning,
+    HybridRepresentation,
+    DiscretePIT
+)
 
 # Relative imports
 from ._forking_network import (
@@ -52,6 +61,14 @@ from ._forking_network import (
     ForkingSeq2SeqTrainingNetwork,
 )
 from ._transform import ForkingSequenceSplitter
+
+BinningTypes = Union[GlobalRelativeBinning, Embedding, LocalAbsoluteBinning, DiscretePIT].__args__
+
+
+def check_if_binning(rep):
+    return (isinstance(rep, BinningTypes) or
+            (isinstance(rep, RepresentationChain) and any([isinstance(i, ty) for i in rep.chain])) or
+            (isinstance(rep, HybridRepresentation) and any([check_if_binning(i) for i in rep.representations])))
 
 
 class ForkingSeq2SeqEstimator(GluonEstimator):
@@ -127,37 +144,43 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
     @validated()
     def __init__(
-        self,
-        encoder: Seq2SeqEncoder,
-        decoder: Seq2SeqDecoder,
-        quantile_output: QuantileOutput,
-        freq: str,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        use_past_feat_dynamic_real: bool = False,
-        use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        cardinality: List[int] = None,
-        embedding_dimension: List[int] = None,
-        add_time_feature: bool = True,
-        add_age_feature: bool = False,
-        enable_encoder_dynamic_feature: bool = True,
-        enable_decoder_dynamic_feature: bool = True,
-        trainer: Trainer = Trainer(),
-        scaling: bool = False,
-        scaling_decoder_dynamic_feature: bool = False,
-        dtype: DType = np.float32,
+            self,
+            encoder: Seq2SeqEncoder,
+            decoder: Seq2SeqDecoder,
+            quantile_output: QuantileOutput,
+            freq: str,
+            prediction_length: int,
+            context_length: Optional[int] = None,
+            use_past_feat_dynamic_real: bool = False,
+            use_feat_dynamic_real: bool = False,
+            use_feat_static_cat: bool = False,
+            cardinality: List[int] = None,
+            embedding_dimension: List[int] = None,
+            add_time_feature: bool = True,
+            add_age_feature: bool = False,
+            enable_encoder_dynamic_feature: bool = True,
+            enable_decoder_dynamic_feature: bool = True,
+            trainer: Trainer = Trainer(),
+            scaling: bool = False,
+            scaling_decoder_dynamic_feature: bool = False,
+            dtype: DType = np.float32,
+            input_repr: Representation = Representation(),
+            output_repr: Representation = Representation()
     ) -> None:
+
+        if check_if_binning(input_repr) or check_if_binning(output_repr):
+            trainer.hybridize = True
+
         super().__init__(trainer=trainer)
 
         assert (
-            context_length is None or context_length > 0
+                context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert (
-            prediction_length > 0
+                prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
         assert (
-            use_feat_static_cat or not cardinality
+                use_feat_static_cat or not cardinality
         ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
         assert cardinality is None or all(
             c > 0 for c in cardinality
@@ -190,13 +213,16 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.add_time_feature = add_time_feature
         self.add_age_feature = add_age_feature
         self.use_dynamic_feat = (
-            use_feat_dynamic_real or add_age_feature or add_time_feature
+                use_feat_dynamic_real or add_age_feature or add_time_feature
         )
         self.enable_encoder_dynamic_feature = enable_encoder_dynamic_feature
         self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
         self.scaling = scaling
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
+
+        self.input_repr = input_repr
+        self.output_repr = output_repr
 
     def create_transformation(self) -> Transformation:
         chain = []
@@ -307,27 +333,27 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
                 encoder_series_fields=[
-                    FieldName.OBSERVED_VALUES,
-                    # RTS with past and future values which is never empty because added dummy constant variable
-                    FieldName.FEAT_DYNAMIC,
-                ]
-                + (
-                    # RTS with only past values are only used by the encoder
-                    [FieldName.PAST_FEAT_DYNAMIC_REAL]
-                    if self.use_past_feat_dynamic_real
-                    else []
-                ),
+                                          FieldName.OBSERVED_VALUES,
+                                          # RTS with past and future values which is never empty because added dummy constant variable
+                                          FieldName.FEAT_DYNAMIC,
+                                      ]
+                                      + (
+                                          # RTS with only past values are only used by the encoder
+                                          [FieldName.PAST_FEAT_DYNAMIC_REAL]
+                                          if self.use_past_feat_dynamic_real
+                                          else []
+                                      ),
                 encoder_disabled_fields=(
-                    [FieldName.FEAT_DYNAMIC]
-                    if not self.enable_encoder_dynamic_feature
-                    else []
-                )
-                + (
-                    [FieldName.PAST_FEAT_DYNAMIC_REAL]
-                    if not self.enable_encoder_dynamic_feature
-                    and self.use_past_feat_dynamic_real
-                    else []
-                ),
+                                            [FieldName.FEAT_DYNAMIC]
+                                            if not self.enable_encoder_dynamic_feature
+                                            else []
+                                        )
+                                        + (
+                                            [FieldName.PAST_FEAT_DYNAMIC_REAL]
+                                            if not self.enable_encoder_dynamic_feature
+                                               and self.use_past_feat_dynamic_real
+                                            else []
+                                        ),
                 decoder_series_fields=[
                     FieldName.OBSERVED_VALUES,
                     # Decoder will use all fields under FEAT_DYNAMIC which are the RTS with past and future values
@@ -374,12 +400,14 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             scaling=self.scaling,
             scaling_decoder_dynamic_feature=self.scaling_decoder_dynamic_feature,
             dtype=self.dtype,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
         )
 
     def create_predictor(
-        self,
-        transformation: Transformation,
-        trained_network: ForkingSeq2SeqNetworkBase,
+            self,
+            transformation: Transformation,
+            trained_network: ForkingSeq2SeqNetworkBase,
     ) -> Predictor:
         # this is specific to quantile output
         quantile_strs = [
@@ -398,6 +426,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             scaling=self.scaling,
             scaling_decoder_dynamic_feature=self.scaling_decoder_dynamic_feature,
             dtype=self.dtype,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
         )
 
         copy_parameters(trained_network, prediction_network)
