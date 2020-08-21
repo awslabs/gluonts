@@ -1,3 +1,2 @@
 xgboost>=0.90
 scikit-learn~=0.22
-typeguard~=2.9.0

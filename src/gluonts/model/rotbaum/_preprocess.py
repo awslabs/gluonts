@@ -17,10 +17,8 @@ from enum import Enum
 
 # Third-party imports
 import numpy as np
-import pandas as pd
 import logging
 from itertools import chain, starmap
-from typeguard import check_type
 
 # First-party imports
 from gluonts.core.component import validated
@@ -221,7 +219,7 @@ class PreprocessGeneric:
 
         if isinstance(self.cardinality, str):
             self.cardinality = (
-                self.create_cardinalities(ts_list)
+                self.infer_cardinalities(ts_list)
                 if self.cardinality == "auto"
                 else []
             )
@@ -268,7 +266,7 @@ class PreprocessGeneric:
             n_windows_per_time_series = -1
         return n_windows_per_time_series
 
-    def create_cardinalities(self):
+    def infer_cardinalities(self):
         raise NotImplementedError
 
 
@@ -349,7 +347,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         # asserts that the categorical features are label encoded
         np_feat_list = np.array(feat_list)
         assert all(np.floor(np_feat_list) == np_feat_list)
-        del np_feat_list
 
         encoded = starmap(
             self.encode_one_hot, zip(feat_list, self.cardinality)
@@ -357,7 +354,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         encoded_chain = chain.from_iterable(encoded)
         return list(encoded_chain)
 
-    def create_cardinalities(self, time_series):
+    def infer_cardinalities(self, time_series):
         if "feat_static_cat" not in time_series[0]:
             return []
         mat = np.array(
@@ -420,13 +417,11 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         assert (not feat_static_cat) or all(
             np.floor(np_feat_static_cat) == np_feat_static_cat
         )
-        del np_feat_static_cat
 
         np_feat_dynamic_cat = np.array(feat_dynamic_cat)
         assert (not feat_dynamic_cat) or all(
             np.floor(np_feat_dynamic_cat) == np_feat_dynamic_cat
         )
-        del np_feat_dynamic_cat
 
         feat_dynamics = feat_dynamic_real + feat_dynamic_cat
         feat_statics = feat_static_real + feat_static_cat
