@@ -15,22 +15,26 @@ import multiprocessing as mp
 from functools import partial
 
 from toolz.itertoolz import partition_all as into_batches
+from toolz.functoolz import identity
 
 
 class sentinel:
     pass
 
 
-def map_to_queue(fn, emitter, queue, batch_size):
-    for batch in into_batches(batch_size, fn(emitter)):
+def map_to_queue(fn, emitter, queue, encode, batch_size):
+    for batch in into_batches(batch_size, map(encode, fn(emitter))):
+        # print(batch)
+        # queue.put([encode(val) for val in batch])
         queue.put(batch)
     queue.put(sentinel)
 
 
 class ParApplyIterator:
-    def __init__(self, procs, queue):
+    def __init__(self, procs, queue, decode):
         self.procs = procs
         self.queue = queue
+        self.decode = decode
         self._current = []
         self._sentinel_count = 0
 
@@ -59,15 +63,25 @@ class ParApplyIterator:
                     raise StopIteration
             else:
                 self._current = list(reversed(val))
-        return self._current.pop()
+        return self.decode(self._current.pop())
 
 
 class ParApply:
-    def __init__(self, fn, emitter, batch_size=1, queue_size=50):
+    def __init__(
+        self,
+        fn,
+        emitter,
+        batch_size=1,
+        queue_size=50,
+        encode=identity,
+        decode=identity,
+    ):
         self.fn = fn
         self.emitter = emitter
         self.batch_size = batch_size
         self.queue_size = queue_size
+        self.encode = encode
+        self.decode = decode
 
     def __iter__(self):
         queue = mp.Queue(self.queue_size)
@@ -76,10 +90,19 @@ class ParApply:
 
         it = ParApplyIterator(
             procs=[
-                Process(args=(self.fn, emitter, queue, self.batch_size))
+                Process(
+                    args=(
+                        self.fn,
+                        emitter,
+                        queue,
+                        self.encode,
+                        self.batch_size,
+                    )
+                )
                 for emitter in self.emitter
             ],
             queue=queue,
+            decode=self.decode,
         )
         it.start()
         return it
