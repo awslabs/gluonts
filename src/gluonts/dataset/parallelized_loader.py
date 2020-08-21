@@ -615,8 +615,13 @@ class ParallelDataLoader(object):
         self.dataset = dataset
         self.dataset_len: int
         if isinstance(dataset, Sized):
-            assert isinstance(dataset, Sized)
-            self.dataset_len = len(dataset)
+            if isinstance(dataset, FileDataset):
+                # Take non-zero minimum dataset length to be used in num_workers calculation
+                self.dataset_len = min(
+                    filter(lambda x: x > 0, dataset.len_per_file())
+                )
+            else:
+                self.dataset_len = len(dataset)
         else:
             self.dataset_len = len(list(dataset))
         self.transformation = transformation
@@ -640,6 +645,11 @@ class ParallelDataLoader(object):
         self.logger.info(
             f"gluonts[multiprocessing]: num_workers={self.num_workers}"
         )
+        if self.num_workers > multiprocessing.cpu_count():
+            self.logger.warning(
+                f"num_workers is set to {self.num_workers}, but there are only {multiprocessing.cpu_count()} cpus "
+                f"please reduce the number of workers"
+            )
         self.num_prefetch = (
             num_prefetch if num_prefetch is not None else 2 * self.num_workers
         )

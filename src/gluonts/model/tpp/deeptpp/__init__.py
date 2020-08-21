@@ -11,14 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .forecast import PointProcessSampleForecast
-from .predictor import PointProcessGluonPredictor
-from .deeptpp import DeepTPPEstimator
+from ._estimator import DeepTPPEstimator
+from ._network import DeepTPPTrainingNetwork, DeepTPPPredictionNetwork
 
 __all__ = [
-    "PointProcessGluonPredictor",
-    "PointProcessSampleForecast",
     "DeepTPPEstimator",
+    "DeepTPPTrainingNetwork",
+    "DeepTPPPredictionNetwork",
 ]
 
 
