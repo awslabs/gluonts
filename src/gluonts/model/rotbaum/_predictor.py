@@ -12,8 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from enum import Enum
-from typing import Iterator, List, Optional, Union
+from typing import Iterator, List, Optional
 from pathlib import Path
 import json
 
@@ -38,7 +37,7 @@ from gluonts.support.pandas import forecast_start
 from gluonts.dataset.loader import DataBatch
 
 # Relative imports
-from ._preprocess import PreprocessOnlyLagFeatures, CardinalityLabel
+from ._preprocess import PreprocessOnlyLagFeatures, Cardinality
 from ._model import QRX, QuantileReg, QRF
 
 logger = logging.getLogger(__name__)
@@ -123,7 +122,7 @@ class TreePredictor(GluonPredictor):
         use_feat_static_real: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_dynamic_cat: bool = False,
-        cardinality: Union[List[int], str] = "auto",
+        cardinality: Cardinality = "auto",
         one_hot_encode: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
@@ -149,9 +148,7 @@ class TreePredictor(GluonPredictor):
             use_feat_static_real=use_feat_static_real,
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
-            cardinality=CardinalityLabel(cardinality)
-            if cardinality in CardinalityLabel._value2member_map_
-            else cardinality,
+            cardinality=cardinality,
             one_hot_encode=one_hot_encode,
         )
 
