@@ -35,26 +35,13 @@ To help splitting the input preemptively glides offers a `partition`-method.
     assert set(glide.ParApply(glide.lift(double), parts)) == set(range(0, 200, 2))
 
 """
+
 __all__ = ["partition", "Apply", "ParApply", "lift", "Map", "Pipeline"]
 
 from functools import partial
-
-from toolz.functoolz import curry
 
 from ._partition import partition, divide_into
 from .parallel import ParApply
 from .sequential import Apply
 from .pipeline import Pipeline
-
-
-@curry
-class Map:
-    def __init__(self, fn, xs):
-        self.fn = fn
-        self.xs = xs
-
-    def __iter__(self):
-        yield from map(self.fn, self.xs)
-
-
-lift = Map
+from .util import lift, Map

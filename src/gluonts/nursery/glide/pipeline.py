@@ -13,7 +13,8 @@
 
 from toolz.functoolz import compose_left
 
-from gluonts.nursery.glide import Apply, ParApply, lift
+from gluonts.nursery.glide import Apply, ParApply
+from gluonts.nursery.glide.util import lift
 
 
 def lifted(fns):
