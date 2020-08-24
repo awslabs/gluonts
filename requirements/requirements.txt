@@ -4,5 +4,5 @@ numpy~=1.16
 pandas>=1.0,<1.1
 pydantic~=1.1
 tqdm~=4.23
-tools~=0.10
+toolz~=0.10
 ujson~=1.35
