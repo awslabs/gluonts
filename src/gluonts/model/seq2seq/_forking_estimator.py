@@ -296,8 +296,14 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
         # we need to make sure that there is always some dynamic input
-        # we will however disregard it in the hybrid forward
-        if len(dynamic_feat_fields) == 0:
+        # we will however disregard it in the hybrid forward.
+        # the time feature is empty for yearly freq so also adding a dummy feature
+        # in the case that the time feature is the only one on
+        if len(dynamic_feat_fields) == 0 or (
+            not self.add_age_feature
+            and not self.use_feat_dynamic_real
+            and self.freq == "Y"
+        ):
             chain.append(
                 AddConstFeature(
                     target_field=FieldName.TARGET,
