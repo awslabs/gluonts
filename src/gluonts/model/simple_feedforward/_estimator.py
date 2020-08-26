@@ -157,7 +157,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             else DummyValueImputation(self.distr_output.value_in_support)
         )
 
-
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
     # conditioning part and a to-predict part, for each training example.
