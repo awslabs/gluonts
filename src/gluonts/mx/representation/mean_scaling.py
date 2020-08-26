@@ -14,8 +14,6 @@
 # Standard library imports
 from typing import List, Optional, Tuple
 
-import mxnet as mx
-
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor

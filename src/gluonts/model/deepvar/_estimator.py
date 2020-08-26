@@ -11,11 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import re
-
 # Standard library imports
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -30,7 +27,6 @@ from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.mx.distribution import (
     DistributionOutput,
     LowrankMultivariateGaussianOutput,
-    StudentTOutput,
 )
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import NamedTuple, Optional, Tuple
+from typing import Optional, Tuple
 
 # Third-party imports
 import mxnet as mx

@@ -13,11 +13,7 @@
 
 # Standard library imports
 import logging
-import multiprocessing
 from typing import Any, Optional, Type, Union
-
-# Third-party imports
-import numpy as np
 
 # First-party imports
 import gluonts
