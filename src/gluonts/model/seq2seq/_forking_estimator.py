@@ -23,11 +23,13 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import FutureFeatIntegratorEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
@@ -48,8 +50,10 @@ from gluonts.transform import (
 # Relative imports
 from ._forking_network import (
     ForkingSeq2SeqNetworkBase,
-    ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqTrainingNetwork,
+    ForkingSeq2SeqDistributionTrainingNetwork,
+    ForkingSeq2SeqPredictionNetwork,
+    ForkingSeq2SeqDistributionPredictionNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 
@@ -85,6 +89,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         seq2seq decoder
     quantile_output
         quantile output
+    distr_output
+        distribution output
     freq
         frequency of the time series.
     prediction_length
@@ -130,9 +136,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self,
         encoder: Seq2SeqEncoder,
         decoder: Seq2SeqDecoder,
-        quantile_output: QuantileOutput,
         freq: str,
         prediction_length: int,
+        quantile_output: Optional[QuantileOutput] = None,
+        distr_output: Optional[DistributionOutput] = None,
         context_length: Optional[int] = None,
         use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
@@ -150,6 +157,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     ) -> None:
         super().__init__(trainer=trainer)
 
+        assert (distr_output is None) != (quantile_output is None)
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
@@ -168,9 +176,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
         self.encoder = encoder
         self.decoder = decoder
-        self.quantile_output = quantile_output
         self.freq = freq
         self.prediction_length = prediction_length
+        self.quantile_output = quantile_output
+        self.distr_output = distr_output
         self.context_length = (
             context_length
             if context_length is not None
@@ -369,18 +378,30 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         return Chain(chain)
 
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
-        return ForkingSeq2SeqTrainingNetwork(
-            encoder=self.encoder,
-            enc2dec=FutureFeatIntegratorEnc2Dec(),
-            decoder=self.decoder,
-            quantile_output=self.quantile_output,
-            context_length=self.context_length,
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
-            scaling=self.scaling,
-            scaling_decoder_dynamic_feature=self.scaling_decoder_dynamic_feature,
-            dtype=self.dtype,
-        )
+        if self.quantile_output is not None:
+            return ForkingSeq2SeqTrainingNetwork(
+                encoder=self.encoder,
+                enc2dec=FutureFeatIntegratorEnc2Dec(),
+                decoder=self.decoder,
+                quantile_output=self.quantile_output,
+                context_length=self.context_length,
+                cardinality=self.cardinality,
+                embedding_dimension=self.embedding_dimension,
+                scaling=self.scaling,
+                dtype=self.dtype,
+            )
+        else:
+            return ForkingSeq2SeqDistributionTrainingNetwork(
+                encoder=self.encoder,
+                enc2dec=FutureFeatIntegratorEnc2Dec(),
+                decoder=self.decoder,
+                distr_output=self.distr_output,
+                context_length=self.context_length,
+                cardinality=self.cardinality,
+                embedding_dimension=self.embedding_dimension,
+                scaling=self.scaling,
+                dtype=self.dtype,
+            )
 
     def create_predictor(
         self,
@@ -388,32 +409,59 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         trained_network: ForkingSeq2SeqNetworkBase,
     ) -> Predictor:
         # this is specific to quantile output
-        quantile_strs = [
-            Quantile.from_float(quantile).name
-            for quantile in self.quantile_output.quantiles
-        ]
+        if self.quantile_output is not None:
+            quantile_strs = [
+                Quantile.from_float(quantile).name
+                for quantile in self.quantile_output.quantiles
+            ]
 
-        prediction_network = ForkingSeq2SeqPredictionNetwork(
-            encoder=trained_network.encoder,
-            enc2dec=trained_network.enc2dec,
-            decoder=trained_network.decoder,
-            quantile_output=trained_network.quantile_output,
-            context_length=self.context_length,
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
-            scaling=self.scaling,
-            scaling_decoder_dynamic_feature=self.scaling_decoder_dynamic_feature,
-            dtype=self.dtype,
-        )
+            prediction_network = ForkingSeq2SeqPredictionNetwork(
+                encoder=trained_network.encoder,
+                enc2dec=trained_network.enc2dec,
+                decoder=trained_network.decoder,
+                quantile_output=trained_network.quantile_output,
+                context_length=self.context_length,
+                cardinality=self.cardinality,
+                embedding_dimension=self.embedding_dimension,
+                scaling=self.scaling,
+                dtype=self.dtype,
+            )
 
-        copy_parameters(trained_network, prediction_network)
+            copy_parameters(trained_network, prediction_network)
 
-        return RepresentableBlockPredictor(
-            input_transform=transformation,
-            prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
-            freq=self.freq,
-            prediction_length=self.prediction_length,
-            ctx=self.trainer.ctx,
-            forecast_generator=QuantileForecastGenerator(quantile_strs),
-        )
+            return RepresentableBlockPredictor(
+                input_transform=transformation,
+                prediction_net=prediction_network,
+                batch_size=self.trainer.batch_size,
+                freq=self.freq,
+                prediction_length=self.prediction_length,
+                ctx=self.trainer.ctx,
+                forecast_generator=QuantileForecastGenerator(quantile_strs),
+            )
+        else:
+            assert self.distr_output is not None
+            prediction_network = ForkingSeq2SeqDistributionPredictionNetwork(
+                encoder=trained_network.encoder,
+                enc2dec=trained_network.enc2dec,
+                decoder=trained_network.decoder,
+                distr_output=trained_network.distr_output,
+                context_length=self.context_length,
+                cardinality=self.cardinality,
+                embedding_dimension=self.embedding_dimension,
+                scaling=self.scaling,
+                dtype=self.dtype,
+            )
+
+            copy_parameters(trained_network, prediction_network)
+
+            return RepresentableBlockPredictor(
+                input_transform=transformation,
+                prediction_net=prediction_network,
+                batch_size=self.trainer.batch_size,
+                freq=self.freq,
+                prediction_length=self.prediction_length,
+                ctx=self.trainer.ctx,
+                forecast_generator=DistributionForecastGenerator(
+                    self.distr_output
+                ),
+            )

@@ -24,6 +24,9 @@ import mxnet as mx
 from gluonts.core.component import validated
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
+
+from gluonts.mx.distribution import DistributionOutput
+
 from gluonts.mx.block.decoder import ForkingMLPDecoder
 from gluonts.mx.block.encoder import (
     HierarchicalCausalConv1DEncoder,
@@ -128,11 +131,13 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         kernel_size_seq: Optional[List[int]] = None,
         use_residual: bool = True,
         quantiles: Optional[List[float]] = None,
+        distr_output: Optional[DistributionOutput] = None,
         trainer: Trainer = Trainer(),
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
     ) -> None:
 
+        assert (distr_output is None) or (quantiles is None)
         assert (
             prediction_length > 0
         ), f"Invalid prediction length: {prediction_length}."
@@ -167,9 +172,10 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         )
         self.quantiles = (
             quantiles
-            if quantiles is not None
+            if (quantiles is not None) or (distr_output is not None)
             else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         )
+        self.distr_output = distr_output
 
         assert (
             len(self.channels_seq)
@@ -203,12 +209,15 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        quantile_output = QuantileOutput(self.quantiles)
+        quantile_output = (
+            QuantileOutput(self.quantiles) if self.quantiles else None
+        )
 
         super().__init__(
             encoder=encoder,
             decoder=decoder,
             quantile_output=quantile_output,
+            distr_output=distr_output,
             freq=freq,
             prediction_length=prediction_length,
             context_length=context_length,
