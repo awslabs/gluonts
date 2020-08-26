@@ -210,7 +210,6 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
 
 
 class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
-
     @validated()
 
     def __init__(
