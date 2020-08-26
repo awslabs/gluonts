@@ -93,7 +93,6 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             )
             self.scaler = MeanScaler() if mean_scaling else NOPScaler()
 
-
     def get_distr_args(
         self, F, past_target: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
