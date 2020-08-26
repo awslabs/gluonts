@@ -200,7 +200,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
 
     # we now define how the prediction happens given that we are provided a
     # training network.
-
     def create_predictor(self, transformation, trained_network):
         if self.sampling is True:
             prediction_network = SimpleFeedForwardSamplingNetwork(
