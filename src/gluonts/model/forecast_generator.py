@@ -30,7 +30,7 @@ from gluonts.model.forecast import (
 )
 
 # First-party imports
-from gluonts.mx.distribution import Distribution, DistributionOutput
+from gluonts.mx.distribution import DistributionOutput
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 BlockType = mx.gluon.Block

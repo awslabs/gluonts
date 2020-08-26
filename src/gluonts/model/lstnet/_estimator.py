@@ -16,7 +16,7 @@ from typing import Optional
 
 # Third-party imports
 import numpy as np
-from mxnet.gluon import HybridBlock, loss
+from mxnet.gluon import HybridBlock
 
 # First-party imports
 from gluonts.core.component import DType, validated
