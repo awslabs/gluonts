@@ -96,7 +96,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         quantile output
     distr_output
         distribution output
-    quantile 
+    quantile_output
         True for quantile prediction and False for distribution prediction
     freq
         frequency of the time series.
