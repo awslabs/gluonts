@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional
+from typing import List, Optional, Union
 
 # Third-party imports
 import numpy as np
@@ -44,6 +44,15 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
 )
+from gluonts.mx.representation import (
+    Representation,
+    GlobalRelativeBinning,
+    Embedding,
+    RepresentationChain,
+    LocalAbsoluteBinning,
+    HybridRepresentation,
+    DiscretePIT,
+)
 
 # Relative imports
 from ._forking_network import (
@@ -52,6 +61,24 @@ from ._forking_network import (
     ForkingSeq2SeqTrainingNetwork,
 )
 from ._transform import ForkingSequenceSplitter
+
+BinningTypes = Union[
+    GlobalRelativeBinning, Embedding, LocalAbsoluteBinning, DiscretePIT
+].__args__
+
+
+def check_if_binning(rep):
+    return (
+        isinstance(rep, BinningTypes)
+        or (
+            isinstance(rep, RepresentationChain)
+            and any([isinstance(i, ty) for i in rep.chain])
+        )
+        or (
+            isinstance(rep, HybridRepresentation)
+            and any([check_if_binning(i) for i in rep.representations])
+        )
+    )
 
 
 class ForkingSeq2SeqEstimator(GluonEstimator):
@@ -147,7 +174,13 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
+        input_repr: Representation = Representation(),
+        output_repr: Representation = Representation(),
     ) -> None:
+
+        if check_if_binning(input_repr) or check_if_binning(output_repr):
+            trainer.hybridize = True
+
         super().__init__(trainer=trainer)
 
         assert (
@@ -197,6 +230,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.scaling = scaling
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
+
+        self.input_repr = input_repr
+        self.output_repr = output_repr
 
     def create_transformation(self) -> Transformation:
         chain = []
@@ -380,6 +416,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             scaling=self.scaling,
             scaling_decoder_dynamic_feature=self.scaling_decoder_dynamic_feature,
             dtype=self.dtype,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
         )
 
     def create_predictor(
@@ -404,6 +442,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             scaling=self.scaling,
             scaling_decoder_dynamic_feature=self.scaling_decoder_dynamic_feature,
             dtype=self.dtype,
+            input_repr=self.input_repr,
+            output_repr=self.output_repr,
         )
 
         copy_parameters(trained_network, prediction_network)

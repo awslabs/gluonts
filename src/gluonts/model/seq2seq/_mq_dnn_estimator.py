@@ -31,6 +31,7 @@ from gluonts.mx.block.encoder import (
 )
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.trainer import Trainer
+from gluonts.mx.representation import Representation
 
 
 class MQCNNEstimator(ForkingSeq2SeqEstimator):
@@ -131,6 +132,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         trainer: Trainer = Trainer(),
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
+        input_repr: Representation = Representation(),
+        output_repr: Representation = Representation(),
     ) -> None:
 
         assert (
@@ -224,6 +227,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             trainer=trainer,
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
+            input_repr=input_repr,
+            output_repr=output_repr,
         )
 
     @classmethod
