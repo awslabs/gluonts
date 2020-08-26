@@ -107,7 +107,6 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             Shape: (batch_size, context_length, target_dim).
         Returns
         -------
-
         Tuple[Tensor, Tensor Tensor]
             A tuple of three tensors ``distr_args``, ``loc``, and ``scale``: the 
             first contains the output distribution parameters, and the others are 
