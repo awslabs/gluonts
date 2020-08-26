@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import math
-from functools import partial
 from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
@@ -23,10 +21,9 @@ import mxnet as mx
 # First-party imports
 from gluonts.model.common import Tensor
 from gluonts.core.component import DType, validated
-from gluonts.support.util import erf, erfinv
 
 # Relative imports
-from .distribution import Distribution, _sample_multiple, getF, softplus
+from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 

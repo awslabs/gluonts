@@ -18,7 +18,7 @@ import os
 # Standard library imports
 from itertools import product
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional
+from typing import Iterator, List, Optional
 
 # Third-party imports
 import mxnet as mx

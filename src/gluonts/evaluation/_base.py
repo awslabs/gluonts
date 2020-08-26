@@ -14,9 +14,7 @@
 # Standard library imports
 import logging
 import multiprocessing
-import re
 import sys
-from collections import Sized
 from itertools import chain, tee
 from typing import (
     Any,

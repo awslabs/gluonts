@@ -15,7 +15,7 @@ import glob
 import json
 
 # Standard library imports
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import mxnet as mx
 

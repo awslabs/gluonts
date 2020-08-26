@@ -569,7 +569,7 @@ Finally, each estimator is configured by a `Trainer`, which defines how the mode
 
 ```python
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 ```
 
 
@@ -832,7 +832,7 @@ The estimator class is configured by a few hyperparameters and implements the re
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.core.component import validated
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
 from mxnet.gluon import HybridBlock

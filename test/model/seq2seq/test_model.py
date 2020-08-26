@@ -71,7 +71,7 @@ def test_mqcnn_covariate_smoke_test(
 ):
     hps = {
         "seed": 42,
-        "freq": "D",
+        "freq": "Y",
         "context_length": 5,
         "prediction_length": 3,
         "quantiles": [0.5, 0.1],

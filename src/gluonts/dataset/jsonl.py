@@ -17,8 +17,6 @@ import functools
 from pathlib import Path
 from typing import NamedTuple
 
-import numpy as np
-
 # Third-party imports
 import ujson as json
 
