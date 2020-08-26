@@ -13,7 +13,6 @@
 
 # Standard library imports
 import functools
-import itertools
 import json
 import logging
 import multiprocessing as mp
@@ -21,18 +20,13 @@ import sys
 import traceback
 from pathlib import Path
 from pydoc import locate
-from tempfile import TemporaryDirectory
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
-    Dict,
     Iterator,
     List,
     Optional,
-    Tuple,
     Type,
-    Union,
 )
 
 # Third-party imports
@@ -53,7 +47,6 @@ from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.mx.context import get_mxnet_context
-from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.support.util import (
     export_repr_block,
     export_symb_block,
@@ -140,7 +133,8 @@ class Predictor:
             Path to the serialized files predictor.
         ctx
             Optional mxnet context to be used with the predictor.
-            If nothing is passed will use the GPU if available and CPU otherwise.
+            If nothing is passed will use the GPU if available and CPU
+            otherwise.
         """
         # deserialize Predictor type
         with (path / "type.txt").open("r") as fp:
@@ -166,7 +160,8 @@ class Predictor:
 
     @classmethod
     def from_inputs(cls, train_iter, **params):
-        # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
+        # auto_params usually include `use_feat_dynamic_real`,
+        # `use_feat_static_cat` and `cardinality`
         auto_params = cls.derive_auto_fields(train_iter)
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
@@ -439,9 +434,9 @@ class SymbolBlockPredictor(GluonPredictor):
 class RepresentableBlockPredictor(GluonPredictor):
     """
     A predictor which serializes the network structure using the
-    JSON-serialization methods located in `gluonts.core.serde`. Use the following
-    logic to create a `RepresentableBlockPredictor` from a trained prediction
-    network.
+    JSON-serialization methods located in `gluonts.core.serde`. Use the
+    following logic to create a `RepresentableBlockPredictor` from a trained
+    prediction network.
 
     >>> def create_representable_block_predictor(
     ...        prediction_network: mx.gluon.HybridBlock,
@@ -584,154 +579,10 @@ def _worker_loop(
         output_queue.put((idx, worker_id, result))
 
 
-class ParallelizedPredictor(Predictor):
-    """
-    Runs multiple instances (workers) of a predictor in parallel.
-
-    Exceptions are propagated from the workers.
-
-    Note: That there is currently an issue with tqdm that will cause things
-    to hang if the ParallelizedPredictor is used with tqdm and an exception
-    occurs during prediction.
-
-    https://github.com/tqdm/tqdm/issues/548
-
-    Parameters
-    ----------
-    base_predictor
-        A representable predictor that will be used
-    num_workers
-        Number of workers (processes) to use. If set to
-        None, one worker per CPU will be used.
-    chunk_size
-        Number of items to pass per call
-    """
-
-    def __init__(
-        self,
-        base_predictor: Predictor,
-        num_workers: Optional[int] = None,
-        chunk_size=1,
-    ) -> None:
-        super().__init__(
-            freq=base_predictor.freq,
-            lead_time=base_predictor.lead_time,
-            prediction_length=base_predictor.prediction_length,
-        )
-
-        self._base_predictor = base_predictor
-        self._num_workers = (
-            num_workers if num_workers is not None else mp.cpu_count()
-        )
-        self._chunk_size = chunk_size
-        self._num_running_workers = 0
-        self._input_queues = []
-        self._output_queue = None
-
-    def _grouper(self, iterable, n):
-        iterator = iter(iterable)
-        group = tuple(itertools.islice(iterator, n))
-        while group:
-            yield group
-            group = tuple(itertools.islice(iterator, n))
-
-    def terminate(self):
-        for q in self._input_queues:
-            q.put((None, None))
-        for w in self._workers:
-            w.terminate()
-        for i, w in enumerate(self._workers):
-            w.join()
-
-    def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
-        with TemporaryDirectory() as tempdir:
-            predictor_path = Path(tempdir)
-            self._base_predictor.serialize(predictor_path)
-
-            # TODO: Consider using shared memory for the data transfer.
-
-            self._input_queues = [mp.Queue() for _ in range(self._num_workers)]
-            self._output_queue = mp.Queue()
-
-            workers = []
-            for worker_id, in_q in enumerate(self._input_queues):
-                worker = mp.Process(
-                    target=_worker_loop,
-                    args=(predictor_path, in_q, self._output_queue, worker_id),
-                    kwargs=kwargs,
-                )
-
-                worker.daemon = True
-                worker.start()
-                workers.append(worker)
-                self._num_running_workers += 1
-
-            self._workers = workers
-
-            chunked_data = self._grouper(dataset, self._chunk_size)
-
-            self._send_idx = 0
-            self._next_idx = 0
-
-            self._data_buffer = {}
-
-            worker_ids = list(range(self._num_workers))
-
-            def receive():
-                idx, worker_id, result = self._output_queue.get()
-                if isinstance(idx, WorkerError):
-                    self._num_running_workers -= 1
-                    self.terminate()
-                    raise Exception(idx.msg)
-                if idx is not None:
-                    self._data_buffer[idx] = result
-                return idx, worker_id, result
-
-            def get_next_from_buffer():
-                while self._next_idx in self._data_buffer:
-                    result_batch = self._data_buffer.pop(self._next_idx)
-                    self._next_idx += 1
-                    for result in result_batch:
-                        yield result
-
-            def send(worker_id, chunk):
-                q = self._input_queues[worker_id]
-                q.put((self._send_idx, chunk))
-                self._send_idx += 1
-
-            try:
-                # prime the queues
-                for wid in worker_ids:
-                    chunk = next(chunked_data)
-                    send(wid, chunk)
-
-                while True:
-                    idx, wid, result = receive()
-                    for res in get_next_from_buffer():
-                        yield res
-                    chunk = next(chunked_data)
-                    send(wid, chunk)
-            except StopIteration:
-                # signal workers end of data
-                for q in self._input_queues:
-                    q.put((None, None))
-
-            # collect any outstanding results
-            while self._num_running_workers > 0:
-                idx, worker_id, result = receive()
-                if idx is None:
-                    self._num_running_workers -= 1
-                    continue
-                for res in get_next_from_buffer():
-                    yield res
-            assert len(self._data_buffer) == 0
-            assert self._send_idx == self._next_idx
-
-
 class Localizer(Predictor):
     """
-    A Predictor that uses an estimator to train a local model per time series and
-    immediatly calls this to predict.
+    A Predictor that uses an estimator to train a local model per time series
+    and immediatly calls this to predict.
 
     Parameters
     ----------
