@@ -32,7 +32,6 @@ from gluonts.transform import (
     AddObservedValuesIndicator,
 )
 from gluonts.model.forecast_generator import DistributionForecastGenerator
-
 from gluonts.support.util import get_hybrid_forward_input_names
 
 from gluonts.transform.feature import (
@@ -248,4 +247,3 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
             )
-
