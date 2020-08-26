@@ -211,7 +211,6 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
 
 class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
     @validated()
-
     def __init__(
         self, num_parallel_samples: int = 100, *args, **kwargs
     ) -> None:
