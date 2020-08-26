@@ -96,7 +96,6 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
     def get_distr_args(
         self, F, past_target: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
-
         """
         Given past target values, applies the feed-forward network and
         maps the output to the parameter of probability distribution for future observations.
