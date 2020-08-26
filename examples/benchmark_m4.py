@@ -26,7 +26,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.seq2seq import MQCNNEstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 datasets = [
     "m4_hourly",
