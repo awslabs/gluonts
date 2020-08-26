@@ -25,11 +25,11 @@ class Pipeline:
     def __init__(self, fns=()):
         self.fns = tuple(fns)
 
-    def apply(self, parts):
-        return Apply(compose_left(*self.fns), parts)
+    def apply(self, parts, *args, **kwargs):
+        return Apply(compose_left(*self.fns), parts, *args, **kwargs)
 
-    def parapply(self, parts):
-        return ParApply(compose_left(*self.fns), parts)
+    def parapply(self, parts, *args, **kwargs):
+        return ParApply(compose_left(*self.fns), parts, *args, **kwargs)
 
     def and_then(self, *fns):
         return Pipeline(self.fns + fns)

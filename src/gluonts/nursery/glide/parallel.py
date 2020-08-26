@@ -24,8 +24,6 @@ class sentinel:
 
 def map_to_queue(fn, emitter, queue, encode, batch_size):
     for batch in into_batches(batch_size, map(encode, fn(emitter))):
-        # print(batch)
-        # queue.put([encode(val) for val in batch])
         queue.put(batch)
     queue.put(sentinel)
 

@@ -13,8 +13,9 @@
 
 from toolz.functoolz import curry
 
+from ._partition import partition
 
-@curry
+
 class Map:
     def __init__(self, fn, xs):
         self.fn = fn
@@ -24,4 +25,9 @@ class Map:
         yield from map(self.fn, self.xs)
 
 
-lift = Map
+lift = curry(Map)
+
+
+@partition.register
+def partition_map(xs: Map, n):
+    return [Map(xs.fn, part) for part in partition(xs.xs, n)]
