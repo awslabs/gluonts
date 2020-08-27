@@ -222,65 +222,6 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         -------
         loss with shape (batch_size, prediction_length)
         """
-        dec_output, _ = self.get_decoder_network_output(
-            F,
-            past_target,
-            past_feat_dynamic,
-            future_feat_dynamic,
-            feat_static_cat,
-            past_observed_values,
-        )
-
-        dec_dist_output = self.quantile_proj(dec_output)
-        loss = self.loss(future_target, dec_dist_output)
-
-        # mask the loss based on observed indicator
-        weighted_loss = weighted_average(
-            F=F, x=loss, weights=future_observed_values, axis=1
-        )
-
-        return weighted_loss
-
-
-class ForkingSeq2SeqDistributionTrainingNetwork(ForkingSeq2SeqNetworkBase):
-    # noinspection PyMethodOverriding
-    def hybrid_forward(
-        self,
-        F,
-        past_target: Tensor,
-        future_target: Tensor,
-        past_feat_dynamic: Tensor,
-        future_feat_dynamic: Tensor,
-        feat_static_cat: Tensor,
-        past_observed_values: Tensor,
-        future_observed_values: Tensor,
-    ) -> Tensor:
-        """
-        Parameters
-        ----------
-        F: mx.symbol or mx.ndarray
-            Gluon function space
-        past_target: Tensor
-            shape (batch_size, encoder_length, 1)
-        future_target: Tensor
-            shape (batch_size, encoder_length, decoder_length)
-        past_feat_dynamic
-            shape (batch_size, encoder_length, num_past_feature_dynamic)
-        future_feat_dynamic
-            shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
-        feat_static_cat
-            shape (batch_size, encoder_length, num_feature_static_cat)
-        past_observed_values: Tensor
-            shape (batch_size, encoder_length, 1)
-        future_observed_values: Tensor
-            shape (batch_size, encoder_length, decoder_length)
-
-        Returns
-        -------
-        loss with shape (batch_size, prediction_length)
-        """
-        assert self.distr_output is not None
-
         dec_output, scale = self.get_decoder_network_output(
             F,
             past_target,
@@ -289,12 +230,21 @@ class ForkingSeq2SeqDistributionTrainingNetwork(ForkingSeq2SeqNetworkBase):
             feat_static_cat,
             past_observed_values,
         )
-        distr_args = self.distr_args_proj(dec_output)
-        distr = self.distr_output.distribution(distr_args, scale=scale)
-        loss = distr.loss(future_target)
+
+        if self.quantile_output is not None:
+            dec_dist_output = self.quantile_proj(dec_output)
+            loss = self.loss(future_target, dec_dist_output)
+        else:
+            assert self.distr_output is not None
+            distr_args = self.distr_args_proj(dec_output)
+            distr = self.distr_output.distribution(distr_args, scale=scale)
+            loss = distr.loss(future_target)
+
+        # mask the loss based on observed indicator
         weighted_loss = weighted_average(
             F=F, x=loss, weights=future_observed_values, axis=1
         )
+
         return weighted_loss
 
 

@@ -51,7 +51,6 @@ from gluonts.transform import (
 from ._forking_network import (
     ForkingSeq2SeqNetworkBase,
     ForkingSeq2SeqTrainingNetwork,
-    ForkingSeq2SeqDistributionTrainingNetwork,
     ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqDistributionPredictionNetwork,
 )
@@ -378,90 +377,64 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         return Chain(chain)
 
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
-        if self.quantile_output is not None:
-            return ForkingSeq2SeqTrainingNetwork(
-                encoder=self.encoder,
-                enc2dec=FutureFeatIntegratorEnc2Dec(),
-                decoder=self.decoder,
-                quantile_output=self.quantile_output,
-                context_length=self.context_length,
-                cardinality=self.cardinality,
-                embedding_dimension=self.embedding_dimension,
-                scaling=self.scaling,
-                dtype=self.dtype,
-            )
-        else:
-            return ForkingSeq2SeqDistributionTrainingNetwork(
-                encoder=self.encoder,
-                enc2dec=FutureFeatIntegratorEnc2Dec(),
-                decoder=self.decoder,
-                distr_output=self.distr_output,
-                context_length=self.context_length,
-                cardinality=self.cardinality,
-                embedding_dimension=self.embedding_dimension,
-                scaling=self.scaling,
-                dtype=self.dtype,
-            )
+        return ForkingSeq2SeqTrainingNetwork(
+            encoder=self.encoder,
+            enc2dec=FutureFeatIntegratorEnc2Dec(),
+            decoder=self.decoder,
+            quantile_output=self.quantile_output,
+            distr_output=self.distr_output,
+            context_length=self.context_length,
+            cardinality=self.cardinality,
+            embedding_dimension=self.embedding_dimension,
+            scaling=self.scaling,
+            dtype=self.dtype,
+        )
 
     def create_predictor(
         self,
         transformation: Transformation,
         trained_network: ForkingSeq2SeqNetworkBase,
     ) -> Predictor:
-        # this is specific to quantile output
-        if self.quantile_output is not None:
-            quantile_strs = [
+        quantile_strs = (
+            [
                 Quantile.from_float(quantile).name
                 for quantile in self.quantile_output.quantiles
             ]
+            if self.quantile_output is not None
+            else None
+        )
 
-            prediction_network = ForkingSeq2SeqPredictionNetwork(
-                encoder=trained_network.encoder,
-                enc2dec=trained_network.enc2dec,
-                decoder=trained_network.decoder,
-                quantile_output=trained_network.quantile_output,
-                context_length=self.context_length,
-                cardinality=self.cardinality,
-                embedding_dimension=self.embedding_dimension,
-                scaling=self.scaling,
-                dtype=self.dtype,
-            )
+        prediction_network_class = (
+            ForkingSeq2SeqPredictionNetwork
+            if self.quantile_output is not None
+            else ForkingSeq2SeqDistributionPredictionNetwork
+        )
 
-            copy_parameters(trained_network, prediction_network)
+        prediction_network = prediction_network_class(
+            encoder=trained_network.encoder,
+            enc2dec=trained_network.enc2dec,
+            decoder=trained_network.decoder,
+            quantile_output=trained_network.quantile_output,
+            distr_output=trained_network.distr_output,
+            context_length=self.context_length,
+            cardinality=self.cardinality,
+            embedding_dimension=self.embedding_dimension,
+            scaling=self.scaling,
+            dtype=self.dtype,
+        )
 
-            return RepresentableBlockPredictor(
-                input_transform=transformation,
-                prediction_net=prediction_network,
-                batch_size=self.trainer.batch_size,
-                freq=self.freq,
-                prediction_length=self.prediction_length,
-                ctx=self.trainer.ctx,
-                forecast_generator=QuantileForecastGenerator(quantile_strs),
-            )
-        else:
-            assert self.distr_output is not None
-            prediction_network = ForkingSeq2SeqDistributionPredictionNetwork(
-                encoder=trained_network.encoder,
-                enc2dec=trained_network.enc2dec,
-                decoder=trained_network.decoder,
-                distr_output=trained_network.distr_output,
-                context_length=self.context_length,
-                cardinality=self.cardinality,
-                embedding_dimension=self.embedding_dimension,
-                scaling=self.scaling,
-                dtype=self.dtype,
-            )
+        copy_parameters(trained_network, prediction_network)
 
-            copy_parameters(trained_network, prediction_network)
-
-            return RepresentableBlockPredictor(
-                input_transform=transformation,
-                prediction_net=prediction_network,
-                batch_size=self.trainer.batch_size,
-                freq=self.freq,
-                prediction_length=self.prediction_length,
-                ctx=self.trainer.ctx,
-                forecast_generator=DistributionForecastGenerator(
-                    self.distr_output
-                ),
-            )
+        return RepresentableBlockPredictor(
+            input_transform=transformation,
+            prediction_net=prediction_network,
+            batch_size=self.trainer.batch_size,
+            freq=self.freq,
+            prediction_length=self.prediction_length,
+            ctx=self.trainer.ctx,
+            forecast_generator=(
+                QuantileForecastGenerator(quantile_strs)
+                if quantile_strs is not None
+                else DistributionForecastGenerator(self.distr_output)
+            ),
+        )
