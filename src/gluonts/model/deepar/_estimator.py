@@ -84,6 +84,10 @@ class DeepAREstimator(GluonEstimator):
     cell_type
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
+    dropoutcell_type
+        Type of dropout cells to use 
+        (available: 'ZoneoutCell', 'RNNZoneoutCell', 'VariationalDropoutCell' or 'VariationalZoneoutCell';
+        default: 'ZoneoutCell')
     dropout_rate
         Dropout regularization parameter (default: 0.1)
     use_feat_dynamic_real
@@ -161,9 +165,9 @@ class DeepAREstimator(GluonEstimator):
             "VariationalDropoutCell",
             "VariationalZoneoutCell",
         ]
-        assert dropoutcell_type in supported_dropoutcell_types, (
-            f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
-        )
+        assert (
+            dropoutcell_type in supported_dropoutcell_types
+        ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert (cardinality and use_feat_static_cat) or (
             not (cardinality or use_feat_static_cat)

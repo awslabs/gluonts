@@ -16,7 +16,7 @@ from typing import Tuple
 
 # Third-party imports
 from mxnet.gluon.rnn import (
-    HybridRecurrentCell,
+    RecurrentCell,
     ModifierCell,
     BidirectionalCell,
     SequentialRNNCell,
@@ -30,8 +30,7 @@ from gluonts.model.common import Tensor
 class VariationalZoneoutCell(ModifierCell):
     """
     Applies Variational Zoneout on base cell.
-    Combine Zoneout with variational dropout, https://arxiv.org/pdf/1512.05287.pdf, 
-    "A Theoretically Grounded Application of Dropout in Recurrent Neural Networks".
+    The implementation follows [GG16]_.
     Variational zoneout uses the same mask across time-steps. It can be applied to RNN
     outputs, and states. The masks for them are not shared.
 
@@ -41,11 +40,11 @@ class VariationalZoneoutCell(ModifierCell):
 
     Parameters
     ----------
-    base_cell : RecurrentCell
+    base_cell
         The cell on which to perform variational dropout.
-    zoneout_outputs : float, default 0.
+    zoneout_outputs
         The dropout rate for outputs. Won't apply dropout if it equals 0.
-    zoneout_states : float, default 0.
+    zoneout_states
         The dropout rate for state inputs on the first state channel.
         Won't apply dropout if it equals 0.
     
@@ -54,7 +53,7 @@ class VariationalZoneoutCell(ModifierCell):
     @validated()
     def __init__(
         self,
-        base_cell: HybridRecurrentCell,
+        base_cell: RecurrentCell,
         zoneout_outputs: float = 0.0,
         zoneout_states: float = 0.0,
     ):
@@ -148,18 +147,17 @@ class VariationalZoneoutCell(ModifierCell):
 class RNNZoneoutCell(ModifierCell):
     """
     Applies Zoneout on base cell.
-    Implement Zoneout in https://arxiv.org/abs/1606.01305
-    "Zoneout: Regularizing RNNs by Randomly Preserving Hidden Activations", 
+    The implementation follows [KMK16]_.
     Compared to mx.gluon.rnn.ZoneoutCell, this implementation uses the same mask for output and states[0],
     since for RNN cells, states[0] is the same as output, except for ResidualCell, where states[0] = input + ouptut
 
     Parameters
     ----------
-    base_cell : RecurrentCell
+    base_cell
         The cell on which to perform variational dropout.
-    zoneout_outputs : float, default 0.
+    zoneout_outputs
         The dropout rate for outputs. Won't apply dropout if it equals 0.
-    zoneout_states : float, default 0.
+    zoneout_states
         The dropout rate for state inputs on the first state channel.
         Won't apply dropout if it equals 0.
     
