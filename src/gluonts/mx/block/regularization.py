@@ -73,7 +73,7 @@ class ActivationRegularizationLoss(Loss):
             the stack outputs from RNN, which consists of output from each time step.
         Returns
         --------
-        loss
+        Tensor
             loss tensor with shape (batch_size,). Dimensions other than batch_axis are averaged out.
         """
         if self._alpha != 0 and states:
