@@ -141,6 +141,7 @@ class TemporalActivationRegularizationLoss(Loss):
         ----------
         states
             the stack outputs from RNN, which consists of output from each time step.
+            
         Returns
         --------
         loss
