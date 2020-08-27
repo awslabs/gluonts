@@ -168,7 +168,7 @@ class RNNZoneoutCell(ModifierCell):
     @validated()
     def __init__(
         self,
-        base_cell,
+        base_cell: RecurrentCell,
         zoneout_outputs: float = 0.0,
         zoneout_states: float = 0.0,
     ):
