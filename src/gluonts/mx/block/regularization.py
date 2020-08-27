@@ -71,6 +71,7 @@ class ActivationRegularizationLoss(Loss):
         ----------
         states
             the stack outputs from RNN, which consists of output from each time step.
+            
         Returns
         --------
         Tensor
