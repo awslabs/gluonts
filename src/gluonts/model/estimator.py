@@ -12,12 +12,11 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import NamedTuple, Optional, Callable
+from typing import NamedTuple, Optional
 from functools import partial
 
 # Third-party imports
 import numpy as np
-import mxnet as mx
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
 

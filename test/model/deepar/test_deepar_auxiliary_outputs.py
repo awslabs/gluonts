@@ -16,13 +16,11 @@ from functools import partial
 
 import mxnet as mx
 
-from gluonts.mx.distribution import StudentTOutput, StudentT
+from gluonts.mx.distribution import StudentTOutput
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.model.deepar import DeepAREstimator
-import mxnet as mx
-from gluonts.mx.trainer import Trainer
 from gluonts.mx.batchify import batchify
 from gluonts.mx.trainer import Trainer
 
