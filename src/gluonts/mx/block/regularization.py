@@ -144,7 +144,7 @@ class TemporalActivationRegularizationLoss(Loss):
             
         Returns
         --------
-        loss
+        Tensor
             loss tensor with shape (batch_size,). Dimensions other than batch_axis are averaged out.
         """
         if self._beta != 0 and states:
