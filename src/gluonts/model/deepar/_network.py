@@ -341,7 +341,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         Distribution
             a distribution object whose mean has shape:
             (batch_size, context_length + prediction_length).
-        rnn_outputs
+        Tensor
             (optional) when return_rnn_outputs=True, rnn_outputs will be returned
             so that it could be used for regularization
         """
