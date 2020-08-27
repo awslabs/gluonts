@@ -172,6 +172,9 @@ def batch_inference_invocations(
 ) -> Callable[[], Response]:
     predictor = predictor_factory({"configuration": configuration.dict()})
 
+    scored_instances = []
+    last_scored = [time.time()]
+
     def invocations() -> Response:
         request_data = request.data.decode("utf8").strip()
 
@@ -208,6 +211,17 @@ def batch_inference_invocations(
                 )
         else:
             predictions = make_predictions(predictor, dataset, configuration)
+
+        scored_instances.append(len(predictions))
+        N = 60
+        diff = time.time() - last_scored[0]
+        if diff > N:
+            logger.info(
+                f"Worker {os.getpid()} Scored {sum(scored_instances)} in last "
+                f"{int(diff)} seconds."
+            )
+            scored_instances.clear()
+            last_scored[0] = time.time()
 
         lines = list(map(json.dumps, map(jsonify_floats, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")
