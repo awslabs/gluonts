@@ -15,12 +15,10 @@
 import functools
 import inspect
 import logging
-import os
-import re
 from collections import OrderedDict
 from functools import singledispatch
 from pydoc import locate
-from typing import Any, Type, TypeVar, Union
+from typing import Any, Type, TypeVar
 
 # Third-party imports
 import mxnet as mx
@@ -446,75 +444,6 @@ def validated(base_model=None):
         return init_wrapper
 
     return validator
-
-
-class MXContext:
-    """
-    Defines `custom data type validation
-    <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for
-    the :class:`~mxnet.context.Context` data type.
-    """
-
-    @classmethod
-    def validate(cls, v: Union[str, mx.Context]) -> mx.Context:
-        if isinstance(v, mx.Context):
-            return v
-
-        m = re.search(r"^(?P<dev_type>cpu|gpu)(\((?P<dev_id>\d+)\))?$", v)
-
-        if m:
-            return mx.Context(m["dev_type"], int(m["dev_id"] or 0))
-        else:
-            raise ValueError(
-                f"bad MXNet context {v}, expected either an "
-                f"mx.context.Context or its string representation"
-            )
-
-    @classmethod
-    def __get_validators__(cls) -> mx.Context:
-        yield cls.validate
-
-
-mx.Context.validate = MXContext.validate
-mx.Context.__get_validators__ = MXContext.__get_validators__
-
-
-NUM_GPUS = None
-
-
-def num_gpus(refresh=False):
-    global NUM_GPUS
-    if NUM_GPUS is None or refresh:
-        n = 0
-        try:
-            n = mx.context.num_gpus()
-        except mx.base.MXNetError as e:
-            logger.error(f"Failure when querying GPU: {e}")
-        NUM_GPUS = n
-    return NUM_GPUS
-
-
-@functools.lru_cache()
-def get_mxnet_context(gpu_number=0) -> mx.Context:
-    """
-    Returns either CPU or GPU context
-    """
-    if num_gpus():
-        logger.info("Using GPU")
-        return mx.context.gpu(gpu_number)
-    else:
-        logger.info("Using CPU")
-        return mx.context.cpu()
-
-
-def check_gpu_support() -> bool:
-    """
-    Emits a log line and returns a boolean that indicate whether
-    the currently installed MXNet version has GPU support.
-    """
-    n = num_gpus()
-    logger.info(f'MXNet GPU support is {"ON" if n > 0 else "OFF"}')
-    return n != 0
 
 
 class DType:

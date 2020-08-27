@@ -38,11 +38,9 @@ class PointProcessSampleForecast(Forecast):
     ----------
     samples
         A multidimensional array of samples, of shape
-        (number_of_samples, max_pred_length, target_dim) or
-        (number_of_samples, max_pred_length). For marked TPP, the
-        target_dim is 2 with the first element keeping interarrival times
-        and the second keeping marks. If samples are two-dimensional, each
-        entry stands for the interarrival times in a (unmarked) TPP sample.
+        (number_of_samples, max_pred_length, target_dim). The target_dim is
+        equal to 2, where the first dimension contains the inter-arrival times
+        and the second - categorical marks.
     valid_length
         An array of integers denoting the valid lengths of each sample
         in :code:`samples`. That is, :code:`valid_length[0] == 2` implies

@@ -15,7 +15,6 @@
 from typing import List
 
 # Third-party imports
-import mxnet as mx
 import numpy as np
 from mxnet import gluon
 

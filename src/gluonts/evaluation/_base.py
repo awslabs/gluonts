@@ -14,10 +14,7 @@
 # Standard library imports
 import logging
 import multiprocessing
-import re
 import sys
-from collections import Sized
-from functools import lru_cache
 from itertools import chain, tee
 from typing import (
     Any,
@@ -36,37 +33,10 @@ import numpy as np
 import pandas as pd
 
 from gluonts.gluonts_tqdm import tqdm
+from gluonts.time_feature import get_seasonality
 
 # First-party imports
 from gluonts.model.forecast import Forecast, Quantile
-
-
-@lru_cache()
-def get_seasonality(freq: str) -> int:
-    """
-    Returns the default seasonality for a given freq str. E.g. for
-
-      2H -> 12
-
-    """
-    match = re.match(r"(\d*)(\w+)", freq)
-    assert match, "Cannot match freq regex"
-    mult, base_freq = match.groups()
-    multiple = int(mult) if mult else 1
-
-    seasonalities = {"H": 24, "D": 1, "W": 1, "M": 12, "B": 5}
-    if base_freq in seasonalities:
-        seasonality = seasonalities[base_freq]
-    else:
-        seasonality = 1
-    if seasonality % multiple != 0:
-        logging.warning(
-            f"multiple {multiple} does not divide base "
-            f"seasonality {seasonality}."
-            f"Falling back to seasonality 1"
-        )
-        return 1
-    return seasonality // multiple
 
 
 class Evaluator:

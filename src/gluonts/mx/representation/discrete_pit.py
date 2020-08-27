@@ -12,15 +12,12 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
-import mxnet as mx
-import numpy as np
 from mxnet.gluon import nn
 
 # First-party imports
-from gluonts.core.component import get_mxnet_context, validated
-from gluonts.dataset.common import Dataset
+from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 from .representation import Representation
@@ -30,20 +27,24 @@ from .representation import Representation
 
 class DiscretePIT(Representation):
     """
-    A class representing a discrete probability integral transform of a given quantile-based learned binning. 
-    Note that this representation is intended to be applied on top of a quantile-based binning representation.
+    A class representing a discrete probability integral transform of a given
+    quantile-based learned binning.  Note that this representation is intended
+    to be applied on top of a quantile-based binning representation.
 
     Parameters
     ----------
     num_bins
-        Number of bins used by the data on which this representation is applied.
+        Number of bins used by the data on which this representation is
+        applied.
     mlp_tranf
-        Whether we want to post-process the pit-transformed valued using a MLP which can learn an appropriate
-        binning, which would ensure that pit models have the same expressiveness as standard quantile binning with
+        Whether we want to post-process the pit-transformed valued using a MLP
+        which can learn an appropriate binning, which would ensure that pit
+        models have the same expressiveness as standard quantile binning with
         embedding.
         (default: False)
     embedding_size
-        The desired layer output size if mlp_tranf=True. By default, the following heuristic is used:
+        The desired layer output size if mlp_tranf=True. By default, the
+        following heuristic is used:
         https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
         (default: round(num_bins**(1/4)))
     """
