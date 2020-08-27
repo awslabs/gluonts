@@ -279,10 +279,13 @@ class WaveNetEstimator(GluonEstimator):
             transform=transformation,
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
-            batchify_fn=partial(batchify, ctx=self.trainer.ctx),
+            batchify_fn=partial(
+                batchify, ctx=self.trainer.ctx, dtype=self.dtype
+            ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
+            **kwargs,
         )
 
         validation_data_loader = None
@@ -291,8 +294,9 @@ class WaveNetEstimator(GluonEstimator):
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
+                batchify_fn=partial(
+                    batchify, ctx=self.trainer.ctx, dtype=self.dtype
+                ),
                 num_workers=num_workers,
                 num_prefetch=num_prefetch,
                 **kwargs,

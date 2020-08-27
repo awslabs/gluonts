@@ -318,20 +318,16 @@ class GluonPredictor(Predictor):
         num_samples: Optional[int] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        batchify_fn: Optional[Callable] = None,
         **kwargs,
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
-            batchify_fn=partial(
-                batchify if batchify_fn is None else batchify_fn,
-                ctx=self.ctx,
-                dtype=self.dtype,
-            ),
+            batchify_fn=partial(batchify, ctx=self.ctx, dtype=self.dtype),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
+            **kwargs,
         )
         yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,

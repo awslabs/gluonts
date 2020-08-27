@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 import itertools
 from functools import partial
+from typing import Dict, Any
 
 # Third-party imports
 import mxnet as mx
@@ -89,7 +90,7 @@ def loader_factory():
             train_sampler=ContinuousTimeUniformSampler(num_instances=10),
         )
 
-        kwargs = dict(
+        kwargs: Dict[str, Any] = dict(
             dataset=dataset,
             transform=splitter,
             batch_size=10,

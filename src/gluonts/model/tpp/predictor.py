@@ -175,19 +175,26 @@ class PointProcessGluonPredictor(GluonPredictor):
         num_samples: Optional[int] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        batchify_fn: Optional[Callable] = None,
         **kwargs,
     ) -> Iterator[Forecast]:
-        yield from super().predict(
-            dataset=dataset,
-            num_samples=num_samples,
+        inference_data_loader = InferenceDataLoader(
+            dataset,
+            transform=self.input_transform,
+            batch_size=self.batch_size,
+            batchify_fn=partial(
+                batchify, ctx=self.ctx, dtype=self.dtype, variable_length=True
+            ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
-            batchify_fn=partial(
-                batchify if batchify_fn is None else batchify_fn,
-                variable_length=True,
-            ),
             **kwargs,
+        )
+        yield from self.forecast_generator(
+            inference_data_loader=inference_data_loader,
+            prediction_net=self.prediction_net,
+            input_names=self.input_names,
+            freq=self.freq,
+            output_transform=self.output_transform,
+            num_samples=num_samples,
         )
 
     def serialize_prediction_net(self, path: Path) -> None:

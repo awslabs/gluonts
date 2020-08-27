@@ -205,8 +205,7 @@ class GluonEstimator(Estimator):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
-        batchify_fn: Optional[Callable] = None,
-        todevice_fn: Callable = partial(as_in_context, ctx=mx.context.cpu()),
+        **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
@@ -216,14 +215,13 @@ class GluonEstimator(Estimator):
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             batchify_fn=partial(
-                batchify if batchify_fn is None else batchify_fn,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
+                batchify, ctx=self.trainer.ctx, dtype=self.dtype,
             ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
-            todevice_fn=todevice_fn,
+            todevice_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
         )
 
         validation_data_loader = None
@@ -233,12 +231,11 @@ class GluonEstimator(Estimator):
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
                 batchify_fn=partial(
-                    batchify if batchify_fn is None else batchify_fn,
-                    ctx=self.trainer.ctx,
-                    dtype=self.dtype,
+                    batchify, ctx=self.trainer.ctx, dtype=self.dtype,
                 ),
                 num_workers=num_workers,
                 num_prefetch=num_prefetch,
+                **kwargs,
             )
 
         # ensure that the training network is created within the same MXNet
@@ -269,7 +266,7 @@ class GluonEstimator(Estimator):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
-        batchify_fn: Optional[Callable] = None,
+        **kwargs,
     ) -> Predictor:
         return self.train_model(
             training_data,
@@ -277,5 +274,5 @@ class GluonEstimator(Estimator):
             num_workers,
             num_prefetch,
             shuffle_buffer_length,
-            batchify_fn,
+            **kwargs,
         ).predictor
