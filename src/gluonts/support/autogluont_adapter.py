@@ -20,9 +20,6 @@ class Gluonts2Auto:
         train_series = self.sample_train(train_series)
         train_df, test_df = self.parse_series(train_series), self.parse_series(test_series)
         return task.Dataset(train_df), task.Dataset(test_df)
-        # train_series1, train_series2 = self.split_train(train_series)
-        # train_df1, train_df2, test_df = self.parse_series(train_series1), self.parse_series(train_series2), self.parse_series(test_series)
-        # return task.Dataset(train_df1), task.Dataset(train_df2), task.Dataset(test_df)
 
     def sample_train(self, series):
         l = - (-series.size // 5)
@@ -31,26 +28,6 @@ class Gluonts2Auto:
             subseries = series[i*5:(i+1)*5].sample(1)
             new_series = new_series.append(subseries)
         return new_series
-
-# get a random data point from each 5 points to reduce overfitting.
-    def split_train(self, series):
-        mini, maxi = series.values.min(), series.values.max()
-        splitter = (mini+maxi) // 2
-        train1, train2 = series.loc[lambda series: series < splitter], series.loc[lambda series: series >= splitter]
-        print(train1.head(10), train2.head(10))
-        # train1.plot()
-        # plt.grid(which="both")
-        # plt.legend(["train series"], loc="upper left")
-        # plt.title("The smaller set")
-        # plt.show()
-        #
-        # train2.plot()
-        # plt.grid(which="both")
-        # plt.legend(["train series"], loc="upper left")
-        # plt.title("The larger set")
-        # plt.show()
-
-        return train1, train2
 
     @staticmethod
     def parse_series(series):
