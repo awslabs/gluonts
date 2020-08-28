@@ -15,6 +15,8 @@ Bibliography
 
 .. [MKH19] Muller, Rafael, Simon Kornblith, and Geoffrey E. Hinton. "When does label smoothing help?." Advances in Neural Information Processing Systems. 2019.
 
+.. [MMS17] Merity, Stephen, Bryan McCann, and Richard Socher. "Revisiting activation regularization for language rnns." arXiv preprint arXiv:1708.01009 (2017).
+
 .. [ODZ+16] Oord, Aaron van den, et al. "Wavenet: A generative model for raw audio." arXiv preprint arXiv:1609.03499 (2016).
 
 .. [PKC+16] Paine, Tom Le, et al. "Fast wavenet generation algorithm." arXiv preprint arXiv:1611.09482 (2016).
@@ -30,4 +32,3 @@ Bibliography
 .. [WTN+17] Wen, Ruofeng, et al. "A multi-horizon quantile recurrent forecaster." arXiv preprint arXiv:1711.11053 (2017).
 
 .. [YRD15] Yu, Hsiang-Fu, Nikhil Rao, and Inderjit S. Dhillon. "High-dimensional time series prediction with missing values." arXiv preprint arXiv:1509.08333 (2015).
-
