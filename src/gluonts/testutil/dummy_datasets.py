@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from functools import partial
 from random import randint
 from typing import List, Tuple
 

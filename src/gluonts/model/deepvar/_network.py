@@ -22,7 +22,7 @@ from gluonts.model.common import Tensor
 
 # First-party imports
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.distribution import Distribution, DistributionOutput
+from gluonts.mx.distribution import DistributionOutput
 from gluonts.support.util import assert_shape, weighted_average
 
 

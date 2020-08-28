@@ -15,7 +15,7 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import Optional, Type, Union, cast
+from typing import Optional
 
 # Third-party imports
 import click

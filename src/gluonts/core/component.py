@@ -15,12 +15,10 @@
 import functools
 import inspect
 import logging
-import os
-import re
 from collections import OrderedDict
 from functools import singledispatch
 from pydoc import locate
-from typing import Any, Type, TypeVar, Union
+from typing import Any, Type, TypeVar
 
 # Third-party imports
 import mxnet as mx
