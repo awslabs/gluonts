@@ -17,11 +17,7 @@ import pandas as pd
 import pytest
 
 # First-party imports
-from gluonts.evaluation import (
-    Evaluator,
-    MultivariateEvaluator,
-    get_seasonality,
-)
+from gluonts.evaluation import Evaluator, MultivariateEvaluator
 from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
@@ -320,6 +316,7 @@ def test_MASE_sMAPE_M4(timeseries, res):
 
 
 TIMESERIES = [
+    np.zeros((5, 10), dtype=np.float64),
     np.ones((5, 10), dtype=np.float64),
     np.ones((5, 10), dtype=np.float64),
     np.arange(0, 50, dtype=np.float64).reshape(5, 10),
@@ -328,6 +325,23 @@ TIMESERIES = [
 ]
 
 RES = [
+    {
+        "MSE": 0.0,
+        "abs_error": 0.0,
+        "abs_target_sum": 0.0,
+        "abs_target_mean": 0.0,
+        "seasonal_error": 0.0,
+        "MASE": 0.0,
+        "MAPE": 0.0,
+        "sMAPE": 0.0,
+        "MSIS": 0.0,
+        "RMSE": 0.0,
+        "NRMSE": 0.0,
+        "ND": 0.0,
+        "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 0.0,
+        "mean_wQuantileLoss": 0.0,
+    },
     {
         "MSE": 0.0,
         "abs_error": 0.0,
@@ -342,6 +356,8 @@ RES = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 0.0,
+        "mean_wQuantileLoss": 0.0,
     },
     {
         "MSE": 0.0,
@@ -357,6 +373,8 @@ RES = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 0.0,
+        "mean_wQuantileLoss": 0.0,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -372,6 +390,8 @@ RES = [
         "NRMSE": 0.077_151_674_981_045_956,
         "ND": 0.071_428_571_428_571_42,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 30.0,
+        "mean_wQuantileLoss": 0.071_428_571_428_571_42,
     },
     {
         "MSE": 5.033_333_333_333_3,
@@ -387,6 +407,8 @@ RES = [
         "NRMSE": 0.079_840_183_489_745_39,
         "ND": 0.070_217_917_675_544_79,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 29.0,
+        "mean_wQuantileLoss": 0.070_217_917_675_544_79,
     },
     {
         "MSE": 0.0,
@@ -402,13 +424,15 @@ RES = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 0.0,
+        "mean_wQuantileLoss": 0.0,
     },
 ]
 
-HAS_NANS = [False, True, False, True, True]
+HAS_NANS = [False, False, True, False, True, True]
 
 
-INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable]
+INPUT_TYPE = [iterable, iterable, iterable, iterator, iterator, iterable]
 
 
 @pytest.mark.parametrize(
@@ -644,25 +668,3 @@ def test_evaluation_with_QuantileForecast():
     agg_metric, _ = ev(iter([ts]), iter(fcst))
 
     assert np.isfinite(agg_metric["wQuantileLoss[0.5]"])
-
-
-@pytest.mark.parametrize(
-    "freq, expected_seasonality",
-    [
-        ("1H", 24),
-        ("H", 24),
-        ("2H", 12),
-        ("3H", 8),
-        ("4H", 6),
-        ("15H", 1),
-        ("5B", 1),
-        ("1B", 5),
-        ("2W", 1),
-        ("3M", 4),
-        ("1D", 1),
-        ("7D", 1),
-        ("8D", 1),
-    ],
-)
-def test_get_seasonality(freq, expected_seasonality):
-    assert get_seasonality(freq) == expected_seasonality

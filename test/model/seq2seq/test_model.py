@@ -19,6 +19,8 @@ from gluonts.model.seq2seq import (
 )
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
+from gluonts.mx.distribution import GaussianOutput
+
 
 @pytest.fixture()
 def hyperparameters(dsinfo):
@@ -29,7 +31,6 @@ def hyperparameters(dsinfo):
         hybridize=True,
         context_length=dsinfo.prediction_length,
         num_batches_per_epoch=1,
-        quantiles=[0.1, 0.5, 0.9],
         use_symbol_block_predictor=True,
     )
 
@@ -41,16 +42,29 @@ def Estimator(request):
     return request.param
 
 
-@pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
 @pytest.mark.parametrize("hybridize", [True, False])
+@pytest.mark.parametrize(
+    "quantiles, distr_output",
+    [([0.1, 0.5, 0.9], None), (None, GaussianOutput())],
+)
 def test_accuracy(
-    Estimator, accuracy_test, hyperparameters, hybridize, quantiles
+    Estimator,
+    accuracy_test,
+    hyperparameters,
+    hybridize,
+    quantiles,
+    distr_output,
 ):
     hyperparameters.update(
-        num_batches_per_epoch=100, hybridize=hybridize, quantiles=quantiles
+        num_batches_per_epoch=100,
+        hybridize=hybridize,
+        quantiles=quantiles,
+        distr_output=distr_output,
     )
 
-    accuracy_test(Estimator, hyperparameters, accuracy=0.20)
+    accuracy_test(
+        Estimator, hyperparameters, accuracy=0.20 if quantiles else 0.40
+    )
 
 
 @pytest.mark.parametrize("use_past_feat_dynamic_real", [True, False])
@@ -60,6 +74,9 @@ def test_accuracy(
 @pytest.mark.parametrize("enable_encoder_dynamic_feature", [True, False])
 @pytest.mark.parametrize("enable_decoder_dynamic_feature", [True, False])
 @pytest.mark.parametrize("hybridize", [True, False])
+@pytest.mark.parametrize(
+    "quantiles, distr_output", [([0.5, 0.1], None), (None, GaussianOutput()),]
+)
 def test_mqcnn_covariate_smoke_test(
     use_past_feat_dynamic_real,
     use_feat_dynamic_real,
@@ -68,13 +85,16 @@ def test_mqcnn_covariate_smoke_test(
     enable_encoder_dynamic_feature,
     enable_decoder_dynamic_feature,
     hybridize,
+    quantiles,
+    distr_output,
 ):
     hps = {
         "seed": 42,
-        "freq": "D",
+        "freq": "Y",
         "context_length": 5,
         "prediction_length": 3,
-        "quantiles": [0.5, 0.1],
+        "quantiles": quantiles,
+        "distr_output": distr_output,
         "epochs": 3,
         "num_batches_per_epoch": 3,
         "use_past_feat_dynamic_real": use_past_feat_dynamic_real,
@@ -176,10 +196,8 @@ def test_backwards_compatibility():
         "use_past_feat_dynamic_real": True,
         "enable_encoder_dynamic_feature": True,
         "enable_decoder_dynamic_feature": True,
-        "num_workers": 0,
         "scaling": True,
         "scaling_decoder_dynamic_feature": True,
-        "num_batches_shuffle": 8,
     }
 
     dataset_train, dataset_test = make_dummy_datasets_with_features(

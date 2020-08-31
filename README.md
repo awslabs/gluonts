@@ -29,6 +29,10 @@ way to install it is via `pip`:
 pip install --upgrade mxnet==1.6 gluonts
 ```
 
+## Dockerfiles
+
+Dockerfiles compatible with Amazon Sagemaker can be found in the [examples/dockerfiles](https://github.com/awslabs/gluon-ts/tree/master/examples/dockerfiles) folder.
+
 ## Quick start guide
 
 This simple example illustrates how to train a model from GluonTS on some data,
@@ -79,7 +83,7 @@ We also specify some minimal training options.
 
 ```python
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
 predictor = estimator.train(training_data=training_data)

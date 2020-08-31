@@ -12,27 +12,24 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import math
-from functools import partial
 from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
 import numpy as np
+import mxnet as mx
 
 # First-party imports
 from gluonts.model.common import Tensor
-from gluonts.core.component import validated
-from gluonts.support.util import erf, erfinv
+from gluonts.core.component import DType, validated
 
 # Relative imports
-from .distribution import Distribution, _sample_multiple, getF, softplus
+from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 
 class Deterministic(Distribution):
     r"""
     Deterministic/Degenerate distribution.
-
     Parameters
     ----------
     value
@@ -88,7 +85,7 @@ class Deterministic(Distribution):
         return is_greater_equal_or_both_nan
 
     def sample(
-        self, num_samples: Optional[int] = None, dtype=np.int32
+        self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
         return _sample_multiple(
             lambda value: value, value=self.value, num_samples=num_samples
@@ -122,30 +119,39 @@ class Deterministic(Distribution):
         return [self.value]
 
 
+class DeterministicArgProj(mx.gluon.HybridBlock):
+    def __init__(
+        self,
+        value: float,
+        args_dim: Dict[str, int],
+        dtype: DType = np.float32,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.value = value
+        self.args_dim = args_dim
+        self.dtype = dtype
+
+    # noinspection PyMethodOverriding,PyPep8Naming
+    def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor]:
+        return (self.value * F.ones_like(x.sum(axis=-1)),)
+
+
 class DeterministicOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"value": 1}
     distr_cls: type = Deterministic
 
-    @classmethod
-    def domain_map(cls, F, value):
-        r"""
-        Maps raw tensors to valid arguments for constructing a Gaussian
-        distribution.
+    @validated()
+    def __init__(self, value: float):
+        super().__init__()
+        self.value = value
 
-        Parameters
-        ----------
-        F
-        value
-            Tensor of shape `(*batch_shape, 1)`
-
-        Returns
-        -------
-        Tuple[Tensor, Tensor]
-            Two squeezed tensors, of shape `(*batch_shape)`: the first has the
-            same entries as `mu` and the second has entries mapped to the
-            positive orthant.
-        """
-        return value.squeeze(axis=-1)
+    def get_args_proj(
+        self, prefix: Optional[str] = None
+    ) -> mx.gluon.HybridBlock:
+        return DeterministicArgProj(
+            value=self.value, args_dim=self.args_dim, dtype=self.dtype
+        )
 
     @property
     def event_shape(self) -> Tuple:

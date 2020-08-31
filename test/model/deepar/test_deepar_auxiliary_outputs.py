@@ -13,13 +13,14 @@
 
 from itertools import islice
 
+import mxnet as mx
+
 from gluonts.mx.distribution import StudentTOutput, StudentT
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.model.deepar import DeepAREstimator
-import mxnet as mx
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 
 ds_info, train_ds, test_ds = constant_dataset()

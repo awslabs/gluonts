@@ -22,6 +22,7 @@ jobs:
         pip install -r requirements/requirements-docs.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-rotbaum.txt
 
     - name: Build docs
       run: |

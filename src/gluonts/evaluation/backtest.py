@@ -14,7 +14,7 @@
 # Standard library imports
 import logging
 import re
-from typing import Dict, Iterator, NamedTuple, Optional, Tuple, Union
+from typing import Dict, Iterator, NamedTuple, Optional, Tuple
 
 # Third-party imports
 import pandas as pd
@@ -24,15 +24,14 @@ import gluonts  # noqa
 from gluonts import transform
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
-from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
 )
 from gluonts.evaluation import Evaluator
-from gluonts.model.estimator import Estimator, GluonEstimator
+from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
-from gluonts.model.predictor import GluonPredictor, Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import TransformedDataset
 
@@ -117,47 +116,27 @@ def serialize_message(logger, message: str, variable):
 
 
 def backtest_metrics(
-    train_dataset: Optional[Dataset],
     test_dataset: Dataset,
-    forecaster: Union[Estimator, Predictor],
+    predictor: Predictor,
     evaluator=Evaluator(
         quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
     ),
     num_samples: int = 100,
     logging_file: Optional[str] = None,
-    use_symbol_block_predictor: bool = False,
-    num_workers: Optional[int] = None,
-    num_prefetch: Optional[int] = None,
-    **kwargs,
 ):
     """
     Parameters
     ----------
-    train_dataset
-        Dataset to use for training.
     test_dataset
         Dataset to use for testing.
-    forecaster
-        An estimator or a predictor to use for generating predictions.
+    predictor
+        The predictor to test.
     evaluator
         Evaluator to use.
     num_samples
         Number of samples to use when generating sample-based forecasts.
     logging_file
         If specified, information of the backtest is redirected to this file.
-    use_symbol_block_predictor
-        Use a :class:`SymbolBlockPredictor` during testing.
-    num_workers
-        The number of multiprocessing workers to use for data preprocessing.
-        By default 0, in which case no multiprocessing will be utilized.
-    num_prefetch
-        The number of prefetching batches only works if `num_workers` > 0.
-        If `prefetch` > 0, it allow worker process to prefetch certain batches before
-        acquiring data from iterators.
-        Note that using large prefetching batch will provide smoother bootstrapping performance,
-        but will consume more shared_memory. Using smaller number may forfeit the purpose of using
-        multiple worker processes, try reduce `num_workers` in this case.
-        By default it defaults to `num_workers * 2`.
 
     Returns
     -------
@@ -179,48 +158,8 @@ def backtest_metrics(
     else:
         logger = logging.getLogger(__name__)
 
-    if train_dataset is not None:
-        train_statistics = calculate_dataset_statistics(train_dataset)
-        serialize_message(logger, train_dataset_stats_key, train_statistics)
-
     test_statistics = calculate_dataset_statistics(test_dataset)
     serialize_message(logger, test_dataset_stats_key, test_statistics)
-
-    if isinstance(forecaster, Estimator):
-        serialize_message(logger, estimator_key, forecaster)
-        assert train_dataset is not None
-
-        predictor = (
-            forecaster.train(
-                train_dataset,
-                num_workers=num_workers,
-                num_prefetch=num_prefetch,
-                **kwargs,
-            )
-            if isinstance(forecaster, GluonEstimator)
-            else (forecaster.train(train_dataset))
-        )
-
-        if isinstance(forecaster, GluonEstimator) and isinstance(
-            predictor, GluonPredictor
-        ):
-            inference_data_loader = InferenceDataLoader(
-                dataset=test_dataset,
-                transform=predictor.input_transform,
-                batch_size=forecaster.trainer.batch_size,
-                ctx=forecaster.trainer.ctx,
-                dtype=forecaster.dtype,
-            )
-
-            if forecaster.trainer.hybridize:
-                predictor.hybridize(batch=next(iter(inference_data_loader)))
-
-            if use_symbol_block_predictor:
-                predictor = predictor.as_symbol_block_predictor(
-                    batch=next(iter(inference_data_loader))
-                )
-    else:
-        predictor = forecaster
 
     forecast_it, ts_it = make_evaluation_predictions(
         test_dataset, predictor=predictor, num_samples=num_samples
@@ -243,6 +182,7 @@ def backtest_metrics(
     return agg_metrics, item_metrics
 
 
+# TODO does it make sense to have this then?
 class BacktestInformation(NamedTuple):
     train_dataset_stats: DatasetStatistics
     test_dataset_stats: DatasetStatistics

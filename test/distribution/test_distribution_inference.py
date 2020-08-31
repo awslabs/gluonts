@@ -75,6 +75,12 @@ from gluonts.mx.distribution.transformed_distribution_output import (
 from gluonts.mx.distribution.transformed_distribution import (
     TransformedDistribution,
 )
+from gluonts.model.tpp.distribution import (
+    Loglogistic,
+    LoglogisticOutput,
+    Weibull,
+    WeibullOutput,
+)
 
 
 NUM_SAMPLES = 2000
@@ -1021,3 +1027,81 @@ def test_logit_normal_likelihood(mu: float, sigma: float, hybridize: bool):
     assert (
         np.abs(sigma_hat - sigma) < TOL * sigma
     ), f"sigma did not match: sigma = {sigma}, sigma_hat = {sigma_hat}"
+
+
+@pytest.mark.parametrize("mu, sigma", [(1.25, 0.5)])
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_loglogistic_likelihood(
+    mu: float, sigma: float, hybridize: bool
+) -> None:
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+
+    # generate samples
+    mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
+    sigmas = mx.nd.zeros((NUM_SAMPLES,)) + sigma
+
+    distr = Loglogistic(mus, sigmas)
+    samples = distr.sample()
+
+    init_biases = [
+        mu - START_TOL_MULTIPLE * TOL * mu,
+        inv_softplus(sigma - START_TOL_MULTIPLE * TOL * sigma),
+    ]
+
+    mu_hat, sigma_hat = maximum_likelihood_estimate_sgd(
+        LoglogisticOutput(),
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(10),
+    )
+
+    print("mu:", mu_hat, "sigma:", sigma_hat)
+    assert (
+        np.abs(mu_hat - mu) < TOL * mu
+    ), f"mu did not match: mu = {mu}, mu_hat = {mu_hat}"
+    assert (
+        np.abs(sigma_hat - sigma) < TOL * sigma
+    ), f"sigma did not match: sigma = {sigma}, sigma_hat = {sigma_hat}"
+
+
+@pytest.mark.parametrize("rate, shape", [(2.0, 1.5)])
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_weibull_likelihood(
+    rate: float, shape: float, hybridize: bool
+) -> None:
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+
+    # generate samples
+    rates = mx.nd.zeros((NUM_SAMPLES,)) + rate
+    shapes = mx.nd.zeros((NUM_SAMPLES,)) + shape
+
+    distr = Weibull(rates, shapes)
+    samples = distr.sample()
+
+    init_biases = [
+        inv_softplus(rate - START_TOL_MULTIPLE * TOL * rate),
+        inv_softplus(shape - START_TOL_MULTIPLE * TOL * shape),
+    ]
+
+    rate_hat, shape_hat = maximum_likelihood_estimate_sgd(
+        WeibullOutput(),
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(10),
+    )
+
+    print("rate:", rate_hat, "shape:", shape_hat)
+    assert (
+        np.abs(rate_hat - rate) < TOL * rate
+    ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
+    assert (
+        np.abs(shape_hat - shape) < TOL * shape
+    ), f"shape did not match: shape = {shape}, shape_hat = {shape_hat}"

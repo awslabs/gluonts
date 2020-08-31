@@ -12,13 +12,8 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from functools import partial
 from random import randint
 from typing import List, Tuple
-
-# Third-party imports
-import numpy as np
-import pytest
 
 # First-party imports
 from gluonts.dataset.common import ListDataset

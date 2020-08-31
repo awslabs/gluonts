@@ -193,10 +193,6 @@ def test_validation_loader_equivalence() -> None:
     ), "The multiprocessing ValidationDataLoader should yield equivalent result to the non multiprocessing one."
 
     assert (
-        len(mp_val_data_loader_result_02[0]["item_id"]) == BATCH_SIZE
-    ), "Incorrect batch size from multiprocessing."
-
-    assert (
         mp_val_data_loader_result_02[0]["past_target"].context
         == current_desired_context
     ), "Batches in incorrect context"
@@ -327,13 +323,60 @@ def test_inference_loader_equivalence() -> None:
     ), "The multiprocessing ValidationDataLoader should yield equivalent result to the non multiprocessing one."
 
     assert (
-        len(mp_inf_data_loader_result_02[1]["item_id"]) == BATCH_SIZE
-    ), "Incorrect batch size from multiprocessing."
-
-    assert (
         mp_inf_data_loader_result_02[0]["past_target"].context
         == current_desired_context
     ), "Batches in incorrect context"
+
+
+# Batches of the train data loader can only be of the same exact desired size
+# Unlike the inference or validation data loader, which can have varying batch sizes, if the number
+# of time series is not divisible by BATCH_SIZE * NUM_WORKERS_MP.
+def test_training_loader_batch_size_hard_constraint() -> None:
+    (
+        list_dataset,
+        transformation,
+        list_dataset_pred_length,
+        train_data_transformed_original,
+    ) = get_dataset_and_transformation()
+
+    train_dataset_loader_01 = TrainDataLoader(
+        dataset=list_dataset,
+        transform=transformation,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        ctx=current_context(),
+        num_batches_per_epoch=30,
+    )
+
+    train_dataset_loader_02 = TrainDataLoader(
+        dataset=list_dataset,
+        transform=transformation,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        ctx=current_context(),
+        num_batches_per_epoch=30,
+        shuffle_buffer_length=3 * BATCH_SIZE,
+    )
+
+    # multi-processed training dataset
+    mp_training_data_loader_result_01 = list(train_dataset_loader_01)
+
+    # multi-processed training dataset
+    mp_training_data_loader_result_02 = list(train_dataset_loader_02)
+
+    assert all(
+        [
+            len(batch["item_id"]) == BATCH_SIZE
+            for batch in mp_training_data_loader_result_01
+        ]
+    ), "Not every batch from training loader is right size."
+
+    assert all(
+        [
+            len(batch["item_id"]) == BATCH_SIZE
+            for batch in mp_training_data_loader_result_02
+        ]
+    ), "Not every batch from training loader is right size, with shuffling on."
 
 
 # CASE 01: if we have say 5 workers, then iterating
@@ -369,7 +412,7 @@ def test_training_loader_soft_constraint_01() -> None:
     # give all the workers a little time to get ready, so they can start at the same time
     time.sleep(1.5)
 
-    # multi-processed validation dataset
+    # multi-processed training dataset
     mp_training_data_loader_result_01 = list(train_dataset_loader_01)
 
     # should contain an entry for every time series id
@@ -407,7 +450,7 @@ def test_training_loader_soft_constraint_02() -> None:
         num_batches_per_epoch=int(0.5 * exp_num_batches),
     )
 
-    # multi-processed validation dataset
+    # multi-processed training dataset
     mp_training_data_loader_result_02 = list(train_dataset_loader_02)
 
     # should contain an entry for every time series id
@@ -443,7 +486,7 @@ def test_training_loader_soft_constraint_03() -> None:
         num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
-    # multi-processed validation dataset
+    # multi-processed training dataset
     mp_training_data_loader_result_03 = list(train_dataset_loader_03)
 
     # should contain an entry for every time series id
@@ -469,12 +512,12 @@ def test_general_functionality() -> None:
         prediction_length=prediction_length, freq=freq, trainer=trainer
     )
 
+    predictor = estimator.train(training_data=train_ds)
+
     agg_metrics, item_metrics = backtest_metrics(
-        train_dataset=train_ds,
         test_dataset=test_ds,
-        forecaster=estimator,
+        predictor=predictor,
         evaluator=Evaluator(calculate_owa=False),
-        num_workers=NUM_WORKERS_MP,
     )
 
     # just some sanity check

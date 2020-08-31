@@ -23,7 +23,7 @@ from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput, GPArgProj
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.evaluation import MultivariateEvaluator
 from gluonts.model.gpvar import GPVAREstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.dataset.common import TrainDatasets
 
@@ -122,10 +122,11 @@ def test_smoke(
         ),
     )
 
+    predictor = estimator.train(training_data=dataset.train)
+
     agg_metrics, _ = backtest_metrics(
-        train_dataset=dataset.train,
         test_dataset=dataset.test,
-        forecaster=estimator,
+        predictor=predictor,
         num_samples=10,
         evaluator=MultivariateEvaluator(
             quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
