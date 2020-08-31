@@ -34,6 +34,7 @@ from gluonts.mx.distribution import (
     Dirichlet,
     DirichletMultinomial,
     Categorical,
+    ZeroAndOneInflatedBeta,
 )
 from gluonts.core.serde import dump_json, load_json, dump_code, load_code
 
@@ -233,3 +234,39 @@ def test_piecewise_linear_sampling(distr, params, serialize_fn):
     num_samples = 100_000
     samples = distr.sample(num_samples)
     assert samples.shape == (num_samples, 2)
+
+
+@pytest.mark.parametrize("alpha, beta", [(0.3, 0.9), (1.5, 1.7)])
+@pytest.mark.parametrize("zero_probability, one_probability", [(0.1, 0.2)])
+def test_inflated_beta_sampling(
+    alpha: float, beta: float, zero_probability: float, one_probability: float
+):
+    distr = ZeroAndOneInflatedBeta(
+        alpha=mx.nd.array([alpha]),
+        beta=mx.nd.array([beta]),
+        zero_probability=mx.nd.array([zero_probability]),
+        one_probability=mx.nd.array([one_probability]),
+    )
+    samples = distr.sample()
+    assert samples.shape == (1,)
+    num_samples = 100_000
+    samples = distr.sample(num_samples)
+    assert samples.shape == (num_samples, 1)
+
+    category = np.random.choice(
+        [0, 1, 2],
+        p=[
+            zero_probability,
+            one_probability,
+            1 - zero_probability - one_probability,
+        ],
+        size=num_samples,
+    )
+    samples_numpy = np.random.beta(a=alpha, b=beta, size=num_samples)
+    samples_numpy[category == 0] = 0
+    samples_numpy[category == 1] = 1
+    assert np.allclose(
+        np.histogram(samples_numpy)[0],
+        np.histogram(samples.asnumpy())[0],
+        rtol=0.08,
+    )
