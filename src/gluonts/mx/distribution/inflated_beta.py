@@ -225,7 +225,7 @@ class ZeroInflatedBetaOutput(DistributionOutput):
 
         Returns
         -------
-        Tuple[Tensor, Tensor]:
+        Tuple[Tensor, Tensor, Tensor]:
             Three squeezed tensors, of shape `(*batch_shape)`: First two have entries mapped to the
             positive orthant, last is mapped to (0,1)
         """
