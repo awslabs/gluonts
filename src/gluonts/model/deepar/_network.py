@@ -323,7 +323,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         future_target: Tensor,
         future_observed_values: Tensor,
         return_rnn_outputs: bool = False,
-    ) -> Union[Distribution, Tuple[Distribution, Tensor]]:
+    ) -> Union[Tuple[Distribution, Tensor], Distribution]:
         """
 
         Returns the distribution predicted by the model on the range of
@@ -407,7 +407,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         """
 
-        distr, rnn_outputs = self.distribution(
+        outputs = self.distribution(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
             past_time_feat=past_time_feat,
@@ -418,6 +418,9 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_observed_values=future_observed_values,
             return_rnn_outputs=True,
         )
+        # since return_rnn_outputs=True, assert:
+        assert isinstance(outputs, tuple)
+        distr, rnn_outputs = outputs
 
         # put together target sequence
         # (batch_size, seq_len, *target_shape)
