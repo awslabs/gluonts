@@ -343,7 +343,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         future_target: Tensor,
         future_observed_values: Tensor,
         return_rnn_outputs: bool = False,
-    ) -> Union[Distribution, Tuple[Distribution, Tensor]]:
+    ) -> Union[Tuple[Distribution, Tensor], Distribution]:
         """
 
         Returns the distribution predicted by the model on the range of
