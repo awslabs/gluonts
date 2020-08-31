@@ -203,7 +203,7 @@ class ZeroAndOneInflatedBetaOutput(DistributionOutput):
         return 0.5
 
 
-class ZeroInflatedBetaOutput(DistributionOutput):
+class ZeroInflatedBetaOutput(ZeroAndOneInflatedBetaOutput):
     args_dim: Dict[str, int] = {"alpha": 1, "beta": 1, "zero_probability": 1}
     distr_cls: type = ZeroInflatedBeta
 
@@ -239,14 +239,6 @@ class ZeroInflatedBetaOutput(DistributionOutput):
             beta.squeeze(axis=-1),
             zero_probability.squeeze(axis=-1),
         )
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-    @property
-    def value_in_support(self) -> float:
-        return 0.5
 
 
 class OneInflatedBetaOutput(ZeroInflatedBetaOutput):
