@@ -177,7 +177,7 @@ class ZeroAndOneInflatedBetaOutput(DistributionOutput):
 
         Returns
         -------
-        Tuple[Tensor, Tensor]:
+        Tuple[Tensor, Tensor, Tensor, Tensor]:
             Four squeezed tensors, of shape `(*batch_shape)`: First two have entries mapped to the
             positive orthant, zero_probability is mapped to (0, 1), one_probability is mapped to (0, 1-zero_probability)
         """
