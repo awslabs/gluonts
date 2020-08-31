@@ -81,7 +81,7 @@ class ZeroAndOneInflatedBeta(MixtureDistribution):
         # mask zeros for the Beta distribution input to prevent NaN gradients
         inputs = F.where(F.logical_or(x == 0, x == 1), x.zeros_like() + 0.5, x)
 
-        # compute log density by cases
+        # compute log density, case by case
         return F.where(
             x == 1,
             F.log(self.one_probability.broadcast_like(x)),
@@ -179,7 +179,7 @@ class ZeroAndOneInflatedBetaOutput(DistributionOutput):
         -------
         Tuple[Tensor, Tensor]:
             Four squeezed tensors, of shape `(*batch_shape)`: First two have entries mapped to the
-            positive orthant, last two are mapped to (0,1)
+            positive orthant, zero_probability is mapped to (0, 1), one_probability is mapped to (0, 1-zero_probability)
         """
         epsilon = np.finfo(cls._dtype).eps  # machine epsilon
 
@@ -249,47 +249,10 @@ class ZeroInflatedBetaOutput(DistributionOutput):
         return 0.5
 
 
-class OneInflatedBetaOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"alpha": 1, "beta": 1, "zero_probability": 1}
+class OneInflatedBetaOutput(ZeroInflatedBetaOutput):
+    args_dim: Dict[str, int] = {"alpha": 1, "beta": 1, "one_probability": 1}
     distr_cls: type = OneInflatedBeta
 
     @classmethod
     def domain_map(cls, F, alpha, beta, one_probability):
-        r"""
-        Maps raw tensors to valid arguments for constructing a ZeroInflatedBeta
-        distribution.
-
-        Parameters
-        ----------
-        F:
-        alpha:
-            Tensor of shape `(*batch_shape, 1)`
-        beta:
-            Tensor of shape `(*batch_shape, 1)`
-        zero_probability:
-            Tensor of shape `(*batch_shape, 1)`
-
-        Returns
-        -------
-        Tuple[Tensor, Tensor]:
-            Three squeezed tensors, of shape `(*batch_shape)`: First two have entries mapped to the
-            positive orthant, last is mapped to (0,1)
-        """
-        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-
-        alpha = softplus(F, alpha) + epsilon
-        beta = softplus(F, beta) + epsilon
-        one_probability = F.sigmoid(one_probability)
-        return (
-            alpha.squeeze(axis=-1),
-            beta.squeeze(axis=-1),
-            one_probability.squeeze(axis=-1),
-        )
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-    @property
-    def value_in_support(self) -> float:
-        return 0.5
+        return super().domain_map(F, alpha, beta, one_probability)
