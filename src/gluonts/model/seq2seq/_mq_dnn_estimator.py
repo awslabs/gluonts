@@ -101,6 +101,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         Optimizing for more quantiles than are of direct interest to you can result
         in improved performance due to a regularizing effect.
         (default: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    distr_output
+        DistributionOutput to use. Only one between `quantile` and `distr_output`
+        can be set. (Default: None)
     trainer
         The GluonTS trainer to use for training. (default: Trainer())
     scaling
@@ -175,7 +178,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             if (quantiles is not None) or (distr_output is not None)
             else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         )
-        self.distr_output = distr_output
 
         assert (
             len(self.channels_seq)
@@ -308,7 +310,8 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         context_length: Optional[int] = None,
         decoder_mlp_dim_seq: List[int] = None,
         trainer: Trainer = Trainer(),
-        quantiles: List[float] = None,
+        quantiles: Optional[List[float]] = None,
+        distr_output: Optional[DistributionOutput] = None,
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
     ) -> None:
@@ -328,7 +331,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         )
         self.quantiles = (
             quantiles
-            if quantiles is not None
+            if (quantiles is not None) or (distr_output is not None)
             else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         )
 
@@ -351,12 +354,15 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        quantile_output = QuantileOutput(self.quantiles)
+        quantile_output = (
+            QuantileOutput(self.quantiles) if self.quantiles else None
+        )
 
         super().__init__(
             encoder=encoder,
             decoder=decoder,
             quantile_output=quantile_output,
+            distr_output=distr_output,
             freq=freq,
             prediction_length=prediction_length,
             context_length=context_length,
