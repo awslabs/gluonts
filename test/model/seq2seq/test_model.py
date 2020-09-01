@@ -63,7 +63,7 @@ def test_accuracy(
     )
 
     accuracy_test(
-        Estimator, hyperparameters, accuracy=0.20 if quantiles else 0.40
+        Estimator, hyperparameters, accuracy=0.20 if quantiles else 0.50
     )
 
 
