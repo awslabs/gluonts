@@ -44,8 +44,10 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         encoder to decoder mapping block.
     decoder: Seq2SeqDecoder
         decoder block.
-    output
-        An instance of DistributionOutput or QuantileOutput to use
+    quantile_output
+        quantile output
+    distr_output
+        distribution output
     context_length: int,
         length of the encoding sequence.
     cardinality: List[int],
