@@ -15,6 +15,8 @@ from typing import List, Optional, Tuple, Union
 
 # Third-party imports
 import mxnet as mx
+from mxnet.gluon.rnn import ZoneoutCell
+from mxnet.gluon.contrib.rnn import VariationalDropoutCell
 
 # Standard library imports
 import numpy as np
@@ -28,6 +30,7 @@ from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
 from gluonts.support.util import weighted_average
+from gluonts.mx.block.dropout import VariationalZoneoutCell, RNNZoneoutCell
 from gluonts.mx.block.regularization import (
     ActivationRegularizationLoss,
     TemporalActivationRegularizationLoss,
@@ -56,6 +59,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         cardinality: List[int],
         embedding_dimension: List[int],
         lags_seq: List[int],
+        dropoutcell_type: str = "ZoneoutCell",
         scaling: bool = True,
         dtype: DType = np.float32,
         **kwargs,
@@ -67,6 +71,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.history_length = history_length
         self.context_length = context_length
         self.prediction_length = prediction_length
+        self.dropoutcell_type = dropoutcell_type
         self.dropout_rate = dropout_rate
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
@@ -97,17 +102,32 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             len(self.target_shape) <= 1
         ), "Argument `target_shape` should be a tuple with 1 element at most"
 
+        Dropout = {
+            "ZoneoutCell": ZoneoutCell,
+            "RNNZoneoutCell": RNNZoneoutCell,
+            "VariationalDropoutCell": VariationalDropoutCell,
+            "VariationalZoneoutCell": VariationalZoneoutCell,
+        }[self.dropoutcell_type]
+
         with self.name_scope():
             self.proj_distr_args = distr_output.get_args_proj()
             self.rnn = mx.gluon.rnn.HybridSequentialRNNCell()
             for k in range(num_layers):
                 cell = RnnCell(hidden_size=num_cells)
                 cell = mx.gluon.rnn.ResidualCell(cell) if k > 0 else cell
-                cell = (
-                    mx.gluon.rnn.ZoneoutCell(cell, zoneout_states=dropout_rate)
-                    if dropout_rate > 0.0
-                    else cell
-                )
+                # we found that adding dropout to outputs doesn't improve the performance, so we only drop states
+                if "Zoneout" in self.dropoutcell_type:
+                    cell = (
+                        Dropout(cell, zoneout_states=dropout_rate)
+                        if dropout_rate > 0.0
+                        else cell
+                    )
+                elif "Dropout" in self.dropoutcell_type:
+                    cell = (
+                        Dropout(cell, drop_states=dropout_rate)
+                        if dropout_rate > 0.0
+                        else cell
+                    )
                 self.rnn.add(cell)
             self.rnn.cast(dtype=dtype)
             self.embedder = FeatureEmbedder(
