@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 # Third-party imports
 import mxnet as mx
@@ -31,6 +31,10 @@ from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
 from gluonts.support.util import weighted_average
 from gluonts.mx.block.dropout import VariationalZoneoutCell, RNNZoneoutCell
+from gluonts.mx.block.regularization import (
+    ActivationRegularizationLoss,
+    TemporalActivationRegularizationLoss,
+)
 
 
 def prod(xs):
@@ -311,6 +315,23 @@ class DeepARNetwork(mx.gluon.HybridBlock):
 
 
 class DeepARTrainingNetwork(DeepARNetwork):
+    @validated()
+    def __init__(self, alpha: float = 0, beta: float = 0, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        # regularization weights
+        self.alpha = alpha
+        self.beta = beta
+
+        if alpha:
+            self.ar_loss = ActivationRegularizationLoss(
+                alpha, time_axis=1, batch_axis=0
+            )
+        if beta:
+            self.tar_loss = TemporalActivationRegularizationLoss(
+                beta, time_axis=1, batch_axis=0
+            )
+
     def distribution(
         self,
         feat_static_cat: Tensor,
@@ -321,7 +342,8 @@ class DeepARTrainingNetwork(DeepARNetwork):
         future_time_feat: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
-    ) -> Distribution:
+        return_rnn_outputs: bool = False,
+    ) -> Union[Distribution, Tuple[Distribution, Tensor]]:
         """
 
         Returns the distribution predicted by the model on the range of
@@ -339,6 +361,9 @@ class DeepARTrainingNetwork(DeepARNetwork):
         Distribution
             a distribution object whose mean has shape:
             (batch_size, context_length + prediction_length).
+        Tensor
+            (optional) when return_rnn_outputs=True, rnn_outputs will be returned
+            so that it could be used for regularization
         """
         # unroll the decoder in "training mode"
         # i.e. by providing future data as well
@@ -357,7 +382,16 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         distr_args = self.proj_distr_args(rnn_outputs)
 
-        return self.distr_output.distribution(distr_args, scale=scale)
+        # return the output of rnn layers if return_rnn_outputs=True, so that it can be used for regularization later
+        # assume no dropout for outputs, so can be directly used for activation regularization
+        return (
+            (
+                self.distr_output.distribution(distr_args, scale=scale),
+                rnn_outputs,
+            )
+            if return_rnn_outputs
+            else self.distr_output.distribution(distr_args, scale=scale)
+        )
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
@@ -393,7 +427,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         """
 
-        distr = self.distribution(
+        outputs = self.distribution(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
             past_time_feat=past_time_feat,
@@ -402,7 +436,11 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_time_feat=future_time_feat,
             future_target=future_target,
             future_observed_values=future_observed_values,
+            return_rnn_outputs=True,
         )
+        # since return_rnn_outputs=True, assert:
+        assert isinstance(outputs, tuple)
+        distr, rnn_outputs = outputs
 
         # put together target sequence
         # (batch_size, seq_len, *target_shape)
@@ -444,6 +482,17 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         # need to mask possible nans and -inf
         loss = F.where(condition=loss_weights, x=loss, y=F.zeros_like(loss))
+
+        # rnn_outputs is already merged into a single tensor
+        assert not isinstance(rnn_outputs, list)
+        # it seems that the trainer only uses the first return value for backward
+        # so we only add regularization to weighted_loss
+        if self.alpha:
+            ar_loss = self.ar_loss(rnn_outputs)
+            weighted_loss = weighted_loss + ar_loss
+        if self.beta:
+            tar_loss = self.tar_loss(rnn_outputs)
+            weighted_loss = weighted_loss + tar_loss
 
         return weighted_loss, loss
 
