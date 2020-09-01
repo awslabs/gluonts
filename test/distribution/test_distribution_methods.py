@@ -31,6 +31,9 @@ from gluonts.mx.distribution import (
     Binned,
     TransformedDistribution,
     Categorical,
+    ZeroInflatedBeta,
+    OneInflatedBeta,
+    ZeroAndOneInflatedBeta,
 )
 
 from gluonts.core.serde import load_json, dump_json
@@ -112,6 +115,31 @@ test_cases = [
         },
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 1.0])}),
+    (
+        ZeroInflatedBeta,
+        {
+            "alpha": mx.nd.array([0.175]),
+            "beta": mx.nd.array([0.6]),
+            "zero_probability": mx.nd.array([0.3]),
+        },
+    ),
+    (
+        OneInflatedBeta,
+        {
+            "alpha": mx.nd.array([0.175]),
+            "beta": mx.nd.array([0.6]),
+            "one_probability": mx.nd.array([0.3]),
+        },
+    ),
+    (
+        ZeroAndOneInflatedBeta,
+        {
+            "alpha": mx.nd.array([0.175]),
+            "beta": mx.nd.array([0.6]),
+            "zero_probability": mx.nd.array([0.3]),
+            "one_probability": mx.nd.array([0.3]),
+        },
+    ),
 ]
 
 test_output = {
@@ -165,6 +193,21 @@ test_output = {
         "stddev": mx.nd.array([31.622776, 1.0]),
         "variance": mx.nd.array([1000.0, 1.0]),
     },
+    "ZeroInflatedBeta": {
+        "mean": mx.nd.array([0.15806451612903227]),
+        "stddev": mx.nd.array([0.2822230782496945]),
+        "variance": mx.nd.array([0.07964986589673317]),
+    },
+    "OneInflatedBeta": {
+        "mean": mx.nd.array([0.45806451612903226]),
+        "stddev": mx.nd.array([0.44137416804715]),
+        "variance": mx.nd.array([0.19481115621931383]),
+    },
+    "ZeroAndOneInflatedBeta": {
+        "mean": mx.nd.array([0.3903225806451613]),
+        "stddev": mx.nd.array([0.45545503304667967]),
+        "variance": mx.nd.array([0.20743928712755205]),
+    },
 }
 
 # TODO: implement stddev methods for MultivariateGaussian and LowrankMultivariateGaussian
@@ -177,6 +220,9 @@ DISTRIBUTIONS = [
     Uniform,
     Binned,
     Poisson,
+    ZeroInflatedBeta,
+    OneInflatedBeta,
+    ZeroAndOneInflatedBeta,
 ]
 
 

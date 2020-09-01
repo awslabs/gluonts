@@ -30,7 +30,6 @@ from .distribution_output import DistributionOutput
 class Deterministic(Distribution):
     r"""
     Deterministic/Degenerate distribution.
-
     Parameters
     ----------
     value
