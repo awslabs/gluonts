@@ -11,6 +11,10 @@ Bibliography
 
 .. [DDT+16] Du, Nan, et al. "Recurrent Marked Temporal Point Processes: Embedding Event History to Vector." The 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. ACM, 2016.
 
+.. [GG16] Gal, Yarin, and Zoubin Ghahramani. "A theoretically grounded application of dropout in recurrent neural networks." Advances in neural information processing systems. 2016.
+
+.. [KMK16] Krueger, David, Tegan Maharaj, János Kramár, Mohammad Pezeshki, Nicolas Ballas, Nan Rosemary Ke, Anirudh Goyal, Yoshua Bengio, Aaron Courville, and Chris Pal. "Zoneout: Regularizing rnns by randomly preserving hidden activations." arXiv preprint arXiv:1606.01305 (2016).
+
 .. [LCY+18] Lai, Guokun, et al. "Modeling long-and short-term temporal patterns with deep neural networks." The 41st International ACM SIGIR Conference on Research & Development in Information Retrieval. ACM, 2018.
 
 .. [MKH19] Muller, Rafael, Simon Kornblith, and Geoffrey E. Hinton. "When does label smoothing help?." Advances in Neural Information Processing Systems. 2019.
