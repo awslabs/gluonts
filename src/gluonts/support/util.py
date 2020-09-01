@@ -168,7 +168,7 @@ def copy_parameters(
 
 def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
     params = inspect.signature(hb.hybrid_forward).parameters
-    param_names = list(params)
+    param_names = [k for k, v in params.items() if not str(v).startswith("*")]
     assert param_names[0] == "F", (
         f"Expected first argument of HybridBlock to be `F`, "
         f"but found `{param_names[0]}`"
