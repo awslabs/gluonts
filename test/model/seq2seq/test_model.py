@@ -30,6 +30,7 @@ def hyperparameters(dsinfo):
         learning_rate=1e-2,
         hybridize=True,
         context_length=dsinfo.prediction_length,
+        num_forking=1,
         num_batches_per_epoch=1,
         use_symbol_block_predictor=True,
     )
@@ -188,6 +189,7 @@ def test_backwards_compatibility():
     hps = {
         "freq": "D",
         "context_length": 5,
+        "num_forking": 4,
         "prediction_length": 3,
         "quantiles": [0.5, 0.1],
         "epochs": 3,
