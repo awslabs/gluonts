@@ -13,13 +13,12 @@
 
 import math
 
-from mxnet.gluon import HybridBlock
-from mxnet.gluon import nn
+from mxnet.gluon import HybridBlock, nn
 
 # First-party imports
-from gluonts.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
+from gluonts.mx.block.feature import FeatureEmbedder
 
 
 class DeepFactorNetworkBase(HybridBlock):
@@ -140,11 +139,11 @@ class DeepFactorTrainingNetwork(DeepFactorNetworkBase):
 class DeepFactorPredictionNetwork(DeepFactorNetworkBase):
     @validated()
     def __init__(
-        self, prediction_len: int, num_sample_paths: int, **kwargs
+        self, prediction_len: int, num_parallel_samples: int, **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.prediction_len = prediction_len
-        self.num_sample_paths = num_sample_paths
+        self.num_parallel_samples = num_parallel_samples
 
     def hybrid_forward(
         self,
@@ -181,7 +180,7 @@ class DeepFactorPredictionNetwork(DeepFactorNetworkBase):
         samples = F.concat(
             *[
                 F.sample_normal(fixed_effect, random_effect)
-                for _ in range(self.num_sample_paths)
+                for _ in range(self.num_parallel_samples)
             ],
             dim=2,
         )  # (batch_size, train_len + prediction_len, num_samples)

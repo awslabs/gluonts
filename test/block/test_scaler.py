@@ -15,7 +15,7 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.block import scaler
+from gluonts.mx.block import scaler
 
 
 test_cases = [
@@ -146,6 +146,12 @@ test_cases = [
         1e-10 * mx.nd.ones(shape=(5,)),
     ),
     (
+        scaler.MeanScaler(axis=2, minimum_scale=1e-6),
+        mx.nd.random.normal(shape=(5, 3, 30)),
+        mx.nd.zeros(shape=(5, 3, 30)),
+        1e-6 * mx.nd.ones(shape=(5, 3)),
+    ),
+    (
         scaler.MeanScaler(minimum_scale=1e-6),
         mx.nd.random.normal(shape=(5, 30, 1)),
         mx.nd.zeros(shape=(5, 30, 1)),
@@ -190,7 +196,7 @@ def test_scaler(s, target, observed, expected_scale):
         expected_target_scaled = mx.nd.broadcast_div(target, expected_scale)
     else:
         expected_target_scaled = mx.nd.broadcast_div(
-            target, expected_scale.expand_dims(axis=1)
+            target, expected_scale.expand_dims(axis=s.axis)
         )
 
     assert np.allclose(
@@ -204,4 +210,4 @@ def test_nopscaler(target, observed):
     target_scaled, scale = s(target, observed)
 
     assert mx.nd.norm(target - target_scaled) == 0
-    assert mx.nd.norm(mx.nd.ones_like(target).mean(axis=1) - scale) == 0
+    assert mx.nd.norm(mx.nd.ones_like(target).mean(axis=s.axis) - scale) == 0

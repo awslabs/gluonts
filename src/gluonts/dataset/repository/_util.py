@@ -14,13 +14,16 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
 
 def to_dict(
-    target_values: np.ndarray, start: str, cat: Optional[List[int]] = None
+    target_values: np.ndarray,
+    start: str,
+    cat: Optional[List[int]] = None,
+    item_id: Optional[Any] = None,
 ):
     def serialize(x):
         if np.isnan(x):
@@ -37,6 +40,9 @@ def to_dict(
     if cat is not None:
         res["feat_static_cat"] = cat
 
+    if item_id is not None:
+        res["item_id"] = item_id
+
     return res
 
 
@@ -50,7 +56,9 @@ def save_to_file(path: Path, data: List[Dict]):
             fp.write("\n".encode("utf-8"))
 
 
-def metadata(cardinality: int, freq: str, prediction_length: int):
+def metadata(
+    cardinality: Union[int, List[int]], freq: str, prediction_length: int
+):
     return {
         "freq": freq,
         "prediction_length": prediction_length,

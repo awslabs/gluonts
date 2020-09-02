@@ -19,16 +19,16 @@ from pandas.tseries.frequencies import to_offset
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.distribution.distribution import getF
 from gluonts.model.common import Tensor
+from gluonts.mx.distribution.distribution import getF
 from gluonts.support.util import _broadcast_param
 from gluonts.time_feature import (
-    TimeFeature,
-    MinuteOfHour,
-    HourOfDay,
     DayOfWeek,
-    WeekOfYear,
+    HourOfDay,
+    MinuteOfHour,
     MonthOfYear,
+    TimeFeature,
+    WeekOfYear,
 )
 
 
@@ -201,8 +201,7 @@ class LevelTrendISSM(LevelISSM):
         F = getF(seasonal_indicators)
 
         _transition_coeff = (
-            # TODO: this won't work if F == mx.sym
-            F.array([[1, 1], [0, 1]])
+            (F.diag(F.ones(shape=(2,)), k=0) + F.diag(F.ones(shape=(1,)), k=1))
             .expand_dims(axis=0)
             .expand_dims(axis=0)
         )
@@ -289,12 +288,12 @@ class CompositeISSM(ISSM):
             ]
         elif offset.name == "D":
             seasonal_issms = [
-                SeasonalityISSM(num_seasons=7)  # day-of-week seasonality
-            ]
+                SeasonalityISSM(num_seasons=7)
+            ]  # day-of-week seasonality
         elif offset.name == "B":  # TODO: check this case
             seasonal_issms = [
-                SeasonalityISSM(num_seasons=7)  # day-of-week seasonality
-            ]
+                SeasonalityISSM(num_seasons=7)
+            ]  # day-of-week seasonality
         elif offset.name == "H":
             seasonal_issms = [
                 SeasonalityISSM(num_seasons=24),  # hour-of-day seasonality

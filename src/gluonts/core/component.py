@@ -15,12 +15,10 @@
 import functools
 import inspect
 import logging
-import os
-import re
 from collections import OrderedDict
 from functools import singledispatch
 from pydoc import locate
-from typing import Any, Type, TypeVar, Union
+from typing import Any, Type, TypeVar
 
 # Third-party imports
 import mxnet as mx
@@ -30,15 +28,11 @@ from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 # First-party imports
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_code
-from gluonts.monkey_patch import monkey_patch_property_metaclass  # noqa: F401
 
 # Relative imports
 from . import fqname_for
 
-DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
-
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+logger = logging.getLogger(__name__)
 
 A = TypeVar("A")
 
@@ -77,7 +71,7 @@ def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
         )
 
     try:
-        return cls(**Model(**hyperparameters).__values__)  # type: ignore
+        return cls(**Model(**hyperparameters).__dict__)  # type: ignore
     except ValidationError as e:
         raise GluonTSHyperparametersError from e
 
@@ -267,17 +261,21 @@ def equals_parameter_dict(
     if type(this) != type(that):
         return False
 
-    this_prefix_length = len(this.prefix)
-    that_prefix_length = len(that.prefix)
+    def strip_prefix_enumeration(key, prefix):
+        if key.startswith(prefix):
+            name = key[len(prefix) :]
+        else:
+            prefix, args = key.split("_", 1)
+            name = prefix.rstrip("0123456789") + args
 
-    this_param_names_stripped = {
-        key[this_prefix_length:] if key.startswith(this.prefix) else key
-        for key in this.keys()
-    }
-    that_param_names_stripped = {
-        key[that_prefix_length:] if key.startswith(that.prefix) else key
-        for key in that.keys()
-    }
+        return name
+
+    this_param_names_stripped = [
+        strip_prefix_enumeration(key, this.prefix) for key in this.keys()
+    ]
+    that_param_names_stripped = [
+        strip_prefix_enumeration(key, that.prefix) for key in that.keys()
+    ]
 
     if not this_param_names_stripped == that_param_names_stripped:
         return False
@@ -341,9 +339,9 @@ def validated(base_model=None):
     >>> c = ComplexNumber(y=None)
     Traceback (most recent call last):
         ...
-    pydantic.error_wrappers.ValidationError: 1 validation error
+    pydantic.error_wrappers.ValidationError: 1 validation error for ComplexNumberModel
     y
-      value is not a valid float (type=type_error.float)
+      none is not an allowed value (type=type_error.none.not_allowed)
 
     Internally, the decorator delegates all validation and conversion logic to
     `a Pydantic model <https://pydantic-docs.helpmanual.io/>`_, which can be
@@ -393,15 +391,13 @@ def validated(base_model=None):
 
         if base_model is None:
             PydanticModel = create_model(
-                model_name=f"{init_clsnme}Model",
+                f"{init_clsnme}Model",
                 __config__=BaseValidatedInitializerModel.Config,
                 **init_fields,
             )
         else:
             PydanticModel = create_model(
-                model_name=f"{init_clsnme}Model",
-                __base__=base_model,
-                **init_fields,
+                f"{init_clsnme}Model", __base__=base_model, **init_fields,
             )
 
         def validated_repr(self) -> str:
@@ -424,7 +420,7 @@ def validated(base_model=None):
             model = PydanticModel(**{**nmargs, **kwargs})
 
             # merge nmargs, kwargs, and the model fields into a single dict
-            all_args = {**nmargs, **kwargs, **model.__values__}
+            all_args = {**nmargs, **kwargs, **model.__dict__}
 
             # save the merged dictionary for Representable use, but only of the
             # __init_args__ is not already set in order to avoid overriding a
@@ -448,75 +444,6 @@ def validated(base_model=None):
         return init_wrapper
 
     return validator
-
-
-class MXContext:
-    """
-    Defines `custom data type validation
-    <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for
-    the :class:`~mxnet.context.Context` data type.
-    """
-
-    @classmethod
-    def validate(cls, v: Union[str, mx.Context]) -> mx.Context:
-        if isinstance(v, mx.Context):
-            return v
-
-        m = re.search(r"^(?P<dev_type>cpu|gpu)(\((?P<dev_id>\d+)\))?$", v)
-
-        if m:
-            return mx.Context(m["dev_type"], int(m["dev_id"] or 0))
-        else:
-            raise ValueError(
-                f"bad MXNet context {v}, expected either an "
-                f"mx.context.Context or its string representation"
-            )
-
-    @classmethod
-    def __get_validators__(cls) -> mx.Context:
-        yield cls.validate
-
-
-mx.Context.validate = MXContext.validate
-mx.Context.__get_validators__ = MXContext.__get_validators__
-
-
-NUM_GPUS = None
-
-
-def num_gpus(refresh=False):
-    global NUM_GPUS
-    if NUM_GPUS is None or refresh:
-        n = 0
-        try:
-            n = mx.context.num_gpus()
-        except mx.base.MXNetError as e:
-            logger.error(f"Failure when querying GPU: {e}")
-        NUM_GPUS = n
-    return NUM_GPUS
-
-
-def get_mxnet_context(gpu_number=0) -> mx.Context:
-    """
-    Returns either CPU or GPU context
-    """
-    n = num_gpus()
-    if n == 0:
-        logging.info("Using CPU")
-        return mx.context.cpu()
-    else:
-        logging.info("Using GPU")
-        return mx.context.gpu(gpu_number)
-
-
-def check_gpu_support() -> bool:
-    """
-    Emits a log line and returns a boolean that indicate whether
-    the currently installed MXNet version has GPU support.
-    """
-    n = num_gpus()
-    logger.info(f'MXNet GPU support is {"ON" if n > 0 else "OFF"}')
-    return False if n == 0 else True
 
 
 class DType:

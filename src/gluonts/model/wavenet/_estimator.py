@@ -13,8 +13,7 @@
 
 # Standard library imports
 import logging
-import re
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -23,25 +22,27 @@ import numpy as np
 # First-party imports
 from gluonts import transform
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import TrainDataLoader
+from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import (
     copy_parameters,
     get_hybrid_forward_input_names,
 )
-from gluonts.time_feature import time_features_from_frequency_str
-from gluonts.trainer import Trainer
+from gluonts.time_feature import (
+    get_seasonality,
+    time_features_from_frequency_str,
+)
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    DataEntry,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     SetFieldIfNotPresent,
@@ -88,21 +89,6 @@ class QuantizeScaled(SimpleTransformation):
         )
         data[self.scale] = np.array([scale])
         return data
-
-
-def _get_seasonality(freq: str, seasonality_dict: Dict) -> int:
-    match = re.match(r"(\d*)(\w+)", freq)
-    assert match, "Cannot match freq regex"
-    multiple, base_freq = match.groups()
-    multiple = int(multiple) if multiple else 1
-    seasonality = seasonality_dict[base_freq]
-    if seasonality % multiple != 0:
-        logging.warning(
-            f"multiple {multiple} does not divide base seasonality {seasonality}."
-            f"Falling back to seasonality 1"
-        )
-        return 1
-    return seasonality // multiple
 
 
 class WaveNetEstimator(GluonEstimator):
@@ -167,7 +153,7 @@ class WaveNetEstimator(GluonEstimator):
         n_skip=32,
         dilation_depth: Optional[int] = None,
         n_stacks: int = 1,
-        train_window_length: int = 1000,
+        train_window_length: Optional[int] = None,
         temperature: float = 1.0,
         act_type: str = "elu",
         num_parallel_samples: int = 200,
@@ -191,7 +177,7 @@ class WaveNetEstimator(GluonEstimator):
           2 * prediction_length.
         :param n_stacks: Number of dilation stacks in wavenet architecture
         :param train_window_length: Length of windows used for training. This should be
-          longer than context + prediction length. Larger values result in more efficient
+          longer than prediction length. Larger values result in more efficient
           reuse of computations for convolutions.
         :param temperature: Temparature used for sampling from softmax distribution.
           For temperature = 1.0 sampling is according to estimated probability.
@@ -212,13 +198,17 @@ class WaveNetEstimator(GluonEstimator):
         self.n_residue = n_residue
         self.n_skip = n_skip
         self.n_stacks = n_stacks
-        self.train_window_length = train_window_length
+        self.train_window_length = (
+            train_window_length
+            if train_window_length is not None
+            else prediction_length
+        )
         self.temperature = temperature
         self.act_type = act_type
         self.num_parallel_samples = num_parallel_samples
 
         seasonality = (
-            _get_seasonality(
+            get_seasonality(
                 self.freq,
                 {
                     "H": 7 * 24,
@@ -256,9 +246,16 @@ class WaveNetEstimator(GluonEstimator):
             f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
         )
 
-    def train(self, training_data: Dataset) -> Predictor:
+    def train(
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
+        **kwargs,
+    ) -> Predictor:
         has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
-        mean_length = int(np.mean([len(d["target"]) for d in training_data]))
         low = -10.0 if has_negative_data else 0
         high = 10.0
         bin_centers = np.linspace(low, high, self.num_bins)
@@ -266,19 +263,13 @@ class WaveNetEstimator(GluonEstimator):
             [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
         )
 
-        # Here we override the prediction length for training.
-        # This computes the loss over longer windows and makes the convolutions more
-        # efficient, since calculations are reused.
-        pred_length = min(mean_length, self.train_window_length)
-
-        logging.info(f"mean series length = {mean_length}")
-        logging.info(f"using training windows of length = {pred_length}")
-
-        transformation = self.create_transformation(
-            bin_edges, pred_length=pred_length
+        logging.info(
+            f"using training windows of length = {self.train_window_length}"
         )
 
-        transformation.estimate(iter(training_data))
+        transformation = self.create_transformation(
+            bin_edges, pred_length=self.train_window_length
+        )
 
         training_data_loader = TrainDataLoader(
             dataset=training_data,
@@ -286,19 +277,37 @@ class WaveNetEstimator(GluonEstimator):
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             ctx=self.trainer.ctx,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
+            **kwargs,
         )
+
+        validation_data_loader = None
+        if validation_data is not None:
+            validation_data_loader = ValidationDataLoader(
+                dataset=validation_data,
+                transform=transformation,
+                batch_size=self.trainer.batch_size,
+                ctx=self.trainer.ctx,
+                dtype=self.dtype,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                **kwargs,
+            )
 
         # ensure that the training network is created within the same MXNet
         # context as the one that will be used during training
         with self.trainer.ctx:
             params = self._get_wavenet_args(bin_centers)
-            params.update(pred_length=pred_length)
+            params.update(pred_length=self.train_window_length)
             trained_net = WaveNet(**params)
 
         self.trainer(
             net=trained_net,
             input_names=get_hybrid_forward_input_names(trained_net),
             train_iter=training_data_loader,
+            validation_iter=validation_data_loader,
         )
 
         # ensure that the prediction network is created within the same MXNet

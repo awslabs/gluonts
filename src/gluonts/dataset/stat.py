@@ -22,8 +22,8 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.core.exception import assert_data_error
-from gluonts.gluonts_tqdm import tqdm
 from gluonts.dataset.field_names import FieldName
+from gluonts.gluonts_tqdm import tqdm
 
 
 class ScaleHistogram:
@@ -117,6 +117,7 @@ class DatasetStatistics(NamedTuple):
     min_target: float
     feat_static_real: List[Set[float]]
     feat_static_cat: List[Set[int]]
+    num_past_feat_dynamic_real: Optional[int]
     num_feat_dynamic_real: Optional[int]
     num_feat_dynamic_cat: Optional[int]
     num_missing_values: int
@@ -164,6 +165,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     observed_feat_static_real: Optional[List[Set[float]]] = None
     num_feat_static_real: Optional[int] = None
     num_feat_static_cat: Optional[int] = None
+    num_past_feat_dynamic_real: Optional[int] = None
     num_feat_dynamic_real: Optional[int] = None
     num_feat_dynamic_cat: Optional[int] = None
     num_missing_values = 0
@@ -271,14 +273,14 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
             else:
                 if num_feat_dynamic_cat is None:
                     # first num_feat_dynamic_cat found
-                    num_feat_dynamic_cat = feat_dynamic_cat.shape[0]
+                    num_feat_dynamic_cat = len(feat_dynamic_cat)
                 else:
                     assert_data_error(
-                        num_feat_dynamic_cat == feat_dynamic_cat.shape[0],
+                        num_feat_dynamic_cat == len(feat_dynamic_cat),
                         "Found instances with different number of features in "
                         "feat_dynamic_cat, found one with {} and another with {}.",
                         num_feat_dynamic_cat,
-                        feat_dynamic_cat.shape[0],
+                        len(feat_dynamic_cat),
                     )
 
                 assert_data_error(
@@ -286,7 +288,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                     "Features values have to be finite and cannot exceed single "
                     "precision floating point range.",
                 )
-                num_feat_dynamic_cat_time_steps = feat_dynamic_cat.shape[1]
+                num_feat_dynamic_cat_time_steps = len(feat_dynamic_cat[0])
                 assert_data_error(
                     num_feat_dynamic_cat_time_steps == len(target),
                     "Each feature in feat_dynamic_cat has to have the same length as "
@@ -297,11 +299,11 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 )
 
             # FEAT_DYNAMIC_REAL
-            feat_dynamic_real = (
-                ts[FieldName.FEAT_DYNAMIC_REAL]
-                if FieldName.FEAT_DYNAMIC_REAL in ts
-                else None
-            )
+            feat_dynamic_real = None
+            if FieldName.FEAT_DYNAMIC_REAL in ts:
+                feat_dynamic_real = ts[FieldName.FEAT_DYNAMIC_REAL]
+            elif FieldName.FEAT_DYNAMIC_REAL_LEGACY in ts:
+                feat_dynamic_real = ts[FieldName.FEAT_DYNAMIC_REAL_LEGACY]
 
             if feat_dynamic_real is None:
                 # feat_dynamic_real not found, check it was the first ts we encounter or
@@ -315,14 +317,14 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
             else:
                 if num_feat_dynamic_real is None:
                     # first num_feat_dynamic_real found
-                    num_feat_dynamic_real = feat_dynamic_real.shape[0]
+                    num_feat_dynamic_real = len(feat_dynamic_real)
                 else:
                     assert_data_error(
-                        num_feat_dynamic_real == feat_dynamic_real.shape[0],
+                        num_feat_dynamic_real == len(feat_dynamic_real),
                         "Found instances with different number of features in "
                         "feat_dynamic_real, found one with {} and another with {}.",
                         num_feat_dynamic_real,
-                        feat_dynamic_real.shape[0],
+                        len(feat_dynamic_real),
                     )
 
                 assert_data_error(
@@ -330,7 +332,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                     "Features values have to be finite and cannot exceed single "
                     "precision floating point range.",
                 )
-                num_feat_dynamic_real_time_steps = feat_dynamic_real.shape[1]
+                num_feat_dynamic_real_time_steps = len(feat_dynamic_real[0])
                 assert_data_error(
                     num_feat_dynamic_real_time_steps == len(target),
                     "Each feature in feat_dynamic_real has to have the same length as "
@@ -338,6 +340,40 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                     "and a target of length {}.",
                     num_feat_dynamic_real_time_steps,
                     len(target),
+                )
+
+            # PAST_FEAT_DYNAMIC_REAL
+            past_feat_dynamic_real = None
+            if FieldName.PAST_FEAT_DYNAMIC_REAL in ts:
+                past_feat_dynamic_real = ts[FieldName.PAST_FEAT_DYNAMIC_REAL]
+
+            if past_feat_dynamic_real is None:
+                # past_feat_dynamic_real not found, check it was the first ts we encounter or
+                # that past_feat_dynamic_real were seen before
+                assert_data_error(
+                    num_past_feat_dynamic_real is None
+                    or num_past_feat_dynamic_real == 0,
+                    "past_feat_dynamic_real was found for some instances but not others.",
+                )
+                num_past_feat_dynamic_real = 0
+            else:
+                if num_past_feat_dynamic_real is None:
+                    # first num_past_feat_dynamic_real found
+                    num_past_feat_dynamic_real = len(past_feat_dynamic_real)
+                else:
+                    assert_data_error(
+                        num_past_feat_dynamic_real
+                        == len(past_feat_dynamic_real),
+                        "Found instances with different number of features in "
+                        "past_feat_dynamic_real, found one with {} and another with {}.",
+                        num_past_feat_dynamic_real,
+                        len(past_feat_dynamic_real),
+                    )
+
+                assert_data_error(
+                    np.all(np.isfinite(past_feat_dynamic_real)),
+                    "Features values have to be finite and cannot exceed single "
+                    "precision floating point range.",
                 )
 
     assert_data_error(num_time_series > 0, "Time series dataset is empty!")
@@ -373,6 +409,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
         feat_static_cat=observed_feat_static_cat
         if observed_feat_static_cat
         else [],
+        num_past_feat_dynamic_real=num_past_feat_dynamic_real,
         num_feat_dynamic_real=num_feat_dynamic_real,
         num_feat_dynamic_cat=num_feat_dynamic_cat,
         num_time_observations=num_time_observations,

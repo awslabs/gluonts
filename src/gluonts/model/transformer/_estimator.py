@@ -20,16 +20,24 @@ from mxnet.gluon import HybridBlock
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.distribution import StudentTOutput, DistributionOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+
+# Relative imports
+from gluonts.model.transformer._network import (
+    TransformerPredictionNetwork,
+    TransformerTrainingNetwork,
+)
+from gluonts.model.transformer.trans_decoder import TransformerDecoder
+from gluonts.model.transformer.trans_encoder import TransformerEncoder
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
     time_features_from_frequency_str,
 )
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
@@ -43,14 +51,6 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
 )
-
-# Relative imports
-from gluonts.model.transformer._network import (
-    TransformerPredictionNetwork,
-    TransformerTrainingNetwork,
-)
-from gluonts.model.transformer.trans_encoder import TransformerEncoder
-from gluonts.model.transformer.trans_decoder import TransformerDecoder
 
 
 class TransformerEstimator(GluonEstimator):
@@ -153,9 +153,9 @@ class TransformerEstimator(GluonEstimator):
         assert (
             cardinality is not None or not use_feat_static_cat
         ), "You must set `cardinality` if `use_feat_static_cat=True`"
-        assert cardinality is None or [
-            c > 0 for c in cardinality
-        ], "Elements of `cardinality` should be > 0"
+        assert cardinality is None or all(
+            [c > 0 for c in cardinality]
+        ), "Elements of `cardinality` should be > 0"
         assert (
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"

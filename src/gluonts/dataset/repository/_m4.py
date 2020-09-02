@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from pathlib import Path
-import os
 import json
+import os
+from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 
@@ -72,7 +72,12 @@ def generate_m4_dataset(
     save_to_file(
         train_file,
         [
-            to_dict(target_values=target, start=mock_start_dataset, cat=[cat])
+            to_dict(
+                target_values=target,
+                start=mock_start_dataset,
+                cat=[cat],
+                item_id=cat,
+            )
             for cat, target in enumerate(train_target_values)
         ],
     )
@@ -80,7 +85,12 @@ def generate_m4_dataset(
     save_to_file(
         test_file,
         [
-            to_dict(target_values=target, start=mock_start_dataset, cat=[cat])
+            to_dict(
+                target_values=target,
+                start=mock_start_dataset,
+                cat=[cat],
+                item_id=cat,
+            )
             for cat, target in enumerate(test_target_values)
         ],
     )

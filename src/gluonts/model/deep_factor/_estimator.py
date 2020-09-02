@@ -16,20 +16,14 @@ from typing import List, Optional
 
 # First-party imports
 from gluonts import transform
-from gluonts.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.distribution import DistributionOutput, StudentTOutput
-
-from gluonts.model.deep_factor.RNNModel import RNNModel
-from gluonts.model.deep_factor._network import (
-    DeepFactorTrainingNetwork,
-    DeepFactorPredictionNetwork,
-)
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.time_feature import time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
@@ -39,8 +33,8 @@ from gluonts.transform import (
     Transformation,
 )
 
-
-# Third-party imports
+from ._network import DeepFactorPredictionNetwork, DeepFactorTrainingNetwork
+from .RNNModel import RNNModel
 
 
 class DeepFactorEstimator(GluonEstimator):
@@ -73,7 +67,7 @@ class DeepFactorEstimator(GluonEstimator):
         Trainer object to be used (default: Trainer()).
     context_length
         Training length (default: None, in which case context_length = prediction_length).
-    num_eval_samples
+    num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100).
     cardinality
@@ -99,7 +93,7 @@ class DeepFactorEstimator(GluonEstimator):
         cell_type: str = "lstm",
         trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         cardinality: List[int] = list([1]),
         embedding_dimension: int = 10,
         distr_output: DistributionOutput = StudentTOutput(),
@@ -121,15 +115,15 @@ class DeepFactorEstimator(GluonEstimator):
         assert (
             num_layers_local > 0
         ), "The value of `num_layers_local` should be > 0"
-        assert [
-            c > 0 for c in cardinality
-        ], "Elements of `cardinality` should be > 0"
+        assert all(
+            [c > 0 for c in cardinality]
+        ), "Elements of `cardinality` should be > 0"
         assert (
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
         assert (
-            num_eval_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -137,7 +131,7 @@ class DeepFactorEstimator(GluonEstimator):
         )
         self.prediction_length = prediction_length
         self.distr_output = distr_output
-        self.num_sample_paths = num_eval_samples
+        self.num_parallel_samples = num_parallel_samples
         self.cardinality = cardinality
         self.embedding_dimensions = [embedding_dimension for _ in cardinality]
 
@@ -204,7 +198,7 @@ class DeepFactorEstimator(GluonEstimator):
             global_model=trained_network.global_model,
             local_model=trained_network.local_model,
             prediction_len=self.prediction_length,
-            num_sample_paths=self.num_sample_paths,
+            num_parallel_samples=self.num_parallel_samples,
             params=trained_network.collect_params(),
         )
 

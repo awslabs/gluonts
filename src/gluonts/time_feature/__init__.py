@@ -23,10 +23,9 @@ from ._base import (
     WeekOfYear,
     time_features_from_frequency_str,
 )
-
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
-
 from .lag import get_lags_for_frequency
+from .seasonality import get_seasonality
 
 __all__ = [
     "DayOfMonth",
@@ -41,6 +40,7 @@ __all__ = [
     "SpecialDateFeatureSet",
     "get_lags_for_frequency",
     "time_features_from_frequency_str",
+    "get_seasonality",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

@@ -12,12 +12,21 @@ assignees: ''
 ## To Reproduce
 (Please provide minimal example of code snippet that reproduces the error. For existing examples, please provide link.)
 
-## Error Message
-(Paste the complete error message, including stack trace.)
+```python
+put code here
+```
+
+## Error message or code output
+(Paste the complete error message, including stack trace, or the undesired output that the above snippet produces.)
+
+```
+put error or undesired output here
+```
 
 ## Environment
 - Operating system:
 - Python version:
 - GluonTS version:
+- MXNet version:
 
 (Add as much information about your environment as possible, e.g. dependencies versions.)

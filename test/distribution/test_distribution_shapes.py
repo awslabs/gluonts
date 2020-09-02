@@ -17,20 +17,26 @@ import pytest
 import mxnet as mx
 
 from gluonts.support.util import make_nd_diag
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     Distribution,
     Gaussian,
+    Gamma,
+    Beta,
     Laplace,
     MixtureDistribution,
     MultivariateGaussian,
     NegativeBinomial,
     PiecewiseLinear,
+    Poisson,
     StudentT,
     Uniform,
     TransformedDistribution,
+    Dirichlet,
+    DirichletMultinomial,
 )
-from gluonts.distribution.bijection import AffineTransformation
-from gluonts.distribution.box_cox_tranform import BoxCoxTranform
+from gluonts.mx.distribution.bijection import AffineTransformation
+from gluonts.mx.distribution.box_cox_transform import BoxCoxTransform
+from gluonts.model.tpp.distribution import Loglogistic, Weibull
 
 
 @pytest.mark.parametrize(
@@ -40,6 +46,22 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
             Gaussian(
                 mu=mx.nd.zeros(shape=(3, 4, 5)),
                 sigma=mx.nd.ones(shape=(3, 4, 5)),
+            ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            Gamma(
+                alpha=mx.nd.ones(shape=(3, 4, 5)),
+                beta=mx.nd.ones(shape=(3, 4, 5)),
+            ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            Beta(
+                alpha=mx.nd.ones(shape=(3, 4, 5)),
+                beta=mx.nd.ones(shape=(3, 4, 5)),
             ),
             (3, 4, 5),
             (),
@@ -61,6 +83,14 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
             (3, 4),
             (5,),
         ),
+        (Dirichlet(alpha=mx.nd.ones(shape=(3, 4, 5))), (3, 4), (5,)),
+        (
+            DirichletMultinomial(
+                dim=5, n_trials=9, alpha=mx.nd.ones(shape=(3, 4, 5))
+            ),
+            (3, 4),
+            (5,),
+        ),
         (
             Laplace(
                 mu=mx.nd.zeros(shape=(3, 4, 5)), b=mx.nd.ones(shape=(3, 4, 5))
@@ -76,6 +106,7 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
             (3, 4, 5),
             (),
         ),
+        (Poisson(rate=mx.nd.ones(shape=(3, 4, 5))), (3, 4, 5), ()),
         (
             Uniform(
                 low=-mx.nd.ones(shape=(3, 4, 5)),
@@ -180,12 +211,24 @@ from gluonts.distribution.box_cox_tranform import BoxCoxTranform
                     high=mx.nd.ones(shape=(3, 4, 5)),
                 ),
                 [
-                    BoxCoxTranform(
+                    BoxCoxTransform(
                         lambda_1=mx.nd.ones(shape=(3, 4, 5)),
                         lambda_2=mx.nd.zeros(shape=(3, 4, 5)),
                     )
                 ],
             ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            Loglogistic(
+                mx.nd.zeros(shape=(3, 4, 5)), mx.nd.ones(shape=(3, 4, 5)),
+            ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            Weibull(mx.nd.ones(shape=(3, 4, 5)), mx.nd.ones(shape=(3, 4, 5)),),
             (3, 4, 5),
             (),
         ),

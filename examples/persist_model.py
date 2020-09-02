@@ -22,7 +22,7 @@ from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.support.util import get_download_path
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.model.predictor import Predictor
 
 if __name__ == "__main__":
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     predictor_deserialized = Predictor.deserialize(model_path)
 
     forecast_it, ts_it = make_evaluation_predictions(
-        dataset.test, predictor=predictor_deserialized, num_eval_samples=100
+        dataset.test, predictor=predictor_deserialized, num_samples=100
     )
 
     agg_metrics, item_metrics = Evaluator()(

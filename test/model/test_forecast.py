@@ -24,7 +24,7 @@ from gluonts.model.forecast import (
     DistributionForecast,
 )
 
-from gluonts.distribution import Uniform
+from gluonts.mx.distribution import Uniform
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
@@ -63,7 +63,7 @@ def test_Forecast(name):
         for quant_pred in map(forecast.quantile, test_cases):
             assert np.isclose(
                 quant_pred[0], quantile
-            ), f"Expected {quantile} quantile {quantile}. Obtained {quant_pred}."
+            ), f"Expected {percentile(quantile)} quantile {quantile}. Obtained {quant_pred}."
 
     assert forecast.prediction_length == 1
     assert len(forecast.index) == pred_length
@@ -88,9 +88,44 @@ def test_DistributionForecast():
             expected = quantile * np.array([1.0, 2.0])
             assert np.allclose(
                 quant_pred, expected
-            ), f"Expected {quantile} quantile {quantile}. Obtained {quant_pred}."
+            ), f"Expected {percentile(quantile)} quantile {quantile}. Obtained {quant_pred}."
 
     pred_length = 2
     assert forecast.prediction_length == pred_length
     assert len(forecast.index) == pred_length
     assert forecast.index[0] == pd.Timestamp(START_DATE)
+
+
+@pytest.mark.parametrize(
+    "forecast, exp_index",
+    [
+        (
+            SampleForecast(
+                samples=np.random.normal(size=(100, 7, 3)),
+                start_date=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="1D",
+            ),
+            pd.date_range(
+                start=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="1D",
+                periods=7,
+            ),
+        ),
+        (
+            DistributionForecast(
+                Uniform(
+                    low=mx.nd.zeros(shape=(5, 2)),
+                    high=mx.nd.ones(shape=(5, 2)),
+                ),
+                start_date=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="W",
+            ),
+            pd.date_range(
+                start=pd.Timestamp("2020-01-01 00:00:00"), freq="W", periods=5,
+            ),
+        ),
+    ],
+)
+def test_forecast_multivariate(forecast, exp_index):
+    assert forecast.prediction_length == len(exp_index)
+    assert np.all(forecast.index == exp_index)

@@ -14,12 +14,13 @@
 # Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.block.scaler import MeanScaler
 from gluonts.core.component import validated
-from gluonts.distribution import DistributionOutput
 from gluonts.model.common import Tensor
+
+# First-party imports
+from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.block.scaler import MeanScaler
+from gluonts.mx.distribution import DistributionOutput
 
 
 class CanonicalNetworkBase(HybridBlock):
@@ -118,11 +119,11 @@ class CanonicalTrainingNetwork(CanonicalNetworkBase):
 class CanonicalPredictionNetwork(CanonicalNetworkBase):
     @validated()
     def __init__(
-        self, prediction_len: int, num_sample_paths: int, **kwargs
+        self, prediction_len: int, num_parallel_samples: int, **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.prediction_len = prediction_len
-        self.num_sample_paths = num_sample_paths
+        self.num_parallel_samples = num_parallel_samples
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
@@ -178,7 +179,7 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
             self.proj_distr_args(outputs), scale=target_scale
         )
         samples = distr.sample(
-            self.num_sample_paths
+            self.num_parallel_samples
         )  # (num_samples, batch_size, prediction_length, 1)
 
         return samples.swapaxes(0, 1)

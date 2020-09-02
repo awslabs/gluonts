@@ -11,8 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
+
+# Standard library imports
+import numpy as np
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
@@ -24,16 +26,17 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.distribution.lds import ParameterBounds
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import (
-    AddObservedValuesIndicator,
     AddAgeFeature,
+    AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
-    Chain,
     CanonicalInstanceSplitter,
+    Chain,
     ExpandDimArray,
     RemoveFields,
     SetField,
@@ -57,8 +60,8 @@ SEASON_INDICATORS_FIELD = "seasonal_indicators"
 FREQ_LONGEST_PERIOD_DICT = {
     "M": 12,  # yearly seasonality
     "W-SUN": 52,  # yearly seasonality
-    "D": 365,  # yearly seasonality
-    "B": 365,  # yearly seasonality
+    "D": 31,  # monthly seasonality
+    "B": 22,  # monthly seasonality
     "H": 168,  # weekly seasonality
     "T": 1440,  # daily seasonality
 }
@@ -82,21 +85,30 @@ class DeepStateEstimator(GluonEstimator):
         Frequency of the data to train on and predict
     prediction_length
         Length of the prediction horizon
+    cardinality
+        Number of values of each categorical feature.
+        This must be set by default unless ``use_feat_static_cat``
+        is set to `False` explicitly (which is NOT recommended).
     add_trend
         Flag to indicate whether to include trend component in the
         state space model
     past_length
         This is the length of the training time series;
-        i.e., number of steps to unroll the RNN for before computing predictions.
-        Set this to (at most) the length of the shortest time series in the dataset.
-        (default: None, in which case the training length is set such that at least
+        i.e., number of steps to unroll the RNN for before computing 
+        predictions.
+        Set this to (at most) the length of the shortest time series in the 
+        dataset.
+        (default: None, in which case the training length is set such that 
+        at least
         `num_seasons_to_train` seasons are included in the training.
         See `num_seasons_to_train`)
     num_periods_to_train
         (Used only when `past_length` is not set)
         Number of periods to include in the training time series. (default: 4)
-        Here period corresponds to the longest cycle one can expect given the granularity of the time series.
-        See: https://stats.stackexchange.com/questions/120806/frequency-value-for-seconds-minutes-intervals-data-in-r
+        Here period corresponds to the longest cycle one can expect given 
+        the granularity of the time series.
+        See: https://stats.stackexchange.com/questions/120806/frequency
+        -value-for-seconds-minutes-intervals-data-in-r
     trainer
         Trainer object to be used (default: Trainer())
     num_layers
@@ -106,9 +118,11 @@ class DeepStateEstimator(GluonEstimator):
     cell_type
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
-    num_eval_samples
-        Number of samples paths to draw when computing predictions
-        (default: 100)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism 
+        during inference.
+        This is a model optimization that does not affect the accuracy (
+        default: 100).
     dropout_rate
         Dropout regularization parameter (default: 0.1)
     use_feat_dynamic_real
@@ -116,10 +130,7 @@ class DeepStateEstimator(GluonEstimator):
         (default: False)
     use_feat_static_cat
         Whether to use the ``feat_static_cat`` field from the data
-        (default: False)
-    cardinality
-        Number of values of each categorical feature.
-        This must be set if ``use_feat_static_cat == True`` (default: None)
+        (default: True)
     embedding_dimension
         Dimension of the embeddings for categorical features
         (default: [min(50, (cat+1)//2) for cat in cardinality])
@@ -128,6 +139,14 @@ class DeepStateEstimator(GluonEstimator):
     time_features
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
+    noise_std_bounds
+        Lower and upper bounds for the standard deviation of the observation
+        noise
+    prior_cov_bounds
+        Lower and upper bounds for the diagonal of the prior covariance matrix
+    innovation_bounds
+        Lower and upper bounds for the standard deviation of the observation 
+        noise
     """
 
     @validated()
@@ -135,22 +154,27 @@ class DeepStateEstimator(GluonEstimator):
         self,
         freq: str,
         prediction_length: int,
+        cardinality: List[int],
         add_trend: bool = False,
         past_length: Optional[int] = None,
         num_periods_to_train: int = 4,
-        trainer: Trainer = Trainer(epochs=25, hybridize=False),
+        trainer: Trainer = Trainer(
+            epochs=100, num_batches_per_epoch=50, hybridize=False
+        ),
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
-        num_eval_samples: int = 100,
+        num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        cardinality: Optional[List[int]] = None,
+        use_feat_static_cat: bool = True,
         embedding_dimension: Optional[List[int]] = None,
         issm: Optional[ISSM] = None,
         scaling: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
+        noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
+        prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
+        innovation_bounds: ParameterBounds = ParameterBounds(1e-6, 0.01),
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -163,18 +187,21 @@ class DeepStateEstimator(GluonEstimator):
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
         assert (
-            num_eval_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (cardinality is not None and use_feat_static_cat) or (
-            cardinality is None and not use_feat_static_cat
-        ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
-        assert cardinality is None or [
-            c > 0 for c in cardinality
-        ], "Elements of `cardinality` should be > 0"
-        assert embedding_dimension is None or [
+        assert not use_feat_static_cat or any(c > 1 for c in cardinality), (
+            f"Cardinality of at least one static categorical feature must be larger than 1 "
+            f"if `use_feat_static_cat=True`. But cardinality provided is: {cardinality}"
+        )
+        assert embedding_dimension is None or all(
             e > 0 for e in embedding_dimension
-        ], "Elements of `embedding_dimension` should be > 0"
+        ), "Elements of `embedding_dimension` should be > 0"
+
+        assert all(
+            np.isfinite(p.lower) and np.isfinite(p.upper) and p.lower > 0
+            for p in [noise_std_bounds, prior_cov_bounds, innovation_bounds]
+        ), "All parameter bounds should be finite, and lower bounds should be positive"
 
         self.freq = freq
         self.past_length = (
@@ -187,7 +214,7 @@ class DeepStateEstimator(GluonEstimator):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
-        self.num_sample_paths = num_eval_samples
+        self.num_parallel_samples = num_parallel_samples
         self.scaling = scaling
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
@@ -212,6 +239,10 @@ class DeepStateEstimator(GluonEstimator):
             if time_features is not None
             else time_features_from_frequency_str(self.freq)
         )
+
+        self.noise_std_bounds = noise_std_bounds
+        self.prior_cov_bounds = prior_cov_bounds
+        self.innovation_bounds = innovation_bounds
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -298,13 +329,15 @@ class DeepStateEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
+            noise_std_bounds=self.noise_std_bounds,
+            prior_cov_bounds=self.prior_cov_bounds,
+            innovation_bounds=self.innovation_bounds,
         )
 
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
         prediction_network = DeepStatePredictionNetwork(
-            num_sample_paths=self.num_sample_paths,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
@@ -315,6 +348,10 @@ class DeepStateEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
+            num_parallel_samples=self.num_parallel_samples,
+            noise_std_bounds=self.noise_std_bounds,
+            prior_cov_bounds=self.prior_cov_bounds,
+            innovation_bounds=self.innovation_bounds,
             params=trained_network.collect_params(),
         )
 

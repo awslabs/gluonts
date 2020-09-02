@@ -12,9 +12,8 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import itertools
-from collections import defaultdict
-from typing import Any, Dict, Iterable, Iterator, List, Optional  # noqa: F401
+import logging
+from typing import Iterable, Iterator, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -22,61 +21,9 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import DataBatch, DataEntry, Dataset
+from gluonts.dataset.parallelized_loader import ParallelDataLoader
 from gluonts.transform import Transformation
-
-DataBatch = Dict[str, Any]
-
-
-class BatchBuffer:
-    def __init__(
-        self, batch_size: int, ctx: mx.Context, float_type: DType = np.float32
-    ) -> None:
-        self._buffers: Dict[Any, List[Any]] = defaultdict(list)
-        self.batch_size = batch_size
-        self._size = 0
-        self.ctx = ctx
-        self.float_type = float_type
-
-    def add(self, d: Dict[str, List[np.ndarray]]):
-        if self._buffers:
-            assert self._buffers.keys() == d.keys()
-        for k, v in d.items():
-            self._buffers[k].append(v)
-        self._size += 1
-
-    def __len__(self):
-        return self._size
-
-    def next_batch(self) -> DataBatch:
-        assert self._size > 0
-        n = min(self._size, self.batch_size)
-        batch = {k: self.stack(v[:n]) for k, v in self._buffers.items()}
-        for key in self._buffers.keys():
-            self._buffers[key] = self._buffers[key][n:]
-        self._size -= n
-        return batch
-
-    def stack(self, xs):
-        if isinstance(xs[0], np.ndarray):
-            data = np.asarray(xs)
-            if data.dtype.kind == "f":
-                data = data.astype(self.float_type)
-            return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
-        elif isinstance(xs[0], mx.nd.NDArray):
-            return mx.nd.stack(*xs)
-        elif isinstance(xs[0], list):
-            return [self.stack(t) for t in zip(*[x for x in xs])]
-        elif isinstance(xs[0], tuple):
-            return tuple([self.stack(t) for t in zip(*[x for x in xs])])
-        else:
-            return xs  # stack all other types as list
-
-    def shuffle(self):
-        perm = np.random.permutation(self._size)
-        for key in self._buffers.keys():
-            li = self._buffers[key]
-            self._buffers[key] = [li[i] for i in perm]
 
 
 class DataLoader(Iterable[DataEntry]):
@@ -94,23 +41,71 @@ class DataLoader(Iterable[DataEntry]):
         The size of the batches to emit.
     ctx
         MXNet context to use to store data.
-    float_type
+    dtype
         Floating point type to use.
+    num_workers
+        The number of multiprocessing workers to use for data preprocessing.
+        By default 0, in which case no multiprocessing will be utilized.
+    num_prefetch
+        The number of prefetching batches only works if `num_workers` > 0.
+        If `prefetch` > 0, it allow worker process to prefetch certain batches before
+        acquiring data from iterators.
+        Note that using large prefetching batch will provide smoother bootstrapping performance,
+        but will consume more shared_memory. Using smaller number may forfeit the purpose of using
+        multiple worker processes, try reduce `num_workers` in this case.
+        By default it defaults to `num_workers * 2`.
+    cyclic
+        Indicates whether the dataset is traversed potentially multiple times.
+    shuffle_buffer_length
+        The length of the buffer used to do pseudo shuffle.
+        If not None, the loader will perform pseudo shuffle when generating batches.
+        Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
+        more time to be done.
     """
 
     def __init__(
         self,
         dataset: Dataset,
+        *,
         transform: Transformation,
+        cyclic: bool,
+        is_train: bool,
         batch_size: int,
         ctx: mx.Context,
-        float_type: DType = np.float32,
+        dtype: DType = np.float32,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
+        **kwargs,
     ) -> None:
-        self.dataset = dataset
-        self.transform = transform
         self.batch_size = batch_size
         self.ctx = ctx
-        self.float_type = float_type
+        self.dtype = dtype
+        self.is_train = is_train
+        self.transform = transform
+        self.cyclic = cyclic
+        self.logger = logging.getLogger(__name__)
+        self.num_workers = num_workers
+        self.num_prefetch = num_prefetch
+        self.shuffle_buffer_length = shuffle_buffer_length
+
+        self.parallel_data_loader = ParallelDataLoader(
+            dataset=dataset,
+            transformation=self.transform,
+            cyclic=self.cyclic,
+            is_train=self.is_train,
+            batch_size=self.batch_size,
+            ctx=self.ctx,
+            dtype=self.dtype,
+            num_workers=self.num_workers,
+            num_prefetch=self.num_prefetch,
+            shuffle_buffer_length=self.shuffle_buffer_length,
+            **kwargs,
+        )
+
+    def __iter__(self) -> Iterator[DataBatch]:
+        # Will take all batches, so that all data is sampled exactly once
+        yield from self.parallel_data_loader
 
 
 class TrainDataLoader(DataLoader):
@@ -118,8 +113,7 @@ class TrainDataLoader(DataLoader):
     An Iterable type for iterating and transforming a dataset, in batches of a
     prescribed size, until a given number of batches is reached.
 
-    The transformation are applied with in training mode, i.e. with the flag
-    `is_train = True`.
+    The transformation are applied with in training mode, i.e. with the flag `is_train = True`.
 
     Parameters
     ----------
@@ -133,8 +127,24 @@ class TrainDataLoader(DataLoader):
         MXNet context to use to store data.
     num_batches_per_epoch
         Number of batches to return in one complete iteration over this object.
-    float_type
-        Floating point type to use.
+    num_workers
+        The number of multiprocessing workers to use for data preprocessing.
+        By default 0, in which case no multiprocessing will be utilized.
+    num_prefetch
+        The number of prefetching batches only works if `num_workers` > 0.
+        If `prefetch` > 0, it allow worker process to prefetch certain batches before
+        acquiring data from iterators.
+        Note that using large prefetching batch will provide smoother bootstrapping performance,
+        but will consume more shared_memory. Using smaller number may forfeit the purpose of using
+        multiple worker processes, try reduce `num_workers` in this case.
+        By default `num_workers * 2`.
+    dtype
+        Floating point type to use. Default is np.float32.
+    shuffle_buffer_length
+        The length of the buffer used to do pseudo shuffle.
+        If not None, the loader will perform pseudo shuffle when generating batches.
+        Note that using a larger buffer will provide more randomized batches, but will make the job require a bit
+        more time to be done.
     """
 
     def __init__(
@@ -144,93 +154,96 @@ class TrainDataLoader(DataLoader):
         batch_size: int,
         ctx: mx.Context,
         num_batches_per_epoch: int,
-        float_type: DType = np.float32,
-        shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 10,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        shuffle_buffer_length: Optional[int] = None,
+        dtype: DType = np.float32,
+        **kwargs,
     ) -> None:
-        super().__init__(dataset, transform, batch_size, ctx, float_type)
-        self.num_batches_per_epoch = num_batches_per_epoch
-        self.shuffle_for_training = shuffle_for_training
-        self._num_buffered_batches = (
-            num_batches_for_shuffling if shuffle_for_training else 1
+        assert dataset, "empty dataset"
+
+        super().__init__(
+            dataset=dataset,
+            transform=transform,
+            batch_size=batch_size,
+            ctx=ctx,
+            dtype=dtype,
+            is_train=True,
+            cyclic=True,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
+            **kwargs,
         )
-        self._cur_iter: Optional[Iterator] = None
-        self._buffer = BatchBuffer(self.batch_size, ctx, float_type)
 
-    def _emit_batches_while_buffer_larger_than(
-        self, thresh
-    ) -> Iterator[DataBatch]:
-        if self.shuffle_for_training:
-            self._buffer.shuffle()
-        while len(self._buffer) > thresh:
-            yield self._buffer.next_batch()
-
-    def _iterate_forever(
-        self, collection: Iterable[DataEntry]
-    ) -> Iterator[DataEntry]:
-        # iterate forever over the collection, the collection must be non empty
-        while True:
-            try:
-                first = next(iter(collection))
-            except StopIteration:
-                raise Exception("empty dataset")
-            else:
-                for x in itertools.chain([first], collection):
-                    yield x
+        self.num_batches_per_epoch = num_batches_per_epoch
+        self._it = iter(self.parallel_data_loader)
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch
 
     def __iter__(self) -> Iterator[DataBatch]:
-        batch_count = 0
-        if self._cur_iter is None:
-            self._cur_iter = self.transform(
-                self._iterate_forever(self.dataset), is_train=True
-            )
-        assert self._cur_iter is not None
+        i = 0
         while True:
-            data_entry = next(self._cur_iter)
-            self._buffer.add(data_entry)
-            if (
-                len(self._buffer)
-                >= self._num_buffered_batches * self.batch_size
-            ):
-                for batch in self._emit_batches_while_buffer_larger_than(
-                    self.batch_size - 1
-                ):
-                    yield batch
-                    batch_count += 1
-                    if batch_count >= self.num_batches_per_epoch:
-                        return
+            for batch in self._it:
+                yield batch
+                i += 1
+                if i == self.num_batches_per_epoch:
+                    return
+            self._it = iter(self.parallel_data_loader)
+
+
+class ValidationDataLoader(DataLoader):
+    def __init__(
+        self,
+        dataset: Dataset,
+        *,
+        transform: Transformation,
+        batch_size: int,
+        ctx: mx.Context,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        dtype: DType = np.float32,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            dataset=dataset,
+            transform=transform,
+            is_train=True,
+            batch_size=batch_size,
+            ctx=ctx,
+            dtype=dtype,
+            cyclic=False,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=None,
+            **kwargs,
+        )
 
 
 class InferenceDataLoader(DataLoader):
-    """
-    An Iterable type for iterating and transforming a dataset just once, in
-    batches of a prescribed size.
-
-    The transformation are applied with in inference mode, i.e. with the flag
-    `is_train = False`.
-
-    Parameters
-    ----------
-    dataset
-        The dataset from which to load data.
-    transform
-        A transformation to apply to each entry in the dataset.
-    batch_size
-        The size of the batches to emit.
-    ctx
-        MXNet context to use to store data.
-    float_type
-        Floating point type to use.
-    """
-
-    def __iter__(self) -> Iterator[DataBatch]:
-        buffer = BatchBuffer(self.batch_size, self.ctx, self.float_type)
-        for data_entry in self.transform(iter(self.dataset), is_train=False):
-            buffer.add(data_entry)
-            if len(buffer) >= self.batch_size:
-                yield buffer.next_batch()
-        if len(buffer) > 0:
-            yield buffer.next_batch()
+    def __init__(
+        self,
+        dataset: Dataset,
+        *,
+        transform: Transformation,
+        batch_size: int,
+        ctx: mx.Context,
+        num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        dtype: DType = np.float32,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            dataset=dataset,
+            transform=transform,
+            is_train=False,
+            batch_size=batch_size,
+            ctx=ctx,
+            dtype=dtype,
+            cyclic=False,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=None,
+            **kwargs,
+        )
