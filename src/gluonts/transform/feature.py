@@ -319,6 +319,7 @@ class AddTimeFeatures(MapTransformation):
         output_field: str,
         time_features: List[TimeFeature],
         pred_length: int,
+        dtype: DType = np.float32,
     ) -> None:
         self.date_features = time_features
         self.pred_length = pred_length
@@ -329,6 +330,7 @@ class AddTimeFeatures(MapTransformation):
         self._max_time_point: pd.Timestamp = None
         self._full_range_date_features: np.ndarray = None
         self._date_index: pd.DatetimeIndex = None
+        self.dtype = dtype
 
     def _update_cache(self, start: pd.Timestamp, length: int) -> None:
         end = shift_timestamp(start, length)
@@ -350,7 +352,7 @@ class AddTimeFeatures(MapTransformation):
         self._full_range_date_features = (
             np.vstack(
                 [feat(self.full_date_range) for feat in self.date_features]
-            )
+            ).astype(self.dtype)
             if self.date_features
             else None
         )

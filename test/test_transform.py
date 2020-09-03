@@ -125,6 +125,7 @@ def test_AddTimeFeatures(start, target, is_train: bool):
         output_field="myout",
         pred_length=pred_length,
         time_features=[time_feature.DayOfWeek(), time_feature.DayOfMonth()],
+        dtype=np.float64,
     )
 
     assert_serializable(t)
