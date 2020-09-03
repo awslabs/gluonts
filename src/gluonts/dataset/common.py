@@ -420,7 +420,19 @@ class ProcessDataEntry:
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
+                    "dynamic_feat",  # backwards compatible
+                    is_required=False,
+                    is_cat=False,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
                     "feat_dynamic_real",
+                    is_required=False,
+                    is_cat=False,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
+                    "past_feat_dynamic_real",
                     is_required=False,
                     is_cat=False,
                     is_static=False,
