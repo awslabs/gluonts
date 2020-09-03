@@ -20,7 +20,7 @@ from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 
 if __name__ == "__main__":
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     predictor = estimator.train(dataset.train)
 
     forecast_it, ts_it = make_evaluation_predictions(
-        dataset.test, predictor=predictor, num_eval_samples=100
+        dataset.test, predictor=predictor, num_samples=100
     )
 
     agg_metrics, item_metrics = Evaluator()(

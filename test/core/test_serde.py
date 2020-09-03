@@ -186,3 +186,15 @@ def test_ndarray_serialization(a, serialize_fn) -> None:
 def test_timestamp_encode_decode() -> None:
     now = pd.Timestamp.now()
     assert now == serde.decode(serde.encode(now))
+
+
+@pytest.mark.parametrize(
+    "serialize_fn",
+    [
+        lambda x: serde.load_json(serde.dump_json(x)),
+        lambda x: serde.load_binary(serde.dump_binary(x)),
+        lambda x: serde.load_code(serde.dump_code(x)),
+    ],
+)
+def test_string_escape(serialize_fn) -> None:
+    assert serialize_fn(r"a\b") == r"a\b"

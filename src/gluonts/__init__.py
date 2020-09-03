@@ -15,7 +15,9 @@
 
 from pkgutil import extend_path
 
-from pkg_resources import get_distribution, DistributionNotFound
+from pkg_resources import DistributionNotFound, get_distribution
+
+from gluonts.mx.prelude import *
 
 __path__ = extend_path(__path__, __name__)  # type: ignore
 

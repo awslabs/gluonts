@@ -14,7 +14,7 @@
 # Standard library imports
 import re
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Union
+from typing import Callable, Dict, List, NamedTuple, Optional, Set, Union
 
 # Third-party imports
 import mxnet as mx
@@ -22,10 +22,11 @@ import numpy as np
 import pandas as pd
 import pydantic
 
+from gluonts.core.component import validated
+
 # First-party imports
 from gluonts.core.exception import GluonTSUserError
-from gluonts.distribution import Distribution
-from gluonts.core.component import validated
+from gluonts.mx.distribution import Distribution
 
 
 class Quantile(NamedTuple):
@@ -72,8 +73,8 @@ class Quantile(NamedTuple):
                     f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
                 )
             else:
-                quantile: float = int(m.group(1)) / 100
-                return cls(value=quantile, name=str(quantile))
+                quantile_float: float = int(m.group(1)) / 100
+                return cls(value=quantile_float, name=str(quantile_float))
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
@@ -140,6 +141,13 @@ class Forecast:
             Value of the quantile across the prediction range.
         """
         raise NotImplementedError()
+
+    def quantile_ts(self, q: Union[float, str]) -> pd.Series:
+        return pd.Series(index=self.index, data=self.quantile(q))
+
+    @property
+    def median(self) -> np.ndarray:
+        return self.quantile(0.5)
 
     def plot(
         self,
@@ -262,6 +270,19 @@ class Forecast:
         """
         raise NotImplementedError()
 
+    def copy_aggregate(self, agg_fun: Callable):
+        """
+        Returns a new Forecast object with a time series aggregated over the
+        dimension axis.
+
+        Parameters
+        ----------
+        agg_fun
+            Aggregation function that defines the aggregation operation
+            (typically mean or sum).
+        """
+        raise NotImplementedError()
+
     def as_json_dict(self, config: "Config") -> dict:
         result = {}
 
@@ -290,7 +311,8 @@ class SampleForecast(Forecast):
     Parameters
     ----------
     samples
-        Array of size (num_samples, prediction_length)
+        Array of size (num_samples, prediction_length) (1D case) or
+        (num_samples, prediction_length, target_dim) (multivariate case)
     start_date
         start of the forecast
     freq
@@ -304,11 +326,11 @@ class SampleForecast(Forecast):
     def __init__(
         self,
         samples: Union[mx.nd.NDArray, np.ndarray],
-        start_date,
-        freq,
+        start_date: pd.Timestamp,
+        freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-    ):
+    ) -> None:
         assert isinstance(
             samples, (np.ndarray, mx.ndarray.ndarray.NDArray)
         ), "samples should be either a numpy or an mxnet array"
@@ -352,10 +374,10 @@ class SampleForecast(Forecast):
         """
         Time length of the forecast.
         """
-        return self.samples.shape[-1]
+        return self.samples.shape[1]
 
     @property
-    def mean(self):
+    def mean(self) -> np.ndarray:
         """
         Forecast mean.
         """
@@ -365,18 +387,18 @@ class SampleForecast(Forecast):
             return np.mean(self.samples, axis=0)
 
     @property
-    def mean_ts(self):
+    def mean_ts(self) -> pd.Series:
         """
         Forecast mean, as a pandas.Series object.
         """
-        return pd.Series(self.index, self.mean)
+        return pd.Series(self.mean, index=self.index)
 
-    def quantile(self, q):
+    def quantile(self, q: Union[float, str]) -> np.ndarray:
         q = Quantile.parse(q).value
         sample_idx = int(np.round((self.num_samples - 1) * q))
         return self._sorted_samples[sample_idx, :]
 
-    def copy_dim(self, dim: int):
+    def copy_dim(self, dim: int) -> "SampleForecast":
         if len(self.samples.shape) == 2:
             samples = self.samples
         else:
@@ -387,6 +409,20 @@ class SampleForecast(Forecast):
             )
             samples = self.samples[:, :, dim]
 
+        return SampleForecast(
+            samples=samples,
+            start_date=self.start_date,
+            freq=self.freq,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
+    def copy_aggregate(self, agg_fun: Callable) -> "SampleForecast":
+        if len(self.samples.shape) == 2:
+            samples = self.samples
+        else:
+            # Aggregate over target dimension axis
+            samples = agg_fun(self.samples, axis=2)
         return SampleForecast(
             samples=samples,
             start_date=self.start_date,
@@ -457,7 +493,7 @@ class QuantileForecast(Forecast):
         forecast_keys: List[str],
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-    ):
+    ) -> None:
         self.forecast_array = forecast_arrays
         self.start_date = pd.Timestamp(start_date, freq=freq)
         self.freq = freq
@@ -489,11 +525,14 @@ class QuantileForecast(Forecast):
         return self._forecast_dict.get(q_str, self._nan_out)
 
     @property
-    def mean(self):
+    def mean(self) -> np.ndarray:
         """
         Forecast mean.
         """
-        return self._forecast_dict.get("mean", self._nan_out)
+        if "mean" in self._forecast_dict:
+            return self._forecast_dict["mean"]
+
+        return self.quantile("p50")
 
     def dim(self) -> int:
         if self._dim is not None:
@@ -551,11 +590,11 @@ class DistributionForecast(Forecast):
     def __init__(
         self,
         distribution: Distribution,
-        start_date,
-        freq,
+        start_date: pd.Timestamp,
+        freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-    ):
+    ) -> None:
         self.distribution = distribution
         self.shape = (
             self.distribution.batch_shape + self.distribution.event_shape
@@ -574,7 +613,7 @@ class DistributionForecast(Forecast):
         self._mean = None
 
     @property
-    def mean(self):
+    def mean(self) -> np.ndarray:
         """
         Forecast mean.
         """
@@ -585,13 +624,13 @@ class DistributionForecast(Forecast):
             return self._mean
 
     @property
-    def mean_ts(self):
+    def mean_ts(self) -> pd.Series:
         """
         Forecast mean, as a pandas.Series object.
         """
-        return pd.Series(self.index, self.mean)
+        return pd.Series(self.mean, index=self.index)
 
-    def quantile(self, level):
+    def quantile(self, level: Union[float, str]) -> np.ndarray:
         level = Quantile.parse(level).value
         q = self.distribution.quantile(mx.nd.array([level])).asnumpy()[0]
         return q
@@ -613,12 +652,12 @@ class OutputType(str, Enum):
 
 
 class Config(pydantic.BaseModel):
-    num_eval_samples: int = pydantic.Schema(100, alias="num_samples")
-    output_types: Set[OutputType] = {"quantiles", "mean"}
+    num_samples: int = pydantic.Field(100, alias="num_eval_samples")
+    output_types: Set[OutputType] = {OutputType.quantiles, OutputType.mean}
     # FIXME: validate list elements
     quantiles: List[str] = ["0.1", "0.5", "0.9"]
 
     class Config:
-        allow_population_by_alias = True
+        allow_population_by_field_name = True
         # store additional fields
         extra = "allow"

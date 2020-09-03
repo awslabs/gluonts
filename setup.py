@@ -1,10 +1,9 @@
 # Standard library imports
 import distutils.cmd
 import distutils.log
-import io
 import itertools
 import logging
-import re
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -21,8 +20,8 @@ GPU_SUPPORT = 0 == int(
     subprocess.call(
         "nvidia-smi",
         shell=True,
-        stdout=open("/dev/null", "w"),
-        stderr=open("/dev/null", "w"),
+        stdout=open(os.devnull, "w"),
+        stderr=open(os.devnull, "w"),
     )
 )
 
@@ -46,8 +45,8 @@ def read(*names, encoding="utf8"):
 
 def find_requirements(filename):
     with (ROOT / "requirements" / filename).open() as f:
-        mxnet_old = "mxnet=="
-        mxnet_new = "mxnet-cu92mkl==" if GPU_SUPPORT else mxnet_old
+        mxnet_old = "mxnet"
+        mxnet_new = "mxnet-cu92mkl" if GPU_SUPPORT else mxnet_old
         return [
             line.rstrip().replace(mxnet_old, mxnet_new, 1)
             for line in f
@@ -177,11 +176,20 @@ class StyleCheckCommand(distutils.cmd.Command):
             sys.exit(exit_code)
 
 
+docs_require = find_requirements("requirements-docs.txt")
 tests_require = find_requirements("requirements-test.txt")
+sagemaker_api_require = find_requirements(
+    "requirements-extras-sagemaker-sdk.txt"
+)
 shell_require = find_requirements("requirements-extras-shell.txt")
-setup_requires = find_requirements(
-    "requirements-setup.txt"
-) + find_requirements("requirements-docs.txt")
+setup_requires = find_requirements("requirements-setup.txt")
+dev_require = (
+    docs_require
+    + tests_require
+    + shell_require
+    + setup_requires
+    + sagemaker_api_require
+)
 
 setup_kwargs: dict = dict(
     name="gluonts",
@@ -205,20 +213,18 @@ setup_kwargs: dict = dict(
     install_requires=find_requirements("requirements.txt"),
     tests_require=tests_require,
     extras_require={
-        "dev": tests_require + shell_require + setup_requires,
+        "dev": dev_require,
+        "docs": docs_require,
         "R": find_requirements("requirements-extras-r.txt"),
         "Prophet": find_requirements("requirements-extras-prophet.txt"),
         "shell": shell_require,
     },
     entry_points=dict(
-        console_scripts=[
-            "gluonts-validate-dataset=gluonts.dataset.validate:run"
-        ],
         gluonts_forecasters=[
             "deepar=gluonts.model.deepar:DeepAREstimator",
             "r=gluonts.model.r_forecast:RForecastPredictor [R]",
             "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
-        ],
+        ]
     ),
     cmdclass={
         "type_check": TypeCheckCommand,
@@ -255,4 +261,6 @@ if HAS_SPHINX:
 # -----------------------------------------------------------------------------
 
 # do the work
-setup(**setup_kwargs)
+
+if __name__ == "__main__":
+    setup(**setup_kwargs)

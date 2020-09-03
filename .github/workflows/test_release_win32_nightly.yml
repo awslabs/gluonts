@@ -1,0 +1,40 @@
+name: Test latest release nightly Windows
+
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # nightly:
+    - cron:  '0 0 * * *'
+
+jobs:
+  build:
+
+    strategy:
+      max-parallel: 4
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7]
+
+    runs-on: windows-latest
+    steps:
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Clone and install dependencies
+      run: |
+        $tmp=(Invoke-WebRequest -Uri https://api.github.com/repos/awslabs/gluon-ts/releases/latest).Content | ConvertFrom-Json | Select-Object tag_name
+        $tmp=$tmp.psobject.properties.value.trim() 
+        git clone https://github.com/awslabs/gluon-ts --branch $tmp
+        cd gluon-ts
+        python -m pip install --upgrade pip
+        pip install -r requirements/requirements-mxnet.txt
+        pip install gluonts
+        pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-extras-sagemaker-sdk.txt
+        pip install -r requirements/requirements-extras-m-competitions.txt
+      shell: powershell
+    - name: Test with pytest
+      run: |
+        cd gluon-ts
+        pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test

@@ -143,7 +143,7 @@ We can easily create a complex artificial time series dataset using the `Complex
 
 
 ```python
-from gluonts.dataset.artificial._base import ComplexSeasonalTimeSeries
+from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 from gluonts.dataset.common import ListDataset
 ```
 
@@ -337,8 +337,8 @@ We can easily create the train and test datasets by simply filling in the correc
 ```python
 train_ds = ListDataset([{FieldName.TARGET: target, 
                          FieldName.START: start,
-                         FieldName.FEAT_DYNAMIC_REAL: fdr,
-                         FieldName.FEAT_STATIC_CAT: fsc} 
+                         FieldName.FEAT_DYNAMIC_REAL: [fdr],
+                         FieldName.FEAT_STATIC_CAT: [fsc]} 
                         for (target, start, fdr, fsc) in zip(target[:, :-custom_ds_metadata['prediction_length']], 
                                                              custom_ds_metadata['start'], 
                                                              feat_dynamic_real[:, :-custom_ds_metadata['prediction_length']], 
@@ -350,8 +350,8 @@ train_ds = ListDataset([{FieldName.TARGET: target,
 ```python
 test_ds = ListDataset([{FieldName.TARGET: target, 
                         FieldName.START: start,
-                        FieldName.FEAT_DYNAMIC_REAL: fdr,
-                        FieldName.FEAT_STATIC_CAT: fsc} 
+                        FieldName.FEAT_DYNAMIC_REAL: [fdr],
+                        FieldName.FEAT_STATIC_CAT: [fsc]} 
                        for (target, start, fdr, fsc) in zip(target, 
                                                             custom_ds_metadata['start'], 
                                                             feat_dynamic_real, 
@@ -569,7 +569,7 @@ Finally, each estimator is configured by a `Trainer`, which defines how the mode
 
 ```python
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 ```
 
 
@@ -639,7 +639,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -693,7 +693,7 @@ print(f"Start date of the forecast window: {forecast_entry.start_date}")
 print(f"Frequency of the time series: {forecast_entry.freq}")
 ```
 
-We can also do calculations to summarize the sample paths, such computing the mean or a quantile for each of the 48 time steps in the forecast window.
+We can also do calculations to summarize the sample paths, such as computing the mean or a quantile for each of the 24 time steps in the forecast window.
 
 
 ```python
@@ -832,7 +832,7 @@ The estimator class is configured by a few hyperparameters and implements the re
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 from gluonts.core.component import validated
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
 from mxnet.gluon import HybridBlock
@@ -925,7 +925,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1137,7 +1137,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1395,7 +1395,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 
@@ -1753,7 +1753,7 @@ predictor = estimator.train(train_ds)
 forecast_it, ts_it = make_evaluation_predictions(
     dataset=test_ds,  # test dataset
     predictor=predictor,  # predictor
-    num_eval_samples=100,  # number of sample paths we want for evaluation
+    num_samples=100,  # number of sample paths we want for evaluation
 )
 ```
 

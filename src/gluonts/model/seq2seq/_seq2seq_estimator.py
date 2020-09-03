@@ -19,27 +19,27 @@ import mxnet as mx
 
 # First-party imports
 from gluonts import transform
-from gluonts.block.decoder import OneShotDecoder
-from gluonts.block.enc2dec import PassThroughEnc2Dec
-from gluonts.block.encoder import (
-    HierarchicalCausalConv1DEncoder,
-    RNNCovariateEncoder,
-    MLPEncoder,
-    Seq2SeqEncoder,
-)
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.block.quantile_output import QuantileOutput
-from gluonts.block.scaler import NOPScaler, Scaler
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.forecast import QuantileForecast, Quantile
+from gluonts.model.forecast import Quantile
+from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.block.decoder import OneShotDecoder
+from gluonts.mx.block.enc2dec import PassThroughEnc2Dec
+from gluonts.mx.block.encoder import (
+    HierarchicalCausalConv1DEncoder,
+    MLPEncoder,
+    RNNEncoder,
+    Seq2SeqEncoder,
+)
+from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.block.scaler import NOPScaler, Scaler
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import ExpectedNumInstanceSampler
-from gluonts.model.forecast_generator import QuantileForecastGenerator
 
 # Relative imports
 from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
@@ -63,7 +63,7 @@ class Seq2SeqEstimator(GluonEstimator):
         decoder_mlp_static_dim: int,
         scaler: Scaler = NOPScaler(),
         context_length: Optional[int] = None,
-        quantiles: List[float] = [0.1, 0.5, 0.9],
+        quantiles: Optional[List[float]] = None,
         trainer: Trainer = Trainer(),
         num_parallel_samples: int = 100,
     ) -> None:
@@ -73,6 +73,9 @@ class Seq2SeqEstimator(GluonEstimator):
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
+        assert quantiles is None or all(
+            0 <= d <= 1 for d in quantiles
+        ), "Elements of `quantiles` should be >= 0 and <= 1"
 
         super().__init__(trainer=trainer)
 
@@ -81,7 +84,9 @@ class Seq2SeqEstimator(GluonEstimator):
         )
         self.prediction_length = prediction_length
         self.freq = freq
-        self.quantiles = quantiles
+        self.quantiles = (
+            quantiles if quantiles is not None else [0.1, 0.5, 0.9]
+        )
         self.encoder = encoder
         self.decoder_mlp_layer = decoder_mlp_layer
         self.decoder_mlp_static_dim = decoder_mlp_static_dim
@@ -181,6 +186,7 @@ class Seq2SeqEstimator(GluonEstimator):
         )
 
 
+# TODO: fix mutable arguments
 class MLP2QRForecaster(Seq2SeqEstimator):
     @validated()
     def __init__(
@@ -192,9 +198,9 @@ class MLP2QRForecaster(Seq2SeqEstimator):
         encoder_mlp_layer: List[int],
         decoder_mlp_layer: List[int],
         decoder_mlp_static_dim: int,
-        scaler: Scaler = NOPScaler,
+        scaler: Scaler = NOPScaler(),
         context_length: Optional[int] = None,
-        quantiles: List[float] = list([0.1, 0.5, 0.9]),
+        quantiles: Optional[List[float]] = None,
         trainer: Trainer = Trainer(),
         num_parallel_samples: int = 100,
     ) -> None:
@@ -229,17 +235,19 @@ class RNN2QRForecaster(Seq2SeqEstimator):
         decoder_mlp_static_dim: int,
         encoder_rnn_model: str = "lstm",
         encoder_rnn_bidirectional: bool = True,
-        scaler: Scaler = NOPScaler,
+        scaler: Scaler = NOPScaler(),
         context_length: Optional[int] = None,
-        quantiles: List[float] = list([0.1, 0.5, 0.9]),
+        quantiles: Optional[List[float]] = None,
         trainer: Trainer = Trainer(),
         num_parallel_samples: int = 100,
     ) -> None:
-        encoder = RNNCovariateEncoder(
+        encoder = RNNEncoder(
             mode=encoder_rnn_model,
             hidden_size=encoder_rnn_num_hidden,
             num_layers=encoder_rnn_layer,
             bidirectional=encoder_rnn_bidirectional,
+            use_static_feat=True,
+            use_dynamic_feat=True,
         )
         super(RNN2QRForecaster, self).__init__(
             freq=freq,
@@ -267,9 +275,9 @@ class CNN2QRForecaster(Seq2SeqEstimator):
         embedding_dimension: int,
         decoder_mlp_layer: List[int],
         decoder_mlp_static_dim: int,
-        scaler: Scaler = NOPScaler,
+        scaler: Scaler = NOPScaler(),
         context_length: Optional[int] = None,
-        quantiles: List[float] = list([0.1, 0.5, 0.9]),
+        quantiles: Optional[List[float]] = None,
         trainer: Trainer = Trainer(),
         num_parallel_samples: int = 100,
     ) -> None:
@@ -278,7 +286,8 @@ class CNN2QRForecaster(Seq2SeqEstimator):
             kernel_size_seq=([3] * len([30, 30, 30])),
             channels_seq=[30, 30, 30],
             use_residual=True,
-            use_covariates=True,
+            use_dynamic_feat=True,
+            use_static_feat=True,
         )
 
         super(CNN2QRForecaster, self).__init__(

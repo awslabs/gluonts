@@ -19,7 +19,7 @@ import time
 from contextlib import closing, contextmanager
 from multiprocessing import Process
 from pathlib import Path
-from typing import Any, ContextManager, Dict, Optional, Type, Iterable, List
+from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
 
 import requests
 
@@ -93,7 +93,8 @@ class ServerFacade:
             url=self.url("/invocations"), data="\n".join(instances)
         )
 
-        assert response.status_code == 200
+        if response.status_code != 200:
+            raise RuntimeError(response.content.decode("utf-8"))
 
         predictions = list(map(json.loads, response.text.splitlines()))
         assert len(predictions) == len(instances)
@@ -175,7 +176,7 @@ def temporary_train_env(
     Parameters
     ----------
     hyperparameters
-        The name of the repository dataset to use when instantiating the
+        The hyperparameters to use when instantiating the
         training environment.
     dataset_name
         The name of the repository dataset to use when instantiating the
@@ -208,7 +209,7 @@ def temporary_train_env(
         path_train.symlink_to(ds_path / "train", target_is_directory=True)
         path_test.symlink_to(ds_path / "test", target_is_directory=True)
 
-        yield TrainEnv(path=paths.base)
+        yield TrainEnv(path=paths)
 
 
 @contextmanager  # type: ignore

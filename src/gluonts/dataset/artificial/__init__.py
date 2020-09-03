@@ -14,8 +14,8 @@
 # Relative imports
 from ._base import (
     ArtificialDataset,
-    ConstantDataset,
     ComplexSeasonalTimeSeries,
+    ConstantDataset,
     RecipeDataset,
     constant_dataset,
     default_synthetic,

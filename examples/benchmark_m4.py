@@ -26,7 +26,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.seq2seq import MQCNNEstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 datasets = [
     "m4_hourly",
@@ -74,6 +74,11 @@ def evaluate(dataset_name, estimator):
     estimator = estimator(
         prediction_length=dataset.metadata.prediction_length,
         freq=dataset.metadata.freq,
+        use_feat_static_cat=True,
+        cardinality=[
+            feat_static_cat.cardinality
+            for feat_static_cat in dataset.metadata.feat_static_cat
+        ],
     )
 
     print(f"evaluating {estimator} on {dataset}")
@@ -81,7 +86,7 @@ def evaluate(dataset_name, estimator):
     predictor = estimator.train(dataset.train)
 
     forecast_it, ts_it = make_evaluation_predictions(
-        dataset.test, predictor=predictor, num_eval_samples=100
+        dataset.test, predictor=predictor, num_samples=100
     )
 
     agg_metrics, item_metrics = Evaluator()(
@@ -117,6 +122,7 @@ if __name__ == "__main__":
             "mean_wQuantileLoss",
             "MASE",
             "sMAPE",
+            "OWA",
             "MSIS",
         ]
     ]

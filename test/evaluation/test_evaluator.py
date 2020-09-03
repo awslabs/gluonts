@@ -17,11 +17,7 @@ import pandas as pd
 import pytest
 
 # First-party imports
-from gluonts.evaluation import (
-    Evaluator,
-    MultivariateEvaluator,
-    get_seasonality,
-)
+from gluonts.evaluation import Evaluator, MultivariateEvaluator
 from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
@@ -271,6 +267,7 @@ TIMESERIES_M4 = [
 RES_M4 = [
     {
         "MASE": 0.816_837_618,
+        "MAPE": 0.324_517_430_685_928_1,
         "sMAPE": 0.326_973_268_4,
         "seasonal_error": np.array(
             [1.908_101, 1.258_838, 0.63018, 1.238_201, 1.287_771]
@@ -278,6 +275,7 @@ RES_M4 = [
     },
     {
         "MASE": 0.723_948_2,
+        "MAPE": 0.063_634_129_851_747_6,
         "sMAPE": 0.065_310_85,
         "seasonal_error": np.array(
             [1.867_847, 1.315_505, 0.602_587_4, 1.351_535, 1.339_179]
@@ -298,6 +296,10 @@ def test_MASE_sMAPE_M4(timeseries, res):
         "Scores for the metric MASE do not match: "
         "\nexpected: {} \nobtained: {}".format(res["MASE"], agg_df["MASE"])
     )
+    assert abs((agg_df["MAPE"] - res["MAPE"]) / res["MAPE"]) < 0.001, (
+        "Scores for the metric MAPE do not match: \nexpected: {} "
+        "\nobtained: {}".format(res["MAPE"], agg_df["MAPE"])
+    )
     assert abs((agg_df["sMAPE"] - res["sMAPE"]) / res["sMAPE"]) < 0.001, (
         "Scores for the metric sMAPE do not match: \nexpected: {} "
         "\nobtained: {}".format(res["sMAPE"], agg_df["sMAPE"])
@@ -314,6 +316,7 @@ def test_MASE_sMAPE_M4(timeseries, res):
 
 
 TIMESERIES = [
+    np.zeros((5, 10), dtype=np.float64),
     np.ones((5, 10), dtype=np.float64),
     np.ones((5, 10), dtype=np.float64),
     np.arange(0, 50, dtype=np.float64).reshape(5, 10),
@@ -325,16 +328,36 @@ RES = [
     {
         "MSE": 0.0,
         "abs_error": 0.0,
-        "abs_target_sum": 15.0,
-        "abs_target_mean": 1.0,
+        "abs_target_sum": 0.0,
+        "abs_target_mean": 0.0,
         "seasonal_error": 0.0,
         "MASE": 0.0,
+        "MAPE": 0.0,
         "sMAPE": 0.0,
         "MSIS": 0.0,
         "RMSE": 0.0,
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 0.0,
+        "mean_wQuantileLoss": 0.0,
+    },
+    {
+        "MSE": 0.0,
+        "abs_error": 0.0,
+        "abs_target_sum": 15.0,
+        "abs_target_mean": 1.0,
+        "seasonal_error": 0.0,
+        "MASE": 0.0,
+        "MAPE": 0.0,
+        "sMAPE": 0.0,
+        "MSIS": 0.0,
+        "RMSE": 0.0,
+        "NRMSE": 0.0,
+        "ND": 0.0,
+        "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 0.0,
+        "mean_wQuantileLoss": 0.0,
     },
     {
         "MSE": 0.0,
@@ -343,12 +366,15 @@ RES = [
         "abs_target_mean": 1.0,
         "seasonal_error": 0.0,
         "MASE": 0.0,
+        "MAPE": 0.0,
         "sMAPE": 0.0,
         "MSIS": 0.0,
         "RMSE": 0.0,
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 0.0,
+        "mean_wQuantileLoss": 0.0,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -357,12 +383,15 @@ RES = [
         "abs_target_mean": 28.0,
         "seasonal_error": 1.0,
         "MASE": 2.0,
+        "MAPE": 0.103_112_211_532_524_85,
         "sMAPE": 0.113_254_049_3,
         "MSIS": 80.0,
         "RMSE": 2.160_246_899_469_286_9,
         "NRMSE": 0.077_151_674_981_045_956,
         "ND": 0.071_428_571_428_571_42,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 30.0,
+        "mean_wQuantileLoss": 0.071_428_571_428_571_42,
     },
     {
         "MSE": 5.033_333_333_333_3,
@@ -371,12 +400,15 @@ RES = [
         "abs_target_mean": 28.1,
         "seasonal_error": 1.0,
         "MASE": 2.1,
+        "MAPE": 0.113_032_846_453_159_77,
         "sMAPE": 0.125_854_781_903_299_57,
         "MSIS": 84.0,
         "RMSE": 2.243_509_156_061_845_6,
         "NRMSE": 0.079_840_183_489_745_39,
         "ND": 0.070_217_917_675_544_79,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 29.0,
+        "mean_wQuantileLoss": 0.070_217_917_675_544_79,
     },
     {
         "MSE": 0.0,
@@ -385,19 +417,22 @@ RES = [
         "abs_target_mean": 1.0,
         "seasonal_error": 0.0,
         "MASE": 0.0,
+        "MAPE": 0.0,
         "sMAPE": 0.0,
         "MSIS": 0.0,
         "RMSE": 0.0,
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "mean_absolute_QuantileLoss": 0.0,
+        "mean_wQuantileLoss": 0.0,
     },
 ]
 
-HAS_NANS = [False, True, False, True, True]
+HAS_NANS = [False, False, True, False, True, True]
 
 
-INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable]
+INPUT_TYPE = [iterable, iterable, iterable, iterator, iterator, iterable]
 
 
 @pytest.mark.parametrize(
@@ -406,7 +441,31 @@ INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable]
 )
 def test_metrics(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
-    evaluator = Evaluator(quantiles=QUANTILES)
+    evaluator = Evaluator(quantiles=QUANTILES, num_workers=0)
+    agg_metrics, item_metrics = calculate_metrics(
+        timeseries,
+        evaluator,
+        ts_datastructure,
+        has_nans=has_nans,
+        input_type=input_type,
+    )
+
+    for metric, score in agg_metrics.items():
+        if metric in res.keys():
+            assert abs(score - res[metric]) < 0.001, (
+                "Scores for the metric {} do not match: \nexpected: {} "
+                "\nobtained: {}".format(metric, res[metric], score)
+            )
+
+
+@pytest.mark.parametrize(
+    "timeseries, res, has_nans, input_type",
+    zip(TIMESERIES, RES, HAS_NANS, INPUT_TYPE),
+)
+def test_metrics_mp(timeseries, res, has_nans, input_type):
+    ts_datastructure = pd.Series
+    # Default will be multiprocessing evaluator
+    evaluator = Evaluator(quantiles=QUANTILES, num_workers=4)
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
         evaluator,
@@ -453,6 +512,8 @@ TIMESERIES_MULTIVARIATE = [
 RES_MULTIVARIATE = [
     {
         "MSE": 0.0,
+        "0_MSE": 0.0,
+        "1_MSE": 0.0,
         "abs_error": 0.0,
         "abs_target_sum": 15.0,
         "abs_target_mean": 1.0,
@@ -464,6 +525,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 0.0,
@@ -478,6 +540,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 0.0,
@@ -492,6 +555,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.0,
         "ND": 0.0,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 0.0,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -506,6 +570,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.077_151_674_981_045_956,
         "ND": 0.071_428_571_428_571_42,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -520,6 +585,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.027_695_473_070_119_065,
         "ND": 0.025_641_025_641_025_64,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
     {
         "MSE": 4.666_666_666_666,
@@ -534,6 +600,7 @@ RES_MULTIVARIATE = [
         "NRMSE": 0.040_759_375_461_684_65,
         "ND": 0.037_735_849_056_603_77,
         "MAE_Coverage": 0.5,
+        "m_sum_MSE": 18.666_666_666_666,
     },
 ]
 
@@ -558,7 +625,12 @@ def test_metrics_multivariate(
     timeseries, res, has_nans, eval_dims, input_type
 ):
     ts_datastructure = pd.DataFrame
-    evaluator = MultivariateEvaluator(quantiles=QUANTILES, eval_dims=eval_dims)
+    evaluator = MultivariateEvaluator(
+        quantiles=QUANTILES,
+        eval_dims=eval_dims,
+        target_agg_funcs={"sum": np.sum},
+    )
+
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
         evaluator,
@@ -577,8 +649,8 @@ def test_metrics_multivariate(
 
 
 def test_evaluation_with_QuantileForecast():
-    start = "2012-01-01"
-    target = [2.4, 1.0, 3.0, 4.4, 5.5, 4.9] * 10
+    start = "2012-01-11"
+    target = [2.4, 1.0, 3.0, 4.4, 5.5, 4.9] * 11
     index = pd.date_range(start=start, freq="1D", periods=len(target))
     ts = pd.Series(index=index, data=target)
 
@@ -586,7 +658,7 @@ def test_evaluation_with_QuantileForecast():
 
     fcst = [
         QuantileForecast(
-            start_date=pd.Timestamp("2012-01-01"),
+            start_date=pd.Timestamp("2012-01-11"),
             freq="D",
             forecast_arrays=np.array([[2.4, 9.0, 3.0, 2.4, 5.5, 4.9] * 10]),
             forecast_keys=["0.5"],
@@ -596,25 +668,3 @@ def test_evaluation_with_QuantileForecast():
     agg_metric, _ = ev(iter([ts]), iter(fcst))
 
     assert np.isfinite(agg_metric["wQuantileLoss[0.5]"])
-
-
-@pytest.mark.parametrize(
-    "freq, expected_seasonality",
-    [
-        ("1H", 24),
-        ("H", 24),
-        ("2H", 12),
-        ("3H", 8),
-        ("4H", 6),
-        ("15H", 1),
-        ("5B", 1),
-        ("1B", 5),
-        ("2W", 1),
-        ("3M", 4),
-        ("1D", 1),
-        ("7D", 1),
-        ("8D", 1),
-    ],
-)
-def test_get_seasonality(freq, expected_seasonality):
-    assert get_seasonality(freq) == expected_seasonality

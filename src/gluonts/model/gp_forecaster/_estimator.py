@@ -21,12 +21,12 @@ from mxnet.gluon import HybridBlock
 # First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.kernels import KernelOutput, RBFKernelOutput
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.kernels import KernelOutput, RBFKernelOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
@@ -104,15 +104,15 @@ class GaussianProcessEstimator(GluonEstimator):
         context_length: Optional[int] = None,
         kernel_output: KernelOutput = RBFKernelOutput(),
         params_scaling: bool = True,
-        float_type: DType = np.float64,
+        dtype: DType = np.float64,
         max_iter_jitter: int = 10,
         jitter_method: str = "iter",
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
     ) -> None:
-        self.float_type = float_type
-        super().__init__(trainer=trainer, float_type=self.float_type)
+        self.float_type = dtype
+        super().__init__(trainer=trainer, dtype=self.float_type)
 
         assert (
             prediction_length > 0
@@ -192,7 +192,7 @@ class GaussianProcessEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             context_length=self.context_length,
             cardinality=self.cardinality,
-            num_samples=self.num_parallel_samples,
+            num_parallel_samples=self.num_parallel_samples,
             params=trained_network.collect_params(),
             kernel_output=self.kernel_output,
             params_scaling=self.params_scaling,
@@ -214,5 +214,5 @@ class GaussianProcessEstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            float_type=self.float_type,
+            dtype=self.float_type,
         )

@@ -18,15 +18,25 @@ import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 # Third-party imports
 import mxnet as mx
+import numpy as np
+from mxnet.gluon.block import _flatten
 
 # First-party imports
 from gluonts.core.serde import dump_json, load_json
 from gluonts.model.common import Tensor
-
 
 MXNET_HAS_ERF = hasattr(mx.nd, "erf")
 MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")
@@ -36,12 +46,12 @@ class Timer:
     """Context manager for measuring the time of enclosed code fragments."""
 
     def __enter__(self):
-        self.start = time.clock()
+        self.start = time.perf_counter()
         self.interval = None
         return self
 
     def __exit__(self, *args):
-        self.end = time.clock()
+        self.end = time.perf_counter()
         self.interval = self.end - self.start
 
 
@@ -113,6 +123,13 @@ class HybridContext:
         self.net.hybridize(active=self.original_mode, **self.kwargs)
 
 
+def maybe_len(obj) -> Optional[int]:
+    try:
+        return len(obj)
+    except NotImplementedError:
+        return None
+
+
 def copy_parameters(
     net_source: mx.gluon.Block,
     net_dest: mx.gluon.Block,
@@ -150,7 +167,7 @@ def copy_parameters(
 
 def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
     params = inspect.signature(hb.hybrid_forward).parameters
-    param_names = list(params)
+    param_names = [k for k, v in params.items() if not str(v).startswith("*")]
     assert param_names[0] == "F", (
         f"Expected first argument of HybridBlock to be `F`, "
         f"but found `{param_names[0]}`"
@@ -158,6 +175,7 @@ def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
     return param_names[1:]  # skip: F
 
 
+# noinspection PyProtectedMember
 def hybrid_block_to_symbol_block(
     hb: mx.gluon.HybridBlock, data_batch: List[mx.nd.NDArray]
 ) -> mx.gluon.SymbolBlock:
@@ -185,7 +203,11 @@ def hybrid_block_to_symbol_block(
     with tempfile.TemporaryDirectory(
         prefix="gluonts-estimator-temp-"
     ) as model_dir:
-        num_inputs = len(data_batch)
+        # when importing, SymbolBlock has to know about the total number
+        # of input symbols, including nested Tensors
+        flat_data_batch, _ = _flatten(data_batch, "input")
+        num_inputs = len(flat_data_batch)
+
         model_dir_path = Path(model_dir)
         model_name = "gluonts-model"
 
@@ -202,6 +224,7 @@ def hybrid_block_to_symbol_block(
         return sb
 
 
+# noinspection PyProtectedMember
 def export_symb_block(
     hb: mx.gluon.HybridBlock, model_dir: Path, model_name: str, epoch: int = 0
 ) -> None:
@@ -221,6 +244,14 @@ def export_symb_block(
         model parameters.
     """
     hb.export(path=str(model_dir / model_name), epoch=epoch)
+
+    # FIXME: we persist input/output formats of hybrid blocks as mxnet does not
+    # FIXME: https://github.com/apache/incubator-mxnet/issues/17488
+    with (model_dir / f"{model_name}-in_out_format.json").open("w") as fp:
+        in_out_format = dict(
+            in_format=hb._in_format, out_format=hb._out_format
+        )
+        print(dump_json(in_out_format), file=fp)
 
 
 def import_symb_block(
@@ -251,14 +282,33 @@ def import_symb_block(
     else:
         input_names = [f"data{i}" for i in range(num_inputs)]
 
+    # FIXME: prevents mxnet from failing with empty saved parameters list
+    # FIXME: https://github.com/apache/incubator-mxnet/issues/17488
+    param_file: Optional[str] = str(
+        model_dir / f"{model_name}-{epoch:04}.params"
+    )
+    if not mx.nd.load(param_file):
+        param_file = None
+
     # FIXME: mx.gluon.SymbolBlock cannot infer float_type and uses default np.float32
     # FIXME: https://github.com/apache/incubator-mxnet/issues/11849
-    return mx.gluon.SymbolBlock.imports(
+    sb = mx.gluon.SymbolBlock.imports(
         symbol_file=str(model_dir / f"{model_name}-symbol.json"),
         input_names=input_names,
-        param_file=str(model_dir / f"{model_name}-{epoch:04}.params"),
+        param_file=param_file,
         ctx=mx.current_context(),
     )
+
+    # FIXME: try to retrieve input/output format
+    # FIXME: https://github.com/apache/incubator-mxnet/issues/17488
+    format_json_path = model_dir / f"{model_name}-in_out_format.json"
+    if format_json_path.exists():
+        with format_json_path.open("r") as fp:
+            formats = load_json(fp.read())
+            sb._in_format = formats["in_format"]
+            sb._out_format = formats["out_format"]
+
+    return sb
 
 
 def export_repr_block(
@@ -390,10 +440,11 @@ def cumsum(
 
 
 def weighted_average(
-    F, x: Tensor, weights: Optional[Tensor] = None, axis=None
+    F, x: Tensor, weights: Optional[Tensor] = None, axis: Optional[int] = None
 ) -> Tensor:
     """
-    Computes the weighted average of a given tensor across a given axis.
+    Computes the weighted average of a given tensor across a given axis, masking values associated with weight zero,
+    meaning instead of `nan * 0 = nan` you will get `0 * 0 = 0`.
 
     Parameters
     ----------
@@ -412,7 +463,9 @@ def weighted_average(
         The tensor with values averaged along the specified `axis`.
     """
     if weights is not None:
-        weighted_tensor = x * weights
+        weighted_tensor = F.where(
+            condition=weights, x=x * weights, y=F.zeros_like(x)
+        )
         sum_weights = F.maximum(1.0, weights.sum(axis=axis))
         return weighted_tensor.sum(axis=axis) / sum_weights
     else:
@@ -450,15 +503,17 @@ def _broadcast_param(param, axes, sizes):
     return param
 
 
-def erf(F, x: Tensor):
-    if MXNET_HAS_ERF:
-        return F.erf(x)
+def erf(F, x: Union[Tensor, np.array]) -> Union[Tensor, np.array]:
+    if F is mx.nd or F is mx.sym:
+        if MXNET_HAS_ERF:
+            return F.erf(x)
     # Using numerical recipes approximation for erf function
     # accurate to 1E-7
 
-    ones = x.ones_like()
-    zeros = x.zeros_like()
-    t = ones / (ones + 0.5 * x.abs())
+    ones = F.ones_like(x)
+    zeros = F.zeros_like(x)
+
+    t = ones / (ones + 0.5 * F.abs(x))
 
     coefficients = [
         1.00002368,
@@ -476,18 +531,19 @@ def erf(F, x: Tensor):
     for c in coefficients[::-1]:
         inner = t * (c + inner)
 
-    res = ones - t * (inner - 1.26551223 - x.square()).exp()
-    return F.where(F.broadcast_greater_equal(x, zeros), res, -1.0 * res)
+    res = ones - t * F.exp((inner - 1.26551223 - F.square(x)))
+    return F.where(x >= zeros, res, -1.0 * res)
 
 
-def erfinv(F, x: Tensor) -> Tensor:
-    if MXNET_HAS_ERFINV:
-        return F.erfinv(x)
+def erfinv(F, x: Union[Tensor, np.array]) -> Union[Tensor, np.array]:
+    if F is mx.nd or F is mx.sym:
+        if MXNET_HAS_ERFINV:
+            return F.erfinv(x)
 
-    zeros = x.zeros_like()
+    zeros = F.zeros_like(x)
 
-    w = -F.log(F.broadcast_mul((1.0 - x), (1.0 + x)))
-    mask_lesser = F.broadcast_lesser(w, zeros + 5.0)
+    w = -F.log((1.0 - x) * (1.0 + x))
+    mask_lesser = w < (zeros + 5.0)
 
     w = F.where(mask_lesser, w - 2.5, F.sqrt(w) - 3.0)
 
@@ -525,9 +581,9 @@ def erfinv(F, x: Tensor) -> Tensor:
         coefficients_lesser[1:], coefficients_greater_equal[1:]
     ):
         c = F.where(mask_lesser, c_l + zeros, c_ge + zeros)
-        p = c + F.broadcast_mul(p, w)
+        p = c + p * w
 
-    return F.broadcast_mul(p, x)
+    return p * x
 
 
 def get_download_path() -> Path:
@@ -548,3 +604,25 @@ def get_download_path() -> Path:
 def map_dct_values(fn: Callable, dct: dict) -> dict:
     """Maps `fn` over a dicts values."""
     return {key: fn(value) for key, value in dct.items()}
+
+
+def assert_shape(x: Tensor, expected_shape: Tuple[int, ...]):
+    """
+    Assert expected shape if mode is mx.nd.
+
+    Parameters
+    ----------
+    x
+        Input Tensor
+    expected_shape
+        Expected shape
+    Returns
+    -------
+
+    """
+    if isinstance(x, mx.nd.NDArray):
+        for i, j in zip(x.shape, expected_shape):
+            if j != -1:
+                assert (
+                    i == j
+                ), f"shape mismatch got {x.shape} expected {expected_shape}"
