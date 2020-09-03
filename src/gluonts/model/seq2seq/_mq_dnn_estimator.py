@@ -110,6 +110,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         Whether to automatically scale the target values. (default: False)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
+    num_forking
+        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN
     """
 
     @validated()
@@ -138,6 +140,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         trainer: Trainer = Trainer(),
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
+        num_forking: Optional[int] = None,
     ) -> None:
 
         assert (distr_output is None) or (quantiles is None)
@@ -190,7 +193,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
 
         if seed:
             np.random.seed(seed)
-            mx.random.seed(seed)
+            mx.random.seed(seed, trainer.ctx)
 
         # `use_static_feat` and `use_dynamic_feat` always True because network
         # always receives input; either from the input data or constants
@@ -235,6 +238,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             trainer=trainer,
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
+            num_forking=num_forking,
         )
 
     @classmethod
