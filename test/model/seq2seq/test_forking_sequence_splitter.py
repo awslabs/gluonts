@@ -105,6 +105,11 @@ def test_forking_sequence_with_features(is_train) -> None:
         )
 
     ds = make_dataset(1, 20)
+    enc_len = 5
+    dec_len = 3
+    num_forking = 1
+    num_time_feat_daily_freq = 3
+    num_age_feat = 1
 
     trans = transform.Chain(
         trans=[
@@ -122,8 +127,9 @@ def test_forking_sequence_with_features(is_train) -> None:
             ),
             ForkingSequenceSplitter(
                 train_sampler=TSplitSampler(),
-                enc_len=5,
-                dec_len=3,
+                enc_len=enc_len,
+                dec_len=dec_len,
+                num_forking=num_forking,
                 encoder_series_fields=[
                     FieldName.FEAT_AGE,
                     FieldName.FEAT_TIME,
@@ -136,10 +142,23 @@ def test_forking_sequence_with_features(is_train) -> None:
     out = trans(iter(ds), is_train=is_train)
     transformed_data = next(iter(out))
 
-    assert transformed_data["past_target"].shape == (5, 1)
-    assert transformed_data["past_feat_dynamic_age"].shape == (5, 1)
-    assert transformed_data["past_time_feat"].shape == (5, 3)
-    assert transformed_data["future_time_feat"].shape == (5, 3, 3)
+    assert transformed_data["past_target"].shape == (enc_len, 1)
+    assert transformed_data["past_feat_dynamic_age"].shape == (
+        enc_len,
+        num_age_feat,
+    )
+    assert transformed_data["past_time_feat"].shape == (
+        enc_len,
+        num_time_feat_daily_freq,
+    )
+    assert transformed_data["future_time_feat"].shape == (
+        num_forking,
+        dec_len,
+        num_time_feat_daily_freq,
+    )
 
     if is_train:
-        assert transformed_data["future_target"].shape == (5, 3)
+        assert transformed_data["future_target"].shape == (
+            num_forking,
+            dec_len,
+        )

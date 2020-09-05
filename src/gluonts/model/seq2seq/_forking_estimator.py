@@ -128,6 +128,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     dtype
         (default: np.float32)
+    num_forking
+        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN
     """
 
     @validated()
@@ -153,6 +155,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
+        num_forking: Optional[int] = None,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -183,6 +186,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             context_length
             if context_length is not None
             else 4 * self.prediction_length
+        )
+        self.num_forking = (
+            num_forking if num_forking is not None else self.context_length
         )
         self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
         self.use_feat_dynamic_real = use_feat_dynamic_real
@@ -245,6 +251,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     output_field=FieldName.FEAT_TIME,
                     time_features=time_features_from_frequency_str(self.freq),
                     pred_length=self.prediction_length,
+                    dtype=self.dtype,
                 ),
             )
             dynamic_feat_fields.append(FieldName.FEAT_TIME)
@@ -307,7 +314,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             chain.append(
                 SetField(
                     output_field=FieldName.FEAT_STATIC_CAT,
-                    value=np.array([0.0]),
+                    value=np.array([0], dtype=np.int32),
                 ),
             )
 
@@ -320,6 +327,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 train_sampler=TestSplitSampler(),
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
+                num_forking=self.num_forking,
                 encoder_series_fields=[
                     FieldName.OBSERVED_VALUES,
                     # RTS with past and future values which is never empty because added dummy constant variable
@@ -384,6 +392,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             quantile_output=self.quantile_output,
             distr_output=self.distr_output,
             context_length=self.context_length,
+            num_forking=self.num_forking,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
@@ -417,6 +426,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             quantile_output=trained_network.quantile_output,
             distr_output=trained_network.distr_output,
             context_length=self.context_length,
+            num_forking=self.num_forking,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
