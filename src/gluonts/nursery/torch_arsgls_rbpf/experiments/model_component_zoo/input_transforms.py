@@ -169,7 +169,7 @@ class InputTransformEmbeddingAndMLP(InputTransformer):
             activations=config.input_transform_activations,
         )
         # TODO: hard-coded. Hopefully not needed anymore later
-        self.time_feat_factor = 5.0
+        self.time_feat_factor = 1.0
 
     def forward(
         self,
@@ -193,6 +193,67 @@ class InputTransformEmbeddingAndMLP(InputTransformer):
             ctrl_features=ctrl_features,
             seasonal_indicators=seasonal_indicators,
         )
+
+
+class InputTransformSeparatedDynamicStatic(InputTransformer):
+    def __init__(self, config):
+        super().__init__()
+        # static_transform_dims = config.input_transform_dims
+        # static_transform_activations = config.input_transform_activations
+        dynamic_transform_dims = config.input_transform_dims
+        dynamic_transform_activations = config.input_transform_activations
+
+        assert config.dims.cat_embedding == config.dims.ctrl_target
+
+        self.embedding_static = nn.Embedding(
+            num_embeddings=config.dims.staticfeat,
+            embedding_dim=config.dims.cat_embedding,
+        )
+        self.mlp_dynamic = MLP(
+            dim_in=config.dims.timefeat,
+            dims=dynamic_transform_dims,
+            activations=dynamic_transform_activations,
+        )
+        # self.mlp_static = MLP(
+        #     dim_in=config.dims.cat_embedding,
+        #     dims=dynamic_transform_dims,
+        #     activations=dynamic_transform_activations,
+        # )
+
+        # TODO: hard-coded. Hopefully not needed anymore later
+        self.time_feat_factor = 1.0
+
+    def forward(
+        self,
+        feat_static_cat: torch.Tensor,
+        time_feat: torch.Tensor,
+        seasonal_indicators: Optional[torch.Tensor] = None,
+    ) -> (ControlInputsSGLS, ControlInputsSGLSISSM):
+        static_ctrls = self._repeat_static_feats(
+            feat_static=self.embedding_static(
+                feat_static_cat.squeeze(dim=-1).to(torch.int64),
+            ),
+            n_timesteps=len(time_feat),
+        )
+        # static_ctrls = self.mlp_static(static_ctrls)
+        dynamic_ctrls = self.mlp_dynamic(time_feat * self.time_feat_factor)
+        concat_ctrls = torch.cat([static_ctrls, dynamic_ctrls], dim=-1)
+
+        if seasonal_indicators is None:
+            return ControlInputsSGLS(
+                state=dynamic_ctrls,
+                target=static_ctrls,
+                switch=concat_ctrls,
+                encoder=concat_ctrls,
+            )
+        else:
+            return ControlInputsSGLSISSM(
+                state=dynamic_ctrls,
+                target=static_ctrls,
+                switch=concat_ctrls,
+                encoder=concat_ctrls,
+                seasonal_indicators=seasonal_indicators,
+            )
 
 
 class InputTransformEmbeddingAndMLPKVAE(InputTransformEmbeddingAndMLP):
