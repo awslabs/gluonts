@@ -386,7 +386,7 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
     def validation_step(self, batch, batch_idx):
         with torch.no_grad():
             loss = self.loss(**batch)
-        result = pl.EvalResult(checkpoint_on=loss)
+        result = pl.EvalResult()
         result.log("val_loss", loss)
 
         if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
@@ -464,9 +464,9 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
             checkpoint_on=torch.tensor(agg_metrics["mean_wQuantileLoss_full"]),
         )
         for k, v in agg_metrics.items():
-            prog_bar = True if k == "mean_wQuantileLoss_full" else False
-            result.log(k, v, prog_bar=prog_bar)
-
+            if k == "mean_wQuantileLoss_full":
+                result.log("CRPS", v, prog_bar=True)
+            result.log(k, v, prog_bar=False)
         return result
 
     def test_end(
