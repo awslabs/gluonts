@@ -2,7 +2,7 @@ from typing import Dict, Sequence, Tuple
 from box import Box
 from torch import nn
 
-from torch_extensions.mlp import MLP
+from torch_extensions.mlp import MLP, NormalizationType
 
 
 class IndividualLink(nn.ModuleDict):
@@ -23,6 +23,7 @@ class IndividualLink(nn.ModuleDict):
                         dim_in=dim_in,
                         dims=dims_hidden + (dim_out,),
                         activations=activations_hidden + (nn.Softmax(dim=-1),),
+                        norm_type=NormalizationType.layer,
                     )
                 }
             )
@@ -48,6 +49,7 @@ class SharedLink(nn.Module):
             dim_in=dim_in,
             dims=dims_hidden + (dim_out,),
             activations=activations_hidden + (nn.Softmax(dim=-1),),
+            norm_type=NormalizationType.layer,
         )
 
     def forward(self, switch):
