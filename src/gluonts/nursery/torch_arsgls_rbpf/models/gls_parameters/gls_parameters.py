@@ -59,6 +59,8 @@ class GLSParameters(nn.Module):
         full_cov_Q: bool = True,
         LQinv_logdiag_limiter: Optional[nn.Module] = None,
         LRinv_logdiag_limiter: Optional[nn.Module] = None,
+        LRinv_logdiag_scaling: float = 10.0,
+        LQinv_logdiag_scaling: float = 10.0,
     ):
         super().__init__()
         self.make_cov_from_cholesky_avg = make_cov_from_cholesky_avg
@@ -72,6 +74,8 @@ class GLSParameters(nn.Module):
             if LRinv_logdiag_limiter is not None
             else torch.nn.Identity()
         )
+        self._LRinv_logdiag_scaling = LRinv_logdiag_scaling
+        self._LQinv_logdiag_scaling = LQinv_logdiag_scaling
         self.b_fn = b_fn
         self.d_fn = d_fn
 
@@ -227,7 +231,7 @@ class GLSParameters(nn.Module):
                 else [1e-4, 1e0]
             )
             if isinstance(init_scale_Q_diag, (list, tuple)):
-                self.LQinv_logdiag = nn.Parameter(
+                self._LQinv_logdiag = nn.Parameter(
                     self.make_cov_init(
                         init_scale_cov_diag=init_scale_Q_diag,
                         n_base=n_base_Q,
@@ -236,11 +240,13 @@ class GLSParameters(nn.Module):
                     requires_grad=requires_grad_Q,
                 )
             else:
-                self.LQinv_logdiag = nn.Parameter(
+                self._LQinv_logdiag = nn.Parameter(
                     torch.ones((n_base_Q, n_obs))
                     * -math.log(init_scale_Q_diag),
                     requires_grad=requires_grad_Q,
                 )
+            # Cannot use setter with nn.Module and nn.Parameter
+            self._LQinv_logdiag.data /= self._LQinv_logdiag_scaling
 
         if n_base_R is not None:
             if full_cov_R:  # tril part is always initialised zero
@@ -256,7 +262,7 @@ class GLSParameters(nn.Module):
                 else [1e-4, 1e0]
             )
             if isinstance(init_scale_R_diag, (list, tuple)):
-                self.LRinv_logdiag = nn.Parameter(
+                self._LRinv_logdiag = nn.Parameter(
                     self.make_cov_init(
                         init_scale_cov_diag=init_scale_R_diag,
                         n_base=n_base_R,
@@ -265,11 +271,21 @@ class GLSParameters(nn.Module):
                     requires_grad=requires_grad_R,
                 )
             else:
-                self.LRinv_logdiag = nn.Parameter(
+                self._LRinv_logdiag = nn.Parameter(
                     torch.ones((n_base_R, n_state))
                     * -math.log(init_scale_R_diag),
                     requires_grad=requires_grad_R,
                 )
+            # Cannot use setter with nn.Module and nn.Parameter
+            self._LRinv_logdiag.data /= self._LRinv_logdiag_scaling
+
+    @property
+    def LQinv_logdiag(self):
+        return self._LQinv_logdiag * self._LQinv_logdiag_scaling
+
+    @property
+    def LRinv_logdiag(self):
+        return self._LRinv_logdiag * self._LRinv_logdiag_scaling
 
     @staticmethod
     def make_cov_init(init_scale_cov_diag: (tuple, list), n_base, dim_cov):
