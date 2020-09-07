@@ -22,8 +22,8 @@ from torch_extensions.affine import Bias
 
 
 def _extract_dims_from_cfg_obs(config):
-    if config.dims.ctrl_switch is not None:
-        dim_in = config.dims.target + config.dims.ctrl_switch
+    if config.dims.ctrl_encoder is not None:
+        dim_in = config.dims.target + config.dims.ctrl_encoder
     else:
         dim_in = config.dims.target
     dim_out = config.dims.switch
@@ -39,8 +39,8 @@ def _extract_dims_from_cfg_state(config):
         + config.dims.state
         + (config.dims.state ** 2 - config.dims.state) / 2
     )
-    if config.dims.ctrl_switch is not None:
-        dim_in = dim_sufficient_stats_state + config.dims.ctrl_switch
+    if config.dims.ctrl_encoder is not None:
+        dim_in = dim_sufficient_stats_state + config.dims.ctrl_encoder
     else:
         dim_in = dim_sufficient_stats_state
     dim_out = config.dims.switch
@@ -343,14 +343,8 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
 ):
     def __init__(self, config):
         self.num_hierarchies = 2
-        # TODO: which control to take?
-        assert (
-            config.dims.ctrl_switch
-            == config.dims.ctrl_target
-            == config.dims.ctrl_state
-        )
 
-        dim_in = config.dims.target + config.dims.ctrl_switch
+        dim_in = config.dims.target + config.dims.ctrl_encoder
         dim_out_1 = config.dims.auxiliary
         dim_out_2 = config.dims.switch
 
@@ -427,12 +421,11 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
 ):
     def __init__(self, config):
         self.num_hierarchies = 2
-        assert (
-            config.dims.ctrl_switch
-            == config.dims.ctrl_target
-            == config.dims.ctrl_state
-            in [None, 0]
-        ), "no controls. would require different architecture or mixing with images."
+        if config.dims.ctrl_encoder not in [None, 0]:
+            raise ValueError(
+                "no controls. would require different architecture "
+                "or mixing with images."
+            )
         shp_enc_out, dim_out_flat_conv = compute_cnn_output_filters_and_dims(
             dims_img=config.dims_img,
             dims_filter=config.dims_filter,

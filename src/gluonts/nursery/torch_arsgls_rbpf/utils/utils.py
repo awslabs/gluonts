@@ -151,6 +151,7 @@ class TensorDims(NamedTuple):
     ctrl_target: Union[int, None]
     ctrl_state: Union[int, None]
     ctrl_switch: Union[int, None] = None
+    ctrl_encoder: Union[int, None] = None
     switch: Union[int, None] = None
     auxiliary: Union[int, None] = None
     anomaly: Union[int, None] = None
