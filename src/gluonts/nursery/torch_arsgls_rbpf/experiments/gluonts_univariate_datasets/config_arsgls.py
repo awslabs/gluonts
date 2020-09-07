@@ -158,7 +158,9 @@ def make_default_config(dataset_name):
     n_static_embedding = min(
         50, (cardinalities["cardinalities_feat_static_cat"][0] + 1) // 2
     )
-    n_ctrl = 64
+    n_ctrl_static = n_static_embedding
+    n_ctrl_dynamic = 32
+    n_ctrl_all = n_ctrl_static + n_ctrl_dynamic  # we cat
 
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
@@ -170,9 +172,10 @@ def make_default_config(dataset_name):
         # ctrl_state=None,
         # ctrl_switch=n_staticfeat + n_timefeat,
         # ctrl_obs=n_staticfeat + n_timefeat,
-        ctrl_state=n_ctrl,
-        ctrl_switch=n_ctrl,
-        ctrl_target=n_ctrl,
+        ctrl_state=n_ctrl_dynamic,
+        ctrl_target=n_ctrl_static,
+        ctrl_switch=n_ctrl_all,  # switch takes cat feats
+        ctrl_encoder=n_ctrl_all,  # encoder takes cat feats
         timefeat=n_timefeat,
         staticfeat=n_staticfeat,
         cat_embedding=n_static_embedding,
@@ -185,7 +188,7 @@ def make_default_config(dataset_name):
         #
         n_epochs=50,
         n_epochs_no_resampling=5,
-        n_epochs_freeze_gls_params=0,
+        n_epochs_freeze_gls_params=5,
         n_epochs_until_validate_loss=1,
         lr=1e-2 if dataset_name in ["solar_nips"] else 5e-3,
         weight_decay=1e-5,
@@ -216,7 +219,7 @@ def make_default_config(dataset_name):
         requires_grad_Q=True,
         # use_encoder: True,
         switch_prior_model_dims=tuple(),
-        input_transform_dims=tuple() + (n_ctrl,),
+        input_transform_dims=(64,) + (dims.ctrl_state,),  # TODO: made now assumption that this is used for ctrl_state. Before had all ctrls same.
         switch_transition_model_dims=(64,),
         dims_encoder=((64, 64), (64,)),
         dims_decoder=(64, 64),
@@ -234,9 +237,9 @@ def make_default_config(dataset_name):
         d_fn_activations=LeakyReLU(0.1, inplace=True),
         # initialisation
         init_scale_A=None,  # 0.95,
-        init_scale_B=1e-4,
+        init_scale_B=0.0,
         init_scale_C=None,
-        init_scale_D=None,
+        init_scale_D=0.0,
         init_scale_R_diag=[1e-4, 1e-1],
         init_scale_Q_diag=[1e-4, 1e-1],
         init_scale_S_diag=[1e-4, 1e-1],
@@ -254,12 +257,12 @@ def make_default_config(dataset_name):
 
 def make_model(config):
     dims = config.dims
-    input_transformer = input_transforms.InputTransformEmbeddingAndMLP(
-        config=config
+    input_transformer = input_transforms.InputTransformSeparatedDynamicStatic(
+        config=config,
     )
     gls_base_parameters = gls_parameters.GLSParametersASGLS(config=config)
     switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
-        config=config
+        config=config,
     )
     state_prior_model = state_priors.StatePriorModelNoInputs(config=config)
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
