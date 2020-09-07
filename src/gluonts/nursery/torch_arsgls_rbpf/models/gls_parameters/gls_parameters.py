@@ -61,6 +61,9 @@ class GLSParameters(nn.Module):
         LRinv_logdiag_limiter: Optional[nn.Module] = None,
         LRinv_logdiag_scaling: float = 10.0,
         LQinv_logdiag_scaling: float = 10.0,
+        B_scaling: bool = 0.1,
+        D_scaling: bool = 0.1,
+        eye_init_A: bool = False,  # False -> orthogonal
     ):
         super().__init__()
         self.make_cov_from_cholesky_avg = make_cov_from_cholesky_avg
@@ -74,8 +77,14 @@ class GLSParameters(nn.Module):
             if LRinv_logdiag_limiter is not None
             else torch.nn.Identity()
         )
+        # scaling factors: trick to roughly correct for wrong assumption in ADAM
+        # that all params should receive similar total updates (gradient norm)
+        # and thus have similar scale. --> Should fix ADAM though!
         self._LRinv_logdiag_scaling = LRinv_logdiag_scaling
         self._LQinv_logdiag_scaling = LQinv_logdiag_scaling
+        self._B_scaling = B_scaling
+        self._D_scaling = D_scaling
+
         self.b_fn = b_fn
         self.d_fn = d_fn
 
@@ -134,89 +143,6 @@ class GLSParameters(nn.Module):
             raise Exception(f"unknown switch link type: {switch_link_type}")
 
         # ***** Initialise GLS Parameters *****
-        if n_base_A is not None:
-            init_scale_A = init_scale_A if init_scale_A is not None else 1.0
-            self.A = nn.Parameter(
-                init_scale_A * torch.eye(n_state).repeat(n_base_A, 1, 1),
-                requires_grad=requires_grad_A,
-            )
-            # self.A = nn.Parameter(
-            #     init_scale_A * torch.nn.init.orthogonal_(torch.empty(n_base_A, n_state, n_state)),
-            #     requires_grad=True,
-            # )
-        else:
-            self.register_parameter("A", None)
-
-        if n_base_B is not None:
-            if init_scale_B is not None:
-                self.B = nn.Parameter(
-                    init_scale_B
-                    * torch.randn(n_base_B, n_state, n_ctrl_state),
-                    requires_grad=requires_grad_B,
-                )
-            else:
-                self.B = nn.Parameter(
-                    torch.stack(
-                        [
-                            kaiming_normal_(
-                                tensor=torch.empty(n_state, n_ctrl_state),
-                                nonlinearity="linear",
-                            )
-                            for n in range(n_base_B)
-                        ],
-                        dim=0,
-                    ),
-                    requires_grad=requires_grad_B,
-                )
-        else:
-            self.register_parameter("B", None)
-
-        if n_base_C is not None:
-            if init_scale_C is not None:
-                self.C = nn.Parameter(
-                    init_scale_C * torch.randn(n_base_C, n_obs, n_state),
-                    requires_grad=requires_grad_C,
-                )
-            else:
-                self.C = nn.Parameter(
-                    torch.stack(
-                        [
-                            kaiming_normal_(
-                                tensor=torch.empty(n_obs, n_state),
-                                nonlinearity="linear",
-                            )
-                            for n in range(n_base_C)
-                        ],
-                        dim=0,
-                    ),
-                    requires_grad=requires_grad_C,
-                )
-        else:
-            self.register_parameter("C", None)
-
-        if n_base_D is not None:
-            if init_scale_D is not None:
-                self.D = nn.Parameter(
-                    init_scale_D * torch.randn(n_base_D, n_obs, n_ctrl_obs),
-                    requires_grad=requires_grad_D,
-                )
-            else:
-                self.D = nn.Parameter(
-                    torch.stack(
-                        [
-                            kaiming_normal_(
-                                tensor=torch.empty(n_obs, n_ctrl_obs),
-                                nonlinearity="linear",
-                            )
-                            for n in range(n_base_D)
-                        ],
-                        dim=0,
-                    ),
-                    requires_grad=requires_grad_D,
-                )
-        else:
-            self.register_parameter("D", None)
-
         if n_base_Q is not None:
             if full_cov_Q:  # tril part is always initialised zero
                 self.LQinv_tril = nn.Parameter(
@@ -279,6 +205,104 @@ class GLSParameters(nn.Module):
             # Cannot use setter with nn.Module and nn.Parameter
             self._LRinv_logdiag.data /= self._LRinv_logdiag_scaling
 
+        if n_base_A is not None:
+            if init_scale_A is not None:
+                init_scale_A = torch.tensor(init_scale_A)
+            else:
+                init_var_avg_R = torch.mean(
+                    torch.exp(- 2 * self.LRinv_logdiag), dim=0,
+                )
+                # Heuristic: transition var + innovation noise var = 1, where\
+                # transition and noise param are averaged from base mats.
+                init_var_A = 1 - init_var_avg_R
+                init_scale_A = torch.sqrt(init_var_A)
+
+            if eye_init_A:
+                A_diag = torch.eye(n_state).repeat(n_base_A, 1, 1)
+            else:
+                A_diag = torch.nn.init.orthogonal_(
+                    torch.empty(n_base_A, n_state, n_state),
+                )
+            # broadcast basemat-dim and columns -> scale columns; or scalar
+            self.A = nn.Parameter(
+                init_scale_A[None, :, None] * A_diag,
+                requires_grad=requires_grad_A,
+            )
+        else:
+            self.register_parameter("A", None)
+
+        if n_base_B is not None:
+            if init_scale_B is not None:
+                self._B = nn.Parameter(
+                    init_scale_B
+                    * torch.randn(n_base_B, n_state, n_ctrl_state),
+                    requires_grad=requires_grad_B,
+                )
+            else:
+                self._B = nn.Parameter(
+                    torch.stack(
+                        [
+                            kaiming_normal_(
+                                tensor=torch.empty(n_state, n_ctrl_state),
+                                nonlinearity="linear",
+                            )
+                            for n in range(n_base_B)
+                        ],
+                        dim=0,
+                    ),
+                    requires_grad=requires_grad_B,
+                )
+                self._B.data /= self._B_scaling
+        else:
+            self.register_parameter("B", None)
+
+        if n_base_C is not None:
+            if init_scale_C is not None:
+                self.C = nn.Parameter(
+                    init_scale_C * torch.randn(n_base_C, n_obs, n_state),
+                    requires_grad=requires_grad_C,
+                )
+            else:
+                self.C = nn.Parameter(
+                    torch.stack(
+                        [
+                            kaiming_normal_(
+                                tensor=torch.empty(n_obs, n_state),
+                                nonlinearity="linear",
+                            )
+                            for n in range(n_base_C)
+                        ],
+                        dim=0,
+                    ),
+                    requires_grad=requires_grad_C,
+                )
+        else:
+            self.register_parameter("C", None)
+
+        if n_base_D is not None:
+            if init_scale_D is not None:
+                self._D = nn.Parameter(
+                    init_scale_D * torch.randn(n_base_D, n_obs, n_ctrl_obs),
+                    requires_grad=requires_grad_D,
+                )
+            else:
+                self._D = nn.Parameter(
+                    torch.stack(
+                        [
+                            kaiming_normal_(
+                                tensor=torch.empty(n_obs, n_ctrl_obs),
+                                nonlinearity="linear",
+                            )
+                            for n in range(n_base_D)
+                        ],
+                        dim=0,
+                    ),
+                    requires_grad=requires_grad_D,
+                )
+            self._D.data /= self._D_scaling
+        else:
+            self.register_parameter("_D", None)
+
     @property
     def LQinv_logdiag(self):
         return self._LQinv_logdiag * self._LQinv_logdiag_scaling
@@ -286,6 +310,14 @@ class GLSParameters(nn.Module):
     @property
     def LRinv_logdiag(self):
         return self._LRinv_logdiag * self._LRinv_logdiag_scaling
+
+    @property
+    def B(self):
+        return self._B * self._B_scaling
+
+    @property
+    def D(self):
+        return self._D * self._D_scaling
 
     @staticmethod
     def make_cov_init(init_scale_cov_diag: (tuple, list), n_base, dim_cov):
