@@ -8,6 +8,7 @@ import pandas as pd
 class Gluonts2Auto:
 
     '''
+    This part is the same as feature.ipynb
     Input:
     dataset_name: str, the name of the gluonts available dataset
     regenerate: boolean, the parameter at get_dataset method
