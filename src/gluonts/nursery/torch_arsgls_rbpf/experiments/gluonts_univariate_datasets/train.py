@@ -6,7 +6,7 @@ import torch
 from pytorch_lightning import Trainer
 
 import consts
-from experiments.gluonts_univariate_datasets.config_kvae import (
+from experiments.gluonts_univariate_datasets.config_arsgls import (
     make_model,
     make_experiment_config,
 )
@@ -17,14 +17,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "-root_log_path", type=str, default="/home/ubuntu/logs"
     )
-    parser.add_argument("-dataset_name", type=str, default="wiki-rolling_nips")
+    parser.add_argument("-dataset_name", type=str, default="wiki2000_nips")
     parser.add_argument("-experiment_name", type=str)
     parser.add_argument("-run_nr", type=int, default=None)
     parser.add_argument(
         "-gpus",
         "--gpus",
         nargs="*",
-        default=[1],
+        default=[0],
         help='"-gpus 0 1 2 3". or "-gpus ".',
     )
     parser.add_argument("-dtype", type=str, default="float64")
