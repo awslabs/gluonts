@@ -15,7 +15,7 @@ from gluonts.dataset.loader import (
 )
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
@@ -473,14 +473,31 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         self,
         outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]],
     ) -> Dict[str, Dict[str, Tensor]]:
-        dataset = self.dataset.test
+        def extract_last_roll(dataset, n_roll_reps):
+            """ Dataset has been prepared for rolling eval.
+            The last roll can be taken for eval with the full length. """
 
+            len_test_full = len(dataset.test) // n_roll_reps
+            testset_full = ListDataset(
+                dataset.test, freq=dataset.metadata.freq,
+            )
+            testset_full.list_data = testset_full.list_data[-len_test_full:]
+            return testset_full
+
+        n_reps = self.prediction_length_full // self.prediction_length_rolling
+        assert n_reps == len(self.dataset.test) // len(self.dataset.train)
+        testsets = {
+            "full": extract_last_roll(dataset=self.dataset, n_roll_reps=n_reps),
+            "rolling": ListDataset(
+                self.dataset.test, freq=self.dataset.metadata.freq,
+            ),
+        }
         agg_metrics = {}
         for which, predictor in self.predictors.items():
+            dataset = testsets[which]
             forecast_it, ts_it = make_evaluation_predictions(
                 dataset, predictor=predictor, num_samples=self.ssm.n_particle,
             )
-
             _agg_metrics, _ = self.forecast_evaluator(
                 ts_it, forecast_it, num_series=len(dataset),
             )
