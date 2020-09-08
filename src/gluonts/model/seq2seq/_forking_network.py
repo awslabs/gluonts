@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Third-party imports
-from typing import List
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import mxnet as mx
@@ -28,6 +28,7 @@ from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution import DistributionOutput
 from gluonts.support.util import weighted_average
 
 
@@ -43,10 +44,14 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         encoder to decoder mapping block.
     decoder: Seq2SeqDecoder
         decoder block.
-    quantile_output: QuantileOutput
-        quantile output block
+    quantile_output
+        quantile output
+    distr_output
+        distribution output
     context_length: int,
         length of the encoding sequence.
+    num_forking: int,
+        decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
     cardinality: List[int],
         number of values of each categorical feature.
     embedding_dimension: List[int],
@@ -67,10 +72,12 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         encoder: Seq2SeqEncoder,
         enc2dec: Seq2SeqEnc2Dec,
         decoder: Seq2SeqDecoder,
-        quantile_output: QuantileOutput,
         context_length: int,
+        num_forking: int,
         cardinality: List[int],
         embedding_dimension: List[int],
+        distr_output: Optional[DistributionOutput] = None,
+        quantile_output: Optional[QuantileOutput] = None,
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
@@ -78,11 +85,15 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
     ) -> None:
         super().__init__(**kwargs)
 
+        assert (distr_output is None) != (quantile_output is None)
+
         self.encoder = encoder
         self.enc2dec = enc2dec
         self.decoder = decoder
+        self.distr_output = distr_output
         self.quantile_output = quantile_output
         self.context_length = context_length
+        self.num_forking = num_forking
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
         self.scaling = scaling
@@ -105,8 +116,12 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             )
 
         with self.name_scope():
-            self.quantile_proj = quantile_output.get_quantile_proj()
-            self.loss = quantile_output.get_loss()
+            if self.quantile_output:
+                self.quantile_proj = self.quantile_output.get_quantile_proj()
+                self.loss = self.quantile_output.get_loss()
+            else:
+                assert self.distr_output is not None
+                self.distr_args_proj = self.distr_output.get_args_proj()
             self.embedder = FeatureEmbedder(
                 cardinalities=cardinality,
                 embedding_dims=embedding_dimension,
@@ -122,7 +137,26 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         future_feat_dynamic: Tensor,
         feat_static_cat: Tensor,
         past_observed_values: Tensor,
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor]:
+        """
+        Parameters
+        ----------
+        F: mx.symbol or mx.ndarray
+            Gluon function space
+        past_target: Tensor
+            shape (batch_size, encoder_length, 1)
+        past_feat_dynamic
+            shape (batch_size, encoder_length, num_past_feature_dynamic)
+        future_feat_dynamic
+            shape (batch_size, num_forking, decoder_length, num_feature_dynamic)
+        feat_static_cat
+            shape (batch_size, encoder_length, num_feature_static_cat)
+        past_observed_values: Tensor
+            shape (batch_size, encoder_length, 1)
+        Returns
+        -------
+        decoder output tensor of size (batch_size, num_forking, dec_len, final_dims)
+        """
 
         # scale is computed on the context length last units of the past target
         # scale shape is (batch_size, 1, *target_shape)
@@ -164,7 +198,11 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
         # arguments: encoder_output_static, encoder_output_dynamic, future_features
         dec_input_static, dec_input_dynamic = self.enc2dec(
-            enc_output_static, enc_output_dynamic, scaled_future_feat_dynamic
+            enc_output_static,
+            enc_output_dynamic.slice_axis(
+                axis=1, begin=-self.num_forking, end=None
+            ),
+            scaled_future_feat_dynamic,
         )
 
         # arguments: dynamic_input, static_input
@@ -172,8 +210,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         #  where we we only need to pass the encoder output for the last time step
         dec_output = self.decoder(dec_input_dynamic, dec_input_static)
 
-        # the output shape should be: (batch_size, enc_len, dec_len, final_dims)
-        return dec_output
+        # the output shape should be: (batch_size, num_forking, dec_len, final_dims)
+        return dec_output, scale
 
 
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
@@ -197,23 +235,23 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         past_target: Tensor
             shape (batch_size, encoder_length, 1)
         future_target: Tensor
-            shape (batch_size, encoder_length, decoder_length)
+            shape (batch_size, num_forking, decoder_length)
         past_feat_dynamic
             shape (batch_size, encoder_length, num_past_feature_dynamic)
         future_feat_dynamic
-            shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
+            shape (batch_size, num_forking, decoder_length, num_feature_dynamic)
         feat_static_cat
             shape (batch_size, encoder_length, num_feature_static_cat)
         past_observed_values: Tensor
             shape (batch_size, encoder_length, 1)
         future_observed_values: Tensor
-            shape (batch_size, encoder_length, decoder_length)
+            shape (batch_size, num_forking, decoder_length)
 
         Returns
         -------
         loss with shape (batch_size, prediction_length)
         """
-        dec_output = self.get_decoder_network_output(
+        dec_output, scale = self.get_decoder_network_output(
             F,
             past_target,
             past_feat_dynamic,
@@ -222,8 +260,14 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
             past_observed_values,
         )
 
-        dec_dist_output = self.quantile_proj(dec_output)
-        loss = self.loss(future_target, dec_dist_output)
+        if self.quantile_output is not None:
+            dec_dist_output = self.quantile_proj(dec_output)
+            loss = self.loss(future_target, dec_dist_output)
+        else:
+            assert self.distr_output is not None
+            distr_args = self.distr_args_proj(dec_output)
+            distr = self.distr_output.distribution(distr_args, scale=scale)
+            loss = distr.loss(future_target)
 
         # mask the loss based on observed indicator
         weighted_loss = weighted_average(
@@ -256,7 +300,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         past_feat_dynamic
             shape (batch_size, encoder_length, num_past_feature_dynamic)
         future_feat_dynamic
-            shape (batch_size, encoder_length, decoder_length, num_feature_dynamic)
+            shape (batch_size, num_forking, decoder_length, num_feature_dynamic)
         past_observed_values: Tensor
             shape (batch_size, encoder_length, 1)
 
@@ -265,7 +309,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         prediction tensor with shape (batch_size, prediction_length)
         """
 
-        dec_output = self.get_decoder_network_output(
+        dec_output, _ = self.get_decoder_network_output(
             F,
             past_target,
             past_feat_dynamic,
@@ -281,3 +325,52 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         predictions = self.quantile_proj(fcst_output).swapaxes(2, 1)
 
         return predictions
+
+
+class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
+    # noinspection PyMethodOverriding
+    def hybrid_forward(
+        self,
+        F,
+        past_target: Tensor,
+        past_feat_dynamic: Tensor,
+        future_feat_dynamic: Tensor,
+        feat_static_cat: Tensor,
+        past_observed_values: Tensor,
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """
+        Parameters
+        ----------
+        F: mx.symbol or mx.ndarray
+            Gluon function space
+        past_target: Tensor
+             shape (batch_size, encoder_length, 1)
+        feat_static_cat
+            shape (batch_size, encoder_length, num_feature_static_cat)
+        past_feat_dynamic
+            shape (batch_size, encoder_length, num_feature_dynamic)
+        future_feat_dynamic
+            shape (batch_size, num_forking, decoder_length, num_feature_dynamic)
+        past_observed_values: Tensor
+            shape (batch_size, encoder_length, 1)
+        Returns
+        -------
+        distr_args: the parameters of distribution
+        loc: an array of zeros with the same shape of scale
+        scale: 
+        """
+
+        dec_output, scale = self.get_decoder_network_output(
+            F,
+            past_target,
+            past_feat_dynamic,
+            future_feat_dynamic,
+            feat_static_cat,
+            past_observed_values,
+        )
+        fcst_output = F.slice_axis(dec_output, axis=1, begin=-1, end=None)
+        fcst_output = F.squeeze(fcst_output, axis=1)
+        distr_args = self.distr_args_proj(fcst_output)
+
+        loc = F.zeros_like(scale)
+        return distr_args, loc, scale

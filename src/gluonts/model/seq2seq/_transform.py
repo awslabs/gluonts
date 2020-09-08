@@ -17,6 +17,7 @@ from typing import Iterator, List, Optional
 
 # Third-party imports
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
 
 # First-party imports
 from gluonts.core.component import validated
@@ -25,13 +26,13 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.transform import FlatMapTransformation, shift_timestamp
 
 
-def pad_to_size(xs, size):
-    """Pads `xs` with 0 on the left on the last axis."""
-    pad_length = size - xs.shape[-1]
+def pad_to_size(xs: np.array, size: int):
+    """Pads `xs` with 0 on the left on the first axis."""
+    pad_length = size - xs.shape[0]
     if pad_length <= 0:
         return xs
 
-    pad_width = ([(0, 0)] * (xs.ndim - 1)) + [(pad_length, 0)]
+    pad_width = [(pad_length, 0)] + ([(0, 0)] * (xs.ndim - 1))
     return np.pad(xs, mode="constant", pad_width=pad_width)
 
 
@@ -44,6 +45,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         train_sampler,
         enc_len: int,
         dec_len: int,
+        num_forking: Optional[int] = None,
         target_field: str = FieldName.TARGET,
         encoder_series_fields: Optional[List[str]] = None,
         decoder_series_fields: Optional[List[str]] = None,
@@ -60,6 +62,9 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         self.train_sampler = train_sampler
         self.enc_len = enc_len
         self.dec_len = dec_len
+        self.num_forking = (
+            num_forking if num_forking is not None else self.enc_len
+        )
         self.target_field = target_field
 
         self.encoder_series_fields = (
@@ -137,7 +142,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             for ts_field in list(ts_fields_counter.keys()):
 
                 # target is 1d, this ensures ts is always 2d
-                ts = np.atleast_2d(out[ts_field])
+                ts = np.atleast_2d(out[ts_field]).T
 
                 if ts_fields_counter[ts_field] == 1:
                     del out[ts_field]
@@ -145,15 +150,17 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                     ts_fields_counter[ts_field] -= 1
 
                 # take enc_len values from ts, depending on sampling_idx
-                slice = ts[:, start_idx:sampling_idx]
+                slice = ts[start_idx:sampling_idx, :]
 
-                past_piece = np.zeros(shape=(len(ts), self.enc_len))
+                ts_len = ts.shape[1]
+                past_piece = np.zeros(
+                    shape=(self.enc_len, ts_len), dtype=ts.dtype
+                )
 
                 if ts_field not in self.encoder_disabled_fields:
                     # if we have less than enc_len values, pad_left with 0
                     past_piece = pad_to_size(slice, self.enc_len)
-
-                out[self._past(ts_field)] = past_piece.transpose()
+                out[self._past(ts_field)] = past_piece
 
                 # exclude some fields at prediction time
                 if (
@@ -168,19 +175,44 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 if ts_field in self.decoder_series_fields:
 
                     forking_dec_field = np.zeros(
-                        shape=(self.enc_len, self.dec_len, len(ts))
+                        shape=(self.num_forking, self.dec_len, ts_len),
+                        dtype=ts.dtype,
                     )
-
                     # in case it's not disabled we copy the actual values
                     if ts_field not in self.decoder_disabled_fields:
-                        skip = max(0, self.enc_len - sampling_idx)
-                        # This section takes by far the longest time computationally:
-                        # This scales linearly in self.enc_len and linearly in self.dec_len
-                        for dec_field, idx in zip(
-                            forking_dec_field[skip:],
-                            range(start_idx + 1, start_idx + self.enc_len + 1),
-                        ):
-                            dec_field[:] = ts[:, idx : idx + self.dec_len].T
+                        # In case we sample and index too close to the beginning of the time series we would run out of
+                        # bounds (i.e. try to copy non existent time series data) to prepare the input for the decoder.
+                        # Instead of copying the partially available data from the time series and padding it with
+                        # zeros, we simply skip copying the partial data. Since copying data would result in overriding
+                        # the 0 pre-initialized 3D array, the end result of skipping is that the affected 2D decoder
+                        # inputs (entries of the 3D array - of which there are skip many) will still be all 0."
+                        skip = max(0, self.num_forking - sampling_idx)
+                        start_idx = max(0, sampling_idx - self.num_forking)
+                        # For 2D column-major (Fortran) ordering transposed array strides = (dtype, dtype*n_rows)
+                        # For standard row-major arrays, strides = (dtype*n_cols, dtype)
+                        stride = ts.strides
+                        forking_dec_field[skip:, :, :] = as_strided(
+                            ts[
+                                start_idx
+                                + 1 : start_idx
+                                + 1
+                                + self.num_forking
+                                - skip,
+                                :,
+                            ],
+                            shape=(
+                                self.num_forking - skip,
+                                self.dec_len,
+                                ts_len,
+                            ),
+                            # strides for 2D array expanded to 3D array of shape (dim1, dim2, dim3) =
+                            # strides for 2D array expanded to 3D array of shape (dim1, dim2, dim3) =
+                            # (1, n_rows, n_cols).  Note since this array has been transposed, it is stored in
+                            # column-major (Fortan) ordering, i.e. for transposed data of shape (dim1, dim2, dim3),
+                            # strides = (dtype, dtype * dim1, dtype*dim1*dim2) = (dtype, dtype, dtype*n_rows).
+                            strides=stride[0:1] + stride,
+                        )
+                    # edge case for prediction_length = 1
                     if forking_dec_field.shape[-1] == 1:
                         out[self._future(ts_field)] = np.squeeze(
                             forking_dec_field, axis=-1

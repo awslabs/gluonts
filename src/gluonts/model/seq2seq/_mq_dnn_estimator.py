@@ -24,6 +24,9 @@ import mxnet as mx
 from gluonts.core.component import validated
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
+
+from gluonts.mx.distribution import DistributionOutput
+
 from gluonts.mx.block.decoder import ForkingMLPDecoder
 from gluonts.mx.block.encoder import (
     HierarchicalCausalConv1DEncoder,
@@ -98,12 +101,17 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         Optimizing for more quantiles than are of direct interest to you can result
         in improved performance due to a regularizing effect.
         (default: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    distr_output
+        DistributionOutput to use. Only one between `quantile` and `distr_output`
+        can be set. (Default: None)
     trainer
         The GluonTS trainer to use for training. (default: Trainer())
     scaling
         Whether to automatically scale the target values. (default: False)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
+    num_forking
+        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN
     """
 
     @validated()
@@ -128,11 +136,14 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         kernel_size_seq: Optional[List[int]] = None,
         use_residual: bool = True,
         quantiles: Optional[List[float]] = None,
+        distr_output: Optional[DistributionOutput] = None,
         trainer: Trainer = Trainer(),
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
+        num_forking: Optional[int] = None,
     ) -> None:
 
+        assert (distr_output is None) or (quantiles is None)
         assert (
             prediction_length > 0
         ), f"Invalid prediction length: {prediction_length}."
@@ -167,7 +178,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         )
         self.quantiles = (
             quantiles
-            if quantiles is not None
+            if (quantiles is not None) or (distr_output is not None)
             else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         )
 
@@ -182,7 +193,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
 
         if seed:
             np.random.seed(seed)
-            mx.random.seed(seed)
+            mx.random.seed(seed, trainer.ctx)
 
         # `use_static_feat` and `use_dynamic_feat` always True because network
         # always receives input; either from the input data or constants
@@ -203,12 +214,15 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        quantile_output = QuantileOutput(self.quantiles)
+        quantile_output = (
+            QuantileOutput(self.quantiles) if self.quantiles else None
+        )
 
         super().__init__(
             encoder=encoder,
             decoder=decoder,
             quantile_output=quantile_output,
+            distr_output=distr_output,
             freq=freq,
             prediction_length=prediction_length,
             context_length=context_length,
@@ -224,6 +238,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             trainer=trainer,
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
+            num_forking=num_forking,
         )
 
     @classmethod
@@ -299,7 +314,8 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         context_length: Optional[int] = None,
         decoder_mlp_dim_seq: List[int] = None,
         trainer: Trainer = Trainer(),
-        quantiles: List[float] = None,
+        quantiles: Optional[List[float]] = None,
+        distr_output: Optional[DistributionOutput] = None,
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
     ) -> None:
@@ -319,7 +335,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         )
         self.quantiles = (
             quantiles
-            if quantiles is not None
+            if (quantiles is not None) or (distr_output is not None)
             else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         )
 
@@ -342,12 +358,15 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        quantile_output = QuantileOutput(self.quantiles)
+        quantile_output = (
+            QuantileOutput(self.quantiles) if self.quantiles else None
+        )
 
         super().__init__(
             encoder=encoder,
             decoder=decoder,
             quantile_output=quantile_output,
+            distr_output=distr_output,
             freq=freq,
             prediction_length=prediction_length,
             context_length=context_length,

@@ -40,11 +40,7 @@ from .model_averaging import (
     SelectNBestMean,
     save_epoch_info,
 )
-from .model_iteration_averaging import (
-    IterationAveragingStrategy,
-    NTA,
-    Alpha_Suffix,
-)
+from .model_iteration_averaging import IterationAveragingStrategy
 
 logger = logging.getLogger("gluonts").getChild("trainer")
 

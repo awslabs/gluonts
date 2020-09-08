@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import pydoc
-from typing import Optional, Type, Union, cast
+from typing import Type, Union, cast
 
 import pkg_resources
 

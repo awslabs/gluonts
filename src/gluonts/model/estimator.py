@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Iterator, NamedTuple, Optional
+from typing import NamedTuple, Optional
 
 # Third-party imports
 import numpy as np

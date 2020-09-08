@@ -11,9 +11,15 @@ Bibliography
 
 .. [DDT+16] Du, Nan, et al. "Recurrent Marked Temporal Point Processes: Embedding Event History to Vector." The 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. ACM, 2016.
 
+.. [GG16] Gal, Yarin, and Zoubin Ghahramani. "A theoretically grounded application of dropout in recurrent neural networks." Advances in neural information processing systems. 2016.
+
+.. [KMK16] Krueger, David, Tegan Maharaj, János Kramár, Mohammad Pezeshki, Nicolas Ballas, Nan Rosemary Ke, Anirudh Goyal, Yoshua Bengio, Aaron Courville, and Chris Pal. "Zoneout: Regularizing rnns by randomly preserving hidden activations." arXiv preprint arXiv:1606.01305 (2016).
+
 .. [LCY+18] Lai, Guokun, et al. "Modeling long-and short-term temporal patterns with deep neural networks." The 41st International ACM SIGIR Conference on Research & Development in Information Retrieval. ACM, 2018.
 
 .. [MKH19] Muller, Rafael, Simon Kornblith, and Geoffrey E. Hinton. "When does label smoothing help?." Advances in Neural Information Processing Systems. 2019.
+
+.. [MMS17] Merity, Stephen, Bryan McCann, and Richard Socher. "Revisiting activation regularization for language rnns." arXiv preprint arXiv:1708.01009 (2017).
 
 .. [ODZ+16] Oord, Aaron van den, et al. "Wavenet: A generative model for raw audio." arXiv preprint arXiv:1609.03499 (2016).
 
@@ -30,4 +36,3 @@ Bibliography
 .. [WTN+17] Wen, Ruofeng, et al. "A multi-horizon quantile recurrent forecaster." arXiv preprint arXiv:1711.11053 (2017).
 
 .. [YRD15] Yu, Hsiang-Fu, Nikhil Rao, and Inderjit S. Dhillon. "High-dimensional time series prediction with missing values." arXiv preprint arXiv:1509.08333 (2015).
-

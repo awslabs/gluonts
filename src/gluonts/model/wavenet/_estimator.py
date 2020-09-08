@@ -13,8 +13,7 @@
 
 # Standard library imports
 import logging
-import re
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 # Third-party imports
 import mxnet as mx
