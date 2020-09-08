@@ -22,7 +22,9 @@ import numpy as np
 from gluonts.core.component import validated
 
 from gluonts.model.common import Tensor
-from gluonts.mx.distribution import Distribution
+from .distribution import Distribution
+
+# from gluonts.mx.distribution import Distribution
 from gluonts.mx.distribution.distribution import (
     getF,
     softplus,
@@ -50,14 +52,11 @@ class GenPareto(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, xi: Tensor, beta: Tensor, loc: Tensor) -> None:
+    def __init__(self, xi: Tensor, beta: Tensor, loc: Tensor, F=None) -> None:
         self.xi = xi
         self.beta = beta
         self.loc = loc
-
-    @property
-    def F(self):
-        return getF(self.xi)
+        self.F = F if F else getF(xi)  # assuming xi and beta of same type
 
     @property
     def batch_shape(self) -> Tuple:
@@ -78,7 +77,8 @@ class GenPareto(Distribution):
         x_shifted = F.broadcast_div(x - loc, beta)
         return F.where(
             x < loc,
-            -np.inf * F.ones_like(x),
+            np.finfo(np.float32).min
+            * F.ones_like(x),  # -np.inf*F.ones_like(x),
             -(1 + F.reciprocal(xi)) * F.log1p(xi * x_shifted) - F.log(beta),
         )
 
@@ -110,13 +110,32 @@ class GenPareto(Distribution):
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
-        F = getF(self.xi)
-        U = uniform.Uniform(F.array([0]), F.array([1])).sample(num_samples)
-        boxcox = box_cox_transform.BoxCoxTransform(-self.xi, F.array([0]))
-        samples = F.broadcast_add(
-            F.broadcast_mul(-1 * boxcox.f(1 - U), self.beta), self.loc
+        def s(xi: Tensor, beta: Tensor, loc: Tensor) -> Tensor:
+            F = getF(xi)
+            print("len(xi)", len(xi))
+            print("xi.shape", xi.shape)
+            sample_U = uniform.Uniform(
+                F.zeros_like(xi), F.ones_like(xi)
+            ).sample()
+            boxcox = box_cox_transform.BoxCoxTransform(-xi, F.array([0]))
+            sample_X = F.broadcast_add(
+                F.broadcast_mul(
+                    -1 * boxcox.f(1 - sample_U.reshape(len(sample_U),)), beta
+                ),
+                loc,
+            )
+            return sample_X
+
+        samples = _sample_multiple(
+            s,
+            xi=self.xi,
+            beta=self.beta,
+            loc=self.loc,
+            num_samples=num_samples,
         )
-        return samples
+        return self.F.clip(
+            data=samples, a_min=np.finfo(dtype).eps, a_max=np.finfo(dtype).max
+        )
 
     @property
     def args(self) -> List:
@@ -124,7 +143,7 @@ class GenPareto(Distribution):
 
 
 class GenParetoOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"xi": 1, "beta": 1, "loc": 0}
+    args_dim: Dict[str, int] = {"xi": 1, "beta": 1, "loc": 1}
     distr_cls: type = GenPareto
 
     @classmethod
@@ -145,13 +164,15 @@ class GenParetoOutput(DistributionOutput):
 
         Returns
         -------
-        Tuple[Tensor, Tensor]:
-            Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
+        Tuple[Tensor, Tensor, Tensor]:
+            Three squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
             positive orthant.
         """
         epsilon = np.finfo(cls._dtype).eps
+        xi = softplus(F, xi) + epsilon
         beta = softplus(F, beta) + epsilon
-        return xi.squeeze(axis=-1), beta.squeeze(axis=-1), loc.squeeze(axis=1)
+        # loc = softplus(F, loc) + epsilon
+        return xi.squeeze(axis=-1), beta.squeeze(axis=-1), loc.squeeze(axis=-1)
 
     @property
     def event_shape(self) -> Tuple:

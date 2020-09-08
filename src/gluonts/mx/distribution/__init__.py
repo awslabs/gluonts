@@ -30,6 +30,7 @@ from .distribution import Distribution
 from .distribution_output import DistributionOutput
 from .gamma import Gamma, GammaOutput
 from .gaussian import Gaussian, GaussianOutput
+from .genpareto import GenPareto, GenParetoOutput
 from .inflated_beta import (
     ZeroAndOneInflatedBeta,
     ZeroAndOneInflatedBetaOutput,
@@ -77,6 +78,7 @@ __all__ = [
     "ZeroInflatedBetaOutput",
     "OneInflatedBeta",
     "OneInflatedBetaOutput",
+    "GenPareto",
     "GaussianOutput",
     "Gaussian",
     "LaplaceOutput",
