@@ -24,7 +24,7 @@ from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 from .distribution import Distribution
 
-# from gluonts.mx.distribution import Distribution
+from gluonts.mx.distribution import Distribution
 from gluonts.mx.distribution.distribution import (
     getF,
     softplus,
@@ -112,18 +112,11 @@ class GenPareto(Distribution):
     ) -> Tensor:
         def s(xi: Tensor, beta: Tensor, loc: Tensor) -> Tensor:
             F = getF(xi)
-            print("len(xi)", len(xi))
-            print("xi.shape", xi.shape)
             sample_U = uniform.Uniform(
                 F.zeros_like(xi), F.ones_like(xi)
             ).sample()
             boxcox = box_cox_transform.BoxCoxTransform(-xi, F.array([0]))
-            sample_X = F.broadcast_add(
-                F.broadcast_mul(
-                    -1 * boxcox.f(1 - sample_U.reshape(len(sample_U),)), beta
-                ),
-                loc,
-            )
+            sample_X = -1 * boxcox.f(1 - sample_U) * beta + loc
             return sample_X
 
         samples = _sample_multiple(

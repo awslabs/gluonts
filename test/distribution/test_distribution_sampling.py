@@ -18,13 +18,14 @@ import pytest
 from flaky import flaky
 
 # First-party imports
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     Uniform,
     StudentT,
     NegativeBinomial,
     Laplace,
     Gaussian,
     Gamma,
+    GenPareto,
     Beta,
     MultivariateGaussian,
     Poisson,
@@ -128,9 +129,9 @@ test_cases = [
     (
         GenPareto,
         {
-            "xi": mx.nd.array([1 / 3.0]),
-            "beta": mx.nd.array([1.0]),
-            "loc": mx.nd.array([2.0]),
+            "xi": mx.nd.array([1 / 3.0, 1 / 4.0]),
+            "beta": mx.nd.array([1.0, 1/2.]),
+            "loc": mx.nd.array([0.0, 1.0]),
         },
     ),
 ]
