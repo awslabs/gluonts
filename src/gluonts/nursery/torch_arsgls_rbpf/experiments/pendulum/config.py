@@ -175,5 +175,10 @@ def make_model(config):
         prediction_length=config.prediction_length,
         n_epochs_no_resampling=config.n_epochs_no_resampling,
         num_batches_per_epoch=50,
+        LRinv_logdiag_scaling=1.0,
+        LQinv_logdiag_scaling=1.0,
+        B_scaling=1.0,
+        D_scaling=1.0,
+        eye_init_A=True,
     )
     return model

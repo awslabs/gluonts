@@ -59,11 +59,11 @@ class GLSParameters(nn.Module):
         full_cov_Q: bool = True,
         LQinv_logdiag_limiter: Optional[nn.Module] = None,
         LRinv_logdiag_limiter: Optional[nn.Module] = None,
-        LRinv_logdiag_scaling: float = 10.0,
-        LQinv_logdiag_scaling: float = 10.0,
-        B_scaling: bool = 0.1,
-        D_scaling: bool = 0.1,
-        eye_init_A: bool = False,  # False -> orthogonal
+        LRinv_logdiag_scaling: float = 1.0,
+        LQinv_logdiag_scaling: float = 1.0,
+        B_scaling: bool = 1.0,
+        D_scaling: bool = 1.0,
+        eye_init_A: bool = True,  # False -> orthogonal
     ):
         super().__init__()
         self.make_cov_from_cholesky_avg = make_cov_from_cholesky_avg

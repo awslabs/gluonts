@@ -153,11 +153,15 @@ def make_default_config(dataset_name):
     n_static_embedding = min(
         50, (cardinalities["cardinalities_feat_static_cat"][0] + 1) // 2
     )
-    n_ctrl = 64
+    n_ctrl_all = n_ctrl_static = n_ctrl_dynamic = 64
+
+    # n_ctrl_static = n_static_embedding
+    # n_ctrl_dynamic = 32
+    # n_ctrl_all = n_ctrl_static + n_ctrl_dynamic  # we cat
 
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
-        particle=1,
+        particle=10,
         batch=50,
         state=n_latent,
         target=1,
@@ -165,9 +169,10 @@ def make_default_config(dataset_name):
         # ctrl_state=None,
         # ctrl_switch=n_staticfeat + n_timefeat,
         # ctrl_obs=n_staticfeat + n_timefeat,
-        ctrl_state=n_ctrl,
-        ctrl_switch=n_ctrl,
-        ctrl_target=n_ctrl,
+        ctrl_state=n_ctrl_dynamic,
+        ctrl_target=n_ctrl_static,
+        ctrl_switch=n_ctrl_all,  # switch takes cat feats
+        ctrl_encoder=n_ctrl_all,  # encoder takes cat feats
         timefeat=n_timefeat,
         staticfeat=n_staticfeat,
         cat_embedding=n_static_embedding,
@@ -175,12 +180,12 @@ def make_default_config(dataset_name):
     )
 
     config = RsglsIssmGtsExpConfig(
-        experiment_name="default",
+        experiment_name="rsgls",
         dataset_name=dataset_name,
         #
-        n_epochs=40,
+        n_epochs=50,
         n_epochs_no_resampling=5,
-        n_epochs_freeze_gls_params=1,
+        n_epochs_freeze_gls_params=0,
         n_epochs_until_validate_loss=1,
         lr=1e-3
         if dataset_name in ["electricity_nips"]
@@ -190,7 +195,7 @@ def make_default_config(dataset_name):
         weight_decay=1e-5,
         grad_clip_norm=10.0,
         num_samples_eval=100,
-        batch_size_val=100,  # 10
+        batch_size_val=50,  # 10
         # gpus=tuple(range(3, 4)),
         # dtype=torch.float64,
         # architecture, prior, etc.
@@ -203,20 +208,21 @@ def make_default_config(dataset_name):
         switch_link_activations=nn.LeakyReLU(0.1, inplace=True),
         recurrent_link_type=SwitchLinkType.shared,
         is_recurrent=True,
-        n_base_A=20,
-        n_base_B=None,
-        n_base_C=20,
-        n_base_D=20,
-        n_base_Q=20,
-        n_base_R=20,
-        n_base_F=20,
-        n_base_S=20,
+        n_base_A=10,
+        n_base_B=10,
+        n_base_C=10,
+        n_base_D=10,
+        n_base_Q=10,
+        n_base_R=10,
+        n_base_F=10,
+        n_base_S=10,
         requires_grad_R=True,
         requires_grad_Q=True,
         # obs_to_switch_encoder=True,
         # state_to_switch_encoder=False,
         switch_prior_model_dims=tuple(),
-        input_transform_dims=tuple() + (n_ctrl,),
+        # TODO: made assumption that this is used for ctrl_state...
+        input_transform_dims=(64,) + (dims.ctrl_state,),
         switch_transition_model_dims=(64,),
         # state_to_switch_encoder_dims=(64,),
         obs_to_switch_encoder_dims=(64,),
@@ -231,9 +237,9 @@ def make_default_config(dataset_name):
         d_fn_activations=LeakyReLU(0.1, inplace=True),
         # initialisation
         init_scale_A=None,
-        init_scale_B=None,
+        init_scale_B=0.0,
         init_scale_C=None,
-        init_scale_D=1e-4,
+        init_scale_D=0.0,
         init_scale_R_diag=[1e-5, 1e-1],
         init_scale_Q_diag=[1e-4, 1e0],
         init_scale_S_diag=[1e-5, 1e0],
@@ -245,6 +251,11 @@ def make_default_config(dataset_name):
         prediction_length_rolling=prediction_length_rolling,
         prediction_length_full=prediction_length_full,
         normalisation_params=normalisation_params[dataset_name],
+        LRinv_logdiag_scaling=1.0,
+        LQinv_logdiag_scaling=1.0,
+        B_scaling=1.0,
+        D_scaling=1.0,
+        eye_init_A=True,
     )
     return config
 
@@ -252,8 +263,11 @@ def make_default_config(dataset_name):
 def make_model(config):
     dims = config.dims
     input_transformer = input_transforms.InputTransformEmbeddingAndMLP(
-        config=config
+        config=config,
     )
+    # input_transformer = input_transforms.InputTransformSeparatedDynamicStatic(
+    #     config=config,
+    # )
     gls_base_parameters = gls_parameters.GlsParametersISSM(config=config)
     # obs_to_switch_encoder = (
     #     encoders.ObsToSwitchEncoderGaussianMLP(config=config)
@@ -305,12 +319,12 @@ def make_model(config):
             "test_rolling": config.batch_size_val,
             "test_full": config.batch_size_val,
         },
-        n_particle_train=config.dims.particle,
-        n_particle_eval=config.num_samples_eval,  # TODO
         past_length=config.dims.timesteps,
+        n_particle_train=config.dims.particle,
+        n_particle_eval=config.num_samples_eval,
         prediction_length_full=config.prediction_length_full,
         prediction_length_rolling=config.prediction_length_rolling,
-        n_epochs_no_resampling=1,
+        n_epochs_no_resampling=config.n_epochs_no_resampling,
         n_epochs_freeze_gls_params=config.n_epochs_freeze_gls_params,
         num_batches_per_epoch=50,
         extract_tail_chunks_for_train=config.extract_tail_chunks_for_train,
@@ -318,86 +332,20 @@ def make_model(config):
     return model
 
 
-def switch_mod(config):
-    cfgs = {}
-    for n_switch in [1, 3, 5, 10]:
-        cfg = deepcopy(config)
-        dims_dict = cfg.dims._asdict()
-        dims_dict.switch = n_switch
-        cfg.dims = cfg.dims.__class__(**dims_dict)
-        cfgs[str(n_switch)] = cfg
-    return cfgs
-
-
-def batchsize_mod(config):
-    cfgs = {}
-    for n_batch in [50, 100, 200]:
-        cfg = deepcopy(config)
-        dims_dict = cfg.dims._asdict()
-        dims_dict.batch = n_batch
-        cfg.dims = cfg.dims.__class__(**dims_dict)
-        cfgs[str(n_batch)] = cfg
-    return cfgs
-
-
-def particle_mod(config):
-    cfgs = {}
-    for n_particle in [1, 10, 100]:
-        cfg = deepcopy(config)
-        dims_dict = cfg.dims._asdict()
-        dims_dict.particle = n_particle
-        cfg.dims = cfg.dims.__class__(**dims_dict)
-        cfgs[str(n_particle)] = cfg
-    return cfgs
-
-
-def basemat_mod(config):
-    cfgs = {}
-    for n_base in [10, 15, 20, 25]:
-        cfg = deepcopy(config)
-        cfg.n_base_A = (n_base,)
-        cfg.n_base_B = (None,)
-        cfg.n_base_C = (n_base,)
-        cfg.n_base_D = (n_base,)
-        cfg.n_base_Q = (n_base,)
-        cfg.n_base_R = (n_base,)
-        cfg.n_base_F = (n_base,)
-        cfg.n_base_S = (n_base,)
-        cfgs[str(n_base)] = cfg
-    return cfgs
-
-
-def encoder_mod(config):
-    cfgs = {}
-    for which in ["none", "obs", "state", "both"]:
-        cfg = deepcopy(config)
-        if which == "none":
-            cfg.obs_to_switch_encoder = False
-            cfg.state_to_switch_encoder = False
-        elif which == "obs":
-            cfg.obs_to_switch_encoder = True
-            cfg.state_to_switch_encoder = False
-        elif which == "state":
-            cfg.obs_to_switch_encoder = False
-            cfg.state_to_switch_encoder = True
-        elif which == "both":
-            cfg.obs_to_switch_encoder = True
-            cfg.state_to_switch_encoder = True
-        else:
-            raise Exception()
-        cfgs[which] = cfg
-    return cfgs
-
-
 # This fn must come after the *_mod functions as it uses locals
+# TODO: this is obsolete
 def make_experiment_config(dataset_name, experiment_name):
     config = make_default_config(dataset_name=dataset_name)
     if experiment_name is not None and experiment_name != "default":
-        if not f"{experiment_name}" in locals():
-            raise Exception(
-                f"config file must have function {experiment_name}_mod"
-            )
-        mod_fn = locals()[f"{experiment_name}_mod"]
-        print(f"modifying config for experiment {experiment_name}")
-        config = mod_fn(config)
+        if experiment_name == "rsgls":
+            return config
+        else:
+            raise NotImplementedError("")
+            if not f"{experiment_name}" in locals():
+                raise Exception(
+                    f"config file must have function {experiment_name}_mod"
+                )
+            mod_fn = locals()[f"{experiment_name}_mod"]
+            print(f"modifying config for experiment {experiment_name}")
+            config = mod_fn(config)
     return config

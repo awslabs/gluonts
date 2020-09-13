@@ -48,3 +48,8 @@ class BaseConfig:
     requires_grad_Q: bool
     n_epochs: int
     lr: float
+    LRinv_logdiag_scaling: float
+    LQinv_logdiag_scaling: float
+    B_scaling: float
+    D_scaling: float
+    eye_init_A: bool

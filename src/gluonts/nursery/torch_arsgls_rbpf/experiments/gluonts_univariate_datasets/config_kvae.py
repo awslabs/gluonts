@@ -169,6 +169,7 @@ def make_default_config(dataset_name):
         ctrl_state=n_ctrl,
         ctrl_switch=n_ctrl,
         ctrl_target=n_ctrl,
+        ctrl_encoder=None,  # KVAE uses pseudo-obs only, no controls for enc.
         timefeat=n_timefeat,
         staticfeat=n_staticfeat,
         cat_embedding=n_static_embedding,
@@ -236,6 +237,11 @@ def make_default_config(dataset_name):
         prediction_length_rolling=prediction_length_rolling,
         prediction_length_full=prediction_length_full,
         normalisation_params=normalisation_params[dataset_name],
+        LRinv_logdiag_scaling=1.0,
+        LQinv_logdiag_scaling=1.0,
+        B_scaling=1.0,
+        D_scaling=1.0,
+        eye_init_A=True,
     )
     return config
 

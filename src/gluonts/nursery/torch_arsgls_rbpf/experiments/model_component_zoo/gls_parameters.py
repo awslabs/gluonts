@@ -43,6 +43,11 @@ class GlsParametersISSM(ISSMParameters):
             init_scale_A=config.init_scale_A,
             requires_grad_R=True,
             requires_grad_Q=True,
+            LRinv_logdiag_scaling=config.LRinv_logdiag_scaling,
+            LQinv_logdiag_scaling=config.LQinv_logdiag_scaling,
+            B_scaling=config.B_scaling,
+            D_scaling=config.D_scaling,
+            eye_init_A=config.eye_init_A,
         )
 
 
@@ -82,6 +87,11 @@ class GlsParametersSeasonalityISSM(ISSMParameters):
             init_scale_A=config.init_scale_A,
             requires_grad_R=True,
             requires_grad_Q=True,
+            LRinv_logdiag_scaling=config.LRinv_logdiag_scaling,
+            LQinv_logdiag_scaling=config.LQinv_logdiag_scaling,
+            B_scaling=config.B_scaling,
+            D_scaling=config.D_scaling,
+            eye_init_A=config.eye_init_A,
         )
 
 
@@ -123,6 +133,11 @@ class GlsParametersUnrestricted(GLSParameters):
             full_cov_Q=False,
             requires_grad_R=config.requires_grad_R,
             requires_grad_Q=config.requires_grad_Q,
+            LRinv_logdiag_scaling=config.LRinv_logdiag_scaling,
+            LQinv_logdiag_scaling=config.LQinv_logdiag_scaling,
+            B_scaling=config.B_scaling,
+            D_scaling=config.D_scaling,
+            eye_init_A=config.eye_init_A,
         )
 
 
@@ -157,6 +172,11 @@ class GLSParametersKVAE(GLSParameters):
             full_cov_Q=False,
             requires_grad_R=config.requires_grad_R,
             requires_grad_Q=config.requires_grad_Q,
+            LRinv_logdiag_scaling=config.LRinv_logdiag_scaling,
+            LQinv_logdiag_scaling=config.LQinv_logdiag_scaling,
+            B_scaling=config.B_scaling,
+            D_scaling=config.D_scaling,
+            eye_init_A=config.eye_init_A,
         )
 
 
@@ -202,4 +222,9 @@ class GLSParametersASGLS(GLSParameters):
             full_cov_Q=False,
             requires_grad_R=config.requires_grad_R,
             requires_grad_Q=config.requires_grad_Q,
+            LRinv_logdiag_scaling=config.LRinv_logdiag_scaling,
+            LQinv_logdiag_scaling=config.LQinv_logdiag_scaling,
+            B_scaling=config.B_scaling,
+            D_scaling=config.D_scaling,
+            eye_init_A=config.eye_init_A,
         )

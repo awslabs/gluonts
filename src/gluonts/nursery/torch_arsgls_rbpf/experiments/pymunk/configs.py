@@ -143,6 +143,11 @@ base_config = PymunkConfig(
     switch_link_type=SwitchLinkType.shared,
     switch_link_dims_hidden=tuple(),
     switch_link_activations=tuple(),
+    LRinv_logdiag_scaling=1.0,
+    LQinv_logdiag_scaling=1.0,
+    B_scaling=1.0,
+    D_scaling=1.0,
+    eye_init_A=True,
 )
 
 kvae_config = PymunkKVAEConfig(

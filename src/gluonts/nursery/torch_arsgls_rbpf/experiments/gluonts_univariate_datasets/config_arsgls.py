@@ -158,14 +158,16 @@ def make_default_config(dataset_name):
     n_static_embedding = min(
         50, (cardinalities["cardinalities_feat_static_cat"][0] + 1) // 2
     )
-    n_ctrl_static = n_static_embedding
-    n_ctrl_dynamic = 32
-    n_ctrl_all = n_ctrl_static + n_ctrl_dynamic  # we cat
+    n_ctrl_all = n_ctrl_static = n_ctrl_dynamic = 64
+
+    # n_ctrl_static = n_static_embedding
+    # n_ctrl_dynamic = 32
+    # n_ctrl_all = n_ctrl_static + n_ctrl_dynamic  # we cat
 
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
         particle=10,
-        batch=64,
+        batch=50,
         state=16,
         target=1,
         switch=10,
@@ -183,12 +185,12 @@ def make_default_config(dataset_name):
     )
 
     config = ArsglsGtsExpConfigGtsExpConfig(
-        experiment_name="auxiliary",
+        experiment_name="arsgls",
         dataset_name=dataset_name,
         #
         n_epochs=50,
         n_epochs_no_resampling=5,
-        n_epochs_freeze_gls_params=5,
+        n_epochs_freeze_gls_params=0,
         n_epochs_until_validate_loss=1,
         lr=1e-2 if dataset_name in ["solar_nips"] else 5e-3,
         weight_decay=1e-5,
@@ -219,7 +221,8 @@ def make_default_config(dataset_name):
         requires_grad_Q=True,
         # use_encoder: True,
         switch_prior_model_dims=tuple(),
-        input_transform_dims=(64,) + (dims.ctrl_state,),  # TODO: made now assumption that this is used for ctrl_state. Before had all ctrls same.
+        # TODO: made assumption that this is used for ctrl_state...
+        input_transform_dims=(64,) + (dims.ctrl_state,),
         switch_transition_model_dims=(64,),
         dims_encoder=((64, 64), (64,)),
         dims_decoder=(64, 64),
@@ -251,15 +254,23 @@ def make_default_config(dataset_name):
         prediction_length_rolling=prediction_length_rolling,
         prediction_length_full=prediction_length_full,
         normalisation_params=normalisation_params[dataset_name],
+        LRinv_logdiag_scaling=1.0,
+        LQinv_logdiag_scaling=1.0,
+        B_scaling=1.0,
+        D_scaling=1.0,
+        eye_init_A=True,
     )
     return config
 
 
 def make_model(config):
     dims = config.dims
-    input_transformer = input_transforms.InputTransformSeparatedDynamicStatic(
+    input_transformer = input_transforms.InputTransformEmbeddingAndMLP(
         config=config,
     )
+    # input_transformer = input_transforms.InputTransformSeparatedDynamicStatic(
+    #     config=config,
+    # )
     gls_base_parameters = gls_parameters.GLSParametersASGLS(config=config)
     switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
         config=config,
@@ -321,7 +332,7 @@ def make_model(config):
 def make_experiment_config(dataset_name, experiment_name):
     config = make_default_config(dataset_name=dataset_name)
     if experiment_name is not None and experiment_name != "default":
-        if experiment_name == "auxiliary":
+        if experiment_name == "arsgls":
             return config
         else:
             raise NotImplementedError("")
