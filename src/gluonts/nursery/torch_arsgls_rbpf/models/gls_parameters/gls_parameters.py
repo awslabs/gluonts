@@ -215,7 +215,7 @@ class GLSParameters(nn.Module):
                 # Heuristic: transition var + innovation noise var = 1, where\
                 # transition and noise param are averaged from base mats.
                 init_var_A = 1 - init_var_avg_R
-                init_scale_A = torch.sqrt(init_var_A)
+                init_scale_A = (torch.sqrt(init_var_A))[None, :, None]
 
             if eye_init_A:
                 A_diag = torch.eye(n_state).repeat(n_base_A, 1, 1)
@@ -225,7 +225,7 @@ class GLSParameters(nn.Module):
                 )
             # broadcast basemat-dim and columns -> scale columns; or scalar
             self.A = nn.Parameter(
-                init_scale_A[None, :, None] * A_diag,
+                init_scale_A * A_diag,
                 requires_grad=requires_grad_A,
             )
         else:
@@ -305,19 +305,23 @@ class GLSParameters(nn.Module):
 
     @property
     def LQinv_logdiag(self):
-        return self._LQinv_logdiag * self._LQinv_logdiag_scaling
+        return (self._LQinv_logdiag * self._LQinv_logdiag_scaling) \
+            if self._LQinv_logdiag is not None \
+            else None
 
     @property
     def LRinv_logdiag(self):
-        return self._LRinv_logdiag * self._LRinv_logdiag_scaling
+        return (self._LRinv_logdiag * self._LRinv_logdiag_scaling) \
+            if self._LRinv_logdiag is not None \
+            else None
 
     @property
     def B(self):
-        return self._B * self._B_scaling
+        return (self._B * self._B_scaling) if self._B is not None else None
 
     @property
     def D(self):
-        return self._D * self._D_scaling
+        return (self._D * self._D_scaling) if self._D is not None else None
 
     @staticmethod
     def make_cov_init(init_scale_cov_diag: (tuple, list), n_base, dim_cov):
