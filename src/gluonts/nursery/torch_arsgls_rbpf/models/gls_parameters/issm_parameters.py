@@ -1,5 +1,5 @@
 import torch
-from box import Box
+import math
 from torch import nn
 from models.gls_parameters.issm import (
     ISSM,
@@ -52,14 +52,23 @@ class ISSMParameters(GLSParameters):
         else:
             raise NotImplementedError()
 
-        self.LRinv_logdiag = nn.Parameter(
-            self.make_cov_init(
-                init_scale_cov_diag=init_scale_R_diag,
-                n_base=n_base_R,
-                dim_cov=n_params_R,
-            ),
-            requires_grad=self.LRinv_logdiag.requires_grad,
-        )
+        if isinstance(init_scale_R_diag, (list, tuple)):
+            self._LRinv_logdiag = nn.Parameter(
+                self.make_cov_init(
+                    init_scale_cov_diag=init_scale_R_diag,
+                    n_base=n_base_R,
+                    dim_cov=n_params_R,
+                ),
+                requires_grad=self._LRinv_logdiag.requires_grad,
+            )
+        else:
+            self._LRinv_logdiag = nn.Parameter(
+                torch.ones((n_base_R, n_base_R))
+                * -math.log(init_scale_R_diag),
+                requires_grad=self._LRinv_logdiag.requires_grad,
+            )
+            # Cannot use setter with nn.Module and nn.Parameter
+        self._LRinv_logdiag.data /= self._LRinv_logdiag_scaling
 
     def forward(self, switch, controls: ControlInputsSGLSISSM) -> GLSParams:
         weights = self.link_transformers(switch=switch)
