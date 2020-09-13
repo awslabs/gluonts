@@ -1,4 +1,4 @@
-from typing import Dict, Sequence, Tuple
+from typing import Dict, Sequence, Tuple, Optional
 from box import Box
 from torch import nn
 
@@ -12,6 +12,7 @@ class IndividualLink(nn.ModuleDict):
         names_and_dims_out: Dict[str, int],
         dims_hidden: Tuple[int] = tuple(),
         activations_hidden: nn.Module = nn.LeakyReLU(0.1, inplace=True),
+        norm_type: Optional[NormalizationType] = NormalizationType.none,
     ):
         super().__init__()
         if isinstance(activations_hidden, nn.Module):
@@ -23,7 +24,7 @@ class IndividualLink(nn.ModuleDict):
                         dim_in=dim_in,
                         dims=dims_hidden + (dim_out,),
                         activations=activations_hidden + (nn.Softmax(dim=-1),),
-                        norm_type=NormalizationType.layer,
+                        norm_type=norm_type,
                     )
                 }
             )
@@ -40,6 +41,7 @@ class SharedLink(nn.Module):
         names: (list, tuple),
         dims_hidden: Tuple[int] = tuple(),
         activations_hidden: nn.Module = nn.LeakyReLU(0.1, inplace=True),
+        norm_type: Optional[NormalizationType] = NormalizationType.none,
     ):
         super().__init__()
         if isinstance(activations_hidden, nn.Module):
@@ -49,7 +51,8 @@ class SharedLink(nn.Module):
             dim_in=dim_in,
             dims=dims_hidden + (dim_out,),
             activations=activations_hidden + (nn.Softmax(dim=-1),),
-            norm_type=NormalizationType.layer,
+            norm_type=norm_type,
+
         )
 
     def forward(self, switch):
