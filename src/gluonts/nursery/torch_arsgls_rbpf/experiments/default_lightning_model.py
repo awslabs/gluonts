@@ -241,28 +241,20 @@ class DefaultLightningModel(LightningModule):
         super().on_train_epoch_start()
         self.ssm.n_particle = self._n_particle_train
 
-        # Set to no re-sampling if configured.
-        # Note that this will omit the very first iteration
-        # since the computation happens before this function,
-        # but it should not be a problem. Want to get rid of this anyways.
+        # Set to no re-sampling if configured for n_epochs_no_resampling epochs.
         if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
-            # <= and >= because we want to set self._resampling_criterion_fn.
-            set_no_resampling = (
-                self.current_epoch <= self.n_epochs_no_resampling
-            )
-            set_resampling = self.current_epoch >= self.n_epochs_no_resampling
-
-            if set_no_resampling:
-                self._resampling_criterion_fn = (
-                    self.ssm.resampling_criterion_fn
-                )
-                self.ssm.resampling_criterion_fn = EffectiveSampleSizeResampleCriterion(
-                    min_ess_ratio=0.0,
-                )
-            if set_resampling:
-                self.ssm.resampling_criterion_fn = (
-                    self._resampling_criterion_fn
-                )
+            if self.n_epochs_no_resampling > 0:
+                if self.current_epoch == 0:
+                    self._resampling_criterion_fn = (
+                        self.ssm.resampling_criterion_fn
+                    )
+                    self.ssm.resampling_criterion_fn = EffectiveSampleSizeResampleCriterion(
+                        min_ess_ratio=0.0,
+                    )
+                elif self.current_epoch == self.n_epochs_no_resampling:
+                    self.ssm.resampling_criterion_fn = (
+                        self._resampling_criterion_fn
+                    )
 
     def on_validation_epoch_start(self) -> None:
         super().on_validation_epoch_start()
