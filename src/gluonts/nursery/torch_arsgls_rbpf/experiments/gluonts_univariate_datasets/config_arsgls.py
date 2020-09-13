@@ -200,6 +200,8 @@ def make_default_config(dataset_name):
         make_cov_from_cholesky_avg=True,
         extract_tail_chunks_for_train=False,
         switch_link_type=SwitchLinkType.individual,
+        switch_link_dims_hidden=(64,),
+        switch_link_activations=nn.LeakyReLU(0.1, inplace=True),
         recurrent_link_type=SwitchLinkType.shared,
         is_recurrent=True,
         n_base_A=10,

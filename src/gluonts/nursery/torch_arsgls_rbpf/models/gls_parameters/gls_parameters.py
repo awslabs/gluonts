@@ -39,7 +39,7 @@ class GLSParameters(nn.Module):
         n_base_Q: int,
         switch_link_type: SwitchLinkType,
         switch_link_dims_hidden: tuple = tuple(),
-        switch_link_activations: nn.Module = nn.ReLU(),
+        switch_link_activations: nn.Module = nn.LeakyReLU(0.1, inplace=True),
         make_cov_from_cholesky_avg=False,
         b_fn: Optional[nn.Module] = None,
         d_fn: Optional[nn.Module] = None,

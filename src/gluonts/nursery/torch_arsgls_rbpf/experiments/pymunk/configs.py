@@ -141,6 +141,8 @@ base_config = PymunkConfig(
     upscale_factor=2,
     #
     switch_link_type=SwitchLinkType.shared,
+    switch_link_dims_hidden=tuple(),
+    switch_link_activations=tuple(),
 )
 
 kvae_config = PymunkKVAEConfig(

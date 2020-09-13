@@ -99,6 +99,8 @@ config = PendulumSGLSConfig(
     switch_prior_model_activations=nn.LeakyReLU(0.1, inplace=True),
     #
     switch_link_type=SwitchLinkType.individual,
+    switch_link_dims_hidden=(64,),
+    switch_link_activations=nn.LeakyReLU(0.1, inplace=True),
     recurrent_link_type=SwitchLinkType.shared,
     is_recurrent=True,
     n_base_A=10,

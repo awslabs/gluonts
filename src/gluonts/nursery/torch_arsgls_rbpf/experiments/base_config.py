@@ -34,6 +34,8 @@ class BaseConfig:
     state_prior_scale: float
     state_prior_loc: float
     switch_link_type: SwitchLinkType
+    switch_link_dims_hidden: tuple
+    switch_link_activations: tuple
     n_base_A: (int, None)
     n_base_B: (int, None)
     n_base_C: (int, None)

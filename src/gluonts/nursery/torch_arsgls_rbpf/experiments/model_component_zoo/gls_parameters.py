@@ -21,6 +21,8 @@ class GlsParametersISSM(ISSMParameters):
             n_base_R=config.n_base_R,
             n_base_Q=config.n_base_Q,
             switch_link_type=config.switch_link_type,
+            switch_link_dims_hidden=config.switch_link_dims_hidden,
+            switch_link_activations=config.switch_link_activations,
             make_cov_from_cholesky_avg=config.make_cov_from_cholesky_avg,
             b_fn=MLP(
                 dim_in=config.dims.switch,  # f: b(s)
@@ -58,6 +60,8 @@ class GlsParametersSeasonalityISSM(ISSMParameters):
             n_base_R=config.n_base_R,
             n_base_Q=config.n_base_Q,
             switch_link_type=config.switch_link_type,
+            switch_link_dims_hidden=config.switch_link_dims_hidden,
+            switch_link_activations=config.switch_link_activations,
             make_cov_from_cholesky_avg=config.make_cov_from_cholesky_avg,
             b_fn=MLP(
                 dim_in=config.dims.switch,  # f: b(s)
@@ -96,6 +100,8 @@ class GlsParametersUnrestricted(GLSParameters):
             n_base_Q=config.n_base_Q,
             n_base_R=config.n_base_R,
             switch_link_type=config.switch_link_type,
+            switch_link_dims_hidden=config.switch_link_dims_hidden,
+            switch_link_activations=config.switch_link_activations,
             b_fn=MLP(
                 dim_in=config.dims.switch,  # f: b(s)
                 dims=tuple(config.b_fn_dims) + (config.dims.state,),
@@ -136,6 +142,8 @@ class GLSParametersKVAE(GLSParameters):
             n_base_Q=config.n_base_Q,  # 1 in KVAE - but consider using it > 1.
             n_base_R=config.n_base_R,  # 1 in KVAE
             switch_link_type=config.switch_link_type,
+            switch_link_dims_hidden=config.switch_link_dims_hidden,
+            switch_link_activations=config.switch_link_activations,
             # SharedLink in KVAE (except R, Q, but these are const)
             b_fn=None,  # KVAE does not have this
             d_fn=None,  # KVAE does not have this
@@ -168,6 +176,8 @@ class GLSParametersASGLS(GLSParameters):
             n_base_Q=config.n_base_Q,
             n_base_R=config.n_base_R,
             switch_link_type=config.switch_link_type,
+            switch_link_dims_hidden=config.switch_link_dims_hidden,
+            switch_link_activations=config.switch_link_activations,
             b_fn=MLP(
                 dim_in=config.dims.switch,  # f: b(s)
                 dims=tuple(config.b_fn_dims) + (config.dims.state,),

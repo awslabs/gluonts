@@ -196,6 +196,8 @@ def make_default_config(dataset_name):
         make_cov_from_cholesky_avg=True,
         extract_tail_chunks_for_train=False,
         switch_link_type=SwitchLinkType.shared,
+        switch_link_dims_hidden=tuple(),  # only linear used
+        switch_link_activations=tuple(),
         # they have 1 Dense layer after LSTM.
         recurrent_link_type=SwitchLinkType.shared,
         n_hidden_rnn=50,

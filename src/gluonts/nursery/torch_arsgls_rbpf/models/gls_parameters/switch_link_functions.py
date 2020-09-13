@@ -11,7 +11,7 @@ class IndividualLink(nn.ModuleDict):
         dim_in,
         names_and_dims_out: Dict[str, int],
         dims_hidden: Tuple[int] = tuple(),
-        activations_hidden: nn.Module = nn.ReLU(),
+        activations_hidden: nn.Module = nn.LeakyReLU(0.1, inplace=True),
     ):
         super().__init__()
         if isinstance(activations_hidden, nn.Module):
@@ -38,7 +38,7 @@ class SharedLink(nn.Module):
         dim_out,
         names: (list, tuple),
         dims_hidden: Tuple[int] = tuple(),
-        activations_hidden: nn.Module = nn.ReLU(),
+        activations_hidden: nn.Module = nn.LeakyReLU(0.1, inplace=True),
     ):
         super().__init__()
         if isinstance(activations_hidden, nn.Module):
