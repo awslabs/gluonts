@@ -26,7 +26,7 @@ from pydantic import PositiveFloat, PositiveInt
 
 # First-party imports
 from gluonts.model.common import NPArrayLike
-from gluonts.distribution.box_cox_transform import (
+from gluonts.mx.distribution.box_cox_transform import (
     InverseBoxCoxTransform,
     InverseBoxCoxTransformOutput,
 )
@@ -53,6 +53,7 @@ from gluonts.mx.distribution import (
     Gaussian,
     GaussianOutput,
     GenPareto,
+    GenParetoOutput,
     Poisson,
     PoissonOutput,
     PiecewiseLinear,
@@ -70,10 +71,10 @@ from gluonts.mx.distribution import (
     ZeroAndOneInflatedBetaOutput,
     OneInflatedBetaOutput,
 )
-from gluonts.distribution.transformed_distribution_output import (
+from gluonts.mx.distribution.transformed_distribution_output import (
     TransformedDistributionOutput,
 )
-from gluonts.distribution.transformed_distribution import (
+from gluonts.mx.distribution.transformed_distribution import (
     TransformedDistribution,
 )
 from gluonts.model.tpp.distribution import (
@@ -1108,3 +1109,38 @@ def test_weibull_likelihood(
     ), f"shape did not match: shape = {shape}, shape_hat = {shape_hat}"
 
 
+@pytest.mark.parametrize("xi, beta", [(1 / 3.0, 1.0)])
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+
+    # generate samples
+    xis = mx.nd.zeros((NUM_SAMPLES,)) + xi
+    betas = mx.nd.zeros((NUM_SAMPLES,)) + beta
+
+    distr = GenPareto(xis, betas)
+    samples = distr.sample()
+
+    init_biases = [
+        inv_softplus(xi - START_TOL_MULTIPLE * TOL * xi),
+        inv_softplus(beta - START_TOL_MULTIPLE * TOL * beta),
+    ]
+
+    xi_hat, beta_hat = maximum_likelihood_estimate_sgd(
+        GenParetoOutput(),
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(10),
+    )
+
+    print("XI:", xi_hat, "BETA:", beta_hat)
+    assert (
+        np.abs(xi_hat - xi) < TOL * xi
+    ), f"alpha did not match: xi = {xi}, xi_hat = {xi_hat}"
+    assert (
+        np.abs(beta_hat - beta) < TOL * beta
+    ), f"beta did not match: beta = {beta}, beta_hat = {beta_hat}"

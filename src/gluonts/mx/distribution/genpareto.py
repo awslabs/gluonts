@@ -44,18 +44,15 @@ class GenPareto(Distribution):
         Tensor containing the xi shape parameters, of shape `(*batch_shape, *event_shape)`.
     beta
         Tensor containing the beta scale parameters, of shape `(*batch_shape, *event_shape)`.
-    loc
-        Tensor containing the (for-now positive) location parameters, of shape `(*batch_shape, *event_shape)`.
     F
     """
 
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, xi: Tensor, beta: Tensor, loc: Tensor, F=None) -> None:
+    def __init__(self, xi: Tensor, beta: Tensor, F=None) -> None:
         self.xi = xi
         self.beta = beta
-        self.loc = loc
         self.F = F if F else getF(xi)  # assuming xi and beta of same type
 
     @property
@@ -72,13 +69,12 @@ class GenPareto(Distribution):
 
     def log_prob(self, x: Tensor) -> Tensor:
         F = self.F
-        xi, beta, loc = self.xi, self.beta, self.loc
+        xi, beta = self.xi, self.beta
 
-        x_shifted = F.broadcast_div(x - loc, beta)
+        x_shifted = F.broadcast_div(x, beta)
         return F.where(
-            x < loc,
-            np.finfo(np.float32).min
-            * F.ones_like(x),  # -np.inf*F.ones_like(x),
+            x < 0.0,
+            -np.inf * F.ones_like(x),
             -(1 + F.reciprocal(xi)) * F.log1p(xi * x_shifted) - F.log(beta),
         )
 
@@ -87,14 +83,14 @@ class GenPareto(Distribution):
         F = self.F
         return F.where(
             self.xi < 1,
-            self.loc + F.broadcast_div(self.beta, 1 - self.xi),
+            F.broadcast_div(self.beta, 1 - self.xi),
             np.nan * F.ones_like(self.xi),
         )
 
     @property
     def variance(self) -> Tensor:
         F = self.F
-        xi, beta, loc = self.xi, self.beta, self.loc
+        xi, beta = self.xi, self.beta
         return F.where(
             xi < 1 / 2,
             F.broadcast_div(
@@ -110,21 +106,17 @@ class GenPareto(Distribution):
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
-        def s(xi: Tensor, beta: Tensor, loc: Tensor) -> Tensor:
+        def s(xi: Tensor, beta: Tensor) -> Tensor:
             F = getF(xi)
             sample_U = uniform.Uniform(
                 F.zeros_like(xi), F.ones_like(xi)
             ).sample()
             boxcox = box_cox_transform.BoxCoxTransform(-xi, F.array([0]))
-            sample_X = -1 * boxcox.f(1 - sample_U) * beta + loc
+            sample_X = -1 * boxcox.f(1 - sample_U) * beta
             return sample_X
 
         samples = _sample_multiple(
-            s,
-            xi=self.xi,
-            beta=self.beta,
-            loc=self.loc,
-            num_samples=num_samples,
+            s, xi=self.xi, beta=self.beta, num_samples=num_samples,
         )
         return self.F.clip(
             data=samples, a_min=np.finfo(dtype).eps, a_max=np.finfo(dtype).max
@@ -132,15 +124,15 @@ class GenPareto(Distribution):
 
     @property
     def args(self) -> List:
-        return [self.xi, self.beta, self.loc]
+        return [self.xi, self.beta]
 
 
 class GenParetoOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"xi": 1, "beta": 1, "loc": 1}
+    args_dim: Dict[str, int] = {"xi": 1, "beta": 1}
     distr_cls: type = GenPareto
 
     @classmethod
-    def domain_map(cls, F, xi, beta, loc):
+    def domain_map(cls, F, xi, beta):
         r"""
         Maps raw tensors to valid arguments for constructing a Generalized Pareto
         distribution.
@@ -152,20 +144,17 @@ class GenParetoOutput(DistributionOutput):
             Tensor of shape `(*batch_shape, 1)`
         beta:
             Tensor of shape `(*batch_shape, 1)`
-        loc:
-            Tensor of shape `(*batch_shape, 1)`
 
         Returns
         -------
-        Tuple[Tensor, Tensor, Tensor]:
-            Three squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
+        Tuple[Tensor, Tensor]:
+            Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
             positive orthant.
         """
         epsilon = np.finfo(cls._dtype).eps
         xi = softplus(F, xi) + epsilon
         beta = softplus(F, beta) + epsilon
-        # loc = softplus(F, loc) + epsilon
-        return xi.squeeze(axis=-1), beta.squeeze(axis=-1), loc.squeeze(axis=-1)
+        return xi.squeeze(axis=-1), beta.squeeze(axis=-1)
 
     @property
     def event_shape(self) -> Tuple:

@@ -53,7 +53,10 @@ test_cases = [
     ),
     (
         GenPareto,
-        {"xi": mx.nd.array([1/3., 1/4.]), "beta": mx.nd.array([1., 2.]), "loc": mx.nd.array([0., 2.])},
+        {
+            "xi": mx.nd.array([1 / 3.0, 1 / 4.0]),
+            "beta": mx.nd.array([1.0, 2.0]),
+        },
     ),
     (
         Beta,
@@ -164,7 +167,7 @@ test_output = {
         "variance": mx.nd.array([1.1111111, 1.58730159]),
     },
     "GenPareto": {
-        "mean": mx.nd.array([1.5, 4.666666666666666]),
+        "mean": mx.nd.array([1.5, 2.666666666666666]),
         "stddev": mx.nd.array([2.5980762, 3.7712361663282534]),
         "variance": mx.nd.array([6.75, 14.222222222222221]),
     },
