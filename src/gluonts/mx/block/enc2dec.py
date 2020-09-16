@@ -45,22 +45,13 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
         ----------
 
         encoder_output_static
-            shape (batch_size, num_features) or (N, C)
+            shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         encoder_output_dynamic
-            shape (batch_size, sequence_length, num_features) or (N, T, C)
+            shape (batch_size, sequence_length, channels_seq[-1] + 1) or (N, T, C)
 
         future_features_dynamic
-            shape (batch_size, sequence_length, prediction_length, num_features) or (N, T, P, C`)
-
-
-        Returns
-        -------
-        Tensor
-            shape (batch_size, num_features) or (N, C)
-
-        Tensor
-            shape (batch_size, sequence_length, num_features) or (N, T, C)
+            shape (batch_size, sequence_length, prediction_length=decoder_length, num_feat_dynamic) or (N, T, P, C`)
         """
         pass
 
@@ -83,29 +74,29 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
         ----------
 
         encoder_output_static
-            shape (batch_size, num_features) or (N, C)
+            shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         encoder_output_dynamic
-            shape (batch_size, sequence_length, num_features) or (N, T, C)
+            shape (batch_size, sequence_length, channels_seq[-1] + 1) or (N, T, C)
 
         future_features_dynamic
-            shape (batch_size, sequence_length, prediction_length, num_features) or (N, T, P, C`)
+            shape (batch_size, sequence_length, prediction_length=decoder_length,  num_feat_dynamic) or (N, T, P, C`)
 
 
         Returns
         -------
         Tensor
-            shape (batch_size, num_features) or (N, C)
+            shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         Tensor
-            shape (batch_size, prediction_length, num_features_02) or (N, T, C)
+            shape (batch_size, sequence_length, channels_seq[-1] + 1) or (N, T, C)
         """
         return encoder_output_static, encoder_output_dynamic
 
 
 class FutureFeatIntegratorEnc2Dec(Seq2SeqEnc2Dec):
     """
-    Integrates the encoder_ouput_dynamic and future_features_dynamic into one
+    Integrates the encoder_output_dynamic and future_features_dynamic into one
     and passes them through as the dynamic input to the decoder.
     """
 
@@ -121,40 +112,36 @@ class FutureFeatIntegratorEnc2Dec(Seq2SeqEnc2Dec):
         ----------
 
         encoder_output_static
-            shape (batch_size, num_features) or (N, C)
+            shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         encoder_output_dynamic
-            shape (batch_size, sequence_length, num_features) or (N, T, C)
+            shape (batch_size, sequence_length, channels_seq[-1] + 1) or (N, T, C)
 
         future_features_dynamic
-            shape (batch_size, sequence_length, prediction_length, num_features) or (N, T, P, C`)
+            shape (batch_size, sequence_length, prediction_length=decoder_length, num_feat_dynamic) or (N, T, P, C`)
 
 
         Returns
         -------
         Tensor
-            shape (batch_size, num_features) or (N, C)
+            shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         Tensor
-            shape (batch_size, prediction_length, num_features_02) or (N, T, C)
+            shape (batch_size, prediction_length=decoder_length, channels_seq[-1] + 1 + decoder_length * num_feat_dynamic) or (N, T, C)
 
-        Tensor
-            shape (1,)
         """
 
         # flatten the last two dimensions:
-        # => (batch_size, encoder_length, decoder_length * num_feature_dynamic)
+        # => (batch_size, sequence_length, decoder_length * num_feat_dynamic), where
+        # num_future_feat_dynamic = decoder_length * num_feat_dynamic
         future_features_dynamic = F.reshape(
             future_features_dynamic, shape=(0, 0, -1)
         )
 
         # concatenate output of decoder and future_feat_dynamic covariates:
-        # => (batch_size, encoder_length, num_dec_input_dynamic + num_future_feat_dynamic)
+        # => (batch_size, sequence_length, num_dec_input_dynamic + num_future_feat_dynamic)
         total_dec_input_dynamic = F.concat(
             encoder_output_dynamic, future_features_dynamic, dim=2
         )
 
-        return (
-            encoder_output_static,
-            total_dec_input_dynamic,
-        )
+        return (encoder_output_static, total_dec_input_dynamic)

@@ -156,6 +156,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
         num_forking: Optional[int] = None,
+        max_ts_len: Optional[int] = None,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -187,8 +188,18 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             if context_length is not None
             else 4 * self.prediction_length
         )
+        if max_ts_len is not None:
+            max_pad_len = max(max_ts_len - self.prediction_length, 0)
+            # Don't allow context_length to be longer than the max pad length
+            self.context_length = (
+                min(max_pad_len, self.context_length)
+                if max_pad_len > 0
+                else self.context_length
+            )
         self.num_forking = (
-            num_forking if num_forking is not None else self.context_length
+            min(num_forking, self.context_length)
+            if num_forking is not None
+            else self.context_length
         )
         self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
         self.use_feat_dynamic_real = use_feat_dynamic_real
@@ -252,7 +263,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     time_features=time_features_from_frequency_str(self.freq),
                     pred_length=self.prediction_length,
                     dtype=self.dtype,
-                ),
+                )
             )
             dynamic_feat_fields.append(FieldName.FEAT_TIME)
 
@@ -263,7 +274,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     output_field=FieldName.FEAT_AGE,
                     pred_length=self.prediction_length,
                     dtype=self.dtype,
-                ),
+                )
             )
             dynamic_feat_fields.append(FieldName.FEAT_AGE)
 
@@ -290,7 +301,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     pred_length=self.prediction_length,
                     const=0.0,  # For consistency in case with no dynamic features
                     dtype=self.dtype,
-                ),
+                )
             )
             dynamic_feat_fields.append(FieldName.FEAT_CONST)
 
@@ -315,7 +326,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 SetField(
                     output_field=FieldName.FEAT_STATIC_CAT,
                     value=np.array([0], dtype=np.int32),
-                ),
+                )
             )
 
         # --- SAMPLE AND CUT THE TIME-SERIES ---
@@ -361,7 +372,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     else []
                 ),
                 prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
-            ),
+            )
         )
 
         # past_feat_dynamic features generated above in ForkingSequenceSplitter from those under feat_dynamic - we need

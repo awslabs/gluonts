@@ -26,16 +26,6 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.transform import FlatMapTransformation, shift_timestamp
 
 
-def pad_to_size(xs: np.array, size: int):
-    """Pads `xs` with 0 on the left on the first axis."""
-    pad_length = size - xs.shape[0]
-    if pad_length <= 0:
-        return xs
-
-    pad_width = [(pad_length, 0)] + ([(0, 0)] * (xs.ndim - 1))
-    return np.pad(xs, mode="constant", pad_width=pad_width)
-
-
 class ForkingSequenceSplitter(FlatMapTransformation):
     """Forking sequence splitter."""
 
@@ -132,35 +122,33 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         )
 
         for sampling_idx in sampling_indices:
-            # ensure start index is not negative
-            start_idx = max(0, sampling_idx - self.enc_len)
-
             # irrelevant data should have been removed by now in the
             # transformation chain, so copying everything is ok
             out = data.copy()
+
+            enc_len_diff = sampling_idx - self.enc_len
+            dec_len_diff = sampling_idx - self.num_forking
+
+            # ensure start indices are not negative
+            start_idx_enc = max(0, enc_len_diff)
+            start_idx_dec = max(0, dec_len_diff)
 
             for ts_field in list(ts_fields_counter.keys()):
 
                 # target is 1d, this ensures ts is always 2d
                 ts = np.atleast_2d(out[ts_field]).T
+                ts_len = ts.shape[1]
 
                 if ts_fields_counter[ts_field] == 1:
                     del out[ts_field]
                 else:
                     ts_fields_counter[ts_field] -= 1
 
-                # take enc_len values from ts, depending on sampling_idx
-                slice = ts[start_idx:sampling_idx, :]
-
-                ts_len = ts.shape[1]
-                past_piece = np.zeros(
-                    shape=(self.enc_len, ts_len), dtype=ts.dtype
+                out[self._past(ts_field)] = (
+                    np.zeros(shape=(self.enc_len, ts_len), dtype=ts.dtype)
+                    if ts_field in self.encoder_disabled_fields
+                    else ts[start_idx_enc:sampling_idx, :]
                 )
-
-                if ts_field not in self.encoder_disabled_fields:
-                    # if we have less than enc_len values, pad_left with 0
-                    past_piece = pad_to_size(slice, self.enc_len)
-                out[self._past(ts_field)] = past_piece
 
                 # exclude some fields at prediction time
                 if (
@@ -169,60 +157,47 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 ):
                     continue
 
-                # This is were some of the forking magic happens:
-                # For each of the encoder_len time-steps at which the decoder is applied we slice the
-                # corresponding inputs called decoder_fields to the appropriate dec_len
                 if ts_field in self.decoder_series_fields:
-
-                    forking_dec_field = np.zeros(
-                        shape=(self.num_forking, self.dec_len, ts_len),
-                        dtype=ts.dtype,
-                    )
-                    # in case it's not disabled we copy the actual values
-                    if ts_field not in self.decoder_disabled_fields:
-                        # In case we sample and index too close to the beginning of the time series we would run out of
-                        # bounds (i.e. try to copy non existent time series data) to prepare the input for the decoder.
-                        # Instead of copying the partially available data from the time series and padding it with
-                        # zeros, we simply skip copying the partial data. Since copying data would result in overriding
-                        # the 0 pre-initialized 3D array, the end result of skipping is that the affected 2D decoder
-                        # inputs (entries of the 3D array - of which there are skip many) will still be all 0."
-                        skip = max(0, self.num_forking - sampling_idx)
-                        start_idx = max(0, sampling_idx - self.num_forking)
-                        # For 2D column-major (Fortran) ordering transposed array strides = (dtype, dtype*n_rows)
-                        # For standard row-major arrays, strides = (dtype*n_cols, dtype)
-                        stride = ts.strides
-                        forking_dec_field[skip:, :, :] = as_strided(
-                            ts[
-                                start_idx
-                                + 1 : start_idx
-                                + 1
-                                + self.num_forking
-                                - skip,
-                                :,
-                            ],
+                    # default to dummy zero forking decoder
+                    if ts_field in self.decoder_disabled_fields:
+                        out[self._future(ts_field)] = np.zeros(
+                            shape=(self.num_forking, self.dec_len, ts_len),
+                            dtype=ts.dtype,
+                        )
+                    # In case it's not disabled we copy the actual values
+                    # This is where some of the forking magic happens:
+                    # For each of the num_forking time-steps at which the decoder is applied we slice the
+                    # corresponding inputs called decoder_fields to the appropriate dec_len
+                    else:
+                        decoder_fields = ts[
+                            start_idx_dec + 1 : sampling_idx + 1, :
+                        ]
+                        # For default row-major arrays, strides = (dtype*n_cols, dtype). Since this array is transposed,
+                        # it is stored in column-major (Fortran) ordering with strides = (dtype, dtype*n_rows)
+                        stride = decoder_fields.strides
+                        out[self._future(ts_field)] = as_strided(
+                            decoder_fields,
                             shape=(
-                                self.num_forking - skip,
+                                decoder_fields.shape[0],
                                 self.dec_len,
                                 ts_len,
                             ),
                             # strides for 2D array expanded to 3D array of shape (dim1, dim2, dim3) =
-                            # strides for 2D array expanded to 3D array of shape (dim1, dim2, dim3) =
-                            # (1, n_rows, n_cols).  Note since this array has been transposed, it is stored in
-                            # column-major (Fortan) ordering, i.e. for transposed data of shape (dim1, dim2, dim3),
-                            # strides = (dtype, dtype * dim1, dtype*dim1*dim2) = (dtype, dtype, dtype*n_rows).
+                            # (1, n_rows, n_cols).  For transposed data, strides =
+                            # (dtype, dtype * dim1, dtype*dim1*dim2) = (dtype, dtype, dtype*n_rows).
                             strides=stride[0:1] + stride,
                         )
-                    # edge case for prediction_length = 1
-                    if forking_dec_field.shape[-1] == 1:
-                        out[self._future(ts_field)] = np.squeeze(
-                            forking_dec_field, axis=-1
-                        )
-                    else:
-                        out[self._future(ts_field)] = forking_dec_field
 
-            # So far pad indicator not in use
+                    # edge case for prediction_length = 1
+                    if out[self._future(ts_field)].shape[-1] == 1:
+                        out[self._future(ts_field)] = np.squeeze(
+                            out[self._future(ts_field)], axis=-1
+                        )
+
+            # So far pad indicator not in use -
+            # Marks that left padding for the encoder will occur on shorter time series
             pad_indicator = np.zeros(self.enc_len)
-            pad_length = max(0, self.enc_len - sampling_idx)
+            pad_length = max(0, -enc_len_diff)
             pad_indicator[:pad_length] = True
             out[self._past(self.is_pad_out)] = pad_indicator
 

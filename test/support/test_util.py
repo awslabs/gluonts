@@ -21,8 +21,26 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.support import util
 from gluonts.model.common import Tensor
+from gluonts.support import util
+from gluonts.testutil.dummy_datasets import get_dataset
+
+
+@pytest.mark.parametrize(
+    "array_type, axis", itertools.product(["np", "mx"], [0, 1])
+)
+def test_pad_arrays_axis(array_type, axis: int):
+    arrays = [
+        d["target"] if array_type == "np" else mx.nd.array(d["target"])
+        for d in list(iter(get_dataset()))
+    ]
+    if axis == 0:
+        arrays = [x.T for x in arrays]
+
+    padded_arrays = util.pad_arrays(arrays, axis)
+
+    assert all(a.shape[axis] == 8 for a in padded_arrays)
+    assert all(a.shape[1 - axis] == 2 for a in padded_arrays)
 
 
 @pytest.mark.parametrize("vec", [[[1, 2, 3, 4, 5], [10, 20, 30, 40, 50]]])

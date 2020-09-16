@@ -12,22 +12,14 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import functools
 import inspect
 import os
 import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 # Third-party imports
 import mxnet as mx
@@ -40,6 +32,41 @@ from gluonts.model.common import Tensor
 
 MXNET_HAS_ERF = hasattr(mx.nd, "erf")
 MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")
+
+
+def pad_to_size(x: np.array, size: int, axis: int = 0):
+    """Pads `xs` with 0 on the left on the specified axis, which is the first axis by default."""
+    pad_length = size - x.shape[axis]
+    if pad_length <= 0:
+        return x
+
+    pad_width = [(0, 0)] * x.ndim
+    pad_width[axis] = (pad_length, 0)
+    return np.pad(x, mode="constant", pad_width=pad_width)
+
+
+def pad_arrays(
+    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0
+) -> List[Union[np.ndarray, mx.nd.NDArray]]:
+    assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
+    is_mx = isinstance(data[0], mx.nd.NDArray)
+
+    # MxNet causes a segfault when persisting 0-length arrays. As such,
+    # we add a dummy pad of length 1 to 0-length dims.
+    max_len = max(1, functools.reduce(max, (x.shape[axis] for x in data)))
+    padded_data = []
+
+    for x in data:
+        # MxNet lacks the functionality to pad n-D arrays consistently.
+        # We fall back to numpy if x is an mx.nd.NDArray.
+        if is_mx:
+            x = x.asnumpy()
+
+        x = pad_to_size(x, max_len, axis)
+
+        padded_data.append(x if not is_mx else mx.nd.array(x))
+
+    return padded_data
 
 
 class Timer:

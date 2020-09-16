@@ -141,6 +141,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
+        max_ts_len: Optional[int] = None,
     ) -> None:
 
         assert (distr_output is None) or (quantiles is None)
@@ -239,6 +240,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
             num_forking=num_forking,
+            max_ts_len=max_ts_len,
         )
 
     @classmethod
@@ -250,6 +252,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             "use_feat_dynamic_real": stats.num_feat_dynamic_real > 0,
             "use_feat_static_cat": bool(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
+            "max_ts_len": stats.max_target_length,
         }
 
     @classmethod
@@ -318,6 +321,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         distr_output: Optional[DistributionOutput] = None,
         scaling: bool = False,
         scaling_decoder_dynamic_feature: bool = False,
+        num_forking: Optional[int] = None,
     ) -> None:
 
         assert (
@@ -373,4 +377,5 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             trainer=trainer,
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
+            num_forking=num_forking,
         )

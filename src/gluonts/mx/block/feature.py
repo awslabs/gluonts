@@ -93,7 +93,7 @@ class FeatureEmbedder(nn.HybridBlock):
         Returns
         -------
         concatenated_tensor: Tensor
-            Concatenated tensor of embeddings whth shape: (N,T,C) or (N,C),
+            Concatenated tensor of embeddings with shape: (N,T,C) or (N,C),
             where C is the sum of the embedding dimensions for each categorical
             feature, i.e. C = sum(self.config.embedding_dims).
         """
