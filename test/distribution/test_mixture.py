@@ -92,6 +92,17 @@ mx.random.seed(35120171)
             ),
             mx.nd.random_uniform(shape=SHAPE),
         ),
+        (
+            Gaussian(
+                mu=mx.nd.array([0.]),
+                sigma=mx.nd.array([1e-3 + 0.2]),
+            ),
+            Gaussian(
+                mu=mx.nd.array([1.]),
+                sigma=mx.nd.array([1e-3 + 0.1]),
+            ),
+            mx.nd.array([0.2]),
+        ),
         # TODO: add a multivariate case here
     ],
 )
@@ -103,6 +114,7 @@ def test_mixture(
     samples1 = distr1.sample(num_samples=NUM_SAMPLES_LARGE)
     samples2 = distr2.sample(num_samples=NUM_SAMPLES_LARGE)
 
+    # TODO: for multivariate case, test should not sample elements from different components in the event_dim dimension
     rand = mx.nd.random.uniform(shape=(NUM_SAMPLES_LARGE, *p.shape))
     choice = (rand < p.expand_dims(axis=0)).broadcast_like(samples1)
     samples_ref = mx.nd.where(choice, samples1, samples2)
