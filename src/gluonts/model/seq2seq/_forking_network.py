@@ -12,13 +12,12 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import mxnet as mx
 from mxnet import gluon
 import numpy as np
-from typing import List
 
 # First-party imports
 from gluonts.core.component import DType, validated

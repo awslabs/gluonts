@@ -94,11 +94,13 @@ def accuracy_test(dsinfo):
 
     def test_accuracy(Estimator, hyperparameters, accuracy):
         estimator = from_inputs(Estimator, hyperparameters, dsinfo)
+        predictor = estimator.train(training_data=dsinfo.train_ds)
         agg_metrics, item_metrics = backtest_metrics(
-            train_dataset=dsinfo.train_ds,
             test_dataset=dsinfo.test_ds,
-            forecaster=estimator,
-            evaluator=Evaluator(calculate_owa=statsmodels is not None),
+            predictor=predictor,
+            evaluator=Evaluator(
+                calculate_owa=statsmodels is not None, num_workers=0
+            ),
         )
 
         if dsinfo.name == "synthetic":
