@@ -31,7 +31,7 @@ from gluonts.transform.dataset import TransformedDataset
 logger = logging.getLogger(__name__)
 
 
-class CyclicIterable(Iterable):
+class Cycle(Iterable):
     def __init__(self, base_iterable: Iterable) -> None:
         self.base_iterable = base_iterable
 
