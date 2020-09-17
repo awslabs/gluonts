@@ -40,7 +40,6 @@ from mxnet import context, nd
 from gluonts.core.component import DType
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset, FileDataset
 from gluonts.dataset.util import MPWorkerInfo
-from gluonts.support.util import pad_arrays
 from gluonts.transform import Transformation
 
 try:
@@ -97,6 +96,33 @@ def _is_stackable(
     return True
 
 
+def _pad_arrays(
+    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0
+) -> List[Union[np.ndarray, mx.nd.NDArray]]:
+    assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
+    is_mx = isinstance(data[0], mx.nd.NDArray)
+
+    # MxNet causes a segfault when persisting 0-length arrays. As such,
+    # we add a dummy pad of length 1 to 0-length dims.
+    max_len = max(1, functools.reduce(max, (x.shape[axis] for x in data)))
+    padded_data = []
+
+    for x in data:
+        # MxNet lacks the functionality to pad n-D arrays consistently.
+        # We fall back to numpy if x is an mx.nd.NDArray.
+        if is_mx:
+            x = x.asnumpy()
+
+        pad_size = max_len - x.shape[axis]
+        pad_lengths = [(0, 0)] * x.ndim
+        pad_lengths[axis] = (0, pad_size)
+        x_padded = np.pad(x, mode="constant", pad_width=pad_lengths)
+
+        padded_data.append(x_padded if not is_mx else mx.nd.array(x_padded))
+
+    return padded_data
+
+
 def stack(
     data,
     multi_processing: bool,
@@ -108,7 +134,7 @@ def stack(
     Stack a list of data. Used when creating a single batch from list of dicts
     depending on whether multiprocessing is turned on, the batches will be
     constructed using different memory allocation techniques. If `variable_length`
-    is specified, the data will be right 'padded' with zeros along the first axis.
+    is specified, the data will be 'padded' with zeros along the first axis.
 
     Parameters
     ----------
@@ -126,7 +152,7 @@ def stack(
         this axis before stacking.
     """
     if variable_length and not _is_stackable(data):
-        data = pad_arrays(data, axis=0)
+        data = _pad_arrays(data, axis=0)
 
     if isinstance(data[0], mx.nd.NDArray):
         if multi_processing:
