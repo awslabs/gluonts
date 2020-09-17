@@ -69,7 +69,7 @@ class PseudoShuffledIterator(Iterator):
 
         # Choose an element at a random index and yield it and fill it with
         # the next element in the sequential generator
-        idx = random.randint(0, len(self.shuffle_buffer) - 1)
+        idx = random.randrange(len(self.shuffle_buffer))
         next_sample = self.shuffle_buffer[idx]
 
         # Replace the index with the next element in the iterator if the
