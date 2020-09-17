@@ -115,7 +115,7 @@ def test_mqcnn_covariate_smoke_test(
         prediction_length=hps["prediction_length"],
     )
 
-    estimator = MQCNNEstimator.from_inputs(dataset_train, **hps)
+    estimator = MQCNNEstimator.from_hyperparameters(**hps)
 
     predictor = estimator.train(dataset_train, num_workers=0)
     forecasts = list(predictor.predict(dataset_test))

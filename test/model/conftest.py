@@ -75,9 +75,8 @@ def dsinfo(request):
         )
 
 
-def from_inputs(Estimator, hyperparameters, dsinfo):
-    return Estimator.from_inputs(
-        dsinfo.train_ds,
+def from_hyperparameters(Estimator, hyperparameters, dsinfo):
+    return Estimator.from_hyperparameters(
         freq=dsinfo.freq,
         **{
             "prediction_length": dsinfo.prediction_length,
@@ -93,7 +92,7 @@ def accuracy_test(dsinfo):
     from gluonts.evaluation.backtest import backtest_metrics
 
     def test_accuracy(Estimator, hyperparameters, accuracy):
-        estimator = from_inputs(Estimator, hyperparameters, dsinfo)
+        estimator = from_hyperparameters(Estimator, hyperparameters, dsinfo)
         predictor = estimator.train(training_data=dsinfo.train_ds)
         agg_metrics, item_metrics = backtest_metrics(
             test_dataset=dsinfo.test_ds,
@@ -116,7 +115,7 @@ def serialize_test(dsinfo):
     from gluonts.model.predictor import Predictor
 
     def test_serialize(Estimator, hyperparameters):
-        estimator = from_inputs(Estimator, hyperparameters, dsinfo)
+        estimator = from_hyperparameters(Estimator, hyperparameters, dsinfo)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             predictor_act = estimator.train(dsinfo.train_ds)
@@ -133,7 +132,7 @@ def repr_test(dsinfo):
     from gluonts.core.serde import load_code
 
     def test_repr(Estimator, hyperparameters):
-        estimator = from_inputs(Estimator, hyperparameters, dsinfo)
+        estimator = from_hyperparameters(Estimator, hyperparameters, dsinfo)
         assert repr(estimator) == repr(load_code(repr(estimator)))
 
     return test_repr
