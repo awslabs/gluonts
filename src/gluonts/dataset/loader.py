@@ -170,7 +170,7 @@ class MultiProcessBatcher(Iterator):
             and self.data_queue.empty()
         ):
             self._halt_processes()
-            raise StopIteration()
+            raise StopIteration
 
         try:
             # TODO make timeout configurable
