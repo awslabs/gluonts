@@ -47,7 +47,7 @@ class PseudoShuffledIterator(Iterator):
     """
 
     def __init__(self, base_iterator: Iterator, shuffle_buffer_length: int):
-        self.shuffle_buffer: list = []
+        self.shuffle_buffer = []
         self.shuffle_buffer_length = shuffle_buffer_length
         self.base_iterator = base_iterator
         self.base_iter_finished = False
