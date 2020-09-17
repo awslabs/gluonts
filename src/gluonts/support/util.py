@@ -34,14 +34,17 @@ MXNET_HAS_ERF = hasattr(mx.nd, "erf")
 MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")
 
 
-def pad_to_size(x: np.array, size: int, axis: int = 0):
+def pad_to_size(
+    x: np.array, size: int, axis: int = 0, is_right_pad: bool = True
+):
     """Pads `xs` with 0 on the left on the specified axis, which is the first axis by default."""
     pad_length = size - x.shape[axis]
     if pad_length <= 0:
         return x
 
     pad_width = [(0, 0)] * x.ndim
-    pad_width[axis] = (pad_length, 0)
+    right_pad = (0, pad_length)
+    pad_width[axis] = right_pad if is_right_pad else right_pad[::-1]
     return np.pad(x, mode="constant", pad_width=pad_width)
 
 

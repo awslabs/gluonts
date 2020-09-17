@@ -170,7 +170,7 @@ def batchify(
     dtype: DType,
     multi_processing: bool,
     single_process_ctx: Optional[mx.Context] = None,
-    variable_length: bool = True,
+    variable_length: bool = False,
 ) -> DataBatch:
     """reduce the list of dictionaries to a single dictionary, where values
         referenced by identical key are reduced using the stack function"""

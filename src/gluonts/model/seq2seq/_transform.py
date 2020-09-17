@@ -133,6 +133,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             start_idx_enc = max(0, enc_len_diff)
             start_idx_dec = max(0, dec_len_diff)
 
+            # Define pad length indices for shorter time series of variable length being updated in place
+            pad_length_enc = max(0, -enc_len_diff)
+            pad_length_dec = max(0, -dec_len_diff)
+
             for ts_field in list(ts_fields_counter.keys()):
 
                 # target is 1d, this ensures ts is always 2d
@@ -144,11 +148,13 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                 else:
                     ts_fields_counter[ts_field] -= 1
 
-                out[self._past(ts_field)] = (
-                    np.zeros(shape=(self.enc_len, ts_len), dtype=ts.dtype)
-                    if ts_field in self.encoder_disabled_fields
-                    else ts[start_idx_enc:sampling_idx, :]
+                out[self._past(ts_field)] = np.zeros(
+                    shape=(self.enc_len, ts_len), dtype=ts.dtype
                 )
+                if ts_field not in self.encoder_disabled_fields:
+                    out[self._past(ts_field)][pad_length_enc:] = ts[
+                        start_idx_enc:sampling_idx, :
+                    ]
 
                 # exclude some fields at prediction time
                 if (
@@ -158,24 +164,23 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                     continue
 
                 if ts_field in self.decoder_series_fields:
-                    # default to dummy zero forking decoder
-                    if ts_field in self.decoder_disabled_fields:
-                        out[self._future(ts_field)] = np.zeros(
-                            shape=(self.num_forking, self.dec_len, ts_len),
-                            dtype=ts.dtype,
-                        )
-                    # In case it's not disabled we copy the actual values
+                    out[self._future(ts_field)] = np.zeros(
+                        shape=(self.num_forking, self.dec_len, ts_len),
+                        dtype=ts.dtype,
+                    )
                     # This is where some of the forking magic happens:
                     # For each of the num_forking time-steps at which the decoder is applied we slice the
                     # corresponding inputs called decoder_fields to the appropriate dec_len
-                    else:
+                    if ts_field not in self.decoder_disabled_fields:
                         decoder_fields = ts[
                             start_idx_dec + 1 : sampling_idx + 1, :
                         ]
                         # For default row-major arrays, strides = (dtype*n_cols, dtype). Since this array is transposed,
                         # it is stored in column-major (Fortran) ordering with strides = (dtype, dtype*n_rows)
                         stride = decoder_fields.strides
-                        out[self._future(ts_field)] = as_strided(
+                        out[self._future(ts_field)][
+                            pad_length_dec:
+                        ] = as_strided(
                             decoder_fields,
                             shape=(
                                 decoder_fields.shape[0],
@@ -194,11 +199,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                             out[self._future(ts_field)], axis=-1
                         )
 
-            # So far pad indicator not in use -
+            # So far encoder pad indicator not in use -
             # Marks that left padding for the encoder will occur on shorter time series
             pad_indicator = np.zeros(self.enc_len)
-            pad_length = max(0, -enc_len_diff)
-            pad_indicator[:pad_length] = True
+            pad_indicator[:pad_length_enc] = True
             out[self._past(self.is_pad_out)] = pad_indicator
 
             # So far pad forecast_start not in use
