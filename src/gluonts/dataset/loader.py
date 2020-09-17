@@ -32,12 +32,12 @@ logger = logging.getLogger(__name__)
 
 
 class Cycle(Iterable):
-    def __init__(self, base_iterable: Iterable) -> None:
-        self.base_iterable = base_iterable
+    def __init__(self, iterable: Iterable) -> None:
+        self.iterable = iterable
 
     def __iter__(self):
         while True:
-            yield from self.base_iterable
+            yield from self.iterable
 
 
 class PseudoShuffledIterator(Iterator):
@@ -112,11 +112,11 @@ class MultiProcessBatcher(Iterator):
         ]
         self.processes = []
 
-        for wid, event in enumerate(self.exhausted_events):
+        for worker_id, event in enumerate(self.exhausted_events):
             p = Process(
                 target=self.worker_fn,
                 args=(
-                    wid,
+                    worker_id,
                     self.num_workers,
                     self.base_iterable,
                     self.batch_size,
@@ -241,7 +241,7 @@ class TrainDataLoader(DataLoader):
         self.shuffle_buffer_length = shuffle_buffer_length
 
         transformed_dataset = TransformedDataset(
-            base_dataset=CyclicIterable(dataset),
+            base_dataset=Cycle(dataset),
             transformation=transform,
             is_train=True,
         )
