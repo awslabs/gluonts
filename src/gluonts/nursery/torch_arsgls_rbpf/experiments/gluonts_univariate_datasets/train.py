@@ -60,7 +60,7 @@ if __name__ == "__main__":
         gpus=args.gpus,
         default_root_dir=os.path.join(consts.log_dir, config.dataset_name),
         gradient_clip_val=config.grad_clip_norm,
-        limit_val_batches=(500 // config.batch_size_val) + 1,
+        limit_val_batches=(500 // config.batch_size_val),  # + 1,
         max_epochs=config.n_epochs,
     )
 
