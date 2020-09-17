@@ -150,9 +150,10 @@ class MixtureDistribution(Distribution):
 
         idx = F.random.multinomial(mixture_probs)
 
-        for _ in range(self.event_dim):
+        n_axes = len(samples_list[0].shape)
+        for _ in range(n_axes - len(idx.shape)):
             idx = idx.expand_dims(axis=-1)
-        idx = idx.broadcast_like(samples_list[0])
+        idx = idx.broadcast_to(samples_list[0].shape)
 
         selected_samples = F.pick(data=samples, index=idx, axis=-1)
 
