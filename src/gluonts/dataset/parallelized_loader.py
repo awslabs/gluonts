@@ -108,7 +108,7 @@ def stack(
     Stack a list of data. Used when creating a single batch from list of dicts
     depending on whether multiprocessing is turned on, the batches will be
     constructed using different memory allocation techniques. If `variable_length`
-    is specified, the data will be left 'padded' with zeros along the first axis.
+    is specified, the data will be right 'padded' with zeros along the first axis.
 
     Parameters
     ----------

@@ -168,10 +168,10 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                         shape=(self.num_forking, self.dec_len, ts_len),
                         dtype=ts.dtype,
                     )
-                    # This is where some of the forking magic happens:
-                    # For each of the num_forking time-steps at which the decoder is applied we slice the
-                    # corresponding inputs called decoder_fields to the appropriate dec_len
                     if ts_field not in self.decoder_disabled_fields:
+                        # This is where some of the forking magic happens:
+                        # For each of the num_forking time-steps at which the decoder is applied we slice the
+                        # corresponding inputs called decoder_fields to the appropriate dec_len
                         decoder_fields = ts[
                             start_idx_dec + 1 : sampling_idx + 1, :
                         ]
@@ -183,7 +183,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                         ] = as_strided(
                             decoder_fields,
                             shape=(
-                                decoder_fields.shape[0],
+                                self.num_forking - pad_length_dec,
                                 self.dec_len,
                                 ts_len,
                             ),
