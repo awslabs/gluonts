@@ -467,6 +467,20 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
             if k == "mean_wQuantileLoss_full":
                 result.log("CRPS", v, prog_bar=True)
             result.log(k, v, prog_bar=False)
+
+        # log base matrices: L{R, Q}inv_logdiag.
+        params = {
+            "LRinv_logdiag": self.ssm.gls_base_parameters.LRinv_logdiag,
+            "LQinv_logdiag": self.ssm.gls_base_parameters.LQinv_logdiag,
+        }
+        for name, param in params.items():
+            for idx_base in range(param.shape[0]):
+                for idx_dim in range(param.shape[1]):
+                    result.log(
+                        f"{name}[{idx_base},{idx_dim}]",
+                        param[idx_base, idx_dim],
+                        prog_bar=False,
+                    )
         return result
 
     def test_end(
@@ -487,7 +501,9 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         n_reps = self.prediction_length_full // self.prediction_length_rolling
         assert n_reps == len(self.dataset.test) // len(self.dataset.train)
         testsets = {
-            "full": extract_last_roll(dataset=self.dataset, n_roll_reps=n_reps),
+            "full": extract_last_roll(
+                dataset=self.dataset, n_roll_reps=n_reps
+            ),
             "rolling": ListDataset(
                 self.dataset.test, freq=self.dataset.metadata.freq,
             ),
