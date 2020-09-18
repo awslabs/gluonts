@@ -12,9 +12,9 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from functools import partial
 from pathlib import Path
-from typing import Iterator, List, Optional, cast
+from typing import Iterator, List, Optional, cast, Callable
+from functools import partial
 
 # Third-party imports
 import mxnet as mx
@@ -24,7 +24,6 @@ import numpy as np
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.dataset.parallelized_loader import batchify
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
 from gluonts.model.predictor import (
@@ -33,6 +32,7 @@ from gluonts.model.predictor import (
     SymbolBlockPredictor,
 )
 from gluonts.transform import Transformation
+from gluonts.mx.batchify import batchify
 
 # Relative imports
 from .forecast import PointProcessSampleForecast
@@ -177,12 +177,24 @@ class PointProcessGluonPredictor(GluonPredictor):
         num_prefetch: Optional[int] = None,
         **kwargs,
     ) -> Iterator[Forecast]:
-        yield from super().predict(
-            dataset=dataset,
-            num_samples=num_samples,
+        inference_data_loader = InferenceDataLoader(
+            dataset,
+            transform=self.input_transform,
+            batch_size=self.batch_size,
+            stack_fn=partial(
+                batchify, ctx=self.ctx, dtype=self.dtype, variable_length=True
+            ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
-            batchify_fn=partial(batchify, variable_length=True),
+            **kwargs,
+        )
+        yield from self.forecast_generator(
+            inference_data_loader=inference_data_loader,
+            prediction_net=self.prediction_net,
+            input_names=self.input_names,
+            freq=self.freq,
+            output_transform=self.output_transform,
+            num_samples=num_samples,
         )
 
     def serialize_prediction_net(self, path: Path) -> None:

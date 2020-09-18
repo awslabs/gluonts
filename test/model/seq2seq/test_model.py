@@ -117,7 +117,7 @@ def test_mqcnn_covariate_smoke_test(
 
     estimator = MQCNNEstimator.from_hyperparameters(**hps)
 
-    predictor = estimator.train(dataset_train, num_workers=0)
+    predictor = estimator.train(dataset_train, num_workers=None)
     forecasts = list(predictor.predict(dataset_test))
     assert len(forecasts) == len(dataset_test)
 
@@ -143,7 +143,7 @@ def test_feat_static_cat_smoke_test(use_feat_static_cat, cardinality):
     )
     estimator = MQCNNEstimator.from_inputs(dataset_train, **hps)
 
-    predictor = estimator.train(dataset_train, num_workers=0)
+    predictor = estimator.train(dataset_train, num_workers=None)
     forecasts = list(predictor.predict(dataset_test))
     assert len(forecasts) == len(dataset_test)
 
@@ -172,7 +172,7 @@ def test_mqcnn_scaling_smoke_test(scaling, scaling_decoder_dynamic_feature):
 
     estimator = MQCNNEstimator.from_inputs(dataset_train, **hps)
 
-    predictor = estimator.train(dataset_train, num_workers=0)
+    predictor = estimator.train(dataset_train, num_workers=None)
     forecasts = list(predictor.predict(dataset_test))
     assert len(forecasts) == len(dataset_test)
 
@@ -224,6 +224,6 @@ def test_backwards_compatibility():
 
     estimator = MQCNNEstimator.from_inputs(dataset_train, **hps)
 
-    predictor = estimator.train(dataset_train, num_workers=0)
+    predictor = estimator.train(dataset_train, num_workers=None)
     forecasts = list(predictor.predict(dataset_test))
     assert len(forecasts) == len(dataset_test)

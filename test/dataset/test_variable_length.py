@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 import itertools
 from functools import partial
+from typing import Dict, Any
 
 # Third-party imports
 import mxnet as mx
@@ -26,7 +27,7 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     InferenceDataLoader,
 )
-from gluonts.dataset.parallelized_loader import batchify, stack, _pad_arrays
+from gluonts.mx.batchify import batchify, stack, _pad_arrays
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimeUniformSampler,
@@ -89,22 +90,22 @@ def loader_factory():
             train_sampler=ContinuousTimeUniformSampler(num_instances=10),
         )
 
-        kwargs = dict(
+        kwargs: Dict[str, Any] = dict(
             dataset=dataset,
             transform=splitter,
             batch_size=10,
-            ctx=mx.cpu(),
-            dtype=np.float32,
-            batchify_fn=partial(batchify, variable_length=True),
+            stack_fn=partial(
+                batchify, ctx=mx.cpu(), dtype=np.float32, variable_length=True
+            ),
         )
         kwargs.update(override_args)
 
         if is_train:
             return TrainDataLoader(
-                num_batches_per_epoch=22, num_workers=0, **kwargs
+                num_batches_per_epoch=22, num_workers=None, **kwargs
             )
         else:
-            return InferenceDataLoader(num_workers=0, **kwargs)
+            return InferenceDataLoader(num_workers=None, **kwargs)
 
     return train_loader
 
@@ -226,12 +227,7 @@ def test_variable_length_stack(pp_dataset, array_type, multi_processing):
     ]
 
     assert isinstance(multi_processing, bool)
-    stacked = stack(
-        arrays,
-        multi_processing=multi_processing,
-        dtype=arrays[0].dtype,
-        variable_length=True,
-    )
+    stacked = stack(arrays, variable_length=True,)
 
     assert stacked.shape[0] == 3
     assert stacked.shape[1] > 0
@@ -253,12 +249,7 @@ def test_variable_length_stack_zerosize(
     ]
 
     assert isinstance(multi_processing, bool)
-    stacked = stack(
-        arrays,
-        multi_processing=multi_processing,
-        dtype=arrays[0].dtype,
-        variable_length=True,
-    )
+    stacked = stack(arrays, variable_length=True,)
 
     assert stacked.shape[0] == 5
     assert stacked.shape[1] == 1
