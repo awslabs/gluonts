@@ -246,7 +246,10 @@ def test_distribution_shapes(
 
     assert x.shape == distr.batch_shape + distr.event_shape
 
-    loss = distr.loss(x)
+    if isinstance(distr, PiecewiseLinear):
+        loss = distr.crps(x)
+    else:
+        loss = distr.log_prob(x)
 
     assert loss.shape == distr.batch_shape
 

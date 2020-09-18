@@ -267,7 +267,7 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
             assert self.distr_output is not None
             distr_args = self.distr_args_proj(dec_output)
             distr = self.distr_output.distribution(distr_args, scale=scale)
-            loss = distr.loss(future_target)
+            loss = self.distr_output.loss(distr, future_target)
 
         # mask the loss based on observed indicator
         # shape: (batch_size, decoder_length)
@@ -361,7 +361,7 @@ class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
         -------
         distr_args: the parameters of distribution
         loc: an array of zeros with the same shape of scale
-        scale: 
+        scale:
         """
 
         dec_output, scale = self.get_decoder_network_output(

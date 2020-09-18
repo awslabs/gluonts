@@ -166,7 +166,7 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         )
 
         # (batch_size, prediction_length, target_dim)
-        loss = distr.loss(future_target)
+        loss = self.distr_output.loss(distr, future_target)
 
         weighted_loss = weighted_average(
             F=F, x=loss, weights=future_observed_values, axis=1

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 
 # Third-party imports
 import mxnet as mx
@@ -53,18 +53,12 @@ class Binned(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(
-        self,
-        bin_log_probs: Tensor,
-        bin_centers: Tensor,
-        label_smoothing: Optional[float] = None,
-    ) -> None:
+    def __init__(self, bin_log_probs: Tensor, bin_centers: Tensor,) -> None:
         self.bin_centers = bin_centers
         self.bin_log_probs = bin_log_probs
         self._bin_probs = None
 
         self.bin_edges = Binned._compute_edges(self.F, bin_centers)
-        self.label_smoothing = label_smoothing
 
     @property
     def F(self):
@@ -156,18 +150,15 @@ class Binned(Distribution):
             F.broadcast_mul(F.softmax(F.ones_like(mask)), alpha),
         )
 
-    def smooth_ce_loss(self, x):
+    def smooth_ce_loss(self, label_smoothing: float, x: Tensor):
         """
         Cross-entropy loss with a "smooth" label.
         """
-        assert self.label_smoothing is not None
         F = self.F
         x = x.expand_dims(axis=-1)
         mask = self._get_mask(x)
-
-        alpha = F.full(shape=(1,), val=self.label_smoothing)
+        alpha = F.full(shape=(1,), val=label_smoothing)
         smooth_mask = self._smooth_mask(F, mask, alpha)
-
         return -F.broadcast_mul(self.bin_log_probs, smooth_mask).sum(axis=-1)
 
     def log_prob(self, x):
@@ -182,13 +173,6 @@ class Binned(Distribution):
         # left_edges = self.bin_edges.slice_axis(axis=-1, begin=0, end=-1)
         mask = F.broadcast_lesser_equal(self.bin_centers, x)
         return F.broadcast_mul(self.bin_probs, mask).sum(axis=-1)
-
-    def loss(self, x: Tensor) -> Tensor:
-        return (
-            self.smooth_ce_loss(x)
-            if self.label_smoothing
-            else -self.log_prob(x)
-        )
 
     def quantile(self, level: Tensor) -> Tensor:
         F = self.F
@@ -337,7 +321,14 @@ class BinnedOutput(DistributionOutput):
             F, bin_centers, loc=loc, scale=scale
         )
 
-        return Binned(probs, bin_centers, label_smoothing=self.label_smoothing)
+        return Binned(probs, bin_centers)
+
+    def loss(self, distr: Distribution, x: Tensor) -> Tensor:
+        distr = cast(Binned, distr)
+        if self.label_smoothing:
+            return distr.smooth_ce_loss(self.label_smoothing, x)
+        else:
+            return -distr.log_prob(x)
 
     @property
     def event_shape(self) -> Tuple:

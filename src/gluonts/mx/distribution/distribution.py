@@ -41,8 +41,7 @@ def getF(var: Tensor):
 
 
 def _index_tensor(x: Tensor, item: Any) -> Tensor:
-    """
-    """
+    """"""
     squeeze: List[int] = []
     if not isinstance(item, tuple):
         item = (item,)
@@ -116,27 +115,6 @@ class Distribution:
         """
         raise NotImplementedError()
 
-    def loss(self, x: Tensor) -> Tensor:
-        r"""
-        Compute the loss at `x` according to the distribution.
-
-        By default, this method returns the negative of `log_prob`. For some
-        distributions, however, the log-density is not easily computable
-        and therefore other loss functions are computed.
-
-        Parameters
-        ----------
-        x
-            Tensor of shape `(*batch_shape, *event_shape)`.
-
-        Returns
-        -------
-        Tensor
-            Tensor of shape `batch_shape` containing the value of the loss
-            for each event in `x`.
-        """
-        return -self.log_prob(x)
-
     def prob(self, x: Tensor) -> Tensor:
         r"""
         Compute the density of the distribution at `x`.
@@ -160,9 +138,8 @@ class Distribution:
         Layout of the set of events contemplated by the distribution.
 
         Invoking `sample()` from a distribution yields a tensor of shape
-        `batch_shape + event_shape`, and computing `log_prob` (or `loss`
-        more in general) on such sample will yield a tensor of shape
-        `batch_shape`.
+        `batch_shape + event_shape`, and computing `log_prob` on such
+        sample will yield a tensor of shape `batch_shape`.
 
         This property is available in general only in mx.ndarray mode,
         when the shape of the distribution arguments can be accessed.
