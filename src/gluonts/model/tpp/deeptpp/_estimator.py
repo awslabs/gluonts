@@ -208,6 +208,6 @@ class DeepTPPEstimator(GluonEstimator):
             num_workers,
             num_prefetch,
             shuffle_buffer_length,
-            batchify_fn=partial(batchify, variable_length=True),
+            stack_fn=partial(batchify, variable_length=True),
             **kwargs,
         )

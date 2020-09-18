@@ -213,13 +213,13 @@ class GluonEstimator(Estimator):
             transform=transformation,
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
-            batchify_fn=partial(
+            stack_fn=partial(
                 batchify, ctx=self.trainer.ctx, dtype=self.dtype,
             ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
-            todevice_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -229,7 +229,7 @@ class GluonEstimator(Estimator):
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
-                batchify_fn=partial(
+                stack_fn=partial(
                     batchify, ctx=self.trainer.ctx, dtype=self.dtype,
                 ),
                 num_workers=num_workers,

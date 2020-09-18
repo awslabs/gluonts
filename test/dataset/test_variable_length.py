@@ -94,7 +94,7 @@ def loader_factory():
             dataset=dataset,
             transform=splitter,
             batch_size=10,
-            batchify_fn=partial(
+            stack_fn=partial(
                 batchify, ctx=mx.cpu(), dtype=np.float32, variable_length=True
             ),
         )

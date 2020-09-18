@@ -181,7 +181,7 @@ class PointProcessGluonPredictor(GluonPredictor):
             dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
-            batchify_fn=partial(
+            stack_fn=partial(
                 batchify, ctx=self.ctx, dtype=self.dtype, variable_length=True
             ),
             num_workers=num_workers,

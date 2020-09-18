@@ -53,7 +53,7 @@ def test_distribution():
         transform=train_output.transformation,
         batch_size=batch_size,
         num_batches_per_epoch=estimator.trainer.num_batches_per_epoch,
-        batchify_fn=partial(batchify, ctx=mx.cpu()),
+        stack_fn=partial(batchify, ctx=mx.cpu()),
     )
 
     seq_len = 2 * ds_info.prediction_length

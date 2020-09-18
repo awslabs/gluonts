@@ -23,7 +23,7 @@ from gluonts.dataset.loader import PseudoShuffledIterator
 def test_shuffle_iter(data: Iterable) -> None:
     list_data = list(data)
     shuffled_iter = PseudoShuffledIterator(
-        base_iterator=iter(list_data), shuffle_buffer_length=5
+        iter(list_data), shuffle_buffer_length=5
     )
     shuffled_data = list(shuffled_iter)
     assert len(shuffled_data) == len(list_data)

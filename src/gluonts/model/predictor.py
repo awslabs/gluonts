@@ -324,7 +324,7 @@ class GluonPredictor(Predictor):
             dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
-            batchify_fn=partial(batchify, ctx=self.ctx, dtype=self.dtype),
+            stack_fn=partial(batchify, ctx=self.ctx, dtype=self.dtype),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             **kwargs,

@@ -279,7 +279,7 @@ class WaveNetEstimator(GluonEstimator):
             transform=transformation,
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
-            batchify_fn=partial(
+            stack_fn=partial(
                 batchify, ctx=self.trainer.ctx, dtype=self.dtype
             ),
             num_workers=num_workers,
@@ -294,7 +294,7 @@ class WaveNetEstimator(GluonEstimator):
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
-                batchify_fn=partial(
+                stack_fn=partial(
                     batchify, ctx=self.trainer.ctx, dtype=self.dtype
                 ),
                 num_workers=num_workers,
