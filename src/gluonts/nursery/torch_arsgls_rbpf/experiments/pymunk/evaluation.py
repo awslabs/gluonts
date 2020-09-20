@@ -48,126 +48,111 @@ def compute_metrics(model, batch):
     }  # dont pop
 
     metrics = Box()
-    acc_fcst_rand, acc_filt_rand, acc_all_rand = [], [], []
-    acc_fcst_det, acc_filt_det, acc_all_det = [], [], []
-    w_dists_rand, w_dists_det = [], []
-    for deterministic in [False]:
-        past_target_with_particle_dim = past_target.unsqueeze(dim=1)
-        future_target_with_particle_dim = future_target.unsqueeze(dim=1)
-        if not deterministic:
-            past_target_with_particle_dim = past_target_with_particle_dim.repeat(
-                [1, model.ssm.n_particle, 1, 1],
-            )
-            future_target_with_particle_dim = future_target_with_particle_dim.repeat(
-                [1, model.ssm.n_particle, 1, 1],
-            )
-        all_target_with_particle_dim = torch.cat(
-            [past_target_with_particle_dim, future_target_with_particle_dim],
+    deterministic = False
+
+    past_target_with_particle_dim = past_target.unsqueeze(dim=1)
+    future_target_with_particle_dim = future_target.unsqueeze(dim=1)
+    if not deterministic:
+        past_target_with_particle_dim = past_target_with_particle_dim.repeat(
+            [1, model.ssm.n_particle, 1, 1],
         )
-
-        filtered_predictions, forecasted_predictions = model(
-            **batch,
-            deterministic=deterministic,
-            n_steps_forecast=len(future_target),
+        future_target_with_particle_dim = future_target_with_particle_dim.repeat(
+            [1, model.ssm.n_particle, 1, 1],
         )
-        filtered_emissions = torch.stack(
-            [f.emissions for f in filtered_predictions],
-        )
-        forecasted_emissions = torch.stack(
-            [f.emissions for f in forecasted_predictions],
-        )
-        all_emissions = torch.cat([filtered_emissions, forecasted_emissions],)
+    all_target_with_particle_dim = torch.cat(
+        [past_target_with_particle_dim, future_target_with_particle_dim],
+    )
 
-        # Convert all to numpy
-        (
-            filtered_emissions,
-            forecasted_emissions,
-            all_emissions,
-            past_target_with_particle_dim,
-            future_target_with_particle_dim,
-            all_target_with_particle_dim,
-        ) = all_to_numpy(
-            filtered_emissions,
-            forecasted_emissions,
-            all_emissions,
-            past_target_with_particle_dim,
-            future_target_with_particle_dim,
-            all_target_with_particle_dim,
-        )
+    filtered_predictions, forecasted_predictions = model(
+        **batch,
+        deterministic=deterministic,
+        n_steps_forecast=len(future_target),
+    )
+    filtered_emissions = torch.stack(
+        [f.emissions for f in filtered_predictions],
+    )
+    forecasted_emissions = torch.stack(
+        [f.emissions for f in forecasted_predictions],
+    )
+    all_emissions = torch.cat([filtered_emissions, forecasted_emissions])
 
-        # Compute Pixel Accuracy
-        # acc_filt = (
-        #     np.equal(filtered_emissions, past_target_with_particle_dim)
-        #         .astype(np.float64)
-        #         .mean(axis=-1)
-        # )
-        #
-        # acc_fcst = (
-        #     np.equal(forecasted_emissions, future_target_with_particle_dim)
-        #         .astype(np.float64)
-        #         .mean(axis=-1)
-        # )
-        acc = (
-            np.equal(all_emissions, all_target_with_particle_dim)
-            .astype(np.float64)
-            .mean(axis=-1)
-        )
-
-        if deterministic:
-            # acc_fcst_det.append(acc_fcst)
-            # acc_filt_det.append(acc_filt)
-            acc_all_det.append(acc)
-        else:
-            # acc_fcst_rand.append(acc_fcst)
-            # acc_filt_rand.append(acc_filt)
-            acc_all_rand.append(acc)
-
-        # Compute Wasserstein Distance
-        assert all_emissions.shape == all_target_with_particle_dim.shape
-        assert (
-            all_emissions.shape[0]
-            == model.past_length + model.prediction_length
-        )
-        assert all_emissions.shape[1] == model.ssm.n_particle
-        assert all_emissions.shape[3] == 32 * 32
-        T = all_emissions.shape[0]
-        B = all_emissions.shape[2]
-        P = model.ssm.n_particle if not deterministic else 1
-
-        w_dists = np.zeros([T, P, B])
-        for t in range(T):
-            for p in range(P):
-                for b in range(B):
-                    w_dists[t, p, b] = compute_wasserstein_distance(
-                        img_gt=all_target_with_particle_dim[t, p, b].reshape(
-                            [32, 32]
-                        ),
-                        img_model=all_emissions[t, p, b].reshape([32, 32]),
-                    )
-        if deterministic:
-            w_dists_det.append(w_dists)
-        else:
-            w_dists_rand.append(w_dists)
-
-    # stack on batch dim and mean
-    metrics.acc_rand = np.concatenate(acc_all_rand, axis=-1)
-    # metrics.acc_fcst_rand = np.concatenate(acc_fcst_rand, axis=-1)
-    # # .mean(axis=(1, 2))
-    # metrics.acc_filt_rand = np.concatenate(acc_filt_rand, axis=-1)
-    # # .mean(axis=(1, 2))
-
-    # metrics.acc_fcst_det = np.concatenate(acc_fcst_det, axis=-1).mean(axis=[1, 2])
-    # metrics.acc_filt_det = np.concatenate(acc_filt_det, axis=-1).mean(axis=[1, 2])
-    # mean, std among particle axis. Always mean over data.
-    metrics.wasserstein_rand = np.concatenate(
-        w_dists_rand, axis=-1
-    )  # .mean(axis=1).mean(axis=-1)
-    # metrics.w_dists_rand_std = (
-    #     np.concatenate(w_dists_rand, axis=-1).std(axis=1).mean(axis=-1)
+    # filtered_auxiliary = torch.stack(
+    #     [f.latents.variables.auxiliary for f in filtered_predictions],
     # )
-    # metrics.w_dists_rand_var = (
-    #     np.concatenate(w_dists_rand, axis=-1).var(axis=1).mean(axis=-1)
+    # forecasted_auxiliary = torch.stack(
+    #     [f.latents.variables.auxiliary for f in forecasted_predictions],
     # )
+    # all_auxiliary = torch.cat([filtered_auxiliary, forecasted_auxiliary])
+
+    # Compute log-predictive-likelihood log p(y_t | y_{1:t'}).
+    all_predictions = filtered_predictions + forecasted_predictions
+    all_lats = [p.latents for p in all_predictions]
+    if isinstance(model.ssm, BaseRBSMCGaussianLinearSystem):
+        log_weights = [p.latents.log_weights for p in all_predictions]
+    elif isinstance(model.ssm, KalmanVariationalAutoEncoder):
+        # uniform weights also in filter range (just VI, not SMC-based).
+        log_P = np.log(model.ssm.n_particle)
+        log_weights = [
+            torch.zeros_like(p.latents.variables.x[..., 0]) - log_P
+            for p in all_predictions
+        ]
+    else:
+        raise ValueError(f"unexpected ssm class: {type(model.ssm)}.")
+
+    emission_dists = [
+        # TODO: directly accessing model.ssm not the best. Inheritance bad?
+        model.ssm.emit(lats_t=lats_t, ctrl_t=None)
+        for lats_t in all_lats
+    ]
+
+    all_target_list = [tar for tar in all_target_with_particle_dim]
+    log_probs = [
+        ed.log_prob(tar) for ed, tar in zip(emission_dists, all_target_list)
+    ]
+    log_weighted_probs = [
+        log_probs[t] + log_weights[t] for t in range(len(log_probs))
+    ]
+    log_pred_likes = torch.stack(
+        [torch.logsumexp(log_prob, dim=0) for log_prob in log_weighted_probs]
+    )
+
+    # Convert all to numpy
+    all_emissions, all_target_with_particle_dim, log_pred_likes = all_to_numpy(
+        all_emissions, all_target_with_particle_dim, log_pred_likes,
+    )
+
+    # Log-Predictive Likelihood log p(y_{t} | y_{1:t'})
+    metrics.log_predictive_likelihood = log_pred_likes
+
+    # Compute Pixel Accuracy
+    metrics.accuracy = (
+        np.equal(all_emissions, all_target_with_particle_dim)
+        .astype(np.float64)
+        .mean(axis=-1)
+    )
+
+    # Compute Wasserstein Distance
+    assert all_emissions.shape == all_target_with_particle_dim.shape
+    assert (
+        all_emissions.shape[0] == model.past_length + model.prediction_length
+    )
+    assert all_emissions.shape[1] == model.ssm.n_particle
+    assert all_emissions.shape[3] == 32 * 32
+    T = all_emissions.shape[0]
+    B = all_emissions.shape[2]
+    P = model.ssm.n_particle if not deterministic else 1
+
+    w_dists = np.zeros([T, P, B])
+    for t in range(T):
+        for p in range(P):
+            for b in range(B):
+                w_dists[t, p, b] = compute_wasserstein_distance(
+                    img_gt=all_target_with_particle_dim[t, p, b].reshape(
+                        [32, 32]
+                    ),
+                    img_model=all_emissions[t, p, b].reshape([32, 32]),
+                )
+    metrics.wasserstein = w_dists
     return metrics
 
 

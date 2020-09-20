@@ -1,5 +1,6 @@
 import os
-
+from box import Box
+import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
 import pytorch_lightning as pl
@@ -34,7 +35,7 @@ class CastDtype(object):
 class PymunkModel(DefaultLightningModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.log_metrics = {}
+        self.log_metrics = Box()
 
     def prepare_data(self):
         data_path = os.path.join(
@@ -85,6 +86,28 @@ class PymunkModel(DefaultLightningModel):
             collate_fn=test_collate_fn,
         )
 
+    # TODO There is no validation set. We run for a fixed number of epochs
+    #  which is often standard in generative models.
+    #  But pytorch_lightning does not support this.
+    #  It saves models either based on validation or training loss.
+    #  see https://github.com/PyTorchLightning/pytorch-lightning/issues/596
+    #  So this is a hack that makes it store the latest model as the best.
+    # *********************************************
+    def val_dataloader(self):
+        return self.train_dataloader()
+
+    def validation_step(self, batch, batch_idx):
+        result = pl.EvalResult()
+        result.log(
+            "val_loss",
+            torch.tensor(
+                -self.current_epoch, dtype=self.dtype, device=self.device
+            ),
+        )
+        return result
+
+    # *********************************************
+
     def test_step(self, batch, batch_idx):
         # 1) Plot
         if batch_idx == 0:
@@ -109,26 +132,41 @@ class PymunkModel(DefaultLightningModel):
 
     def test_end(self, outputs):
         result = pl.EvalResult()
-        agg_metrics = {}
         metric_names = [k for k in outputs.keys() if k != "meta"]
         for metric_name in metric_names:
+            agg_metrics = {}
             metrics_cat = np.concatenate(outputs[metric_name], axis=-1)
-            assert metrics_cat.shape[:-1] == (
+
+            if metrics_cat.shape[:-1] == (
                 self.past_length + self.prediction_length,
                 self.ssm.n_particle,
-            )
-            # mean, std, var over particle dim. Always mean over batch/data.
-            agg_metrics["mean"] = metrics_cat.mean(axis=1).mean(axis=-1)
-            agg_metrics["std"] = metrics_cat.std(axis=1).mean(axis=-1)
-            agg_metrics["var"] = metrics_cat.var(axis=1).mean(axis=-1)
-            # TODO: currently there is no way to log non-scalar metrics in
-            #  pytorch-lightning? This is a temporary hack to make the metric
-            #  over time (vector) available to outside for plotting.
-            #  But this should abolutely be a feature of lightning...
-            for which_agg, agg_metric in agg_metrics.items():
-                full_metric_name = f"{metric_name}_{which_agg}"
-                self.log_metrics[full_metric_name] = agg_metric
-                result.log(full_metric_name, agg_metric.mean(axis=0))
+            ):
+                # mean, std, var over particle dim. Always mean over batch/data.
+                agg_metrics["mean"] = metrics_cat.mean(axis=1).mean(axis=-1)
+                agg_metrics["std"] = metrics_cat.std(axis=1).mean(axis=-1)
+                agg_metrics["var"] = metrics_cat.var(axis=1).mean(axis=-1)
+                # TODO: currently there is no way to log non-scalar metrics in
+                #  pytorch-lightning? This is a temporary hack to make the
+                #  metric over time (vector) available to outside for plotting.
+                #  But this should abolutely be a feature of lightning...
+
+                self.log_metrics[metric_name] = Box()
+                for which_agg, agg_metric in agg_metrics.items():
+                    self.log_metrics[metric_name][which_agg] = agg_metric
+                    result.log(
+                        f"{metric_name}_{which_agg}", agg_metric.mean(axis=0),
+                    )
+            elif metrics_cat.shape[:-1] == (
+                self.past_length + self.prediction_length,
+            ):
+                agg_metrics = metrics_cat.mean(axis=-1)  # Batch
+                self.log_metrics[metric_name] = agg_metrics
+                result.log(metric_name, agg_metrics.mean(axis=0))
+            else:
+                raise ValueError(
+                    f"metric '{metric_name}' has unexpected "
+                    f"tensor dims: {metrics_cat.shape[:-1]}"
+                )
 
         # There are no methods in lightning or even tensorboard to log
         # 1D tensors for a standard line-plot. So we save them with
@@ -142,13 +180,18 @@ class PymunkModel(DefaultLightningModel):
 
         time = np.arange(self.past_length + self.prediction_length)
         for metric_name in metric_names:
-            m = self.log_metrics[f"{metric_name}_mean"]
-            std = self.log_metrics[f"{metric_name}_std"]
             fig = plt.figure()
-            plt.plot(time, m, label="mean")
-            plt.fill_between(
-                time, m - 3 * std, m + 3 * std, alpha=0.25, label="3 std",
-            )
+            if isinstance(self.log_metrics[metric_name], dict):
+                m = self.log_metrics[metric_name]["mean"]
+                std = self.log_metrics[metric_name]["std"]
+                (lower, upper) = (m - 3 * std, m + 3 * std)
+                plt.plot(time, m, label="mean")
+                plt.fill_between(time, lower, upper, alpha=0.25, label="3 std")
+            else:
+                plt.plot(
+                    time, self.log_metrics[metric_name], label=metric_name
+                )
+
             plt.axvline(
                 self.past_length - 1,
                 linestyle="--",
