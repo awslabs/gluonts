@@ -76,6 +76,7 @@ class DefaultLightningModel(LightningModule):
         n_epochs_freeze_gls_params=0,
         num_batches_per_epoch=50,
         deterministic_forecast: bool = False,
+        log_param_norms: bool = False,
     ):
         super().__init__()
         self.config = config
@@ -100,6 +101,8 @@ class DefaultLightningModel(LightningModule):
         self._n_particle_eval = n_particle_eval
 
         self.dataset_name = dataset_name
+
+        self.log_param_norms = log_param_norms
 
     def forward(
         self,
@@ -235,6 +238,14 @@ class DefaultLightningModel(LightningModule):
         loss = self.loss(**batch)
         result = pl.TrainResult(loss)
         result.log("train_loss", loss)
+
+        if self.log_param_norms:
+            for param_name, param_value in self.named_parameters():
+                if param_value.ndim == 3:  # Base-Mats: avg norms of K base mats.
+                    param_norm = torch.norm(param_value, dim=[-2, -1]).mean()
+                else:
+                    param_norm = torch.norm(param_value)
+                result.log(param_name, param_norm)
         return result
 
     def on_train_epoch_start(self) -> None:
