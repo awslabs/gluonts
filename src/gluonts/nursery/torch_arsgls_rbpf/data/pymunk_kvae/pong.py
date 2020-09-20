@@ -11,6 +11,8 @@ import consts
 # Made only minor adjustments, e.g. the saving paths,
 # number of time-steps for test data.
 
+scale = 1
+
 
 class Pong:
     def __init__(
@@ -245,5 +247,4 @@ def generate_dataset(seed=1234, n_timesteps_train=20, n_timesteps_test=100):
 
 
 if __name__ == "__main__":
-    scale = 1
     generate_dataset()
