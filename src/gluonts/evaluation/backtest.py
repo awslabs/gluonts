@@ -96,7 +96,7 @@ def make_evaluation_predictions(
     # TODO the test set may be gone otherwise with such a filtering)
 
     dataset_trunc = TransformedDataset(
-        dataset, transformations=[transform.AdhocTransform(truncate_target)]
+        dataset, transformation=transform.AdhocTransform(truncate_target)
     )
 
     return (

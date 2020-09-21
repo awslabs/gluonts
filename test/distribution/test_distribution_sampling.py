@@ -25,6 +25,7 @@ from gluonts.mx.distribution import (
     Laplace,
     Gaussian,
     Gamma,
+    GenPareto,
     Beta,
     MultivariateGaussian,
     Poisson,
@@ -124,6 +125,13 @@ test_cases = [
     (
         Weibull,
         {"rate": mx.nd.array([0.5, 2.0]), "shape": mx.nd.array([1.5, 5.0])},
+    ),
+    (
+        GenPareto,
+        {
+            "xi": mx.nd.array([1 / 3.0, 1 / 4.0]),
+            "beta": mx.nd.array([1.0, 1 / 2.0]),
+        },
     ),
 ]
 

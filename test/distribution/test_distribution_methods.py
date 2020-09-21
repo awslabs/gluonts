@@ -24,6 +24,7 @@ from gluonts.mx.distribution import (
     Laplace,
     Gaussian,
     Gamma,
+    GenPareto,
     Beta,
     MultivariateGaussian,
     PiecewiseLinear,
@@ -49,6 +50,13 @@ test_cases = [
     (
         Gamma,
         {"alpha": mx.nd.array([2.5, 7.0]), "beta": mx.nd.array([1.5, 2.1])},
+    ),
+    (
+        GenPareto,
+        {
+            "xi": mx.nd.array([1 / 3.0, 1 / 4.0]),
+            "beta": mx.nd.array([1.0, 2.0]),
+        },
     ),
     (
         Beta,
@@ -157,6 +165,11 @@ test_output = {
         "mean": mx.nd.array([1.6666666, 3.3333333]),
         "stddev": mx.nd.array([1.05409255, 1.25988158]),
         "variance": mx.nd.array([1.1111111, 1.58730159]),
+    },
+    "GenPareto": {
+        "mean": mx.nd.array([1.5, 2.666666666666666]),
+        "stddev": mx.nd.array([2.5980762, 3.7712361663282534]),
+        "variance": mx.nd.array([6.75, 14.222222222222221]),
     },
     "Laplace": {
         "mean": mx.nd.array([1000.0, -1000.0]),

@@ -132,12 +132,10 @@ def run_test(
     len_original = maybe_len(test_dataset)
 
     test_dataset = TransformedDataset(
-        base_dataset=test_dataset,
-        transformations=[
-            FilterTransformation(
-                lambda x: x["target"].shape[-1] > predictor.prediction_length
-            )
-        ],
+        test_dataset,
+        FilterTransformation(
+            lambda x: x["target"].shape[-1] > predictor.prediction_length
+        ),
     )
 
     len_filtered = len(test_dataset)
