@@ -13,11 +13,11 @@
 
 import logging
 from typing import Any, Callable, Iterator, List, Optional
+from functools import singledispatch
 
 # Third-party imports
 import mxnet as mx
 import numpy as np
-
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
@@ -33,10 +33,14 @@ from gluonts.model.forecast import (
 from gluonts.mx.distribution import DistributionOutput
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
-BlockType = mx.gluon.Block
 
 
 LOG_CACHE = set([])
+# different deep learning frameworks generate predictions and the tensor to numpy conversion differently,
+# use a dispatching function to prevent needing a ForecastGenerators for each framework
+@singledispatch
+def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
+    raise NotImplementedError
 
 
 def log_once(msg):
@@ -82,7 +86,7 @@ class ForecastGenerator:
     def __call__(
         self,
         inference_data_loader: InferenceDataLoader,
-        prediction_net: BlockType,
+        prediction_net,
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
@@ -100,7 +104,7 @@ class DistributionForecastGenerator(ForecastGenerator):
     def __call__(
         self,
         inference_data_loader: InferenceDataLoader,
-        prediction_net: BlockType,
+        prediction_net,
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
@@ -144,7 +148,7 @@ class QuantileForecastGenerator(ForecastGenerator):
     def __call__(
         self,
         inference_data_loader: InferenceDataLoader,
-        prediction_net: BlockType,
+        prediction_net,
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
@@ -153,7 +157,7 @@ class QuantileForecastGenerator(ForecastGenerator):
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]
-            outputs = prediction_net(*inputs).asnumpy()
+            outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
 
@@ -185,7 +189,7 @@ class SampleForecastGenerator(ForecastGenerator):
     def __call__(
         self,
         inference_data_loader: InferenceDataLoader,
-        prediction_net: BlockType,
+        prediction_net,
         input_names: List[str],
         freq: str,
         output_transform: Optional[OutputTransform],
@@ -194,14 +198,14 @@ class SampleForecastGenerator(ForecastGenerator):
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]
-            outputs = prediction_net(*inputs).asnumpy()
+            outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
             if num_samples:
                 num_collected_samples = outputs[0].shape[0]
                 collected_samples = [outputs]
                 while num_collected_samples < num_samples:
-                    outputs = prediction_net(*inputs).asnumpy()
+                    outputs = predict_to_numpy(prediction_net, inputs)
                     if output_transform is not None:
                         outputs = output_transform(batch, outputs)
                     collected_samples.append(outputs)

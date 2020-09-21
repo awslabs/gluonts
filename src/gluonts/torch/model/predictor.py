@@ -1,4 +1,3 @@
-
 from typing import List
 
 from gluonts.dataset.loader import InferenceDataLoader
@@ -13,11 +12,18 @@ import numpy as np
 import torch
 import torch.nn as nn
 from gluonts.model.forecast import Forecast
-from .forecast_generator import PyTorchSampleForecastGenerator
+from gluonts.model.forecast_generator import SampleForecastGenerator
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.torch.batchify import batchify
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
+
+from gluonts.model.forecast_generator import predict_to_numpy
+
+
+@predict_to_numpy.register(nn.Module)
+def _(prediction_net: nn.Module, inputs: torch.Tensor) -> np.ndarray:
+    return prediction_net(*inputs).data.numpy()
 
 
 class PyTorchPredictor(Predictor):
@@ -30,7 +36,7 @@ class PyTorchPredictor(Predictor):
         freq: str,
         device: torch.device,
         input_transform: Transformation,
-        forecast_generator: PyTorchSampleForecastGenerator = PyTorchSampleForecastGenerator(),
+        forecast_generator: SampleForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         dtype: np.dtype = np.float32,
     ) -> None:

@@ -36,7 +36,8 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 
 from ._estimator import NBEATSEstimator
