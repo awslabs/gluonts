@@ -223,21 +223,3 @@ def test_variable_length_stack_zerosize(
     assert stacked.shape[0] == 5
     assert stacked.shape[1] == 1
     assert stacked.shape[2] == 2
-
-
-@pytest.mark.parametrize(
-    "array_type, multi_processing, axis",
-    itertools.product(["np", "mx"], [True, False], [0, 1]),
-)
-def test_pad_arrays_axis(pp_dataset, array_type, multi_processing, axis: int):
-    arrays = [
-        d["target"] if array_type == "np" else mx.nd.array(d["target"])
-        for d in list(iter(pp_dataset()))
-    ]
-    if axis == 0:
-        arrays = [x.T for x in arrays]
-
-    padded_arrays = _pad_arrays(arrays, axis)
-
-    assert all(a.shape[axis] == 8 for a in padded_arrays)
-    assert all(a.shape[1 - axis] == 2 for a in padded_arrays)
