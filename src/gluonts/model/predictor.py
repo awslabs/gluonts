@@ -19,6 +19,7 @@ import logging
 import multiprocessing as mp
 import sys
 import traceback
+import warnings
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
@@ -109,7 +110,6 @@ class Predictor:
     def deserialize(cls, path: Path, **kwargs) -> "Predictor":
         """
         Load a serialized predictor from the given path
-
         Parameters
         ----------
         path
@@ -197,6 +197,7 @@ class RepresentablePredictor(Predictor):
             return load_json(fp.read())
 
 
+
 class WorkerError:
     def __init__(self, msg):
         self.msg = msg
@@ -240,7 +241,6 @@ class ParallelizedPredictor(Predictor):
     to hang if the ParallelizedPredictor is used with tqdm and an exception
     occurs during prediction.
     https://github.com/tqdm/tqdm/issues/548
-
     Parameters
     ----------
     base_predictor

@@ -39,6 +39,13 @@ def _(prediction_net: nn.Module, inputs: torch.Tensor) -> np.ndarray:
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
+from gluonts.model.forecast_generator import predict_to_numpy
+
+
+@predict_to_numpy.register(nn.Module)
+def _(prediction_net: nn.Module, inputs: torch.Tensor) -> np.ndarray:
+    return prediction_net(*inputs).data.numpy()
+
 
 class PyTorchPredictor(Predictor):
     def __init__(

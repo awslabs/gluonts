@@ -66,6 +66,7 @@ class ForecastGenerator:
         raise NotImplementedError()
 
 
+
 class QuantileForecastGenerator(ForecastGenerator):
     @validated()
     def __init__(self, quantiles: List[str]) -> None:
