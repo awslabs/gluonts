@@ -27,7 +27,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Iterator,
-    List,
     Optional,
     Type,
 )
@@ -40,7 +39,6 @@ import numpy as np
 # First-party imports
 import gluonts
 from gluonts.core.component import (
-    DType,
     equals,
     from_hyperparameters,
     validated,
@@ -48,21 +46,10 @@ from gluonts.core.component import (
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
-from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.mx.context import get_mxnet_context
-from gluonts.model.forecast import Forecast
-from gluonts.support.util import (
-    export_repr_block,
-    export_symb_block,
-    get_hybrid_forward_input_names,
-    hybrid_block_to_symbol_block,
-    import_repr_block,
-    import_symb_block,
-)
-from gluonts.transform import Transformation
-from gluonts.mx.batchify import batchify
 
-from .forecast_generator import ForecastGenerator, SampleForecastGenerator
+from gluonts.model.forecast import Forecast
+
+from gluonts.mx.model import predictor
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
@@ -223,7 +210,7 @@ def GluonPredictor(**kwargs):
         DeprecationWarning,
         stacklevel=2,
     )
-    return gluonts.mx.model.GluonPredictor(**kwargs)
+    return predictor.GluonPredictor(**kwargs)
 
 
 def SymbolBlockPredictor(**kwargs):
@@ -232,7 +219,7 @@ def SymbolBlockPredictor(**kwargs):
         DeprecationWarning,
         stacklevel=2,
     )
-    return gluonts.mx.model.SymbolBlockPredictor(**kwargs)
+    return predictor.SymbolBlockPredictor(**kwargs)
 
 
 def RepresentableBlockPredictor(**kwargs):
@@ -241,7 +228,7 @@ def RepresentableBlockPredictor(**kwargs):
         DeprecationWarning,
         stacklevel=2,
     )
-    return gluonts.mx.model.RepresentableBlockPredictor(**kwargs)
+    return predictor.RepresentableBlockPredictor(**kwargs)
 
 
 class WorkerError:

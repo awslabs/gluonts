@@ -50,7 +50,7 @@ OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 from gluonts.model.forecast_generator import predict_to_numpy
 
 
-@predict_to_numpy.register()
+@predict_to_numpy.register(mx.gluon.Block)
 def _(prediction_net: mx.gluon.Block, inputs: mx.ndarray) -> np.ndarray:
     return prediction_net(*inputs).asnumpy()
 
