@@ -33,7 +33,6 @@ from typing import (
 from functools import partial
 
 # Third-party imports
-import mxnet as mx
 import numpy as np
 
 # First-party imports
@@ -195,44 +194,9 @@ class RepresentablePredictor(Predictor):
             print(dump_json(self), file=fp)
 
     @classmethod
-    def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
-    ) -> "RepresentablePredictor":
+    def deserialize(cls, path: Path) -> "RepresentablePredictor":
         with (path / "predictor.json").open("r") as fp:
             return load_json(fp.read())
-
-
-def GluonPredictor(**kwargs):
-    from gluonts.mx.model import predictor as mx_predictor
-
-    warnings.warn(
-        "gluonts.model.GluonPredictor is deprecated. Use gluonts.mx.model.GluonPredictor instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return mx_predictor.GluonPredictor(**kwargs)
-
-
-def SymbolBlockPredictor(**kwargs):
-    from gluonts.mx.model import predictor as mx_predictor
-
-    warnings.warn(
-        "gluonts.model.SymbolBlockPredictor is deprecated. Use gluonts.mx.model.SymbolBlockPredictor instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return mx_predictor.SymbolBlockPredictor(**kwargs)
-
-
-def RepresentableBlockPredictor(**kwargs):
-    from gluonts.mx.model import predictor as mx_predictor
-
-    warnings.warn(
-        "gluonts.model.RepresentableBlockPredictor is deprecated. Use gluonts.mx.model.RepresentableBlockPredictor instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return mx_predictor.RepresentableBlockPredictor(**kwargs)
 
 
 class WorkerError:

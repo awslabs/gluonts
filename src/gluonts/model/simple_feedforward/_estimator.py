@@ -31,7 +31,7 @@ from gluonts.transform import (
     Transformation,
     AddObservedValuesIndicator,
 )
-from gluonts.model.forecast_generator import DistributionForecastGenerator
+from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
 from gluonts.transform.feature import (
     DummyValueImputation,
     MissingValueImputation,

@@ -71,9 +71,3 @@ class PyTorchPredictor(Predictor):
                 output_transform=self.output_transform,
                 num_samples=num_samples,
             )
-
-    @classmethod
-    def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
-    ) -> "Predictor":
-        raise NotImplementedError
