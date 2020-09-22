@@ -49,8 +49,6 @@ from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 
 from gluonts.model.forecast import Forecast
 
-from gluonts.mx.model import predictor
-
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
 
@@ -205,30 +203,36 @@ class RepresentablePredictor(Predictor):
 
 
 def GluonPredictor(**kwargs):
+    from gluonts.mx.model import predictor as mx_predictor
+
     warnings.warn(
         "gluonts.model.GluonPredictor is deprecated. Use gluonts.mx.model.GluonPredictor instead.",
         DeprecationWarning,
         stacklevel=2,
     )
-    return predictor.GluonPredictor(**kwargs)
+    return mx_predictor.GluonPredictor(**kwargs)
 
 
 def SymbolBlockPredictor(**kwargs):
+    from gluonts.mx.model import predictor as mx_predictor
+
     warnings.warn(
         "gluonts.model.SymbolBlockPredictor is deprecated. Use gluonts.mx.model.SymbolBlockPredictor instead.",
         DeprecationWarning,
         stacklevel=2,
     )
-    return predictor.SymbolBlockPredictor(**kwargs)
+    return mx_predictor.SymbolBlockPredictor(**kwargs)
 
 
 def RepresentableBlockPredictor(**kwargs):
+    from gluonts.mx.model import predictor as mx_predictor
+
     warnings.warn(
         "gluonts.model.RepresentableBlockPredictor is deprecated. Use gluonts.mx.model.RepresentableBlockPredictor instead.",
         DeprecationWarning,
         stacklevel=2,
     )
-    return predictor.RepresentableBlockPredictor(**kwargs)
+    return mx_predictor.RepresentableBlockPredictor(**kwargs)
 
 
 class WorkerError:

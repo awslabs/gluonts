@@ -32,7 +32,7 @@ from gluonts.core.serde import dump_json, fqname_for, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once
-from gluonts.model.predictor import GluonPredictor
+from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.support.pandas import forecast_start
 from gluonts.dataset.loader import DataBatch
 

@@ -16,7 +16,6 @@ from typing import Any, Callable, Iterator, List, Optional
 from functools import singledispatch
 
 # Third-party imports
-import mxnet as mx
 import numpy as np
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
@@ -51,6 +50,9 @@ def log_once(msg):
 
 
 def _extract_instances(x: Any) -> Any:
+
+    import mxnet as mx
+
     """
     Helper function to extract individual instances from batched
     mxnet results.
