@@ -26,7 +26,7 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     InferenceDataLoader,
 )
-from gluonts.mx.batchify import batchify, stack
+from gluonts.mx.batchify import batchify, stack, _pad_arrays
 from gluonts.testutil.dummy_datasets import get_dataset
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
@@ -223,3 +223,20 @@ def test_variable_length_stack_zerosize(
     assert stacked.shape[0] == 5
     assert stacked.shape[1] == 1
     assert stacked.shape[2] == 2
+
+
+@pytest.mark.parametrize(
+    "array_type, axis", itertools.product(["np", "mx"], [0, 1])
+)
+def test_pad_arrays_axis(array_type, axis: int):
+    arrays = [
+        d["target"] if array_type == "np" else mx.nd.array(d["target"])
+        for d in list(iter(get_dataset()))
+    ]
+    if axis == 0:
+        arrays = [x.T for x in arrays]
+
+    padded_arrays = _pad_arrays(arrays, axis)
+
+    assert all(a.shape[axis] == 8 for a in padded_arrays)
+    assert all(a.shape[1 - axis] == 2 for a in padded_arrays)

@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import functools
 import inspect
 import os
 import signal
@@ -46,31 +45,6 @@ def pad_to_size(
     right_pad = (0, pad_length)
     pad_width[axis] = right_pad if is_right_pad else right_pad[::-1]
     return np.pad(x, mode="constant", pad_width=pad_width)
-
-
-# TODO: should the following contempate mxnet arrays or just numpy arrays?
-def pad_arrays(
-    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0
-) -> List[Union[np.ndarray, mx.nd.NDArray]]:
-    assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
-    is_mx = isinstance(data[0], mx.nd.NDArray)
-
-    # MxNet causes a segfault when persisting 0-length arrays. As such,
-    # we add a dummy pad of length 1 to 0-length dims.
-    max_len = max(1, functools.reduce(max, (x.shape[axis] for x in data)))
-    padded_data = []
-
-    for x in data:
-        # MxNet lacks the functionality to pad n-D arrays consistently.
-        # We fall back to numpy if x is an mx.nd.NDArray.
-        if is_mx:
-            x = x.asnumpy()
-
-        x = pad_to_size(x, max_len, axis)
-
-        padded_data.append(x if not is_mx else mx.nd.array(x))
-
-    return padded_data
 
 
 class Timer:
