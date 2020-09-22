@@ -107,17 +107,15 @@ class Predictor:
             )
 
     @classmethod
-    def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
-    ) -> "Predictor":
+    def deserialize(cls, path: Path, **kwargs) -> "Predictor":
         """
         Load a serialized predictor from the given path
         Parameters
         ----------
         path
             Path to the serialized files predictor.
-        ctx
-            Optional mxnet context to be used with the predictor.
+        **kwargs
+            Optional context/device parameter to be used with the predictor.
             If nothing is passed will use the GPU if available and CPU otherwise.
         """
         # deserialize Predictor type
@@ -132,7 +130,7 @@ class Predictor:
             )
 
         # call deserialize() for the concrete Predictor type
-        return tpe.deserialize(path, ctx)
+        return tpe.deserialize(path, **kwargs)
 
     @classmethod
     def from_hyperparameters(cls, **hyperparameters):

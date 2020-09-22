@@ -115,7 +115,7 @@ class NBEATSEnsemblePredictor(Predictor):
 
     @classmethod
     def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
+        cls, path: Path, ctx: Optional[mx.Context] = None, **kwargs
     ) -> "NBEATSEnsemblePredictor":
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
