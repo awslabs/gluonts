@@ -49,6 +49,7 @@ def log_once(msg):
         LOG_CACHE.add(msg)
 
 
+
 class ForecastGenerator:
     """
     Classes used to bring the output of a network into a class.

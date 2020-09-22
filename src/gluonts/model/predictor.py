@@ -197,6 +197,7 @@ class RepresentablePredictor(Predictor):
             return load_json(fp.read())
 
 
+
 class WorkerError:
     def __init__(self, msg):
         self.msg = msg
