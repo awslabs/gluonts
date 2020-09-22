@@ -13,7 +13,6 @@
 
 import logging
 from typing import Callable, Iterator, List, Optional
-
 from functools import singledispatch
 
 # Third-party imports
