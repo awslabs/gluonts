@@ -349,7 +349,7 @@ Earlier, we used the `make_evaluation_predictions` to evaluate our predictor. In
 ```python
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.core.component import validated
 from gluonts.support.util import copy_parameters
 from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
