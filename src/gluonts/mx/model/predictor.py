@@ -1,8 +1,6 @@
 from gluonts.model.predictor import Predictor
 
 
-from gluonts.torch.batchify import batchify
-
 # Standard library imports
 
 import logging
