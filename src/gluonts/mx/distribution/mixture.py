@@ -134,8 +134,14 @@ class MixtureDistribution(Distribution):
     def mean(self) -> Tensor:
         F = self.F
         mean_values = F.stack(*[c.mean for c in self.components], axis=-1)
+        mixture_probs_expanded = self.mixture_probs
+        for _ in range(self.event_dim):
+            mixture_probs_expanded = mixture_probs_expanded.expand_dims(
+                axis=-2
+            )
         return F.sum(
-            F.broadcast_mul(mean_values, self.mixture_probs, axis=-1), axis=-1
+            F.broadcast_mul(mean_values, mixture_probs_expanded, axis=-1),
+            axis=-1,
         )
 
     def cdf(self, x: Tensor) -> Tensor:

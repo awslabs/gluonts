@@ -20,6 +20,7 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.model.common import Tensor
+from gluonts.support.util import make_nd_diag
 
 from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
@@ -111,7 +112,7 @@ class Dirichlet(Distribution):
             transpose_b=True,
         )
 
-        diagonal = F.broadcast_div(scaled_alpha, scale) * F.eye(d)
+        diagonal = make_nd_diag(F, F.broadcast_div(scaled_alpha, scale), d)
 
         return diagonal - cross
 
