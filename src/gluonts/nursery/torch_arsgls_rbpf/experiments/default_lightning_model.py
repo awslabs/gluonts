@@ -198,7 +198,7 @@ class DefaultLightningModel(LightningModule):
                 {"params": params_gls, "lr": self.lr},
                 {"params": params_except_gls, "lr": self.lr},
             ],
-            betas=(0.9, 0.95),
+            betas=(0.9, 0.999),
             amsgrad=False,
             weight_decay=self.weight_decay,
         )

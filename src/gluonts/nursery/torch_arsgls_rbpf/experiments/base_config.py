@@ -50,6 +50,10 @@ class BaseConfig:
     lr: float
     LRinv_logdiag_scaling: float
     LQinv_logdiag_scaling: float
+    A_scaling: float
     B_scaling: float
+    C_scaling: float
     D_scaling: float
+    F_scaling: float
+    LSinv_logdiag_scaling: float
     eye_init_A: bool

@@ -22,4 +22,6 @@ class StateToSwitchParamsDefault(StateToSwitchParams):
             init_scale_S_diag=init_scale_S_diag,
             switch_link=switch_link,
             switch_link_type=switch_link_type,
+            F_scaling=config.F_scaling,
+            LSinv_logdiag_scaling=config.LSinv_logdiag_scaling,
         )

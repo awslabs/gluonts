@@ -188,11 +188,11 @@ def make_default_config(dataset_name):
         experiment_name="arsgls",
         dataset_name=dataset_name,
         #
-        n_epochs=50,
-        n_epochs_no_resampling=5,
+        n_epochs=20,
+        n_epochs_no_resampling=0,
         n_epochs_freeze_gls_params=0,
         n_epochs_until_validate_loss=1,
-        lr=1e-2 if dataset_name in ["solar_nips"] else 5e-3,
+        lr=1e-3,
         weight_decay=1e-5,
         grad_clip_norm=10.0,
         num_samples_eval=100,
@@ -239,7 +239,7 @@ def make_default_config(dataset_name):
         b_fn_activations=LeakyReLU(0.1, inplace=True),
         d_fn_activations=LeakyReLU(0.1, inplace=True),
         # initialisation
-        init_scale_A=None,  # 0.95,
+        init_scale_A=0.95,  # 0.95,
         init_scale_B=0.0,
         init_scale_C=None,
         init_scale_D=0.0,
@@ -254,10 +254,14 @@ def make_default_config(dataset_name):
         prediction_length_rolling=prediction_length_rolling,
         prediction_length_full=prediction_length_full,
         normalisation_params=normalisation_params[dataset_name],
-        LRinv_logdiag_scaling=1.0,
-        LQinv_logdiag_scaling=1.0,
+        LRinv_logdiag_scaling=25.0,
+        LQinv_logdiag_scaling=25.0,
+        A_scaling=5.0,
         B_scaling=1.0,
+        C_scaling=5.0,
         D_scaling=1.0,
+        LSinv_logdiag_scaling=25.0,
+        F_scaling=5.0,
         eye_init_A=True,
     )
     return config
@@ -321,7 +325,7 @@ def make_model(config):
         prediction_length_rolling=config.prediction_length_rolling,
         n_epochs_no_resampling=config.n_epochs_no_resampling,
         n_epochs_freeze_gls_params=config.n_epochs_freeze_gls_params,
-        num_batches_per_epoch=50,
+        num_batches_per_epoch=250,
         extract_tail_chunks_for_train=config.extract_tail_chunks_for_train,
     )
     return model

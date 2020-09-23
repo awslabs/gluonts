@@ -135,7 +135,9 @@ class GlsParametersUnrestricted(GLSParameters):
             requires_grad_Q=config.requires_grad_Q,
             LRinv_logdiag_scaling=config.LRinv_logdiag_scaling,
             LQinv_logdiag_scaling=config.LQinv_logdiag_scaling,
+            A_scaling=config.A_scaling,
             B_scaling=config.B_scaling,
+            C_scaling=config.C_scaling,
             D_scaling=config.D_scaling,
             eye_init_A=config.eye_init_A,
         )
@@ -174,7 +176,9 @@ class GLSParametersKVAE(GLSParameters):
             requires_grad_Q=config.requires_grad_Q,
             LRinv_logdiag_scaling=config.LRinv_logdiag_scaling,
             LQinv_logdiag_scaling=config.LQinv_logdiag_scaling,
+            A_scaling=config.A_scaling,
             B_scaling=config.B_scaling,
+            C_scaling=config.C_scaling,
             D_scaling=config.D_scaling,
             eye_init_A=config.eye_init_A,
         )
@@ -224,7 +228,9 @@ class GLSParametersASGLS(GLSParameters):
             requires_grad_Q=config.requires_grad_Q,
             LRinv_logdiag_scaling=config.LRinv_logdiag_scaling,
             LQinv_logdiag_scaling=config.LQinv_logdiag_scaling,
+            A_scaling=config.A_scaling,
             B_scaling=config.B_scaling,
+            C_scaling=config.C_scaling,
             D_scaling=config.D_scaling,
             eye_init_A=config.eye_init_A,
         )

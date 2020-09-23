@@ -1,3 +1,4 @@
+from typing import Optional
 import math
 from box import Box
 import numpy as np
@@ -9,7 +10,6 @@ from models.gls_parameters.switch_link_functions import (
     IndividualLink,
     SharedLink,
 )
-from torch_extensions.ops import batch_diag_matrix, matmul
 from models.gls_parameters.gls_parameters import GLSParameters
 
 
@@ -26,10 +26,14 @@ class StateToSwitchParams(nn.Module):
         make_cov_from_cholesky_avg: bool = True,
         switch_link: (nn.Module, None) = None,
         switch_link_type: (SwitchLinkType, None) = None,
+        LSinv_logdiag_scaling: Optional[float] = None,
+        F_scaling: Optional[float] = None,
     ):
         super().__init__()
         assert len({switch_link is None, switch_link_type is None}) == 2
         self.make_cov_from_cholesky_avg = make_cov_from_cholesky_avg
+        self._LSinv_logdiag_scaling = LSinv_logdiag_scaling
+        self._F_scaling = F_scaling
 
         if switch_link is not None:
             self.link_transformers = switch_link
@@ -56,12 +60,14 @@ class StateToSwitchParams(nn.Module):
         else:
             raise Exception()
 
-        self.F = nn.Parameter(
+        self._F = nn.Parameter(
             torch.nn.init.orthogonal_(
                 torch.empty(n_base_F, n_switch, n_state)
             ),
             requires_grad=True,
         )
+        self._F.data /= self._F_scaling
+
         if full_cov_S:  # tril part is always initialised zero
             self.LSinv_tril = nn.Parameter(
                 torch.zeros((n_base_S, n_switch, n_switch)),
@@ -83,7 +89,7 @@ class StateToSwitchParams(nn.Module):
                 Linv_logdiag = Linv_logdiag[..., torch.tensor(idxs)]
                 return Linv_logdiag
 
-            self.LSinv_logdiag = nn.Parameter(
+            self._LSinv_logdiag = nn.Parameter(
                 torch.stack(
                     [
                         make_lower_logdiag(
@@ -97,11 +103,22 @@ class StateToSwitchParams(nn.Module):
                 requires_grad=requires_grad_S,
             )
         else:
-            self.LSinv_logdiag = nn.Parameter(
+            self._LSinv_logdiag = nn.Parameter(
                 torch.ones((n_base_S, n_switch))
                 * -math.log(init_scale_S_diag),
                 requires_grad=requires_grad_S,
             )
+        self._LSinv_logdiag.data /= self._LSinv_logdiag_scaling
+
+    @property
+    def LSinv_logdiag(self):
+        return GLSParameters._scale_mat(
+            self._LSinv_logdiag, self._LSinv_logdiag_scaling,
+        )
+
+    @property
+    def F(self):
+        return GLSParameters._scale_mat(self._F, self._F_scaling)
 
     def forward(self, switch: torch.Tensor) -> Box:
         weights = self.link_transformers(switch=switch)

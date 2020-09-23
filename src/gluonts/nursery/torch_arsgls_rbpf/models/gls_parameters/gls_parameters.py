@@ -59,10 +59,12 @@ class GLSParameters(nn.Module):
         full_cov_Q: bool = True,
         LQinv_logdiag_limiter: Optional[nn.Module] = None,
         LRinv_logdiag_limiter: Optional[nn.Module] = None,
-        LRinv_logdiag_scaling: float = 1.0,
-        LQinv_logdiag_scaling: float = 1.0,
-        B_scaling: bool = 1.0,
-        D_scaling: bool = 1.0,
+        LRinv_logdiag_scaling: Optional[float] = None,
+        LQinv_logdiag_scaling: Optional[float] = None,
+        A_scaling: Optional[float] = None,
+        B_scaling: Optional[float] = None,
+        C_scaling: Optional[float] = None,
+        D_scaling: Optional[float] = None,
         eye_init_A: bool = True,  # False -> orthogonal
     ):
         super().__init__()
@@ -82,7 +84,9 @@ class GLSParameters(nn.Module):
         # and thus have similar scale. --> Should fix ADAM though!
         self._LRinv_logdiag_scaling = LRinv_logdiag_scaling
         self._LQinv_logdiag_scaling = LQinv_logdiag_scaling
+        self._A_scaling = A_scaling
         self._B_scaling = B_scaling
+        self._C_scaling = C_scaling
         self._D_scaling = D_scaling
 
         self.b_fn = b_fn
@@ -210,7 +214,7 @@ class GLSParameters(nn.Module):
                 init_scale_A = torch.tensor(init_scale_A)
             else:
                 init_var_avg_R = torch.mean(
-                    torch.exp(- 2 * self.LRinv_logdiag), dim=0,
+                    torch.exp(-2 * self.LRinv_logdiag), dim=0,
                 )
                 # Heuristic: transition var + innovation noise var = 1, where\
                 # transition and noise param are averaged from base mats.
@@ -224,12 +228,13 @@ class GLSParameters(nn.Module):
                     torch.empty(n_base_A, n_state, n_state),
                 )
             # broadcast basemat-dim and columns -> scale columns; or scalar
-            self.A = nn.Parameter(
-                init_scale_A * A_diag,
-                requires_grad=requires_grad_A,
+            self._A = nn.Parameter(
+                init_scale_A * A_diag, requires_grad=requires_grad_A,
             )
+            # Cannot use setter with nn.Module and nn.Parameter
+            self._A.data /= self._A_scaling
         else:
-            self.register_parameter("A", None)
+            self.register_parameter("_A", None)
 
         if n_base_B is not None:
             if init_scale_B is not None:
@@ -252,18 +257,18 @@ class GLSParameters(nn.Module):
                     ),
                     requires_grad=requires_grad_B,
                 )
-                self._B.data /= self._B_scaling
+            self._B.data /= self._B_scaling
         else:
-            self.register_parameter("B", None)
+            self.register_parameter("_B", None)
 
         if n_base_C is not None:
             if init_scale_C is not None:
-                self.C = nn.Parameter(
+                self._C = nn.Parameter(
                     init_scale_C * torch.randn(n_base_C, n_obs, n_state),
                     requires_grad=requires_grad_C,
                 )
             else:
-                self.C = nn.Parameter(
+                self._C = nn.Parameter(
                     torch.stack(
                         [
                             kaiming_normal_(
@@ -276,8 +281,9 @@ class GLSParameters(nn.Module):
                     ),
                     requires_grad=requires_grad_C,
                 )
+            self._C.data /= self._C_scaling
         else:
-            self.register_parameter("C", None)
+            self.register_parameter("_C", None)
 
         if n_base_D is not None:
             if init_scale_D is not None:
@@ -303,25 +309,37 @@ class GLSParameters(nn.Module):
         else:
             self.register_parameter("_D", None)
 
+    @staticmethod
+    def _scale_mat(mat, scaling):
+        return mat if (mat is None or scaling is None) else mat * scaling
+
     @property
     def LQinv_logdiag(self):
-        return (self._LQinv_logdiag * self._LQinv_logdiag_scaling) \
-            if self._LQinv_logdiag is not None \
-            else None
+        return self._scale_mat(
+            self._LQinv_logdiag, self._LQinv_logdiag_scaling,
+        )
 
     @property
     def LRinv_logdiag(self):
-        return (self._LRinv_logdiag * self._LRinv_logdiag_scaling) \
-            if self._LRinv_logdiag is not None \
-            else None
+        return self._scale_mat(
+            self._LRinv_logdiag, self._LRinv_logdiag_scaling,
+        )
+
+    @property
+    def A(self):
+        return self._scale_mat(self._A, self._A_scaling)
 
     @property
     def B(self):
-        return (self._B * self._B_scaling) if self._B is not None else None
+        return self._scale_mat(self._B, self._B_scaling)
+
+    @property
+    def C(self):
+        return self._scale_mat(self._C, self._C_scaling)
 
     @property
     def D(self):
-        return (self._D * self._D_scaling) if self._D is not None else None
+        return self._scale_mat(self._D, self._D_scaling)
 
     @staticmethod
     def make_cov_init(init_scale_cov_diag: (tuple, list), n_base, dim_cov):
@@ -444,8 +462,7 @@ class GLSParameters(nn.Module):
             raise Exception("No can do.")
         return mat_weighted, Lmat_weighted
 
-    @staticmethod
-    def compute_bias(s, u=None, bias_fn=None, bias_matrix=None):
+    def compute_bias(self, s, u=None, bias_fn=None, bias_matrix=None):
         if bias_fn is None and bias_matrix is None:
             b = None
         else:
