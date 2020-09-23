@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import logging
+import warnings
 from typing import Callable, Iterator, List, Optional
 from functools import singledispatch
 
@@ -153,3 +154,16 @@ class SampleForecastGenerator(ForecastGenerator):
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch["forecast_start"])
+
+
+def DistributionForecastGenerator(*args, **kwargs):
+    from gluonts.mx.model.forecast_generator import (
+        DistributionForecastGenerator as NewDistributionForecastGenerator,
+    )
+
+    warnings.warn(
+        "gluonts.model.forecast_generator.forecast_generator is deprecated. Use gluonts.mx.model.forecast_generator.DistributionForecastGenerator instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return NewDistributionForecastGenerator(*args, **kwargs)
