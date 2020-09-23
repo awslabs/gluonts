@@ -19,7 +19,6 @@ import logging
 import multiprocessing as mp
 import sys
 import traceback
-import warnings
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
@@ -30,7 +29,6 @@ from typing import (
     Optional,
     Type,
 )
-from functools import partial
 
 # Third-party imports
 import numpy as np
