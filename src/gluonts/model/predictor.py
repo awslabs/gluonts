@@ -108,6 +108,7 @@ class Predictor:
     def deserialize(cls, path: Path, **kwargs) -> "Predictor":
         """
         Load a serialized predictor from the given path
+
         Parameters
         ----------
         path
@@ -238,6 +239,7 @@ class ParallelizedPredictor(Predictor):
     to hang if the ParallelizedPredictor is used with tqdm and an exception
     occurs during prediction.
     https://github.com/tqdm/tqdm/issues/548
+
     Parameters
     ----------
     base_predictor

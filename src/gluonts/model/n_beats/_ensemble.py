@@ -119,6 +119,7 @@ class NBEATSEnsemblePredictor(Predictor):
     ) -> "NBEATSEnsemblePredictor":
         """
         Load a serialized NBEATSEnsemblePredictor from the given path
+
         Parameters
         ----------
         path
