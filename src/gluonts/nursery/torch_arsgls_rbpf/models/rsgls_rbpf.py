@@ -6,12 +6,6 @@ from models.sgls_rbpf import (
     SwitchingGaussianLinearSystemBaseRBSMC,
     GLSVariablesSGLS,
 )
-from torch_extensions.distributions.parametrised_distribution import (
-    prepend_batch_dims,
-)
-from models.gls_parameters.state_to_switch_parameters import (
-    StateToSwitchParams,
-)
 from torch_extensions.fusion import gaussian_linear_combination
 from inference.analytical_gausian_linear.inference_step import (
     filter_forward_prediction_step,
@@ -71,7 +65,7 @@ class RecurrentMixin:
 
         # combine i) & ii): sum variables (=convolve PDFs).
         switch_model_dist = gaussian_linear_combination(
-            {state_to_switch_dist: 1.0, switch_to_switch_dist: 1.0,}
+            {state_to_switch_dist: 0.5, switch_to_switch_dist: 0.5}
         )
         return switch_model_dist
 
