@@ -55,7 +55,7 @@ class ControlInputs:
         for key in self.__dict__.keys():
             val = getattr(self, key)
             # None (optional) or integer types are ignored.
-            if isinstance(val, (torch.FloatTensor, torch.DoubleTensor)):
+            if val.is_floating_point():
                 setattr(self, key, val.to(dtype).to(device))
         return self
 
