@@ -19,7 +19,6 @@ import logging
 import multiprocessing as mp
 import sys
 import traceback
-import warnings
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
