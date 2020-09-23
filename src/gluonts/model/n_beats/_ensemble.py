@@ -117,6 +117,16 @@ class NBEATSEnsemblePredictor(Predictor):
     def deserialize(
         cls, path: Path, ctx: Optional[mx.Context] = None, **kwargs
     ) -> "NBEATSEnsemblePredictor":
+        """
+        Load a serialized NBEATSEnsemblePredictor from the given path
+        Parameters
+        ----------
+        path
+            Path to the serialized files predictor.
+        ctx
+            Optional mxnet context parameter to be used with the predictor.
+            If nothing is passed will use the GPU if available and CPU otherwise.
+        """
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
             parameters = load_json(fp.read())
