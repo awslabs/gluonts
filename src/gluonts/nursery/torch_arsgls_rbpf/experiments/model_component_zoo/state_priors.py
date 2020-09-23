@@ -24,7 +24,7 @@ class StatePriorModelNoInputs(ParametrisedMultivariateNormal):
         )
 
 
-class StatePriorModeFixedlNoInputs(ParametrisedMultivariateNormal):
+class StatePriorModeFixedNoInputs(ParametrisedMultivariateNormal):
     def __init__(self, config):
         covariance_matrix = (config.state_prior_scale ** 2) * torch.eye(
             config.dims.state

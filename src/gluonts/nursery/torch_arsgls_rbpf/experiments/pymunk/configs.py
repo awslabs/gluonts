@@ -203,7 +203,7 @@ def _make_kvae(config):
     gls_base_params = gls_parameters.GLSParametersKVAE(config=config)
     decoder = decoders.AuxiliaryToObsDecoderConvBernoulli(config=config)
     encoder = encoders.ObsToAuxiliaryEncoderConvGaussian(config=config)
-    state_prior_model = state_priors.StatePriorModeFixedlNoInputs(
+    state_prior_model = state_priors.StatePriorModeFixedNoInputs(
         config=config
     )
     rnn = LSTMCell(
@@ -232,7 +232,7 @@ def _make_asgls(config):
     switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
         config=config
     )
-    state_prior_model = state_priors.StatePriorModeFixedlNoInputs(
+    state_prior_model = state_priors.StatePriorModeFixedNoInputs(
         config=config
     )
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
