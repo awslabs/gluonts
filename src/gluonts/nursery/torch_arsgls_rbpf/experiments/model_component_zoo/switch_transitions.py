@@ -8,6 +8,7 @@ from torch_extensions.distributions.conditional_parametrised_distribution import
     ParametrisedConditionalDistribution,
 )
 from torch_extensions.mlp import MLP
+from torch_extensions.layers_with_init import Linear
 from torch_extensions.batch_diag_matrix import BatchDiagMatrix
 from torch_extensions.affine import Bias
 from torch_extensions.constant import Constant
@@ -52,7 +53,7 @@ class SwitchTransitionModelCategorical(SwitchTransitionBase):
             dist_params=nn.ModuleDict(
                 {
                     "logits": nn.Sequential(
-                        nn.Linear(dim_in_dist_params, dim_out),
+                        Linear(dim_in_dist_params, dim_out),
                         SigmoidLimiter(limits=[-10, 10]),
                     )
                 }
@@ -88,10 +89,10 @@ class SwitchTransitionModelGaussian(SwitchTransitionBase):
             dist_params=nn.ModuleDict(
                 {
                     "loc": nn.Sequential(
-                        nn.Linear(dim_in_dist_params, dim_out),
+                        Linear(dim_in_dist_params, dim_out),
                     ),
                     "scale_tril": nn.Sequential(
-                        nn.Linear(dim_in_dist_params, dim_out),
+                        Linear(dim_in_dist_params, dim_out),
                         # TODO: hard-coded const for small initial scale
                         # Lambda(fn=lambda x: x - 4.0),
                         Bias(loc=-4.0),
@@ -138,7 +139,7 @@ class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
             dist_params=nn.ModuleDict(
                 {
                     "loc": nn.Sequential(
-                        nn.Linear(dim_in_dist_params, dim_out),
+                        Linear(dim_in_dist_params, dim_out),
                     ),
                     "scale_tril": Constant(
                         val=0,

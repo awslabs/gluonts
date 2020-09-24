@@ -10,6 +10,7 @@ from torch_extensions.distributions.parametrised_distribution import (
     ParametrisedMultivariateNormal,
 )
 from torch_extensions.mlp import MLP
+from torch_extensions.layers_with_init import Linear
 from utils.utils import make_inv_tril_parametrization
 from torch_extensions.batch_diag_matrix import BatchDiagMatrix
 from torch_extensions.affine import Bias
@@ -52,7 +53,7 @@ class SwitchPriorModelCategorical(nn.Module):
                 dist_params=nn.ModuleDict(
                     {
                         "logits": nn.Sequential(
-                            nn.Linear(
+                            Linear(
                                 in_features=dim_in_dist_params,
                                 out_features=dim_out,
                             ),
@@ -102,10 +103,10 @@ class SwitchPriorModelGaussian(nn.Module):
                 dist_params=nn.ModuleDict(
                     {
                         "loc": nn.Sequential(
-                            nn.Linear(dim_in_dist_params, dim_out),
+                            Linear(dim_in_dist_params, dim_out),
                         ),
                         "scale_tril": nn.Sequential(
-                            nn.Linear(dim_in_dist_params, dim_out),
+                            Linear(dim_in_dist_params, dim_out),
                             Bias(loc=-4.0),  # start out with small variances.
                             nn.Softplus(),
                             Bias(loc=1e-6),
