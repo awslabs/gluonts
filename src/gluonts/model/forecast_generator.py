@@ -12,12 +12,13 @@
 # permissions and limitations under the License.
 
 import logging
-import warnings
 from typing import Callable, Iterator, List, Optional
 from functools import singledispatch
 
 # Third-party imports
 import numpy as np
+
+# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
@@ -28,11 +29,7 @@ from gluonts.model.forecast import (
     SampleForecast,
 )
 
-# First-party imports
-from gluonts.mx.distribution import DistributionOutput
-
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
-
 
 LOG_CACHE = set([])
 # different deep learning frameworks generate predictions and the tensor to numpy conversion differently,
@@ -156,14 +153,6 @@ class SampleForecastGenerator(ForecastGenerator):
             assert i + 1 == len(batch["forecast_start"])
 
 
-def DistributionForecastGenerator(*args, **kwargs):
-    from gluonts.mx.model.forecast_generator import (
-        DistributionForecastGenerator as NewDistributionForecastGenerator,
-    )
-
-    warnings.warn(
-        "gluonts.model.forecast_generator.forecast_generator is deprecated. Use gluonts.mx.model.forecast_generator.DistributionForecastGenerator instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return NewDistributionForecastGenerator(*args, **kwargs)
+# import mxnet-dependent DistributionForecastGenerator for backwards compatibility
+# TODO add deprecation warning
+from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
