@@ -24,7 +24,8 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.block.decoder import OneShotDecoder
 from gluonts.mx.block.enc2dec import PassThroughEnc2Dec
 from gluonts.mx.block.encoder import (

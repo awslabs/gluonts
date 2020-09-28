@@ -26,9 +26,9 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
-from gluonts.model.predictor import (
+from gluonts.model.predictor import OutputTransform
+from gluonts.mx.model.predictor import (
     GluonPredictor,
-    OutputTransform,
     SymbolBlockPredictor,
 )
 from gluonts.transform import Transformation

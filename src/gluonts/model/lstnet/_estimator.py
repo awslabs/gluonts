@@ -23,7 +23,8 @@ from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.lstnet._network import LSTNetPredict, LSTNetTrain
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.transform import (

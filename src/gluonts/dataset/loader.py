@@ -55,9 +55,7 @@ class PseudoShuffledIterator(Iterator):
         # If the buffer is empty, fill the buffer first.
         if not self.shuffle_buffer:
             self.shuffle_buffer = list(
-                itertools.islice(
-                    self.iterator, self.shuffle_buffer_length
-                )
+                itertools.islice(self.iterator, self.shuffle_buffer_length)
             )
 
         # If buffer still empty, means all elements used, return a signal of
@@ -288,8 +286,7 @@ class ValidationDataLoader(DataLoader):
 
     def __iter__(self):
         yield from map(
-            self.stack_fn,
-            batcher(self.transformed_dataset, self.batch_size),
+            self.stack_fn, batcher(self.transformed_dataset, self.batch_size),
         )
 
 
@@ -314,6 +311,5 @@ class InferenceDataLoader(DataLoader):
 
     def __iter__(self):
         yield from map(
-            self.stack_fn,
-            batcher(self.transformed_dataset, self.batch_size),
+            self.stack_fn, batcher(self.transformed_dataset, self.batch_size),
         )
