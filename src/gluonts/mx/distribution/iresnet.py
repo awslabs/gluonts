@@ -34,8 +34,10 @@ def log_abs_det(A):
 
 
 class InvertibleResnetBlock(BijectionBlock):
-    """Based on as in https://arxiv.org/abs/1811.00995.
-    except f and f_inv are swapped."""
+    """
+    Based on [BJC19]_,
+    apart from f and f_inv that are swapped.
+    """
 
     @validated()
     def __init__(
