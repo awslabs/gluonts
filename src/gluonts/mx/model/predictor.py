@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-
 # Standard library imports
 
 import logging
@@ -49,7 +48,6 @@ from gluonts.support.util import (
 from gluonts.transform import Transformation
 from gluonts.mx.batchify import batchify
 from gluonts.model.predictor import Predictor
-
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
