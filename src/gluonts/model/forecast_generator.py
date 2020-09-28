@@ -19,7 +19,6 @@ from functools import singledispatch
 import numpy as np
 
 # First-party imports
-
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
