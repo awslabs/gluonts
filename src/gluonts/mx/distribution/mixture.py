@@ -15,6 +15,7 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
+import mxnet as mx
 
 # Third-party imports
 from mxnet import gluon
@@ -60,6 +61,29 @@ class MixtureDistribution(Distribution):
         # self.all_same = len(set(c.__class__.__name__ for c in components)) == 1
         self.mixture_probs = mixture_probs
         self.components = components
+        if not isinstance(mixture_probs, mx.sym.Symbol):
+
+            # assert that all components have the same batch shape
+            assert np.all(
+                [d.batch_shape == self.batch_shape for d in components[1:]]
+            ), "All component distributions must have the same batch_shape."
+
+            # assert that mixture_probs has the right shape
+            assertion_message = f"""mixture_probs have shape {mixture_probs.shape}, but expected shape: (..., k), where k is len(components)={len(components)}. All axis except the last one
+        should either coincide with the ones from the component distributions,
+        or be 1 (in which case, the mixing coefficient is shared across
+        the axis). Maybe you need to expand the zeroth dimension."""
+
+            expected_shape = self.batch_shape + (len(components),)
+            assert len(expected_shape) == len(
+                mixture_probs.shape
+            ), assertion_message
+            for expected_dim, given_dim in zip(
+                expected_shape, mixture_probs.shape
+            ):
+                assert (
+                    expected_dim == given_dim
+                ) or given_dim == 1, assertion_message
 
     @property
     def F(self):
