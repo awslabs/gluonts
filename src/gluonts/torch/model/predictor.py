@@ -52,7 +52,6 @@ class PyTorchPredictor(Predictor):
         input_transform: Transformation,
         forecast_generator: SampleForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
-        dtype: np.dtype = np.float32,
     ) -> None:
         super().__init__(prediction_length, freq)
         self.input_names = input_names
@@ -62,7 +61,6 @@ class PyTorchPredictor(Predictor):
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.device = device
-        self.dtype = dtype
 
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None
