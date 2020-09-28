@@ -13,12 +13,14 @@
 
 import logging
 from typing import Callable, Iterator, List, Optional
+
 from functools import singledispatch
 
 # Third-party imports
 import numpy as np
 
 # First-party imports
+
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
@@ -30,6 +32,7 @@ from gluonts.model.forecast import (
 )
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
+
 
 LOG_CACHE = set([])
 # different deep learning frameworks generate predictions and the tensor to numpy conversion differently,
