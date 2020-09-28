@@ -32,7 +32,6 @@ from gluonts.model.forecast import (
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
-
 LOG_CACHE = set([])
 # different deep learning frameworks generate predictions and the tensor to numpy conversion differently,
 # use a dispatching function to prevent needing a ForecastGenerators for each framework
