@@ -46,7 +46,6 @@ from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 
 from gluonts.model.forecast import Forecast
 
-
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
 
