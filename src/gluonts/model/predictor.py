@@ -19,7 +19,6 @@ import logging
 import multiprocessing as mp
 import sys
 import traceback
-import warnings
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
@@ -230,43 +229,6 @@ def _worker_loop(
             output_queue.put((we, None, None))
             break
         output_queue.put((idx, worker_id, result))
-
-
-def GluonPredictor(*args, **kwargs):
-    from gluonts.mx.model.predictor import GluonPredictor as NewGluonPredictor
-
-    warnings.warn(
-        "gluonts.model.predictor.GluonPredictor is deprecated. Use gluonts.mx.model.predictor.GluonPredictor instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return NewGluonPredictor(*args, **kwargs)
-
-
-def SymbolBlockPredictor(*args, **kwargs):
-    from gluonts.mx.model.predictor import (
-        SymbolBlockPredictor as NewSymbolBlockPredictor,
-    )
-
-    warnings.warn(
-        "gluonts.model.predictor.SymbolBlockPredictor is deprecated. Use gluonts.mx.model.predictor.SymbolBlockPredictor instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return NewSymbolBlockPredictor(*args, **kwargs)
-
-
-def RepresentableBlockPredictor(*args, **kwargs):
-    from gluonts.mx.model.predictor import (
-        RepresentableBlockPredictor as NewRepresentableBlockPredictor,
-    )
-
-    warnings.warn(
-        "gluonts.model.predictor.RepresentableBlockPredictor is deprecated. Use gluonts.mx.model.predictor.RepresentableBlockPredictor instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return NewRepresentableBlockPredictor(*args, **kwargs)
 
 
 class ParallelizedPredictor(Predictor):
