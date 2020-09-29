@@ -98,10 +98,6 @@ mx.random.seed(35120171)
             mx.nd.random_uniform(shape=SHAPE),
         ),
         (
-<<<<<<< HEAD
-            Gaussian(mu=mx.nd.array([0.0]), sigma=mx.nd.array([1e-3 + 0.2]),),
-            Gaussian(mu=mx.nd.array([1.0]), sigma=mx.nd.array([1e-3 + 0.1]),),
-=======
             Gaussian(
                 mu=mx.nd.array([0.]),
                 sigma=mx.nd.array([1e-3 + 0.2]),
@@ -110,7 +106,6 @@ mx.random.seed(35120171)
                 mu=mx.nd.array([1.]),
                 sigma=mx.nd.array([1e-3 + 0.1]),
             ),
->>>>>>> fa2d57e8bb9c65dd88f3f480c0922da2c9f419a6
             mx.nd.array([0.2]),
         ),
         # TODO: add a multivariate case here
