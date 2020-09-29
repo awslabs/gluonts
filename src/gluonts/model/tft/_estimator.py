@@ -27,6 +27,8 @@ from gluonts.time_feature import (
     TimeFeature,
     time_features_from_frequency_str,
 )
+from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
@@ -43,7 +45,6 @@ from ._network import (
     TemporalFusionTransformerTrainingNetwork,
     TemporalFusionTransformerPredictionNetwork,
 )
-from ._engine import Trainer, QuantileForecastGenerator
 
 
 class TemporalFusionTransformerEstimator(GluonEstimator):
@@ -113,15 +114,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 raise ValueError(
                     f"Feature name {name} is not provided in feature dicts"
                 )
-        # if (
-        #     len(self.static_feature_dims) == 0
-        # ) and (
-        #     len(self.static_cardinalities) == 0
-        # ):
-        #     self.add_dummy_static = True
-        #     self.static_cardinalities[FieldName.FEAT_STATIC_CAT] = 1
-        # else:
-        #     self.add_dummy_static = False
 
     def create_transformation(self) -> Transformation:
         transforms = (
