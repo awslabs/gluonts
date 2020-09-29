@@ -226,7 +226,8 @@ def test_variable_length_stack_zerosize(
 
 
 @pytest.mark.parametrize(
-    "array_type, multi_processing, axis", itertools.product(["np", "mx"], [True, False], [0, 1])
+    "array_type, multi_processing, axis",
+    itertools.product(["np", "mx"], [True, False], [0, 1]),
 )
 def test_pad_arrays_axis(array_type, multi_processing, axis: int):
     arrays = [
