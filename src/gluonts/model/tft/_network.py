@@ -208,6 +208,9 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                     * len(self.d_past_feat_dynamic_real),
                     prefix="past_feat_dynamic_",
                 )
+            else:
+                self.past_feat_dynamic_proj = None
+
             if self.c_past_feat_dynamic_cat:
                 self.past_feat_dynamic_embed = FeatureEmbedder(
                     cardinalities=self.c_past_feat_dynamic_cat,
@@ -215,6 +218,9 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                     * len(self.c_past_feat_dynamic_cat),
                     prefix="past_feat_dynamic_",
                 )
+            else:
+                self.past_feat_dynamic_embed = None
+
             if self.d_feat_dynamic_real:
                 self.feat_dynamic_proj = FeatureProjector(
                     feature_dims=self.d_feat_dynamic_real,
@@ -222,24 +228,35 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                     * len(self.d_feat_dynamic_real),
                     prefix="feat_dynamic_",
                 )
+            else:
+                self.feat_dynamic_proj = None
+
             if self.c_feat_dynamic_cat:
                 self.feat_dynamic_embed = FeatureEmbedder(
                     cardinalities=self.c_feat_dynamic_cat,
                     embedding_dims=[self.d_var] * len(self.c_feat_dynamic_cat),
                     prefix="feat_dynamic_",
                 )
+            else:
+                self.feat_dynamic_embed = None
+
             if self.d_feat_static_real:
                 self.feat_static_proj = FeatureProjector(
                     feature_dims=self.d_feat_static_real,
                     embedding_dims=[self.d_var] * len(self.d_feat_static_real),
                     prefix="feat_static_",
                 )
+            else:
+                self.feat_static_proj = None
+
             if self.c_feat_static_cat:
                 self.feat_static_embed = FeatureEmbedder(
                     cardinalities=self.c_feat_static_cat,
                     embedding_dims=[self.d_var] * len(self.c_feat_static_cat),
                     prefix="feat_static_",
                 )
+            else:
+                self.feat_static_embed = None
 
             self.static_selector = VariableSelectionNetwork(
                 d_hidden=self.d_var,
@@ -293,12 +310,12 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         F,
         past_target: Tensor,
         past_observed_values: Tensor,
-        past_feat_dynamic_real: Optional[Tensor],
-        past_feat_dynamic_cat: Optional[Tensor],
-        feat_dynamic_real: Optional[Tensor],
-        feat_dynamic_cat: Optional[Tensor],
-        feat_static_real: Optional[Tensor],
-        feat_static_cat: Optional[Tensor],
+        past_feat_dynamic_real: Tensor,
+        past_feat_dynamic_cat: Tensor,
+        feat_dynamic_real: Tensor,
+        feat_dynamic_cat: Tensor,
+        feat_static_real: Tensor,
+        feat_static_cat: Tensor,
     ):
         obs = past_target * past_observed_values
         count = F.sum(past_observed_values, axis=1, keepdims=True)
@@ -318,13 +335,13 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         static_covariates = []
         proj = self.target_proj(past_target)
         past_covariates.append(proj)
-        if past_feat_dynamic_real is not None:
+        if self.past_feat_dynamic_proj is not None:
             projs = self.past_feat_dynamic_proj(past_feat_dynamic_real)
             past_covariates.extend(projs)
-        if past_feat_dynamic_cat is not None:
+        if self.past_feat_dynamic_embed is not None:
             embs = self.past_feat_dynamic_embed(past_feat_dynamic_cat)
             past_covariates.extend(embs)
-        if feat_dynamic_real is not None:
+        if self.feat_dynamic_proj is not None:
             projs = self.feat_dynamic_proj(feat_dynamic_real)
             for proj in projs:
                 ctx_proj = F.slice_axis(
@@ -335,7 +352,7 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                 )
                 past_covariates.append(ctx_proj)
                 future_covariates.append(tgt_proj)
-        if feat_dynamic_cat is not None:
+        if self.feat_dynamic_embed is not None:
             embs = self.feat_dynamic_embed(feat_dynamic_cat)
             for emb in embs:
                 ctx_emb = F.slice_axis(
@@ -346,10 +363,10 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                 )
                 past_covariates.extend(ctx_emb)
                 future_covariates.extend(tgt_emb)
-        if feat_static_real is not None:
+        if self.feat_static_proj is not None:
             projs = self.feat_static_proj(feat_static_real)
             static_covariates.extend(projs)
-        if feat_static_cat is not None:
+        if self.feat_static_embed is not None:
             embs = self.feat_static_embed(feat_static_cat)
             static_covariates.extend(embs)
 
@@ -404,12 +421,12 @@ class TemporalFusionTransformerTrainingNetwork(
         past_observed_values: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
-        past_feat_dynamic_real: Optional[Tensor] = None,
-        past_feat_dynamic_cat: Optional[Tensor] = None,
-        feat_dynamic_real: Optional[Tensor] = None,
-        feat_dynamic_cat: Optional[Tensor] = None,
-        feat_static_real: Optional[Tensor] = None,
-        feat_static_cat: Optional[Tensor] = None,
+        past_feat_dynamic_real: Tensor,
+        past_feat_dynamic_cat: Tensor,
+        feat_dynamic_real: Tensor,
+        feat_dynamic_cat: Tensor,
+        feat_static_real: Tensor,
+        feat_static_cat: Tensor,
     ) -> Tensor:
         (
             past_covariates,
@@ -452,12 +469,12 @@ class TemporalFusionTransformerPredictionNetwork(
         F,
         past_target: Tensor,
         past_observed_values: Tensor,
-        past_feat_dynamic_real: Optional[Tensor] = None,
-        past_feat_dynamic_cat: Optional[Tensor] = None,
-        feat_dynamic_real: Optional[Tensor] = None,
-        feat_dynamic_cat: Optional[Tensor] = None,
-        feat_static_real: Optional[Tensor] = None,
-        feat_static_cat: Optional[Tensor] = None,
+        past_feat_dynamic_real: Tensor,
+        past_feat_dynamic_cat: Tensor,
+        feat_dynamic_real: Tensor,
+        feat_dynamic_cat: Tensor,
+        feat_static_real: Tensor,
+        feat_static_cat: Tensor,
     ):
 
         (
@@ -486,6 +503,6 @@ class TemporalFusionTransformerPredictionNetwork(
             static_covariates,
         )
 
-        preds = self._postprocess(F, preds, offset, scale,)
+        preds = self._postprocess(F, preds, offset, scale)
         preds = F.swapaxes(preds, dim1=1, dim2=2)
         return preds

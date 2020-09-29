@@ -78,10 +78,7 @@ class TFTInstanceSplitter(InstanceSplitter):
 
         if is_train:
             sampling_bounds = (
-                (
-                    0,
-                    len_target - self.future_length - self.lead_time,
-                )  # TODO: create parameter lower sampling bound for NBEATS
+                (0, len_target - self.future_length - self.lead_time,)
                 if self.pick_incomplete
                 else (
                     self.past_length,

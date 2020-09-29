@@ -113,13 +113,15 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 raise ValueError(
                     f"Feature name {name} is not provided in feature dicts"
                 )
-        if (len(self.static_feature_dims) == 0) and (
-            len(self.static_cardinalities) == 0
-        ):
-            self.add_dummy_static = True
-            self.static_cardinalities[FieldName.FEAT_STATIC_CAT] = 1
-        else:
-            self.add_dummy_static = False
+        # if (
+        #     len(self.static_feature_dims) == 0
+        # ) and (
+        #     len(self.static_cardinalities) == 0
+        # ):
+        #     self.add_dummy_static = True
+        #     self.static_cardinalities[FieldName.FEAT_STATIC_CAT] = 1
+        # else:
+        #     self.add_dummy_static = False
 
     def create_transformation(self) -> Transformation:
         transforms = (
@@ -128,12 +130,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 [
                     AsNumpyArray(field=name, expected_ndim=1)
                     for name in self.static_cardinalities.keys()
-                ]
-                if not self.add_dummy_static
-                else [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_CAT, value=[0.0]
-                    )
                 ]
             )
             + [
@@ -172,6 +168,17 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     input_fields=list(self.static_cardinalities.keys()),
                 )
             )
+        else:
+            transforms.extend(
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_CAT, value=[0.0],
+                    ),
+                    AsNumpyArray(
+                        field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
+                    ),
+                ]
+            )
 
         if self.static_feature_dims:
             transforms.append(
@@ -179,6 +186,17 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     output_field=FieldName.FEAT_STATIC_REAL,
                     input_fields=list(self.static_feature_dims.keys()),
                 )
+            )
+        else:
+            transforms.extend(
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0],
+                    ),
+                    AsNumpyArray(
+                        field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
+                    ),
+                ]
             )
 
         if self.dynamic_cardinalities:
@@ -189,6 +207,17 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 )
             )
             ts_fields.append(FieldName.FEAT_DYNAMIC_CAT)
+        else:
+            transforms.extend(
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_DYNAMIC_CAT, value=[0.0],
+                    ),
+                    AsNumpyArray(
+                        field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=1
+                    ),
+                ]
+            )
 
         input_fields = [FieldName.FEAT_TIME]
         if self.dynamic_feature_dims:
@@ -208,7 +237,20 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     input_fields=list(self.past_dynamic_cardinalities.keys()),
                 )
             )
-            past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC + "cat")
+            past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC + "_cat")
+        else:
+            transforms.extend(
+                [
+                    SetField(
+                        output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
+                        value=[0.0],
+                    ),
+                    AsNumpyArray(
+                        field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
+                        expected_ndim=1,
+                    ),
+                ]
+            )
 
         if self.past_dynamic_feature_dims:
             transforms.append(
@@ -218,6 +260,18 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 )
             )
             past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC_REAL)
+        else:
+            transforms.extend(
+                [
+                    SetField(
+                        output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
+                        value=[[0.0]],
+                    ),
+                    AsNumpyArray(
+                        field=FieldName.PAST_FEAT_DYNAMIC_REAL, expected_ndim=2
+                    ),
+                ]
+            )
 
         transforms.append(
             TFTInstanceSplitter(
