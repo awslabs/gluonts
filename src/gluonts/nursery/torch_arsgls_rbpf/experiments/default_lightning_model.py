@@ -84,8 +84,6 @@ class DefaultLightningModel(LightningModule):
         self.ctrl_transformer = ctrl_transformer
         self.tar_transformer = tar_transformer
         self.ssm = ssm
-
-        self.dataset_name = dataset_name
         self.past_length = past_length
         self.prediction_length = prediction_length
         self.batch_sizes = batch_sizes
@@ -101,10 +99,9 @@ class DefaultLightningModel(LightningModule):
         assert n_particle_train == self.ssm.n_particle
         self._n_particle_train = n_particle_train
         self._n_particle_eval = n_particle_eval
-        self._ssm_resampling_criterion_fn = self.ssm.resampling_criterion_fn
-        self._no_resampling_criterion_fn = EffectiveSampleSizeResampleCriterion(
-            min_ess_ratio=0.0,
-        )
+
+        self.dataset_name = dataset_name
+
         self.log_param_norms = log_param_norms
 
     def forward(
@@ -259,24 +256,26 @@ class DefaultLightningModel(LightningModule):
         if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
             if self.n_epochs_no_resampling > 0:
                 if self.current_epoch == 0:
-                    self.ssm.resampling_criterion_fn = (
-                        self._no_resampling_criterion_fn
+                    self._resampling_criterion_fn = (
+                        self.ssm.resampling_criterion_fn
                     )
-
+                    self.ssm.resampling_criterion_fn = EffectiveSampleSizeResampleCriterion(
+                        min_ess_ratio=0.0,
+                    )
                 elif self.current_epoch == self.n_epochs_no_resampling:
                     self.ssm.resampling_criterion_fn = (
-                        self._ssm_resampling_criterion_fn
+                        self._resampling_criterion_fn
                     )
 
     def on_validation_epoch_start(self) -> None:
         super().on_validation_epoch_start()
         self.ssm.n_particle = self._n_particle_eval
-        self.ssm.resampling_criterion_fn = self._ssm_resampling_criterion_fn
+        self.ssm.resampling_criterion_fn = self._resampling_criterion_fn
 
     def on_test_epoch_start(self) -> None:
         super().on_test_epoch_start()
         self.ssm.n_particle = self._n_particle_eval
-        self.ssm.resampling_criterion_fn = self._ssm_resampling_criterion_fn
+        self.ssm.resampling_criterion_fn = self._resampling_criterion_fn
 
     def on_fit_start(self):
         for folder in ["plots", "metrics"]:
