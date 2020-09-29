@@ -47,6 +47,7 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         float_type: DType,
         max_iter_jitter: int,
         jitter_method: str,
+        train_forecast: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -70,6 +71,8 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
             Maximum number of iterations for jitter to iteratively make the matrix positive definite.
         jitter_method
             Iteratively jitter method or use eigenvalue decomposition depending on problem size.
+        train_forecast
+            If set to true, the kernel hyper-parameters will also be optimised to maximise the predictive log likelihood
         **kwargs
             Arbitrary keyword arguments.
         """
@@ -84,6 +87,7 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         self.ctx = ctx
         self.max_iter_jitter = max_iter_jitter
         self.jitter_method = jitter_method
+        self.train_forecast = train_forecast
 
         with self.name_scope():
             self.proj_kernel_args = kernel_output.get_args_proj(
@@ -182,6 +186,8 @@ class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
         past_target: Tensor,
         past_time_feat: Tensor,
         feat_static_cat: Tensor,
+        future_target: Tensor,
+        future_time_feat: Tensor,
     ) -> Tensor:
         """
         Parameters
@@ -195,6 +201,11 @@ class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
             Training features of shape (batch_size, context_length, num_features).
         feat_static_cat
             Time series indices of shape (batch_size, 1).
+        future_target
+            Future time series values of shape (batch_size, prediction_length).
+        future_time_feat
+            Future features of shape (batch_size, prediction_length, num_features).
+
         Returns
         -------
         Tensor
@@ -208,12 +219,20 @@ class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
             sigma=sigma,
             kernel=kernel,
             context_length=self.context_length,
+            prediction_length=self.prediction_length,
             ctx=self.ctx,
             float_type=self.float_type,
             max_iter_jitter=self.max_iter_jitter,
             jitter_method=self.jitter_method,
         )
-        return gp.log_prob(past_time_feat, past_target)
+        log_prob_data = gp.log_prob(past_time_feat, past_target)
+        log_prob_forecast = gp.log_prob_predictive(
+            past_time_feat, past_target, future_time_feat, future_target
+        )
+        if self.train_forecast:
+            return log_prob_forecast + log_prob_data
+        else:
+            return log_prob_data + 0.0 * log_prob_forecast
 
 
 class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):

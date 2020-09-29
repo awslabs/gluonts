@@ -224,6 +224,59 @@ class GaussianProcess:
             ),
         ).log_prob(y_train)
 
+    def log_prob_predictive(
+        self, x_train: Tensor, y_train: Tensor, x_test: Tensor, y_test: Tensor
+    ) -> Tensor:
+        r"""
+        This method computes the negative marginal log likelihood of the future time points given the observed ones.
+
+        Parameters
+        --------------------
+        x_train
+            Training set of features of shape (batch_size, context_length, num_features).
+        y_train
+            Training labels of shape (batch_size, context_length).
+        x_test
+            Future set of features of shape (batch_size, prediction_length, num_features).
+        y_test
+            Future labels of shape (batch_size, prediction_length).
+
+        Returns
+        --------------------
+        Tensor
+            The negative log marginal likelihood of shape (batch_size,)
+        """
+        assert (
+            self.context_length is not None
+        ), "The value of `context_length` must be set."
+        assert (
+            self.prediction_length is not None
+        ), "The value of `context_length` must be set."
+
+        l_train = self._compute_cholesky_gp(
+            self.kernel.kernel_matrix(x_train, x_train), self.context_length
+        )
+
+        lower_tri_solve = self.F.linalg.trsm(
+            l_train, self.kernel.kernel_matrix(x_train, x_test)
+        )
+        predictive_mean = self.F.linalg.gemm2(
+            lower_tri_solve,
+            self.F.linalg.trsm(l_train, y_train.expand_dims(axis=-1)),
+            transpose_a=True,
+        ).squeeze(axis=-1)
+        predictive_covariance = self.kernel.kernel_matrix(
+            x_test, x_test
+        ) - self.F.linalg.gemm2(
+            lower_tri_solve, lower_tri_solve, transpose_a=True
+        )
+
+        l_test = -MultivariateGaussian(
+            predictive_mean, predictive_covariance,
+        ).log_prob(y_test)
+
+        return l_test
+
     def sample(self, mean: Tensor, covariance: Tensor) -> Tensor:
         r"""
         Parameters
