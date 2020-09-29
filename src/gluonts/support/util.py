@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import functools
 import inspect
 import os
 import signal
