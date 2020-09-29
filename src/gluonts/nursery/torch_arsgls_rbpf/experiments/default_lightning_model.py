@@ -198,7 +198,7 @@ class DefaultLightningModel(LightningModule):
                 {"params": params_gls, "lr": self.lr},
                 {"params": params_except_gls, "lr": self.lr},
             ],
-            betas=(0.9, 0.999),
+            betas=(0.9, 0.95),
             amsgrad=False,
             weight_decay=self.weight_decay,
         )
@@ -241,7 +241,7 @@ class DefaultLightningModel(LightningModule):
 
         if self.log_param_norms:
             for param_name, param_value in self.named_parameters():
-                if param_value.ndim == 3:  # Base-Mats: avg norms of K base mats.
+                if param_value.ndim == 3:  # Basemats: avg norms of K base mats
                     param_norm = torch.norm(param_value, dim=[-2, -1]).mean()
                 else:
                     param_norm = torch.norm(param_value)
@@ -270,10 +270,12 @@ class DefaultLightningModel(LightningModule):
     def on_validation_epoch_start(self) -> None:
         super().on_validation_epoch_start()
         self.ssm.n_particle = self._n_particle_eval
+        self.ssm.resampling_criterion_fn = self._resampling_criterion_fn
 
     def on_test_epoch_start(self) -> None:
         super().on_test_epoch_start()
         self.ssm.n_particle = self._n_particle_eval
+        self.ssm.resampling_criterion_fn = self._resampling_criterion_fn
 
     def on_fit_start(self):
         for folder in ["plots", "metrics"]:
