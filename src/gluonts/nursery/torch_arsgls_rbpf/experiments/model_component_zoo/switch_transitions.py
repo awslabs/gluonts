@@ -9,9 +9,10 @@ from torch_extensions.distributions.conditional_parametrised_distribution import
 )
 from torch_extensions.mlp import MLP
 from torch_extensions.layers_with_init import Linear
-from torch_extensions.batch_diag_matrix import BatchDiagMatrix
-from torch_extensions.affine import Bias
 from torch_extensions.constant import Constant
+from torch_extensions.distributions.dist_param_rectifiers import (
+    DefaultScaleTransform,
+)
 from utils.utils import SigmoidLimiter
 
 
@@ -88,17 +89,10 @@ class SwitchTransitionModelGaussian(SwitchTransitionBase):
             ),
             dist_params=nn.ModuleDict(
                 {
-                    "loc": nn.Sequential(
-                        Linear(dim_in_dist_params, dim_out),
-                    ),
-                    "scale_tril": nn.Sequential(
-                        Linear(dim_in_dist_params, dim_out),
-                        # TODO: hard-coded const for small initial scale
-                        # Lambda(fn=lambda x: x - 4.0),
-                        Bias(loc=-4.0),
-                        nn.Softplus(),
-                        Bias(loc=1e-6),  # FP64
-                        BatchDiagMatrix(),
+                    "loc": nn.Sequential(Linear(dim_in_dist_params, dim_out),),
+                    "scale_tril": DefaultScaleTransform(
+                        dim_in_dist_params,
+                        dim_out,
                     ),
                 }
             ),
@@ -138,9 +132,7 @@ class SwitchTransitionModelGaussianDirac(SwitchTransitionBase):
             ),
             dist_params=nn.ModuleDict(
                 {
-                    "loc": nn.Sequential(
-                        Linear(dim_in_dist_params, dim_out),
-                    ),
+                    "loc": nn.Sequential(Linear(dim_in_dist_params, dim_out),),
                     "scale_tril": Constant(
                         val=0,
                         shp_append=(dim_out, dim_out),

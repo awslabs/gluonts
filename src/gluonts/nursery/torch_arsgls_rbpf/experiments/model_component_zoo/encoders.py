@@ -17,8 +17,9 @@ from utils.utils import (
     Reshape,
     IndependentNormal,
 )
-from torch_extensions.batch_diag_matrix import BatchDiagMatrix
-from torch_extensions.affine import Bias
+from torch_extensions.distributions.dist_param_rectifiers import (
+    DefaultScaleTransform,
+)
 
 
 def _extract_dims_from_cfg_obs(config):
@@ -101,12 +102,8 @@ class ObsToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
                             out_features=dim_out,
                         ),
                     ),
-                    "scale_tril": nn.Sequential(
-                        Linear(dim_in_dist_params, dim_out),
-                        Bias(loc=-2),
-                        nn.Softplus(),
-                        Bias(loc=1e-6),
-                        BatchDiagMatrix(),
+                    "scale_tril": DefaultScaleTransform(
+                        dim_in_dist_params, dim_out,
                     ),
                 }
             ),
@@ -164,11 +161,8 @@ class StateToSwitchEncoderGaussianMLP(ParametrisedConditionalDistribution):
                         ),
                         SigmoidLimiter(limits=[-5, 5]),
                     ),
-                    "scale_tril": nn.Sequential(
-                        Linear(dim_in_dist_params, dim_out),
-                        nn.Softplus(),
-                        Bias(loc=1e-6),
-                        BatchDiagMatrix(),
+                    "scale_tril": DefaultScaleTransform(
+                        dim_in_dist_params, dim_out,
                     ),
                 }
             ),
@@ -324,13 +318,8 @@ class ObsToAuxiliaryEncoderMlpGaussian(ParametrisedConditionalDistribution):
                             out_features=dim_out,
                         ),
                     ),
-                    "scale_tril": nn.Sequential(
-                        Linear(dim_in_dist_params, dim_out),
-                        Bias(loc=-2.0),
-                        # start with smaller scale to reduce noise early.
-                        nn.Softplus(),
-                        Bias(loc=1e-6),
-                        BatchDiagMatrix(),
+                    "scale_tril": DefaultScaleTransform(
+                        dim_in_dist_params, dim_out,
                     ),
                 }
             ),
@@ -384,12 +373,8 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
                                     out_features=dim_out_1,
                                 ),
                             ),
-                            "scale_tril": nn.Sequential(
-                                Linear(dim_in_dist_params_1, dim_out_1),
-                                Bias(loc=-2.0),
-                                nn.Softplus(),
-                                Bias(loc=1e-6),
-                                BatchDiagMatrix(),
+                            "scale_tril": DefaultScaleTransform(
+                                dim_in_dist_params_1, dim_out_1,
                             ),
                         }
                     ),
@@ -401,12 +386,8 @@ class ObsToAuxiliaryLadderEncoderMlpGaussian(
                                     out_features=dim_out_2,
                                 ),
                             ),
-                            "scale_tril": nn.Sequential(
-                                Linear(dim_in_dist_params_2, dim_out_2),
-                                Bias(loc=-2.0),
-                                nn.Softplus(),
-                                Bias(loc=1e-6),
-                                BatchDiagMatrix(),
+                            "scale_tril": DefaultScaleTransform(
+                                dim_in_dist_params_2, dim_out_2,
                             ),
                         }
                     ),
@@ -500,12 +481,8 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
                                     out_features=dim_out_1,
                                 ),
                             ),
-                            "scale_tril": nn.Sequential(
-                                Linear(dim_in_dist_params_1, dim_out_1),
-                                Bias(loc=-2.0),
-                                nn.Softplus(),
-                                Bias(loc=1e-6),
-                                BatchDiagMatrix(),
+                            "scale_tril": DefaultScaleTransform(
+                                dim_in_dist_params_1, dim_out_1,
                             ),
                         }
                     ),
@@ -517,12 +494,8 @@ class ObsToAuxiliaryLadderEncoderConvMlpGaussian(
                                     out_features=dim_out_2,
                                 ),
                             ),
-                            "scale_tril": nn.Sequential(
-                                Linear(dim_in_dist_params_2, dim_out_2),
-                                Bias(loc=-2.0),
-                                nn.Softplus(),
-                                Bias(loc=1e-6),
-                                BatchDiagMatrix(),
+                            "scale_tril": DefaultScaleTransform(
+                                dim_in_dist_params_2, dim_out_2,
                             ),
                         }
                     ),

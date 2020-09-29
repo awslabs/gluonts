@@ -12,8 +12,9 @@ from torch_extensions.distributions.parametrised_distribution import (
 from torch_extensions.mlp import MLP
 from torch_extensions.layers_with_init import Linear
 from utils.utils import make_inv_tril_parametrization
-from torch_extensions.batch_diag_matrix import BatchDiagMatrix
-from torch_extensions.affine import Bias
+from torch_extensions.distributions.dist_param_rectifiers import (
+    DefaultScaleTransform,
+)
 
 
 def _extract_dims_from_cfg(config):
@@ -105,12 +106,8 @@ class SwitchPriorModelGaussian(nn.Module):
                         "loc": nn.Sequential(
                             Linear(dim_in_dist_params, dim_out),
                         ),
-                        "scale_tril": nn.Sequential(
-                            Linear(dim_in_dist_params, dim_out),
-                            Bias(loc=-4.0),  # start out with small variances.
-                            nn.Softplus(),
-                            Bias(loc=1e-6),
-                            BatchDiagMatrix(),
+                        "scale_tril": DefaultScaleTransform(
+                            dim_in_dist_params, dim_out,
                         ),
                     }
                 ),
