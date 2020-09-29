@@ -177,7 +177,7 @@ def batch_inference_invocations(
 ) -> Callable[[], Response]:
     predictor = predictor_factory({"configuration": configuration.dict()})
 
-    scored_instances = []
+    scored_instances: List[ScoredInstanceStat] = []
     last_scored = [time.time()]
 
     def log_scored(when):
