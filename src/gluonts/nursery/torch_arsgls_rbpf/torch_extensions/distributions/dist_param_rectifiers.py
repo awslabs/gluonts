@@ -32,12 +32,9 @@ class DefaultScaleTransform(nn.Module):
             weight_scaling=pre_rect_scaling,
             bias_offset=pre_rect_bias,
         )
-        self.rectifier = nn.Sequential(
-            nn.Softplus(),
-            Bias(loc=1e-6),
-        )
-        if make_diag_cov_matrix:
-            self.rectifier.add_module(BatchDiagMatrix())
+        self.rectifier = nn.Sequential(nn.Softplus(), Bias(loc=1e-6))
+        self.diag_mat = BatchDiagMatrix() if make_diag_cov_matrix else None
 
     def forward(self, x):
-        return self.rectifier(self.linear(x))
+        scale = self.rectifier(self.linear(x))
+        return self.diag_mat(scale) if self.diag_mat is not None else scale
