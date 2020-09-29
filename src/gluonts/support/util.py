@@ -12,23 +12,14 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import functools
 import inspect
 import os
 import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    cast,
-    Union,
-    Tuple,
-    Iterable,
-)
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 # Third-party imports
 import mxnet as mx
@@ -41,6 +32,20 @@ from gluonts.model.common import Tensor
 
 MXNET_HAS_ERF = hasattr(mx.nd, "erf")
 MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")
+
+
+def pad_to_size(
+    x: np.array, size: int, axis: int = 0, is_right_pad: bool = True
+):
+    """Pads `xs` with 0 on the right (default) on the specified axis, which is the first axis by default."""
+    pad_length = size - x.shape[axis]
+    if pad_length <= 0:
+        return x
+
+    pad_width = [(0, 0)] * x.ndim
+    right_pad = (0, pad_length)
+    pad_width[axis] = right_pad if is_right_pad else right_pad[::-1]
+    return np.pad(x, mode="constant", pad_width=pad_width)
 
 
 class Timer:
@@ -168,7 +173,7 @@ def copy_parameters(
 
 def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
     params = inspect.signature(hb.hybrid_forward).parameters
-    param_names = list(params)
+    param_names = [k for k, v in params.items() if not str(v).startswith("*")]
     assert param_names[0] == "F", (
         f"Expected first argument of HybridBlock to be `F`, "
         f"but found `{param_names[0]}`"

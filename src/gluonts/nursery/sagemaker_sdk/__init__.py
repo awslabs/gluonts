@@ -14,7 +14,7 @@
 
 # Relative imports
 from .estimator import GluonTSFramework
-from .model import GluonTSPredictor, GluonTSModel
+from .model import GluonTSModel, GluonTSPredictor
 
 __all__ = ["GluonTSFramework", "GluonTSPredictor", "GluonTSModel"]
 

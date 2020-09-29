@@ -21,7 +21,7 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
-from gluonts.evaluation import get_seasonality
+from gluonts.time_feature import get_seasonality
 
 VALID_N_BEATS_STACK_TYPES = "G", "S", "T"
 VALID_LOSS_FUNCTIONS = "sMAPE", "MASE", "MAPE"

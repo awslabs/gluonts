@@ -17,7 +17,7 @@ import pytest
 import mxnet as mx
 
 from gluonts.support.util import make_nd_diag
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     Distribution,
     Gaussian,
     Gamma,
@@ -34,8 +34,9 @@ from gluonts.distribution import (
     Dirichlet,
     DirichletMultinomial,
 )
-from gluonts.distribution.bijection import AffineTransformation
-from gluonts.distribution.box_cox_transform import BoxCoxTransform
+from gluonts.mx.distribution.bijection import AffineTransformation
+from gluonts.mx.distribution.box_cox_transform import BoxCoxTransform
+from gluonts.model.tpp.distribution import Loglogistic, Weibull
 
 
 @pytest.mark.parametrize(
@@ -216,6 +217,18 @@ from gluonts.distribution.box_cox_transform import BoxCoxTransform
                     )
                 ],
             ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            Loglogistic(
+                mx.nd.zeros(shape=(3, 4, 5)), mx.nd.ones(shape=(3, 4, 5)),
+            ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            Weibull(mx.nd.ones(shape=(3, 4, 5)), mx.nd.ones(shape=(3, 4, 5)),),
             (3, 4, 5),
             (),
         ),

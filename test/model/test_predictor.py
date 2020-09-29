@@ -66,5 +66,5 @@ def test_localizer():
 
     local_pred = Localizer(estimator=estimator)
     agg_metrics, _ = backtest_metrics(
-        train_dataset=None, test_dataset=dataset, forecaster=local_pred
+        test_dataset=dataset, predictor=local_pred
     )

@@ -125,9 +125,8 @@ def naive_2_predictor():
 def test_accuracy(predictor_cls, parameters, accuracy):
     predictor = predictor_cls(freq=CONSTANT_DATASET_FREQ, **parameters)
     agg_metrics, item_metrics = backtest_metrics(
-        train_dataset=constant_train_ds,
         test_dataset=constant_test_ds,
-        forecaster=predictor,
+        predictor=predictor,
         evaluator=Evaluator(calculate_owa=True),
     )
 

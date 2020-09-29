@@ -14,7 +14,6 @@
 # Standard library imports
 from pathlib import Path
 
-
 # Default GluonTS version for when the framework version is not specified.
 # This is no longer updated so as to not break existing workflows.
 GLUONTS_VERSION = "0.4.1"

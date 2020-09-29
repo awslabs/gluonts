@@ -18,15 +18,15 @@ large files in GluonTS master.
 """
 import json
 import os
-import tarfile
 import shutil
+import tarfile
 from pathlib import Path
 from typing import NamedTuple, Optional
 from urllib import request
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 from gluonts.dataset.common import FileDataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 
 
 class GPCopulaDataset(NamedTuple):

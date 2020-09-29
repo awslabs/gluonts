@@ -174,7 +174,7 @@ def test_dynamic_loading():
            context_length=5,
            prediction_length=2,
            freq="1H",
-           distr_output=gluonts.distribution.StudentTOutput(),
+           distr_output=gluonts.mx.distribution.StudentTOutput(),
            batch_normalization=False,
            mean_scaling=True
         )

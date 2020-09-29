@@ -14,14 +14,11 @@
 # Standard library imports
 import logging
 import multiprocessing
-import re
 import sys
-
-from collections import Sized
-from functools import lru_cache
 from itertools import chain, tee
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     Iterator,
@@ -29,44 +26,17 @@ from typing import (
     Optional,
     Tuple,
     Union,
-    Callable,
 )
 
 # Third-party imports
 import numpy as np
 import pandas as pd
 
+from gluonts.gluonts_tqdm import tqdm
+from gluonts.time_feature import get_seasonality
+
 # First-party imports
 from gluonts.model.forecast import Forecast, Quantile
-from gluonts.gluonts_tqdm import tqdm
-
-
-@lru_cache()
-def get_seasonality(freq: str) -> int:
-    """
-    Returns the default seasonality for a given freq str. E.g. for
-
-      2H -> 12
-
-    """
-    match = re.match(r"(\d*)(\w+)", freq)
-    assert match, "Cannot match freq regex"
-    mult, base_freq = match.groups()
-    multiple = int(mult) if mult else 1
-
-    seasonalities = {"H": 24, "D": 1, "W": 1, "M": 12, "B": 5}
-    if base_freq in seasonalities:
-        seasonality = seasonalities[base_freq]
-    else:
-        seasonality = 1
-    if seasonality % multiple != 0:
-        logging.warning(
-            f"multiple {multiple} does not divide base "
-            f"seasonality {seasonality}."
-            f"Falling back to seasonality 1"
-        )
-        return 1
-    return seasonality // multiple
 
 
 class Evaluator:
@@ -84,11 +54,11 @@ class Evaluator:
         uses the default seasonality
         for the given series frequency as returned by `get_seasonality`
     alpha
-        parameter of the MSIS metric from M4 competition that
-        defines the confidence interval
-        for alpha=0.05 the 95% considered is considered in the metric,
-        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4
-        -Competitors-Guide.pdf for more detail on MSIS
+        Parameter of the MSIS metric from the M4 competition that
+        defines the confidence interval.
+        For alpha=0.05 (default) the 95% considered is considered in the metric,
+        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+        for more detail on MSIS
     calculate_owa
         Determines whether the OWA metric should also be calculated,
         which is computationally expensive to evaluate and thus slows
@@ -119,6 +89,7 @@ class Evaluator:
         self.seasonality = seasonality
         self.alpha = alpha
         self.calculate_owa = calculate_owa
+        self.zero_tol = 1e-8
 
         self.num_workers = (
             num_workers
@@ -306,15 +277,6 @@ class Evaluator:
             mean_fcst = None
         median_fcst = forecast.quantile(0.5)
         seasonal_error = self.seasonal_error(past_data, forecast)
-        # For MSIS: alpha/2 quantile may not exist. Find the closest.
-        lower_q = min(
-            self.quantiles, key=lambda q: abs(q.value - self.alpha / 2)
-        )
-        upper_q = min(
-            reversed(self.quantiles),
-            key=lambda q: abs(q.value - (1 - self.alpha / 2)),
-        )
-
         metrics = {
             "item_id": forecast.item_id,
             "MSE": self.mse(pred_target, mean_fcst)
@@ -328,14 +290,19 @@ class Evaluator:
             "MAPE": self.mape(pred_target, median_fcst),
             "sMAPE": self.smape(pred_target, median_fcst),
             "OWA": np.nan,  # by default not calculated
-            "MSIS": self.msis(
+        }
+
+        try:
+            metrics["MSIS"] = self.msis(
                 pred_target,
-                forecast.quantile(lower_q.value),
-                forecast.quantile(upper_q.value),
+                forecast.quantile(self.alpha / 2),
+                forecast.quantile(1.0 - self.alpha / 2),
                 seasonal_error,
                 self.alpha,
-            ),
-        }
+            )
+        except Exception:
+            logging.warning("Could not calculate MSIS metric.")
+            metrics["MSIS"] = np.nan
 
         if self.calculate_owa:
             metrics["OWA"] = self.owa(
@@ -388,12 +355,12 @@ class Evaluator:
         # derived metrics based on previous aggregate metrics
         totals["RMSE"] = np.sqrt(totals["MSE"])
 
-        flag = totals["abs_target_mean"] == 0
+        flag = totals["abs_target_mean"] <= self.zero_tol
         totals["NRMSE"] = np.divide(
             totals["RMSE"] * (1 - flag), totals["abs_target_mean"] + flag
         )
 
-        flag = totals["abs_target_sum"] == 0
+        flag = totals["abs_target_sum"] <= self.zero_tol
         totals["ND"] = np.divide(
             totals["abs_error"] * (1 - flag), totals["abs_target_sum"] + flag
         )
@@ -401,10 +368,19 @@ class Evaluator:
         all_qLoss_names = [
             quantile.weighted_loss_name for quantile in self.quantiles
         ]
+
+        all_abs_qLoss_names = [
+            quantile.loss_name for quantile in self.quantiles
+        ]
+
         for quantile in self.quantiles:
             totals[quantile.weighted_loss_name] = np.divide(
-                totals[quantile.loss_name], totals["abs_target_sum"]
+                totals[quantile.loss_name], totals["abs_target_sum"] + flag
             )
+
+        totals["mean_absolute_QuantileLoss"] = np.array(
+            [totals[abs_ql] for abs_ql in all_abs_qLoss_names]
+        ).mean()
 
         totals["mean_wQuantileLoss"] = np.array(
             [totals[ql] for ql in all_qLoss_names]

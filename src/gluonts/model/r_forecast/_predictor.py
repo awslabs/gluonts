@@ -13,19 +13,19 @@
 
 # Standard library imports
 import os
+from pathlib import Path
 from typing import Dict, Iterator, Optional
 
 # Third-party imports
 import numpy as np
-import pandas as pd
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.support.pandas import forecast_start
 from gluonts.dataset.common import Dataset
-from gluonts.evaluation import get_seasonality
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
+from gluonts.support.pandas import forecast_start
+from gluonts.time_feature import get_seasonality
 
 USAGE_MESSAGE = """
 The RForecastPredictor is a thin wrapper for calling the R forecast package.
@@ -101,7 +101,8 @@ class RForecastPredictor(RepresentablePredictor):
 
         for n in r_files:
             try:
-                robjects.r(f'source("{this_dir}/R/{n}.R")')
+                path = Path(this_dir, "R", f"{n}.R")
+                robjects.r(f'source("{path}")'.replace("\\", "\\\\"))
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 

@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import List, Optional
+
 # Standard library imports
 import numpy as np
-from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon import HybridBlock
@@ -22,16 +23,18 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import calculate_dataset_statistics
-from gluonts.distribution import DistributionOutput, StudentTOutput
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
+
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
-    time_features_from_frequency_str,
     get_lags_for_frequency,
+    time_features_from_frequency_str,
 )
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
@@ -44,6 +47,10 @@ from gluonts.transform import (
     SetField,
     Transformation,
     VstackFeatures,
+)
+from gluonts.transform.feature import (
+    DummyValueImputation,
+    MissingValueImputation,
 )
 
 # Relative imports
@@ -79,6 +86,10 @@ class DeepAREstimator(GluonEstimator):
     cell_type
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
+    dropoutcell_type
+        Type of dropout cells to use 
+        (available: 'ZoneoutCell', 'RNNZoneoutCell', 'VariationalDropoutCell' or 'VariationalZoneoutCell';
+        default: 'ZoneoutCell')
     dropout_rate
         Dropout regularization parameter (default: 0.1)
     use_feat_dynamic_real
@@ -111,6 +122,12 @@ class DeepAREstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
+    imputation_method
+        One of the methods from ImputationStrategy
+    alpha
+        The scaling coefficient of the activation regularization
+    beta
+        The scaling coefficient of the temporal activation regularization
     """
 
     @validated()
@@ -123,6 +140,7 @@ class DeepAREstimator(GluonEstimator):
         num_layers: int = 2,
         num_cells: int = 40,
         cell_type: str = "lstm",
+        dropoutcell_type: str = "ZoneoutCell",
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
@@ -134,7 +152,10 @@ class DeepAREstimator(GluonEstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        imputation_method: Optional[MissingValueImputation] = None,
         dtype: DType = np.float32,
+        alpha: float = 0.0,
+        beta: float = 0.0,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
 
@@ -146,6 +167,15 @@ class DeepAREstimator(GluonEstimator):
         ), "The value of `context_length` should be > 0"
         assert num_layers > 0, "The value of `num_layers` should be > 0"
         assert num_cells > 0, "The value of `num_cells` should be > 0"
+        supported_dropoutcell_types = [
+            "ZoneoutCell",
+            "RNNZoneoutCell",
+            "VariationalDropoutCell",
+            "VariationalZoneoutCell",
+        ]
+        assert (
+            dropoutcell_type in supported_dropoutcell_types
+        ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert (cardinality and use_feat_static_cat) or (
             not (cardinality or use_feat_static_cat)
@@ -159,6 +189,8 @@ class DeepAREstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
+        assert alpha >= 0, "The value of `alpha` should be >= 0"
+        assert beta >= 0, "The value of `beta` should be >= 0"
 
         self.freq = freq
         self.context_length = (
@@ -170,6 +202,7 @@ class DeepAREstimator(GluonEstimator):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
+        self.dropoutcell_type = dropoutcell_type
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
@@ -197,6 +230,15 @@ class DeepAREstimator(GluonEstimator):
         self.history_length = self.context_length + max(self.lags_seq)
 
         self.num_parallel_samples = num_parallel_samples
+
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(self.distr_output.value_in_support)
+        )
+
+        self.alpha = alpha
+        self.beta = beta
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -251,8 +293,8 @@ class DeepAREstimator(GluonEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
-                    dummy_value=self.distr_output.value_in_support,
                     dtype=self.dtype,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,
@@ -303,12 +345,15 @@ class DeepAREstimator(GluonEstimator):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             distr_output=self.distr_output,
+            dropoutcell_type=self.dropoutcell_type,
             dropout_rate=self.dropout_rate,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             dtype=self.dtype,
+            alpha=self.alpha,
+            beta=self.beta,
         )
 
     def create_predictor(
@@ -323,6 +368,7 @@ class DeepAREstimator(GluonEstimator):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             distr_output=self.distr_output,
+            dropoutcell_type=self.dropoutcell_type,
             dropout_rate=self.dropout_rate,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,

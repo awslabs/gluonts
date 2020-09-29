@@ -14,6 +14,7 @@
 import pytest
 
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx.distribution import GaussianOutput
 
 
 @pytest.fixture()
@@ -26,12 +27,16 @@ def hyperparameters():
         num_hidden_dimensions=[3],
         num_batches_per_epoch=1,
         use_symbol_block_predictor=True,
+        distr_output=GaussianOutput(),
     )
 
 
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_accuracy(accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize)
+@pytest.mark.parametrize("sampling", [True, False])
+def test_accuracy(accuracy_test, hyperparameters, hybridize, sampling):
+    hyperparameters.update(
+        num_batches_per_epoch=200, hybridize=hybridize, sampling=sampling
+    )
 
     accuracy_test(SimpleFeedForwardEstimator, hyperparameters, accuracy=0.3)
 
