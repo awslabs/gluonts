@@ -168,8 +168,6 @@ class InputTransformEmbeddingAndMLP(InputTransformer):
             dims=config.input_transform_dims,
             activations=config.input_transform_activations,
         )
-        # TODO: hard-coded. Hopefully not needed anymore later
-        self.time_feat_factor = 1.0
 
     def forward(
         self,
@@ -184,10 +182,7 @@ class InputTransformEmbeddingAndMLP(InputTransformer):
             n_timesteps=len(time_feat),
         )
         ctrl_features = self.mlp(
-            torch.cat(
-                [feat_static_embed_repeat, time_feat * self.time_feat_factor],
-                dim=-1,
-            ),
+            torch.cat([feat_static_embed_repeat, time_feat], dim=-1),
         )
         return self._all_same_controls(
             ctrl_features=ctrl_features,
@@ -214,14 +209,6 @@ class InputTransformSeparatedDynamicStatic(InputTransformer):
             dims=dynamic_transform_dims,
             activations=dynamic_transform_activations,
         )
-        # self.mlp_static = MLP(
-        #     dim_in=config.dims.cat_embedding,
-        #     dims=dynamic_transform_dims,
-        #     activations=dynamic_transform_activations,
-        # )
-
-        # TODO: hard-coded. Hopefully not needed anymore later
-        self.time_feat_factor = 1.0
 
     def forward(
         self,
@@ -236,7 +223,7 @@ class InputTransformSeparatedDynamicStatic(InputTransformer):
             n_timesteps=len(time_feat),
         )
         # static_ctrls = self.mlp_static(static_ctrls)
-        dynamic_ctrls = self.mlp_dynamic(time_feat * self.time_feat_factor)
+        dynamic_ctrls = self.mlp_dynamic(time_feat)
         concat_ctrls = torch.cat([static_ctrls, dynamic_ctrls], dim=-1)
 
         if seasonal_indicators is None:
