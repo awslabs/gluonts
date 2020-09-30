@@ -24,6 +24,8 @@ from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import RepresentableBlockPredictor
+from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
@@ -49,10 +51,6 @@ from gluonts.transform import (
 from ._network import (
     SelfAttentionTrainingNetwork,
     SelfAttentionPredictionNetwork,
-)
-from ._engine import (
-    Trainer,
-    QuantileForecastGenerator,
 )
 
 
@@ -115,17 +113,65 @@ class SelfAttentionEstimator(GluonEstimator):
                     field=FieldName.FEAT_DYNAMIC_REAL, expected_ndim=2,
                 )
             )
+        else:
+            transforms.extend(
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_DYNAMIC_REAL,
+                        value=[[]]
+                        * (self.context_length + self.prediction_length),
+                    ),
+                    AsNumpyArray(
+                        field=FieldName.FEAT_DYNAMIC_REAL, expected_ndim=2,
+                    ),
+                    # SwapAxes(input_fields=[FieldName.FEAT_DYNAMIC_REAL], axes=(0,1)),
+                ]
+            )
         if self.use_feat_dynamic_cat:
             transforms.append(
                 AsNumpyArray(
                     field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=2,
                 )
             )
+        else:
+            # Manually set dummy dynamic categorical features and split by time
+            # Unknown issue in dataloader if leave splitting to InstanceSplitter
+            transforms.extend(
+                [
+                    SetField(
+                        output_field="past_" + FieldName.FEAT_DYNAMIC_CAT,
+                        value=[[]] * self.context_length,
+                    ),
+                    AsNumpyArray(
+                        field="past_" + FieldName.FEAT_DYNAMIC_CAT,
+                        expected_ndim=2,
+                    ),
+                    SetField(
+                        output_field="future_" + FieldName.FEAT_DYNAMIC_CAT,
+                        value=[[]] * self.prediction_length,
+                    ),
+                    AsNumpyArray(
+                        field="future_" + FieldName.FEAT_DYNAMIC_CAT,
+                        expected_ndim=2,
+                    ),
+                ]
+            )
         if self.use_feat_static_real:
             transforms.append(
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_REAL, expected_ndim=1,
                 )
+            )
+        else:
+            transforms.extend(
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[],
+                    ),
+                    AsNumpyArray(
+                        field=FieldName.FEAT_STATIC_REAL, expected_ndim=1,
+                    ),
+                ]
             )
         if self.use_feat_static_cat:
             transforms.append(
@@ -159,7 +205,7 @@ class SelfAttentionEstimator(GluonEstimator):
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_DYNAMIC_REAL,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE,]
+                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
                     + (
                         [FieldName.FEAT_DYNAMIC_REAL]
                         if self.use_feat_dynamic_real

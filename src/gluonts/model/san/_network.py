@@ -172,12 +172,12 @@ class SelfAttentionNetwork(HybridBlock):
         past_observed_values: Tensor,
         past_is_pad: Tensor,
         past_feat_dynamic_real: Tensor,
-        past_feat_dynamic_cat: Optional[Tensor] = None,
-        future_target: Optional[Tensor] = None,
-        future_feat_dynamic_real: Optional[Tensor] = None,
-        future_feat_dynamic_cat: Optional[Tensor] = None,
-        feat_static_real: Optional[Tensor] = None,
-        feat_static_cat: Optional[Tensor] = None,
+        past_feat_dynamic_cat: Tensor,
+        future_target: Tensor,
+        future_feat_dynamic_real: Tensor,
+        future_feat_dynamic_cat: Tensor,
+        feat_static_real: Tensor,
+        feat_static_cat: Tensor,
     ) -> Tuple[
         Tensor,
         Optional[Tensor],
@@ -205,16 +205,16 @@ class SelfAttentionNetwork(HybridBlock):
             )
 
         def _assemble_covariates(
-            feat_dynamic_real: Optional[Tensor],
-            feat_dynamic_cat: Optional[Tensor],
-            feat_static_real: Optional[Tensor],
-            feat_static_cat: Optional[Tensor],
+            feat_dynamic_real: Tensor,
+            feat_dynamic_cat: Tensor,
+            feat_static_real: Tensor,
+            feat_static_cat: Tensor,
             is_past: bool,
         ) -> Tensor:
             covariates = []
-            if feat_dynamic_real is not None:
+            if feat_dynamic_real.shape[-1] > 0:
                 covariates.append(feat_dynamic_real)
-            if feat_static_real is not None:
+            if feat_static_real.shape[-1] > 0:
                 covariates.append(
                     feat_static_real.expand_dims(axis=1).repeat(
                         axis=1,
@@ -230,9 +230,9 @@ class SelfAttentionNetwork(HybridBlock):
                 covariates = None
 
             categories = []
-            if feat_dynamic_cat is not None:
+            if feat_dynamic_cat.shape[-1] > 0:
                 categories.append(feat_dynamic_cat)
-            if feat_static_cat is not None:
+            if feat_static_cat.shape[-1] > 0:
                 categories.append(
                     feat_static_cat.expand_dims(axis=1).repeat(
                         axis=1,
@@ -321,12 +321,12 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
         past_is_pad: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
-        past_feat_dynamic_real: Optional[Tensor] = None,
-        past_feat_dynamic_cat: Optional[Tensor] = None,
-        future_feat_dynamic_real: Optional[Tensor] = None,
-        future_feat_dynamic_cat: Optional[Tensor] = None,
-        feat_static_real: Optional[Tensor] = None,
-        feat_static_cat: Optional[Tensor] = None,
+        past_feat_dynamic_real: Tensor,
+        past_feat_dynamic_cat: Tensor,
+        future_feat_dynamic_real: Tensor,
+        future_feat_dynamic_cat: Tensor,
+        feat_static_real: Tensor,
+        feat_static_cat: Tensor,
     ) -> Tensor:
         (
             past_target,
@@ -379,12 +379,12 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
         past_target: Tensor,
         past_observed_values: Tensor,
         past_is_pad: Tensor,
-        past_feat_dynamic_real: Optional[Tensor] = None,
-        past_feat_dynamic_cat: Optional[Tensor] = None,
-        future_feat_dynamic_real: Optional[Tensor] = None,
-        future_feat_dynamic_cat: Optional[Tensor] = None,
-        feat_static_real: Optional[Tensor] = None,
-        feat_static_cat: Optional[Tensor] = None,
+        past_feat_dynamic_real: Tensor,
+        past_feat_dynamic_cat: Tensor,
+        future_feat_dynamic_real: Tensor,
+        future_feat_dynamic_cat: Tensor,
+        feat_static_real: Tensor,
+        feat_static_cat: Tensor,
     ) -> Tensor:
         (
             past_target,
