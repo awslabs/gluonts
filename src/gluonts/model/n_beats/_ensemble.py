@@ -18,7 +18,7 @@ import os
 # Standard library imports
 from itertools import product
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional
+from typing import Iterator, List, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -36,7 +36,8 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 
 from ._estimator import NBEATSEstimator
@@ -114,8 +115,19 @@ class NBEATSEnsemblePredictor(Predictor):
 
     @classmethod
     def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
+        cls, path: Path, ctx: Optional[mx.Context] = None, **kwargs
     ) -> "NBEATSEnsemblePredictor":
+        """
+        Load a serialized NBEATSEnsemblePredictor from the given path
+
+        Parameters
+        ----------
+        path
+            Path to the serialized files predictor.
+        ctx
+            Optional mxnet context parameter to be used with the predictor.
+            If nothing is passed will use the GPU if available and CPU otherwise.
+        """
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
             parameters = load_json(fp.read())

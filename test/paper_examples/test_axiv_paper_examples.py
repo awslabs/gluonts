@@ -58,8 +58,9 @@ def test_appendix_c():
     from typing import List
     from mxnet import gluon
     from gluonts.model.estimator import GluonEstimator
-    from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-    from gluonts.trainer import Trainer
+    from gluonts.model.predictor import Predictor
+    from gluonts.mx.model.predictor import RepresentableBlockPredictor
+    from gluonts.mx.trainer import Trainer
     from gluonts.transform import (
         InstanceSplitter,
         Transformation,

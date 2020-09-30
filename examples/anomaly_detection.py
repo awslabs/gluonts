@@ -27,7 +27,7 @@ register_matplotlib_converters()
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.support.util import get_hybrid_forward_input_names
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.repository.datasets import get_dataset
 
 

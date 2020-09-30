@@ -14,7 +14,7 @@
 # Standard library imports
 import logging
 import re
-from typing import Dict, Iterator, NamedTuple, Optional, Tuple, Union
+from typing import Dict, Iterator, NamedTuple, Optional, Tuple
 
 # Third-party imports
 import pandas as pd
@@ -24,7 +24,6 @@ import gluonts  # noqa
 from gluonts import transform
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
-from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
@@ -97,7 +96,7 @@ def make_evaluation_predictions(
     # TODO the test set may be gone otherwise with such a filtering)
 
     dataset_trunc = TransformedDataset(
-        dataset, transformations=[transform.AdhocTransform(truncate_target)]
+        dataset, transformation=transform.AdhocTransform(truncate_target)
     )
 
     return (

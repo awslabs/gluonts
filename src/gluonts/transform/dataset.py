@@ -35,13 +35,21 @@ class TransformedDataset(Dataset):
     """
 
     def __init__(
-        self, base_dataset: Dataset, transformations: List[Transformation]
+        self,
+        base_dataset: Dataset,
+        transformation: Transformation,
+        is_train=True,
     ) -> None:
         self.base_dataset = base_dataset
-        self.transformations = Chain(transformations)
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        yield from self.transformations(self.base_dataset, is_train=True)
+        self.transformation = transformation
+        self.is_train = is_train
 
     def __len__(self):
+        # NOTE this is unsafe when transformations are run with is_train = True
+        # since some transformations may not be deterministic (instance splitter)
         return sum(1 for _ in self)
+
+    def __iter__(self) -> Iterator[DataEntry]:
+        yield from self.transformation(
+            self.base_dataset, is_train=self.is_train
+        )

@@ -20,7 +20,7 @@ from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 
 if __name__ == "__main__":

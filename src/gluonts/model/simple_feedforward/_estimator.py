@@ -21,7 +21,7 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
@@ -29,8 +29,13 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
+    AddObservedValuesIndicator,
 )
-from gluonts.model.forecast_generator import DistributionForecastGenerator
+from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
+from gluonts.transform.feature import (
+    DummyValueImputation,
+    MissingValueImputation,
+)
 
 
 # Relative imports
@@ -108,6 +113,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         num_hidden_dimensions: Optional[List[int]] = None,
         context_length: Optional[int] = None,
         distr_output: DistributionOutput = StudentTOutput(),
+        imputation_method: Optional[MissingValueImputation] = None,
         batch_normalization: bool = False,
         mean_scaling: bool = True,
         num_parallel_samples: int = 100,
@@ -145,6 +151,11 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         self.mean_scaling = mean_scaling
         self.num_parallel_samples = num_parallel_samples
         self.sampling = sampling
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(self.distr_output.value_in_support)
+        )
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -155,6 +166,12 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     def create_transformation(self) -> Transformation:
         return Chain(
             [
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                    dtype=self.dtype,
+                    imputation_method=self.imputation_method,
+                ),
                 InstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,
@@ -163,8 +180,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                     train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     past_length=self.context_length,
                     future_length=self.prediction_length,
-                    time_series_fields=[],  # [FieldName.FEAT_DYNAMIC_REAL]
-                )
+                    time_series_fields=[FieldName.OBSERVED_VALUES],
+                ),
             ]
         )
 

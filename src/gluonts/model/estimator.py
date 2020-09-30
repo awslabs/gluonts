@@ -12,7 +12,8 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Iterator, NamedTuple, Optional
+from typing import NamedTuple, Optional
+from functools import partial
 
 # Third-party imports
 import numpy as np
@@ -30,6 +31,7 @@ from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.transform import Transformation
+from gluonts.mx.batchify import batchify, as_in_context
 
 
 class Estimator:
@@ -211,11 +213,13 @@ class GluonEstimator(Estimator):
             transform=transformation,
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
-            ctx=self.trainer.ctx,
-            dtype=self.dtype,
+            stack_fn=partial(
+                batchify, ctx=self.trainer.ctx, dtype=self.dtype,
+            ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -225,8 +229,9 @@ class GluonEstimator(Estimator):
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
+                stack_fn=partial(
+                    batchify, ctx=self.trainer.ctx, dtype=self.dtype,
+                ),
                 num_workers=num_workers,
                 num_prefetch=num_prefetch,
                 **kwargs,
