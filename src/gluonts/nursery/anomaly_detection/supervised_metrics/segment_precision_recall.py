@@ -26,7 +26,9 @@ def segment_precision_recall(
 ) -> Tuple[float, float]:
     """
     Segment based metric is less lenient than the range based metric.
+
     This metric counts
+
         * a ground truth anomaly range as true-positive as long as there is an overlapping predicted
             anomaly range; it does not penalize the position of the overlap. If there is no overlapping predicted range
             for given ground truth range, then it counts as one false-negative irrespective of its size.
