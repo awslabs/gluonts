@@ -20,16 +20,18 @@ import pytest
 from sklearn.metrics import auc
 
 # First-party imports
-from gluonts.nursery.anomaly_detection.supervised_metrics import (
-    aggregate_precision_recall_curve,
+from gluonts.nursery.anomaly_detection.supervised_metrics.buffered_precision_recall import (
     buffered_precision_recall,
-    segment_precision_recall,
+    extend_ranges,
 )
 from gluonts.nursery.anomaly_detection.supervised_metrics.bounded_pr_auc import (
     bounded_pr_auc,
 )
-from gluonts.nursery.anomaly_detection.supervised_metrics.buffered_precision_recall import (
-    extend_ranges,
+from gluonts.nursery.anomaly_detection.supervised_metrics.segment_precision_recall import (
+    segment_precision_recall,
+)
+from gluonts.nursery.anomaly_detection.supervised_metrics.precision_recall_utils import (
+    aggregate_precision_recall_curve,
 )
 from gluonts.nursery.anomaly_detection.supervised_metrics.utils import (
     labels_to_ranges,
