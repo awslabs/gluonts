@@ -17,6 +17,8 @@ import random
 import tempfile
 import time
 import multiprocessing as mp
+from functools import partial
+
 
 # Third-party imports
 from collections import defaultdict
@@ -49,6 +51,7 @@ from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.mx.trainer import Trainer
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.evaluation import Evaluator
+from gluonts.mx.batchify import batchify
 
 # CONSTANTS:
 
@@ -122,8 +125,8 @@ def get_dataset_and_transformation():
             dataset=list_dataset,
             transform=transformation,
             batch_size=BATCH_SIZE,
-            num_workers=0,  # This is the crucial difference
-            ctx=current_context(),
+            stack_fn=partial(batchify, ctx=current_context()),
+            num_workers=None,  # This is the crucial difference
         )
     )
 
@@ -158,14 +161,13 @@ def test_validation_loader_equivalence() -> None:
         list_dataset_pred_length,
         train_data_transformed_original,
     ) = get_dataset_and_transformation()
-    current_desired_context = current_context()
 
     validation_dataset_loader = ValidationDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_desired_context,
     )
 
     # multi-processed validation dataset
@@ -193,12 +195,8 @@ def test_validation_loader_equivalence() -> None:
     ), "The multiprocessing ValidationDataLoader should yield equivalent result to the non multiprocessing one."
 
     assert (
-        len(mp_val_data_loader_result_02[0]["item_id"]) == BATCH_SIZE
-    ), "Incorrect batch size from multiprocessing."
-
-    assert (
         mp_val_data_loader_result_02[0]["past_target"].context
-        == current_desired_context
+        == current_context()
     ), "Batches in incorrect context"
 
 
@@ -250,9 +248,9 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             dataset=dataset,
             transform=transformation,
             batch_size=batch_size,
+            stack_fn=partial(batchify, ctx=current_context()),
             num_workers=num_workers,
             num_batches_per_epoch=num_batches_per_epoch,
-            ctx=current_context(),
         )
 
         item_ids = defaultdict(int)
@@ -285,7 +283,6 @@ def test_inference_loader_equivalence() -> None:
         list_dataset_pred_length,
         train_data_transformed_original,
     ) = get_dataset_and_transformation()
-    current_desired_context = current_context()
 
     # original no multiprocessing processed validation dataset
     inference_loader_data_transformed_original = list(
@@ -293,8 +290,8 @@ def test_inference_loader_equivalence() -> None:
             dataset=list_dataset,
             transform=transformation,
             batch_size=BATCH_SIZE,
-            num_workers=0,  # This is the crucial difference
-            ctx=current_context(),
+            stack_fn=partial(batchify, ctx=current_context()),
+            num_workers=None,  # This is the crucial difference
         )
     )
 
@@ -302,8 +299,8 @@ def test_inference_loader_equivalence() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
     )
 
     # multi-processed validation dataset
@@ -327,13 +324,60 @@ def test_inference_loader_equivalence() -> None:
     ), "The multiprocessing ValidationDataLoader should yield equivalent result to the non multiprocessing one."
 
     assert (
-        len(mp_inf_data_loader_result_02[1]["item_id"]) == BATCH_SIZE
-    ), "Incorrect batch size from multiprocessing."
-
-    assert (
         mp_inf_data_loader_result_02[0]["past_target"].context
-        == current_desired_context
+        == current_context()
     ), "Batches in incorrect context"
+
+
+# Batches of the train data loader can only be of the same exact desired size
+# Unlike the inference or validation data loader, which can have varying batch sizes, if the number
+# of time series is not divisible by BATCH_SIZE * NUM_WORKERS_MP.
+def test_training_loader_batch_size_hard_constraint() -> None:
+    (
+        list_dataset,
+        transformation,
+        list_dataset_pred_length,
+        train_data_transformed_original,
+    ) = get_dataset_and_transformation()
+
+    train_dataset_loader_01 = TrainDataLoader(
+        dataset=list_dataset,
+        transform=transformation,
+        batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        num_batches_per_epoch=30,
+    )
+
+    train_dataset_loader_02 = TrainDataLoader(
+        dataset=list_dataset,
+        transform=transformation,
+        batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
+        num_workers=NUM_WORKERS_MP,  # This is the crucial difference
+        num_batches_per_epoch=30,
+        shuffle_buffer_length=3 * BATCH_SIZE,
+    )
+
+    # multi-processed training dataset
+    mp_training_data_loader_result_01 = list(train_dataset_loader_01)
+
+    # multi-processed training dataset
+    mp_training_data_loader_result_02 = list(train_dataset_loader_02)
+
+    assert all(
+        [
+            len(batch["item_id"]) == BATCH_SIZE
+            for batch in mp_training_data_loader_result_01
+        ]
+    ), "Not every batch from training loader is right size."
+
+    assert all(
+        [
+            len(batch["item_id"]) == BATCH_SIZE
+            for batch in mp_training_data_loader_result_02
+        ]
+    ), "Not every batch from training loader is right size, with shuffling on."
 
 
 # CASE 01: if we have say 5 workers, then iterating
@@ -361,15 +405,15 @@ def test_training_loader_soft_constraint_01() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
     # give all the workers a little time to get ready, so they can start at the same time
     time.sleep(1.5)
 
-    # multi-processed validation dataset
+    # multi-processed training dataset
     mp_training_data_loader_result_01 = list(train_dataset_loader_01)
 
     # should contain an entry for every time series id
@@ -402,12 +446,12 @@ def test_training_loader_soft_constraint_02() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
         num_batches_per_epoch=int(0.5 * exp_num_batches),
     )
 
-    # multi-processed validation dataset
+    # multi-processed training dataset
     mp_training_data_loader_result_02 = list(train_dataset_loader_02)
 
     # should contain an entry for every time series id
@@ -438,12 +482,12 @@ def test_training_loader_soft_constraint_03() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
         num_workers=1,  # This is the crucial difference
-        ctx=current_context(),
         num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
-    # multi-processed validation dataset
+    # multi-processed training dataset
     mp_training_data_loader_result_03 = list(train_dataset_loader_03)
 
     # should contain an entry for every time series id
@@ -462,8 +506,7 @@ def test_general_functionality() -> None:
     freq = ds_info.metadata.freq
     prediction_length = ds_info.prediction_length
 
-    ctx = "cpu"
-    trainer = Trainer(ctx=ctx, epochs=3, num_batches_per_epoch=5)
+    trainer = Trainer(epochs=3, num_batches_per_epoch=5)
 
     estimator = DeepAREstimator(
         prediction_length=prediction_length, freq=freq, trainer=trainer

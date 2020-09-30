@@ -63,7 +63,7 @@ class MockTPPPredictionNet(mx.gluon.HybridBlock):
         batch_size = past_target.shape[0]
         assert past_valid_length.shape[0] == batch_size
 
-        target_shape = (batch_size, self.num_parallel_samples, 25)
+        target_shape = (self.num_parallel_samples, batch_size, 25)
         pred_target = nd.stack(
             nd.random.uniform(shape=target_shape),
             nd.random.randint(0, 10, shape=target_shape).astype(np.float32),

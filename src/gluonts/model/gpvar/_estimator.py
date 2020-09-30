@@ -26,7 +26,8 @@ from gluonts.model.deepvar._estimator import (
     time_features_from_frequency_str,
 )
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 
 # First-party imports
 from gluonts.mx.distribution import DistributionOutput

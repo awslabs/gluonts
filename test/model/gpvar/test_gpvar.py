@@ -23,7 +23,7 @@ from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput, GPArgProj
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.evaluation import MultivariateEvaluator
 from gluonts.model.gpvar import GPVAREstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.dataset.common import TrainDatasets
 
