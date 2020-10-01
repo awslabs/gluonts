@@ -50,18 +50,18 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         distribution output
     context_length: int,
         length of the encoding sequence.
-    num_forking: int,
-        decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
     cardinality: List[int],
         number of values of each categorical feature.
     embedding_dimension: List[int],
         dimension of the embeddings for categorical features.
     scaling
-        Whether to automatically scale the target values. (default: False)
+        Whether to automatically scale the target values. (default: True)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     dtype
         (default: np.float32)
+    num_forking: int,
+        decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
     kwargs: dict
         dictionary of Gluon HybridBlock parameters
     """
@@ -77,7 +77,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         embedding_dimension: List[int],
         distr_output: Optional[DistributionOutput] = None,
         quantile_output: Optional[QuantileOutput] = None,
-        scaling: bool = False,
+        scaling: bool = True,
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
         num_forking: Optional[int] = None,
@@ -361,7 +361,7 @@ class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
         -------
         distr_args: the parameters of distribution
         loc: an array of zeros with the same shape of scale
-        scale: 
+        scale:
         """
 
         dec_output, scale = self.get_decoder_network_output(
