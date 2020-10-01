@@ -16,12 +16,10 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.nursery.anomaly_detection.supervised_metrics.filters import (
+from gluonts.nursery.anomaly_detection.filters import (
+    fill_forward,
     labels_filter,
     n_k_filter,
-)
-from gluonts.nursery.anomaly_detection.supervised_metrics.utils import (
-    fill_forward,
 )
 
 
