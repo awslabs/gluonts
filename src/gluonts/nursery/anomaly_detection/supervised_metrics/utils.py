@@ -12,10 +12,10 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List
+from typing import List, Tuple
 
 # Third-party imports
-import numpy as np
+from numba import jit
 
 
 def range_overlap(left_range: range, right_range: range,) -> bool:
@@ -38,9 +38,11 @@ def range_overlap(left_range: range, right_range: range,) -> bool:
     return False
 
 
-def labels_to_ranges(labels: List[bool]) -> List[range]:
+@jit(nopython=True)
+def labels_to_ranges_numba(labels: List[bool]) -> List[Tuple]:
     """
-    Converts the given list of labels to list of anomaly (defined by positive label) ranges.
+    Converts the given list of labels to list of anomaly (defined by positive label) ranges where range is represented
+    by a pair of integers (to make numba work).
 
     Parameters
     ----------
@@ -66,15 +68,34 @@ def labels_to_ranges(labels: List[bool]) -> List[range]:
         elif start_ix is not None:
             # a consecutive sequence of positive labels is ended
             assert stop_ix is not None
-            ranges_ls.append(range(start_ix, stop_ix))
+            ranges_ls.append((start_ix, stop_ix))
             start_ix = None
 
     if start_ix is not None:
         # the last element of `labels` is True, we never ended that range
         assert stop_ix is not None
-        ranges_ls.append(range(start_ix, stop_ix))
+        ranges_ls.append((start_ix, stop_ix))
 
     return ranges_ls
+
+
+def labels_to_ranges(labels: List[bool]) -> List[range]:
+    """
+    Converts the given list of labels to list of anomaly (defined by positive label) ranges.
+
+    Parameters
+    ----------
+    labels
+        Boolean list of labels.
+
+    Returns
+    -------
+    List of ranges.
+
+    """
+
+    ls_pairs = labels_to_ranges_numba(labels)
+    return [range(pair[0], pair[1]) for pair in ls_pairs]
 
 
 def ranges_to_singletons(ranges: List[range],) -> List[range]:
