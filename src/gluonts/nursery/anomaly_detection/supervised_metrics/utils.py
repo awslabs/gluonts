@@ -96,23 +96,3 @@ def ranges_to_singletons(ranges: List[range],) -> List[range]:
     ), "Ranges should be consecutive and contain non-negative indices."
 
     return [range(i, i + 1) for r in ranges for i in r]
-
-
-def fill_forward(a: np.ndarray, fill_start=None) -> np.ndarray:
-    """
-    Forward fill an array. If `fill_start` is not None, then the
-    NaNs in the beginning of the array will be filled with `fill_start`.
-    """
-    a = np.array(a)
-    assert a.ndim == 1
-
-    # forward fill labels
-    idx = np.where(~np.isnan(a), np.arange(a.shape[0]), 0)
-    np.maximum.accumulate(idx, out=idx)
-    a = a[idx]
-
-    # nan values at the beginning of window are left
-    if fill_start is not None:
-        a[~np.isfinite(a)] = fill_start
-
-    return a

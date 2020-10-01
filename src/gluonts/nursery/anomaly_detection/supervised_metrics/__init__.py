@@ -10,3 +10,23 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+
+# Relative imports
+from ._buffered_precision_recall import buffered_precision_recall
+from ._segment_precision_recall import segment_precision_recall
+from ._precision_recall_utils import (
+    aggregate_precision_recall,
+    aggregate_precision_recall_curve,
+)
+
+__all__ = [
+    "aggregate_precision_recall",
+    "aggregate_precision_recall_curve",
+    "buffered_precision_recall",
+    "segment_precision_recall",
+]
+
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)
