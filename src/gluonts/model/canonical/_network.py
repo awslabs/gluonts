@@ -111,8 +111,7 @@ class CanonicalTrainingNetwork(CanonicalNetworkBase):
             self.proj_distr_args(outputs), scale=target_scale
         )
 
-        loss = distr.loss(past_target)
-
+        loss = self.distr_output.loss(distr, past_target)
         return loss
 
 

@@ -178,3 +178,21 @@ class DistributionOutput(Output):
         define a distribution of the right event_shape.
         """
         raise NotImplementedError()
+
+    def loss(self, distr: Distribution, x: Tensor) -> Tensor:
+        r"""
+        Compute the loss at `x` according to the DistributionOutput.
+
+        By default, this method returns the negative of `log_prob`.
+        Parameters
+        ----------
+        x
+            Tensor of shape `(*batch_shape, *event_shape)`.
+
+        Returns
+        -------
+        Tensor
+            Tensor of shape `batch_shape` containing the value of the loss
+            for each event in `x`.
+        """
+        return -distr.log_prob(x)

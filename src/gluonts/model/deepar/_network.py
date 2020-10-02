@@ -455,7 +455,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         )
 
         # (batch_size, seq_len)
-        loss = distr.loss(target)
+        loss = self.distr_output.loss(distr, target)
 
         # (batch_size, seq_len, *target_shape)
         observed_values = F.concat(

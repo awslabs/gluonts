@@ -153,10 +153,6 @@ class PiecewiseLinear(Distribution):
 
         return sample
 
-    # overwrites the loss method of the Distribution class
-    def loss(self, x: Tensor) -> Tensor:
-        return self.crps(x)
-
     def crps(self, x: Tensor) -> Tensor:
         r"""
         Compute CRPS in analytical form.
@@ -368,6 +364,9 @@ class PiecewiseLinearOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return ()
+
+    def loss(self, distr: Distribution, x: Tensor) -> Tensor:
+        return distr.crps(x)
 
 
 # Need to inherit from PiecewiseLinear to get the overwritten loss method.

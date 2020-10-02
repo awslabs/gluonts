@@ -202,7 +202,7 @@ def test_distribution_output_shapes(
 
         assert x.shape == distr.batch_shape + distr.event_shape
 
-        loss = distr.loss(x)
+        loss = distr_out.loss(distr, x)
 
         assert loss.shape == distr.batch_shape
 

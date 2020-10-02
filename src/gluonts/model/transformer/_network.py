@@ -300,8 +300,7 @@ class TransformerTrainingNetwork(TransformerNetwork):
         # compute loss
         distr_args = self.proj_dist_args(dec_output)
         distr = self.distr_output.distribution(distr_args, scale=scale)
-        loss = distr.loss(future_target)
-
+        loss = self.distr_output.loss(distr, future_target)
         return loss.mean()
 
 

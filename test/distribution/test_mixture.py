@@ -98,14 +98,8 @@ mx.random.seed(35120171)
             mx.nd.random_uniform(shape=SHAPE),
         ),
         (
-            Gaussian(
-                mu=mx.nd.array([0.]),
-                sigma=mx.nd.array([1e-3 + 0.2]),
-            ),
-            Gaussian(
-                mu=mx.nd.array([1.]),
-                sigma=mx.nd.array([1e-3 + 0.1]),
-            ),
+            Gaussian(mu=mx.nd.array([0.0]), sigma=mx.nd.array([1e-3 + 0.2]),),
+            Gaussian(mu=mx.nd.array([1.0]), sigma=mx.nd.array([1e-3 + 0.1]),),
             mx.nd.array([0.2]),
         ),
         # TODO: add a multivariate case here
@@ -249,7 +243,7 @@ def test_mixture_inference() -> None:
         with mx.autograd.record():
             distr_args = args_proj(input)
             d = mdo.distribution(distr_args)
-            loss = d.loss(mixture_samples)
+            loss = mdo.loss(d, mixture_samples)
         loss.backward()
         loss_value = loss.mean().asnumpy()
         t.set_postfix({"loss": loss_value})
