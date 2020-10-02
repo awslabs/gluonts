@@ -114,15 +114,13 @@ class PendulumModel(DefaultLightningModel):
         batch_no_gt = remove_groundtruth(batch)
         loss = self.loss(**batch_no_gt)
         result = pl.EvalResult(checkpoint_on=loss)
-        result.log("val_loss", loss)
+        result.log("val_loss", loss, prog_bar=True)
         if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
             if batch_idx == 0:
                 make_val_plots_univariate(
                     model=self,
                     data=batch_no_gt,
-                    future_target_groundtruth=batch["y_gt"][
-                        self.past_length :
-                    ],
+                    future_target_groundtruth=batch["y_gt"][self.past_length:],
                     idx_particle=None,
                     n_steps_forecast=self.prediction_length,
                     idxs_ts=[0, 1, 2],
