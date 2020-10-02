@@ -552,7 +552,7 @@ class KalmanVariationalAutoEncoder(BaseAmortizedGaussianLinearSystem):
     def _expand_particle_dim(self, controls: ControlInputs):
         # assumes we have time dimension
         for key, val in controls.__dict__.items():
-            if (val is not None) and ((val.ndim == 3) and (val.shape[1] != 1)):
+            if (val is not None) and (val.ndim == 3):  # 3 dims: TxPxBxF.
                 setattr(controls, key, val.unsqueeze(dim=1))
         return controls
 
