@@ -16,6 +16,7 @@ from typing import List, Tuple
 
 # Third-party imports
 from numba import jit
+import numpy as np
 
 
 def range_overlap(left_range: range, right_range: range,) -> bool:
@@ -39,7 +40,7 @@ def range_overlap(left_range: range, right_range: range,) -> bool:
 
 
 @jit(nopython=True)
-def labels_to_ranges_numba(labels: List[bool]) -> List[Tuple]:
+def labels_to_ranges_numba(labels: np.ndarray) -> List[Tuple]:
     """
     Converts the given list of labels to list of anomaly (defined by positive label) ranges where range is represented
     by a pair of integers (to make numba work).
@@ -94,7 +95,9 @@ def labels_to_ranges(labels: List[bool]) -> List[range]:
 
     """
 
-    ls_pairs = labels_to_ranges_numba(labels)
+    labels_np = np.array(labels)
+    labels_np[np.isnan(labels_np)] = 0
+    ls_pairs = labels_to_ranges_numba(labels_np)
     return [range(pair[0], pair[1]) for pair in ls_pairs]
 
 
