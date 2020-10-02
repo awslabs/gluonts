@@ -13,7 +13,7 @@ def filter_forward_prediction_step(m, V, R, A, b=None):
     (prediction --> measurement) """
     mp = matvec(A, m) if A is not None else m
     if b is not None:
-        mp += b
+        mp = mp + b  # do not 'mp += b', is inplace and wont work with autograd
     Vp = symmetrize(
         (matmul(A, matmul(V, A.transpose(-1, -2))) if A is not None else V) + R
     )
