@@ -61,7 +61,6 @@ class PymunkModel(DefaultLightningModel):
             ),
             batch_size=self.batch_sizes["train"],
             shuffle=True,
-            num_workers=8,
             collate_fn=train_collate_fn,
         )
 
@@ -82,7 +81,6 @@ class PymunkModel(DefaultLightningModel):
             ),
             batch_size=self.batch_sizes["test"],
             shuffle=False,
-            num_workers=8,
             collate_fn=test_collate_fn,
         )
 

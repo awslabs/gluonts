@@ -65,7 +65,6 @@ class PendulumModel(DefaultLightningModel):
             ),
             batch_size=self.batch_sizes["train"],
             shuffle=True,
-            num_workers=8,
             collate_fn=train_collate_fn,
         )
 
@@ -87,7 +86,6 @@ class PendulumModel(DefaultLightningModel):
             ),
             batch_size=self.batch_sizes["val"],
             shuffle=False,
-            num_workers=8,
             collate_fn=val_collate_fn,
         )
 
@@ -109,7 +107,6 @@ class PendulumModel(DefaultLightningModel):
             ),
             batch_size=self.batch_sizes["test"],
             shuffle=False,
-            num_workers=8,
             collate_fn=test_collate_fn,
         )
 
