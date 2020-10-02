@@ -34,6 +34,7 @@ jobs:
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-extras-anomaly-evaluation.txt
       shell: powershell
     - name: Test with pytest
       run: |
