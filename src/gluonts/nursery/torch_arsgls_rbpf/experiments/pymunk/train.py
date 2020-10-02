@@ -5,6 +5,7 @@ import numpy as np
 import mxnet as mx
 import torch
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from experiments.pymunk.configs import (
     make_model,
@@ -18,19 +19,21 @@ if __name__ == "__main__":
         "-root_log_path", type=str, default="/home/ubuntu/logs"
     )
     parser.add_argument("-dataset_name", type=str, default="box")
-    parser.add_argument("-experiment_name", type=str, default="kvae")
+    parser.add_argument("-experiment_name", type=str, default="arsgls")
+    parser.add_argument("-distributed_backend", type=str, default="dp")
     parser.add_argument("-run_nr", type=int, default=None)
     parser.add_argument(
         "-gpus",
         "--gpus",
         nargs="*",
-        default=[1],
+        default=[0],
         help='"-gpus 0 1 2 3". or "-gpus ".',
     )
     parser.add_argument("-dtype", type=str, default="float64")
     args = parser.parse_args()
+    args.gpus = None if len(args.gpus) == 0 else args.gpus
 
-    if not len(args.gpus) <= 1:
+    if not (args.gpus is None or len(args.gpus) <= 1):
         raise Exception(
             "multi-GPU does not work anymore since we switched to "
             "Pytorch-Lightning. The reason is that the SSMs are implemented "
@@ -49,7 +52,7 @@ if __name__ == "__main__":
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    # # TODO: config -> hydra or something like that
+    # TODO: config -> hydra or something like that
     config = make_experiment_config(
         dataset_name=args.dataset_name, experiment_name=args.experiment_name,
     )
@@ -61,7 +64,21 @@ if __name__ == "__main__":
         default_root_dir=os.path.join(consts.log_dir, config.dataset_name),
         gradient_clip_val=config.grad_clip_norm,
         max_epochs=config.n_epochs,
+        checkpoint_callback=ModelCheckpoint(
+            monitor="val_checkpoint_on", save_last=True,
+        ),
+        distributed_backend=args.distributed_backend,
     )
 
     trainer.fit(model)
-    trainer.test(model)
+
+    ckpt_dir = trainer.checkpoint_callback.dirpath
+    prefix = trainer.checkpoint_callback.prefix
+    metrics_dir = os.path.join(trainer.logger.log_dir, "metrics")
+    for name in ["last"]:
+        ckpt_path = os.path.join(ckpt_dir, f"{prefix}{name}.ckpt")
+        result = trainer.test(ckpt_path=ckpt_path)
+        if (isinstance(result, list) and len(result)) == 1:
+            result = result[0]
+        print(result)
+        np.savez(os.path.join(metrics_dir, f"{name}.npz"), result)

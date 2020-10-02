@@ -1,4 +1,5 @@
 import os
+from shutil import copyfile
 import argparse
 import numpy as np
 import mxnet as mx
@@ -20,6 +21,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-dataset_name", type=str, default="wiki2000_nips")
     parser.add_argument("-experiment_name", type=str)
+    parser.add_argument("-distributed_backend", type=str, default="dp")
     parser.add_argument("-run_nr", type=int, default=None)
     parser.add_argument(
         "-gpus",
@@ -30,6 +32,20 @@ if __name__ == "__main__":
     )
     parser.add_argument("-dtype", type=str, default="float64")
     args = parser.parse_args()
+    args.gpus = None if len(args.gpus) == 0 else args.gpus
+
+    if not (args.gpus is None or len(args.gpus) <= 1):
+        raise Exception(
+            "multi-GPU does not work anymore since we switched to "
+            "Pytorch-Lightning. The reason is that the SSMs are implemented "
+            "with time-first not batch-first. Although torch DataParallel can "
+            "handle this (dim arg), pytorch lightning does not."
+            "Will add support for this later through one of these options: "
+            "1) Make PR to lightning that allows time-first. "
+            "2) Re-write SSMs for batch-first. "
+            "3) In lightning Wrapper, just transpose before SSMs, "
+            "leaving SSM implementations as they are. (favorite solution)"
+        )
 
     # random seeds
     seed = args.run_nr if args.run_nr is not None else 0
@@ -51,10 +67,22 @@ if __name__ == "__main__":
         limit_val_batches=int(np.ceil((500 / config.batch_size_val))),
         max_epochs=config.n_epochs,
         checkpoint_callback=ModelCheckpoint(
-            monitor="val_checkpoint_on",
-            save_last=True,
+            monitor="val_checkpoint_on", save_last=True,
         ),
+        distributed_backend=args.distributed_backend,
     )
 
     trainer.fit(model)
-    trainer.test(model)
+
+    ckpt_dir = trainer.checkpoint_callback.dirpath
+    prefix = trainer.checkpoint_callback.prefix
+    best_model_path = trainer.checkpoint_callback.best_model_path
+    metrics_dir = os.path.join(trainer.logger.log_dir, "metrics")
+    copyfile(src=best_model_path, dst=os.path.join(ckpt_dir, "best.ckpt"))
+    for name in ["last", "best"]:
+        ckpt_path = os.path.join(ckpt_dir, f"{prefix}{name}.ckpt")
+        result = trainer.test(ckpt_path=ckpt_path)
+        if (isinstance(result, list) and len(result)) == 1:
+            result = result[0]
+        print(result)
+        np.savez(os.path.join(metrics_dir, f"{name}.npz"), result)
