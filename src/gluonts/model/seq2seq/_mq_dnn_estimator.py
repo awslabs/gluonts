@@ -107,11 +107,13 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
     trainer
         The GluonTS trainer to use for training. (default: Trainer())
     scaling
-        Whether to automatically scale the target values. (default: False)
+        Whether to automatically scale the target values. (default: False if quantile_output is used, True otherwise)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     num_forking
-        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN
+        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN.
+    max_ts_len
+        Returns the length of the longest time series in the dataset to be used in bounding context_length.
     """
 
     @validated()
@@ -138,7 +140,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         quantiles: Optional[List[float]] = None,
         distr_output: Optional[DistributionOutput] = None,
         trainer: Trainer = Trainer(),
-        scaling: bool = False,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
         max_ts_len: Optional[int] = None,
@@ -315,11 +317,11 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         prediction_length: int,
         freq: str,
         context_length: Optional[int] = None,
-        decoder_mlp_dim_seq: List[int] = None,
+        decoder_mlp_dim_seq: Optional[List[int]] = None,
         trainer: Trainer = Trainer(),
         quantiles: Optional[List[float]] = None,
         distr_output: Optional[DistributionOutput] = None,
-        scaling: bool = False,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
     ) -> None:

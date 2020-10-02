@@ -50,18 +50,18 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         distribution output
     context_length: int,
         length of the encoding sequence.
-    num_forking: int,
-        decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
     cardinality: List[int],
         number of values of each categorical feature.
     embedding_dimension: List[int],
         dimension of the embeddings for categorical features.
     scaling
-        Whether to automatically scale the target values. (default: False)
+        Whether to automatically scale the target values. (default: True)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     dtype
         (default: np.float32)
+    num_forking: int,
+        decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
     kwargs: dict
         dictionary of Gluon HybridBlock parameters
     """
@@ -77,7 +77,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         embedding_dimension: List[int],
         distr_output: Optional[DistributionOutput] = None,
         quantile_output: Optional[QuantileOutput] = None,
-        scaling: bool = False,
+        scaling: bool = True,
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
         num_forking: Optional[int] = None,
@@ -94,25 +94,20 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         self.quantile_output = quantile_output
         self.scaling = scaling
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
-        self.scaling_decoder_dynamic_feature_axis = 1
         self.dtype = dtype
         self.num_forking = (
             num_forking if num_forking is not None else context_length
         )
 
         if self.scaling:
-            self.scaler = MeanScaler(keepdims=True)
+            self.scaler = MeanScaler()
         else:
-            self.scaler = NOPScaler(keepdims=True)
+            self.scaler = NOPScaler()
 
         if self.scaling_decoder_dynamic_feature:
-            self.scaler_decoder_dynamic_feature = MeanScaler(
-                keepdims=True, axis=self.scaling_decoder_dynamic_feature_axis
-            )
+            self.scaler_decoder_dynamic_feature = MeanScaler(axis=1)
         else:
-            self.scaler_decoder_dynamic_feature = NOPScaler(
-                keepdims=True, axis=self.scaling_decoder_dynamic_feature_axis
-            )
+            self.scaler_decoder_dynamic_feature = NOPScaler(axis=1)
 
         with self.name_scope():
             if self.quantile_output:
@@ -167,9 +162,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
         # in addition to embedding features, use the log scale as it can help prediction too
         # (batch_size, num_feat_static = sum(embedding_dimension) + 1)
-        feat_static_real = F.concat(
-            embedded_cat, F.log(scale.squeeze(axis=1)), dim=1
-        )
+        feat_static_real = F.concat(embedded_cat, F.log(scale), dim=1)
 
         # Passing past_observed_values as a feature would allow the network to
         # make that distinction and possibly ignore the masked values.
@@ -266,7 +259,9 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         else:
             assert self.distr_output is not None
             distr_args = self.distr_args_proj(dec_output)
-            distr = self.distr_output.distribution(distr_args, scale=scale)
+            distr = self.distr_output.distribution(
+                distr_args, scale=scale.expand_dims(axis=1)
+            )
             loss = distr.loss(future_target)
 
         # mask the loss based on observed indicator
@@ -361,7 +356,7 @@ class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
         -------
         distr_args: the parameters of distribution
         loc: an array of zeros with the same shape of scale
-        scale: 
+        scale:
         """
 
         dec_output, scale = self.get_decoder_network_output(
