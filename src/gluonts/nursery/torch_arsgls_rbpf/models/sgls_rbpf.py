@@ -304,16 +304,19 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
     def _make_encoder_dists(
         self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
     ) -> Box:
-        enc_inp = (
-            [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
-        )
-        encoded = self.encoder(enc_inp)
-        if isinstance(encoded, torch.distributions.Distribution):
-            return Box(switch=encoded)
-        elif hasattr(encoded, "switch"):
-            return encoded.switch
+        if self.encoder is None:
+            return Box(switch=None)
         else:
-            raise Exception(f"unknown encoding type: {type(encoded)}")
+            enc_inp = (
+                [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
+            )
+            encoded = self.encoder(enc_inp)
+            if isinstance(encoded, torch.distributions.Distribution):
+                return Box(switch=encoded)
+            elif hasattr(encoded, "switch"):
+                return encoded
+            else:
+                raise Exception(f"unknown encoding type: {type(encoded)}")
 
     def _make_switch_prior_dist(
         self,
@@ -347,9 +350,12 @@ class SwitchingGaussianLinearSystemBaseRBSMC(BaseRBSMCGaussianLinearSystem):
     def _make_switch_proposal_dist(
         self,
         switch_model_dist: torch.distributions.Distribution,
-        switch_encoder_dist: torch.distributions.Distribution,
-    ) -> torch.distributions.MultivariateNormal:
-        switch_proposal_dist = self.fuse_densities(
-            [switch_model_dist, switch_encoder_dist]
-        )
+        switch_encoder_dist: Optional[torch.distributions.Distribution],
+    ) -> torch.distributions.Distribution:
+        if switch_encoder_dist is None:
+            return switch_model_dist
+        else:
+            switch_proposal_dist = self.fuse_densities(
+                [switch_model_dist, switch_encoder_dist]
+            )
         return switch_proposal_dist

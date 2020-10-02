@@ -308,16 +308,18 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
     def _make_encoder_dists(
         self, tar_t: torch.Tensor, ctrl_t: ControlInputsSGLS,
     ) -> Box:
-        enc_inp = (
-            [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
-        )
-        encoded = self.encoder(enc_inp)
-        if not isinstance(encoded, Sequence):
-            raise Exception(f"Expected sequence, got {type(encoded)}")
-        if not len(encoded) == 2:
-            raise Exception(f"Expected 2 encodings, got {len(encoded)}")
-
-        return Box(auxiliary=encoded[0], switch=encoded[1])
+        if self.encoder is None:
+            return Box(switch=None, auxiliary=None)
+        else:
+            enc_inp = (
+                [tar_t] if ctrl_t.encoder is None else [tar_t, ctrl_t.encoder]
+            )
+            encoded = self.encoder(enc_inp)
+            if not isinstance(encoded, Sequence):
+                raise Exception(f"Expected sequence, got {type(encoded)}")
+            if not len(encoded) == 2:
+                raise Exception(f"Expected 2 encodings, got {len(encoded)}")
+            return Box(auxiliary=encoded[0], switch=encoded[1])
 
     def _make_auxiliary_model_dist(
         self, mp: torch.Tensor, Vp: torch.Tensor, gls_params: Box,
@@ -333,8 +335,11 @@ class AuxiliarySwitchingGaussianLinearSystemRBSMC(
     def _make_auxiliary_proposal_dist(
         self,
         auxiliary_model_dist: torch.distributions.Distribution,
-        auxiliary_encoder_dist: torch.distributions.Distribution,
-    ):
-        return self.fuse_densities(
-            [auxiliary_model_dist, auxiliary_encoder_dist]
-        )
+        auxiliary_encoder_dist: Optional[torch.distributions.Distribution],
+    ) -> torch.distributions.Distribution:
+        if auxiliary_encoder_dist is None:
+            return auxiliary_model_dist
+        else:
+            return self.fuse_densities(
+                [auxiliary_model_dist, auxiliary_encoder_dist]
+            )
