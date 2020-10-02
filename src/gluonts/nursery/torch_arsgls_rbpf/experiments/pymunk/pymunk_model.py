@@ -33,9 +33,17 @@ class CastDtype(object):
 
 
 class PymunkModel(DefaultLightningModel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, lr_decay_rate, *args, **kwargs):
+        super().__init__(*args,  **kwargs)
         self.log_metrics = Box()
+        self.lr_decay_rate = lr_decay_rate  # custom LR decay rate here.
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(lr=self.lr, params=self.parameters())
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(
+            optimizer, gamma=self.lr_decay_rate,
+        )
+        return [optimizer], [scheduler]
 
     def prepare_data(self):
         data_path = os.path.join(
