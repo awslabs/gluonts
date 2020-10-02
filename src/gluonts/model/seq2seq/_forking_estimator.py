@@ -124,7 +124,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     trainer
         trainer (default: Trainer())
     scaling
-        Whether to automatically scale the target values. (default: True)
+        Whether to automatically scale the target values. (default: False if quantile_output is used, True otherwise)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     dtype
@@ -155,7 +155,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         enable_encoder_dynamic_feature: bool = True,
         enable_decoder_dynamic_feature: bool = True,
         trainer: Trainer = Trainer(),
-        scaling: bool = True,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
         num_forking: Optional[int] = None,
@@ -222,7 +222,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         )
         self.enable_encoder_dynamic_feature = enable_encoder_dynamic_feature
         self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
-        self.scaling = scaling
+        self.scaling = (
+            scaling if scaling is not None else (quantile_output is None)
+        )
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
 

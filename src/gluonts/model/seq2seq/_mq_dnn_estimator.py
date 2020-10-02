@@ -107,7 +107,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
     trainer
         The GluonTS trainer to use for training. (default: Trainer())
     scaling
-        Whether to automatically scale the target values. (default: True)
+        Whether to automatically scale the target values. (default: False if quantile_output is used, True otherwise)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     num_forking
@@ -140,7 +140,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         quantiles: Optional[List[float]] = None,
         distr_output: Optional[DistributionOutput] = None,
         trainer: Trainer = Trainer(),
-        scaling: bool = True,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
         max_ts_len: Optional[int] = None,
@@ -321,7 +321,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         trainer: Trainer = Trainer(),
         quantiles: Optional[List[float]] = None,
         distr_output: Optional[DistributionOutput] = None,
-        scaling: bool = True,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
     ) -> None:
