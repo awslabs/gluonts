@@ -78,21 +78,21 @@ dims_kvae = TensorDims(
     timesteps=20,
     particle=1,
     batch=32,
-    state=4,
+    state=10,
     target=int(np.prod(dims_img)),
     switch=None,  # --> n_hidden_rnn
-    auxiliary=2,
+    auxiliary=6,
     ctrl_target=None,
     ctrl_state=None,
 )
 dims_asgls = TensorDims(
     timesteps=20,
-    particle=20,
+    particle=32,
     batch=32,
     state=10,  # 10
     target=int(np.prod(dims_img)),
     switch=5,
-    auxiliary=2,
+    auxiliary=6,
     ctrl_target=None,
     ctrl_state=None,
 )
@@ -143,10 +143,14 @@ base_config = PymunkConfig(
     switch_link_type=SwitchLinkType.shared,
     switch_link_dims_hidden=tuple(),
     switch_link_activations=tuple(),
-    LRinv_logdiag_scaling=1.0,
-    LQinv_logdiag_scaling=1.0,
+    LRinv_logdiag_scaling=10.0,
+    LQinv_logdiag_scaling=10.0,
+    A_scaling=1.0,
     B_scaling=1.0,
+    C_scaling=1.0,
     D_scaling=1.0,
+    LSinv_logdiag_scaling=10.0,
+    F_scaling=1.0,
     eye_init_A=True,
 )
 
@@ -156,7 +160,7 @@ kvae_config = PymunkKVAEConfig(
     reconstruction_weight=0.3,
     n_hidden_rnn=50,  # the state output corresponds to our switch.
 )
-kvae_config.dims = dims_kvae
+
 
 arsgls_config = PymunkASGLSConfig(
     **asdict(base_config),
@@ -175,16 +179,26 @@ arsgls_config = PymunkASGLSConfig(
     switch_prior_scale=1.0,
     switch_prior_loc=0.0,
 )
-arsgls_config.dims = dims_asgls
 
-if True:  # well, well! this is just for quick testing :-)
-    arsgls_config.requires_grad_R = True
-    arsgls_config.requires_grad_Q = True
-    arsgls_config.init_scale_R_diag = [1e-3, 1e-1]
-    arsgls_config.init_scale_Q_diag = [1e-3, 1e-1]
-    arsgls_config.init_scale_S_diag = [1e-3, 1e-1]
-    # asgls_config.state_prior_loc = 0.0
-    # asgls_config.state_prior_scale = math.sqrt(1.0)
+# In original KVAE paper,  they fixed cov-mats through hyper-parameter search
+learn_kvae_cov_mats = False
+kvae_config.dims = dims_kvae
+if learn_kvae_cov_mats:
+    kvae_config.requires_grad_R = True
+    kvae_config.requires_grad_Q = True
+    kvae_config.init_scale_R_diag = [1e-4, 1e-1]
+    kvae_config.init_scale_Q_diag = [1e-4, 1e-1]
+    kvae_config.init_scale_S_diag = [1e-4, 1e-1]
+else:
+    kvae_config.requires_grad_R = False
+    kvae_config.requires_grad_Q = False
+
+arsgls_config.dims = dims_asgls
+arsgls_config.requires_grad_R = True
+arsgls_config.requires_grad_Q = True
+arsgls_config.init_scale_R_diag = [1e-4, 1e-1]
+arsgls_config.init_scale_Q_diag = [1e-4, 1e-1]
+arsgls_config.init_scale_S_diag = [1e-4, 1e-1]
 
 
 def make_experiment_config(experiment_name, dataset_name):
@@ -222,6 +236,7 @@ def _make_kvae(config):
         rnn_switch_model=rnn,
         state_prior_model=state_prior_model,
         reconstruction_weight=config.reconstruction_weight,
+        rao_blackwellized=config.rao_blackwellized,
     )
     return ssm
 
@@ -230,16 +245,16 @@ def _make_asgls(config):
     dims = config.dims
     gls_base_parameters = gls_parameters.GLSParametersASGLS(config=config)
     switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
-        config=config
+        config=config,
     )
     state_prior_model = state_priors.StatePriorModeFixedNoInputs(
-        config=config
+        config=config,
     )
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
     measurment_model = decoders.AuxiliaryToObsDecoderConvBernoulli(
-        config=config
+        config=config,
     )
-    obs_encoder = encoders.ObsToAuxiliaryLadderEncoderConvMlpGaussian(
+    encoder = encoders.ObsToAuxiliaryLadderEncoderConvMlpGaussian(
         config=config
     )
     recurrent_base_parameters = StateToSwitchParamsDefault(config=config)
@@ -254,7 +269,7 @@ def _make_asgls(config):
         gls_base_parameters=gls_base_parameters,
         recurrent_base_parameters=recurrent_base_parameters,
         measurement_model=measurment_model,
-        encoder=obs_encoder,
+        encoder=encoder,
         switch_transition_model=switch_transition_model,
         state_prior_model=state_prior_model,
         switch_prior_model=switch_prior_model,
@@ -275,6 +290,7 @@ def make_model(config):
         ssm=ssm,
         dataset_name=config.dataset_name,
         lr=config.lr,
+        lr_decay_rate=config.lr_decay_rate,
         weight_decay=config.weight_decay,
         n_epochs=config.n_epochs,
         batch_sizes={
