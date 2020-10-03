@@ -240,6 +240,16 @@ class ObsToAuxiliaryEncoderConvGaussian(ParametrisedConditionalDistribution):
             strides=config.strides,
             paddings=config.paddings,
         )
+        if not config.requires_grad_Q and isinstance(
+            config.init_scale_Q_diag, float
+        ):
+            fixed_max_scale = True
+        elif config.requires_grad_Q and not isinstance(
+            config.init_scale_Q_diag, float
+        ):
+            fixed_max_scale = False
+        else:
+            raise ValueError("unclear what encoder scale rectifier to use.")
         super().__init__(
             stem=nn.Sequential(
                 Reshape(config.dims_img),  # TxPxB will be flattened before.
@@ -284,12 +294,12 @@ class ObsToAuxiliaryEncoderConvGaussian(ParametrisedConditionalDistribution):
                             out_features=config.dims.auxiliary,
                         ),
                         ScaledSqrtSigmoid(max_scale=config.init_scale_Q_diag),
-                        # Lambda(
-                        #     fn=lambda x: torch.sqrt(
-                        #         (config.init_scale_Q_diag ** 2)
-                        #         * nn.functional.sigmoid(x)
-                        #     )
-                        # ),
+                    )
+                    if fixed_max_scale
+                    else DefaultScaleTransform(
+                        dim_out_flat_conv,
+                        config.dims.auxiliary,
+                        make_diag_cov_matrix=False,
                     ),
                 }
             ),
