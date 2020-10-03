@@ -8,7 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 import consts
-from experiments.gluonts_univariate_datasets.config_arsgls import (
+from experiments.gluonts_univariate_datasets.config_rsgls_issm import (
     make_model,
     make_experiment_config,
 )
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-dtype", type=str, default="float64")
     args = parser.parse_args()
-    args.gpus = None if len(args.gpus) == 0 else args.gpus
+    args.gpus = None if len(args.gpus) == 0 else [int(gpu) for gpu in args.gpus]
 
     if not (args.gpus is None or len(args.gpus) <= 1):
         raise Exception(

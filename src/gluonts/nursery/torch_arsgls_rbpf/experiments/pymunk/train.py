@@ -26,12 +26,12 @@ if __name__ == "__main__":
         "-gpus",
         "--gpus",
         nargs="*",
-        default=[0],
+        default=[],
         help='"-gpus 0 1 2 3". or "-gpus ".',
     )
     parser.add_argument("-dtype", type=str, default="float64")
     args = parser.parse_args()
-    args.gpus = None if len(args.gpus) == 0 else args.gpus
+    args.gpus = None if len(args.gpus) == 0 else [int(gpu) for gpu in args.gpus]
 
     if not (args.gpus is None or len(args.gpus) <= 1):
         raise Exception(

@@ -28,7 +28,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-dtype", type=str, default="float64")
     args = parser.parse_args()
-    args.gpus = None if len(args.gpus) == 0 else args.gpus
+    args.gpus = None if len(args.gpus) == 0 else [int(gpu) for gpu in args.gpus]
 
     if not (args.gpus is None or len(args.gpus) <= 1):
         raise Exception(
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         )
 
     # random seeds
-    seed = args.run_nr if args.run_nr is not None else 0
+    seed = args.run_nr if args.run_nr is not None else 50
     mx.random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
