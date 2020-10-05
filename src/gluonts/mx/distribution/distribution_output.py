@@ -71,7 +71,7 @@ class ArgProj(gluon.HybridBlock):
         self.domain_map = domain_map
 
     # noinspection PyMethodOverriding,PyPep8Naming
-    def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor]:
+    def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         params_unbounded = [proj(x) for proj in self.proj]
 
         return self.domain_map(*params_unbounded)
