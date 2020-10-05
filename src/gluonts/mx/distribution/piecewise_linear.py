@@ -381,10 +381,13 @@ class FixedKnotsArgProj(ArgProj):
             )
 
     # noinspection PyMethodOverriding,PyPep8Naming
-    def hybrid_forward(self, F, x: Tensor, knot_spacings: Tensor) -> Tuple[Tensor]:
+    def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         params_unbounded = [proj(x) for proj in self.proj]
+        knot_spacings = kwargs["knot_spacings"]
 
-        ks_proj = F.broadcast_add(params_unbounded[0].zeros_like(), knot_spacings)
+        ks_proj = F.broadcast_add(
+            params_unbounded[0].zeros_like(), knot_spacings
+        )
 
         return self.domain_map(*params_unbounded, ks_proj)
 
@@ -410,7 +413,9 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
     distr_cls: type = PiecewiseLinear
 
     @validated()
-    def __init__(self, quantile_levels: Union[List[float], np.ndarray],) -> None:
+    def __init__(
+        self, quantile_levels: Union[List[float], np.ndarray],
+    ) -> None:
         assert all(
             [0 < q < 1 for q in quantile_levels]
         ), "Quantiles must be strictly between 0 and 1."
@@ -439,7 +444,9 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
     def domain_map(cls, F, gamma, slopes, knot_spacings):
         # we use the super method only to compute intercepts and slopes
         # TODO: computations on knot spacings could be avoided here
-        gamma_out, slopes_out, _ = super().domain_map(F, gamma, slopes, knot_spacings)
+        gamma_out, slopes_out, _ = super().domain_map(
+            F, gamma, slopes, knot_spacings
+        )
 
         return gamma_out, slopes_out, knot_spacings
 

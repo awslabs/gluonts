@@ -17,7 +17,11 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.mx.distribution import PiecewiseLinear, PiecewiseLinearOutput, FixedKnotsPiecewiseLinearOutput
+from gluonts.mx.distribution import (
+    PiecewiseLinear,
+    PiecewiseLinearOutput,
+    FixedKnotsPiecewiseLinearOutput,
+)
 from gluonts.testutil import empirical_cdf
 from gluonts.core.serde import dump_json, load_json
 
@@ -208,7 +212,9 @@ def test_fkpwl_distr_output_same_as_pl():
 def test_fkpwl_distr_args_correct():
     x = mx.nd.array([[0.1, 0.5], [0.3, 0.99], [0.2, 0.6]])
 
-    knot_spacings = mx.nd.array([[0.1, 0.5, 0.4], [0.1, 0.5, 0.4], [0.1, 0.5, 0.4]])
+    knot_spacings = mx.nd.array(
+        [[0.1, 0.5, 0.4], [0.1, 0.5, 0.4], [0.1, 0.5, 0.4]]
+    )
 
     fkpl_proj = FixedKnotsPiecewiseLinearOutput([0.1, 0.6],).get_args_proj()
 
