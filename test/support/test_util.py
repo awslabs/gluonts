@@ -21,8 +21,8 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.support import util
 from gluonts.model.common import Tensor
+from gluonts.support import util
 
 
 @pytest.mark.parametrize("vec", [[[1, 2, 3, 4, 5], [10, 20, 30, 40, 50]]])

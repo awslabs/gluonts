@@ -17,7 +17,11 @@ import pytest
 import mxnet as mx
 import numpy as np
 
-from gluonts.mx.distribution import PiecewiseLinear, PiecewiseLinearOutput
+from gluonts.mx.distribution import (
+    PiecewiseLinear,
+    PiecewiseLinearOutput,
+    FixedKnotsPiecewiseLinearOutput,
+)
 from gluonts.testutil import empirical_cdf
 from gluonts.core.serde import dump_json, load_json
 
@@ -186,3 +190,35 @@ def test_robustness():
     # check that 0 <= crps
     crps_x = distr.crps(x)
     assert mx.nd.min(crps_x).asscalar() >= 0.0
+
+
+def test_fkpwl_distr_output_same_as_pl():
+    x = mx.nd.array([[0.1, 0.5], [0.3, 0.99], [0.2, 0.6]])
+
+    gamma = mx.nd.array([0.0, 2.0])
+    slopes = mx.nd.array([[0.1, 0.5, 0.9], [2.0, 0.1, 5.0]])
+    knot_spacings = mx.nd.array([[0.1, 0.5, 0.4], [0.1, 0.5, 0.4]])
+
+    pl_output = PiecewiseLinearOutput(num_pieces=3)
+    pl_dist = pl_output.distribution([gamma, slopes, knot_spacings])
+
+    fkpl = FixedKnotsPiecewiseLinearOutput([0.1, 0.6],).distribution(
+        [gamma, slopes, knot_spacings]
+    )
+
+    assert np.allclose(pl_dist.crps(x).asnumpy(), fkpl.crps(x).asnumpy(),)
+
+
+def test_fkpwl_distr_args_correct():
+    x = mx.nd.array([[0.1, 0.5], [0.3, 0.99], [0.2, 0.6]])
+
+    knot_spacings = mx.nd.array(
+        [[0.1, 0.5, 0.4], [0.1, 0.5, 0.4], [0.1, 0.5, 0.4]]
+    )
+
+    fkpl_proj = FixedKnotsPiecewiseLinearOutput([0.1, 0.6],).get_args_proj()
+
+    fkpl_proj.initialize()
+    _, _, ks = fkpl_proj(x)
+
+    assert np.allclose(ks.asnumpy(), knot_spacings.asnumpy())

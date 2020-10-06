@@ -71,11 +71,24 @@ class GenPareto(Distribution):
         F = self.F
         xi, beta = self.xi, self.beta
 
-        x_shifted = F.broadcast_div(x, beta)
+        def genpareto_log_prob(x, xi, beta):
+            x_shifted = F.broadcast_div(x, beta)
+            return -(1 + F.reciprocal(xi)) * F.log1p(xi * x_shifted) - F.log(
+                beta
+            )
+
+        """
+        The genpareto_log_prob(x) above returns NaNs for x<0. Wherever there are NaN in either of the F.where() conditional
+        vectors, then F.where() returns NaN at that entry as well, due to its indicator function multiplication: 
+        1*f(x) + np.nan*0 = nan, since np.nan*0 return nan. 
+        Therefore replacing genpareto_log_prob(x) with genpareto_log_prob(abs(x) mitigates nan returns in cases of x<0 without 
+        altering the value in cases of x>=0. 
+        This is a known issue in pytorch as well https://github.com/pytorch/pytorch/issues/12986.
+        """
         return F.where(
-            x < 0.0,
+            x < 0,
             -np.inf * F.ones_like(x),
-            -(1 + F.reciprocal(xi)) * F.log1p(xi * x_shifted) - F.log(beta),
+            genpareto_log_prob(F.abs(x), xi, beta),
         )
 
     @property
