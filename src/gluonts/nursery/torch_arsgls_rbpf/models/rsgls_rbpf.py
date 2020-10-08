@@ -10,7 +10,7 @@ from torch_extensions.fusion import gaussian_linear_combination
 from inference.analytical_gausian_linear.inference_step import (
     filter_forward_prediction_step,
 )
-from torch_extensions.ops import matvec
+from torch_extensions.ops import matvec, cholesky
 
 
 class RecurrentMixin:
@@ -61,7 +61,9 @@ class RecurrentMixin:
         else:
             m = matvec(rec_base_params.F, lat_vars_tm1.x)
             V = rec_base_params.S
-        state_to_switch_dist = MultivariateNormal(loc=m, covariance_matrix=V)
+        state_to_switch_dist = MultivariateNormal(
+            loc=m, scale_tril=cholesky(V),
+        )
 
         # combine i) & ii): sum variables (=convolve PDFs).
         switch_model_dist = gaussian_linear_combination(
