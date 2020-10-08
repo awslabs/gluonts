@@ -33,16 +33,21 @@ class CastDtype(object):
 
 
 class PymunkModel(DefaultLightningModel):
-    def __init__(self, lr_decay_rate, *args, **kwargs):
+    def __init__(self, lr_decay_rate, lr_decay_steps, *args, **kwargs):
         super().__init__(*args,  **kwargs)
         self.log_metrics = Box()
         self.lr_decay_rate = lr_decay_rate  # custom LR decay rate here.
+        self.lr_decay_steps = lr_decay_steps
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(lr=self.lr, params=self.parameters())
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            optimizer, gamma=self.lr_decay_rate,
-        )
+        scheduler = {
+            'scheduler': torch.optim.lr_scheduler.ExponentialLR(
+                optimizer, gamma=self.lr_decay_rate,
+            ),
+            'interval': 'epoch',
+            'frequency': self.lr_decay_steps,
+        }
         return [optimizer], [scheduler]
 
     def prepare_data(self):
@@ -72,6 +77,31 @@ class PymunkModel(DefaultLightningModel):
             collate_fn=train_collate_fn,
         )
 
+    def val_dataloader(self):
+        tar_extract_collate_fn = DefaultExtractTarget(
+            past_length=self.past_length, prediction_length=None,
+        )
+        to_model_dtype = CastDtype(model=self)
+        train_collate_fn = Compose(
+            [time_first_collate_fn, tar_extract_collate_fn, to_model_dtype],
+        )
+        return DataLoader(
+            dataset=PymunkDataset(
+                file_path=os.path.join(
+                    consts.data_dir, self.dataset_name, "train.npz",
+                ),
+            ),
+            batch_size=self.batch_sizes["val"],
+            shuffle=False,
+            collate_fn=train_collate_fn,
+        )
+
+    def validation_step(self, batch, batch_idx):
+        loss = self.loss(**batch)
+        result = pl.EvalResult()
+        result.log("val_loss", loss, prog_bar=True)
+        return result
+
     def test_dataloader(self):
         tar_extract_collate_fn = DefaultExtractTarget(
             past_length=self.past_length,
@@ -91,28 +121,6 @@ class PymunkModel(DefaultLightningModel):
             shuffle=False,
             collate_fn=test_collate_fn,
         )
-
-    # TODO There is no validation set. We run for a fixed number of epochs
-    #  which is often standard in generative models.
-    #  But pytorch_lightning does not support this.
-    #  It saves models either based on validation or training loss.
-    #  see https://github.com/PyTorchLightning/pytorch-lightning/issues/596
-    #  So this is a hack that makes it store the latest model as the best.
-    # *********************************************
-    def val_dataloader(self):
-        return self.train_dataloader()
-
-    def validation_step(self, batch, batch_idx):
-        result = pl.EvalResult()
-        result.log(
-            "val_loss",
-            torch.tensor(
-                -self.current_epoch, dtype=self.dtype, device=self.device
-            ),
-        )
-        return result
-
-    # *********************************************
 
     def test_step(self, batch, batch_idx):
         # 1) Plot
@@ -189,10 +197,10 @@ class PymunkModel(DefaultLightningModel):
             fig = plt.figure()
             if isinstance(self.log_metrics[metric_name], dict):
                 m = self.log_metrics[metric_name]["mean"]
-                std = self.log_metrics[metric_name]["std"]
-                (lower, upper) = (m - 3 * std, m + 3 * std)
                 plt.plot(time, m, label="mean")
-                plt.fill_between(time, lower, upper, alpha=0.25, label="3 std")
+                # std = self.log_metrics[metric_name]["std"]
+                # (lower, upper) = (m - 3 * std, m + 3 * std)
+                # plt.fill_between(time, lower, upper, alpha=0.25, label="3 std")
             else:
                 plt.plot(
                     time, self.log_metrics[metric_name], label=metric_name

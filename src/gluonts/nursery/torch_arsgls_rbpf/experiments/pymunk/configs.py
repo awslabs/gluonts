@@ -39,7 +39,7 @@ class PymunkConfig(BaseConfig):
     paddings: Tuple[int]
     upscale_factor: int
     prediction_length: int
-    decay_steps: int
+    lr_decay_steps: int
     lr_decay_rate: float
     grad_clip_norm: float
     batch_size_eval: int
@@ -107,23 +107,23 @@ base_config = PymunkConfig(
     n_epochs=200,
     lr=7e-3,
     lr_decay_rate=0.85,
-    decay_steps=20,
+    lr_decay_steps=20,
     grad_clip_norm=150.0,
     weight_decay=0.0,
     n_epochs_no_resampling=0,
-    n_base_A=10,
+    n_base_A=20,
     n_base_B=None,
     # Not used in image environments. But consider for other data.
-    n_base_C=10,
+    n_base_C=20,
     n_base_D=None,
-    n_base_Q=10,
-    n_base_R=10,
-    n_base_S=10,
-    n_base_F=10,
+    n_base_Q=20,
+    n_base_R=20,
+    n_base_S=20,
+    n_base_F=20,
     requires_grad_R=False,
     requires_grad_Q=False,
     init_scale_A=1.0,
-    init_scale_B=0.05,
+    init_scale_B=None,
     init_scale_C=0.05,
     init_scale_D=None,  # Note: KVAE does not have D.
     init_scale_R_diag=math.sqrt(0.08),
@@ -143,13 +143,13 @@ base_config = PymunkConfig(
     switch_link_type=SwitchLinkType.shared,
     switch_link_dims_hidden=tuple(),
     switch_link_activations=tuple(),
-    LRinv_logdiag_scaling=10.0,
-    LQinv_logdiag_scaling=10.0,
+    LRinv_logdiag_scaling=5.0,
+    LQinv_logdiag_scaling=5.0,
     A_scaling=1.0,
     B_scaling=1.0,
     C_scaling=1.0,
     D_scaling=1.0,
-    LSinv_logdiag_scaling=10.0,
+    LSinv_logdiag_scaling=5.0,
     F_scaling=1.0,
     eye_init_A=True,
 )
@@ -199,6 +199,7 @@ arsgls_config.requires_grad_Q = True
 arsgls_config.init_scale_R_diag = [1e-4, 1e-1]
 arsgls_config.init_scale_Q_diag = [1e-4, 1e-1]
 arsgls_config.init_scale_S_diag = [1e-4, 1e-1]
+arsgls_config.init_scale_C = None  # use default init
 
 
 def make_experiment_config(experiment_name, dataset_name):
@@ -291,6 +292,7 @@ def make_model(config):
         dataset_name=config.dataset_name,
         lr=config.lr,
         lr_decay_rate=config.lr_decay_rate,
+        lr_decay_steps=config.lr_decay_steps,
         weight_decay=config.weight_decay,
         n_epochs=config.n_epochs,
         batch_sizes={
@@ -304,5 +306,6 @@ def make_model(config):
         prediction_length=config.prediction_length,
         n_epochs_no_resampling=config.n_epochs_no_resampling,
         num_batches_per_epoch=50,
+        log_param_norms=True,
     )
     return model

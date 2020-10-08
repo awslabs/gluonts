@@ -26,10 +26,10 @@ if __name__ == "__main__":
         "-gpus",
         "--gpus",
         nargs="*",
-        default=[],
+        default=[0],
         help='"-gpus 0 1 2 3". or "-gpus ".',
     )
-    parser.add_argument("-dtype", type=str, default="float64")
+    parser.add_argument("-dtype", type=str, default="float32")
     args = parser.parse_args()
     args.gpus = None if len(args.gpus) == 0 else [int(gpu) for gpu in args.gpus]
 
@@ -68,6 +68,7 @@ if __name__ == "__main__":
             monitor="val_checkpoint_on", save_last=True,
         ),
         distributed_backend=args.distributed_backend,
+        limit_val_batches=5,
     )
 
     trainer.fit(model)
