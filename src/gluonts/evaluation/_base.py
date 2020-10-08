@@ -415,8 +415,7 @@ class Evaluator:
     def coverage(target, quantile_forecast):
         return np.mean((target < quantile_forecast))
 
-    @staticmethod
-    def mase(target, forecast, seasonal_error):
+    def mase(self, target, forecast, seasonal_error):
         r"""
         .. math::
 
@@ -424,13 +423,12 @@ class Evaluator:
 
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
-        flag = seasonal_error == 0
+        flag = seasonal_error <= self.zero_tol
         return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
             seasonal_error + flag
         )
 
-    @staticmethod
-    def mape(target, forecast):
+    def mape(self, target, forecast):
         r"""
         .. math::
 
@@ -438,15 +436,14 @@ class Evaluator:
         """
 
         denominator = np.abs(target)
-        flag = denominator == 0
+        flag = denominator <= self.zero_tol
 
         mape = np.mean(
             (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
         )
         return mape
 
-    @staticmethod
-    def smape(target, forecast):
+    def smape(self, target, forecast):
         r"""
         .. math::
 
@@ -456,7 +453,7 @@ class Evaluator:
         """
 
         denominator = np.abs(target) + np.abs(forecast)
-        flag = denominator == 0
+        flag = denominator <= self.zero_tol
 
         smape = 2 * np.mean(
             (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
@@ -499,8 +496,9 @@ class Evaluator:
 
         return owa
 
-    @staticmethod
-    def msis(target, lower_quantile, upper_quantile, seasonal_error, alpha):
+    def msis(
+        self, target, lower_quantile, upper_quantile, seasonal_error, alpha
+    ):
         r"""
         :math:
 
@@ -521,7 +519,7 @@ class Evaluator:
             * (target > upper_quantile)
         )
 
-        flag = seasonal_error == 0
+        flag = seasonal_error <= self.zero_tol
         return (numerator * (1 - flag)) / (seasonal_error + flag)
 
     @staticmethod
