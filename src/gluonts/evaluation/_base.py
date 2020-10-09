@@ -75,6 +75,7 @@ class Evaluator:
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    zero_tol = 1e-8
 
     def __init__(
         self,
@@ -89,7 +90,6 @@ class Evaluator:
         self.seasonality = seasonality
         self.alpha = alpha
         self.calculate_owa = calculate_owa
-        self.zero_tol = 1e-8
 
         self.num_workers = (
             num_workers
@@ -355,12 +355,12 @@ class Evaluator:
         # derived metrics based on previous aggregate metrics
         totals["RMSE"] = np.sqrt(totals["MSE"])
 
-        flag = totals["abs_target_mean"] <= self.zero_tol
+        flag = totals["abs_target_mean"] <= Evaluator.zero_tol
         totals["NRMSE"] = np.divide(
             totals["RMSE"] * (1 - flag), totals["abs_target_mean"] + flag
         )
 
-        flag = totals["abs_target_sum"] <= self.zero_tol
+        flag = totals["abs_target_sum"] <= Evaluator.zero_tol
         totals["ND"] = np.divide(
             totals["abs_error"] * (1 - flag), totals["abs_target_sum"] + flag
         )
@@ -415,7 +415,8 @@ class Evaluator:
     def coverage(target, quantile_forecast):
         return np.mean((target < quantile_forecast))
 
-    def mase(self, target, forecast, seasonal_error):
+    @staticmethod
+    def mase(target, forecast, seasonal_error):
         r"""
         .. math::
 
@@ -423,12 +424,13 @@ class Evaluator:
 
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
-        flag = seasonal_error <= self.zero_tol
+        flag = seasonal_error <= Evaluator.zero_tol
         return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
             seasonal_error + flag
         )
 
-    def mape(self, target, forecast):
+    @staticmethod
+    def mape(target, forecast):
         r"""
         .. math::
 
@@ -436,14 +438,15 @@ class Evaluator:
         """
 
         denominator = np.abs(target)
-        flag = denominator <= self.zero_tol
+        flag = denominator <= Evaluator.zero_tol
 
         mape = np.mean(
             (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
         )
         return mape
 
-    def smape(self, target, forecast):
+    @staticmethod
+    def smape(target, forecast):
         r"""
         .. math::
 
@@ -453,7 +456,7 @@ class Evaluator:
         """
 
         denominator = np.abs(target) + np.abs(forecast)
-        flag = denominator <= self.zero_tol
+        flag = denominator <= Evaluator.zero_tol
 
         smape = 2 * np.mean(
             (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
@@ -496,9 +499,8 @@ class Evaluator:
 
         return owa
 
-    def msis(
-        self, target, lower_quantile, upper_quantile, seasonal_error, alpha
-    ):
+    @staticmethod
+    def msis(target, lower_quantile, upper_quantile, seasonal_error, alpha):
         r"""
         :math:
 
@@ -519,7 +521,7 @@ class Evaluator:
             * (target > upper_quantile)
         )
 
-        flag = seasonal_error <= self.zero_tol
+        flag = seasonal_error <= Evaluator.zero_tol
         return (numerator * (1 - flag)) / (seasonal_error + flag)
 
     @staticmethod
