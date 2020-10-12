@@ -190,14 +190,13 @@ class BetaOutput(DistributionOutput):
     distr_cls: type = Beta
 
     @classmethod
-    def domain_map(cls, F, concentration1, concentration0):
+    def domain_map(cls, concentration1, concentration0):
         r"""
         Maps raw tensors to valid arguments for constructing a Beta
         distribution.
 
         Parameters
         ----------
-        F:
         concentration1:
             Tensor of shape `(*batch_shape, 1)`
         concentration0:
