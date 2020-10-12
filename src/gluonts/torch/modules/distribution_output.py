@@ -105,7 +105,7 @@ class Output:
             dtype=self.dtype,
         )
 
-    def domain_map(self, F, *args: torch.Tensor):
+    def domain_map(self, *args: torch.Tensor):
         raise NotImplementedError()
 
 
