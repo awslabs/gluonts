@@ -51,6 +51,7 @@ import pydantic
 
 # First-party imports
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 
 
 class TimeSeriesSlice(pydantic.BaseModel):
@@ -97,7 +98,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
 
         return TimeSeriesSlice(
             target=pd.Series(item["target"], index=index),
-            item=item["item"],
+            item=item[FieldName.ITEM_ID],
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
             feat_dynamic_cat=feat_dynamic_cat,
@@ -106,21 +107,21 @@ class TimeSeriesSlice(pydantic.BaseModel):
 
     def to_data_entry(self) -> DataEntry:
         ret = {
-            "start": self.start,
-            "item": self.item,
-            "target": self.target.values,
+            FieldName.START: self.start,
+            FieldName.ITEM_ID: self.item,
+            FieldName.TARGET: self.target.values,
         }
 
         if self.feat_static_cat:
-            ret["feat_static_cat"] = self.feat_static_cat
+            ret[FieldName.FEAT_STATIC_CAT] = self.feat_static_cat
         if self.feat_static_real:
-            ret["feat_static_real"] = self.feat_static_real
+            ret[FieldName.FEAT_STATIC_REAL] = self.feat_static_real
         if self.feat_dynamic_cat:
-            ret["feat_dynamic_cat"] = [
+            ret[FieldName.FEAT_DYNAMIC_CAT] = [
                 cat.values.tolist() for cat in self.feat_dynamic_cat
             ]
         if self.feat_dynamic_real:
-            ret["feat_dynamic_real"] = [
+            ret[FieldName.FEAT_DYNAMIC_REAL] = [
                 real.values.tolist() for real in self.feat_dynamic_real
             ]
 
