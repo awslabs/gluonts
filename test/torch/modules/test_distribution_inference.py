@@ -81,7 +81,7 @@ def maximum_likelihood_estimate_sgd(
             optimizer.zero_grad()
             distr_args = arg_proj(data)
             distr = distr_output.distribution(distr_args)
-            loss = distr.log_prob(sample_label).mean()
+            loss = -distr.log_prob(sample_label).mean()
             loss.backward()
             clip_grad_norm_(arg_proj.parameters(), 10.0)
             optimizer.step()
@@ -122,8 +122,8 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
         BetaOutput(),
         samples,
         init_biases=init_biases,
-        learning_rate=0.05,
-        num_epochs=10,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(10),
     )
 
     print("concentration1:", concentration1_hat, "concentration0:", concentration0_hat)
