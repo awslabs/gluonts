@@ -97,10 +97,10 @@ class Output:
         self._dtype = dtype
 
     def get_args_proj(
-        self, in_feature: int, prefix: Optional[str] = None
+        self, in_features: int, prefix: Optional[str] = None
     ) -> nn.Module:
         return ArgProj(
-            in_feature=in_feature,
+            in_features=in_features,
             args_dim=self.args_dim,
             domain_map=LambdaLayer(self.domain_map),
             prefix=prefix,

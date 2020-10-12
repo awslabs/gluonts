@@ -34,7 +34,7 @@ from torch.distributions import (
 
 # First-party imports
 from gluonts.model.common import NPArrayLike
-from gluonts.torch.modules import (
+from gluonts.torch.modules.distribution_output import (
     DistributionOutput,
     BetaOutput,
 )
@@ -64,8 +64,7 @@ def maximum_likelihood_estimate_sgd(
 
     if init_biases is not None:
         for param, bias in zip(arg_proj.proj, init_biases):
-            with torch.no_grad():
-                param.bias.set_(bias)
+            nn.init.constant_(param.bias, bias)
 
     dummy_data = torch.ones((len(samples), 1))
 
