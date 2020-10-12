@@ -14,6 +14,10 @@
 import pandas as pd
 
 from gluonts.dataset.split.splitter import TimeSeriesSlice
+from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.split import DateSplitter
+from gluonts.dataset.field_names import FieldName
+import pandas as pd
 
 
 def make_series(data, start="2020", freq="D"):
@@ -33,3 +37,17 @@ def test_ts_slice_to_item():
     )
 
     sl.to_data_entry()
+
+
+def test_splitter():
+
+    dataset = get_dataset("m4_hourly")
+    prediction_length = dataset.metadata.prediction_length
+    splitter = DateSplitter(
+        prediction_length=prediction_length,
+        split_date=pd.Timestamp("1750-01-05 04:00:00", freq="h"),
+    )
+    train, validation = splitter.split(dataset.train)
+    assert len(train[1][0][FieldName.TARGET]) + prediction_length == len(
+        validation[1][0][FieldName.TARGET]
+    )
