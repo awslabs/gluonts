@@ -22,6 +22,7 @@ from torch.distributions import (
     Distribution,
     TransformedDistribution,
     AffineTransform,
+    Beta,
 )
 
 
@@ -182,3 +183,42 @@ class DistributionOutput(Output):
         define a distribution of the right event_shape.
         """
         raise NotImplementedError()
+
+
+class BetaOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"concentration1": 1, "concentration0": 1}
+    distr_cls: type = Beta
+
+    @classmethod
+    def domain_map(cls, F, concentration1, concentration0):
+        r"""
+        Maps raw tensors to valid arguments for constructing a Beta
+        distribution.
+
+        Parameters
+        ----------
+        F:
+        concentration1:
+            Tensor of shape `(*batch_shape, 1)`
+        concentration0:
+            Tensor of shape `(*batch_shape, 1)`
+
+        Returns
+        -------
+        Tuple[Tensor, Tensor]:
+            Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
+            positive orthant.
+        """
+        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
+
+        concentration1 = F.softplus(concentration1) + epsilon
+        concentration0 = F.softplus(concentration0) + epsilon
+        return concentration1.squeeze(axis=-1), concentration0.squeeze(axis=-1)
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()
+
+    @property
+    def value_in_support(self) -> float:
+        return 0.5
