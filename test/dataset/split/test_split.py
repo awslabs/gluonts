@@ -17,7 +17,6 @@ from gluonts.dataset.split.splitter import TimeSeriesSlice
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.dataset.split import DateSplitter
 from gluonts.dataset.field_names import FieldName
-import pandas as pd
 
 
 def make_series(data, start="2020", freq="D"):
