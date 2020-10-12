@@ -202,7 +202,7 @@ class BetaOutput(DistributionOutput):
 
         concentration1 = F.softplus(concentration1) + epsilon
         concentration0 = F.softplus(concentration0) + epsilon
-        return concentration1.squeeze(axis=-1), concentration0.squeeze(axis=-1)
+        return concentration1.squeeze(dim=-1), concentration0.squeeze(dim=-1)
 
     @property
     def event_shape(self) -> Tuple:
