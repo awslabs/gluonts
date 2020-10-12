@@ -26,7 +26,6 @@ from torch.distributions import (
     Beta,
 )
 
-
 # First-party imports
 from gluonts.core.component import DType, validated
 
@@ -52,10 +51,6 @@ class ArgProj(nn.Module):
         a function or a nn.Module. This will be called with num_args
         arguments and should return a tuple of outputs that will be
         used when calling the distribution constructor.
-    dtype
-        Unused type of the tensors. Assume np.float32 for now.
-    prefix
-        Unused prefix name.
     """
 
     def __init__(
@@ -63,8 +58,6 @@ class ArgProj(nn.Module):
         in_features: int,
         args_dim: Dict[str, int],
         domain_map: Callable[..., Tuple[torch.Tensor]],
-        dtype: DType = np.float32,
-        prefix: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -96,15 +89,11 @@ class Output:
     def dtype(self, dtype: DType):
         self._dtype = dtype
 
-    def get_args_proj(
-        self, in_features: int, prefix: Optional[str] = None
-    ) -> nn.Module:
+    def get_args_proj(self, in_features: int) -> nn.Module:
         return ArgProj(
             in_features=in_features,
             args_dim=self.args_dim,
             domain_map=LambdaLayer(self.domain_map),
-            prefix=prefix,
-            dtype=self.dtype,
         )
 
     def domain_map(self, *args: torch.Tensor):
@@ -191,7 +180,7 @@ class BetaOutput(DistributionOutput):
     distr_cls: type = Beta
 
     @classmethod
-    def domain_map(cls, concentration1, concentration0):
+    def domain_map(cls, concentration1: torch.Tensor, concentration0: torch.Tensor):
         r"""
         Maps raw tensors to valid arguments for constructing a Beta
         distribution.
