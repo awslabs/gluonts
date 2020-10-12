@@ -21,7 +21,7 @@ import torch.nn as nn
 from torch.distributions import (
     Distribution,
     TransformedDistribution,
-    AffineTransformation,
+    AffineTransform,
 )
 
 
@@ -146,7 +146,7 @@ class DistributionOutput(Output):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedDistribution(
-                distr, [AffineTransformation(loc=loc, scale=scale)]
+                distr, [AffineTransform(loc=loc, scale=scale)]
             )
 
     @property
