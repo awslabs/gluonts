@@ -61,6 +61,11 @@ def test_splitter():
     assert len(validation[1][0][FieldName.TARGET]) == max_history
     assert len(train[1][0][FieldName.TARGET]) == 4 * prediction_length
 
+    train, validation = splitter.rolling_split(dataset.train, windows=3)
+    for i in range(3):
+        assert len(validation[1][i][FieldName.TARGET]) == max_history
+        assert len(train[1][i][FieldName.TARGET]) == 4 * prediction_length
+
     max_history = 2 * prediction_length
     splitter = DateSplitter(
         prediction_length=prediction_length,
@@ -69,3 +74,7 @@ def test_splitter():
     )
     train, validation = splitter.split(dataset.train)
     assert len(validation[1][0][FieldName.TARGET]) == max_history
+
+    train, validation = splitter.rolling_split(dataset.train, windows=3)
+    for i in range(3):
+        assert len(validation[1][i][FieldName.TARGET]) == max_history

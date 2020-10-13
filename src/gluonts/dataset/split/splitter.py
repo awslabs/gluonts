@@ -256,8 +256,11 @@ class AbstractBaseSplitter(ABC):
                 test = self._trim_history(
                     self._test_slice(item, offset=offset)
                 )
+                prediction_length = getattr(self, "prediction_length")
 
-                assert len(test) - len(train) >= getattr(self, "max_history")
+                assert (
+                    train.end + train.end.freq * prediction_length <= test.end
+                )
                 split._add_test_slice(test)
 
         return split
