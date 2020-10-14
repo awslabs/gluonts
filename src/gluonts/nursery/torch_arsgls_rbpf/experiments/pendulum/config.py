@@ -44,9 +44,6 @@ class PendulumSGLSConfig(BaseConfig):
     switch_prior_scale: float
     requires_grad_switch_prior: bool
 
-    gpus: (tuple, list)
-    dtype: torch.dtype
-
     b_fn_dims: tuple
     b_fn_activations: (nn.Module, tuple)
     d_fn_dims: tuple
@@ -71,8 +68,6 @@ dims = TensorDims(
 config = PendulumSGLSConfig(
     dataset_name=consts.Datasets.pendulum_3D_coord,
     experiment_name="default",
-    gpus=tuple(range(0, 4)),
-    dtype=torch.float64,
     batch_size_eval=1000,
     num_samples_eval=100,
     lr=1e-2,
