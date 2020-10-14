@@ -15,7 +15,7 @@ import pandas as pd
 
 from gluonts.dataset.split.splitter import TimeSeriesSlice
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.dataset.split import DateSplitter
+from gluonts.dataset.split import DateSplitter, OffsetSplitter
 from gluonts.dataset.field_names import FieldName
 
 
@@ -50,3 +50,31 @@ def test_splitter():
     assert len(train[1][0][FieldName.TARGET]) + prediction_length == len(
         validation[1][0][FieldName.TARGET]
     )
+
+    max_history = 2 * prediction_length
+    splitter = OffsetSplitter(
+        prediction_length=prediction_length,
+        split_offset=4 * prediction_length,
+        max_history=max_history,
+    )
+    train, validation = splitter.split(dataset.train)
+    assert len(validation[1][0][FieldName.TARGET]) == max_history
+    assert len(train[1][0][FieldName.TARGET]) == 4 * prediction_length
+
+    train, validation = splitter.rolling_split(dataset.train, windows=3)
+    for i in range(3):
+        assert len(validation[1][i][FieldName.TARGET]) == max_history
+        assert len(train[1][i][FieldName.TARGET]) == 4 * prediction_length
+
+    max_history = 2 * prediction_length
+    splitter = DateSplitter(
+        prediction_length=prediction_length,
+        split_date=pd.Timestamp("1750-01-05 04:00:00", freq="h"),
+        max_history=max_history,
+    )
+    train, validation = splitter.split(dataset.train)
+    assert len(validation[1][0][FieldName.TARGET]) == max_history
+
+    train, validation = splitter.rolling_split(dataset.train, windows=3)
+    for i in range(3):
+        assert len(validation[1][i][FieldName.TARGET]) == max_history
