@@ -6,7 +6,6 @@ import torch
 from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from pytorch_lightning import LightningModule
-import pytorch_lightning as pl
 
 import consts
 from models.base_amortized_gls import BaseAmortizedGaussianLinearSystem
@@ -242,17 +241,15 @@ class DefaultLightningModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self.loss(**batch)
-        result = pl.TrainResult(loss)
-        result.log("train_loss", loss)
-
+        self.log("train_loss", loss)
         if self.log_param_norms:
             for param_name, param_value in self.named_parameters():
                 if param_value.ndim == 3:  # Basemats: avg norms of K base mats
                     param_norm = torch.norm(param_value, dim=[-2, -1]).mean()
                 else:
                     param_norm = torch.norm(param_value)
-                result.log(param_name, param_norm)
-        return result
+                self.log(param_name, param_norm)
+        return loss
 
     def on_train_epoch_start(self) -> None:
         super().on_train_epoch_start()
