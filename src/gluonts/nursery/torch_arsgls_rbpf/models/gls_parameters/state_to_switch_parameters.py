@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 import math
 from box import Box
 import numpy as np
@@ -26,6 +26,8 @@ class StateToSwitchParams(nn.Module):
         make_cov_from_cholesky_avg: bool = True,
         switch_link: (nn.Module, None) = None,
         switch_link_type: (SwitchLinkType, None) = None,
+        switch_link_dims_hidden: Optional[tuple] = None,
+        switch_link_activations: Optional[Union[tuple, nn.Module]] = None,
         LSinv_logdiag_scaling: Optional[float] = None,
         F_scaling: Optional[float] = None,
     ):
@@ -41,7 +43,9 @@ class StateToSwitchParams(nn.Module):
             if switch_link_type.value == SwitchLinkType.individual.value:
                 self.link_transformers = IndividualLink(
                     dim_in=n_switch,
-                    names_and_dims={"S": n_base_S, "F": n_base_F,},
+                    dims_hidden=switch_link_dims_hidden,
+                    activations_hidden=switch_link_activations,
+                    names_and_dims_out={"S": n_base_S, "F": n_base_F,},
                 )
             elif switch_link_type.value == SwitchLinkType.identity.value:
                 names = ("S", "F")
@@ -51,7 +55,11 @@ class StateToSwitchParams(nn.Module):
                 assert len(set(dims)) == 1
                 dim_out = dims[0]
                 self.link_transformers = SharedLink(
-                    dim_in=n_switch, dim_out=dim_out, names=("S", "F")
+                    dim_in=n_switch,
+                    dim_out=dim_out,
+                    dims_hidden=switch_link_dims_hidden,
+                    activations_hidden=switch_link_activations,
+                    names=("S", "F"),
                 )
             else:
                 raise Exception(
