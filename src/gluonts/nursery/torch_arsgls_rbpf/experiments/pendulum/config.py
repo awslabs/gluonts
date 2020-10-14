@@ -13,6 +13,7 @@ from experiments.model_component_zoo import (
     switch_transitions,
 )
 from models.rsgls_rbpf import RecurrentSwitchingGaussianLinearSystemRBSMC
+from models.sgls_rbpf import SwitchingGaussianLinearSystemBaseRBSMC
 from experiments.model_component_zoo.recurrent_base_parameters import (
     StateToSwitchParamsDefault,
 )
@@ -41,6 +42,7 @@ class PendulumSGLSConfig(BaseConfig):
 
     switch_prior_loc: float
     switch_prior_scale: float
+    requires_grad_switch_prior: bool
 
     gpus: (tuple, list)
     dtype: torch.dtype
@@ -115,12 +117,23 @@ config = PendulumSGLSConfig(
     state_prior_loc=0.0,
     switch_prior_loc=0.0,
     switch_prior_scale=1.0,
+    requires_grad_switch_prior=False,
     b_fn_dims=tuple(),
     b_fn_activations=nn.LeakyReLU(0.1, inplace=True),
     d_fn_dims=tuple(),
     d_fn_activations=nn.LeakyReLU(0.1, inplace=True),
     requires_grad_Q=True,
     requires_grad_R=True,
+    requires_grad_S=True,
+    LRinv_logdiag_scaling=5.0,
+    LQinv_logdiag_scaling=5.0,
+    A_scaling=5.0,
+    B_scaling=5.0,
+    C_scaling=5.0,
+    D_scaling=5.0,
+    LSinv_logdiag_scaling=5.0,
+    F_scaling=5.0,
+    eye_init_A=True,
 )
 
 
@@ -129,34 +142,49 @@ def make_model(config):
     gls_base_parameters = gls_parameters.GlsParametersUnrestricted(
         config=config
     )
-
-    # obs_to_switch_encoder = (
-    #     encoders.ObsToSwitchEncoderGaussianMLP(config=config)
-    #     if config.obs_to_switch_encoder
-    #     else None
-    # )
     encoder = encoders.ObsToSwitchEncoderGaussianMLP(config=config)
     state_prior_model = state_priors.StatePriorModelNoInputs(config=config)
-    switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
-        config=config,
-    )
     switch_prior_model = switch_priors.SwitchPriorModelGaussian(config=config)
-    recurrent_base_parameters = StateToSwitchParamsDefault(config=config)
 
-    ssm = RecurrentSwitchingGaussianLinearSystemRBSMC(
-        n_state=dims.state,
-        n_target=dims.target,
-        n_ctrl_state=dims.ctrl_state,
-        n_ctrl_target=dims.ctrl_target,
-        n_particle=dims.particle,
-        n_switch=dims.switch,
-        gls_base_parameters=gls_base_parameters,
-        recurrent_base_parameters=recurrent_base_parameters,
-        encoder=encoder,
-        switch_transition_model=switch_transition_model,
-        state_prior_model=state_prior_model,
-        switch_prior_model=switch_prior_model,
-    )
+    if config.is_recurrent:
+        switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
+            config=config,
+        )
+        recurrent_base_parameters = StateToSwitchParamsDefault(config=config)
+        ssm = RecurrentSwitchingGaussianLinearSystemRBSMC(
+            n_state=dims.state,
+            n_target=dims.target,
+            n_ctrl_state=dims.ctrl_state,
+            n_ctrl_target=dims.ctrl_target,
+            n_particle=dims.particle,
+            n_switch=dims.switch,
+            gls_base_parameters=gls_base_parameters,
+            recurrent_base_parameters=recurrent_base_parameters,
+            encoder=encoder,
+            switch_transition_model=switch_transition_model,
+            state_prior_model=state_prior_model,
+            switch_prior_model=switch_prior_model,
+        )
+    else:
+        switch_transition_model = switch_transitions.SwitchTransitionModelGaussian(
+            config=config,
+        )
+        ssm = SwitchingGaussianLinearSystemBaseRBSMC(
+            n_state=dims.state,
+            n_target=dims.target,
+            n_ctrl_state=dims.ctrl_state,
+            n_ctrl_target=dims.ctrl_target,
+            n_particle=dims.particle,
+            n_switch=dims.switch,
+            gls_base_parameters=gls_base_parameters,
+            encoder=encoder,
+            switch_transition_model=switch_transition_model,
+            state_prior_model=state_prior_model,
+            switch_prior_model=switch_prior_model,
+        )
+
+
+
     model = PendulumModel(
         config=config,
         ssm=ssm,
@@ -174,11 +202,6 @@ def make_model(config):
         n_particle_eval=config.num_samples_eval,
         prediction_length=config.prediction_length,
         n_epochs_no_resampling=config.n_epochs_no_resampling,
-        num_batches_per_epoch=50,
-        LRinv_logdiag_scaling=1.0,
-        LQinv_logdiag_scaling=1.0,
-        B_scaling=1.0,
-        D_scaling=1.0,
-        eye_init_A=True,
+        num_batches_per_epoch=None,  # TODO: move this out of base class.
     )
     return model
