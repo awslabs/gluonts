@@ -90,9 +90,9 @@ class SwitchPriorModelGaussian(nn.Module):
                 m=torch.ones(config.dims.switch) * config.switch_prior_loc,
                 LVinv_tril=LVinv_tril,
                 LVinv_logdiag=LVinv_logdiag,
-                requires_grad_m=True,
+                requires_grad_m=config.requires_grad_switch_prior,
                 requires_diag_LVinv_tril=False,
-                requires_diag_LVinv_logdiag=True,
+                requires_diag_LVinv_logdiag=config.requires_grad_switch_prior,
             )
         else:
             self.dist = ParametrisedConditionalDistribution(
