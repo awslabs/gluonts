@@ -175,6 +175,7 @@ def generate_dataset(seed=1234, n_timesteps_train=20, n_timesteps_test=100):
         wall=None,
         gravity=(0.0, -5.0),
     )
+
     cannon.run(
         delay=None,
         iterations=n_timesteps_train,
@@ -186,15 +187,18 @@ def generate_dataset(seed=1234, n_timesteps_train=20, n_timesteps_test=100):
         save="npz",
     )
 
-    np.random.seed(5678)
-    cannon = BallBox(
-        dt=0.2,
-        res=(32 * scale, 32 * scale),
-        init_pos=(16 * scale, 16 * scale),
-        init_std=8,
-        wall=None,
-        gravity=(0.0, -5.0),
+    cannon.run(
+        delay=None,
+        iterations=n_timesteps_test,
+        sequences=100,
+        radius=3 * scale,
+        angle_limits=(0, 360),
+        velocity_limits=(5.0 * scale, 10.0 * scale),
+        filepath=os.path.join(data_path, "val.npz"),
+        save="npz",
     )
+
+    np.random.seed(5678)
     cannon.run(
         delay=None,
         iterations=n_timesteps_test,
