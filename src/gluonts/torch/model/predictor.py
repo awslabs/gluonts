@@ -26,7 +26,7 @@ from gluonts.model.forecast_generator import (
     SampleForecastGenerator,
     predict_to_numpy,
 )
-from gluonts.model.predictor import Predictor
+from gluonts.model.predictor import Predictor, OutputTransform
 from gluonts.torch.batchify import batchify
 from gluonts.transform import Transformation
 
@@ -34,9 +34,6 @@ from gluonts.transform import Transformation
 @predict_to_numpy.register(nn.Module)
 def _(prediction_net: nn.Module, inputs: torch.Tensor) -> np.ndarray:
     return prediction_net(*inputs).data.numpy()
-
-
-OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
 class PyTorchPredictor(Predictor):
