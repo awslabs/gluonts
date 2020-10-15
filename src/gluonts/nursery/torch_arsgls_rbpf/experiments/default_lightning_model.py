@@ -242,7 +242,7 @@ class DefaultLightningModel(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.loss(**batch)
         self.log("train_loss", loss)
-        if self.log_param_norms:
+        if self.log_param_norms and batch_idx % 10 == 0:
             for param_name, param_value in self.named_parameters():
                 if param_value.ndim == 3:  # Basemats: avg norms of K base mats
                     param_norm = torch.norm(param_value, dim=[-2, -1]).mean()

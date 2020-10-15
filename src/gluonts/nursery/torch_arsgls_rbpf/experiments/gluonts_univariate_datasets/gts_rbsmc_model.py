@@ -386,8 +386,7 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
     def validation_step(self, batch, batch_idx):
         with torch.no_grad():
             loss = self.loss(**batch)
-        result = pl.EvalResult()
-        result.log("val_loss", loss)
+        self.log("val_loss", loss)
 
         if isinstance(self.ssm, BaseRBSMCGaussianLinearSystem):
             if batch_idx == 0:
@@ -414,7 +413,6 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
                         f"forecast_ep{self.current_epoch}",
                     ),
                 )
-        return result
 
     def test_step(self, batch, batch_idx):
         # TODO: forecast metrics are computed currently in
@@ -424,7 +422,7 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         return
         # with torch.no_grad():
         #     loss = self.loss(**batch)
-        # result = pl.EvalResult()
+        # result = pl.core.step_result.EvalResult()
         # result.log('test_loss', loss)
         # return result
 
@@ -459,14 +457,11 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
             )
             for key, val in _agg_metrics.items():
                 agg_metrics[f"{key}_{which}"] = val
-        # TODO: do something with "outputs"
-        result = pl.EvalResult(
-            checkpoint_on=torch.tensor(agg_metrics["mean_wQuantileLoss_full"]),
-        )
+
         for k, v in agg_metrics.items():
             if k == "mean_wQuantileLoss_full":
-                result.log("CRPS", v, prog_bar=True)
-            result.log(k, v, prog_bar=False)
+                self.log("CRPS", torch.tensor(v), prog_bar=True)
+            self.log(k, v, prog_bar=False)
 
         # log base matrices: L{R, Q}inv_logdiag.
         params = {
@@ -476,14 +471,13 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
         for name, param in params.items():
             for idx_base in range(param.shape[0]):
                 for idx_dim in range(param.shape[1]):
-                    result.log(
+                    self.log(
                         f"{name}[{idx_base},{idx_dim}]",
                         param[idx_base, idx_dim],
                         prog_bar=False,
                     )
-        return result
 
-    def test_end(
+    def test_epoch_end(
         self,
         outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]],
     ) -> Dict[str, Dict[str, Tensor]]:
@@ -520,10 +514,9 @@ class GluontsUnivariateDataModel(DefaultLightningModel):
             for key, val in _agg_metrics.items():
                 agg_metrics[f"{key}_{which}"] = val
 
-        result = pl.EvalResult()
         for k, v in agg_metrics.items():
-            result.log(k, v)
-        return result
+            self.log(k, v)
+        return agg_metrics
 
 
 class SGLSPredictor(RepresentablePredictor):
