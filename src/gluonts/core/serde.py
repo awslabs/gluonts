@@ -299,6 +299,7 @@ def load_code(c: str) -> Any:
 
 kind_type = "type"
 kind_inst = "instance"
+kind_state = "state"
 
 
 @singledispatch
@@ -446,6 +447,19 @@ def encode(v: Any) -> Any:
     raise RuntimeError(bad_type_msg.format(fqname_for(v.__class__)))
 
 
+class Stateful:
+    pass
+
+
+@encode.register(Stateful)
+def encode_from_state(v: Stateful) -> Any:
+    return {
+        "__kind__": kind_state,
+        "class": fqname_for(v.__class__),
+        "kwargs": encode(v.__dict__),
+    }
+
+
 @encode.register(PurePath)
 def encode_path(v: PurePath) -> Any:
     """
@@ -544,6 +558,14 @@ def decode(r: Any) -> Any:
     # r = { 'class': ..., 'kwargs': ... }
     if type(r) == dict and r.get("__kind__") == kind_type:
         return locate(r["class"])
+
+    if type(r) == dict and r.get("__kind__") == kind_state:
+        cls = cast(Any, locate(r["class"]))
+        obj = cls.__new__(cls)
+        kwargs = decode(r["kwargs"]) if "kwargs" in r else {}
+        obj.__dict__.update(kwargs)
+        return obj
+
     # r = { k1: v1, ..., kn: vn }
     elif type(r) == dict:
         return {k: decode(v) for k, v in r.items()}
