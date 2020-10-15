@@ -299,7 +299,7 @@ def load_code(c: str) -> Any:
 
 kind_type = "type"
 kind_inst = "instance"
-kind_state = "state"
+kind_stateful = "stateful"
 
 
 @singledispatch
@@ -454,7 +454,7 @@ class Stateful:
 @encode.register(Stateful)
 def encode_from_state(v: Stateful) -> Any:
     return {
-        "__kind__": kind_state,
+        "__kind__": kind_stateful,
         "class": fqname_for(v.__class__),
         "kwargs": encode(v.__dict__),
     }
@@ -559,7 +559,7 @@ def decode(r: Any) -> Any:
     if type(r) == dict and r.get("__kind__") == kind_type:
         return locate(r["class"])
 
-    if type(r) == dict and r.get("__kind__") == kind_state:
+    if type(r) == dict and r.get("__kind__") == kind_stateful:
         cls = cast(Any, locate(r["class"]))
         obj = cls.__new__(cls)
         kwargs = decode(r["kwargs"]) if "kwargs" in r else {}
