@@ -49,7 +49,7 @@ if __name__ == "__main__":
         prediction_length=dataset.metadata.prediction_length,
         freq=dataset.metadata.freq,
         trainer=Trainer(
-            epochs=5, num_batches_per_epoch=10, after_initialize_cb=copy_params
+            epochs=5, num_batches_per_epoch=10, post_initialize_cb=copy_params
         ),
     )
 

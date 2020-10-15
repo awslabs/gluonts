@@ -99,9 +99,9 @@ class Trainer:
         Initializer of the weights of the network (default: "xavier").
     hybridize
         If set to true the network will be hybridized before training
-    after_initialize_cb
+    post_initialize_cb
         An optional callback function. If provided the function will be called with the
-        initialized network `after_initialize_cb(net)` before the training starts.
+        initialized network `post_initialize_cb(net)` before the training starts.
         This callback can be used to e.g. overwrite parameters for warm starting, to freeze some
         of the network parameters etc.
     """
@@ -124,7 +124,7 @@ class Trainer:
         avg_strategy: Union[
             AveragingStrategy, IterationAveragingStrategy
         ] = SelectNBestMean(num_models=1),
-        after_initialize_cb: Optional[Callable[[mx.gluon.Block], None]] = None,
+        post_initialize_cb: Optional[Callable[[mx.gluon.Block], None]] = None,
     ) -> None:
 
         assert (
@@ -161,7 +161,7 @@ class Trainer:
         self.avg_strategy = avg_strategy
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
-        self.after_initialize_cb = after_initialize_cb
+        self.post_initialize_cb = post_initialize_cb
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:
         logger.info("Received signal: {}".format(signum))
@@ -206,13 +206,6 @@ class Trainer:
                 static_shape=True,
             ):
                 batch_size = train_iter.batch_size
-                sample_batch = next(iter(train_iter))
-                sample_input = [sample_batch[k] for k in input_names]
-                with mx.autograd.record():
-                    _ = net(*sample_input)
-
-                if self.after_initialize_cb:
-                    self.after_initialize_cb(net)
 
                 best_epoch_info = {
                     "params_path": "%s-%s.params" % (base_path(), "init"),
@@ -240,9 +233,12 @@ class Trainer:
                     kvstore="device",  # FIXME: initialize properly
                 )
 
+                first_forward = True
+
                 def loop(
                     epoch_no, batch_iter, is_training: bool = True
                 ) -> mx.metric.Loss:
+                    nonlocal first_forward
                     tic = time.time()
 
                     epoch_loss = mx.metric.Loss()
@@ -259,6 +255,12 @@ class Trainer:
                                 break
 
                             inputs = [data_entry[k] for k in input_names]
+
+                            if first_forward:
+                                first_forward = False
+                                _ = net(*inputs)
+                                if self.post_initialize_cb:
+                                    self.post_initialize_cb(net)
 
                             with mx.autograd.record():
                                 output = net(*inputs)
