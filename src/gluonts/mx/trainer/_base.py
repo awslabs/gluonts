@@ -17,7 +17,7 @@ import os
 import tempfile
 import time
 import uuid
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Callable
 
 # Third-party imports
 import mxnet as mx
@@ -98,6 +98,12 @@ class Trainer:
     init
         Initializer of the weights of the network (default: "xavier").
     hybridize
+        If set to true the network will be hybridized before training
+    after_initialize_cb
+        An optional callback function. If provided the function will be called with the
+        initialized network `after_initialize_cb(net)` before the training starts.
+        This callback can be used to e.g. overwrite parameters for warm starting, to freeze some
+        of the network parameters etc.
     """
 
     @validated()
@@ -118,6 +124,7 @@ class Trainer:
         avg_strategy: Union[
             AveragingStrategy, IterationAveragingStrategy
         ] = SelectNBestMean(num_models=1),
+        after_initialize_cb: Optional[Callable[[mx.gluon.Block], None]] = None,
     ) -> None:
 
         assert (
@@ -154,6 +161,7 @@ class Trainer:
         self.avg_strategy = avg_strategy
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
+        self.after_initialize_cb = after_initialize_cb
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:
         logger.info("Received signal: {}".format(signum))
@@ -198,6 +206,13 @@ class Trainer:
                 static_shape=True,
             ):
                 batch_size = train_iter.batch_size
+                sample_batch = next(iter(train_iter))
+                sample_input = [sample_batch[k] for k in input_names]
+                with mx.autograd.record():
+                    _ = net(*sample_input)
+
+                if self.after_initialize_cb:
+                    self.after_initialize_cb(net)
 
                 best_epoch_info = {
                     "params_path": "%s-%s.params" % (base_path(), "init"),
