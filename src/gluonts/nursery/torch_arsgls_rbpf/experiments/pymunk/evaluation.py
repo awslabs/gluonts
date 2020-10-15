@@ -523,5 +523,3 @@ def plot_pymunk_results(
             pad_inches=0.025,
         )
         plt.close(fig)
-
-    print("done plotting")
