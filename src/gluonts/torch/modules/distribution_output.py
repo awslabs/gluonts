@@ -33,7 +33,7 @@ from gluonts.core.component import DType, validated
 from .lambda_layer import LambdaLayer
 
 
-class PyArgProj(nn.Module):
+class PtArgProj(nn.Module):
     r"""
     A PyTorch module that can be used to project from a dense layer
     to PyTorch distribution arguments.
@@ -90,7 +90,7 @@ class Output:
         self._dtype = dtype
 
     def get_args_proj(self, in_features: int) -> nn.Module:
-        return PyArgProj(
+        return PtArgProj(
             in_features=in_features,
             args_dim=self.args_dim,
             domain_map=LambdaLayer(self.domain_map),
