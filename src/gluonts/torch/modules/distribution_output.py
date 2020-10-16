@@ -33,10 +33,10 @@ from gluonts.core.component import DType, validated
 from .lambda_layer import LambdaLayer
 
 
-class ArgProj(nn.Module):
+class PyArgProj(nn.Module):
     r"""
-    A module that can be used to project from a dense layer to PyTorch
-    distribution arguments.
+    A PyTorch module that can be used to project from a dense layer
+    to PyTorch distribution arguments.
 
     Parameters
     ----------
@@ -90,7 +90,7 @@ class Output:
         self._dtype = dtype
 
     def get_args_proj(self, in_features: int) -> nn.Module:
-        return ArgProj(
+        return PyArgProj(
             in_features=in_features,
             args_dim=self.args_dim,
             domain_map=LambdaLayer(self.domain_map),
@@ -180,7 +180,9 @@ class BetaOutput(DistributionOutput):
     distr_cls: type = Beta
 
     @classmethod
-    def domain_map(cls, concentration1: torch.Tensor, concentration0: torch.Tensor):
+    def domain_map(
+        cls, concentration1: torch.Tensor, concentration0: torch.Tensor
+    ):
         r"""
         Maps raw tensors to valid arguments for constructing a Beta
         distribution.
