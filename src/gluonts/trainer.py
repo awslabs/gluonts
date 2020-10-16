@@ -30,6 +30,7 @@ for submodule in (
     "_base",
     "learning_rate_scheduler",
     "model_averaging",
+    "model_iteration_averaging",
 ):
     sys.modules[f"gluonts.trainer.{submodule}"] = importlib.import_module(
         f"gluonts.mx.trainer.{submodule}"

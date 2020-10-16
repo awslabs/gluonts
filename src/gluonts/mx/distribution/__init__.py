@@ -20,6 +20,7 @@ from .box_cox_transform import (
     InverseBoxCoxTransformOutput,
 )
 from .categorical import Categorical, CategoricalOutput
+from .deterministic import Deterministic, DeterministicOutput
 from .dirichlet import Dirichlet, DirichletOutput
 from .dirichlet_multinomial import (
     DirichletMultinomial,
@@ -29,6 +30,15 @@ from .distribution import Distribution
 from .distribution_output import DistributionOutput
 from .gamma import Gamma, GammaOutput
 from .gaussian import Gaussian, GaussianOutput
+from .genpareto import GenPareto, GenParetoOutput
+from .inflated_beta import (
+    ZeroAndOneInflatedBeta,
+    ZeroAndOneInflatedBetaOutput,
+    ZeroInflatedBeta,
+    ZeroInflatedBetaOutput,
+    OneInflatedBeta,
+    OneInflatedBetaOutput,
+)
 from .laplace import Laplace, LaplaceOutput
 from .logit_normal import LogitNormal, LogitNormalOutput
 from .lowrank_multivariate_gaussian import (
@@ -40,6 +50,7 @@ from .multivariate_gaussian import (
     MultivariateGaussian,
     MultivariateGaussianOutput,
 )
+from .nan_mixture import NanMixture, NanMixtureOutput
 from .neg_binomial import NegativeBinomial, NegativeBinomialOutput
 from .piecewise_linear import (
     PiecewiseLinear,
@@ -61,6 +72,13 @@ __all__ = [
     "Gamma",
     "BetaOutput",
     "Beta",
+    "ZeroAndOneInflatedBeta",
+    "ZeroAndOneInflatedBetaOutput",
+    "ZeroInflatedBeta",
+    "ZeroInflatedBetaOutput",
+    "OneInflatedBeta",
+    "OneInflatedBetaOutput",
+    "GenPareto",
     "GaussianOutput",
     "Gaussian",
     "LaplaceOutput",
@@ -71,6 +89,8 @@ __all__ = [
     "LowrankMultivariateGaussianOutput",
     "MixtureDistributionOutput",
     "MixtureDistribution",
+    "NanMixture",
+    "NanMixtureOutput",
     "NegativeBinomialOutput",
     "NegativeBinomial",
     "UniformOutput",
@@ -95,6 +115,8 @@ __all__ = [
     "CategoricalOutput",
     "LogitNormal",
     "LogitNormalOutput",
+    "Deterministic",
+    "DeterministicOutput",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

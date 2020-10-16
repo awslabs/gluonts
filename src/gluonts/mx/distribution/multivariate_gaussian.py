@@ -19,7 +19,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 from gluonts.support.linalg_util import lower_triangular_ones
 

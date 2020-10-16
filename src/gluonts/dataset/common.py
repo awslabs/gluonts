@@ -169,7 +169,7 @@ class FileDataset(Dataset):
         self.cache = cache
         self.path = path
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
-        self._len = None
+        self._len_per_file = None
 
         if not self.files():
             raise OSError(f"no valid file found in {path}")
@@ -189,13 +189,17 @@ class FileDataset(Dataset):
                 )
                 yield data
 
+    # Returns array of the sizes for each subdataset per file
+    def len_per_file(self):
+        if self._len_per_file is None:
+            len_per_file = [
+                len(json_line_file) for json_line_file in self._json_line_files
+            ]
+            self._len_per_file = len_per_file
+        return self._len_per_file
+
     def __len__(self):
-        if self._len is None:
-            len_sum = sum(
-                [len(jsonl.JsonLinesFile(path=path)) for path in self.files()]
-            )
-            self._len = len_sum
-        return self._len
+        return sum(self.len_per_file())
 
     def files(self) -> List[Path]:
         """
@@ -416,7 +420,19 @@ class ProcessDataEntry:
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
+                    "dynamic_feat",  # backwards compatible
+                    is_required=False,
+                    is_cat=False,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
                     "feat_dynamic_real",
+                    is_required=False,
+                    is_cat=False,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
+                    "past_feat_dynamic_real",
                     is_required=False,
                     is_cat=False,
                     is_static=False,

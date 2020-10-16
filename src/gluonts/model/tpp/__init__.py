@@ -13,8 +13,13 @@
 
 from .forecast import PointProcessSampleForecast
 from .predictor import PointProcessGluonPredictor
+from .deeptpp import DeepTPPEstimator
 
-__all__ = ["PointProcessGluonPredictor", "PointProcessSampleForecast"]
+__all__ = [
+    "PointProcessGluonPredictor",
+    "PointProcessSampleForecast",
+    "DeepTPPEstimator",
+]
 
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

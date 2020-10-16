@@ -20,7 +20,7 @@ import pandas as pd
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
 from gluonts.model.lstnet import LSTNetEstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.evaluation import MultivariateEvaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions

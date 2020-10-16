@@ -52,19 +52,19 @@ class Seq2SeqEncoder(nn.HybridBlock):
             shape (batch_size, sequence_length)
         static_features
             static features,
-            shape (batch_size, num_static_features)
+            shape (batch_size, num_feat_static)
         dynamic_features
             dynamic_features,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, num_feat_dynamic)
 
         Returns
         -------
         Tensor
             static code,
-            shape (batch_size, num_static_features)
+            shape (batch_size, num_feat_static)
         Tensor
             dynamic code,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, num_feat_dynamic)
         """
         raise NotImplementedError
 
@@ -89,17 +89,17 @@ class Seq2SeqEncoder(nn.HybridBlock):
             shape (batch_size, sequence_length, 1)
         static_features
             static features,
-            shape (batch_size, num_static_features)
+            shape (batch_size, num_feat_static)
         dynamic_features
             dynamic_features,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, num_feat_dynamic)
 
         Returns
         -------
         Tensor
             combined features,
             shape (batch_size, sequence_length,
-                   num_static_features + num_dynamic_features + 1)
+                   num_feat_static + num_feat_dynamic + 1)
         """
 
         helper_ones = F.ones_like(target)  # Ones of (N, T, 1)
@@ -194,18 +194,18 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
             shape (batch_size, sequence_length, 1)
         static_features
             static features,
-            shape (batch_size, num_static_features)
+            shape (batch_size, num_feat_static)
         dynamic_features
             dynamic_features,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, num_feat_dynamic)
         Returns
         -------
         Tensor
             static code,
-            shape (batch_size, num_static_features)
+            shape (batch_size, channel_seqs + (1) if use_residual)
         Tensor
             dynamic code,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, channel_seqs + (1) if use_residual)
         """
 
         if self.use_dynamic_feat and self.use_static_feat:
@@ -302,19 +302,19 @@ class RNNEncoder(Seq2SeqEncoder):
             shape (batch_size, sequence_length, 1)
         static_features
             static features,
-            shape (batch_size, num_static_features)
+            shape (batch_size, num_feat_static)
         dynamic_features
             dynamic_features,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, num_feat_dynamic)
 
         Returns
         -------
         Tensor
             static code,
-            shape (batch_size, num_static_features)
+            shape (batch_size, num_feat_static)
         Tensor
             dynamic code,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, num_feat_dynamic)
         """
         if self.use_dynamic_feat and self.use_static_feat:
             inputs = self._assemble_inputs(
@@ -367,19 +367,19 @@ class MLPEncoder(Seq2SeqEncoder):
             shape (batch_size, sequence_length)
         static_features
             static features,
-            shape (batch_size, num_static_features)
+            shape (batch_size, num_feat_static)
         dynamic_features
             dynamic_features,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, num_feat_dynamic)
 
         Returns
         -------
         Tensor
             static code,
-            shape (batch_size, num_static_features)
+            shape (batch_size, num_feat_static)
         Tensor
             dynamic code,
-            shape (batch_size, sequence_length, num_dynamic_features)
+            shape (batch_size, sequence_length, num_feat_dynamic)
         """
 
         inputs = self._assemble_inputs(

@@ -14,12 +14,8 @@
 # Standard library imports
 from typing import List, Optional, Tuple
 
-import mxnet as mx
-import numpy as np
-
 # First-party imports
-from gluonts.core.component import get_mxnet_context, validated
-from gluonts.dataset.common import Dataset
+from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 from .representation import Representation

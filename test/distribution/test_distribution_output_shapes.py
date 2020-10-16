@@ -34,6 +34,7 @@ from gluonts.mx.distribution import (
     UniformOutput,
     DirichletOutput,
     DirichletMultinomialOutput,
+    DeterministicOutput,
 )
 
 
@@ -165,6 +166,14 @@ from gluonts.mx.distribution import (
             (3, 4, 5),
             (),
         ),
+        (
+            DeterministicOutput(42.0),
+            mx.nd.random.normal(shape=(3, 4, 5, 6)),
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            [None, mx.nd.ones(shape=(3, 4, 5))],
+            (3, 4, 5),
+            (),
+        ),
     ],
 )
 def test_distribution_output_shapes(
@@ -204,3 +213,34 @@ def test_distribution_output_shapes(
         x3 = distr.sample(num_samples=3)
 
         assert x3.shape == (3,) + distr.batch_shape + distr.event_shape
+
+
+@pytest.mark.parametrize("value, model_output_shape", [(42.0, (3, 4, 5))])
+def test_deterministic_output(value: float, model_output_shape):
+    do = DeterministicOutput(value)
+    x = mx.nd.ones(model_output_shape)
+
+    args_proj = do.get_args_proj()
+    args_proj.initialize()
+    args = args_proj(x)
+    distr = do.distribution(args)
+
+    s = distr.sample()
+
+    assert (
+        (s == value * mx.nd.ones(shape=model_output_shape[:-1]))
+        .asnumpy()
+        .all()
+    )
+
+    assert (distr.prob(s) == 1.0).asnumpy().all()
+
+    s10 = distr.sample(10)
+
+    assert (
+        (s10 == value * mx.nd.ones(shape=(10,) + model_output_shape[:-1]))
+        .asnumpy()
+        .all()
+    )
+
+    assert (distr.prob(s10) == 1.0).asnumpy().all()

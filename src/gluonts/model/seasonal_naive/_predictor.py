@@ -20,10 +20,10 @@ import numpy as np
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
-from gluonts.evaluation import get_seasonality
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
+from gluonts.time_feature import get_seasonality
 
 
 class SeasonalNaivePredictor(RepresentablePredictor):
