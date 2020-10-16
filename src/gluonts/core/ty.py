@@ -38,11 +38,8 @@ def get_param_default(param):
 
 
 def checked(fn):
-    if inspect.isclass(fn):
-        params = inspect.signature(fn.__init__).parameters
-        fn_params = dict(drop(1, params.items()))
-    else:
-        fn_params = inspect.signature(fn).parameters
+    assert not inspect.isclass(fn)
+    fn_params = inspect.signature(fn).parameters
 
     has_var_args = any(
         param.kind in [param.VAR_KEYWORD, param.VAR_POSITIONAL]
@@ -62,7 +59,6 @@ def checked(fn):
     fn_fields = {
         param.name: (get_param_type(param), get_param_default(param),)
         for param in fn_params.values()
-        # if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
     }
 
     Model = pydantic.create_model(

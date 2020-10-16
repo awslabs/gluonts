@@ -67,12 +67,12 @@ def test_checked_invalid():
 
 
 @ty.checked
-def varargs(a: int, b: str, *args, **kwargs):
+def varargs(a, b: str, *args, **kwargs):
     return a, b, args, kwargs
 
 
 def test_ty_varargs():
-    a, b, args, kwargs = varargs("1", 2, 3, 4, 5, x=2)
+    a, b, args, kwargs = varargs(1, 2, 3, 4, 5, x=2)
 
     assert a == 1
     assert b == "2"
