@@ -5,6 +5,7 @@ import numpy as np
 import mxnet as mx
 import torch
 from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 import consts
@@ -21,8 +22,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("-dataset_name", type=str, default="wiki2000_nips")
     parser.add_argument("-experiment_name", type=str)
-    parser.add_argument("-distributed_backend", type=str, default="dp")
     parser.add_argument("-run_nr", type=int, default=None)
+    parser.add_argument("-use_tqdm", type=bool, default=True)
     parser.add_argument(
         "-gpus",
         "--gpus",
@@ -50,8 +51,7 @@ if __name__ == "__main__":
     # random seeds
     seed = args.run_nr if args.run_nr is not None else 0
     mx.random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    seed_everything(seed=seed)
 
     # TODO: config -> hydra or something like that
     config = make_experiment_config(
@@ -64,12 +64,13 @@ if __name__ == "__main__":
         gpus=args.gpus,
         default_root_dir=os.path.join(consts.log_dir, config.dataset_name),
         gradient_clip_val=config.grad_clip_norm,
-        limit_val_batches=int(np.ceil((500 / config.batch_size_val))),
+        limit_val_batches=int(np.ceil((250 / config.batch_size_val))),
         max_epochs=config.n_epochs,
         checkpoint_callback=ModelCheckpoint(
-            monitor="val_checkpoint_on", save_last=True,
+            monitor="CRPS", save_last=True,
         ),
-        distributed_backend=args.distributed_backend,
+        reload_dataloaders_every_epoch=True,
+        progress_bar_refresh_rate=1 if args.use_tqdm else 1000,
     )
 
     trainer.fit(model)

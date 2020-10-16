@@ -1,8 +1,7 @@
-from copy import deepcopy
 from dataclasses import dataclass
 import torch
-from torch.nn.modules.activation import LeakyReLU
 from torch import nn
+from torch.nn.modules.activation import LeakyReLU
 from experiments.base_config import BaseConfig, SwitchLinkType, TimeFeatType
 from utils.utils import TensorDims
 from data.gluonts_nips_datasets.gluonts_nips_datasets import (
@@ -17,6 +16,7 @@ from experiments.model_component_zoo import (
     input_transforms,
     switch_transitions,
 )
+
 from models.rsgls_rbpf import RecurrentSwitchingGaussianLinearSystemRBSMC
 from experiments.gluonts_univariate_datasets.gts_rbsmc_model import (
     GluontsUnivariateDataModel,
@@ -51,15 +51,11 @@ class RsglsIssmGtsExpConfig(BaseConfig):
     normalisation_params: list
     extract_tail_chunks_for_train: bool
     n_epochs_until_validate_loss: int
-    # gpus: (list, tuple)
     num_samples_eval: int
     batch_size_val: int
-    # dtype: torch.dtype
     make_cov_from_cholesky_avg: bool
     is_recurrent: bool
     n_epochs_no_resampling: int
-    # obs_to_switch_encoder: bool
-    # state_to_switch_encoder: bool
     grad_clip_norm: float
     n_epochs_freeze_gls_params: int
     weight_decay: float
@@ -82,6 +78,8 @@ normalisation_params = {
     "wiki-rolling_nips": [3720.5366, 10840.078],  # not used in paper
     "wiki2000_nips": [3720.5366, 10840.078],
 }
+
+# because of GPU memory issues and performance, our models use only 2 weeks.
 past_lengths = {
     "exchange_rate_nips": 4 * 31,
     "electricity_nips": 2 * 168,
@@ -165,7 +163,7 @@ def make_default_config(dataset_name):
         batch=50,
         state=n_latent,
         target=1,
-        switch=10,
+        switch=5,
         # ctrl_state=None,
         # ctrl_switch=n_staticfeat + n_timefeat,
         # ctrl_obs=n_staticfeat + n_timefeat,
@@ -185,17 +183,13 @@ def make_default_config(dataset_name):
         #
         n_epochs=50,
         n_epochs_no_resampling=5,
-        n_epochs_freeze_gls_params=0,
+        n_epochs_freeze_gls_params=1,
         n_epochs_until_validate_loss=1,
-        lr=1e-3
-        if dataset_name in ["electricity_nips"]
-        else 1e-2
-        if dataset_name in ["solar_nips"]
-        else 5e-3,
+        lr=5e-3,
         weight_decay=1e-5,
         grad_clip_norm=10.0,
         num_samples_eval=100,
-        batch_size_val=50,  # 10
+        batch_size_val=100,  # 10
         # gpus=tuple(range(3, 4)),
         # dtype=torch.float64,
         # architecture, prior, etc.
@@ -206,18 +200,19 @@ def make_default_config(dataset_name):
         switch_link_type=SwitchLinkType.individual,
         switch_link_dims_hidden=(64,),
         switch_link_activations=nn.LeakyReLU(0.1, inplace=True),
-        recurrent_link_type=SwitchLinkType.shared,
+        recurrent_link_type=SwitchLinkType.individual,
         is_recurrent=True,
-        n_base_A=10,
-        n_base_B=10,
-        n_base_C=10,
-        n_base_D=10,
-        n_base_Q=10,
-        n_base_R=10,
-        n_base_F=10,
-        n_base_S=10,
+        n_base_A=20,
+        n_base_B=20,
+        n_base_C=20,
+        n_base_D=20,
+        n_base_Q=20,
+        n_base_R=20,
+        n_base_F=20,
+        n_base_S=20,
         requires_grad_R=True,
         requires_grad_Q=True,
+        requires_grad_S=True,
         # obs_to_switch_encoder=True,
         # state_to_switch_encoder=False,
         switch_prior_model_dims=tuple(),
@@ -236,13 +231,13 @@ def make_default_config(dataset_name):
         b_fn_activations=LeakyReLU(0.1, inplace=True),
         d_fn_activations=LeakyReLU(0.1, inplace=True),
         # initialisation
-        init_scale_A=None,
+        init_scale_A=0.95,
         init_scale_B=0.0,
         init_scale_C=None,
         init_scale_D=0.0,
         init_scale_R_diag=[1e-5, 1e-1],
         init_scale_Q_diag=[1e-4, 1e0],
-        init_scale_S_diag=[1e-5, 1e0],
+        init_scale_S_diag=[1e-5, 1e-1],
         # set from outside due to dependencies.
         dims=dims,
         freq=freq,
@@ -253,8 +248,12 @@ def make_default_config(dataset_name):
         normalisation_params=normalisation_params[dataset_name],
         LRinv_logdiag_scaling=1.0,
         LQinv_logdiag_scaling=1.0,
+        A_scaling=1.0,
         B_scaling=1.0,
+        C_scaling=1.0,
         D_scaling=1.0,
+        LSinv_logdiag_scaling=1.0,
+        F_scaling=1.0,
         eye_init_A=True,
     )
     return config
@@ -269,16 +268,6 @@ def make_model(config):
     #     config=config,
     # )
     gls_base_parameters = gls_parameters.GlsParametersISSM(config=config)
-    # obs_to_switch_encoder = (
-    #     encoders.ObsToSwitchEncoderGaussianMLP(config=config)
-    #     if config.obs_to_switch_encoder
-    #     else None
-    # )
-    # state_to_switch_encoder = (
-    #     encoders.StateToSwitchEncoderGaussianMLP(config=config)
-    #     if config.state_to_switch_encoder
-    #     else None
-    # )
     encoder = encoders.ObsToSwitchEncoderGaussianMLP(config=config)
     switch_transition_model = switch_transitions.SwitchTransitionModelGaussianDirac(
         config=config,
@@ -302,6 +291,7 @@ def make_model(config):
         switch_prior_model=switch_prior_model,
     )
     model = GluontsUnivariateDataModel(
+        log_param_norms=False,
         config=config,
         ssm=ssm,
         ctrl_transformer=input_transformer,
@@ -326,26 +316,12 @@ def make_model(config):
         prediction_length_rolling=config.prediction_length_rolling,
         n_epochs_no_resampling=config.n_epochs_no_resampling,
         n_epochs_freeze_gls_params=config.n_epochs_freeze_gls_params,
-        num_batches_per_epoch=50,
+        num_batches_per_epoch=250,
         extract_tail_chunks_for_train=config.extract_tail_chunks_for_train,
     )
     return model
 
 
-# This fn must come after the *_mod functions as it uses locals
-# TODO: this is obsolete
+# TODO: Not necessary anymore
 def make_experiment_config(dataset_name, experiment_name):
-    config = make_default_config(dataset_name=dataset_name)
-    if experiment_name is not None and experiment_name != "default":
-        if experiment_name == "rsgls":
-            return config
-        else:
-            raise NotImplementedError("")
-            if not f"{experiment_name}" in locals():
-                raise Exception(
-                    f"config file must have function {experiment_name}_mod"
-                )
-            mod_fn = locals()[f"{experiment_name}_mod"]
-            print(f"modifying config for experiment {experiment_name}")
-            config = mod_fn(config)
-    return config
+    return make_default_config(dataset_name=dataset_name)

@@ -1,8 +1,8 @@
 import os
 import argparse
 import numpy as np
-import mxnet as mx
 import torch
+from pytorch_lightning import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
@@ -27,6 +27,8 @@ if __name__ == "__main__":
         help='"-gpus 0 1 2 3". or "-gpus ".',
     )
     parser.add_argument("-dtype", type=str, default="float64")
+    parser.add_argument("-use_tqdm", type=bool, default=True)
+
     args = parser.parse_args()
     args.gpus = None if len(args.gpus) == 0 else [int(gpu) for gpu in args.gpus]
 
@@ -44,10 +46,8 @@ if __name__ == "__main__":
         )
 
     # random seeds
-    seed = args.run_nr if args.run_nr is not None else 50
-    mx.random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    seed = args.run_nr if args.run_nr is not None else 0
+    seed_everything(seed=seed)
 
     model = make_model(config=config).to(dtype=getattr(torch, args.dtype))
 
@@ -57,8 +57,10 @@ if __name__ == "__main__":
         gradient_clip_val=config.grad_clip_norm,
         max_epochs=config.n_epochs,
         checkpoint_callback=ModelCheckpoint(
-            monitor="val_checkpoint_on", save_last=True,
+            monitor="val_loss", save_last=True,
         ),
+        reload_dataloaders_every_epoch=True,
+        progress_bar_refresh_rate=1 if args.use_tqdm else 1000,
     )
 
     trainer.fit(model)
