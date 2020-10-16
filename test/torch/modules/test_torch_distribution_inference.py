@@ -114,8 +114,12 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
     samples = distr.sample()
 
     init_biases = [
-        inv_softplus(concentration1 - START_TOL_MULTIPLE * TOL * concentration1),
-        inv_softplus(concentration0 - START_TOL_MULTIPLE * TOL * concentration0),
+        inv_softplus(
+            concentration1 - START_TOL_MULTIPLE * TOL * concentration1
+        ),
+        inv_softplus(
+            concentration0 - START_TOL_MULTIPLE * TOL * concentration0
+        ),
     ]
 
     concentration1_hat, concentration0_hat = maximum_likelihood_estimate_sgd(
@@ -126,7 +130,12 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
         num_epochs=PositiveInt(10),
     )
 
-    print("concentration1:", concentration1_hat, "concentration0:", concentration0_hat)
+    print(
+        "concentration1:",
+        concentration1_hat,
+        "concentration0:",
+        concentration0_hat,
+    )
     assert (
         np.abs(concentration1_hat - concentration1) < TOL * concentration1
     ), f"concentration1 did not match: concentration1 = {concentration1}, concentration1_hat = {concentration1_hat}"
