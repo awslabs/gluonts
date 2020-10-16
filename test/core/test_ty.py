@@ -13,6 +13,8 @@
 
 import random
 
+import pytest
+
 from gluonts.core import serde
 from gluonts.core import ty
 
@@ -26,3 +28,53 @@ def test_stateful():
     o = MyClass()
     o2 = serde.decode(serde.encode(o))
     assert o.n == o2.n
+
+
+class Stateless(ty.Stateless):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.z = 3
+
+
+def test_stateless():
+    m = Stateless(1, 2)
+
+    m2 = serde.decode(serde.encode(m))
+    assert m.x == m2.x
+    assert m.y == m2.y
+    assert m.z == m2.z
+
+
+def test_stateless_immutable():
+    m = Stateless(1, 2)
+    with pytest.raises(ValueError):
+        m.x = 3
+
+
+@ty.checked
+def foo(x: int):
+    return x
+
+
+def test_checked():
+    assert foo("1") == 1
+
+
+def test_checked_invalid():
+    with pytest.raises(TypeError):
+        foo("x")
+
+
+@ty.checked
+def varargs(a: int, b: str, *args, **kwargs):
+    return a, b, args, kwargs
+
+
+def test_ty_varargs():
+    a, b, args, kwargs = varargs("1", 2, 3, 4, 5, x=2)
+
+    assert a == 1
+    assert b == "2"
+    assert args == (3, 4, 5)
+    assert kwargs == {"x": 2}

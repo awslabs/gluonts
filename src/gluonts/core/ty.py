@@ -37,30 +37,45 @@ def get_param_default(param):
     return param.default
 
 
-class BaseConfig:
-    arbitrary_types_allowed = True
-
-
 def checked(fn):
-    if hasattr(fn, "__init__"):
+    if inspect.isclass(fn):
         params = inspect.signature(fn.__init__).parameters
         fn_params = dict(drop(1, params.items()))
     else:
         fn_params = inspect.signature(fn).parameters
 
+    has_var_args = any(
+        param.kind in [param.VAR_KEYWORD, param.VAR_POSITIONAL]
+        for param in fn_params.values()
+    )
+
+    fn_params = {
+        key: param
+        for key, param in fn_params.items()
+        if param.kind not in [param.VAR_KEYWORD, param.VAR_POSITIONAL]
+    }
+
+    class Config:
+        arbitrary_types_allowed = True
+        extra = "ignore" if has_var_args else "forbid"
+
     fn_fields = {
         param.name: (get_param_type(param), get_param_default(param),)
         for param in fn_params.values()
-        if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
+        # if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
     }
 
     Model = pydantic.create_model(
-        f"{fn.__name__}Model", __config__=BaseConfig, **fn_fields,
+        f"{fn.__name__}Model", __config__=Config, **fn_fields,
     )
 
     @functools.wraps(fn)
     def fn_wrapper(*args, **kwargs):
-        nmargs = {name: arg for name, arg in zip(fn_params, args)}
+        nmargs = {
+            name: arg
+            for name, arg in zip(fn_params, args)
+            if name not in kwargs
+        }
 
         try:
             model = Model(**nmargs, **kwargs)
@@ -75,7 +90,11 @@ def checked(fn):
                 f'Cannot call "{fn.__qualname__}":\n{details}'
             ) from err
 
-        return fn(**model.dict())
+        values = model.dict()
+        nargs = [values.pop(name) for name in nmargs]
+        nargs += args[len(nargs) :]
+
+        return fn(*nargs, **kwargs)
 
     return fn_wrapper
 
