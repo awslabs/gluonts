@@ -13,9 +13,14 @@
 
 import functools
 import inspect
+import itertools
 from typing import Any, Optional
 
 import pydantic
+
+
+def drop(n, seq):
+    return itertools.islice(seq, n, None)
 
 
 def get_param_type(param):
@@ -37,7 +42,12 @@ class BaseConfig:
 
 
 def checked(fn):
-    fn_params = inspect.signature(fn).parameters
+    if hasattr(fn, "__init__"):
+        params = inspect.signature(fn.__init__).parameters
+        fn_params = dict(drop(1, params.items()))
+    else:
+        fn_params = inspect.signature(fn).parameters
+
     fn_fields = {
         param.name: (get_param_type(param), get_param_default(param),)
         for param in fn_params.values()
@@ -68,3 +78,30 @@ def checked(fn):
         return fn(**model.dict())
 
     return fn_wrapper
+
+
+class StatelessMeta(type):
+    def __call__(cls, *args, **kwargs):
+        self = cls.__new__(cls, *args, **kwargs)
+        if isinstance(self, cls):
+            self.__init__(*args, **kwargs)
+            self.__init_args__ = args, kwargs
+            self.__sealed__ = True
+        return self
+
+
+class Stateless(metaclass=StatelessMeta):
+    def __getnewargs_ex__(self):
+        return self.__init_args__
+
+    def __setattr__(self, name, value):
+        if hasattr(self, "__sealed__"):
+            classname = self.__class__.__name__
+            raise ValueError(
+                f"Assignment to `{name}` outside of `{classname}.__init__`."
+            )
+        return object.__setattr__(self, name, value)
+
+
+class Stateful:
+    pass

@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import random
 from pathlib import Path
 from typing import List, NamedTuple
 
@@ -199,14 +198,3 @@ def test_timestamp_encode_decode() -> None:
 )
 def test_string_escape(serialize_fn) -> None:
     assert serialize_fn(r"a\b") == r"a\b"
-
-
-class MyClass(serde.Stateful):
-    def __init__(self):
-        self.n = random.random()
-
-
-def test_serde_stateful():
-    o = MyClass()
-    o2 = serde.decode(serde.encode(o))
-    assert o.n == o2.n
