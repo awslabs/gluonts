@@ -19,7 +19,27 @@ import numpy as np
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.transform import InstanceSplitter, shift_timestamp
+from gluonts.transform import (
+    SimpleTransformation,
+    InstanceSplitter,
+    shift_timestamp,
+)
+
+
+class BroadcastTo(SimpleTransformation):
+    @validated()
+    def __init__(
+        self, field: str, target_field: str = FieldName.TARGET,
+    ) -> None:
+        self.field = field
+        self.target_field = target_field
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        data[self.field] = np.broadcast_to(
+            data[self.field],
+            (data[self.field].shape[:-1] + data[self.target_field].shape[-1:]),
+        )
+        return data
 
 
 class TFTInstanceSplitter(InstanceSplitter):
@@ -136,10 +156,12 @@ class TFTInstanceSplitter(InstanceSplitter):
                     if self.output_NTC:
                         past_piece = past_piece.transpose()
                         future_piece = future_piece.transpose()
-                    d[self._past(field)] = past_piece
                     if field not in self.past_ts_fields:
+                        d[self._past(field)] = past_piece
                         d[self._future(field)] = future_piece
-                    del d[field]
+                        del d[field]
+                    else:
+                        d[field] = past_piece
 
             pad_indicator = np.zeros(self.past_length)
             if pad_length > 0:
