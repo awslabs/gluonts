@@ -162,7 +162,6 @@ class TFTInstanceSplitter(InstanceSplitter):
                         del d[field]
                     else:
                         d[field] = past_piece
-
             pad_indicator = np.zeros(self.past_length)
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1

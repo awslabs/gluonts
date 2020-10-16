@@ -55,6 +55,7 @@ from .neg_binomial import NegativeBinomial, NegativeBinomialOutput
 from .piecewise_linear import (
     PiecewiseLinear,
     PiecewiseLinearOutput,
+    FixedKnotsPiecewiseLinearOutput,
     TransformedPiecewiseLinear,
 )
 from .poisson import Poisson, PoissonOutput

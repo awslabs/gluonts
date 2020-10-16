@@ -363,6 +363,7 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                 )
                 past_covariates.append(ctx_emb)
                 future_covariates.append(tgt_emb)
+
         if self.feat_static_proj is not None:
             projs = self.feat_static_proj(feat_static_real)
             static_covariates.extend(projs)
@@ -402,6 +403,7 @@ class TemporalFusionTransformerNetwork(HybridBlock):
 
         ctx_input, _ = self.ctx_selector(past_covariates, c_selection)
         tgt_input, _ = self.tgt_selector(future_covariates, c_selection)
+
         encoding = self.temporal_encoder(ctx_input, tgt_input, [c_h, c_c])
         decoding = self.temporal_decoder(
             encoding, c_enrichment, past_observed_values
