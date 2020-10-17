@@ -112,16 +112,6 @@ class BaseRBSMCGaussianLinearSystem(BaseAmortizedGaussianLinearSystem):
             variables=cls(**resampled_tensors,),
             gls_params=None,  # remember to also re-sample these if need to use.
         )
-
-        if resampled_initial_latent.variables.x is None:
-            resampled_initial_latent.variables.x = MultivariateNormal(
-                loc=resampled_initial_latent.variables.m,
-                covariance_matrix=resampled_initial_latent.variables.V,
-            ).rsample()
-            resampled_initial_latent.variables.m = None
-            resampled_initial_latent.variables.V = None
-            resampled_initial_latent.variables.Cov = None
-
         return resampled_initial_latent, controls
 
     def smooth_step(
