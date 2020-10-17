@@ -15,6 +15,7 @@ from utils.utils import flatten_iterable, one_hot
 
 
 def gaussian_linear_combination(distributions_and_weights: Dict):
+    """ Computes the PDF of the weighted average of two Gaussian variables. """
     assert isinstance(distributions_and_weights, dict)
     assert all(
         isinstance(dist, MultivariateNormal)
@@ -30,7 +31,7 @@ def gaussian_linear_combination(distributions_and_weights: Dict):
         ),
         covariance_matrix=sum(
             [
-                dist.covariance_matrix * weight
+                dist.covariance_matrix * (weight ** 2)
                 for dist, weight in distributions_and_weights.items()
             ]
         ),

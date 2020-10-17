@@ -32,8 +32,9 @@ class RecurrentMixin:
         We use an additive structure, resulting in a convolution of PDFs, i.e.
         i) the conditional from the switch-to-switch transition and
         ii) the marginal from the state-switch-transition (state marginalised).
-        The Gaussian is a stable distribution -> The sum of Gaussian variables
-        (not PDFs!) is Gaussian, for which locs and covariances are the summed.
+        The Gaussian is a 'stable distribution' -> The sum of Gaussian variables
+        (not PDFs!) is Gaussian, for which locs and *covariances* are summed.
+        (In case of weighted sum, means and *scales* are weighted.)
         """
         if len({lat_vars_tm1.x is None, lat_vars_tm1.m is None}) != 2:
             raise Exception(
@@ -67,7 +68,7 @@ class RecurrentMixin:
 
         # combine i) & ii): sum variables (=convolve PDFs).
         switch_model_dist = gaussian_linear_combination(
-            {state_to_switch_dist: 0.5, switch_to_switch_dist: 0.5}
+            {state_to_switch_dist: 1.0, switch_to_switch_dist: 1.0}
         )
         return switch_model_dist
 
