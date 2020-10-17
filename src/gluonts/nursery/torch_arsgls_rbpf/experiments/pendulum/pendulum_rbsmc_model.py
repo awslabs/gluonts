@@ -123,6 +123,7 @@ class PendulumModel(DefaultLightningModel):
                     idx_particle=None,
                     n_steps_forecast=self.prediction_length,
                     idxs_ts=[0, 1, 2, 3, 4],
+                    marginalize_states=True,
                     show=False,
                     savepath=os.path.join(
                         self.logger.log_dir,
@@ -144,6 +145,7 @@ class PendulumModel(DefaultLightningModel):
                     idx_particle=None,
                     n_steps_forecast=self.prediction_length,
                     idxs_ts=[0, 1, 2, 3, 4],
+                    marginalize_states=True,
                     show=False,
                     savepath=os.path.join(
                         self.logger.log_dir,

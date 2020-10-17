@@ -81,6 +81,8 @@ class DefaultLightningModel(LightningModule):
         self.config = config
 
         self.ctrl_transformer = ctrl_transformer
+        # TODO: re-design the tar_transformer.
+        #  Mixin in ssm could be better suitable here?
         self.tar_transformer = tar_transformer
         self.ssm = ssm
 
@@ -119,6 +121,7 @@ class DefaultLightningModel(LightningModule):
         future_time_feat: Optional[torch.Tensor] = None,
         n_steps_forecast: int = 0,
         deterministic=False,
+        marginalize_states=False,
     ) -> (Sequence[Prediction], Sequence[Latents]):
         if self.tar_transformer is not None:
             past_target = self.tar_transformer.inv(past_target)
@@ -136,13 +139,24 @@ class DefaultLightningModel(LightningModule):
             if future_time_feat is not None
             else None
         )
-        predictions_inferred, predictions_forecast = self.ssm.predict(
-            n_steps_forecast=n_steps_forecast,
-            past_targets=past_target,
-            past_controls=past_controls,
-            future_controls=future_controls,
-            deterministic=deterministic,
-        )
+
+        # TODO: refactor this class. This flag is bad.
+        if marginalize_states:
+            predictions_inferred, predictions_forecast = self.ssm.predict_marginals(
+                n_steps_forecast=n_steps_forecast,
+                past_targets=past_target,
+                past_controls=past_controls,
+                future_controls=future_controls,
+                deterministic=deterministic,
+            )
+        else:
+            predictions_inferred, predictions_forecast = self.ssm.predict(
+                n_steps_forecast=n_steps_forecast,
+                past_targets=past_target,
+                past_controls=past_controls,
+                future_controls=future_controls,
+                deterministic=deterministic,
+            )
         # Post-process Sequence of Prediction objects\
         if self.tar_transformer is not None:
             for t in range(len(predictions_inferred)):

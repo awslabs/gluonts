@@ -19,6 +19,7 @@ def make_val_plots_univariate(
     idxs_ts,
     n_steps_forecast,
     savepath,
+    marginalize_states=False,
     future_target_groundtruth=None,
     idx_particle=None,
     show=False,
@@ -35,13 +36,25 @@ def make_val_plots_univariate(
     y_plot = torch.cat([data["past_target"], future_target_plot])
 
     predictions_filtered, predictions_forecast = model(
-        **data, n_steps_forecast=n_steps_forecast,
+        **data,
+        n_steps_forecast=n_steps_forecast,
+        marginalize_states=marginalize_states,
     )
     predictions = predictions_filtered + predictions_forecast
-    mpy_trajectory = torch.stack([p.emissions for p in predictions])
-    # TODO: API: maybe provide the likelihood density again instead of samples?
-    #  Drawback was indexing is cumbersome with distribution object.
-    Vpy_trajectory = batch_diag_matrix(torch.zeros_like(mpy_trajectory))
+    if isinstance(predictions[0].emissions, torch.distributions.Distribution):
+        mpy_trajectory = torch.stack([p.emissions.mean for p in predictions])
+        # using distribution.variance (i.e. diagonal) for predictive variance.
+        # We dont need covariances for plots. And this allows non-Gaussian.
+        Vpy_trajectory = batch_diag_matrix(
+            torch.stack([p.emissions.variance for p in predictions])
+        )
+    elif isinstance(predictions[0].emissions, torch.Tensor):
+        mpy_trajectory = torch.stack([p.emissions for p in predictions])
+        Vpy_trajectory = batch_diag_matrix(torch.zeros_like(mpy_trajectory))
+    else:
+        raise ValueError(
+            f"Unexpected emission type: {type(predictions[0].emissions)}",
+        )
     log_weights = torch.stack([p.latents.log_weights for p in predictions])
     norm_weights_trajectory = torch.exp(normalize_log_weights(log_weights))
 
