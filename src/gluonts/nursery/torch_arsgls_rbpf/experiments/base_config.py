@@ -46,6 +46,7 @@ class BaseConfig:
     n_base_S: (int, None)
     requires_grad_R: bool
     requires_grad_Q: bool
+    requires_grad_S: bool
     n_epochs: int
     lr: float
     LRinv_logdiag_scaling: float

@@ -1,3 +1,4 @@
+from typing import Optional
 import os
 import matplotlib.pyplot as plt
 import torch
@@ -40,7 +41,13 @@ def compute_wasserstein_distance(img_gt, img_model, metric="euclidean"):
     return dist_avg
 
 
-def compute_metrics(model, batch):
+def compute_metrics(
+        model,
+        batch,
+        n_particles_wasserstein: Optional[int] = 32,
+        n_data_wasserstein: Optional[int] = None,
+        n_last_timesteps_wasserstein: Optional[int] = None,
+):
     future_target = batch["future_target"]
     past_target = batch["past_target"]
     batch = {
@@ -88,7 +95,10 @@ def compute_metrics(model, batch):
     all_predictions = filtered_predictions + forecasted_predictions
     all_lats = [p.latents for p in all_predictions]
     if isinstance(model.ssm, BaseRBSMCGaussianLinearSystem):
-        log_weights = [p.latents.log_weights for p in all_predictions]
+        log_weights = [
+            normalize_log_weights(p.latents.log_weights)
+            for p in all_predictions
+        ]
     elif isinstance(model.ssm, KalmanVariationalAutoEncoder):
         # uniform weights also in filter range (just VI, not SMC-based).
         log_P = np.log(model.ssm.n_particle)
@@ -139,14 +149,19 @@ def compute_metrics(model, batch):
     assert all_emissions.shape[1] == model.ssm.n_particle
     assert all_emissions.shape[3] == 32 * 32
     T = all_emissions.shape[0]
+    T_min = (T - n_last_timesteps_wasserstein) \
+        if n_last_timesteps_wasserstein is not None else 0
     B = all_emissions.shape[2]
+    B = B if n_data_wasserstein is None else min(B, n_data_wasserstein)
     P = model.ssm.n_particle if not deterministic else 1
+    P = P if n_particles_wasserstein is None else min(P, n_particles_wasserstein)
 
-    w_dists = np.zeros([T, P, B])
-    for t in range(T):
+    w_dists = np.zeros([T - T_min, P, B])
+
+    for t in range(T_min, T):
         for p in range(P):
             for b in range(B):
-                w_dists[t, p, b] = compute_wasserstein_distance(
+                w_dists[t-T_min, p, b] = compute_wasserstein_distance(
                     img_gt=all_target_with_particle_dim[t, p, b].reshape(
                         [32, 32]
                     ),
@@ -508,5 +523,3 @@ def plot_pymunk_results(
             pad_inches=0.025,
         )
         plt.close(fig)
-
-    print("done plotting")

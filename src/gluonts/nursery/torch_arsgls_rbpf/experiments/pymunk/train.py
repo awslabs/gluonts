@@ -2,12 +2,12 @@ import os
 import consts
 import argparse
 import numpy as np
-import mxnet as mx
 import torch
 from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
-from experiments.pymunk.configs import (
+from experiments.pymunk.configs.configs_base import (
     make_model,
     make_experiment_config,
 )
@@ -20,8 +20,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("-dataset_name", type=str, default="box")
     parser.add_argument("-experiment_name", type=str, default="arsgls")
-    parser.add_argument("-distributed_backend", type=str, default="dp")
     parser.add_argument("-run_nr", type=int, default=None)
+    parser.add_argument("-use_tqdm", type=bool, default=False)
     parser.add_argument(
         "-gpus",
         "--gpus",
@@ -47,10 +47,8 @@ if __name__ == "__main__":
         )
 
     # random seeds
-    seed = args.run_nr if args.run_nr is not None else 0
-    mx.random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    seed = args.run_nr if args.run_nr is not None else 42
+    seed_everything(seed=seed)
 
     # TODO: config -> hydra or something like that
     config = make_experiment_config(
@@ -58,6 +56,10 @@ if __name__ == "__main__":
     )
 
     model = make_model(config=config).to(dtype=getattr(torch, args.dtype))
+    print(f"seed: {seed}, "
+          f"dataset: {args.dataset_name},"
+          f" model: {args.experiment_name}")
+    print(config)
 
     trainer = Trainer(
         gpus=args.gpus,
@@ -65,10 +67,11 @@ if __name__ == "__main__":
         gradient_clip_val=config.grad_clip_norm,
         max_epochs=config.n_epochs,
         checkpoint_callback=ModelCheckpoint(
-            monitor="val_checkpoint_on", save_last=True,
+            monitor="train_loss", save_last=True,
         ),
-        distributed_backend=args.distributed_backend,
-        limit_val_batches=5,
+        limit_val_batches=int(np.ceil((20 / config.batch_size_eval))),
+        reload_dataloaders_every_epoch=True,
+        progress_bar_refresh_rate=1 if args.use_tqdm else 1000,
     )
 
     trainer.fit(model)

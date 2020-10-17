@@ -1,9 +1,10 @@
+from typing import Dict, Union, List
+from torch import Tensor
 import os
 from box import Box
 import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -19,6 +20,7 @@ from experiments.pymunk.evaluation import (
     compute_metrics,
     plot_pymunk_results,
 )
+from utils.utils import list_of_dicts_to_dict_of_list
 
 
 class CastDtype(object):
@@ -33,14 +35,48 @@ class CastDtype(object):
 
 
 class PymunkModel(DefaultLightningModel):
-    def __init__(self, lr_decay_rate, lr_decay_steps, *args, **kwargs):
+    def __init__(self, lr_decay_rate, lr_decay_steps,
+                 print_validation_metrics=False,
+                 *args, **kwargs):
         super().__init__(*args,  **kwargs)
         self.log_metrics = Box()
         self.lr_decay_rate = lr_decay_rate  # custom LR decay rate here.
         self.lr_decay_steps = lr_decay_steps
+        self.print_validation_metrics = print_validation_metrics
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(lr=self.lr, params=self.parameters())
+        param_names_gls = [
+            "ssm.gls_base_parameters._LQinv_logdiag",
+            "ssm.gls_base_parameters._LRinv_logdiag",
+            "ssm.recurrent_base_parameters._LSinv_logdiag",
+            "ssm.state_prior_model.m",
+            "ssm.state_prior_model.LVinv_tril",
+            "ssm.state_prior_model.LVinv_logdiag",
+            "ssm.switch_prior_model.dist.m",
+            "ssm.switch_prior_model.dist.LVinv_tril",
+            "ssm.switch_prior_model.dist.LVinv_logdiag",
+        ]
+        params_gls = tuple(
+            param
+            for name, param in self.named_parameters()
+            if name in param_names_gls
+        )
+        params_except_gls = tuple(
+            param
+            for name, param in self.named_parameters()
+            if name not in param_names_gls
+        )
+        assert len(params_except_gls) < len(tuple(self.parameters()))
+        # assert len(params_gls) == len(param_names_gls)
+
+        optimizer = torch.optim.Adam(
+            params=[
+                {"params": params_gls, "lr": self.lr},
+                {"params": params_except_gls, "lr": self.lr},
+            ],
+            weight_decay=self.weight_decay,
+        )
+
         scheduler = {
             'scheduler': torch.optim.lr_scheduler.ExponentialLR(
                 optimizer, gamma=self.lr_decay_rate,
@@ -79,28 +115,82 @@ class PymunkModel(DefaultLightningModel):
 
     def val_dataloader(self):
         tar_extract_collate_fn = DefaultExtractTarget(
-            past_length=self.past_length, prediction_length=None,
+            past_length=self.past_length,
+            prediction_length=self.prediction_length,
         )
         to_model_dtype = CastDtype(model=self)
-        train_collate_fn = Compose(
+        test_collate_fn = Compose(
             [time_first_collate_fn, tar_extract_collate_fn, to_model_dtype],
         )
         return DataLoader(
             dataset=PymunkDataset(
                 file_path=os.path.join(
-                    consts.data_dir, self.dataset_name, "train.npz",
+                    consts.data_dir, self.dataset_name, "val.npz",
                 ),
             ),
             batch_size=self.batch_sizes["val"],
             shuffle=False,
-            collate_fn=train_collate_fn,
+            collate_fn=test_collate_fn,
         )
 
     def validation_step(self, batch, batch_idx):
         loss = self.loss(**batch)
-        result = pl.EvalResult()
-        result.log("val_loss", loss, prog_bar=True)
-        return result
+        self.log("val_loss", loss, prog_bar=True)
+        aggregated_metrics = {"val_loss": loss}
+
+        try:
+            # Plot
+            if batch_idx == 0 and (self.trainer.current_epoch % 40 == 0) \
+                    and (self.trainer.current_epoch > 0):
+                os.makedirs(
+                    os.path.join(
+                        self.logger.log_dir,
+                        f"epoch_{self.trainer.current_epoch}",
+                        "plots",
+                    ),
+                    exist_ok=True,
+                )
+                plot_pymunk_results(
+                    model=self,
+                    batch=batch,
+                    deterministic=False,
+                    plot_path=os.path.join(
+                        self.logger.log_dir,
+                        f"epoch_{self.trainer.current_epoch}",
+                        "plots",
+                    ),
+                )
+            if self.trainer.current_epoch % 10 == 0:
+                metrics = compute_metrics(
+                    model=self,
+                    batch=batch,
+                    n_last_timesteps_wasserstein=5,
+                    n_particles_wasserstein=32,
+                )
+                for k, v in metrics.items():
+                    v_agg = torch.tensor(v, dtype=self.dtype).mean()
+                    aggregated_metrics.update({k: v_agg})
+        except:
+            print("Warning: validation failed. Probably due to FP32 problems?")
+    
+        for k, v in aggregated_metrics.items():
+            self.log(k, v)
+
+        return aggregated_metrics
+
+    def validation_epoch_end(
+        self,
+        outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]],
+    ) -> Dict[str, Dict[str, Tensor]]:
+        aggregated_metrics = {
+            k: sum(v) / len(v)
+            for k, v in list_of_dicts_to_dict_of_list(outputs).items()
+        }
+        for k, v in aggregated_metrics.items():
+            self.log(k, v, prog_bar=True)
+        if self.print_validation_metrics:
+            print(f"epoch: {self.current_epoch}: ", aggregated_metrics)
+        return aggregated_metrics
 
     def test_dataloader(self):
         tar_extract_collate_fn = DefaultExtractTarget(
@@ -139,22 +229,19 @@ class PymunkModel(DefaultLightningModel):
 
         # 2) Compute metrics
         metrics = compute_metrics(model=self, batch=batch)
-        result = pl.EvalResult()
-        for k, v in metrics.items():
-            result.log(k, v)
-        return result
+        # non-scalars in numpy. Otherwise lightning complains,
+        # because it tries to convert it.
+        return metrics
 
-    def test_end(self, outputs):
-        result = pl.EvalResult()
-        metric_names = [k for k in outputs.keys() if k != "meta"]
+    def test_epoch_end(self, outputs):
+        metrics = list_of_dicts_to_dict_of_list(outputs)
+        metric_names = [k for k in metrics.keys() if k != "meta"]
+        result = {}
         for metric_name in metric_names:
             agg_metrics = {}
-            metrics_cat = np.concatenate(outputs[metric_name], axis=-1)
+            metrics_cat = np.concatenate(metrics[metric_name], axis=-1)
 
-            if metrics_cat.shape[:-1] == (
-                self.past_length + self.prediction_length,
-                self.ssm.n_particle,
-            ):
+            if metrics_cat.ndim == 3:
                 # mean, std, var over particle dim. Always mean over batch/data.
                 agg_metrics["mean"] = metrics_cat.mean(axis=1).mean(axis=-1)
                 agg_metrics["std"] = metrics_cat.std(axis=1).mean(axis=-1)
@@ -167,19 +254,18 @@ class PymunkModel(DefaultLightningModel):
                 self.log_metrics[metric_name] = Box()
                 for which_agg, agg_metric in agg_metrics.items():
                     self.log_metrics[metric_name][which_agg] = agg_metric
-                    result.log(
-                        f"{metric_name}_{which_agg}", agg_metric.mean(axis=0),
-                    )
-            elif metrics_cat.shape[:-1] == (
-                self.past_length + self.prediction_length,
-            ):
+                    name = f"{metric_name}_{which_agg}"
+                    result[name] = agg_metric.mean(axis=0)
+                    self.log(name, result[name])
+            elif metrics_cat.ndim == 2:
                 agg_metrics = metrics_cat.mean(axis=-1)  # Batch
                 self.log_metrics[metric_name] = agg_metrics
-                result.log(metric_name, agg_metrics.mean(axis=0))
+                result[metric_name] = agg_metrics.mean(axis=0)
+                self.log(metric_name, result[metric_name])
             else:
                 raise ValueError(
                     f"metric '{metric_name}' has unexpected "
-                    f"tensor dims: {metrics_cat.shape[:-1]}"
+                    f"tensor dims: {metrics_cat.shape}"
                 )
 
         # There are no methods in lightning or even tensorboard to log

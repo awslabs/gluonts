@@ -1,12 +1,8 @@
-import math
 from typing import Tuple
-from dataclasses import dataclass, asdict
-import numpy as np
-from torch import nn
+from dataclasses import dataclass
 
-import consts
+from torch import nn
 from experiments.base_config import BaseConfig
-from utils.utils import TensorDims
 from experiments.model_component_zoo import (
     encoders,
     decoders,
@@ -46,6 +42,7 @@ class PymunkConfig(BaseConfig):
     weight_decay: float
     num_samples_eval: int
     n_epochs_no_resampling: int
+    n_epochs_freeze_gls_params: int
 
 
 @dataclass()
@@ -71,147 +68,32 @@ class PymunkASGLSConfig(PymunkConfig):
     is_recurrent: bool
     switch_prior_scale: float
     switch_prior_loc: float
-
-
-dims_img = (1, 32, 32)
-dims_kvae = TensorDims(
-    timesteps=20,
-    particle=1,
-    batch=32,
-    state=10,
-    target=int(np.prod(dims_img)),
-    switch=None,  # --> n_hidden_rnn
-    auxiliary=6,
-    ctrl_target=None,
-    ctrl_state=None,
-)
-dims_asgls = TensorDims(
-    timesteps=20,
-    particle=32,
-    batch=32,
-    state=10,  # 10
-    target=int(np.prod(dims_img)),
-    switch=5,
-    auxiliary=6,
-    ctrl_target=None,
-    ctrl_state=None,
-)
-
-base_config = PymunkConfig(
-    dataset_name=consts.Datasets.box,
-    experiment_name="arsgls",  # kvae
-    dims=None,  # dummy
-    batch_size_eval=10,
-    num_samples_eval=100,
-    prediction_length=40,
-    n_epochs=200,
-    lr=7e-3,
-    lr_decay_rate=0.85,
-    lr_decay_steps=20,
-    grad_clip_norm=150.0,
-    weight_decay=0.0,
-    n_epochs_no_resampling=0,
-    n_base_A=20,
-    n_base_B=None,
-    # Not used in image environments. But consider for other data.
-    n_base_C=20,
-    n_base_D=None,
-    n_base_Q=20,
-    n_base_R=20,
-    n_base_S=20,
-    n_base_F=20,
-    requires_grad_R=False,
-    requires_grad_Q=False,
-    init_scale_A=1.0,
-    init_scale_B=None,
-    init_scale_C=0.05,
-    init_scale_D=None,  # Note: KVAE does not have D.
-    init_scale_R_diag=math.sqrt(0.08),
-    init_scale_Q_diag=math.sqrt(0.03),
-    init_scale_S_diag=(1e-4, 1e-1),
-    # only ASGLS. but messed up base config using this...
-    state_prior_loc=0.0,
-    state_prior_scale=math.sqrt(20.0),
-    #
-    dims_img=dims_img,
-    dims_filter=(32,) * 3,
-    kernel_sizes=(3,) * 3,
-    strides=(2,) * 3,
-    paddings=(1,) * 3,
-    upscale_factor=2,
-    #
-    switch_link_type=SwitchLinkType.shared,
-    switch_link_dims_hidden=tuple(),
-    switch_link_activations=tuple(),
-    LRinv_logdiag_scaling=5.0,
-    LQinv_logdiag_scaling=5.0,
-    A_scaling=1.0,
-    B_scaling=1.0,
-    C_scaling=1.0,
-    D_scaling=1.0,
-    LSinv_logdiag_scaling=5.0,
-    F_scaling=1.0,
-    eye_init_A=True,
-)
-
-kvae_config = PymunkKVAEConfig(
-    **asdict(base_config),
-    rao_blackwellized=False,
-    reconstruction_weight=0.3,
-    n_hidden_rnn=50,  # the state output corresponds to our switch.
-)
-
-
-arsgls_config = PymunkASGLSConfig(
-    **asdict(base_config),
-    recurrent_link_type=SwitchLinkType.shared,
-    b_fn_dims=tuple(),
-    d_fn_dims=tuple(),
-    b_fn_activations=None,
-    d_fn_activations=None,
-    switch_prior_model_dims=tuple(),
-    switch_prior_model_activations=None,
-    switch_transition_model_dims=(32,),
-    switch_transition_model_activations=nn.ReLU(),
-    dims_encoder=(None, (64,)),
-    activations_encoder=((None,), (nn.ReLU(),)),
-    is_recurrent=True,
-    switch_prior_scale=1.0,
-    switch_prior_loc=0.0,
-)
-
-# In original KVAE paper,  they fixed cov-mats through hyper-parameter search
-learn_kvae_cov_mats = False
-kvae_config.dims = dims_kvae
-if learn_kvae_cov_mats:
-    kvae_config.requires_grad_R = True
-    kvae_config.requires_grad_Q = True
-    kvae_config.init_scale_R_diag = [1e-4, 1e-1]
-    kvae_config.init_scale_Q_diag = [1e-4, 1e-1]
-    kvae_config.init_scale_S_diag = [1e-4, 1e-1]
-else:
-    kvae_config.requires_grad_R = False
-    kvae_config.requires_grad_Q = False
-
-arsgls_config.dims = dims_asgls
-arsgls_config.requires_grad_R = True
-arsgls_config.requires_grad_Q = True
-arsgls_config.init_scale_R_diag = [1e-4, 1e-1]
-arsgls_config.init_scale_Q_diag = [1e-4, 1e-1]
-arsgls_config.init_scale_S_diag = [1e-4, 1e-1]
-arsgls_config.init_scale_C = None  # use default init
+    requires_grad_switch_prior: bool
 
 
 def make_experiment_config(experiment_name, dataset_name):
-    if experiment_name == "kvae":
-        config = kvae_config
-    elif experiment_name == "arsgls":
-        config = arsgls_config
+    from experiments.pymunk.configs import (
+        config_arsgls,
+        config_kvae_rb_learn,
+        config_kvae_rb_fix,
+        config_kvae_mc_learn,
+        config_kvae_mc_fix,
+    )
+    configs = {
+        "arsgls": config_arsgls,
+        "kvae_rb_learn": config_kvae_rb_learn,
+        "kvae_rb_fix": config_kvae_rb_fix,
+        "kvae_mc_learn": config_kvae_mc_learn,
+        "kvae_mc_fix": config_kvae_mc_fix,
+    }
+
+    if experiment_name in configs:
+        config = configs[experiment_name].config
+        assert config.experiment_name == experiment_name
+        config.dataset_name = dataset_name
+        return config
     else:
         raise Exception(f"unknown experiment/model: {experiment_name}")
-    config.experiment_name = experiment_name
-    config.dataset_name = dataset_name
-    return config
 
 
 def _make_kvae(config):
@@ -279,7 +161,7 @@ def _make_asgls(config):
 
 
 def make_model(config):
-    if config.experiment_name == "kvae":
+    if config.experiment_name.startswith("kvae"):
         ssm = _make_kvae(config=config)
     elif config.experiment_name == "arsgls":
         ssm = _make_asgls(config=config)
@@ -305,7 +187,8 @@ def make_model(config):
         n_particle_eval=config.num_samples_eval,
         prediction_length=config.prediction_length,
         n_epochs_no_resampling=config.n_epochs_no_resampling,
-        num_batches_per_epoch=50,
-        log_param_norms=True,
+        num_batches_per_epoch=None,
+        log_param_norms=False,
+        n_epochs_freeze_gls_params=config.n_epochs_freeze_gls_params,
     )
     return model

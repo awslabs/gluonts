@@ -48,15 +48,9 @@ class KvaeGtsExpConfig(BaseConfig):
     normalisation_params: list
     extract_tail_chunks_for_train: bool
     n_epochs_until_validate_loss: int
-    # gpus: (list, tuple)
     num_samples_eval: int
     batch_size_val: int
-    # dtype: torch.dtype
     make_cov_from_cholesky_avg: bool
-    # is_recurrent: bool
-    # n_epochs_no_resampling: int
-    # obs_to_switch_encoder: bool
-    # state_to_switch_encoder: bool
 
     n_hidden_rnn: int
     rao_blackwellized: bool
@@ -157,7 +151,11 @@ def make_default_config(dataset_name):
     n_static_embedding = min(
         50, (cardinalities["cardinalities_feat_static_cat"][0] + 1) // 2
     )
-    n_ctrl = 64
+    n_ctrl_all = n_ctrl_static = n_ctrl_dynamic = 64
+
+    # n_ctrl_static = n_static_embedding
+    # n_ctrl_dynamic = 32
+    # n_ctrl_all = n_ctrl_static + n_ctrl_dynamic  # we cat
 
     dims = TensorDims(
         timesteps=past_lengths[dataset_name],
@@ -166,14 +164,14 @@ def make_default_config(dataset_name):
         state=16,  # n_latent,
         target=1,
         switch=None,
-        ctrl_state=n_ctrl,
-        ctrl_switch=n_ctrl,
-        ctrl_target=n_ctrl,
+        ctrl_state=n_ctrl_dynamic,
+        ctrl_target=n_ctrl_static,
+        ctrl_switch=n_ctrl_all,
         ctrl_encoder=None,  # KVAE uses pseudo-obs only, no controls for enc.
         timefeat=n_timefeat,
         staticfeat=n_staticfeat,
         cat_embedding=n_static_embedding,
-        auxiliary=10,
+        auxiliary=5,
     )
 
     config = KvaeGtsExpConfig(
@@ -182,11 +180,11 @@ def make_default_config(dataset_name):
         #
         n_epochs=50,
         n_epochs_until_validate_loss=1,
-        lr=1e-2 if dataset_name in ["solar_nips"] else 5e-3,
-        grad_clip_norm=5.0,
+        lr=5e-3,
         weight_decay=1e-5,
+        grad_clip_norm=10.0,
         num_samples_eval=100,
-        # Note: These batch sizes barely fit on the GPU. for Multivariate must be reduced.
+        # Note: These batch sizes barely fit on the GPU.
         batch_size_val=10
         if dataset_name
         in ["exchange_rate_nips", "wiki2000_nips", "wiki2000_nips"]
@@ -197,12 +195,12 @@ def make_default_config(dataset_name):
         make_cov_from_cholesky_avg=True,
         extract_tail_chunks_for_train=False,
         switch_link_type=SwitchLinkType.shared,
-        switch_link_dims_hidden=tuple(),  # only linear used
+        switch_link_dims_hidden=tuple(),  # linear used in KVAE LSTM -> alpha
         switch_link_activations=tuple(),
         # they have 1 Dense layer after LSTM.
         recurrent_link_type=SwitchLinkType.shared,
         n_hidden_rnn=50,
-        rao_blackwellized=False,
+        rao_blackwellized=True,
         reconstruction_weight=1.0,  # They use 0.3 w/o rao-BW.
         dims_encoder=(64, 64),
         dims_decoder=(64, 64),
@@ -211,18 +209,19 @@ def make_default_config(dataset_name):
         n_base_A=20,
         n_base_B=20,
         n_base_C=20,
-        n_base_D=None,  # they dont have D
+        n_base_D=None,  # KVAE does not have D
         n_base_Q=20,
         n_base_R=20,
         n_base_F=None,
         n_base_S=None,
         requires_grad_R=True,
         requires_grad_Q=True,
-        input_transform_dims=tuple() + (n_ctrl,),
+        requires_grad_S=None,
+        input_transform_dims=tuple() + (dims.ctrl_state,),
         input_transform_activations=LeakyReLU(0.1, inplace=True),
         # initialisation
         init_scale_A=0.95,
-        init_scale_B=1e-4,
+        init_scale_B=0.0,
         init_scale_C=None,
         init_scale_D=None,
         init_scale_R_diag=[1e-4, 1e-1],
@@ -239,8 +238,12 @@ def make_default_config(dataset_name):
         normalisation_params=normalisation_params[dataset_name],
         LRinv_logdiag_scaling=1.0,
         LQinv_logdiag_scaling=1.0,
+        A_scaling=1.0,
         B_scaling=1.0,
+        C_scaling=1.0,
         D_scaling=1.0,
+        LSinv_logdiag_scaling=1.0,
+        F_scaling=1.0,
         eye_init_A=True,
     )
     return config
@@ -272,6 +275,7 @@ def make_model(config):
         reconstruction_weight=config.reconstruction_weight,
     )
     model = GluontsUnivariateDataModel(
+        log_param_norms=False,
         config=config,
         ssm=ssm,
         ctrl_transformer=input_transformer,
@@ -294,26 +298,12 @@ def make_model(config):
         n_particle_eval=config.num_samples_eval,
         prediction_length_full=config.prediction_length_full,
         prediction_length_rolling=config.prediction_length_rolling,
-        num_batches_per_epoch=50,
+        num_batches_per_epoch=250,
         extract_tail_chunks_for_train=config.extract_tail_chunks_for_train,
     )
     return model
 
 
-# This fn must come after the *_mod functions as it uses locals
-# TODO: this is obsolete
+# TODO: Not necessary anymore
 def make_experiment_config(dataset_name, experiment_name):
-    config = make_default_config(dataset_name=dataset_name)
-    if experiment_name is not None and experiment_name != "default":
-        if experiment_name in ["kvae", "kvae_mc", "kvae_rb"]:
-            return config
-        else:
-            raise NotImplementedError("")
-            if not f"{experiment_name}" in locals():
-                raise Exception(
-                    f"config file must have function {experiment_name}_mod"
-                )
-            mod_fn = locals()[f"{experiment_name}_mod"]
-            print(f"modifying config for experiment {experiment_name}")
-            config = mod_fn(config)
-    return config
+    return make_default_config(dataset_name=dataset_name)
