@@ -101,9 +101,12 @@ def compute_metrics(
         ]
     elif isinstance(model.ssm, KalmanVariationalAutoEncoder):
         # uniform weights also in filter range (just VI, not SMC-based).
-        log_P = np.log(model.ssm.n_particle)
         log_weights = [
-            torch.zeros_like(p.latents.variables.x[..., 0]) - log_P
+            normalize_log_weights(torch.zeros_like(
+                p.latents.variables.x[..., 0]
+                if p.latents.variables.x is not None
+                else p.latents.variables.m[..., 0]
+            ))
             for p in all_predictions
         ]
     else:
