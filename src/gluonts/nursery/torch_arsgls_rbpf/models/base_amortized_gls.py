@@ -97,7 +97,7 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         n_particle: int,
         gls_base_parameters: GLSParameters,
         state_prior_model: ParametrisedMultivariateNormal,
-        encoder: nn.Module,  # TODO: rename: encoder. which exactly depends.
+        encoder: nn.Module,
     ):
         super().__init__(
             n_state=n_state,
@@ -138,15 +138,6 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
                 past_targets=past_targets, past_controls=past_controls,
             )
 
-        if latents_inferred[0].variables.x is None:
-            for latent in latents_inferred:
-                latent.variables.x = MultivariateNormal(
-                    loc=latent.variables.m,
-                    covariance_matrix=latent.variables.V,
-                ).rsample()
-                latent.variables.m = None
-                latent.variables.V = None
-
         emission_dist_inferred = [
             self.emit(lats_t=latents_inferred[t], ctrl_t=past_controls[t])
             for t in range(len(latents_inferred))
@@ -177,6 +168,18 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         ] = None,
         deterministic: bool = False,
     ) -> Sequence[Prediction]:
+
+        # TODO: we only support sample forecasts atm
+        #  The metrics such as CRPS in GluonTS are evaluated with samples only.
+        #  Some models could retain states closed-form though.
+        if initial_latent.variables.x is None:
+            initial_latent.variables.x = MultivariateNormal(
+                loc=initial_latent.variables.m,
+                covariance_matrix=initial_latent.variables.V,
+            ).rsample()
+            initial_latent.variables.m = None
+            initial_latent.variables.V = None
+            initial_latent.variables.Cov = None
 
         initial_latent, future_controls = self._prepare_forecast(
             initial_latent=initial_latent,
