@@ -155,7 +155,6 @@ def test_special_date_feature_set_daily(
 ):
     sfs = SpecialDateFeatureSet(holidays)
     computed_features = sfs(date_indices)
-    print(computed_features)
     assert (
         computed_features == reference_features
     ).all(), "Computed features do not match reference features."
