@@ -19,11 +19,11 @@ from typing import Dict, List, Optional, Tuple
 # Third-party imports
 import numpy as np
 
-from gluonts.core.component import validated
 
 # First-party imports
 from gluonts.model.common import Tensor
 from gluonts.support.util import erf, erfinv
+from gluonts.core.component import validated
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus

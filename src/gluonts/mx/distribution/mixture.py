@@ -15,6 +15,7 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
+import mxnet as mx
 
 # Third-party imports
 from mxnet import gluon
@@ -37,7 +38,7 @@ class MixtureDistribution(Distribution):
     mixture_probs
         A tensor of mixing probabilities. The entries should all be positive
         and sum to 1 across the last dimension. Shape: (..., k), where k is
-        the number of distributions to be mixed. All axis except the last one
+        the number of distributions to be mixed. All axes except the last one
         should either coincide with the ones from the component distributions,
         or be 1 (in which case, the mixing coefficient is shared across
         the axis).
@@ -60,6 +61,32 @@ class MixtureDistribution(Distribution):
         # self.all_same = len(set(c.__class__.__name__ for c in components)) == 1
         self.mixture_probs = mixture_probs
         self.components = components
+        if not isinstance(mixture_probs, mx.sym.Symbol):
+
+            # assert that all components have the same batch shape
+            assert np.all(
+                [d.batch_shape == self.batch_shape for d in components[1:]]
+            ), "All component distributions must have the same batch_shape."
+
+            # assert that mixture_probs has the right shape
+            assertion_message = f"""mixture_probs have shape {mixture_probs.shape}, but expected shape: (..., k), 
+                                    where k is len(components)={len(components)}. 
+                                    All axes except the last one should either coincide with the ones from the 
+                                    component distributions, 
+                                    or be 1 (in which case, the mixing coefficient is shared across
+                                    the axis)."""
+
+            expected_shape = self.batch_shape + (len(components),)
+            assert len(expected_shape) == len(mixture_probs.shape), (
+                assertion_message
+                + " Maybe you need to expand the shape of mixture_probs at the zeroth axis."
+            )
+            for expected_dim, given_dim in zip(
+                expected_shape, mixture_probs.shape
+            ):
+                assert (
+                    expected_dim == given_dim
+                ) or given_dim == 1, assertion_message
 
     @property
     def F(self):
@@ -219,3 +246,7 @@ class MixtureDistributionOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return self.distr_outputs[0].event_shape
+
+    @property
+    def value_in_support(self) -> float:
+        return self.distr_outputs[0].value_in_support

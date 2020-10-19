@@ -23,11 +23,14 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import FutureFeatIntegratorEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
@@ -48,8 +51,9 @@ from gluonts.transform import (
 # Relative imports
 from ._forking_network import (
     ForkingSeq2SeqNetworkBase,
-    ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqTrainingNetwork,
+    ForkingSeq2SeqPredictionNetwork,
+    ForkingSeq2SeqDistributionPredictionNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 
@@ -85,6 +89,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         seq2seq decoder
     quantile_output
         quantile output
+    distr_output
+        distribution output
     freq
         frequency of the time series.
     prediction_length
@@ -118,11 +124,15 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     trainer
         trainer (default: Trainer())
     scaling
-        Whether to automatically scale the target values. (default: False)
+        Whether to automatically scale the target values. (default: False if quantile_output is used, True otherwise)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     dtype
         (default: np.float32)
+    num_forking
+        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
+    max_ts_len
+        Returns the length of the longest time series in the dataset to be used in bounding context_length.
     """
 
     @validated()
@@ -130,9 +140,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self,
         encoder: Seq2SeqEncoder,
         decoder: Seq2SeqDecoder,
-        quantile_output: QuantileOutput,
         freq: str,
         prediction_length: int,
+        quantile_output: Optional[QuantileOutput] = None,
+        distr_output: Optional[DistributionOutput] = None,
         context_length: Optional[int] = None,
         use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
@@ -144,12 +155,15 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         enable_encoder_dynamic_feature: bool = True,
         enable_decoder_dynamic_feature: bool = True,
         trainer: Trainer = Trainer(),
-        scaling: bool = False,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
+        num_forking: Optional[int] = None,
+        max_ts_len: Optional[int] = None,
     ) -> None:
         super().__init__(trainer=trainer)
 
+        assert (distr_output is None) != (quantile_output is None)
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
@@ -168,13 +182,27 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
         self.encoder = encoder
         self.decoder = decoder
-        self.quantile_output = quantile_output
         self.freq = freq
         self.prediction_length = prediction_length
+        self.quantile_output = quantile_output
+        self.distr_output = distr_output
         self.context_length = (
             context_length
             if context_length is not None
             else 4 * self.prediction_length
+        )
+        if max_ts_len is not None:
+            max_pad_len = max(max_ts_len - self.prediction_length, 0)
+            # Don't allow context_length to be longer than the max pad length
+            self.context_length = (
+                min(max_pad_len, self.context_length)
+                if max_pad_len > 0
+                else self.context_length
+            )
+        self.num_forking = (
+            min(num_forking, self.context_length)
+            if num_forking is not None
+            else self.context_length
         )
         self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
         self.use_feat_dynamic_real = use_feat_dynamic_real
@@ -194,7 +222,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         )
         self.enable_encoder_dynamic_feature = enable_encoder_dynamic_feature
         self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
-        self.scaling = scaling
+        self.scaling = (
+            scaling if scaling is not None else (quantile_output is None)
+        )
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
 
@@ -237,7 +267,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     output_field=FieldName.FEAT_TIME,
                     time_features=time_features_from_frequency_str(self.freq),
                     pred_length=self.prediction_length,
-                ),
+                    dtype=self.dtype,
+                )
             )
             dynamic_feat_fields.append(FieldName.FEAT_TIME)
 
@@ -248,7 +279,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     output_field=FieldName.FEAT_AGE,
                     pred_length=self.prediction_length,
                     dtype=self.dtype,
-                ),
+                )
             )
             dynamic_feat_fields.append(FieldName.FEAT_AGE)
 
@@ -260,8 +291,14 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             dynamic_feat_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
         # we need to make sure that there is always some dynamic input
-        # we will however disregard it in the hybrid forward
-        if len(dynamic_feat_fields) == 0:
+        # we will however disregard it in the hybrid forward.
+        # the time feature is empty for yearly freq so also adding a dummy feature
+        # in the case that the time feature is the only one on
+        if len(dynamic_feat_fields) == 0 or (
+            not self.add_age_feature
+            and not self.use_feat_dynamic_real
+            and self.freq == "Y"
+        ):
             chain.append(
                 AddConstFeature(
                     target_field=FieldName.TARGET,
@@ -269,7 +306,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     pred_length=self.prediction_length,
                     const=0.0,  # For consistency in case with no dynamic features
                     dtype=self.dtype,
-                ),
+                )
             )
             dynamic_feat_fields.append(FieldName.FEAT_CONST)
 
@@ -293,8 +330,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             chain.append(
                 SetField(
                     output_field=FieldName.FEAT_STATIC_CAT,
-                    value=np.array([0.0]),
-                ),
+                    value=np.array([0], dtype=np.int32),
+                )
             )
 
         # --- SAMPLE AND CUT THE TIME-SERIES ---
@@ -306,6 +343,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 train_sampler=TestSplitSampler(),
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
+                num_forking=self.num_forking,
                 encoder_series_fields=[
                     FieldName.OBSERVED_VALUES,
                     # RTS with past and future values which is never empty because added dummy constant variable
@@ -339,7 +377,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     else []
                 ),
                 prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
-            ),
+            )
         )
 
         # past_feat_dynamic features generated above in ForkingSequenceSplitter from those under feat_dynamic - we need
@@ -368,7 +406,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             enc2dec=FutureFeatIntegratorEnc2Dec(),
             decoder=self.decoder,
             quantile_output=self.quantile_output,
+            distr_output=self.distr_output,
             context_length=self.context_length,
+            num_forking=self.num_forking,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
@@ -381,18 +421,29 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         transformation: Transformation,
         trained_network: ForkingSeq2SeqNetworkBase,
     ) -> Predictor:
-        # this is specific to quantile output
-        quantile_strs = [
-            Quantile.from_float(quantile).name
-            for quantile in self.quantile_output.quantiles
-        ]
+        quantile_strs = (
+            [
+                Quantile.from_float(quantile).name
+                for quantile in self.quantile_output.quantiles
+            ]
+            if self.quantile_output is not None
+            else None
+        )
 
-        prediction_network = ForkingSeq2SeqPredictionNetwork(
+        prediction_network_class = (
+            ForkingSeq2SeqPredictionNetwork
+            if self.quantile_output is not None
+            else ForkingSeq2SeqDistributionPredictionNetwork
+        )
+
+        prediction_network = prediction_network_class(
             encoder=trained_network.encoder,
             enc2dec=trained_network.enc2dec,
             decoder=trained_network.decoder,
             quantile_output=trained_network.quantile_output,
+            distr_output=trained_network.distr_output,
             context_length=self.context_length,
+            num_forking=self.num_forking,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
@@ -409,5 +460,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_generator=QuantileForecastGenerator(quantile_strs),
+            forecast_generator=(
+                QuantileForecastGenerator(quantile_strs)
+                if quantile_strs is not None
+                else DistributionForecastGenerator(self.distr_output)
+            ),
         )

@@ -12,9 +12,9 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from functools import partial
 from pathlib import Path
-from typing import Iterator, List, Optional, cast
+from typing import Iterator, List, Optional, cast, Callable
+from functools import partial
 
 # Third-party imports
 import mxnet as mx
@@ -24,15 +24,15 @@ import numpy as np
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.dataset.parallelized_loader import batchify
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
-from gluonts.model.predictor import (
+from gluonts.model.predictor import OutputTransform
+from gluonts.mx.model.predictor import (
     GluonPredictor,
-    OutputTransform,
     SymbolBlockPredictor,
 )
 from gluonts.transform import Transformation
+from gluonts.mx.batchify import batchify
 
 # Relative imports
 from .forecast import PointProcessSampleForecast
@@ -56,10 +56,12 @@ class PointProcessForecastGenerator(ForecastGenerator):
             outputs, valid_length = (
                 x.asnumpy() for x in prediction_net(*inputs)
             )
+            # outputs (num_parallel_samples, batch_size, max_seq_len, 2)
+            # valid_length (num_parallel_samples, batch_size)
 
             # sample until enough point process trajectories are collected
             if num_samples:
-                num_collected_samples = outputs[0].shape[0]
+                num_collected_samples = outputs.shape[0]
                 collected_samples, collected_vls = [outputs], [valid_length]
                 while num_collected_samples < num_samples:
                     outputs, valid_length = (
@@ -69,26 +71,24 @@ class PointProcessForecastGenerator(ForecastGenerator):
                     collected_samples.append(outputs)
                     collected_vls.append(valid_length)
 
-                    num_collected_samples += outputs[0].shape[0]
+                    num_collected_samples += outputs.shape[0]
 
-                outputs = [
-                    np.concatenate(s)[:num_samples]
-                    for s in zip(*collected_samples)
-                ]
-                valid_length = [
-                    np.concatenate(s)[:num_samples]
-                    for s in zip(*collected_vls)
-                ]
+                outputs = np.concatenate(collected_samples)[:num_samples]
+                valid_length = np.concatenate(collected_vls)[:num_samples]
+                # outputs (num_samples, batch_size, max_seq_len, 2)
+                # valid_length (num_samples, batch_size)
 
-                assert len(outputs[0]) == num_samples
-                assert len(valid_length[0]) == num_samples
+                assert outputs.shape[0] == num_samples
+                assert valid_length.shape[0] == num_samples
 
-            assert len(batch["forecast_start"]) == len(outputs)
+            assert outputs.ndim == 4
+            assert valid_length.ndim == 2
 
-            for i, output in enumerate(outputs):
+            batch_size = outputs.shape[1]
+            for i in range(batch_size):
                 yield PointProcessSampleForecast(
-                    output,
-                    valid_length=valid_length[i],
+                    outputs[:, i],
+                    valid_length=valid_length[:, i],
                     start_date=batch["forecast_start"][i],
                     freq=freq,
                     prediction_interval_length=prediction_net.prediction_interval_length,
@@ -177,12 +177,24 @@ class PointProcessGluonPredictor(GluonPredictor):
         num_prefetch: Optional[int] = None,
         **kwargs,
     ) -> Iterator[Forecast]:
-        yield from super().predict(
-            dataset=dataset,
-            num_samples=num_samples,
+        inference_data_loader = InferenceDataLoader(
+            dataset,
+            transform=self.input_transform,
+            batch_size=self.batch_size,
+            stack_fn=partial(
+                batchify, ctx=self.ctx, dtype=self.dtype, variable_length=True
+            ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
-            batchify_fn=partial(batchify, variable_length=True),
+            **kwargs,
+        )
+        yield from self.forecast_generator(
+            inference_data_loader=inference_data_loader,
+            prediction_net=self.prediction_net,
+            input_names=self.input_names,
+            freq=self.freq,
+            output_transform=self.output_transform,
+            num_samples=num_samples,
         )
 
     def serialize_prediction_net(self, path: Path) -> None:

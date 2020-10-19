@@ -12,9 +12,9 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from ._base import Evaluator, MultivariateEvaluator, get_seasonality
+from ._base import Evaluator, MultivariateEvaluator
 
-__all__ = ["get_seasonality", "Evaluator", "MultivariateEvaluator"]
+__all__ = ["Evaluator", "MultivariateEvaluator"]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:
