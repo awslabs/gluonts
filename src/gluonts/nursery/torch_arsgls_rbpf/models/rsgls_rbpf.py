@@ -68,7 +68,7 @@ class RecurrentMixin:
 
         # combine i) & ii): sum variables (=convolve PDFs).
         switch_model_dist = gaussian_linear_combination(
-            {state_to_switch_dist: 1.0, switch_to_switch_dist: 1.0}
+            {state_to_switch_dist: 0.5, switch_to_switch_dist: 0.5}
         )
         return switch_model_dist
 
