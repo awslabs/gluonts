@@ -31,7 +31,7 @@ from pandas.tseries.holiday import (
 from pandas.tseries.offsets import DateOffset, Day, Easter
 
 # This is 183 to cover half a year (in both directions), also for leap years
-# and half a week to cover holidays offset by a week
+# + 17 as Eastern can be between March, 22 - April, 25
 MAX_WINDOW = 183 + 17
 
 
