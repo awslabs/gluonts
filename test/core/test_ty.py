@@ -19,18 +19,18 @@ from gluonts.core import serde
 from gluonts.core import ty
 
 
-class MyClass(ty.Stateful):
+class StatefulClass(ty.Stateful):
     def __init__(self):
         self.n = random.random()
 
 
 def test_stateful():
-    o = MyClass()
+    o = StatefulClass()
     o2 = serde.decode(serde.encode(o))
     assert o.n == o2.n
 
 
-class Stateless(ty.Stateless):
+class StatelessClass(ty.Stateless):
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -38,7 +38,7 @@ class Stateless(ty.Stateless):
 
 
 def test_stateless():
-    m = Stateless(1, 2)
+    m = StatelessClass(1, 2)
 
     m2 = serde.decode(serde.encode(m))
     assert m.x == m2.x
@@ -47,9 +47,21 @@ def test_stateless():
 
 
 def test_stateless_immutable():
-    m = Stateless(1, 2)
+    m = StatelessClass(1, 2)
     with pytest.raises(ValueError):
         m.x = 3
+
+
+class StatelessClassTyped(ty.Stateless):
+    @ty.checked
+    def __init__(self, a: int):
+        self.a = a
+
+
+def test_stateless_typed():
+    m = StatelessClassTyped(a="42")
+    assert m.a == 42
+    assert serde.encode(m)["kwargs"]["a"] == 42
 
 
 @ty.checked

@@ -65,7 +65,7 @@ def checked(fn):
         f"{fn.__name__}Model", __config__=Config, **fn_fields,
     )
 
-    def checked_args(args, kwargs):
+    def checked_args(*args, **kwargs):
         nmargs = {
             name: arg
             for name, arg in zip(fn_params, args)
@@ -73,7 +73,7 @@ def checked(fn):
         }
 
         try:
-            model = Model(**kwargs, **nmargs)
+            model = Model(**{**kwargs, **nmargs})
         except pydantic.ValidationError as err:
             errors = err.errors()
 
@@ -93,7 +93,7 @@ def checked(fn):
 
     @functools.wraps(fn)
     def fn_wrapper(*args, **kwargs):
-        typed_args, typed_kwargs = checked_args(args, kwargs)
+        typed_args, typed_kwargs = checked_args(*args, **kwargs)
         return fn(*typed_args, **typed_kwargs)
 
     fn_wrapper.__checked__ = checked_args
@@ -106,8 +106,10 @@ class StatelessMeta(type):
         self = cls.__new__(cls, *args, **kwargs)
         if isinstance(self, cls):
             if hasattr(self.__init__, "__checked__"):
-                args, kwargs = self.__init__.__checked__(args, kwargs)
-                self.__init__.__wrapped__(*args, **kwargs)
+                (this, *args), kwargs = self.__init__.__checked__(
+                    self, *args, **kwargs
+                )
+                self.__init__.__wrapped__(this, *args, **kwargs)
             else:
                 self.__init__(*args, **kwargs)
             self.__init_args__ = args, kwargs
