@@ -22,6 +22,7 @@ from gluonts.core.serde import dump_code
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator, GluonEstimator
+from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -158,10 +159,14 @@ def run_test(
     )
 
     test_quantiles = (
-        list(map(str, (hyperparameters["test_quantiles"])))
+        [
+            Quantile.parse(quantile).name
+            for quantile in hyperparameters["test_quantiles"]
+        ]
         if "test_quantiles" in hyperparameters.keys()
         else None
     )
+
     if isinstance(predictor, RepresentableBlockPredictor) and isinstance(
         predictor.forecast_generator, QuantileForecastGenerator
     ):
