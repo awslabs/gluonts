@@ -65,8 +65,7 @@ def checked(fn):
         f"{fn.__name__}Model", __config__=Config, **fn_fields,
     )
 
-    @functools.wraps(fn)
-    def fn_wrapper(*args, **kwargs):
+    def checked_args(args, kwargs):
         nmargs = {
             name: arg
             for name, arg in zip(fn_params, args)
@@ -74,7 +73,7 @@ def checked(fn):
         }
 
         try:
-            model = Model(**nmargs, **kwargs)
+            model = Model(**kwargs, **nmargs)
         except pydantic.ValidationError as err:
             errors = err.errors()
 
@@ -86,11 +85,18 @@ def checked(fn):
                 f'Cannot call "{fn.__qualname__}":\n{details}'
             ) from err
 
-        values = model.dict()
-        nargs = [values.pop(name) for name in nmargs]
-        nargs += args[len(nargs) :]
+        typed_kwargs = {**kwargs, **model.dict()}
+        typed_args = [typed_kwargs.pop(name) for name in nmargs]
+        typed_args += args[len(typed_args) :]
 
-        return fn(*nargs, **kwargs)
+        return typed_args, typed_kwargs
+
+    @functools.wraps(fn)
+    def fn_wrapper(*args, **kwargs):
+        typed_args, typed_kwargs = checked_args(args, kwargs)
+        return fn(*typed_args, **typed_kwargs)
+
+    fn_wrapper.__checked__ = checked_args
 
     return fn_wrapper
 
@@ -99,7 +105,11 @@ class StatelessMeta(type):
     def __call__(cls, *args, **kwargs):
         self = cls.__new__(cls, *args, **kwargs)
         if isinstance(self, cls):
-            self.__init__(*args, **kwargs)
+            if hasattr(self.__init__, "__checked__"):
+                args, kwargs = self.__init__.__checked__(args, kwargs)
+                self.__init__.__wrapped__(*args, **kwargs)
+            else:
+                self.__init__(*args, **kwargs)
             self.__init_args__ = args, kwargs
             self.__sealed__ = True
         return self
