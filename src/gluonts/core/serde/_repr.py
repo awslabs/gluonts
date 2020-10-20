@@ -32,19 +32,19 @@ def as_repr(x):
     raise RuntimeError(f"Unexpected element type {fqname_for(x.__class__)}")
 
 
-@as_repr.register
+@as_repr.register(str)
 def as_repr_str(x: str):
     # json.dumps escapes the string
     return json.dumps(x)
 
 
-@as_repr.register
+@as_repr.register(list)
 def as_repr_list(x: list):
     inner = ", ".join(map(as_repr, x))
     return f"[{inner}]"
 
 
-@as_repr.register
+@as_repr.register(float)
 def as_repr_float(x: float):
     if math.isfinite(x):
         return str(x)
@@ -53,7 +53,7 @@ def as_repr_float(x: float):
         return 'float("{x}")'
 
 
-@as_repr.register
+@as_repr.register(dict)
 def as_repr_dict(x: dict):
     kind = x.get("__kind__")
 
