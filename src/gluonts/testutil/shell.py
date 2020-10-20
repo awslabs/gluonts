@@ -27,7 +27,8 @@ import requests
 from gluonts.dataset.common import DataEntry, serialize_data_entry
 from gluonts.dataset.repository.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor
-from gluonts.shell.sagemaker import ServeEnv, ServePaths, TrainEnv, TrainPaths
+from gluonts.shell.env import TrainEnv, ServeEnv
+from gluonts.shell.sagemaker import ServePaths, TrainPaths
 from gluonts.shell.sagemaker.params import encode_sagemaker_parameters
 from gluonts.shell.serve import Settings, make_gunicorn_app
 
@@ -209,7 +210,7 @@ def temporary_train_env(
         path_train.symlink_to(ds_path / "train", target_is_directory=True)
         path_test.symlink_to(ds_path / "test", target_is_directory=True)
 
-        yield TrainEnv(path=paths)
+        yield TrainEnv(path=paths.base)
 
 
 @contextmanager  # type: ignore

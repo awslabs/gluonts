@@ -18,7 +18,7 @@ import time
 import traceback
 import multiprocessing as mp
 from queue import Empty as QueueEmpty
-from typing import Callable, Iterable, List, Tuple, NamedTuple
+from typing import Callable, Iterable, Tuple, NamedTuple
 
 from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel

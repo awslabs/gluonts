@@ -22,11 +22,11 @@ import click
 
 # Relative imports
 from gluonts.core.exception import GluonTSForecasterNotFoundError
-from gluonts.shell.sagemaker import TrainPaths
 from gluonts.shell.serve import Settings
 
-from .sagemaker import ServeEnv, TrainEnv
-from .util import forecaster_type_by_name, Forecaster
+from .sagemaker import TrainPaths
+from .env import TrainEnv, ServeEnv
+from .util import forecaster_type_by_name
 
 
 logger = logging.getLogger(__name__)
@@ -114,10 +114,9 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
     from gluonts.shell import train
 
     logger.info("Run 'train' command")
-    train_paths = TrainPaths(Path(data_path))
 
     try:
-        env = TrainEnv(train_paths)
+        env = TrainEnv(Path(data_path))
         if forecaster is None:
             try:
                 forecaster = env.hyperparameters["forecaster_name"]
@@ -128,11 +127,11 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
                     "hyperparameters.json dictionary."
                 )
                 raise GluonTSForecasterNotFoundError(msg)
-
-        assert forecaster is not None
         train.run_train_and_test(env, forecaster_type_by_name(forecaster))
     except Exception as error:
-        with open(train_paths.output / "failure", "w") as out_file:
+        with open(
+            TrainPaths(Path(data_path)).output / "failure", "w"
+        ) as out_file:
             out_file.write(str(error))
             out_file.write("\n\n")
             out_file.write(traceback.format_exc())
