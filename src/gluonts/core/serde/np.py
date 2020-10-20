@@ -19,7 +19,7 @@ from gluonts.core import fqname_for
 from ._base import encode, Kind
 
 
-@encode.register
+@encode.register(np.dtype)
 def encode_np_dtype(v: np.dtype) -> Any:
     """
     Specializes :func:`encode` for invocations where ``v`` is an instance of
@@ -32,7 +32,7 @@ def encode_np_dtype(v: np.dtype) -> Any:
     }
 
 
-@encode.register
+@encode.register(np.ndarray)
 def encode_np_ndarray(v: np.ndarray) -> Any:
     """
     Specializes :func:`encode` for invocations where ``v`` is an instance of
@@ -45,11 +45,11 @@ def encode_np_ndarray(v: np.ndarray) -> Any:
     }
 
 
-@encode.register
+@encode.register(np.inexact)
 def encode_np_inexact(v: np.inexact):
     return float(v)
 
 
-@encode.register
+@encode.register(np.integer)
 def encode_np_integer(v: np.integer):
     return int(v)
