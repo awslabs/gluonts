@@ -42,7 +42,6 @@ bad_type_msg = textwrap.dedent(
 ).lstrip()
 
 
-
 class StatelessMeta(type):
     def __call__(cls, *args, **kwargs):
         self = cls.__new__(cls, *args, **kwargs)
@@ -74,6 +73,7 @@ class Stateless(metaclass=StatelessMeta):
 
 class Stateful:
     pass
+
 
 class Kind(str, Enum):
     Type = "type"
