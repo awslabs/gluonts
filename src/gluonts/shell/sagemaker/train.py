@@ -60,7 +60,7 @@ class TrainPaths:
 
 
 class TrainEnv:
-    def __init__(self, path: Path("/opt/ml")) -> None:
+    def __init__(self, path: Path = Path("/opt/ml")) -> None:
         self.path = TrainPaths(path)
         self.inputdataconfig = self._load_inputdataconfig()
         self.channels = self._load_channels()
@@ -70,6 +70,7 @@ class TrainEnv:
     def _load_inputdataconfig(self) -> Optional[InpuDataConfig]:
         if self.path.inputdataconfig.exists():
             return InpuDataConfig.parse_file(self.path.inputdataconfig)
+        return None
 
     def _load_channels(self) -> Dict[str, Path]:
         """Lists the available channels in `/opt/ml/input/data`.

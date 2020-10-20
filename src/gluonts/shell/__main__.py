@@ -26,7 +26,7 @@ from gluonts.shell.serve import Settings
 
 from .sagemaker import TrainPaths
 from .env import TrainEnv, ServeEnv
-from .util import forecaster_type_by_name
+from .util import forecaster_type_by_name, Forecaster
 
 
 logger = logging.getLogger(__name__)
