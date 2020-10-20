@@ -223,12 +223,12 @@ def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
     Parameters
     ----------
     predictor
-        A predictor to serialize in :class:`ServeEnv` `model` folder.
+        A predictor to serialize in `ServeEnv` `model` folder.
 
     Returns
     -------
     ContextManager[TrainEnv]
-        A context manager that yields the :class:`ServeEnv` instance.
+        A context manager that yields the `ServeEnv` instance.
     """
 
     with tempfile.TemporaryDirectory(prefix="gluonts-serve-env") as base:
