@@ -36,7 +36,15 @@ To help splitting the input preemptively glides offers a `partition`-method.
 
 """
 
-__all__ = ["partition", "Apply", "ParApply", "lift", "Map", "Pipeline"]
+__all__ = [
+    "partition",
+    "Apply",
+    "ParApply",
+    "lift",
+    "Map",
+    "Pipeline",
+    "imap_unordered",
+]
 
 from functools import partial
 
@@ -45,3 +53,9 @@ from .parallel import ParApply
 from .sequential import Apply
 from .pipeline import Pipeline
 from .util import lift, Map
+
+
+def imap_unordered(fn, data, num_workers, batch_size=1):
+    return ParApply(
+        lift(fn), partition(data, num_workers), batch_size=batch_size
+    )
