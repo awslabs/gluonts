@@ -19,10 +19,6 @@ from typing import Any, Optional
 import pydantic
 
 
-def drop(n, seq):
-    return itertools.islice(seq, n, None)
-
-
 def get_param_type(param):
     if param.annotation == inspect.Parameter.empty:
         return Any
@@ -99,36 +95,3 @@ def checked(fn):
     fn_wrapper.__checked__ = checked_args
 
     return fn_wrapper
-
-
-class StatelessMeta(type):
-    def __call__(cls, *args, **kwargs):
-        self = cls.__new__(cls, *args, **kwargs)
-        if isinstance(self, cls):
-            if hasattr(self.__init__, "__checked__"):
-                (this, *args), kwargs = self.__init__.__checked__(
-                    self, *args, **kwargs
-                )
-                self.__init__.__wrapped__(this, *args, **kwargs)
-            else:
-                self.__init__(*args, **kwargs)
-            self.__init_args__ = args, kwargs
-            self.__sealed__ = True
-        return self
-
-
-class Stateless(metaclass=StatelessMeta):
-    def __getnewargs_ex__(self):
-        return self.__init_args__
-
-    def __setattr__(self, name, value):
-        if hasattr(self, "__sealed__"):
-            classname = self.__class__.__name__
-            raise ValueError(
-                f"Assignment to `{name}` outside of `{classname}.__init__`."
-            )
-        return object.__setattr__(self, name, value)
-
-
-class Stateful:
-    pass
