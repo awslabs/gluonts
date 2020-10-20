@@ -146,7 +146,6 @@ def test_json_serialization(e) -> None:
 
 @pytest.mark.parametrize("e", examples)
 def test_code_serialization(e) -> None:
-    print("XXX", serde.dump_code(e))
     expected, actual = e, serde.load_code(serde.dump_code(e))
     assert check_equality(expected, actual)
 
