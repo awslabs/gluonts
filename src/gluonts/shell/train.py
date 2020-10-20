@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import json
 import logging
 from typing import Any, Optional, Type, Union
 
@@ -29,53 +30,38 @@ from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import FilterTransformation, TransformedDataset
 
-# Third party imports
-import json
-
-# Relative imports
-from .sagemaker import TrainEnv
+from .env import TrainEnv
 
 logger = logging.getLogger(__name__)
 
 
 def log_metric(metric: str, value: Any) -> None:
-    """
-    Emits a log message with a ``value`` for a specific ``metric``.
-
-    Parameters
-    ----------
-    metric
-        The name of the metric to be reported.
-    value
-        The metric value to be reported.
-    """
     logger.info(f"gluonts[{metric}]: {dump_code(value)}")
+
+
+def log_version(forecaster_type):
+    name = fqname_for(forecaster_type)
+    version = forecaster_type.__version__
+
+    logger.info(f"Using gluonts v{gluonts.__version__}")
+    logger.info(f"Using forecaster {name} v{version}")
 
 
 def run_train_and_test(
     env: TrainEnv, forecaster_type: Type[Union[Estimator, Predictor]]
 ) -> None:
-    # train_stats = calculate_dataset_statistics(env.datasets["train"])
-    # log_metric("train_dataset_stats", train_stats)
+    log_version(forecaster_type)
 
-    forecaster_fq_name = fqname_for(forecaster_type)
-    forecaster_version = forecaster_type.__version__
-
-    logger.info(f"Using gluonts v{gluonts.__version__}")
-    logger.info(f"Using forecaster {forecaster_fq_name} v{forecaster_version}")
+    logger.info(
+        "Using the following data channels: %s", ", ".join(env.datasets)
+    )
 
     forecaster = forecaster_type.from_inputs(
         env.datasets["train"], **env.hyperparameters
     )
-
     logger.info(
         f"The forecaster can be reconstructed with the following expression: "
         f"{dump_code(forecaster)}"
-    )
-
-    logger.info(
-        "Using the following data channels: "
-        f"{', '.join(name for name in ['train', 'validation', 'test'] if name in env.datasets)}"
     )
 
     if isinstance(forecaster, Predictor):

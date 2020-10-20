@@ -26,7 +26,7 @@ from gluonts.core.component import equals
 from gluonts.dataset.common import FileDataset, ListDataset
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.model.seq2seq import MQCNNEstimator
-from gluonts.shell.sagemaker import ServeEnv, TrainEnv
+from gluonts.shell.env import TrainEnv, ServeEnv
 from gluonts.shell.train import run_train_and_test
 
 try:
@@ -108,12 +108,11 @@ def batch_transform(monkeypatch, train_env):
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_listify_dataset(train_env: TrainEnv, listify_dataset):
-    for dataset_name in train_env.datasets.keys():
-        assert (
-            isinstance(train_env.datasets[dataset_name], ListDataset)
-            if strtobool(listify_dataset)
-            else isinstance(train_env.datasets[dataset_name], FileDataset)
-        )
+    for dataset in train_env.datasets.values():
+        if listify_dataset == "yes":
+            assert isinstance(dataset, ListDataset)
+        else:
+            assert isinstance(dataset, FileDataset)
 
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
