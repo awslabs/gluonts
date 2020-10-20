@@ -122,10 +122,10 @@ def temporary_server(
     Parameters
     ----------
     env
-        The :class:`ServeEnv` to use in static inference mode.
+        The `ServeEnv` to use in static inference mode.
         Either `env` or `forecaster_type` must be set.
     forecaster_type
-        The :class:`Predictor` type to use in dynamic inference mode.
+        The `Predictor` type to use in dynamic inference mode.
         Either `env` or `forecaster_type` must be set.
     settings
         Settings to use when instantiating the Gunicorn server.
@@ -133,7 +133,7 @@ def temporary_server(
     Returns
     -------
     ContextManager[ServerFacade]
-        A context manager that yields the :class:`InferenceServer` instance
+        A context manager that yields the `InferenceServer` instance
         wrapping the spawned inference server.
     """
 
@@ -186,7 +186,7 @@ def temporary_train_env(
     Returns
     -------
     ContextManager[TrainEnv]
-        A context manager that yields the :class:`TrainEnv` instance.
+        A context manager that yields the `TrainEnv` instance.
     """
 
     with tempfile.TemporaryDirectory(prefix="gluonts-train-env") as base:
@@ -217,7 +217,7 @@ def temporary_train_env(
 def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
     """
     A context manager that instantiates a serve environment for a given
-    :class:`Predictor` in a temporary directory and removes the directory on
+    `Predictor` in a temporary directory and removes the directory on
     exit.
 
     Parameters
