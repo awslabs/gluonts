@@ -109,7 +109,8 @@ def encode(v: Any) -> Any:
     >>> encode({'a': 1, 'b': 2.0, 'c': '3'})
     {'a': 1, 'b': 2.0, 'c': '3'}
 
-    Named tuples (as dictionaries with a ``'__kind__': 'instance'`` member).
+    Named tuples (as dictionaries with a
+    ``'__kind__': <Kind.Instance: 'instance'>`` member).
 
     >>> from pprint import pprint
     >>> from typing import NamedTuple
@@ -117,12 +118,12 @@ def encode(v: Any) -> Any:
     ...     x: float = 0.0
     ...     y: float = 0.0
     >>> pprint(encode(ComplexNumber(4.0, 2.0)))
-    {'__kind__': 'instance',
-     'class': 'gluonts.core.serde.ComplexNumber',
+    {'__kind__': <Kind.Instance: 'instance'>,
+     'class': 'gluonts.core.serde._base.ComplexNumber',
      'kwargs': {'x': 4.0, 'y': 2.0}}
 
     Classes with a :func:`~gluonts.core.component.validated` initializer (as
-    dictionaries with a ``'__kind__': 'instance'`` member).
+    dictionaries with a ``'__kind__': <Kind.Instance: 'instance'>`` member).
 
     >>> from gluonts.core.component import validated
     >>> class ComplexNumber:
@@ -131,13 +132,13 @@ def encode(v: Any) -> Any:
     ...         self.x = x
     ...         self.y = y
     >>> pprint(encode(ComplexNumber(4.0, 2.0)))
-    {'__kind__': 'instance',
+    {'__kind__': <Kind.Instance: 'instance'>,
      'args': [],
-     'class': 'gluonts.core.serde.ComplexNumber',
+     'class': 'gluonts.core.serde._base.ComplexNumber',
      'kwargs': {'x': 4.0, 'y': 2.0}}
 
     Classes with a ``__getnewargs_ex__`` magic method (as dictionaries with a
-    ``'__kind__': 'instance'`` member).
+    ``'__kind__': <Kind.Instance: 'instance'>`` member).
 
     >>> from gluonts.core.component import validated
     >>> class ComplexNumber:
@@ -147,16 +148,17 @@ def encode(v: Any) -> Any:
     ...     def __getnewargs_ex__(self):
     ...         return [], {'x': self.x, 'y': self.y}
     >>> pprint(encode(ComplexNumber(4.0, 2.0)))
-    {'__kind__': 'instance',
+    {'__kind__': <Kind.Instance: 'instance'>,
      'args': [],
-     'class': 'gluonts.core.serde.ComplexNumber',
+     'class': 'gluonts.core.serde._base.ComplexNumber',
      'kwargs': {'x': 4.0, 'y': 2.0}}
 
 
-    Types (as dictionaries with a ``'__kind__': 'type' member``).
+    Types (as dictionaries with a ``'__kind__': <Kind.Type: 'type'> member``).
 
     >>> encode(ComplexNumber)
-    {'__kind__': 'type', 'class': 'gluonts.core.serde.ComplexNumber'}
+    {'__kind__': <Kind.Type: 'type'>,
+     'class': 'gluonts.core.serde._base.ComplexNumber'}
 
     Parameters
     ----------
