@@ -16,7 +16,7 @@ from typing import Any
 import mxnet as mx
 
 from gluonts.core import fqname_for
-from gluonts.core.serde import decode, encode, kind_inst
+from gluonts.core.serde import encode, Kind
 
 
 @encode.register(mx.Context)
@@ -26,7 +26,7 @@ def encode_mx_context(v: mx.Context) -> Any:
     the :class:`~mxnet.Context` class.
     """
     return {
-        "__kind__": kind_inst,
+        "__kind__": Kind.Instance,
         "class": fqname_for(v.__class__),
         "args": encode([v.device_type, v.device_id]),
     }
@@ -35,7 +35,7 @@ def encode_mx_context(v: mx.Context) -> Any:
 @encode.register(mx.nd.NDArray)
 def encode_mx_ndarray(v: mx.nd.NDArray) -> Any:
     return {
-        "__kind__": kind_inst,
+        "__kind__": Kind.Instance,
         "class": "mxnet.nd.array",
         "args": encode([v.asnumpy().tolist()]),
         "kwargs": {"dtype": encode(v.dtype)},

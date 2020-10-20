@@ -18,7 +18,7 @@ import time
 import traceback
 import multiprocessing as mp
 from queue import Empty as QueueEmpty
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, Iterable, Tuple, NamedTuple, List
 
 from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel
@@ -167,10 +167,33 @@ def make_predictions(predictor, dataset, configuration):
     return predictions
 
 
+class ScoredInstanceStat(NamedTuple):
+    amount: int
+    duration: float
+
+
 def batch_inference_invocations(
     predictor_factory, configuration, settings
 ) -> Callable[[], Response]:
     predictor = predictor_factory({"configuration": configuration.dict()})
+
+    scored_instances: List[ScoredInstanceStat] = []
+    last_scored = [time.time()]
+
+    def log_scored(when):
+        N = 60
+        diff = when - last_scored[0]
+        if diff > N:
+            scored_amount = sum(info.amount for info in scored_instances)
+            time_used = sum(info.duration for info in scored_instances)
+
+            logger.info(
+                f"Worker pid={os.getpid()}: scored {scored_amount} using on "
+                f"avg {round(time_used / scored_amount, 1)} s/ts over the "
+                f"last {round(diff)} seconds."
+            )
+            scored_instances.clear()
+            last_scored[0] = time.time()
 
     def invocations() -> Response:
         request_data = request.data.decode("utf8").strip()
@@ -184,6 +207,8 @@ def batch_inference_invocations(
             instances = []
 
         dataset = ListDataset(instances, predictor.freq)
+
+        start_time = time.time()
 
         if settings.gluonts_batch_timeout > 0:
             predictions = with_timeout(
@@ -208,6 +233,16 @@ def batch_inference_invocations(
                 )
         else:
             predictions = make_predictions(predictor, dataset, configuration)
+
+        end_time = time.time()
+
+        scored_instances.append(
+            ScoredInstanceStat(
+                amount=len(predictions), duration=end_time - start_time
+            )
+        )
+
+        log_scored(when=end_time)
 
         lines = list(map(json.dumps, map(jsonify_floats, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")

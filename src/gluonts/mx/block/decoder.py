@@ -43,11 +43,12 @@ class Seq2SeqDecoder(nn.HybridBlock):
         Parameters
         ----------
         dynamic_input
-            dynamic_features, shape (batch_size, sequence_length, num_features)
+            dynamic_features, shape (batch_size, sequence_length, channels_seq[-1]
+            + 1 + decoder_length * num_feat_dynamic)
             or (N, T, C)
 
         static_input
-            static features, shape (batch_size, num_features) or (N, C)
+            static features, shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         """
         pass
@@ -121,14 +122,14 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         dynamic_input
             dynamic_features, shape (batch_size, sequence_length, num_features) or (N, T, C)
             where sequence_length is equal to the encoder length, and num_features is equal
-            to channel_seq[-1] for the MQCNN for example.
+            to channels_seq[-1] + 1 + decoder_length * num_feat_dynamic for the MQ-CNN for example.
         static_input
             not used in this decoder.
 
         Returns
         -------
         Tensor
-            mlp output, shape (0, 0, dec_len, final_dims).
+            mlp output, shape (batch_size, sequence_length, decoder_length, decoder_mlp_dim_seq[0]).
 
         """
         mlp_output = self.model(dynamic_input)
@@ -169,10 +170,7 @@ class OneShotDecoder(Seq2SeqDecoder):
             )
 
     def hybrid_forward(
-        self,
-        F,
-        static_input: Tensor,  # (batch_size, static_input_dim)
-        dynamic_input: Tensor,  # (batch_size,
+        self, F, static_input: Tensor, dynamic_input: Tensor
     ) -> Tensor:
         """
         OneShotDecoder forward call
@@ -184,15 +182,17 @@ class OneShotDecoder(Seq2SeqDecoder):
             API in MXNet.
 
         static_input
-            static features, shape (batch_size, num_features) or (N, C)
+            static features, shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         dynamic_input
-            dynamic_features, shape (batch_size, sequence_length, num_features)
+            dynamic_features, shape (batch_size, sequence_length, channels_seq[-1]
+            + 1 + decoder_length * num_feat_dynamic)
             or (N, T, C)
+
         Returns
         -------
         Tensor
-            mlp output, shape (batch_size, dec_len, size of last layer)
+            mlp output, shape (batch_size, decoder_length, size of last layer)
         """
         static_input_tile = self.expander(static_input).reshape(
             (0, self.decoder_length, self.static_outputs_per_time_step)

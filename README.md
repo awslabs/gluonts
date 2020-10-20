@@ -83,7 +83,7 @@ We also specify some minimal training options.
 
 ```python
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
 predictor = estimator.train(training_data=training_data)
@@ -121,8 +121,8 @@ centered around the median (dark green line).
 The following are good entry-points to understand how to use
 many features of GluonTS:
 
-* [Quick Start Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/basic_forecasting_tutorial/tutorial.md): a quick start guide.
-* [Extended Forecasting Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/extended_forecasting_tutorial/extended_tutorial.md): a detailed tutorial on forecasting.
+* [Quick Start Tutorial](https://gluon-ts.mxnet.io/examples/basic_forecasting_tutorial/tutorial.html#Quick-Start-Tutorial): a quick start guide.
+* [Extended Forecasting Tutorial](https://gluon-ts.mxnet.io/examples/extended_forecasting_tutorial/extended_tutorial.html): a detailed tutorial on forecasting using GluonTS.
 * [evaluate_model.py](https://github.com/awslabs/gluon-ts/tree/master/examples/evaluate_model.py): how to train a model and compute evaluation metrics.
 * [benchmark_m4.py](https://github.com/awslabs/gluon-ts/tree/master/examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
 
@@ -172,6 +172,7 @@ the following references to the related papers:
 ## Further Reading 
 
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
+* [Tutorial at WWW 2020 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)
 * [Tutorial at KDD 2019](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
 * [Tutorial at VLDB 2018](https://lovvge.github.io/Forecasting-Tutorial-VLDB-2018/)

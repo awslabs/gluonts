@@ -21,7 +21,8 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 
 # Relative imports
 from gluonts.model.transformer._network import (

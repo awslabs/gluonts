@@ -22,7 +22,7 @@ from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.support.util import get_download_path
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.model.predictor import Predictor
 
 if __name__ == "__main__":

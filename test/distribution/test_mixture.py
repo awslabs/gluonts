@@ -20,11 +20,16 @@ import pytest
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.common import Tensor, NPArrayLike
 from gluonts.mx.distribution.distribution import Distribution
+from gluonts.mx.distribution.distribution_output import DistributionOutput
 from gluonts.mx.distribution import (
+    Gamma,
     Gaussian,
+    GenPareto,
     StudentT,
     MixtureDistribution,
+    GammaOutput,
     GaussianOutput,
+    GenParetoOutput,
     StudentTOutput,
     LaplaceOutput,
     MultivariateGaussianOutput,
@@ -92,6 +97,11 @@ mx.random.seed(35120171)
             ),
             mx.nd.random_uniform(shape=SHAPE),
         ),
+        (
+            Gaussian(mu=mx.nd.array([0.0]), sigma=mx.nd.array([1e-3 + 0.2]),),
+            Gaussian(mu=mx.nd.array([1.0]), sigma=mx.nd.array([1e-3 + 0.1]),),
+            mx.nd.array([0.2]),
+        ),
         # TODO: add a multivariate case here
     ],
 )
@@ -103,6 +113,7 @@ def test_mixture(
     samples1 = distr1.sample(num_samples=NUM_SAMPLES_LARGE)
     samples2 = distr2.sample(num_samples=NUM_SAMPLES_LARGE)
 
+    # TODO: for multivariate case, test should not sample elements from different components in the event_dim dimension
     rand = mx.nd.random.uniform(shape=(NUM_SAMPLES_LARGE, *p.shape))
     choice = (rand < p.expand_dims(axis=0)).broadcast_like(samples1)
     samples_ref = mx.nd.where(choice, samples1, samples2)
@@ -248,3 +259,151 @@ def test_mixture_inference() -> None:
     # pl.plot(EXPECTED_HIST)
     # pl.show()
     assert diff(obtained_hist, EXPECTED_HIST) < 0.5
+
+
+def fit_mixture_distribution(
+    x: Tensor,
+    mdo: MixtureDistributionOutput,
+    variate_dimensionality: int = 1,
+    epochs: int = 1_000,
+):
+    args_proj = mdo.get_args_proj()
+    args_proj.initialize()
+    args_proj.hybridize()
+
+    input = mx.nd.ones((variate_dimensionality, 1))
+
+    trainer = mx.gluon.Trainer(
+        args_proj.collect_params(), "sgd", {"learning_rate": 0.02}
+    )
+
+    t = tqdm(list(range(epochs)))
+    for _ in t:
+        with mx.autograd.record():
+            distr_args = args_proj(input)
+            d = mdo.distribution(distr_args)
+            loss = d.loss(x).mean()
+        loss.backward()
+        loss_value = loss.asnumpy()
+        t.set_postfix({"loss": loss_value})
+        trainer.step(1)
+
+    distr_args = args_proj(input)
+    d = mdo.distribution(distr_args)
+    return d
+
+
+@pytest.mark.parametrize(
+    "mixture_distribution, mixture_distribution_output, epochs",
+    [
+        (
+            MixtureDistribution(
+                mixture_probs=mx.nd.array([[0.6, 0.4]]),
+                components=[
+                    Gaussian(mu=mx.nd.array([-1.0]), sigma=mx.nd.array([0.2])),
+                    Gamma(alpha=mx.nd.array([2.0]), beta=mx.nd.array([0.5])),
+                ],
+            ),
+            MixtureDistributionOutput([GaussianOutput(), GammaOutput()]),
+            2_000,
+        ),
+        (
+            MixtureDistribution(
+                mixture_probs=mx.nd.array([[0.7, 0.3]]),
+                components=[
+                    Gaussian(mu=mx.nd.array([-1.0]), sigma=mx.nd.array([0.2])),
+                    GenPareto(xi=mx.nd.array([0.6]), beta=mx.nd.array([1.0])),
+                ],
+            ),
+            MixtureDistributionOutput([GaussianOutput(), GenParetoOutput()]),
+            2_000,
+        ),
+    ],
+)
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+@pytest.mark.skip("Skip test that takes long time to run")
+def test_inference_mixture_different_families(
+    mixture_distribution: MixtureDistribution,
+    mixture_distribution_output: MixtureDistributionOutput,
+    epochs: int,
+    serialize_fn,
+) -> None:
+    # First sample from mixture distribution and then confirm the MLE are close to true parameters
+    num_samples = 10_000
+    samples = mixture_distribution.sample(num_samples=num_samples)
+    variate_dimensionality = (
+        mixture_distribution.components[0].args[0].shape[0]
+    )
+    fitted_dist = fit_mixture_distribution(
+        samples,
+        mixture_distribution_output,
+        variate_dimensionality,
+        epochs=epochs,
+    )
+
+    assert np.allclose(
+        fitted_dist.mixture_probs.asnumpy(),
+        mixture_distribution.mixture_probs.asnumpy(),
+        atol=1e-1,
+    ), f"Mixing probability estimates {fitted_dist.mixture_probs.asnumpy()} too far from {mixture_distribution.mixture_probs.asnumpy()}"
+    for ci, c in enumerate(mixture_distribution.components):
+        for ai, a in enumerate(c.args):
+            assert np.allclose(
+                fitted_dist.components[ci].args[ai].asnumpy(),
+                a.asnumpy(),
+                atol=1e-1,
+            ), f"Parameter {ai} estimate {fitted_dist.components[ci].args[ai].asnumpy()} too far from {c}"
+
+
+@pytest.mark.parametrize(
+    "distribution, values_outside_support, distribution_output",
+    [
+        (
+            Gamma(alpha=mx.nd.array([0.9]), beta=mx.nd.array([2.0])),
+            mx.nd.array([-1.0]),
+            GammaOutput(),
+        ),
+        (
+            Gamma(alpha=mx.nd.array([0.9]), beta=mx.nd.array([2.0])),
+            mx.nd.array([0.0]),
+            GammaOutput(),
+        ),
+        (
+            GenPareto(xi=mx.nd.array([1 / 3.0]), beta=mx.nd.array([1.0])),
+            mx.nd.array([-1.0]),
+            GenParetoOutput(),
+        ),
+    ],
+)
+def test_mixture_logprob(
+    distribution: Distribution,
+    values_outside_support: Tensor,
+    distribution_output: DistributionOutput,
+) -> None:
+
+    assert np.all(
+        ~np.isnan(distribution.log_prob(values_outside_support).asnumpy())
+    ), f"{distribution} should return -inf log_probs instead of NaNs"
+
+    p = 0.5
+    gaussian = Gaussian(mu=mx.nd.array([0]), sigma=mx.nd.array([2.0]))
+    mixture = MixtureDistribution(
+        mixture_probs=mx.nd.array([[p, 1 - p]]),
+        components=[gaussian, distribution],
+    )
+    lp = mixture.log_prob(values_outside_support)
+    assert np.allclose(
+        lp.asnumpy(),
+        np.log(p) + gaussian.log_prob(values_outside_support).asnumpy(),
+        atol=1e-6,
+    ), f"log_prob(x) should be equal to log(p)+gaussian.log_prob(x)"
+
+    fit_mixture = fit_mixture_distribution(
+        values_outside_support,
+        MixtureDistributionOutput([GaussianOutput(), distribution_output]),
+        variate_dimensionality=1,
+        epochs=3,
+    )
+    for ci, c in enumerate(fit_mixture.components):
+        for ai, a in enumerate(c.args):
+            assert ~np.isnan(a.asnumpy()), f"NaN gradients led to {c}"

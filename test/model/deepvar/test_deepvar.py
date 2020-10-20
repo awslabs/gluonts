@@ -22,7 +22,7 @@ from gluonts.mx.distribution import (
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.deepvar import DeepVAREstimator
 from gluonts.dataset.common import TrainDatasets
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.evaluation import MultivariateEvaluator
 

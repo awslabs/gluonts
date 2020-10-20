@@ -15,6 +15,7 @@
 import logging
 import re
 from typing import Dict, List, Optional
+from functools import partial
 
 # Third-party imports
 import mxnet as mx
@@ -27,7 +28,8 @@ from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import (
@@ -50,6 +52,7 @@ from gluonts.transform import (
     SimpleTransformation,
     VstackFeatures,
 )
+from gluonts.mx.batchify import batchify
 
 
 class QuantizeScaled(SimpleTransformation):
@@ -277,7 +280,7 @@ class WaveNetEstimator(GluonEstimator):
             transform=transformation,
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
-            ctx=self.trainer.ctx,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
@@ -290,8 +293,9 @@ class WaveNetEstimator(GluonEstimator):
                 dataset=validation_data,
                 transform=transformation,
                 batch_size=self.trainer.batch_size,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
+                stack_fn=partial(
+                    batchify, ctx=self.trainer.ctx, dtype=self.dtype
+                ),
                 num_workers=num_workers,
                 num_prefetch=num_prefetch,
                 **kwargs,

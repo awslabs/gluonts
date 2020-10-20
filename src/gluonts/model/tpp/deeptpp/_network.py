@@ -309,7 +309,7 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
         arrival_times = F.zeros([num_total_samples])
 
         # Time from the last observed event until the past interval end
-        past_time_elapsed = past_ia_times.squeeze(-1).sum(-1)
+        past_time_elapsed = past_ia_times.squeeze(axis=-1).sum(-1)
         past_time_remaining = self.interval_length - past_time_elapsed  # (N)
         past_time_remaining_repeat = (
             past_time_remaining.expand_dims(0)
@@ -362,7 +362,7 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
                 dim=-1,
             ).expand_dims(1)
 
-            history_emb = self.rnn(rnn_input).squeeze(1)  # (S * N, C)
+            history_emb = self.rnn(rnn_input).squeeze(axis=1)  # (S * N, C)
 
         sampled_ia_times = F.stack(*sampled_ia_times_list, axis=-1)
         sampled_marks = F.stack(*sampled_marks_list, axis=-1).astype("float32")

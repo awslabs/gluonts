@@ -12,13 +12,16 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from functools import partial
 from random import randint
 from typing import List, Tuple
 
 # First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
+
+# Third-party imports
+import numpy as np
+import pandas as pd
 
 
 def make_dummy_datasets_with_features(
@@ -70,3 +73,34 @@ def make_dummy_datasets_with_features(
         ListDataset(data_iter=data_iter_train, freq=freq),
         ListDataset(data_iter=data_iter_test, freq=freq),
     )
+
+
+def get_dataset():
+
+    data_entry_list = [
+        {
+            "target": np.c_[
+                np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1]),
+                np.array([0, 1, 2, 0, 1, 2, 2, 2]),
+            ].T,
+            "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
+            "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+        },
+        {
+            "target": np.c_[
+                np.array([0.2, 0.1, 0.2, 0.5, 0.4]), np.array([0, 1, 2, 1, 1])
+            ].T,
+            "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
+            "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+        },
+        {
+            "target": np.c_[
+                np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.2, 0.1]),
+                np.array([0, 1, 2, 0, 1, 0, 2]),
+            ].T,
+            "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
+            "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+        },
+    ]
+
+    return ListDataset(data_entry_list, freq="H", one_dim_target=False)
