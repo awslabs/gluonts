@@ -185,7 +185,7 @@ def temporary_train_env(
 
     Returns
     -------
-    ContextManager[TrainEnv]
+    ContextManager[gluonts.shell.env.TrainEnv]
         A context manager that yields the `TrainEnv` instance.
     """
 
@@ -227,7 +227,7 @@ def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
 
     Returns
     -------
-    ContextManager[TrainEnv]
+    ContextManager[gluonts.shell.env.ServeEnv]
         A context manager that yields the `ServeEnv` instance.
     """
 
