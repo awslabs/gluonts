@@ -11,10 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
 
-from pkgutil import extend_path
+from ._base import encode, decode, Stateful, Stateless
+from ._json import dump_json, load_json
+from ._repr import dump_code, load_code
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+# TODO: remove
+from .np import *
+from .pd import *
 
-from gluonts.mx.prelude import *
+
+__all__ = [
+    "encode",
+    "decode",
+    "dump_code",
+    "load_code",
+    "dump_json",
+    "load_json",
+    "Stateful",
+    "Stateless",
+]
