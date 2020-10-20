@@ -31,6 +31,7 @@ from pydantic import BaseModel
 
 # Relative imports
 from gluonts.core import fqname_for
+from .ty import Stateful
 
 bad_type_msg = textwrap.dedent(
     """
@@ -445,10 +446,6 @@ def encode(v: Any) -> Any:
         }
 
     raise RuntimeError(bad_type_msg.format(fqname_for(v.__class__)))
-
-
-class Stateful:
-    pass
 
 
 @encode.register(Stateful)
