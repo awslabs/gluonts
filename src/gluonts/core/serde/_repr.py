@@ -89,13 +89,6 @@ def as_repr_dict(x: dict):
     inner = ", ".join(f"{as_repr(k)}: {as_repr(v)}" for k, v in x.items())
     return f"{{{inner}}}"
 
-    # if isinstance(x, tuple):
-    #     inner = ", ".join(map(dump_code, x))
-    #     # account for the extra `,` in `(x,)`
-    #     if len(x) == 1:
-    #         inner += ","
-    #     return f"({inner})"
-
 
 def dump_code(o: Any) -> str:
     """

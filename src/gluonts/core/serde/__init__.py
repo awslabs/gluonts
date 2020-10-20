@@ -12,8 +12,8 @@
 # permissions and limitations under the License.
 
 from ._base import encode, decode
-from ._code import dump_code, load_code
 from ._json import dump_json, load_json
+from ._repr import dump_code, load_code
 
 # TODO: remove
 from .np import *
