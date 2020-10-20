@@ -28,7 +28,8 @@ import mxnet as mx
 # First-party imports
 import gluonts
 from gluonts.core.component import validated, equals
-from gluonts.core.serde import dump_json, fqname_for, load_json
+from gluonts.core import fqname_for
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once

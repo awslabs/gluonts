@@ -13,14 +13,14 @@
 
 from typing import Any
 
-import mxnet as mx
+import numpy as np
 
 from gluonts.core import fqname_for
-from gluonts.core.serde import encode, Kind
+from ._base import encode, Kind
 
 
-@encode.register(mx.Context)
-def encode_mx_context(v: mx.Context) -> Any:
+@encode.register
+def encode_np_dtype(v: np.dtype) -> Any:
     """
     Specializes :func:`encode` for invocations where ``v`` is an instance of
     the :class:`~mxnet.Context` class.
@@ -28,15 +28,28 @@ def encode_mx_context(v: mx.Context) -> Any:
     return {
         "__kind__": Kind.Instance,
         "class": fqname_for(v.__class__),
-        "args": encode([v.device_type, v.device_id]),
+        "args": encode([v.name]),
     }
 
 
-@encode.register(mx.nd.NDArray)
-def encode_mx_ndarray(v: mx.nd.NDArray) -> Any:
+@encode.register
+def encode_np_ndarray(v: np.ndarray) -> Any:
+    """
+    Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~mxnet.Context` class.
+    """
     return {
         "__kind__": Kind.Instance,
-        "class": "mxnet.nd.array",
-        "args": encode([v.asnumpy().tolist()]),
-        "kwargs": {"dtype": encode(v.dtype)},
+        "class": "numpy.array",  # use "array" ctor instead of "nparray" class
+        "args": encode([v.tolist(), v.dtype]),
     }
+
+
+@encode.register
+def encode_np_inexact(v: np.inexact):
+    return float(v)
+
+
+@encode.register
+def encode_np_integer(v: np.integer):
+    return int(v)

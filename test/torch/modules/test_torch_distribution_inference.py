@@ -28,9 +28,7 @@ import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import SGD
 from torch.utils.data import TensorDataset, DataLoader
-from torch.distributions import (
-    Beta,
-)
+from torch.distributions import Beta
 
 # First-party imports
 from gluonts.model.common import NPArrayLike

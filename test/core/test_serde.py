@@ -122,11 +122,6 @@ container_types = [list_container, dict_container, set_container]
 examples = simple_types + complex_types + container_types  # type: ignore
 
 
-@pytest.mark.parametrize("e", examples)
-def test_binary_serialization(e) -> None:
-    assert equals(e, serde.load_binary(serde.dump_binary(e)))
-
-
 def check_equality(expected, actual) -> bool:
     if isinstance(expected, set):
         # Sets are serialized as lists — we check if they have the same elements
@@ -151,6 +146,7 @@ def test_json_serialization(e) -> None:
 
 @pytest.mark.parametrize("e", examples)
 def test_code_serialization(e) -> None:
+    print("XXX", serde.dump_code(e))
     expected, actual = e, serde.load_code(serde.dump_code(e))
     assert check_equality(expected, actual)
 
@@ -171,7 +167,6 @@ def test_code_serialization(e) -> None:
     "serialize_fn",
     [
         lambda x: serde.load_json(serde.dump_json(x)),
-        lambda x: serde.load_binary(serde.dump_binary(x)),
         lambda x: serde.load_code(serde.dump_code(x)),
     ],
 )
@@ -192,7 +187,6 @@ def test_timestamp_encode_decode() -> None:
     "serialize_fn",
     [
         lambda x: serde.load_json(serde.dump_json(x)),
-        lambda x: serde.load_binary(serde.dump_binary(x)),
         lambda x: serde.load_code(serde.dump_code(x)),
     ],
 )

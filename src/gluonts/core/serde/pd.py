@@ -13,30 +13,20 @@
 
 from typing import Any
 
-import mxnet as mx
+from ._base import encode, Kind
 
-from gluonts.core import fqname_for
-from gluonts.core.serde import encode, Kind
+import pandas as pd
 
 
-@encode.register(mx.Context)
-def encode_mx_context(v: mx.Context) -> Any:
+@encode.register(pd.Timestamp)
+def encode_pd_timestamp(v: pd.Timestamp) -> Any:
     """
     Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~mxnet.Context` class.
+    the :class:`~pandas.Timestamp` class.
     """
     return {
         "__kind__": Kind.Instance,
-        "class": fqname_for(v.__class__),
-        "args": encode([v.device_type, v.device_id]),
-    }
-
-
-@encode.register(mx.nd.NDArray)
-def encode_mx_ndarray(v: mx.nd.NDArray) -> Any:
-    return {
-        "__kind__": Kind.Instance,
-        "class": "mxnet.nd.array",
-        "args": encode([v.asnumpy().tolist()]),
-        "kwargs": {"dtype": encode(v.dtype)},
+        "class": "pandas.Timestamp",
+        "args": encode([str(v)]),
+        "kwargs": {"freq": v.freqstr if v.freq else None},
     }
