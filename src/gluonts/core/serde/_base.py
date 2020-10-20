@@ -104,11 +104,6 @@ def encode(v: Any) -> Any:
     >>> encode([1, 2.0, '3'])
     [1, 2.0, '3']
 
-    Tuples (as lists).
-
-    >>> encode((1, 2.0, '3'))
-    [1, 2.0, '3']
-
     Dictionaries (as dictionaries).
 
     >>> encode({'a': 1, 'b': 2.0, 'c': '3'})
