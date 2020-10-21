@@ -60,8 +60,10 @@ def simple_feedforward_estimator():
     )
 
 
-
-@pytest.mark.skipif(platform.system()=="Windows", reason="Skip sagemaker_sdk tests on windows.")
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="Skip sagemaker_sdk tests on windows.",
+)
 @pytest.mark.parametrize(
     "dataset_name, custom_dataset", [("m4_hourly", False), ("m4_hourly", True)]
 )
