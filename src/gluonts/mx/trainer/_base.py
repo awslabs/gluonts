@@ -32,6 +32,7 @@ from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
 from gluonts.support.util import HybridContext
+from mxnet.metric import ndarray
 
 # Relative imports
 from . import learning_rate_scheduler as lrs
@@ -274,7 +275,8 @@ class Trainer:
                                 else:
                                     loss = output
 
-                            if not np.isfinite(np.ndarray.sum(loss).asscalar()):
+
+                            if not np.isfinite(ndarray.sum(loss).asscalar()):
                                 logger.warning(
                                     "Epoch[%d] gave nan loss and will be skipped", epoch_no
                                 )
