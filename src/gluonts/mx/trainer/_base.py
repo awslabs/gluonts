@@ -274,6 +274,12 @@ class Trainer:
                                 else:
                                     loss = output
 
+                            if not np.isfinite(np.ndarray.sum(loss).asscalar()):
+                                logger.warning(
+                                    "Epoch[%d] gave nan loss and will be skipped", epoch_no
+                                )
+                                return epoch_loss
+
                             if is_training:
                                 loss.backward()
                                 trainer.step(batch_size)
@@ -287,12 +293,6 @@ class Trainer:
 
                             epoch_loss.update(None, preds=loss)
                             lv = loss_value(epoch_loss)
-
-                            if not np.isfinite(lv):
-                                logger.warning(
-                                    "Epoch[%d] gave nan loss", epoch_no
-                                )
-                                return epoch_loss
 
                             it.set_postfix(
                                 ordered_dict={
