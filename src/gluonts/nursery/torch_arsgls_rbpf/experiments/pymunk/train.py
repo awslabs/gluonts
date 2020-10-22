@@ -6,11 +6,9 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-
-from experiments.pymunk.configs.configs_base import (
-    make_model,
-    make_experiment_config,
-)
+from experiments.pymunk.configs.configs_base import make_model
+from experiments.pymunk.configs.config_arsgls import make_arsgls_config
+from experiments.pymunk.configs.config_kvae import make_kvae_config
 
 
 if __name__ == "__main__":
@@ -51,9 +49,12 @@ if __name__ == "__main__":
     seed_everything(seed=seed)
 
     # TODO: config -> hydra or something like that
-    config = make_experiment_config(
-        dataset_name=args.dataset_name, experiment_name=args.experiment_name,
-    )
+    if args.experiment_name.startswith("arsgls"):
+        config = make_arsgls_config(dataset_name=args.dataset_name)
+    elif args.experiment_name.startswith("kvae"):
+        config = make_kvae_config(dataset_name=args.dataset_name)
+    else:
+        raise Exception(f"unknown model: {args.experiment_name}")
 
     model = make_model(config=config).to(dtype=getattr(torch, args.dtype))
     print(f"seed: {seed}, "
