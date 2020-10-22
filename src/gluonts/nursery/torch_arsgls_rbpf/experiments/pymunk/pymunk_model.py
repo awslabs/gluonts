@@ -21,7 +21,7 @@ from experiments.pymunk.evaluation import (
     plot_pymunk_results,
 )
 from utils.utils import list_of_dicts_to_dict_of_list
-
+from models.kvae import KalmanVariationalAutoEncoder
 
 class CastDtype(object):
     def __init__(self, model):
@@ -138,40 +138,37 @@ class PymunkModel(DefaultLightningModel):
         self.log("val_loss", loss, prog_bar=True)
         aggregated_metrics = {"val_loss": loss}
 
-        try:
-            # Plot
-            if batch_idx == 0 and (self.trainer.current_epoch % 40 == 0) \
-                    and (self.trainer.current_epoch > 0):
-                os.makedirs(
-                    os.path.join(
-                        self.logger.log_dir,
-                        f"epoch_{self.trainer.current_epoch}",
-                        "plots",
-                    ),
-                    exist_ok=True,
-                )
-                plot_pymunk_results(
-                    model=self,
-                    batch=batch,
-                    deterministic=False,
-                    plot_path=os.path.join(
-                        self.logger.log_dir,
-                        f"epoch_{self.trainer.current_epoch}",
-                        "plots",
-                    ),
-                )
-            if self.trainer.current_epoch % 10 == 0:
-                metrics = compute_metrics(
-                    model=self,
-                    batch=batch,
-                    n_last_timesteps_wasserstein=5,
-                    n_particles_wasserstein=32,
-                )
-                for k, v in metrics.items():
-                    v_agg = torch.tensor(v, dtype=self.dtype).mean()
-                    aggregated_metrics.update({k: v_agg})
-        except:
-            print("Warning: validation failed. Probably due to FP32 problems?")
+        # Plot
+        if batch_idx == 0 and (self.trainer.current_epoch % 40 == 0) \
+                and (self.trainer.current_epoch > 0):
+            os.makedirs(
+                os.path.join(
+                    self.logger.log_dir,
+                    f"epoch_{self.trainer.current_epoch}",
+                    "plots",
+                ),
+                exist_ok=True,
+            )
+            plot_pymunk_results(
+                model=self,
+                batch=batch,
+                deterministic=False,
+                plot_path=os.path.join(
+                    self.logger.log_dir,
+                    f"epoch_{self.trainer.current_epoch}",
+                    "plots",
+                ),
+            )
+        if self.trainer.current_epoch % 10 == 0:
+            metrics = compute_metrics(
+                model=self,
+                batch=batch,
+                n_last_timesteps_wasserstein=3,
+                n_particles_wasserstein=32,
+            )
+            for k, v in metrics.items():
+                v_agg = torch.tensor(v, dtype=self.dtype).mean()
+                aggregated_metrics.update({k: v_agg})
     
         for k, v in aggregated_metrics.items():
             self.log(k, v)
@@ -188,9 +185,11 @@ class PymunkModel(DefaultLightningModel):
         }
         for k, v in aggregated_metrics.items():
             self.log(k, v, prog_bar=True)
-        if self.print_validation_metrics:
-            print(f"epoch: {self.current_epoch}: ", aggregated_metrics)
         return aggregated_metrics
+
+    def on_test_epoch_start(self) -> None:
+        if isinstance(self.ssm, KalmanVariationalAutoEncoder):
+            self.ssm.reconstruction_weight = 1.0
 
     def test_dataloader(self):
         tar_extract_collate_fn = DefaultExtractTarget(
