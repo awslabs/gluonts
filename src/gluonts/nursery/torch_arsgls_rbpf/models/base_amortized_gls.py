@@ -17,6 +17,7 @@ from torch_extensions.distributions.parametrised_distribution import (
     ParametrisedMultivariateNormal,
 )
 from torch_extensions.fusion import ProbabilisticSensorFusion
+from torch_extensions.ops import cholesky
 from utils.utils import list_of_dicts_to_dict_of_list
 
 
@@ -175,7 +176,7 @@ class BaseAmortizedGaussianLinearSystem(BaseGaussianLinearSystem):
         if initial_latent.variables.x is None:
             initial_latent.variables.x = MultivariateNormal(
                 loc=initial_latent.variables.m,
-                covariance_matrix=initial_latent.variables.V,
+                scale_tril=cholesky(initial_latent.variables.V),
             ).rsample()
             initial_latent.variables.m = None
             initial_latent.variables.V = None
