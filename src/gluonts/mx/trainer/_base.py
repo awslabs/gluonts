@@ -275,27 +275,25 @@ class Trainer:
                                 else:
                                     loss = output
 
-
                             if not np.isfinite(ndarray.sum(loss).asscalar()):
                                 logger.warning(
-                                    "Epoch[%d] gave nan loss and will be skipped", epoch_no
+                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored", batch_no, epoch_no
                                 )
-                                return epoch_loss
+                            else:
+                                if is_training:
+                                    loss.backward()
+                                    trainer.step(batch_size)
 
-                            if is_training:
-                                loss.backward()
-                                trainer.step(batch_size)
+                                    # iteration averaging in training
+                                    if isinstance(
+                                        self.avg_strategy,
+                                        IterationAveragingStrategy,
+                                    ):
+                                        self.avg_strategy.apply(net)
 
-                                # iteration averaging in training
-                                if isinstance(
-                                    self.avg_strategy,
-                                    IterationAveragingStrategy,
-                                ):
-                                    self.avg_strategy.apply(net)
+                                epoch_loss.update(None, preds=loss)
 
-                            epoch_loss.update(None, preds=loss)
                             lv = loss_value(epoch_loss)
-
                             it.set_postfix(
                                 ordered_dict={
                                     "epoch": f"{epoch_no + 1}/{self.epochs}",
