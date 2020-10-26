@@ -11,10 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from toolz.itertoolz import concat
 
-from pkgutil import extend_path
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+class Apply:
+    def __init__(self, fn, partitions: list, *args, **kwargs):
+        self.fn = fn
+        self.partitions = partitions
 
-from gluonts.mx.prelude import *
+    def __iter__(self):
+        yield from concat(self.fn(partition) for partition in self.partitions)

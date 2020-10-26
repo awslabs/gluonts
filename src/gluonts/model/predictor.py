@@ -40,8 +40,9 @@ from gluonts.core.component import (
     from_hyperparameters,
     validated,
 )
+from gluonts.core import fqname_for
 from gluonts.core.exception import GluonTSException
-from gluonts.core.serde import dump_json, fqname_for, load_json
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 
 from gluonts.model.forecast import Forecast

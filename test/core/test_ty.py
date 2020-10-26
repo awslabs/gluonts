@@ -19,7 +19,7 @@ from gluonts.core import serde
 from gluonts.core import ty
 
 
-class StatefulClass(ty.Stateful):
+class StatefulClass(serde.Stateful):
     def __init__(self):
         self.n = random.random()
 
@@ -30,7 +30,7 @@ def test_stateful():
     assert o.n == o2.n
 
 
-class StatelessClass(ty.Stateless):
+class StatelessClass(serde.Stateless):
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -52,7 +52,7 @@ def test_stateless_immutable():
         m.x = 3
 
 
-class StatelessClassTyped(ty.Stateless):
+class StatelessClassTyped(serde.Stateless):
     @ty.checked
     def __init__(self, a: int):
         self.a = a

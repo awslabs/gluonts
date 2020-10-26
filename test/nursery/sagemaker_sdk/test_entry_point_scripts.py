@@ -10,17 +10,13 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
-
-# Standard library imports
+import platform
 import tempfile
 from pathlib import Path
 import argparse
 
-# Third-party imports
 import pytest
 
-# First-party imports
 from gluonts.core import serde
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
@@ -64,6 +60,10 @@ def simple_feedforward_estimator():
     )
 
 
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="Skip sagemaker_sdk tests on windows.",
+)
 @pytest.mark.parametrize(
     "dataset_name, custom_dataset", [("m4_hourly", False), ("m4_hourly", True)]
 )
