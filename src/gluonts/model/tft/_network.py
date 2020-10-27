@@ -317,17 +317,19 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         feat_static_real: Tensor,
         feat_static_cat: Tensor,
     ):
-        obs = past_target * past_observed_values
+        obs = F.broadcast_mul(past_target, past_observed_values)
         count = F.sum(past_observed_values, axis=1, keepdims=True)
-        offset = F.sum(obs, axis=1, keepdims=True) / (
-            count + self.normalize_eps
+        offset = F.broadcast_div(
+            F.sum(obs, axis=1, keepdims=True), count + self.normalize_eps,
         )
-        scale = F.sum(obs ** 2, axis=1, keepdims=True) / (
-            count + self.normalize_eps
+        scale = F.broadcast_div(
+            F.sum(obs ** 2, axis=1, keepdims=True), count + self.normalize_eps,
         )
-        scale = scale - offset ** 2
-        scale = scale.sqrt()
-        past_target = (past_target - offset) / (scale + self.normalize_eps)
+        scale = F.broadcast_sub(scale, offset ** 2)
+        scale = F.sqrt(scale)
+        past_target = F.broadcast_div(
+            F.broadcast_sub(past_target, offset), scale + self.normalize_eps,
+        )
         past_target = F.expand_dims(past_target, axis=-1)
 
         past_covariates = []
@@ -383,7 +385,9 @@ class TemporalFusionTransformerNetwork(HybridBlock):
     ) -> Tensor:
         offset = F.expand_dims(offset, axis=-1)
         scale = F.expand_dims(scale, axis=-1)
-        preds = preds * (scale + self.normalize_eps) + offset
+        preds = F.broadcast_add(
+            F.broadcast_mul(preds, (scale + self.normalize_eps)), offset,
+        )
         return preds
 
     def _forward(
