@@ -246,3 +246,7 @@ class MixtureDistributionOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return self.distr_outputs[0].event_shape
+
+    @property
+    def value_in_support(self) -> float:
+        return self.distr_outputs[0].value_in_support
