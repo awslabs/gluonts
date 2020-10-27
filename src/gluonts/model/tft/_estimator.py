@@ -61,8 +61,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
     def __init__(
         self,
         freq: str,
-        context_length: int,
-        prediction_length: Optional[int] = None,
+        prediction_length: int,
+        context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
         hidden_dim: int = 32,
         variable_dim: Optional[int] = None,
@@ -218,7 +218,10 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     AsNumpyArray(
                         field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=2,
                     ),
-                    BroadcastTo(field=FieldName.FEAT_DYNAMIC_CAT),
+                    BroadcastTo(
+                        field=FieldName.FEAT_DYNAMIC_CAT,
+                        ext_length=self.prediction_length,
+                    ),
                 ]
             )
         ts_fields.append(FieldName.FEAT_DYNAMIC_CAT)

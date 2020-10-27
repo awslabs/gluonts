@@ -20,24 +20,31 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.transform import (
-    SimpleTransformation,
+    target_transformation_length,
+    MapTransformation,
     InstanceSplitter,
     shift_timestamp,
 )
 
 
-class BroadcastTo(SimpleTransformation):
+class BroadcastTo(MapTransformation):
     @validated()
     def __init__(
-        self, field: str, target_field: str = FieldName.TARGET,
+        self,
+        field: str,
+        ext_length: int = 0,
+        target_field: str = FieldName.TARGET,
     ) -> None:
         self.field = field
+        self.ext_length = ext_length
         self.target_field = target_field
 
-    def transform(self, data: DataEntry) -> DataEntry:
+    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        length = target_transformation_length(
+            data[self.target_field], self.ext_length, is_train
+        )
         data[self.field] = np.broadcast_to(
-            data[self.field],
-            (data[self.field].shape[:-1] + data[self.target_field].shape[-1:]),
+            data[self.field], (data[self.field].shape[:-1] + (length,)),
         )
         return data
 
