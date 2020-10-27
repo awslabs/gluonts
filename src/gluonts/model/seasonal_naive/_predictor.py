@@ -90,4 +90,9 @@ class SeasonalNaivePredictor(RepresentablePredictor):
                 shape=(1, self.prediction_length), fill_value=target.mean()
             )
 
-        return SampleForecast(samples, forecast_start_time, self.freq)
+        return SampleForecast(
+            samples=samples,
+            start_date=forecast_start_time,
+            freq=self.freq,
+            item_id=item.get("item_id", None),
+        )
