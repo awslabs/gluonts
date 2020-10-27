@@ -25,7 +25,7 @@ def hyperparameters():
 def test_accuracy(accuracy_test, hyperparameters, hybridize):
     hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize)
     accuracy_test(
-        TemporalFusionTransformerEstimator, hyperparameters, accuracy=0.2
+        TemporalFusionTransformerEstimator, hyperparameters, accuracy=0.4
     )
 
 
