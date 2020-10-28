@@ -559,6 +559,22 @@ class QuantileForecast(Forecast):
             ]
         )
 
+    def plot(self, label=None, output_file=None, keys=None, *args, **kwargs):
+        import matplotlib.pyplot as plt
+
+        label_prefix = "" if label is None else label + "-"
+
+        if keys is None:
+            keys = self.forecast_keys
+
+        for k, v in zip(keys, self.forecast_array):
+            plt.plot(
+                self.index, v, label=f"{label_prefix}q{k}", *args, **kwargs,
+            )
+            plt.legend()
+        if output_file:
+            plt.savefig(output_file)
+
 
 class DistributionForecast(Forecast):
     """
