@@ -17,7 +17,7 @@ import os
 import tempfile
 import time
 import uuid
-from typing import Any, List, Optional, Union, Callable
+from typing import Any, List, Optional, Union, Callable, Dict
 
 # Third-party imports
 import mxnet as mx
@@ -182,9 +182,14 @@ class Trainer:
         input_names: List[str],
         train_iter: TrainDataLoader,
         validation_iter: Optional[ValidationDataLoader] = None,
-    ) -> None:  # TODO: we may want to return some training information here
+    ) -> Dict[str, List]:
         is_validation_available = validation_iter is not None
         self.halt = False
+
+        training_history: Dict[str, List] = {
+            "training_loss": [],
+            "validation_loss": [],
+        }
 
         with tempfile.TemporaryDirectory(
             prefix="gluonts-trainer-temp-"
@@ -277,7 +282,9 @@ class Trainer:
 
                             if not np.isfinite(ndarray.sum(loss).asscalar()):
                                 logger.warning(
-                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored", batch_no, epoch_no
+                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored",
+                                    batch_no,
+                                    epoch_no,
                                 )
                             else:
                                 if is_training:
@@ -343,10 +350,15 @@ class Trainer:
                     )
 
                     epoch_loss = loop(epoch_no, train_iter)
+
+                    training_history["training_loss"].append(epoch_loss)
+
                     if is_validation_available:
                         epoch_loss = loop(
                             epoch_no, validation_iter, is_training=False
                         )
+
+                        training_history["validation_loss"].append(epoch_loss)
 
                     # update average trigger
                     if isinstance(
@@ -416,3 +428,5 @@ class Trainer:
                     self.avg_strategy.load_averaged_model(net)
 
                 logger.info("End model training")
+
+                return training_history

@@ -78,6 +78,7 @@ class Predictor:
         self.prediction_length = prediction_length
         self.freq = freq
         self.lead_time = lead_time
+        self.training_history = None
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         """

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Dict, List
 from functools import partial
 
 # Third-party imports
@@ -242,7 +242,7 @@ class GluonEstimator(Estimator):
         with self.trainer.ctx:
             trained_net = self.create_training_network()
 
-        self.trainer(
+        training_history = self.trainer(
             net=trained_net,
             input_names=get_hybrid_forward_input_names(trained_net),
             train_iter=training_data_loader,
@@ -252,10 +252,13 @@ class GluonEstimator(Estimator):
         with self.trainer.ctx:
             # ensure that the prediction network is created within the same MXNet
             # context as the one that was used during training
+            predictor = self.create_predictor(transformation, trained_net)
+            predictor.training_history = training_history
+
             return TrainOutput(
                 transformation=transformation,
                 trained_net=trained_net,
-                predictor=self.create_predictor(transformation, trained_net),
+                predictor=predictor,
             )
 
     def train(
