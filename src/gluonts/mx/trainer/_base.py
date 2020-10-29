@@ -351,14 +351,18 @@ class Trainer:
 
                     epoch_loss = loop(epoch_no, train_iter)
 
-                    training_history["training_loss"].append(epoch_loss)
+                    training_history["training_loss"].append(
+                        loss_value(epoch_loss)
+                    )
 
                     if is_validation_available:
                         epoch_loss = loop(
                             epoch_no, validation_iter, is_training=False
                         )
 
-                        training_history["validation_loss"].append(epoch_loss)
+                        training_history["validation_loss"].append(
+                            loss_value(epoch_loss)
+                        )
 
                     # update average trigger
                     if isinstance(
