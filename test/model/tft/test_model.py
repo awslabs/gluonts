@@ -18,7 +18,14 @@ from gluonts.model.tft import TemporalFusionTransformerEstimator
 
 @pytest.fixture()
 def hyperparameters():
-    return dict(ctx="cpu", epochs=1, learning_rate=1e-3,)
+    return dict(
+        ctx="cpu",
+        epochs=1,
+        learning_rate=1e-3,
+        hidden_dim=16,
+        variable_dim=4,
+        num_heads=2,
+    )
 
 
 @pytest.mark.parametrize("hybridize", [True, False])
