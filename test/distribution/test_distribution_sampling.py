@@ -153,6 +153,7 @@ DISTRIBUTIONS_WITHOUT_STDDEV = [Loglogistic, Weibull]
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+@flaky
 def test_sampling(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
     distr = serialize_fn(distr)

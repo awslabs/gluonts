@@ -26,7 +26,7 @@ from gluonts.core.component import equals
 from gluonts.dataset.common import FileDataset, ListDataset
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.model.seq2seq import MQCNNEstimator
-from gluonts.shell.sagemaker import ServeEnv, TrainEnv
+from gluonts.shell.env import TrainEnv, ServeEnv
 from gluonts.shell.train import run_train_and_test
 
 try:
@@ -57,6 +57,8 @@ def train_env(listify_dataset) -> ContextManager[TrainEnv]:
         "num_prefetch": 4,
         "shuffle_buffer_length": 256,
         "epochs": 3,
+        "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
+        "test_quantiles": [0.25, 0.75],
     }
     with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
@@ -106,12 +108,11 @@ def batch_transform(monkeypatch, train_env):
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_listify_dataset(train_env: TrainEnv, listify_dataset):
-    for dataset_name in train_env.datasets.keys():
-        assert (
-            isinstance(train_env.datasets[dataset_name], ListDataset)
-            if strtobool(listify_dataset)
-            else isinstance(train_env.datasets[dataset_name], FileDataset)
-        )
+    for dataset in train_env.datasets.values():
+        if listify_dataset == "yes":
+            assert isinstance(dataset, ListDataset)
+        else:
+            assert isinstance(dataset, FileDataset)
 
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])

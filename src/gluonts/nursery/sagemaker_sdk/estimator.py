@@ -28,7 +28,7 @@ import s3fs
 # Third-party imports
 import sagemaker
 from sagemaker.estimator import Framework
-from sagemaker.fw_utils import empty_framework_version_warning, parse_s3_url
+from sagemaker.s3 import parse_s3_url
 from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
 
 # First-party imports
@@ -240,12 +240,6 @@ class GluonTSFramework(Framework):
     ):
         # Framework_version currently serves no purpose,
         # except for compatibility with the sagemaker framework.
-        if framework_version is None:
-            logger.warning(
-                empty_framework_version_warning(
-                    GLUONTS_VERSION, self.LATEST_VERSION
-                )
-            )
         self.framework_version = framework_version or GLUONTS_VERSION
 
         super().__init__(
