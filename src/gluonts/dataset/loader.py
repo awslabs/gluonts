@@ -23,49 +23,11 @@ import sys
 from queue import Empty
 
 from gluonts.dataset.common import DataEntry, DataBatch, Dataset
-from gluonts.dataset.util import MPWorkerInfo, batcher, cycle
-from gluonts.transform import Transformation
-from gluonts.transform.dataset import TransformedDataset
+from gluonts.dataset.util import MPWorkerInfo
+from gluonts.itertools import batcher, cycle, pseudo_shuffle
+from gluonts.transform import Transformation, TransformedDataset
 
 logger = logging.getLogger(__name__)
-
-
-class PseudoShuffledIterator(Iterator):
-    """
-    A wrapper class which takes a serialized iterator as an input and generates a
-    pseudo randomized iterator using the same elements from the input iterator.
-    """
-
-    def __init__(self, iterator: Iterator, shuffle_buffer_length: int):
-        self.shuffle_buffer: List = []
-        self.shuffle_buffer_length = shuffle_buffer_length
-        self.iterator = iterator
-
-    def __next__(self):
-        # If the buffer is empty, fill the buffer first.
-        if not self.shuffle_buffer:
-            self.shuffle_buffer = list(
-                itertools.islice(self.iterator, self.shuffle_buffer_length)
-            )
-
-        # If buffer still empty, means all elements used, return a signal of
-        # end of iterator
-        if not self.shuffle_buffer:
-            raise StopIteration
-
-        # Choose an element at a random index and yield it and fill it with
-        # the next element in the sequential generator
-        idx = random.randrange(len(self.shuffle_buffer))
-        next_sample = self.shuffle_buffer[idx]
-
-        # Replace the index with the next element in the iterator if the
-        # iterator has not finished. Delete the index otherwise.
-        try:
-            self.shuffle_buffer[idx] = next(self.iterator)
-        except StopIteration:
-            del self.shuffle_buffer[idx]
-
-        return next_sample
 
 
 def construct_training_iterator(
@@ -81,7 +43,7 @@ def construct_training_iterator(
     if shuffle_buffer_length is None:
         return iter(transformed_dataset)
     else:
-        return PseudoShuffledIterator(
+        return pseudo_shuffle(
             iter(transformed_dataset),
             shuffle_buffer_length=shuffle_buffer_length,
         )
