@@ -105,6 +105,9 @@ class Trainer:
         initialized network `post_initialize_cb(net)` before the training starts.
         This callback can be used to e.g. overwrite parameters for warm starting, to freeze some
         of the network parameters etc.
+    post_epoch_callback
+        An optional callback function. If provided the function will be called with the
+        epoch number and epoch loss `post_epoch_callback(epoch_no, epoch_loss)` after each epoch.
     """
 
     @validated()
@@ -126,6 +129,7 @@ class Trainer:
             AveragingStrategy, IterationAveragingStrategy
         ] = SelectNBestMean(num_models=1),
         post_initialize_cb: Optional[Callable[[mx.gluon.Block], None]] = None,
+        post_epoch_callback: Optional[Callable[[int, float], None]] = None,
     ) -> None:
 
         assert (
@@ -163,6 +167,7 @@ class Trainer:
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
         self.post_initialize_cb = post_initialize_cb
+        self.post_epoch_callback = post_epoch_callback
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:
         logger.info("Received signal: {}".format(signum))
@@ -347,6 +352,8 @@ class Trainer:
                         epoch_loss = loop(
                             epoch_no, validation_iter, is_training=False
                         )
+                    if self.post_epoch_callback is not None:
+                        self.post_epoch_callback(epoch_no, epoch_loss)
 
                     # update average trigger
                     if isinstance(
