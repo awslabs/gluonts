@@ -317,17 +317,19 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         feat_static_real: Tensor,
         feat_static_cat: Tensor,
     ):
-        obs = past_target * past_observed_values
+        obs = F.broadcast_mul(past_target, past_observed_values)
         count = F.sum(past_observed_values, axis=1, keepdims=True)
-        offset = F.sum(obs, axis=1, keepdims=True) / (
-            count + self.normalize_eps
+        offset = F.broadcast_div(
+            F.sum(obs, axis=1, keepdims=True), count + self.normalize_eps,
         )
-        scale = F.sum(obs ** 2, axis=1, keepdims=True) / (
-            count + self.normalize_eps
+        scale = F.broadcast_div(
+            F.sum(obs ** 2, axis=1, keepdims=True), count + self.normalize_eps,
         )
-        scale = scale - offset ** 2
-        scale = scale.sqrt()
-        past_target = (past_target - offset) / (scale + self.normalize_eps)
+        scale = F.broadcast_sub(scale, offset ** 2)
+        scale = F.sqrt(scale)
+        past_target = F.broadcast_div(
+            F.broadcast_sub(past_target, offset), scale + self.normalize_eps,
+        )
         past_target = F.expand_dims(past_target, axis=-1)
 
         past_covariates = []
@@ -361,8 +363,9 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                 tgt_emb = F.slice_axis(
                     emb, axis=1, begin=self.context_length, end=None
                 )
-                past_covariates.extend(ctx_emb)
-                future_covariates.extend(tgt_emb)
+                past_covariates.append(ctx_emb)
+                future_covariates.append(tgt_emb)
+
         if self.feat_static_proj is not None:
             projs = self.feat_static_proj(feat_static_real)
             static_covariates.extend(projs)
@@ -383,7 +386,9 @@ class TemporalFusionTransformerNetwork(HybridBlock):
     ) -> Tensor:
         offset = F.expand_dims(offset, axis=-1)
         scale = F.expand_dims(scale, axis=-1)
-        preds = preds * (scale + self.normalize_eps) + offset
+        preds = F.broadcast_add(
+            F.broadcast_mul(preds, (scale + self.normalize_eps)), offset,
+        )
         return preds
 
     def _forward(
@@ -395,13 +400,14 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         static_covariates: Tensor,
     ):
         static_var, _ = self.static_selector(static_covariates)
-        c_selection = self.selection(static_var)
-        c_enrichment = self.enrichment(static_var)
-        c_h = self.state_h(static_var).squeeze(axis=1)
-        c_c = self.state_c(static_var).squeeze(axis=1)
+        c_selection = self.selection(static_var).expand_dims(axis=1)
+        c_enrichment = self.enrichment(static_var).expand_dims(axis=1)
+        c_h = self.state_h(static_var)
+        c_c = self.state_c(static_var)
 
         ctx_input, _ = self.ctx_selector(past_covariates, c_selection)
-        tgt_input, _ = self.tgt_selector(future_covariates, c_selection,)
+        tgt_input, _ = self.tgt_selector(future_covariates, c_selection)
+
         encoding = self.temporal_encoder(ctx_input, tgt_input, [c_h, c_c])
         decoding = self.temporal_decoder(
             encoding, c_enrichment, past_observed_values

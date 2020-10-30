@@ -40,11 +40,21 @@ from gluonts.transform import (
     SetField,
 )
 
-from ._transform import TFTInstanceSplitter
+from ._transform import (
+    BroadcastTo,
+    TFTInstanceSplitter,
+)
 from ._network import (
     TemporalFusionTransformerTrainingNetwork,
     TemporalFusionTransformerPredictionNetwork,
 )
+
+
+def _default_feat_args(dims_or_cardinalities: List[int]):
+    if dims_or_cardinalities:
+        return dims_or_cardinalities
+    return [1]
+
 
 
 class TemporalFusionTransformerEstimator(GluonEstimator):
@@ -52,8 +62,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
     def __init__(
         self,
         freq: str,
-        context_length: int,
-        prediction_length: Optional[int] = None,
+        prediction_length: int,
+        context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
         hidden_dim: int = 32,
         variable_dim: Optional[int] = None,
@@ -158,6 +168,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 VstackFeatures(
                     output_field=FieldName.FEAT_STATIC_CAT,
                     input_fields=list(self.static_cardinalities.keys()),
+                    h_stack=True,
                 )
             )
         else:
@@ -177,6 +188,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 VstackFeatures(
                     output_field=FieldName.FEAT_STATIC_REAL,
                     input_fields=list(self.static_feature_dims.keys()),
+                    h_stack=True,
                 )
             )
         else:
@@ -198,18 +210,22 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     input_fields=list(self.dynamic_cardinalities.keys()),
                 )
             )
-            ts_fields.append(FieldName.FEAT_DYNAMIC_CAT)
         else:
             transforms.extend(
                 [
                     SetField(
-                        output_field=FieldName.FEAT_DYNAMIC_CAT, value=[0.0],
+                        output_field=FieldName.FEAT_DYNAMIC_CAT, value=[[0.0]],
                     ),
                     AsNumpyArray(
-                        field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=1
+                        field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=2,
+                    ),
+                    BroadcastTo(
+                        field=FieldName.FEAT_DYNAMIC_CAT,
+                        ext_length=self.prediction_length,
                     ),
                 ]
             )
+        ts_fields.append(FieldName.FEAT_DYNAMIC_CAT)
 
         input_fields = [FieldName.FEAT_TIME]
         if self.dynamic_feature_dims:
@@ -229,20 +245,21 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     input_fields=list(self.past_dynamic_cardinalities.keys()),
                 )
             )
-            past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC + "_cat")
         else:
             transforms.extend(
                 [
                     SetField(
                         output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
-                        value=[0.0],
+                        value=[[0.0]],
                     ),
                     AsNumpyArray(
                         field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
-                        expected_ndim=1,
+                        expected_ndim=2,
                     ),
+                    BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC + "_cat"),
                 ]
             )
+        past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC + "_cat")
 
         if self.past_dynamic_feature_dims:
             transforms.append(
@@ -251,7 +268,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     input_fields=list(self.past_dynamic_feature_dims.keys()),
                 )
             )
-            past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC_REAL)
         else:
             transforms.extend(
                 [
@@ -262,8 +278,10 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     AsNumpyArray(
                         field=FieldName.PAST_FEAT_DYNAMIC_REAL, expected_ndim=2
                     ),
+                    BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC_REAL),
                 ]
             )
+        past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC_REAL)
 
         transforms.append(
             TFTInstanceSplitter(
@@ -289,17 +307,25 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             d_hidden=self.hidden_dim,
             n_head=self.num_heads,
             n_output=self.num_outputs,
-            d_past_feat_dynamic_real=list(
-                self.past_dynamic_feature_dims.values()
+            d_past_feat_dynamic_real=_default_feat_args(
+                list(self.past_dynamic_feature_dims.values())
             ),
-            c_past_feat_dynamic_cat=list(
-                self.past_dynamic_cardinalities.values()
+            c_past_feat_dynamic_cat=_default_feat_args(
+                list(self.past_dynamic_cardinalities.values())
             ),
-            d_feat_dynamic_real=[1] * len(self.time_features)
-            + list(self.dynamic_feature_dims.values()),
-            c_feat_dynamic_cat=list(self.dynamic_cardinalities.values()),
-            d_feat_static_real=list(self.static_feature_dims.values()),
-            c_feat_static_cat=list(self.static_cardinalities.values()),
+            d_feat_dynamic_real=_default_feat_args(
+                [1] * len(self.time_features)
+                + list(self.dynamic_feature_dims.values())
+            ),
+            c_feat_dynamic_cat=_default_feat_args(
+                list(self.dynamic_cardinalities.values())
+            ),
+            d_feat_static_real=_default_feat_args(
+                list(self.static_feature_dims.values()),
+            ),
+            c_feat_static_cat=_default_feat_args(
+                list(self.static_cardinalities.values()),
+            ),
             dropout=self.dropout_rate,
         )
         return network
@@ -314,17 +340,25 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             d_hidden=self.hidden_dim,
             n_head=self.num_heads,
             n_output=self.num_outputs,
-            d_past_feat_dynamic_real=list(
-                self.past_dynamic_feature_dims.values()
+            d_past_feat_dynamic_real=_default_feat_args(
+                list(self.past_dynamic_feature_dims.values())
             ),
-            c_past_feat_dynamic_cat=list(
-                self.past_dynamic_cardinalities.values()
+            c_past_feat_dynamic_cat=_default_feat_args(
+                list(self.past_dynamic_cardinalities.values())
             ),
-            d_feat_dynamic_real=[1] * len(self.time_features)
-            + list(self.dynamic_feature_dims.values()),
-            c_feat_dynamic_cat=list(self.dynamic_cardinalities.values()),
-            d_feat_static_real=list(self.static_feature_dims.values()),
-            c_feat_static_cat=list(self.static_cardinalities.values()),
+            d_feat_dynamic_real=_default_feat_args(
+                [1] * len(self.time_features)
+                + list(self.dynamic_feature_dims.values())
+            ),
+            c_feat_dynamic_cat=_default_feat_args(
+                list(self.dynamic_cardinalities.values())
+            ),
+            d_feat_static_real=_default_feat_args(
+                list(self.static_feature_dims.values()),
+            ),
+            c_feat_static_cat=_default_feat_args(
+                list(self.static_cardinalities.values()),
+            ),
             dropout=self.dropout_rate,
         )
         copy_parameters(trained_network, prediction_network)
