@@ -26,6 +26,7 @@ from typing import (
     Optional,
     Tuple,
     Union,
+    TypedDict,
 )
 
 # Third-party imports
@@ -64,6 +65,16 @@ class Evaluator:
         which is computationally expensive to evaluate and thus slows
         down the evaluation process considerably.
         By default False.
+    Option to include custom evaluation metrics. Expected input is
+        a dictionary with keys specifying the name of the custom metric
+        and the values are a list containing three elements.
+        First, a callable which takes as input target and forecast and
+        returns the evaluation metric.
+        Second, a string specifying the aggregation metric across all
+        time-series, f.e. "mean", "sum".
+        Third, either "mean" or "median" to specify whether mean or median
+        forecast should be passed to the custom evaluation function.
+        E.g. {"RMSE": [rmse, "mean", "median"]}
     num_workers
         The number of multiprocessing workers that will be used to process
         the data in parallel.
@@ -83,6 +94,7 @@ class Evaluator:
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
         calculate_owa: bool = False,
+        custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = None,
         chunk_size: Optional[int] = None,
     ) -> None:
@@ -90,6 +102,7 @@ class Evaluator:
         self.seasonality = seasonality
         self.alpha = alpha
         self.calculate_owa = calculate_owa
+        self.custom_eval_fn = custom_eval_fn
 
         self.num_workers = (
             num_workers
@@ -292,6 +305,26 @@ class Evaluator:
             "OWA": np.nan,  # by default not calculated
         }
 
+        if self.custom_eval_fn is not None:
+            for k, (eval_fn, _, fcst_type) in self.custom_eval_fn.items():
+                try:
+                    val = {
+                        k: eval_fn(
+                            pred_target,
+                            eval(
+                                fcst_type + "_fcst",
+                                {
+                                    "median_fcst": median_fcst,
+                                    "mean_fcst": mean_fcst,
+                                },
+                            ),
+                        )
+                    }
+                except:
+                    val = {k: np.nan}
+
+                metrics.update(val)
+
         try:
             metrics["MSIS"] = self.msis(
                 pred_target,
@@ -340,13 +373,23 @@ class Evaluator:
             "OWA": "mean",
             "MSIS": "mean",
         }
+
+        if self.custom_eval_fn is not None:
+            for k, (_, agg_type, _) in self.custom_eval_fn.items():
+                try:
+                    custom_agg = {k: agg_type}
+                except:
+                    custom_agg = {k: "mean"}
+
+                agg_funs.update(custom_agg)
+
         for quantile in self.quantiles:
             agg_funs[quantile.loss_name] = "sum"
             agg_funs[quantile.coverage_name] = "mean"
 
         assert (
             set(metric_per_ts.columns) >= agg_funs.keys()
-        ), "The some of the requested item metrics are missing."
+        ), "Some of the requested item metrics are missing."
 
         totals = {
             key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()
@@ -535,7 +578,7 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-    
+
     The MultivariateEvaluator class owns functionality for evaluating
     multidimensional target arrays of shape
     (target_dimensionality, prediction_length).
@@ -569,6 +612,9 @@ class MultivariateEvaluator(Evaluator):
         alpha: float = 0.05,
         eval_dims: List[int] = None,
         target_agg_funcs: Dict[str, Callable] = {},
+        custom_eval_fn: Optional[
+            Dict[str, Tuple[Union[Callable, str, str]]]
+        ] = None,
     ) -> None:
         """
 
@@ -592,7 +638,10 @@ class MultivariateEvaluator(Evaluator):
             and forecast (typically sum or mean).
         """
         super().__init__(
-            quantiles=quantiles, seasonality=seasonality, alpha=alpha
+            quantiles=quantiles,
+            seasonality=seasonality,
+            alpha=alpha,
+            custom_eval_fn=custom_eval_fn,
         )
         self._eval_dims = eval_dims
         self.target_agg_funcs = target_agg_funcs
