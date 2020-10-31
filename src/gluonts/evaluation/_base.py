@@ -26,7 +26,6 @@ from typing import (
     Optional,
     Tuple,
     Union,
-    TypedDict,
 )
 
 # Third-party imports
@@ -612,9 +611,7 @@ class MultivariateEvaluator(Evaluator):
         alpha: float = 0.05,
         eval_dims: List[int] = None,
         target_agg_funcs: Dict[str, Callable] = {},
-        custom_eval_fn: Optional[
-            Dict[str, Tuple[Union[Callable, str, str]]]
-        ] = None,
+        custom_eval_fn: Optional[dict] = None,
     ) -> None:
         """
 
