@@ -35,7 +35,8 @@ Particle Filters
 }
 ```
 
-[Deep Factor models, a global-local forecasting method](http://proceedings.mlr.press/v97/wang19k.html)
+
+[Deep Factor models, a global-local forecasting method.](http://proceedings.mlr.press/v97/wang19k.html)
 ```
 @inproceedings{wang2019deep,
 	Author = {Wang, Yuyang and Smola, Alex and Maddix, Danielle and Gasthaus, Jan and Foster, Dean and Januschowski, Tim},

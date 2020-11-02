@@ -157,7 +157,6 @@ the following references to the related papers:
 }
 ```
 
-
 ## Further Reading 
 
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
@@ -170,3 +169,4 @@ the following references to the related papers:
 
 ### Introductory material
 * [International Symposium of Forecasting: Deep Learning for Forecasting workshop](https://lostella.github.io/ISF-2020-Deep-Learning-Workshop/)
+
