@@ -156,17 +156,27 @@ the following references to the related papers:
   url     = {http://jmlr.org/papers/v21/19-820.html}
 }
 ```
-
+```
+@article{gluonts_arxiv,
+  author  = {Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
+    Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
+    and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
+    Türkmen, A. C. and Wang, Y.},
+  title   = {{GluonTS: Probabilistic Time Series Modeling in Python}},
+  journal = {arXiv preprint arXiv:1906.05264},
+  year    = {2019}
+}
+```
 
 ## Further Reading 
 
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
 
 ### Overview tutorials
+* [Tutorial at WWW 20202 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)
 * [Tutorial at KDD 2019](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
 * [Tutorial at VLDB 2018](https://lovvge.github.io/Forecasting-Tutorial-VLDB-2018/)
-* [Tutorial at WWW 20202](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 
 ### Introductory material
 * [International Symposium of Forecasting: Deep Learning for Forecasting workshop](https://lostella.github.io/ISF-2020-Deep-Learning-Workshop/)
