@@ -39,6 +39,7 @@ from .inflated_beta import (
     OneInflatedBeta,
     OneInflatedBetaOutput,
 )
+from .inflated_poisson import ZeroInflatedPoisson, ZeroInflatedPoissonOutput
 from .laplace import Laplace, LaplaceOutput
 from .logit_normal import LogitNormal, LogitNormalOutput
 from .lowrank_multivariate_gaussian import (
@@ -102,6 +103,8 @@ __all__ = [
     "PiecewiseLinearOutput",
     "Poisson",
     "PoissonOutput",
+    "ZeroInflatedPoisson",
+    "ZeroInflatedPoissonOutput",
     "TransformedPiecewiseLinear",
     "TransformedDistribution",
     "TransformedDistributionOutput",

@@ -36,6 +36,7 @@ from gluonts.mx.distribution import (
     DirichletMultinomial,
     Categorical,
     ZeroAndOneInflatedBeta,
+    ZeroInflatedPoisson,
 )
 from gluonts.core.serde import dump_json, load_json, dump_code, load_code
 from gluonts.model.tpp.distribution import Loglogistic, Weibull
@@ -299,3 +300,51 @@ def test_inflated_beta_sampling(
         np.histogram(samples.asnumpy())[0],
         rtol=0.08,
     )
+
+
+@pytest.mark.parametrize("rate", [1000.0, 10.0])
+@pytest.mark.parametrize("zero_probability", [0.0, 0.2, 0.5, 0.8, 1])
+def test_inflated_poisson_sampling(
+    rate: float,
+    zero_probability: float,
+):
+    distr = ZeroInflatedPoisson(
+        rate=mx.nd.array([rate]),
+        zero_probability=mx.nd.array([zero_probability]),
+    )
+    quantiles = [0.2, 0.4, 0.5, 0.6, 0.8]
+    samples = distr.sample()
+    assert samples.shape == (1,)
+    num_samples = 2_000_000
+    samples = distr.sample(num_samples)
+    assert samples.shape == (num_samples, 1)
+
+    category = np.random.choice(
+        [0, 1],
+        p=[
+            zero_probability,
+            1 - zero_probability,
+        ],
+        size=num_samples,
+    )
+    samples_numpy = np.random.poisson(lam=rate, size=num_samples)
+    samples_numpy[category == 0] = 0
+
+    # mean
+    assert np.allclose(
+        samples.mean().asnumpy(), distr.mean.asnumpy(), atol=1e-2, rtol=1e-2
+    )
+    # var
+    assert np.allclose(
+        np.var(samples.asnumpy()),
+        distr.variance.asnumpy(),
+        atol=1e-2,
+        rtol=1e-2,
+    )
+
+    # quantiles
+    # assert np.allclose(
+    #     np.quantile(samples_numpy, q=quantiles),
+    #     np.quantile(samples.asnumpy(), q=quantiles),
+    #     rtol=2,
+    # )

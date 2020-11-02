@@ -56,6 +56,8 @@ from gluonts.mx.distribution import (
     GenParetoOutput,
     Poisson,
     PoissonOutput,
+    ZeroInflatedPoisson,
+    ZeroInflatedPoissonOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
     Binned,
@@ -270,7 +272,7 @@ def test_inflated_beta_likelihood(
         assert (
             np.abs(zero_probability_hat[0] - zero_probability)
             < TOL * zero_probability
-        ), f"zero_probability did not match: zero_probability = {alpha}, zero_probability_hat = {zero_probability_hat}"
+        ), f"zero_probability did not match: zero_probability = {zero_probability}, zero_probability_hat = {zero_probability_hat}"
 
     elif inflated_at == "one":
         alpha_hat, beta_hat, one_probability_hat = parameters
@@ -290,7 +292,7 @@ def test_inflated_beta_likelihood(
         assert (
             np.abs(zero_probability_hat - zero_probability)
             < TOL * zero_probability
-        ), f"zero_probability did not match: zero_probability = {alpha}, zero_probability_hat = {zero_probability_hat}"
+        ), f"zero_probability did not match: zero_probability = {zero_probability}, zero_probability_hat = {zero_probability_hat}"
         assert (
             np.abs(one_probability_hat - one_probability)
             < TOL * one_probability
@@ -1144,3 +1146,50 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
     assert (
         np.abs(beta_hat - beta) < TOL * beta
     ), f"beta did not match: beta = {beta}, beta_hat = {beta_hat}"
+
+
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("rate", [150.0])
+@pytest.mark.parametrize("hybridize", [True, False])
+@pytest.mark.parametrize("zero_probability", [0.2, 0.8])
+def test_inflated_poisson_likelihood(
+    rate: float,
+    hybridize: bool,
+    zero_probability: float,
+) -> None:
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+    NUM_SAMPLES = 5000
+    # generate samples
+    rates = mx.nd.zeros((NUM_SAMPLES,)) + rate
+    zero_probabilities = mx.nd.zeros((NUM_SAMPLES,)) + zero_probability
+
+    distr = ZeroInflatedPoisson(
+        rate=rates, zero_probability=zero_probabilities
+    )
+    distr_output = ZeroInflatedPoissonOutput()
+
+    samples = distr.sample()
+
+    init_biases = [
+        inv_softplus(rate - START_TOL_MULTIPLE * TOL * rate),
+    ]
+
+    rate_hat, zero_probability_hat = maximum_likelihood_estimate_sgd(
+        distr_output,
+        samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.05),
+        num_epochs=PositiveInt(20),
+    )
+
+    assert (
+        np.abs(zero_probability_hat - zero_probability)
+        < TOL * zero_probability
+    ), f"zero_probability did not match: zero_probability = {zero_probability}, zero_probability_hat = {zero_probability_hat}"
+
+    assert (
+        np.abs(rate_hat - rate) < TOL * rate
+    ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
