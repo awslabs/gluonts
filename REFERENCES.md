@@ -19,7 +19,7 @@ A number of the below methods are available in GluonTS.
 Normalizing Kalman Filters
 ```
 @inproceedings{bezene2020nkf,
-	Author = {Emmanuel de Bézenac, Syama S. Rangapuram, Konstantinos Benidis, Michael Bohlke-Schneider, Richard Kurle, Lorenzo Stella, Hilaf Hasson, Patrick Gallinari, Tim Januschowski},
+	Author = {Emmanuel de B\'{e}zenac, Syama S. Rangapuram, Konstantinos Benidis, Michael Bohlke-Schneider, Richard Kurle, Lorenzo Stella, Hilaf Hasson, Patrick Gallinari, Tim Januschowski},
 	Booktitle = {Advances in Neural Information Processing Systems},
 	Title = {Normalizing Kalman Filters for Multivariate Time Series Analysis},
 	Year = {2020}
