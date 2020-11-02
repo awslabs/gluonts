@@ -64,7 +64,8 @@ class Evaluator:
         which is computationally expensive to evaluate and thus slows
         down the evaluation process considerably.
         By default False.
-    Option to include custom evaluation metrics. Expected input is
+    custom_eval_fn
+        Option to include custom evaluation metrics. Expected input is
         a dictionary with keys specifying the name of the custom metric
         and the values are a list containing three elements.
         First, a callable which takes as input target and forecast and
@@ -306,17 +307,22 @@ class Evaluator:
 
         if self.custom_eval_fn is not None:
             for k, (eval_fn, _, fcst_type) in self.custom_eval_fn.items():
+                if fcst_type == "mean":
+                    if mean_fcst is not None:
+                        target_fcst = mean_fcst
+                    else:
+                        logging.warning(
+                            "mean_fcst is None, therfore median_fcst is used."
+                        )
+                        target_fcst = median_fcst
+                else:
+                    target_fcst = median_fcst
+
                 try:
                     val = {
                         k: eval_fn(
                             pred_target,
-                            eval(
-                                fcst_type + "_fcst",
-                                {
-                                    "median_fcst": median_fcst,
-                                    "mean_fcst": mean_fcst,
-                                },
-                            ),
+                            target_fcst,
                         )
                     }
                 except:
@@ -375,12 +381,7 @@ class Evaluator:
 
         if self.custom_eval_fn is not None:
             for k, (_, agg_type, _) in self.custom_eval_fn.items():
-                try:
-                    custom_agg = {k: agg_type}
-                except:
-                    custom_agg = {k: "mean"}
-
-                agg_funs.update(custom_agg)
+                agg_funs.update({k: agg_type})
 
         for quantile in self.quantiles:
             agg_funs[quantile.loss_name] = "sum"
