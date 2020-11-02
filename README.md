@@ -156,7 +156,6 @@ the following references to the related papers:
   url     = {http://jmlr.org/papers/v21/19-820.html}
 }
 ```
-
 ```
 @article{gluonts_arxiv,
   author  = {Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
@@ -172,7 +171,12 @@ the following references to the related papers:
 ## Further Reading 
 
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
-* [Tutorial at WWW 2020 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
+
+### Overview tutorials
+* [Tutorial at WWW 20202 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)
 * [Tutorial at KDD 2019](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
 * [Tutorial at VLDB 2018](https://lovvge.github.io/Forecasting-Tutorial-VLDB-2018/)
+
+### Introductory material
+* [International Symposium of Forecasting: Deep Learning for Forecasting workshop](https://lostella.github.io/ISF-2020-Deep-Learning-Workshop/)
