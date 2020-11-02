@@ -86,7 +86,7 @@ from gluonts.model.tpp.distribution import (
     WeibullOutput,
 )
 
-
+pytestmark = pytest.mark.timeout(60)
 NUM_SAMPLES = 2000
 BATCH_SIZE = 32
 TOL = 0.3
@@ -1148,7 +1148,7 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
     ), f"beta did not match: beta = {beta}, beta_hat = {beta_hat}"
 
 
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(180)
 @pytest.mark.parametrize("rate", [150.0])
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("zero_probability", [0.2, 0.8])
@@ -1160,8 +1160,8 @@ def test_inflated_poisson_likelihood(
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
-    NUM_SAMPLES = 5000
     # generate samples
+    NUM_SAMPLES = 5000 # Required for convergence
     rates = mx.nd.zeros((NUM_SAMPLES,)) + rate
     zero_probabilities = mx.nd.zeros((NUM_SAMPLES,)) + zero_probability
 
