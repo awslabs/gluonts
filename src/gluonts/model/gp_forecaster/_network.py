@@ -225,14 +225,13 @@ class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
             max_iter_jitter=self.max_iter_jitter,
             jitter_method=self.jitter_method,
         )
-        log_prob_data = gp.log_prob(past_time_feat, past_target)
-        log_prob_forecast = gp.log_prob_predictive(
-            past_time_feat, past_target, future_time_feat, future_target
-        )
+
         if self.train_forecast:
-            return log_prob_forecast + log_prob_data
+            return gp.log_prob_predictive(
+                past_time_feat, past_target, future_time_feat, future_target
+            )
         else:
-            return log_prob_data + 0.0 * log_prob_forecast
+            return gp.log_prob(past_time_feat, past_target)
 
 
 class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
