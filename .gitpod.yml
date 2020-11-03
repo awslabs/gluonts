@@ -1,0 +1,23 @@
+# The Docker image to run your workspace in. Defaults to gitpod/workspace-full
+image: gitpod/workspace-full
+# Command to start on workspace startup (optional)
+tasks:
+  - init: >
+    python -m pip install --upgrade pip &&
+    pip install -r requirements/requirements-mxnet.txt &&
+    pip install torch==1.6.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/torch_stable.html &&
+    pip install -e ".[shell]" &&
+    pip install -r requirements/requirements-test.txt &&
+    pip install -r requirements/requirements-extras-sagemaker-sdk.txt &&
+    pip install -r requirements/requirements-extras-m-competitions.txt &&
+    pip install -r requirements/requirements-rotbaum.txt &&
+    pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+
+# Ports to expose on workspace startup (optional)
+ports:
+  - port: 8000
+    onOpen: open-preview
+
+vscode:
+    extensions:
+        - littlefoxteam.vscode-python-test-adapter@0.3.16:tZ/6xOSSdKUaq6JCUVkD+A==
