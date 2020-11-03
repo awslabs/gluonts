@@ -2,7 +2,7 @@
 image: gitpod/workspace-full
 # Command to start on workspace startup (optional)
 tasks:
-  - init: >
+  - command: >
     python -m pip install --upgrade pip &&
     pip install -r requirements/requirements-mxnet.txt &&
     pip install torch==1.6.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/torch_stable.html &&
