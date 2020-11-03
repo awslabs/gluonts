@@ -28,10 +28,9 @@ def hyperparameters():
     )
 
 
-@pytest.mark.skip("This times out frequently.")
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_accuracy(accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize)
+    hyperparameters.update(num_batches_per_epoch=50, hybridize=hybridize)
     accuracy_test(
         TemporalFusionTransformerEstimator, hyperparameters, accuracy=0.4
     )
