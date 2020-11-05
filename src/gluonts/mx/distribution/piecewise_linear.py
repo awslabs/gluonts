@@ -12,10 +12,11 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Dict, List, Optional, Tuple, cast, Union
 
 # Third-party imports
 import numpy as np
+import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
@@ -24,7 +25,7 @@ from gluonts.support import util
 
 from .bijection import AffineTransformation, Bijection
 from .distribution import Distribution, getF
-from .distribution_output import DistributionOutput
+from .distribution_output import DistributionOutput, ArgProj
 from .transformed_distribution import TransformedDistribution
 
 
@@ -368,6 +369,86 @@ class PiecewiseLinearOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return ()
+
+
+class FixedKnotsArgProj(ArgProj):
+    def __init__(self, knot_spacings: mx.nd.NDArray, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.num_pieces = len(knot_spacings)
+        with self.name_scope():
+            self.knot_spacings = self.params.get_constant(
+                "knot_spacings", knot_spacings
+            )
+
+    # noinspection PyMethodOverriding,PyPep8Naming
+    def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
+        params_unbounded = [proj(x) for proj in self.proj]
+        knot_spacings = kwargs["knot_spacings"]
+
+        ks_proj = F.broadcast_add(
+            params_unbounded[0].zeros_like(), knot_spacings
+        )
+
+        return self.domain_map(*params_unbounded, ks_proj)
+
+
+class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
+    """
+    A simple extension of PiecewiseLinearOutput that "fixes" the knot
+    positions in the quantile function representation. That is, instead
+    of initializing with the number of pieces, the quantiles are provided
+    directly at initialization.
+
+    Parameters
+    ----------
+    quantile_levels
+        Points along the domain of the quantile function (i.e., in the interval [0,1])
+        where the knots of the piecewise linear approximation will be fixed, provided
+        in sorted order (ascending).
+
+        For more information on the piecewise linear quantile function, refer to
+        :code:`gluonts.distribution.PiecewiseLinear`.
+    """
+
+    distr_cls: type = PiecewiseLinear
+
+    @validated()
+    def __init__(
+        self, quantile_levels: Union[List[float], np.ndarray],
+    ) -> None:
+        assert all(
+            [0 < q < 1 for q in quantile_levels]
+        ), "Quantiles must be strictly between 0 and 1."
+
+        assert np.all(
+            np.diff(quantile_levels) > 0
+        ), "Quantiles must be in increasing order, with quantile each specified once"
+
+        super().__init__(num_pieces=len(quantile_levels) + 1,)
+
+        # store the "knot spacings" instead of quantiles. see PiecewiseLinear
+        # for more information
+        self.knot_spacings = np.diff(np.r_[0, quantile_levels, 1])
+        self.args_dim: Dict[str, int] = {"gamma": 1, "slopes": self.num_pieces}
+
+    def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
+        return FixedKnotsArgProj(
+            knot_spacings=mx.nd.array(self.knot_spacings),
+            args_dim=self.args_dim,
+            domain_map=mx.gluon.nn.HybridLambda(self.domain_map),
+            prefix=prefix,
+            dtype=self.dtype,
+        )
+
+    @classmethod
+    def domain_map(cls, F, gamma, slopes, knot_spacings):
+        # we use the super method only to compute intercepts and slopes
+        # TODO: computations on knot spacings could be avoided here
+        gamma_out, slopes_out, _ = super().domain_map(
+            F, gamma, slopes, knot_spacings
+        )
+
+        return gamma_out, slopes_out, knot_spacings
 
 
 # Need to inherit from PiecewiseLinear to get the overwritten loss method.

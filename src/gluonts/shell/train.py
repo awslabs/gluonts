@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import json
 import logging
 from typing import Any, Optional, Type, Union
 
@@ -22,59 +23,45 @@ from gluonts.core.serde import dump_code
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator, GluonEstimator
+from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import FilterTransformation, TransformedDataset
 
-# Third party imports
-import json
-
-# Relative imports
-from .sagemaker import TrainEnv
+from .env import TrainEnv
 
 logger = logging.getLogger(__name__)
 
 
 def log_metric(metric: str, value: Any) -> None:
-    """
-    Emits a log message with a ``value`` for a specific ``metric``.
-
-    Parameters
-    ----------
-    metric
-        The name of the metric to be reported.
-    value
-        The metric value to be reported.
-    """
     logger.info(f"gluonts[{metric}]: {dump_code(value)}")
+
+
+def log_version(forecaster_type):
+    name = fqname_for(forecaster_type)
+    version = forecaster_type.__version__
+
+    logger.info(f"Using gluonts v{gluonts.__version__}")
+    logger.info(f"Using forecaster {name} v{version}")
 
 
 def run_train_and_test(
     env: TrainEnv, forecaster_type: Type[Union[Estimator, Predictor]]
 ) -> None:
-    # train_stats = calculate_dataset_statistics(env.datasets["train"])
-    # log_metric("train_dataset_stats", train_stats)
+    log_version(forecaster_type)
 
-    forecaster_fq_name = fqname_for(forecaster_type)
-    forecaster_version = forecaster_type.__version__
-
-    logger.info(f"Using gluonts v{gluonts.__version__}")
-    logger.info(f"Using forecaster {forecaster_fq_name} v{forecaster_version}")
+    logger.info(
+        "Using the following data channels: %s", ", ".join(env.datasets)
+    )
 
     forecaster = forecaster_type.from_inputs(
         env.datasets["train"], **env.hyperparameters
     )
-
     logger.info(
         f"The forecaster can be reconstructed with the following expression: "
         f"{dump_code(forecaster)}"
-    )
-
-    logger.info(
-        "Using the following data channels: "
-        f"{', '.join(name for name in ['train', 'validation', 'test'] if name in env.datasets)}"
     )
 
     if isinstance(forecaster, Predictor):
@@ -90,7 +77,7 @@ def run_train_and_test(
     predictor.serialize(env.path.model)
 
     if "test" in env.datasets:
-        run_test(env, predictor, env.datasets["test"])
+        run_test(env, predictor, env.datasets["test"], env.hyperparameters)
 
 
 def run_train(
@@ -124,12 +111,15 @@ def run_train(
         )
     else:
         return forecaster.train(
-            training_data=train_dataset, validation_data=validation_dataset,
+            training_data=train_dataset, validation_data=validation_dataset
         )
 
 
 def run_test(
-    env: TrainEnv, predictor: Predictor, test_dataset: Dataset
+    env: TrainEnv,
+    predictor: Predictor,
+    test_dataset: Dataset,
+    hyperparameters: dict,
 ) -> None:
     len_original = maybe_len(test_dataset)
 
@@ -154,12 +144,31 @@ def run_test(
         dataset=test_dataset, predictor=predictor, num_samples=100
     )
 
+    test_quantiles = (
+        [
+            Quantile.parse(quantile).name
+            for quantile in hyperparameters["test_quantiles"]
+        ]
+        if "test_quantiles" in hyperparameters.keys()
+        else None
+    )
+
     if isinstance(predictor, RepresentableBlockPredictor) and isinstance(
         predictor.forecast_generator, QuantileForecastGenerator
     ):
-        quantiles = predictor.forecast_generator.quantiles
-        logger.info(f"Using quantiles `{quantiles}` for evaluation.")
-        evaluator = Evaluator(quantiles=quantiles)
+        predictor_quantiles = predictor.forecast_generator.quantiles
+        if test_quantiles is None:
+            test_quantiles = predictor_quantiles
+        elif not set(test_quantiles).issubset(set(predictor_quantiles)):
+            logger.warning(
+                f"Some of the evaluation quantiles `{test_quantiles}` are "
+                f"not in the computed quantile forecasts `{predictor_quantiles}`."
+            )
+            test_quantiles = predictor_quantiles
+
+    if test_quantiles is not None:
+        logger.info(f"Using quantiles `{test_quantiles}` for evaluation.")
+        evaluator = Evaluator(quantiles=test_quantiles)
     else:
         evaluator = Evaluator()
 

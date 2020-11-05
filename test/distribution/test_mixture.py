@@ -98,14 +98,8 @@ mx.random.seed(35120171)
             mx.nd.random_uniform(shape=SHAPE),
         ),
         (
-            Gaussian(
-                mu=mx.nd.array([0.]),
-                sigma=mx.nd.array([1e-3 + 0.2]),
-            ),
-            Gaussian(
-                mu=mx.nd.array([1.]),
-                sigma=mx.nd.array([1e-3 + 0.1]),
-            ),
+            Gaussian(mu=mx.nd.array([0.0]), sigma=mx.nd.array([1e-3 + 0.2]),),
+            Gaussian(mu=mx.nd.array([1.0]), sigma=mx.nd.array([1e-3 + 0.1]),),
             mx.nd.array([0.2]),
         ),
         # TODO: add a multivariate case here
@@ -367,6 +361,11 @@ def test_inference_mixture_different_families(
         (
             Gamma(alpha=mx.nd.array([0.9]), beta=mx.nd.array([2.0])),
             mx.nd.array([-1.0]),
+            GammaOutput(),
+        ),
+        (
+            Gamma(alpha=mx.nd.array([0.9]), beta=mx.nd.array([2.0])),
+            mx.nd.array([0.0]),
             GammaOutput(),
         ),
         (

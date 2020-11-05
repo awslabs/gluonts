@@ -27,7 +27,7 @@ import gluonts
 from gluonts.core import fqname_for
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.shell.sagemaker import ServeEnv
+from gluonts.shell.env import ServeEnv
 
 from .app import make_app
 

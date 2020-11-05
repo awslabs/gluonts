@@ -17,7 +17,6 @@ from typing import Dict, Any
 # Third-party imports
 import mxnet as mx
 import numpy as np
-import pandas as pd
 import pytest
 
 # First-party imports
@@ -28,6 +27,7 @@ from gluonts.dataset.loader import (
     InferenceDataLoader,
 )
 from gluonts.mx.batchify import batchify, stack, _pad_arrays
+from gluonts.testutil.dummy_datasets import get_dataset
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimeUniformSampler,
@@ -36,37 +36,6 @@ from gluonts.transform import (
 
 @pytest.fixture
 def pp_dataset():
-    def get_dataset():
-
-        data_entry_list = [
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1]),
-                    np.array([0, 1, 2, 0, 1, 2, 2, 2]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.1, 0.2, 0.5, 0.4]),
-                    np.array([0, 1, 2, 1, 1]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.2, 0.1]),
-                    np.array([0, 1, 2, 0, 1, 0, 2]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-        ]
-
-        return ListDataset(data_entry_list, freq="H", one_dim_target=False,)
-
     return get_dataset
 
 
@@ -260,10 +229,10 @@ def test_variable_length_stack_zerosize(
     "array_type, multi_processing, axis",
     itertools.product(["np", "mx"], [True, False], [0, 1]),
 )
-def test_pad_arrays_axis(pp_dataset, array_type, multi_processing, axis: int):
+def test_pad_arrays_axis(array_type, multi_processing, axis: int):
     arrays = [
         d["target"] if array_type == "np" else mx.nd.array(d["target"])
-        for d in list(iter(pp_dataset()))
+        for d in list(iter(get_dataset()))
     ]
     if axis == 0:
         arrays = [x.T for x in arrays]
