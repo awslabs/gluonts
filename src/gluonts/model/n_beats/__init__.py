@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from ._ensemble import NBEATSEnsembleEstimator, NBEATSEnsemblePredictor
+
 # Relative imports
 from ._estimator import NBEATSEstimator
-from ._ensemble import NBEATSEnsembleEstimator, NBEATSEnsemblePredictor
 
 __all__ = [
     "NBEATSEstimator",

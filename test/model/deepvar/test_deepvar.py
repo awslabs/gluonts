@@ -15,14 +15,14 @@
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.distribution import (
+from gluonts.mx.distribution import (
     MultivariateGaussianOutput,
     LowrankMultivariateGaussianOutput,
 )
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.deepvar import DeepVAREstimator
 from gluonts.dataset.common import TrainDatasets
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.evaluation import MultivariateEvaluator
 
@@ -116,10 +116,11 @@ def test_deepvar(
         ),
     )
 
+    predictor = estimator.train(training_data=dataset.train)
+
     agg_metrics, _ = backtest_metrics(
-        train_dataset=dataset.train,
         test_dataset=dataset.test,
-        forecaster=estimator,
+        predictor=predictor,
         evaluator=MultivariateEvaluator(
             quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
         ),

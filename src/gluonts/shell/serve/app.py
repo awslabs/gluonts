@@ -10,20 +10,24 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
-import logging
 import json
+import logging
+import os
+import signal
 import time
 import traceback
-from typing import Callable, Tuple, Iterable, List
+import multiprocessing as mp
+from queue import Empty as QueueEmpty
+from typing import Callable, Iterable, Tuple, NamedTuple, List
 
-from flask import Flask, Response, request, jsonify
+from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel
 
 from gluonts.dataset.common import ListDataset
 from gluonts.model.forecast import Config as ForecastConfig
-from .util import jsonify_floats
+from gluonts.shell.util import forecaster_type_by_name
 
+from .util import jsonify_floats
 
 logger = logging.getLogger("gluonts.serve")
 
@@ -120,36 +124,125 @@ def inference_invocations(predictor_factory) -> Callable[[], Response]:
     return invocations
 
 
-def batch_inference_invocations(
-    predictor_factory, configuration
-) -> Callable[[], Response]:
+def do(fn, args, queue):
+    queue.put(fn(*args))
+
+
+def with_timeout(fn, args, timeout):
+    queue = mp.Queue()
+    process = mp.Process(target=do, args=(fn, args, queue))
+    process.start()
+
+    try:
+        return queue.get(True, timeout=timeout)
+    except QueueEmpty:
+        os.kill(process.pid, signal.SIGKILL)
+        return None
+
+
+def make_predictions(predictor, dataset, configuration):
     DEBUG = configuration.dict().get("DEBUG")
+
+    # we have to take this as the initial start-time since the first
+    # forecast is produced before the loop in predictor.predict
+    start = time.time()
+
+    predictions = []
+
+    forecast_iter = predictor.predict(
+        dataset, num_samples=configuration.num_samples,
+    )
+
+    for forecast in forecast_iter:
+        end = time.time()
+        prediction = forecast.as_json_dict(configuration)
+
+        if DEBUG:
+            prediction["debug"] = {"timing": end - start}
+
+        predictions.append(prediction)
+
+        start = time.time()
+
+    return predictions
+
+
+class ScoredInstanceStat(NamedTuple):
+    amount: int
+    duration: float
+
+
+def batch_inference_invocations(
+    predictor_factory, configuration, settings
+) -> Callable[[], Response]:
     predictor = predictor_factory({"configuration": configuration.dict()})
+
+    scored_instances: List[ScoredInstanceStat] = []
+    last_scored = [time.time()]
+
+    def log_scored(when):
+        N = 60
+        diff = when - last_scored[0]
+        if diff > N:
+            scored_amount = sum(info.amount for info in scored_instances)
+            time_used = sum(info.duration for info in scored_instances)
+
+            logger.info(
+                f"Worker pid={os.getpid()}: scored {scored_amount} using on "
+                f"avg {round(time_used / scored_amount, 1)} s/ts over the "
+                f"last {round(diff)} seconds."
+            )
+            scored_instances.clear()
+            last_scored[0] = time.time()
 
     def invocations() -> Response:
         request_data = request.data.decode("utf8").strip()
-        instances = list(map(json.loads, request_data.splitlines()))
-        predictions = []
 
-        # we have to take this as the initial start-time since the first
-        # forecast is produced before the loop in predictor.predict
-        start = time.time()
+        # request_data can be empty, but .split() will produce a non-empty
+        # list, which then means we try to decode an empty string, which
+        # causes an error: `''.split() == ['']`
+        if request_data:
+            instances = list(map(json.loads, request_data.split("\n")))
+        else:
+            instances = []
 
-        forecast_iter = predictor.predict(
-            ListDataset(instances, predictor.freq),
-            num_samples=configuration.num_samples,
+        dataset = ListDataset(instances, predictor.freq)
+
+        start_time = time.time()
+
+        if settings.gluonts_batch_timeout > 0:
+            predictions = with_timeout(
+                make_predictions,
+                args=(predictor, dataset, configuration),
+                timeout=settings.gluonts_batch_timeout,
+            )
+
+            # predictions are None, when predictor timed out
+            if predictions is None:
+                logger.warning(f"predictor timed out for: {request_data}")
+                FallbackPredictor = forecaster_type_by_name(
+                    settings.gluonts_batch_fallback_predictor
+                )
+                fallback_predictor = FallbackPredictor(
+                    freq=predictor.freq,
+                    prediction_length=predictor.prediction_length,
+                )
+
+                predictions = make_predictions(
+                    fallback_predictor, dataset, configuration
+                )
+        else:
+            predictions = make_predictions(predictor, dataset, configuration)
+
+        end_time = time.time()
+
+        scored_instances.append(
+            ScoredInstanceStat(
+                amount=len(predictions), duration=end_time - start_time
+            )
         )
 
-        for forecast in forecast_iter:
-            end = time.time()
-            prediction = forecast.as_json_dict(configuration)
-
-            if DEBUG:
-                prediction["debug"] = {"timing": end - start}
-
-            predictions.append(prediction)
-
-            start = time.time()
+        log_scored(when=end_time)
 
         lines = list(map(json.dumps, map(jsonify_floats, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")
@@ -157,12 +250,14 @@ def batch_inference_invocations(
     return invocations
 
 
-def make_app(predictor_factory, execution_params, batch_transform_config):
+def make_app(
+    predictor_factory, execution_params, batch_transform_config, settings
+):
     app = get_base_app(execution_params)
 
     if batch_transform_config is not None:
         invocations_fn = batch_inference_invocations(
-            predictor_factory, batch_transform_config
+            predictor_factory, batch_transform_config, settings
         )
     else:
         invocations_fn = inference_invocations(predictor_factory)

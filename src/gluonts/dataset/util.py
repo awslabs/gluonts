@@ -12,45 +12,41 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import multiprocessing
 import itertools
 import logging
-import random
 import os
+import random
 from pathlib import Path
 from typing import (
     Callable,
     Iterable,
     Iterator,
     List,
+    NamedTuple,
     Tuple,
     TypeVar,
-    NamedTuple,
 )
 
 # Third-party imports
 import pandas as pd
 
-
 T = TypeVar("T")
 
 
-# Each process has its own copy, so other processes can't interfere
-class MPWorkerInfo(object):
+class MPWorkerInfo:
     """Contains the current worker information."""
 
     worker_process = False
-    num_workers = 1
-    worker_id = 0
+    num_workers = None
+    worker_id = None
 
     @classmethod
-    def set_worker_info(
-        cls, num_workers: int, worker_id: int, worker_process: bool
-    ):
-        cls.num_workers, cls.worker_id, cls.worker_process = (
-            num_workers,
-            worker_id,
-            worker_process,
-        )
+    def set_worker_info(cls, num_workers: int, worker_id: int):
+        cls.worker_process = True
+        cls.num_workers = num_workers
+        cls.worker_id = worker_id
+        multiprocessing.current_process().name = f"worker_{worker_id}"
 
 
 class DataLoadingBounds(NamedTuple):
@@ -65,6 +61,9 @@ def get_bounds_for_mp_data_loading(dataset_len: int) -> DataLoadingBounds:
     """
     if not MPWorkerInfo.worker_process:
         return DataLoadingBounds(0, dataset_len)
+
+    assert MPWorkerInfo.num_workers is not None
+    assert MPWorkerInfo.worker_id is not None
 
     segment_size = int(dataset_len / MPWorkerInfo.num_workers)
     lower = MPWorkerInfo.worker_id * segment_size

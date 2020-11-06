@@ -12,45 +12,41 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Callable, Tuple
+from typing import Callable, List, Optional
 
-# Third-party imports
-import re
-import pandas as pd
 import numpy as np
+import pandas as pd
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.distribution import (
+from gluonts.dataset.field_names import FieldName
+from gluonts.model.estimator import GluonEstimator
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.distribution import (
     DistributionOutput,
-    StudentTOutput,
     LowrankMultivariateGaussianOutput,
 )
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.trainer import Trainer
 from gluonts.support.util import copy_parameters
-
 from gluonts.time_feature import TimeFeature
-from gluonts.dataset.field_names import FieldName
-
-from gluonts.trainer import Trainer
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
+    CDFtoGaussianTransform,
     Chain,
+    ExpandDimArray,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
+    RenameFields,
     SetFieldIfNotPresent,
+    TargetDimIndicator,
     Transformation,
     VstackFeatures,
-    ExpandDimArray,
-    TargetDimIndicator,
-    CDFtoGaussianTransform,
     cdf_to_gaussian_forward_transform,
-    RenameFields,
 )
 
 # Relative imports

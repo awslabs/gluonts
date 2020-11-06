@@ -127,21 +127,34 @@ def test_holidays(holiday):
         ), "The supplied date should be {} but is not!".format(holiday)
 
 
-def test_special_date_feature_set_daily():
-    date_indices = pd.date_range(
-        start="2016-12-24", end="2016-12-31", freq="D"
-    )
+test_cases = [
+    (
+        pd.date_range(start="2016-12-24", end="2016-12-31", freq="D"),
+        np.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+            ]
+        ),
+        [CHRISTMAS_EVE, CHRISTMAS_DAY, NEW_YEARS_EVE],
+    ),
+    (
+        pd.date_range(start="2018-10-05", end="2018-10-07", freq="D"),
+        np.array([[0, 0, 0]]),
+        [EASTER_MONDAY],
+    ),
+]
 
-    reference_features = np.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1],
-        ]
-    )
-    sfs = SpecialDateFeatureSet([CHRISTMAS_EVE, CHRISTMAS_DAY, NEW_YEARS_EVE])
+
+@pytest.mark.parametrize(
+    "date_indices, reference_features, holidays", test_cases
+)
+def test_special_date_feature_set_daily(
+    date_indices, reference_features, holidays
+):
+    sfs = SpecialDateFeatureSet(holidays)
     computed_features = sfs(date_indices)
-
     assert (
         computed_features == reference_features
     ).all(), "Computed features do not match reference features."

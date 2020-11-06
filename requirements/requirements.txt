@@ -1,7 +1,8 @@
-holidays>=0.9,<0.10
+holidays>=0.9
 matplotlib~=3.0
 numpy~=1.16
-pandas~=1.0
-pydantic~=1.1
+pandas>=1.0
+pydantic~=1.1,<1.7
 tqdm~=4.23
+toolz~=0.10
 ujson~=1.35

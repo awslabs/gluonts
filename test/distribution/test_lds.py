@@ -22,7 +22,7 @@ import numpy as np
 import mxnet as mx
 
 # First-party imports
-from gluonts.distribution.lds import LDS
+from gluonts.mx.distribution.lds import LDS
 
 
 def assert_shape_and_finite(x, shape):

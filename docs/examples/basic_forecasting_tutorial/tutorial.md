@@ -130,7 +130,7 @@ Finally, each estimator is configured by a `Trainer`, which defines how the mode
 
 ```python
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 ```
 
 
@@ -348,7 +348,8 @@ Earlier, we used the `make_evaluation_predictions` to evaluate our predictor. In
 
 ```python
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.core.component import validated
 from gluonts.support.util import copy_parameters
 from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter

@@ -12,44 +12,45 @@
 # permissions and limitations under the License.
 
 
+import json
+
 # Standard library imports
 import logging
-import json
 import tarfile
 from functools import partial
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple, Dict, Union
 from tempfile import TemporaryDirectory
+from typing import Dict, List, NamedTuple, Optional, Tuple, Union
 
+import pandas as pd
+import s3fs
 
 # Third-party imports
 import sagemaker
 from sagemaker.estimator import Framework
-from sagemaker.fw_utils import empty_framework_version_warning, parse_s3_url
+from sagemaker.s3 import parse_s3_url
 from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
-import s3fs
-import pandas as pd
 
 # First-party imports
 from gluonts.core import serde
-from gluonts.model.estimator import Estimator
 from gluonts.dataset.repository import datasets
+from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 
 from .defaults import (
-    GLUONTS_VERSION,
     ENTRY_POINTS_FOLDER,
-    TRAIN_SCRIPT,
-    MONITORED_METRICS,
     FRAMEWORK_NAME,
-    LOWEST_SCRIPT_MODE_VERSION,
+    GLUONTS_VERSION,
     LATEST_GLUONTS_VERSION,
-    PYTHON_VERSION,
+    LOWEST_SCRIPT_MODE_VERSION,
+    MONITORED_METRICS,
     NUM_SAMPLES,
+    PYTHON_VERSION,
     QUANTILES,
+    TRAIN_SCRIPT,
 )
 from .model import GluonTSModel
-from .utils import make_metrics, make_job_name
+from .utils import make_job_name, make_metrics
 
 # OVERALL TODOS:
 #    > Add hyper parameter optimization (HPO) support
@@ -239,12 +240,6 @@ class GluonTSFramework(Framework):
     ):
         # Framework_version currently serves no purpose,
         # except for compatibility with the sagemaker framework.
-        if framework_version is None:
-            logger.warning(
-                empty_framework_version_warning(
-                    GLUONTS_VERSION, self.LATEST_VERSION
-                )
-            )
         self.framework_version = framework_version or GLUONTS_VERSION
 
         super().__init__(

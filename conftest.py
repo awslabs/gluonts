@@ -156,7 +156,7 @@ def function_scope_seed(request):
 
     """
 
-    seed = request.node.get_marker("seed")
+    seed = request.node.get_closest_marker("seed")
     env_seed_str = os.getenv("MXNET_TEST_SEED")
 
     if seed is not None:

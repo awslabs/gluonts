@@ -26,7 +26,7 @@ import tempfile
 from gluonts.nursery.sagemaker_sdk.estimator import GluonTSFramework
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 ```
 
 ## Credentials & Configuration
