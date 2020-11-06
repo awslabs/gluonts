@@ -32,11 +32,10 @@ from typing import (
 import numpy as np
 import pandas as pd
 
-from gluonts.gluonts_tqdm import tqdm
-from gluonts.time_feature import get_seasonality
-
 # First-party imports
+from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.forecast import Forecast, Quantile
+from gluonts.time_feature import get_seasonality
 
 
 class Evaluator:
@@ -322,12 +321,7 @@ class Evaluator:
                     target_fcst = median_fcst
 
                 try:
-                    val = {
-                        k: eval_fn(
-                            pred_target,
-                            target_fcst,
-                        )
-                    }
+                    val = {k: eval_fn(pred_target, target_fcst,)}
                 except:
                     val = {k: np.nan}
 
