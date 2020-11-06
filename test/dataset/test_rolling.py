@@ -15,162 +15,17 @@
 This example shows how to fit a model and evaluate its predictions.
 """
 
-from math import floor
+# third party imports
 import pandas as pd
+import pytest
+
+# first party imports
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.rolling_dataset import (
     StepStrategy,
     generate_rolling_datasets,
 )
-import pytest
-import itertools
-
-len_to_truncate = 5
-length_of_roll_window = 5
-
-
-def generate_expected_dataset_unique(prediction_length):
-    """
-    test set for the variation that behaves like:
-
-    [1,2,3,4,5,6,7,8,9] 
-             ^
-        start_time
-    
-    becomes
-    
-    [1,2,3,4,5,6,7,8,9]
-    [1,2,3,4,5,6,7]
-    
-    for 
-    
-    length_of_roll_window = 5
-    prediction_length = 2
-    """
-    # for constant dataset
-    length_timeseries = 30
-    num_timeseries = 10
-    a = []
-    trunc_length = length_timeseries - len_to_truncate
-    for i in range(num_timeseries):
-        iterations = floor(length_of_roll_window / prediction_length)
-        for ii in range(iterations):
-            a.append((float(i), trunc_length - prediction_length * ii))
-
-    return a
-
-
-def generate_expected_dataset_standard(prediction_length):
-    """
-    test set for the variation that behaves like:
-
-    [1,2,3,4,5,6,7,8,9] 
-             ^
-        start_time
-    becomes
-    
-    [1,2,3,4,5,6,7,8,9]
-    [1,2,3,4,5,6,7,8]
-    [1,2,3,4,5,6,7]
-    [1,2,3,4,5,6]
-    
-    for 
-    
-    length_of_roll_window = 5
-    prediction_length = 2
-    """
-    # for constant dataset
-    length_timeseries = 30
-    num_timeseries = 10
-
-    a = []
-    trunc_length = length_timeseries - len_to_truncate
-    for i in range(num_timeseries):
-        for ii in range(length_of_roll_window - prediction_length + 1):
-            a.append((float(i), trunc_length - ii))
-    return a
-
-
-def convert_to_expected(list_of_lists):
-    flattened = list(itertools.chain.from_iterable(list_of_lists))
-    return [(float(0), i) for i in flattened]
-
-
-def generate_expected_dataset_varying_standard(prediction_length):
-    lengths = None
-    if prediction_length == 2:
-        lengths = [
-            [25 - i for i in range(4)],  # test 1
-            [25 - i for i in range(4)],  # test 2
-            [23, 22],  # test 3
-            [],  # test 4
-            [],  # test 5
-            [5 - i for i in range(4)],  # test 6
-            [3, 2],  # test 7
-            [],  # test 8
-            [],  # test 9
-            [3, 2],  # test 10
-        ]
-
-    return convert_to_expected(lengths)
-
-
-def generate_expected_dataset_varying_unique(prediction_length):
-    lengths = None
-    if prediction_length == 2:
-        lengths = [
-            [25, 23],  # test 1
-            [25, 23],  # test 2
-            [23],  # test 3
-            [],  # test 4
-            [],  # test 5
-            [5, 3],  # test 6
-            [3],  # test 7
-            [],  # test 8
-            [],  # test 9
-            [3],  # test 10
-        ]
-
-    return convert_to_expected(lengths)
-
-
-def generate_expected_dataset_varying_open_end(prediction_length):
-    lengths = None
-    if prediction_length == 3:
-        lengths = [
-            [30 - i for i in range(8)],  # test 1
-            [25 - i for i in range(3)],  # test 2
-            [23],  # test 3
-            [],  # test 4
-            [],  # test 5
-            [10 - i for i in range(8)],  # test 6
-            [10 - i for i in range(8)],  # test 7
-            [10 - i for i in range(8)],  # test 8
-            [10 - i for i in range(8)],  # test 9
-            [3],  # test 10
-        ]
-
-    return convert_to_expected(lengths)
-
-
-def generate_expected_rolled_dataset(pl, unique_rolls, ds_name, ignore_end):
-    to_compare = None
-
-    if ignore_end:
-        to_compare = generate_expected_dataset_varying_open_end(pl)
-    elif unique_rolls and ds_name == "constant":
-        to_compare = generate_expected_dataset_unique(pl)
-    elif ds_name == "constant":
-        to_compare = generate_expected_dataset_standard(pl)
-    elif unique_rolls and ds_name == "varying":
-        to_compare = generate_expected_dataset_varying_unique(pl)
-    elif ds_name == "varying":
-        to_compare = generate_expected_dataset_varying_standard(pl)
-
-    assert to_compare, "dataset to compare with is not implemented"
-
-    return to_compare
 
 
 def generate_dataset(name):
@@ -192,49 +47,49 @@ def generate_dataset(name):
 
         ds_list = [
             {  # test 1: ends after end time, te > t1
-                "target": [0.0 for i in range(30)],
+                "target": [0.0] * 30,
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
             {  # test 2: ends at the end time, te == t1
-                "target": [0.0 for i in range(25)],
+                "target": [0.0] * 25,
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
             {  # test 3: ends between start and end times, ts < t1 < te
-                "target": [0.0 for i in range(23)],
+                "target": [0.0] * 23,
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
             {  # test 4: ends on start time, ts == t1
-                "target": [0.0 for i in range(20)],
+                "target": [0.0] * 20,
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
             {  # test 5: ends before start time, t1 < ts
-                "target": [0.0 for i in range(15)],
+                "target": [0.0] * 15,
                 "start": pd.Timestamp(2000, 1, 1, 0, 0),
             },
             {  # test 6: starts on start ends after end, ts == t0, te > t1
-                "target": [0.0 for i in range(10)],
+                "target": [0.0] * 10,
                 "start": pd.Timestamp(2000, 1, 1, 20, 0),
             },
             {  # test 7: starts in between ts and te, ts < t0 < te < t1
-                "target": [0.0 for i in range(10)],
+                "target": [0.0] * 10,
                 "start": pd.Timestamp(2000, 1, 1, 22, 0),
             },
             {  # test 8: starts on end time, te == t0
-                "target": [0.0 for i in range(10)],
+                "target": [0.0] * 10,
                 "start": pd.Timestamp(2000, 1, 2, 0, 0),
             },
             {  # test 9: starts after end time, te < t0
-                "target": [0.0 for i in range(10)],
+                "target": [0.0] * 10,
                 "start": pd.Timestamp(2000, 1, 2, 1, 0),
             },
             {  # test 10: starts after ts & ends before te, ts < t0 < t1 < te
-                "target": [0.0 for i in range(3)],
+                "target": [0.0] * 3,
                 "start": pd.Timestamp(2000, 1, 1, 21, 0),
             },
         ]
         dataset = ListDataset(ds_list, "H")
     else:
-        raise ValueError
+        pytest.raises(ValueError)
     return dataset
 
 
@@ -254,38 +109,137 @@ def test_fails(prediction_length, unique):
             ),
         )
         # program should have failed at this point
-        raise RuntimeWarning
+        pytest.raises(RuntimeError)
     except AssertionError:
         pass
 
 
-def check_target_values(ds, to_compare):
-    i = 0
-    for ts in ds:
-        assert (
-            len(ts["target"]) == to_compare[i][1]
-        ), "timeseries {} failed".format(i + 1)
-        for val in ts["target"]:
-            assert val == to_compare[i][0]
-        i = i + 1
-
-    assert len(to_compare) == i
-
-
 @pytest.mark.parametrize(
-    "ds_name, prediction_length, unique, ignore_end",
+    "ds_name, prediction_length, unique, ignore_end, ds_expected",
     [
-        ("varying", 2, False, False),
-        ("varying", 2, True, False),
-        ("varying", 3, False, True),
-    ]
-    + [
-        ("constant", prediction_length, unique, False)
-        for prediction_length in range(1, length_of_roll_window)
-        for unique in [True, False]
+        (
+            "varying",
+            2,
+            False,
+            False,
+            [[0.0] * length for length in range(25, 21, -1)] * 2
+            + [[0.0] * length for length in [23, 22]]
+            + [[0.0] * length for length in range(5, 1, -1)]
+            + [[0.0] * length for length in [3, 2]] * 2,
+        ),
+        (
+            "varying",
+            2,
+            True,
+            False,
+            [
+                [0.0] * 25,
+                [0.0] * 23,
+                [0.0] * 25,
+                [0.0] * 23,
+                [0.0] * 23,
+                [0.0] * 5,
+                [0.0] * 3,
+                [0.0] * 3,
+                [0.0] * 3,
+            ],
+        ),
+        (
+            "varying",
+            3,
+            False,
+            True,
+            [[0.0] * length for length in range(30, 22, -1)]
+            + [[0.0] * length for length in [25, 24, 23]]
+            + [[0.0] * 23]
+            + [[0.0] * length for length in range(10, 2, -1)] * 4
+            + [[0.0] * 3],
+        ),
+        (
+            "constant",
+            1,
+            True,
+            False,
+            [
+                [float(val)] * length
+                for val in range(10)
+                for length in [25, 24, 23, 22, 21]
+            ],
+        ),
+        (
+            "constant",
+            1,
+            False,
+            False,
+            [
+                [float(val)] * length
+                for val in range(10)
+                for length in [25, 24, 23, 22, 21]
+            ],
+        ),
+        (
+            "constant",
+            2,
+            True,
+            False,
+            [
+                [float(val)] * length
+                for val in range(10)
+                for length in [25, 23]
+            ],
+        ),
+        (
+            "constant",
+            2,
+            False,
+            False,
+            [
+                [float(val)] * length
+                for val in range(10)
+                for length in [25, 24, 23, 22]
+            ],
+        ),
+        (
+            "constant",
+            3,
+            True,
+            False,
+            [[float(val)] * 25 for val in range(10)],
+        ),
+        (
+            "constant",
+            3,
+            False,
+            False,
+            [
+                [float(val)] * length
+                for val in range(10)
+                for length in [25, 24, 23]
+            ],
+        ),
+        (
+            "constant",
+            4,
+            True,
+            False,
+            [[float(val)] * 25 for val in range(10)],
+        ),
+        (
+            "constant",
+            4,
+            False,
+            False,
+            [
+                [float(val)] * length
+                for val in range(10)
+                for length in [25, 24]
+            ],
+        ),
     ],
 )
-def test_successes(ds_name, prediction_length, unique, ignore_end):
+def test_successes(
+    ds_name, prediction_length, unique, ignore_end, ds_expected
+):
     strat = StepStrategy(
         step_size=prediction_length if unique else 1,
         prediction_length=prediction_length,
@@ -299,8 +253,11 @@ def test_successes(ds_name, prediction_length, unique, ignore_end):
         strategy=strat,
     )
 
-    ds_expected = generate_expected_rolled_dataset(
-        prediction_length, unique, ds_name, ignore_end
-    )
+    i = 0
+    for ts in rolled_ds:
+        assert len(ts["target"]) == len(ds_expected[i])
+        for rolled_result, expected in zip(ts["target"], ds_expected[i]):
+            assert rolled_result == expected
+        i += 1
 
-    check_target_values(rolled_ds, ds_expected)
+    assert len(ds_expected) == i

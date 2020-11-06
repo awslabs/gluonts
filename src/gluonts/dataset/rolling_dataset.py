@@ -13,26 +13,25 @@
 
 from functools import partial
 from typing import Optional
-from pydantic import BaseModel
 
 import numpy as np
 import pandas as pd
-
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
+from pydantic import BaseModel
 
 
 class StepStrategy(BaseModel):
     """
     Removes datapoints equivalent to step_size for each iteration until
     amount of data left is less than prediction_length
-    
+
     Parameters
     ----------
     prediction_length
         The prediction length of the Predictor that the dataset will be
         used with
-    
+
     Returns
     -------
     A partial function which yields the rolled windows
@@ -57,9 +56,6 @@ class NumSplitsStrategy(BaseModel):
     num_splits: int
 
     def get_windows(self, window):
-        assert (
-            prediction_length > 0
-        ), """the number splits strategy requires a prediction_length > 0"""
         assert num_splits > 1, """num_splits should be > 1"""
         for slice_idx in np.linspace(
             start=self.prediction_length, stop=len(window), num=self.num_splits
@@ -87,25 +83,25 @@ def generate_rolling_datasets(
         The end time of the window where rolling should be applied
     Returns
     -------
-    Dataset 
+    Dataset
         The augmented dataset
-    
-    Returns an augmented version of the input dataset where each timeseries has 
-    been rolled upon based on the parameters supplied. Below follows an 
+
+    Returns an augmented version of the input dataset where each timeseries has
+    been rolled upon based on the parameters supplied. Below follows an
     explanation and examples of how the different parameters can be used to generate
     differently rolled datasets.
-    
-    The 'rolling' will happen on the data available in the provided window between the 
+
+    The 'rolling' will happen on the data available in the provided window between the
     start_time and the end_time for each timeseries. If end_time is omitted, rolling
-    happens on all datapoints from start_time until the end of the timeseries. 
-    The way the data is rolled is governed by the strategy used. 
+    happens on all datapoints from start_time until the end of the timeseries.
+    The way the data is rolled is governed by the strategy used.
 
     Below examples will be based on this one timeseries long dataset
     [{
     target=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
     start='2000-1-1-01'
     }]
-    
+
     applying generate_rolling_datasets on this dataset with:
 
     start_time = pd.Timestamp('2000-1-1-06', '1H')
@@ -140,10 +136,10 @@ def generate_rolling_datasets(
 
     strategy = StepStrategy(prediction_length=2, step_size=2)
 
-    This causes fewer values to be in the output which, 
+    This causes fewer values to be in the output which,
     when prediction_length matches step_size, ensures that each prediction
     will be done on unique/new data. Below is the output of this run.
-    
+
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     [1, 2, 3, 4, 5, 6, 7, 8]
 
