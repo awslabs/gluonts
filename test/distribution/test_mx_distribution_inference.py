@@ -152,6 +152,8 @@ def maximum_likelihood_estimate_sgd(
                 if not hybridize:
                     assert loss.shape == distr.batch_shape
             loss.backward()
+            # import pdb
+            # pdb.set_trace()
             trainer.step(BATCH_SIZE)
             num_batches += 1
 
@@ -1151,7 +1153,7 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 @pytest.mark.timeout(180)
 @pytest.mark.parametrize("rate", [150.0])
 @pytest.mark.parametrize("hybridize", [True, False])
-@pytest.mark.parametrize("zero_probability", [0.2, 0.8])
+@pytest.mark.parametrize("zero_probability", [0.99, 0.8, 0.6, 0.4, 0.2, 0.01])
 def test_inflated_poisson_likelihood(
     rate: float,
     hybridize: bool,
@@ -1164,10 +1166,11 @@ def test_inflated_poisson_likelihood(
     NUM_SAMPLES = 5000 # Required for convergence
     rates = mx.nd.zeros((NUM_SAMPLES,)) + rate
     zero_probabilities = mx.nd.zeros((NUM_SAMPLES,)) + zero_probability
-
+    
     distr = ZeroInflatedPoisson(
         rate=rates, zero_probability=zero_probabilities
     )
+
     distr_output = ZeroInflatedPoissonOutput()
 
     samples = distr.sample()
@@ -1181,8 +1184,8 @@ def test_inflated_poisson_likelihood(
         samples,
         init_biases=init_biases,
         hybridize=hybridize,
-        learning_rate=PositiveFloat(0.05),
-        num_epochs=PositiveInt(20),
+        learning_rate=PositiveFloat(0.1),
+        num_epochs=PositiveInt(25),
     )
 
     assert (

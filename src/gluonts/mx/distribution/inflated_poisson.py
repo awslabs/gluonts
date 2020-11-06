@@ -24,10 +24,9 @@ from gluonts.model.common import Tensor
 # Relative imports
 from .distribution import getF, softplus
 from .distribution_output import DistributionOutput
-from .poisson import Poisson
-from .mixture import MixtureDistribution
-from .deterministic import Deterministic
-
+from .poisson import Poisson, PoissonOutput
+from .mixture import MixtureDistribution, MixtureDistributionOutput
+from .deterministic import Deterministic, DeterministicOutput
 
 class ZeroInflatedPoisson(MixtureDistribution):
     r"""
@@ -72,8 +71,13 @@ class ZeroInflatedPoisson(MixtureDistribution):
         return F.where(
             x == 0,
             F.log(zero_likelihood.broadcast_like(x)),
-            F.log(1 - self.zero_probability) + self.poisson_distribution.log_prob(inputs),
+            F.log(1 - self.zero_probability) + self.poisson_distribution.log_prob(x),
         )
+
+
+# class ZeroInflatedPoissonOutput(MixtureDistributionOutput):
+#     def __init__(self):
+#         super().__init__([DeterministicOutput(0), PoissonOutput()])
 
 
 class ZeroInflatedPoissonOutput(DistributionOutput):
