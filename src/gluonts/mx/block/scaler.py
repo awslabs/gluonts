@@ -207,12 +207,17 @@ class MinMax(Scaler):
             shape (N, T, C) or (N, C, T) scaled along the specified axis. 
 
         """
+        axis_zero = mx.nd.prod(data==data.zeros_like(), self.axis, keepdims = True) # Along the specified axis, which array are always at zero
+        axis_zero = mx.nd.broadcast_to(axis_zero, shape=data.shape) # Broadcast it to the shape of data
 
-        min_val = data.min(axis = self.axis, keepdims=True)
-        max_val = data.max(axis = self.axis, keepdims=True)
-        scaled_data = (data-min_val)/(max_val-min_val)
+        min_val = mx.nd.where(1-observed_indicator, mx.nd.broadcast_to(data.max(keepdims=True), shape=data.shape), data).min(axis=self.axis, keepdims=True) # return the min value along specified axis while ignoring value according to observed_indicator
+        max_val = mx.nd.where(1-observed_indicator, mx.nd.broadcast_to(data.min(keepdims=True), shape=data.shape), data).max(axis=self.axis, keepdims=True) # return the max value along specified axis while ignoring value according to observed_indicator
 
-        return mx.nd.where(scaled_data!=scaled_data, scaled_data.ones_like(), scaled_data) #Clip the Nan values to one. 
+        scaled_data = (data-min_val)/(max_val-min_val) # Rescale
+        scaled_data = mx.nd.where(axis_zero, scaled_data.zeros_like(), scaled_data) #Clip Nan values to zero if the data was equal to zero along specified axis
+        scaled_data = mx.nd.where(scaled_data!=scaled_data, scaled_data.ones_like(), scaled_data) #Clip the Nan values to one. 
+
+        return mx.nd.where(observed_indicator, scaled_data.zero_like(), scaled_data) # Replace data with zero where observed_indicator tells us to. 
 
 class NOPScaler(Scaler):
     """
