@@ -97,7 +97,7 @@ def generate_dataset(name):
     "prediction_length, unique",
     [(p, u) for p in [-1, 0] for u in [True, False]],
 )
-def test_fails(prediction_length, unique):
+def test_invalid_rolling_parameters(prediction_length, unique):
     try:
         generate_rolling_datasets(
             dataset=generate_dataset("constant"),
@@ -237,7 +237,7 @@ def test_fails(prediction_length, unique):
         ),
     ],
 )
-def test_successes(
+def test_step_strategy(
     ds_name, prediction_length, unique, ignore_end, ds_expected
 ):
     strat = StepStrategy(
