@@ -300,6 +300,9 @@ class Evaluator:
             "abs_target_mean": self.abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
             "MASE": self.mase(pred_target, median_fcst, seasonal_error),
+            "MASE_vanilla": self.vanilla_mase(
+                pred_target, median_fcst, seasonal_error
+            ),
             "MAPE": self.mape(pred_target, median_fcst),
             "sMAPE": self.smape(pred_target, median_fcst),
             "OWA": np.nan,  # by default not calculated
@@ -373,6 +376,7 @@ class Evaluator:
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
             "MASE": "mean",
+            "MASE_vanilla": "mean",
             "MAPE": "mean",
             "sMAPE": "mean",
             "OWA": "mean",
@@ -459,7 +463,7 @@ class Evaluator:
         return np.mean((target < quantile_forecast))
 
     @staticmethod
-    def mase(target, forecast, seasonal_error):
+    def vanilla_mase(target, forecast, seasonal_error):
         r"""
         .. math::
 
@@ -467,9 +471,21 @@ class Evaluator:
 
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
-        flag = seasonal_error <= Evaluator.zero_tol
-        return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
-            seasonal_error + flag
+        return np.mean(np.abs(target - forecast)) / seasonal_error
+
+    @staticmethod
+    def mase(target, forecast, seasonal_error):
+        r"""
+        Upper bound limited version of MASE, avoids infinite values.
+        For traditional implementation use vanilla_mase.
+        .. math::
+
+            mase = mean(|Y - Y_hat|) / seasonal_error
+
+        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+        """
+        return np.mean(np.abs(target - forecast)) / max(
+            Evaluator.zero_tol, seasonal_error
         )
 
     @staticmethod
