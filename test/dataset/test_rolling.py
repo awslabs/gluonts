@@ -240,17 +240,16 @@ def test_invalid_rolling_parameters(prediction_length, unique):
 def test_step_strategy(
     ds_name, prediction_length, unique, ignore_end, ds_expected
 ):
-    strat = StepStrategy(
-        step_size=prediction_length if unique else 1,
-        prediction_length=prediction_length,
-    )
-    end = None if ignore_end else pd.Timestamp("2000-01-02-00", freq="1H")
-
     rolled_ds = generate_rolling_datasets(
         dataset=generate_dataset(ds_name),
         start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
-        end_time=end,
-        strategy=strat,
+        end_time=None
+        if ignore_end
+        else pd.Timestamp("2000-01-02-00", freq="1H"),
+        strategy=StepStrategy(
+            step_size=prediction_length if unique else 1,
+            prediction_length=prediction_length,
+        ),
     )
 
     i = 0
