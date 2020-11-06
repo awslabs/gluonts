@@ -21,6 +21,7 @@ from mxnet.gluon import nn
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
+import mxnet as mx
 
 class Scaler(nn.HybridBlock):
     """
@@ -174,6 +175,44 @@ class MeanScaler(Scaler):
 
         return F.maximum(scale, self.minimum_scale)
 
+class MinMax(Scaler):
+    """
+    The 'MinMax' scales the input data using a min-max approach along the specified axis. 
+    """
+
+    @validated()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    def compute_scale(self, F, data: Tensor, observed_indicator: Tensor) -> Tensor:
+
+        """
+        Parameters
+        ----------
+        F
+            A module that can either refer to the Symbol API or the NDArray
+            API in MXNet.
+
+        data
+            tensor containing the data to be scaled.
+
+        observed_indicator
+            observed_indicator: binary tensor with the same shape as
+            ``data``, that has 1 in correspondence of observed data points,
+            and 0 in correspondence of missing data points.
+
+        Returns
+        -------
+        Tensor
+            shape (N, T, C) or (N, C, T) scaled along the specified axis. 
+
+        """
+
+        min_val = data.min(axis = self.axis, keepdims=True)
+        max_val = data.max(axis = self.axis, keepdims=True)
+        scaled_data = (data-min_val)/(max_val-min_val)
+
+        return mx.nd.where(scaled_data!=scaled_data, scaled_data.ones_like(), scaled_data) #Clip the Nan values to one. 
 
 class NOPScaler(Scaler):
     """
