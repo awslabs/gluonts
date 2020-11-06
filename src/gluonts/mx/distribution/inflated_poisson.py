@@ -65,16 +65,14 @@ class ZeroInflatedPoisson(MixtureDistribution):
         F = self.F
 
         # log_prob of zeros
-        zero_log_like = self.zero_probability + (
+        zero_likelihood = self.zero_probability + (
             1 - self.zero_probability
         ) * F.exp(-self.rate)
-        inputs = F.where(x == 0, x.zeros_like() + 0.5, x)
 
         return F.where(
             x == 0,
-            F.log(zero_log_like.broadcast_like(x)),
-            F.log(1 - self.zero_probability)
-            + self.poisson_distribution.log_prob(inputs),
+            F.log(zero_likelihood.broadcast_like(x)),
+            F.log(1 - self.zero_probability) + self.poisson_distribution.log_prob(inputs),
         )
 
 
