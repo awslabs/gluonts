@@ -153,8 +153,7 @@ def maximum_likelihood_estimate_sgd(
                 if not hybridize:
                     assert loss.shape == distr.batch_shape
             loss.backward()
-            # import pdb
-            # pdb.set_trace()
+
             trainer.step(BATCH_SIZE)
             num_batches += 1
 
@@ -1198,7 +1197,7 @@ def test_inflated_poisson_likelihood(
         np.abs(rate_hat - rate) < TOL * rate
     ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
 
-@pytest.mark.timeout(120)
+@pytest.mark.timeout(150)
 @pytest.mark.parametrize("mu", [5.0])
 @pytest.mark.parametrize("alpha", [0.05])
 @pytest.mark.parametrize("zero_probability", [0.3])
@@ -1235,7 +1234,7 @@ def test_inflated_neg_binomial_likelihood(
         init_biases=init_biases,
         hybridize=hybridize,
         learning_rate=PositiveFloat(0.1),
-        num_epochs=PositiveInt(15),
+        num_epochs=PositiveInt(20),
     )
 
     assert (
