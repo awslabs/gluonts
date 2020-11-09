@@ -16,7 +16,7 @@ from typing import Iterable
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.loader import pseudo_shuffle
+from gluonts.itertools import pseudo_shuffle
 
 
 @pytest.mark.parametrize("data", [range(20), constant_dataset()[1],])

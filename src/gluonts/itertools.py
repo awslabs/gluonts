@@ -69,38 +69,16 @@ class cache(Iterable):
             yield from self.cache
 
 
-class pseudo_shuffle(Iterator):
+def pseudo_shuffle(iterator: Iterator, shuffle_buffer_length: int):
     """
-    An iterator that yields item from a wrapped iterator in a pseudo-shuffled order.
+    An iterator that yields item from a given iterator in a pseudo-shuffled order.
     """
+    shuffle_buffer = []
 
-    def __init__(self, iterator: Iterator, shuffle_buffer_length: int):
-        self.shuffle_buffer: list = []
-        self.shuffle_buffer_length = shuffle_buffer_length
-        self.iterator = iterator
+    for element in iterator:
+        shuffle_buffer.append(element)
+        if len(shuffle_buffer) >= shuffle_buffer_length:
+            yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
 
-    def __next__(self):
-        # If the buffer is empty, fill the buffer first.
-        if not self.shuffle_buffer:
-            self.shuffle_buffer = list(
-                itertools.islice(self.iterator, self.shuffle_buffer_length)
-            )
-
-        # If buffer still empty, means all elements used, return a signal of
-        # end of iterator
-        if not self.shuffle_buffer:
-            raise StopIteration
-
-        # Choose an element at a random index and yield it and fill it with
-        # the next element in the sequential generator
-        idx = random.randrange(len(self.shuffle_buffer))
-        next_sample = self.shuffle_buffer[idx]
-
-        # Replace the index with the next element in the iterator if the
-        # iterator has not finished. Delete the index otherwise.
-        try:
-            self.shuffle_buffer[idx] = next(self.iterator)
-        except StopIteration:
-            del self.shuffle_buffer[idx]
-
-        return next_sample
+    while shuffle_buffer:
+        yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
