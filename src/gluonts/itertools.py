@@ -25,18 +25,6 @@ def cycle(it):
         yield from it
 
 
-def take(iterable: Iterable[T], n: int) -> Iterator[T]:
-    """Returns up to `n` elements from `iterable`.
-
-    This is similar to xs[:n], except that it works on `Iterable`s and possibly
-    consumes the given `iterable`.
-
-    >>> list(take(range(10), 5))
-    [0, 1, 2, 3, 4]
-    """
-    return itertools.islice(iterable, n)
-
-
 def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     """Groups elements from `iterable` into batches of size `batch_size`.
 
@@ -49,13 +37,13 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     it: Iterator[T] = iter(iterable)
 
     def get_batch():
-        return list(take(it, batch_size))
+        return list(itertools.islice(it, batch_size))
 
     # has an empty list so that we have a 2D array for sure
     return iter(get_batch, [])
 
 
-class _CachedIterable(Iterable):
+class cache(Iterable):
     def __init__(self, iterable: Iterable) -> None:
         self.iterable = iterable
         self.cache = None
@@ -70,17 +58,13 @@ class _CachedIterable(Iterable):
             yield from self.cache
 
 
-def cache(iterable: Iterable):
-    return _CachedIterable(iterable)
-
-
-class _PseudoShuffledIterator(Iterator):
+class pseudo_shuffle(Iterator):
     """
     An iterator that yields item from a wrapped iterator in a pseudo-shuffled order.
     """
 
     def __init__(self, iterator: Iterator, shuffle_buffer_length: int):
-        self.shuffle_buffer: List = []
+        self.shuffle_buffer: list = []
         self.shuffle_buffer_length = shuffle_buffer_length
         self.iterator = iterator
 
@@ -109,7 +93,3 @@ class _PseudoShuffledIterator(Iterator):
             del self.shuffle_buffer[idx]
 
         return next_sample
-
-
-def pseudo_shuffle(iterator: Iterator, shuffle_buffer_length: int):
-    return _PseudoShuffledIterator(iterator, shuffle_buffer_length)
