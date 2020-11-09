@@ -1199,18 +1199,19 @@ def test_inflated_poisson_likelihood(
     ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
 
 @pytest.mark.timeout(120)
-@pytest.mark.parametrize("mu_alpha", [(5.0, 0.05)])
+@pytest.mark.parametrize("mu", [5.0])
+@pytest.mark.parametrize("alpha", [0.05])
 @pytest.mark.parametrize("zero_probability", [0.3])
 @pytest.mark.parametrize("hybridize", [False, True])
 def test_inflated_neg_binomial_likelihood(
-    mu_alpha: float,
+    mu: float, 
+    alpha: float,
     zero_probability: float,
     hybridize: bool,
 ) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
-    mu, alpha = mu_alpha
     
     # generate samples
     num_samples = 2000 # Required for convergence
