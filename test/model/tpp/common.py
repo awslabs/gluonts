@@ -20,9 +20,7 @@ import pytest
 from gluonts.dataset.common import ListDataset
 
 
-@pytest.fixture
 def point_process_dataset():
-
     ia_times = np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1])
     marks = np.array([0, 1, 2, 0, 1, 2, 2, 2])
 
@@ -41,9 +39,7 @@ def point_process_dataset():
     return lds
 
 
-@pytest.fixture
 def point_process_dataset_2():
-
     lds = ListDataset(
         [
             {

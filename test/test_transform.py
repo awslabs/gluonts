@@ -726,7 +726,6 @@ def test_target_dim_indicator():
 
 @pytest.fixture
 def point_process_dataset():
-
     ia_times = np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1])
     marks = np.array([0, 1, 2, 0, 1, 2, 2, 2])
 
@@ -754,6 +753,7 @@ class MockContinuousTimeSampler(transform.ContinuousTimePointSampler):
         return np.array(self._ret_values)
 
 
+@pytest.fixture
 def test_ctsplitter_mask_sorted(point_process_dataset):
     d = next(iter(point_process_dataset))
 
