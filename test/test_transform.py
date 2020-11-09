@@ -898,6 +898,7 @@ def test_AddObservedIndicator():
     array_values = [
         np.array([np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]),
         np.array([np.nan]),
+        np.array([np.nan, np.nan, np.nan, np.nan, np.nan]),
         np.array([10.0]),
     ]
 
@@ -923,31 +924,37 @@ def test_AddObservedIndicator():
         "dummy_value": [
             np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "mean": [
             np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "causal_mean": [
             np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9 / 7]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "last_value": [
             np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "rolling_mean10": [
             np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.1, 1.0, 1.2]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "rolling_mean1": [
             np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
     }
@@ -955,6 +962,7 @@ def test_AddObservedIndicator():
     expected_missindicators = [
         np.array([0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
         np.array([0.0]),
+        np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
         np.array([1.0]),
     ]
 
