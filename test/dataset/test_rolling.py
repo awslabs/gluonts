@@ -24,7 +24,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.rolling_dataset import (
     StepStrategy,
-    generate_rolling_datasets,
+    generate_rolling_dataset,
 )
 
 
@@ -99,7 +99,7 @@ def generate_dataset(name):
 )
 def test_invalid_rolling_parameters(prediction_length, unique):
     try:
-        generate_rolling_datasets(
+        generate_rolling_dataset(
             dataset=generate_dataset("constant"),
             start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
             end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
@@ -240,7 +240,7 @@ def test_invalid_rolling_parameters(prediction_length, unique):
 def test_step_strategy(
     ds_name, prediction_length, unique, ignore_end, ds_expected
 ):
-    rolled_ds = generate_rolling_datasets(
+    rolled_ds = generate_rolling_dataset(
         dataset=generate_dataset(ds_name),
         start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
         end_time=None

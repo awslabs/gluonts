@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from functools import partial
 from typing import Optional
 
 import numpy as np
@@ -64,7 +63,9 @@ class NumSplitsStrategy(BaseModel):
             yield window[: int(round(slice_idx))]
 
 
-def generate_rolling_datasets(
+# TODO Add parameter allowing for rolling of other arrays
+# with a time axis such as time dependent features
+def generate_rolling_dataset(
     dataset: Dataset,
     strategy,
     start_time: pd.Timestamp,
@@ -98,11 +99,11 @@ def generate_rolling_datasets(
 
     Below examples will be based on this one timeseries long dataset
     [{
-    target=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-    start='2000-1-1-01'
+    "target": np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]),
+    "start": pd.Timestamp('2000-1-1-01', freq='1H')
     }]
 
-    applying generate_rolling_datasets on this dataset with:
+    applying generate_rolling_dataset on this dataset with:
 
     start_time = pd.Timestamp('2000-1-1-06', '1H')
     end_time = pd.Timestamp('2000-1-1-10', '1H')
