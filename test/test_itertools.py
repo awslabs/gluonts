@@ -16,13 +16,13 @@ from typing import Iterable
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.itertools import pseudo_shuffle
+from gluonts.itertools import pseudo_shuffled
 
 
 @pytest.mark.parametrize("data", [range(20), constant_dataset()[1],])
-def test_pseudo_shuffle(data: Iterable) -> None:
+def test_pseudo_shuffled(data: Iterable) -> None:
     list_data = list(data)
-    shuffled_iter = pseudo_shuffle(iter(list_data), shuffle_buffer_length=5)
+    shuffled_iter = pseudo_shuffled(iter(list_data), shuffle_buffer_length=5)
     shuffled_data = list(shuffled_iter)
     assert len(shuffled_data) == len(list_data)
     assert all(d in shuffled_data for d in list_data)

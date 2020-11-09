@@ -18,7 +18,7 @@ import random
 T = TypeVar("T")
 
 
-def cycle(it):
+def cyclic(it):
     """Like `itertools.cycle`, but does not store the data."""
 
     while True:
@@ -43,7 +43,7 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     return iter(get_batch, [])
 
 
-class cache(Iterable):
+class cached(Iterable):
     """
     An iterable wrapper, which caches values in a list the first time it is iterated.
 
@@ -69,7 +69,7 @@ class cache(Iterable):
             yield from self.cache
 
 
-def pseudo_shuffle(iterator: Iterator, shuffle_buffer_length: int):
+def pseudo_shuffled(iterator: Iterator, shuffle_buffer_length: int):
     """
     An iterator that yields item from a given iterator in a pseudo-shuffled order.
     """

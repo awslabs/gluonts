@@ -24,7 +24,7 @@ from queue import Empty
 
 from gluonts.dataset.common import DataEntry, DataBatch, Dataset
 from gluonts.dataset.util import MPWorkerInfo
-from gluonts.itertools import batcher, cycle, pseudo_shuffle
+from gluonts.itertools import batcher, cyclic, pseudo_shuffled
 from gluonts.transform import Transformation, TransformedDataset
 
 logger = logging.getLogger(__name__)
@@ -37,13 +37,13 @@ def construct_training_iterator(
     shuffle_buffer_length: Optional[int] = None,
 ) -> Iterator[DataEntry]:
     transformed_dataset = TransformedDataset(
-        cycle(dataset), transform, is_train=True,
+        cyclic(dataset), transform, is_train=True,
     )
 
     if shuffle_buffer_length is None:
         return iter(transformed_dataset)
     else:
-        return pseudo_shuffle(
+        return pseudo_shuffled(
             iter(transformed_dataset),
             shuffle_buffer_length=shuffle_buffer_length,
         )
