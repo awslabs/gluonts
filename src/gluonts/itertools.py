@@ -44,6 +44,17 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
 
 
 class cache(Iterable):
+    """
+    An iterable wrapper, which caches values in a list the first time it is iterated.
+
+    The primary use-case for this is to avoid re-computing the element of the sequence,
+    in case the inner iterable does it on demand.
+
+    This should be used to wrap deterministic iterables, i.e. iterables where the data
+    generation process is not random, and that yield the same elements when iterated
+    multiple times.
+    """
+
     def __init__(self, iterable: Iterable) -> None:
         self.iterable = iterable
         self.cache = None
