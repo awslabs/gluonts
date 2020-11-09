@@ -17,6 +17,7 @@ distributions exposed to the user.
 """
 # Standard library imports
 from typing import Iterable, List, Tuple
+from functools import reduce
 
 # Third-party imports
 import mxnet as mx
@@ -48,6 +49,7 @@ from gluonts.mx.distribution import (
     DirichletMultinomialOutput,
     NegativeBinomial,
     NegativeBinomialOutput,
+    ZeroInflatedNegativeBinomialOutput,
     Laplace,
     LaplaceOutput,
     Gaussian,
@@ -56,7 +58,6 @@ from gluonts.mx.distribution import (
     GenParetoOutput,
     Poisson,
     PoissonOutput,
-    ZeroInflatedPoisson,
     ZeroInflatedPoissonOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
@@ -166,10 +167,11 @@ def maximum_likelihood_estimate_sgd(
         return [
             param.asnumpy() for param in arg_proj(mx.nd.array(np.ones((1, 1))))
         ]
+    
+    # alpha parameter of zero inflated Neg Bin was not returned using param[0]
+    ls = [[p.asnumpy() for p in param] for param in arg_proj(mx.nd.array(np.ones((1, 1))))]
+    return reduce(lambda x, y: x+y, ls)
 
-    return [
-        param[0].asnumpy() for param in arg_proj(mx.nd.array(np.ones((1, 1))))
-    ]
 
 
 @pytest.mark.parametrize("alpha, beta", [(3.75, 1.25)])
@@ -1150,10 +1152,10 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
     ), f"beta did not match: beta = {beta}, beta_hat = {beta_hat}"
 
 
-@pytest.mark.timeout(180)
-@pytest.mark.parametrize("rate", [150.0])
-@pytest.mark.parametrize("hybridize", [True, False])
-@pytest.mark.parametrize("zero_probability", [0.99, 0.8, 0.6, 0.4, 0.2, 0.01])
+@pytest.mark.timeout(120)
+@pytest.mark.parametrize("rate", [50.0])
+@pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
+@pytest.mark.parametrize("hybridize", [False, True])
 def test_inflated_poisson_likelihood(
     rate: float,
     hybridize: bool,
@@ -1163,28 +1165,27 @@ def test_inflated_poisson_likelihood(
     Test to check that maximizing the likelihood recovers the parameters
     """
     # generate samples
-    NUM_SAMPLES = 5000 # Required for convergence
-    rates = mx.nd.zeros((NUM_SAMPLES,)) + rate
-    zero_probabilities = mx.nd.zeros((NUM_SAMPLES,)) + zero_probability
+    num_samples = 2000 # Required for convergence
     
-    distr = ZeroInflatedPoisson(
-        rate=rates, zero_probability=zero_probabilities
-    )
-
+    distr = ZeroInflatedPoissonOutput().distribution(
+        distr_args = [
+            mx.nd.array([[1-zero_probability, zero_probability]]),
+            mx.nd.array([rate]),
+            mx.nd.array([0.])
+        ]
+    ) 
     distr_output = ZeroInflatedPoissonOutput()
 
-    samples = distr.sample()
+    samples = distr.sample(num_samples).squeeze()
 
-    init_biases = [
-        inv_softplus(rate - START_TOL_MULTIPLE * TOL * rate),
-    ]
+    init_biases = None
 
-    rate_hat, zero_probability_hat = maximum_likelihood_estimate_sgd(
-        distr_output,
-        samples,
+    (_, zero_probability_hat), rate_hat, _ = maximum_likelihood_estimate_sgd(
+        distr_output=distr_output,
+        samples=samples,
         init_biases=init_biases,
         hybridize=hybridize,
-        learning_rate=PositiveFloat(0.1),
+        learning_rate=PositiveFloat(0.15),
         num_epochs=PositiveInt(25),
     )
 
@@ -1196,3 +1197,56 @@ def test_inflated_poisson_likelihood(
     assert (
         np.abs(rate_hat - rate) < TOL * rate
     ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
+
+@pytest.mark.timeout(120)
+@pytest.mark.parametrize("mu_alpha", [(5.0, 0.05)])
+@pytest.mark.parametrize("zero_probability", [0.3])
+@pytest.mark.parametrize("hybridize", [False, True])
+def test_inflated_neg_binomial_likelihood(
+    mu_alpha: float,
+    zero_probability: float,
+    hybridize: bool,
+) -> None:
+    """
+    Test to check that maximizing the likelihood recovers the parameters
+    """
+    mu, alpha = mu_alpha
+    
+    # generate samples
+    num_samples = 2000 # Required for convergence
+    
+    distr = ZeroInflatedNegativeBinomialOutput().distribution(
+        distr_args = [
+            mx.nd.array([[1-zero_probability, zero_probability]]), # mixture probs
+            mx.nd.array([mu, alpha]), # loc, shape of Neg Bin
+            mx.nd.array([0.])
+        ]
+    ) 
+    distr_output = ZeroInflatedNegativeBinomialOutput()
+
+    samples = distr.sample(num_samples).squeeze()
+
+    init_biases = None
+
+    (_, zero_probability_hat),  mu_hat, alpha_hat, _ = maximum_likelihood_estimate_sgd(
+        distr_output=distr_output,
+        samples=samples,
+        init_biases=init_biases,
+        hybridize=hybridize,
+        learning_rate=PositiveFloat(0.1),
+        num_epochs=PositiveInt(15),
+    )
+
+    assert (
+        np.abs(zero_probability_hat - zero_probability)
+        < TOL * zero_probability
+    ), f"zero_probability did not match: zero_probability = {zero_probability}, zero_probability_hat = {zero_probability_hat}"
+
+    assert (
+        np.abs(mu_hat - mu) < TOL * mu
+    ), f"mu did not match: mu = {mu}, mu_hat = {mu_hat}"
+
+    assert (
+        np.abs(alpha_hat - alpha) < TOL * alpha
+    ), f"alpha did not match: alpha = {alpha}, alpha_hat = {alpha_hat}"
+

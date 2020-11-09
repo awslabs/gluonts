@@ -29,7 +29,7 @@ from gluonts.mx.distribution import (
     MultivariateGaussian,
     PiecewiseLinear,
     Poisson,
-    ZeroInflatedPoisson,
+    ZeroInflatedPoissonOutput,
     Binned,
     TransformedDistribution,
     Categorical,
@@ -125,13 +125,6 @@ test_cases = [
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 1.0])}),
     (
-        ZeroInflatedPoisson,
-        {
-            "rate": mx.nd.array([1000.0, 1.0]),
-            "zero_probability": mx.nd.array([0.1, 0.9]),
-        },
-    ),
-    (
         ZeroInflatedBeta,
         {
             "alpha": mx.nd.array([0.175]),
@@ -214,11 +207,6 @@ test_output = {
         "stddev": mx.nd.array([31.622776, 1.0]),
         "variance": mx.nd.array([1000.0, 1.0]),
     },
-    "ZeroInflatedPoisson": {
-        "mean": mx.nd.array([900.0, 0.1]),
-        "stddev": mx.nd.array([301.4963, 0.4358899]),
-        "variance": mx.nd.array([90900, 0.19]),
-    },
     "ZeroInflatedBeta": {
         "mean": mx.nd.array([0.15806451612903227]),
         "stddev": mx.nd.array([0.2822230782496945]),
@@ -246,7 +234,6 @@ DISTRIBUTIONS = [
     Uniform,
     Binned,
     Poisson,
-    ZeroInflatedPoisson,
     ZeroInflatedBeta,
     OneInflatedBeta,
     ZeroAndOneInflatedBeta,
