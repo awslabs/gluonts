@@ -21,7 +21,7 @@ from mxnet.gluon import nn
 from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
-import mxnet as mx
+import mxnet.ndarray as nd
 
 class Scaler(nn.HybridBlock):
     """
@@ -175,17 +175,16 @@ class MeanScaler(Scaler):
 
         return F.maximum(scale, self.minimum_scale)
 
+
 class MinMax(Scaler):
     """
     The 'MinMax' scales the input data using a min-max approach along the specified axis. 
     """
-
     @validated()
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
     def compute_scale(self, F, data: Tensor, observed_indicator: Tensor) -> Tensor:
-
         """
         Parameters
         ----------
@@ -207,17 +206,19 @@ class MinMax(Scaler):
             shape (N, T, C) or (N, C, T) scaled along the specified axis. 
 
         """
-        axis_zero = mx.nd.prod(data==data.zeros_like(), self.axis, keepdims = True) # Along the specified axis, which array are always at zero
-        axis_zero = mx.nd.broadcast_to(axis_zero, shape=data.shape) # Broadcast it to the shape of data
 
-        min_val = mx.nd.where(1-observed_indicator, mx.nd.broadcast_to(data.max(keepdims=True), shape=data.shape), data).min(axis=self.axis, keepdims=True) # return the min value along specified axis while ignoring value according to observed_indicator
-        max_val = mx.nd.where(1-observed_indicator, mx.nd.broadcast_to(data.min(keepdims=True), shape=data.shape), data).max(axis=self.axis, keepdims=True) # return the max value along specified axis while ignoring value according to observed_indicator
+        axis_zero = nd.prod(data==data.zeros_like(), self.axis, keepdims = True) # Along the specified axis, which array are always at zero
+        axis_zero = nd.broadcast_to(axis_zero, shape=data.shape) # Broadcast it to the shape of data
+
+        min_val = nd.where(1-observed_indicator, nd.broadcast_to(data.max(keepdims=True), shape=data.shape), data).min(axis=self.axis, keepdims=True) # return the min value along specified axis while ignoring value according to observed_indicator
+        max_val = nd.where(1-observed_indicator, nd.broadcast_to(data.min(keepdims=True), shape=data.shape), data).max(axis=self.axis, keepdims=True) # return the max value along specified axis while ignoring value according to observed_indicator
 
         scaled_data = (data-min_val)/(max_val-min_val) # Rescale
-        scaled_data = mx.nd.where(axis_zero, scaled_data.zeros_like(), scaled_data) #Clip Nan values to zero if the data was equal to zero along specified axis
-        scaled_data = mx.nd.where(scaled_data!=scaled_data, scaled_data.ones_like(), scaled_data) #Clip the Nan values to one. 
+        scaled_data = nd.where(axis_zero, scaled_data.zeros_like(), scaled_data) #Clip Nan values to zero if the data was equal to zero along specified axis
+        scaled_data = nd.where(scaled_data!=scaled_data, scaled_data.ones_like(), scaled_data) #Clip the Nan values to one. scaled_date!=scaled_data tells us where the Nan values are in scaled_data
+        
+        return nd.where(1-observed_indicator, scaled_data.zeros_like(), scaled_data) # Replace data with zero where observed_indicator tells us to. 
 
-        return mx.nd.where(observed_indicator, scaled_data.zero_like(), scaled_data) # Replace data with zero where observed_indicator tells us to. 
 
 class NOPScaler(Scaler):
     """
