@@ -43,7 +43,7 @@ from gluonts.core.component import (
 from gluonts.core import fqname_for
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, load_json
-from gluonts.dataset.common import DataEntry, Dataset, ListDataset
+from gluonts.dataset.common import DataEntry, Dataset
 
 from gluonts.model.forecast import Forecast
 
