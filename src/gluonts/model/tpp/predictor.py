@@ -163,7 +163,7 @@ class PointProcessGluonPredictor(GluonPredictor):
         )
 
     def as_symbol_block_predictor(
-        self, batch: DataBatch
+        self, batch: DataBatch = None, dataset: Dataset = None
     ) -> SymbolBlockPredictor:
         raise NotImplementedError(
             "Point process models are currently not hybridizable"
