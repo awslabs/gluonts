@@ -2,7 +2,7 @@ dist: xenial
 language: python
 python:
 - '3.7'
-install: true
+install: pip install keyring==21.4.0
 script: true
 deploy:
   provider: pypi
