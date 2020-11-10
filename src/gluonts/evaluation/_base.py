@@ -299,7 +299,7 @@ class Evaluator:
             "abs_target_mean": self.abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
             "MASE": self.mase(pred_target, median_fcst, seasonal_error),
-            "MASE_vanilla": self.vanilla_mase(
+            "MASE_strict": self.mase_strict(
                 pred_target, median_fcst, seasonal_error
             ),
             "MAPE": self.mape(pred_target, median_fcst),
@@ -321,7 +321,12 @@ class Evaluator:
                     target_fcst = median_fcst
 
                 try:
-                    val = {k: eval_fn(pred_target, target_fcst,)}
+                    val = {
+                        k: eval_fn(
+                            pred_target,
+                            target_fcst,
+                        )
+                    }
                 except:
                     val = {k: np.nan}
 
@@ -370,7 +375,7 @@ class Evaluator:
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
             "MASE": "mean",
-            "MASE_vanilla": "mean",
+            "MASE_strict": "mean",
             "MAPE": "mean",
             "sMAPE": "mean",
             "OWA": "mean",
@@ -457,7 +462,7 @@ class Evaluator:
         return np.mean((target < quantile_forecast))
 
     @staticmethod
-    def vanilla_mase(target, forecast, seasonal_error):
+    def mase(target, forecast, seasonal_error):
         r"""
         .. math::
 
@@ -465,13 +470,15 @@ class Evaluator:
 
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
-        return np.mean(np.abs(target - forecast)) / seasonal_error
+        flag = seasonal_error <= Evaluator.zero_tol
+        return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
+            seasonal_error + flag
+        )
 
     @staticmethod
-    def mase(target, forecast, seasonal_error):
-        r"""
-        Upper bound limited version of MASE, avoids infinite values.
-        For traditional implementation use vanilla_mase.
+    def mase_strict(target, forecast, seasonal_error):
+        """
+        Upper bound limited continous version of MASE, avoids infinite values.
         .. math::
 
             mase = mean(|Y - Y_hat|) / seasonal_error
