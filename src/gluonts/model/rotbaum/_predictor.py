@@ -282,7 +282,7 @@ class TreePredictor(GluonPredictor):
             return load_json(fp.read())
 
     def as_symbol_block_predictor(
-        self, batch: DataBatch
+        self, batch: Optional[DataBatch] = None, dataset: Optional[Dataset] = None
     ) -> "SymbolBlockPredictor":
         return None
 
