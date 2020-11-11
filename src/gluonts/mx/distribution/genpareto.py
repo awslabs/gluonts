@@ -87,7 +87,7 @@ class GenPareto(Distribution):
         """
         return F.where(
             x < 0,
-            -np.inf * F.ones_like(x),
+            -10.**15 * F.ones_like(x),
             genpareto_log_prob(F.abs(x), xi, beta),
         )
 
