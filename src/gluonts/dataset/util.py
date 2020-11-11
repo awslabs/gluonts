@@ -136,36 +136,6 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     return pd.Series(target, index=index)
 
 
-def take(iterable: Iterable[T], n: int) -> Iterator[T]:
-    """Returns up to `n` elements from `iterable`.
-
-    This is similar to xs[:n], except that it works on `Iterable`s and possibly
-    consumes the given `iterable`.
-
-    >>> list(take(range(10), 5))
-    [0, 1, 2, 3, 4]
-    """
-    return itertools.islice(iterable, n)
-
-
-def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
-    """Groups elements from `iterable` into batches of size `batch_size`.
-
-    >>> list(batcher("ABCDEFG", 3))
-    [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
-
-    Unlike the grouper proposed in the documentation of itertools, `batcher`
-    doesn't fill up missing values.
-    """
-    it: Iterator[T] = iter(iterable)
-
-    def get_batch():
-        return list(take(it, batch_size))
-
-    # has an empty list so that we have a 2D array for sure
-    return iter(get_batch, [])
-
-
 def dct_reduce(reduce_fn, dcts):
     """Similar to `reduce`, but applies reduce_fn to fields of dicts with the
     same name.
@@ -176,21 +146,3 @@ def dct_reduce(reduce_fn, dcts):
     keys = dcts[0].keys()
 
     return {key: reduce_fn([item[key] for item in dcts]) for key in keys}
-
-
-def shuffler(stream: Iterable[T], batch_size: int) -> Iterator[T]:
-    """Modifies a stream by shuffling items in windows.
-
-    It continously takes `batch_size`-elements from the stream and yields
-    elements from each batch  in random order."""
-
-    for batch in batcher(stream, batch_size):
-        random.shuffle(batch)
-        yield from batch
-
-
-def cycle(it):
-    """Like `itertools.cycle`, but does not store the data."""
-
-    while True:
-        yield from it

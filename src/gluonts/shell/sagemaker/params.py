@@ -19,7 +19,7 @@ from itertools import count
 # First-party imports
 from gluonts.core.serde import load_json, dump_json
 from gluonts.support.util import map_dct_values
-from gluonts.dataset.util import batcher
+from gluonts.itertools import batcher
 
 
 def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:

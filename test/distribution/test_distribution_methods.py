@@ -29,6 +29,7 @@ from gluonts.mx.distribution import (
     MultivariateGaussian,
     PiecewiseLinear,
     Poisson,
+    ZeroInflatedPoissonOutput,
     Binned,
     TransformedDistribution,
     Categorical,
