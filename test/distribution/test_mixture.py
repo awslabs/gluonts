@@ -364,14 +364,11 @@ def test_inference_mixture_different_families(
             GammaOutput(),
         ),
         (
-<<<<<<< HEAD
             Gamma(alpha=mx.nd.array([0.9]), beta=mx.nd.array([2.0])),
             mx.nd.array([0.0]),
             GammaOutput(),
         ),
         (
-=======
->>>>>>> 67ec113a75b74f15833ed77e3902409c7dc75376
             GenPareto(xi=mx.nd.array([1 / 3.0]), beta=mx.nd.array([1.0])),
             mx.nd.array([-1.0]),
             GenParetoOutput(),

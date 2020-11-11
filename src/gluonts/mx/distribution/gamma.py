@@ -84,18 +84,12 @@ class Gamma(Distribution):
         altering the value in cases of x>0. 
         This is a known issue in pytorch as well https://github.com/pytorch/pytorch/issues/12986.
         """
-<<<<<<< HEAD
         # mask zeros to prevent NaN gradients for x==0
         x_masked = F.where(x == 0, x.ones_like() * 0.5, x)
 
         return F.where(
             x > 0,
             gamma_log_prob(F.abs(x_masked), alpha, beta),
-=======
-        return F.where(
-            x > 0,
-            gamma_log_prob(F.abs(x), alpha, beta),
->>>>>>> 67ec113a75b74f15833ed77e3902409c7dc75376
             -np.inf * F.ones_like(x),
         )
 
