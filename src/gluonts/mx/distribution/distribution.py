@@ -18,6 +18,10 @@ from typing import Any, List, Optional, Tuple
 import mxnet as mx
 import numpy as np
 from mxnet import autograd
+from scipy import optimize
+from itertools import product
+import functools
+import multiprocessing
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -80,6 +84,10 @@ class Distribution:
 
     arg_names: Tuple
     is_reparameterizable = False
+
+    @property
+    def F(self):
+        raise NotImplementedError()
 
     def log_prob(self, x: Tensor) -> Tensor:
         r"""
@@ -275,6 +283,14 @@ class Distribution:
         """
         raise NotImplementedError()
 
+    def _bisect_cdf(self, level, idx):
+        F = self.F
+
+        def get_quantile(x):
+            return self[idx].cdf(F.array([x])).asnumpy() - level.asnumpy()
+
+        return optimize.bisect(get_quantile, -1e16, 1e16, xtol=1e-6, rtol=1e-6)
+
     def quantile(self, level: Tensor) -> Tensor:
         r"""
 
@@ -296,7 +312,20 @@ class Distribution:
 
             where DISTRIBUTION_SHAPE is the shape of the underlying distribution.
         """
-        raise NotImplementedError()
+
+        F = self.F
+        res = F.empty((len(level), *self.batch_shape))
+        for i, l in enumerate(level):
+            partial_bisect = functools.partial(self._bisect_cdf, l)
+
+            pool = multiprocessing.Pool()
+            out = pool.map(
+                partial_bisect, product(*[range(x) for x in self.batch_shape])
+            )
+
+            res[i, :] = F.array(out).reshape(self.batch_shape)
+
+        return res
 
     def __getitem__(self, item):
         sliced_distr = self.__class__(

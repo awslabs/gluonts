@@ -44,16 +44,18 @@ class GenPareto(Distribution):
         Tensor containing the xi shape parameters, of shape `(*batch_shape, *event_shape)`.
     beta
         Tensor containing the beta scale parameters, of shape `(*batch_shape, *event_shape)`.
-    F
     """
 
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, xi: Tensor, beta: Tensor, F=None) -> None:
+    def __init__(self, xi: Tensor, beta: Tensor) -> None:
         self.xi = xi
         self.beta = beta
-        self.F = F if F else getF(xi)  # assuming xi and beta of same type
+
+    @property
+    def F(self):
+        return getF(self.xi)
 
     @property
     def batch_shape(self) -> Tuple:
