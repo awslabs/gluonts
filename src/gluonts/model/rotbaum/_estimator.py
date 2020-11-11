@@ -42,7 +42,7 @@ class ThirdPartyEstimator(Estimator):
     def train(
         self, training_data: Dataset, validation_dataset=None
     ) -> Predictor:
-        return self.predictor(training_data)
+        return self.predictor.train(training_data)
 
 
 class TreeEstimator(ThirdPartyEstimator):

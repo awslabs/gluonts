@@ -179,7 +179,7 @@ class TreePredictor(RepresentablePredictor):
             "If using the Evaluator class with a TreePredictor, set num_workers=0."
         )
 
-    def __call__(self, training_data):
+    def train(self, training_data):
         assert training_data
         assert self.freq is not None
         if next(iter(training_data))["start"].freq is not None:
