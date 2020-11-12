@@ -300,4 +300,3 @@ def test_inflated_beta_sampling(
         np.histogram(samples.asnumpy())[0],
         rtol=0.08,
     )
-

@@ -277,7 +277,9 @@ class Trainer:
 
                             if not np.isfinite(ndarray.sum(loss).asscalar()):
                                 logger.warning(
-                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored", batch_no, epoch_no
+                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored",
+                                    batch_no,
+                                    epoch_no,
                                 )
                             else:
                                 if is_training:

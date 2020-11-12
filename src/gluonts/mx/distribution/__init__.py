@@ -51,7 +51,11 @@ from .multivariate_gaussian import (
     MultivariateGaussianOutput,
 )
 from .nan_mixture import NanMixture, NanMixtureOutput
-from .neg_binomial import NegativeBinomial, NegativeBinomialOutput, ZeroInflatedNegativeBinomialOutput
+from .neg_binomial import (
+    NegativeBinomial,
+    NegativeBinomialOutput,
+    ZeroInflatedNegativeBinomialOutput,
+)
 from .piecewise_linear import (
     PiecewiseLinear,
     PiecewiseLinearOutput,

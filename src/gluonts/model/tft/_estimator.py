@@ -56,7 +56,6 @@ def _default_feat_args(dims_or_cardinalities: List[int]):
     return [1]
 
 
-
 class TemporalFusionTransformerEstimator(GluonEstimator):
     @validated()
     def __init__(
