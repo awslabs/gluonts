@@ -12,11 +12,11 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, List
-import copy
+from typing import Optional
 
 # Third-party imports
 import numpy as np
+import mxnet.gluon.nn as nn
 
 # First-party imports
 from gluonts.evaluation import Evaluator
@@ -77,9 +77,8 @@ class EarlyStopping(Callback):
         self.best_network = None
         self.n_stale_epochs = 0
 
-    def __call__(self, training_network, epoch_no, **kwargs):
+    def __call__(self, epoch_no: int, training_network: nn.HybridBlock, **kwargs):
         should_continue = True
-
         copy_parameters(training_network, self.predictor.prediction_net)
 
         forecast_it, ts_it = make_evaluation_predictions(
