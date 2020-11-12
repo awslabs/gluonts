@@ -77,12 +77,6 @@ class MixtureDistribution(Distribution):
                                     the axis)."""
 
             expected_shape = self.batch_shape + (len(components),)
-
-            # fix edge case: if batch_shape == (1,) the mixture_probs shape is squeezed to (k,)
-            # reshape it to (1, k)
-            if self.batch_shape == (1,):
-                self.mixture_probs = self.mixture_probs.reshape(1, -1)
-
             assert len(expected_shape) == len(self.mixture_probs.shape), (
                 assertion_message
                 + " Maybe you need to expand the shape of mixture_probs at the zeroth axis."
@@ -99,10 +93,12 @@ class MixtureDistribution(Distribution):
         return getF(self.mixture_probs)
 
     def __getitem__(self, item):
-        return MixtureDistribution(
-            _index_tensor(self.mixture_probs, item),
-            [c[item] for c in self.components],
-        )
+        mp = _index_tensor(self.mixture_probs, item)
+        # fix edge case: if batch_shape == (1,) the mixture_probs shape is squeezed to (k,)
+        # reshape it to (1, k)
+        if len(mp.shape) == 1:
+            mp = mp.reshape(1, -1)
+        return MixtureDistribution(mp, [c[item] for c in self.components],)
 
     @property
     def batch_shape(self) -> Tuple:
