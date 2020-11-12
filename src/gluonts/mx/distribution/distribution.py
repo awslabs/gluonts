@@ -18,10 +18,6 @@ from typing import Any, List, Optional, Tuple
 import mxnet as mx
 import numpy as np
 from mxnet import autograd
-from scipy import optimize
-from itertools import product
-import functools
-import multiprocessing
 
 # First-party imports
 from gluonts.model.common import Tensor
@@ -283,14 +279,6 @@ class Distribution:
         """
         raise NotImplementedError()
 
-    def _bisect_cdf(self, level, idx):
-        F = self.F
-
-        def get_quantile(x):
-            return self[idx].cdf(F.array([x])).asnumpy() - level.asnumpy()
-
-        return optimize.bisect(get_quantile, -1e16, 1e16, xtol=1e-6, rtol=1e-6)
-
     def quantile(self, level: Tensor) -> Tensor:
         r"""
 
@@ -313,19 +301,53 @@ class Distribution:
             where DISTRIBUTION_SHAPE is the shape of the underlying distribution.
         """
 
+        def _tensor_cdf_bisection(
+            level: Tensor, ub=1e16, lb=-1e16, tol=1e-6, max_iter=100
+        ) -> Tensor:
+            r"""
+            Returns a Tensor of shape (len(level), *batch_size) with the corresponding quantiles.
+            """
+            upper_bound = F.ones((len(level), *self.batch_shape)) * ub
+            lower_bound = F.ones((len(level), *self.batch_shape)) * lb
+
+            for _ in range(self.all_dim):
+                level = level.expand_dims(axis=-1)
+
+            try:
+                q = F.broadcast_like(
+                    self.mean.expand_dims(axis=0),
+                    level,
+                    lhs_axes=0,
+                    rhs_axes=0,
+                )
+            except:
+                q = F.zeros((len(level), *self.batch_shape)) + 1e-6
+            val = self.cdf(q) - level
+
+            cnt = 0
+            while F.sum(F.abs(val) > tol) > 0 and cnt < max_iter:
+                mask_g = F.greater(val, tol)
+                mask_l = F.lesser(val, -tol)
+                mask_done = F.lesser_equal(F.abs(val), tol)
+
+                upper_bound = (
+                    F.broadcast_mul(q, mask_g)
+                    + F.broadcast_mul(upper_bound, mask_l)
+                    + F.broadcast_mul(q, mask_done)
+                )
+                lower_bound = (
+                    F.broadcast_mul(q, mask_l)
+                    + F.broadcast_mul(lower_bound, mask_g)
+                    + F.broadcast_mul(q, mask_done)
+                )
+
+                q = 0.5 * F.broadcast_add(upper_bound, lower_bound)
+                val = self.cdf(q) - level
+                cnt += 1
+            return q
+
         F = self.F
-        res = F.empty((len(level), *self.batch_shape))
-        for i, l in enumerate(level):
-            partial_bisect = functools.partial(self._bisect_cdf, l)
-
-            pool = multiprocessing.Pool()
-            out = pool.map(
-                partial_bisect, product(*[range(x) for x in self.batch_shape])
-            )
-
-            res[i, :] = F.array(out).reshape(self.batch_shape)
-
-        return res
+        return _tensor_cdf_bisection(level)
 
     def __getitem__(self, item):
         sliced_distr = self.__class__(
