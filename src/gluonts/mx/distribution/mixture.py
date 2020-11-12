@@ -77,12 +77,18 @@ class MixtureDistribution(Distribution):
                                     the axis)."""
 
             expected_shape = self.batch_shape + (len(components),)
-            assert len(expected_shape) == len(mixture_probs.shape), (
+
+            # fix edge case: if batch_shape == (1,) the mixture_probs shape is squeezed to (k,)
+            # reshape it to (1, k)
+            if self.batch_shape == (1,):
+                self.mixture_probs = self.mixture_probs.reshape(1, -1)
+
+            assert len(expected_shape) == len(self.mixture_probs.shape), (
                 assertion_message
                 + " Maybe you need to expand the shape of mixture_probs at the zeroth axis."
             )
             for expected_dim, given_dim in zip(
-                expected_shape, mixture_probs.shape
+                expected_shape, self.mixture_probs.shape
             ):
                 assert (
                     expected_dim == given_dim
