@@ -141,7 +141,7 @@ If you wish to contribute to the project, please refer to our
 If you use GluonTS in a scientific publication, we encourage you to add
 the following references to the related papers:
 
-```
+```bibtex
 @article{gluonts_jmlr,
   author  = {Alexander Alexandrov and Konstantinos Benidis and Michael Bohlke-Schneider
     and Valentin Flunkert and Jan Gasthaus and Tim Januschowski and Danielle C. Maddix
@@ -156,7 +156,8 @@ the following references to the related papers:
   url     = {http://jmlr.org/papers/v21/19-820.html}
 }
 ```
-```
+
+```bibtex
 @article{gluonts_arxiv,
   author  = {Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
     Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
