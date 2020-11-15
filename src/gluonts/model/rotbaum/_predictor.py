@@ -23,7 +23,6 @@ import pandas as pd
 from itertools import chain
 import concurrent.futures
 import logging
-import mxnet as mx
 
 # First-party imports
 import gluonts
@@ -33,7 +32,7 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once
-from gluonts.mx.model.predictor import GluonPredictor
+from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 from gluonts.dataset.loader import DataBatch
 
@@ -101,7 +100,7 @@ class RotbaumForecast(Forecast):
         )
 
 
-class TreePredictor(GluonPredictor):
+class TreePredictor(RepresentablePredictor):
     """
     A predictor that uses a QRX model for each of the steps in the forecast
     horizon. (In other words, there's a total of prediction_length many
@@ -180,7 +179,7 @@ class TreePredictor(GluonPredictor):
             "If using the Evaluator class with a TreePredictor, set num_workers=0."
         )
 
-    def __call__(self, training_data):
+    def train(self, training_data):
         assert training_data
         assert self.freq is not None
         if next(iter(training_data))["start"].freq is not None:
@@ -225,11 +224,6 @@ class TreePredictor(GluonPredictor):
 
         return self
 
-    @validated()
-    def train(self, training_data):
-        self.__call__(training_data)
-
-    @validated()
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
@@ -258,37 +252,3 @@ class TreePredictor(GluonPredictor):
                 prediction_length=self.prediction_length,
                 freq=self.freq,
             )
-
-    def serialize(self, path: Path) -> None:
-
-        with (path / "type.txt").open("w") as fp:
-            fp.write(fqname_for(self.__class__))
-        with (path / "version.json").open("w") as fp:
-            json.dump(
-                {"model": self.__version__, "gluonts": gluonts.__version__}, fp
-            )
-        with (path / "predictor.json").open("w") as fp:
-            print(dump_json(self), file=fp)
-
-    def serialize_prediction_net(self, path: Path) -> None:
-        self.serialize(path)
-
-    @classmethod
-    def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
-    ) -> "TreePredictor":
-
-        with (path / "predictor.json").open("r") as fp:
-            return load_json(fp.read())
-
-    def as_symbol_block_predictor(
-        self, batch: DataBatch
-    ) -> "SymbolBlockPredictor":
-        return None
-
-    def __eq__(self, that):
-        """
-        Two RepresentablePredictor instances are considered equal if they
-        have the same constructor arguments.
-        """
-        return equals(self, that)

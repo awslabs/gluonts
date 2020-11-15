@@ -43,7 +43,7 @@ from gluonts.core.component import (
 from gluonts.core import fqname_for
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, load_json
-from gluonts.dataset.common import DataEntry, Dataset, ListDataset
+from gluonts.dataset.common import DataEntry, Dataset
 
 from gluonts.model.forecast import Forecast
 
@@ -395,12 +395,9 @@ class Localizer(Predictor):
         logger = logging.getLogger(__name__)
         for i, ts in enumerate(dataset, start=1):
             logger.info(f"training for time series {i} / {len(dataset)}")
-            local_ds = ListDataset([ts], freq=self.freq)
-            trained_pred = self.estimator.train(local_ds)
+            trained_pred = self.estimator.train([ts])
             logger.info(f"predicting for time series {i} / {len(dataset)}")
-            predictions = trained_pred.predict(local_ds, **kwargs)
-            for pred in predictions:
-                yield pred
+            yield from trained_pred.predict([ts], **kwargs)
 
 
 class FallbackPredictor(Predictor):
