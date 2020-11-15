@@ -129,8 +129,8 @@ def generate_rolling_dataset(
 
     >>> rolled = generate_rolling_dataset(
     ...     dataset=ds,
-    ...     strategy = StepStrategy(prediction_length=2)
-    ...     start_time = pd.Timestamp('2000-1-1-06', '1H')
+    ...     strategy = StepStrategy(prediction_length=2),
+    ...     start_time = pd.Timestamp('2000-1-1-06', '1H'),
     ...     end_time = pd.Timestamp('2000-1-1-10', '1H')
     ... )
 
