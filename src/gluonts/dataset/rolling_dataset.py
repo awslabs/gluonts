@@ -30,16 +30,27 @@ class StepStrategy(BaseModel):
     prediction_length
         The prediction length of the Predictor that the dataset will be
         used with
-
-    Returns
-    -------
-    A partial function which yields the rolled windows
+    step_size
+        The number of points to remove for each iteration.
     """
 
     prediction_length: int
     step_size: int = 1
 
     def get_windows(self, window):
+        """
+        This function splits a given window (array of target values) into
+        smaller chunks based on the provided parameters of the parent class.
+
+        Parameters
+        ----------
+        window
+            The window which should be split
+
+        Returns
+        ----------
+        A generator yielding split versions of the window
+        """
         assert (
             self.prediction_length > 0
         ), """the step strategy requires a prediction_length > 0"""
@@ -51,10 +62,35 @@ class StepStrategy(BaseModel):
 
 
 class NumSplitsStrategy(BaseModel):
+    """
+    The NumSplitsStrategy splits a window into *num_splits* chunks of equal size.
+
+    Parameters
+    ----------
+    prediction_length
+        The prediction length of the Predictor that the dataset will be
+        used with
+    num_splits
+        The number of segments which the window should be split into
+    """
+
     prediction_length: int
     num_splits: int
 
     def get_windows(self, window):
+        """
+        This function splits a given window (array of target values) into
+        smaller chunks based on the provided parameters of the parent class.
+
+        Parameters
+        ----------
+        window
+            The window which should be split
+
+        Returns
+        ----------
+        A generator yielding split versions of the window
+        """
         assert num_splits > 1, """num_splits should be > 1"""
         for slice_idx in np.linspace(
             start=self.prediction_length, stop=len(window), num=self.num_splits
@@ -72,6 +108,77 @@ def generate_rolling_dataset(
     end_time: Optional[pd.Timestamp] = None,
 ) -> Dataset:
     """
+    Returns an augmented version of the input dataset where each timeseries has
+    been rolled upon based on the parameters supplied. Below follows an
+    explanation and examples of how the different parameters can be used to generate
+    differently rolled datasets.
+
+    The *rolling* happens on the data available in the provided window between the
+    *start_time* and the *end_time* for each timeseries. If *end_time* is omitted, rolling
+    happens on all datapoints from *start_time* until the end of the timeseries.
+    The way the data is rolled is governed by the strategy used.
+
+    Below examples will be based on this one timeseries long dataset
+
+    >>> ds = [{
+    ...     "target": np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]),
+    ...     "start": pd.Timestamp('2000-1-1-01', freq='1H')
+    ... }]
+
+    applying generate_rolling_dataset on this dataset like:
+
+    >>> rolled = generate_rolling_dataset(
+    ...     dataset=ds,
+    ...     strategy = StepStrategy(prediction_length=2)
+    ...     start_time = pd.Timestamp('2000-1-1-06', '1H')
+    ...     end_time = pd.Timestamp('2000-1-1-10', '1H')
+    ... )
+
+    Results in a new dataset as follows (only target values shown for brevity):
+
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9]\n
+        [1, 2, 3, 4, 5, 6, 7, 8]\n
+        [1, 2, 3, 4, 5, 6, 7]\n
+
+    i.e. maximum amount of rolls possible between the *end_time* and *start_time*.
+    The basic_strategy only cuts the last value of the target for as long as
+    there is enough values after *start_time* to perform predictions on.
+
+    When no end time is provided the output is as below since all datapoints
+    from *start_time* will be rolled over.
+
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9]\n
+        [1, 2, 3, 4, 5, 6, 7, 8]\n
+        [1, 2, 3, 4, 5, 6, 7]
+
+    One can change the step_size of the strategy as below:
+
+    >>> strategy = StepStrategy(prediction_length=2, step_size=2)
+
+
+    This causes fewer values to be in the output which,
+    when prediction_length matches step_size, ensures that each prediction
+    will be done on unique/new data. Below is the output when the above strategy is used.
+
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n
+        [1, 2, 3, 4, 5, 6, 7, 8]
+
+    Not setting an end time and using the step_size=2 results in
+    the below dataset.
+
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]\n
+        [1, 2, 3, 4, 5, 6, 7, 8, 9]\n
+        [1, 2, 3, 4, 5, 6, 7]
+
     Parameters
     ----------
     dataset
@@ -82,76 +189,13 @@ def generate_rolling_dataset(
         The start of the window where rolling forecasts should be applied
     end_time
         The end time of the window where rolling should be applied
+
     Returns
-    -------
+    ----------
     Dataset
         The augmented dataset
 
-    Returns an augmented version of the input dataset where each timeseries has
-    been rolled upon based on the parameters supplied. Below follows an
-    explanation and examples of how the different parameters can be used to generate
-    differently rolled datasets.
 
-    The 'rolling' will happen on the data available in the provided window between the
-    start_time and the end_time for each timeseries. If end_time is omitted, rolling
-    happens on all datapoints from start_time until the end of the timeseries.
-    The way the data is rolled is governed by the strategy used.
-
-    Below examples will be based on this one timeseries long dataset
-    [{
-    "target": np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]),
-    "start": pd.Timestamp('2000-1-1-01', freq='1H')
-    }]
-
-    applying generate_rolling_dataset on this dataset with:
-
-    start_time = pd.Timestamp('2000-1-1-06', '1H')
-    end_time = pd.Timestamp('2000-1-1-10', '1H')
-    strategy = StepStrategy(prediction_length=2)
-
-    returns a new dataset as follows (only target values shown for brevity):
-
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    [1, 2, 3, 4, 5, 6, 7, 8, 9],
-    [1, 2, 3, 4, 5, 6, 7, 8],
-    [1, 2, 3, 4, 5, 6, 7]
-
-    i.e. maximum amount of rolls possible between the end_time and start_time.
-    The basic_strategy only cuts the last value of the target for as long as
-    there is enough values after start_time to perform predictions on.
-
-    When no end time is provided the output is as below since all datapoints
-    from start_time will be rolled over.
-
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    [1, 2, 3, 4, 5, 6, 7, 8]
-    [1, 2, 3, 4, 5, 6, 7]
-
-    One can change the step_size of the strategy as below:
-
-    strategy = StepStrategy(prediction_length=2, step_size=2)
-
-    This causes fewer values to be in the output which,
-    when prediction_length matches step_size, ensures that each prediction
-    will be done on unique/new data. Below is the output of this run.
-
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    [1, 2, 3, 4, 5, 6, 7, 8]
-
-    Not setting an end time and using the step_size=2 results in
-    the below dataset.
-
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    [1, 2, 3, 4, 5, 6, 7]
     """
     assert dataset, "a dataset to perform rolling evaluation on is needed"
     assert start_time, "a pandas Timestamp object is needed for the start time"
