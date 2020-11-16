@@ -166,11 +166,13 @@ def maximum_likelihood_estimate_sgd(
         return [
             param.asnumpy() for param in arg_proj(mx.nd.array(np.ones((1, 1))))
         ]
-    
-    # alpha parameter of zero inflated Neg Bin was not returned using param[0]
-    ls = [[p.asnumpy() for p in param] for param in arg_proj(mx.nd.array(np.ones((1, 1))))]
-    return reduce(lambda x, y: x+y, ls)
 
+    # alpha parameter of zero inflated Neg Bin was not returned using param[0]
+    ls = [
+        [p.asnumpy() for p in param]
+        for param in arg_proj(mx.nd.array(np.ones((1, 1))))
+    ]
+    return reduce(lambda x, y: x + y, ls)
 
 
 @pytest.mark.parametrize("alpha, beta", [(3.75, 1.25)])
@@ -1152,27 +1154,26 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 
 
 @pytest.mark.timeout(120)
+@pytest.mark.flaky(max_runs=6, min_passes=1)
 @pytest.mark.parametrize("rate", [50.0])
 @pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
 @pytest.mark.parametrize("hybridize", [False, True])
 def test_inflated_poisson_likelihood(
-    rate: float,
-    hybridize: bool,
-    zero_probability: float,
+    rate: float, hybridize: bool, zero_probability: float,
 ) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
     # generate samples
-    num_samples = 2000 # Required for convergence
-    
+    num_samples = 2000  # Required for convergence
+
     distr = ZeroInflatedPoissonOutput().distribution(
-        distr_args = [
-            mx.nd.array([[1-zero_probability, zero_probability]]),
+        distr_args=[
+            mx.nd.array([[1 - zero_probability, zero_probability]]),
             mx.nd.array([rate]),
-            mx.nd.array([0.])
+            mx.nd.array([0.0]),
         ]
-    ) 
+    )
     distr_output = ZeroInflatedPoissonOutput()
 
     samples = distr.sample(num_samples).squeeze()
@@ -1197,38 +1198,44 @@ def test_inflated_poisson_likelihood(
         np.abs(rate_hat - rate) < TOL * rate
     ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
 
+
 @pytest.mark.timeout(150)
+@pytest.mark.flaky(max_runs=6, min_passes=1)
 @pytest.mark.parametrize("mu", [5.0])
 @pytest.mark.parametrize("alpha", [0.05])
 @pytest.mark.parametrize("zero_probability", [0.3])
 @pytest.mark.parametrize("hybridize", [False, True])
 def test_inflated_neg_binomial_likelihood(
-    mu: float, 
-    alpha: float,
-    zero_probability: float,
-    hybridize: bool,
+    mu: float, alpha: float, zero_probability: float, hybridize: bool,
 ) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
-    
+
     # generate samples
-    num_samples = 2000 # Required for convergence
-    
+    num_samples = 2000  # Required for convergence
+
     distr = ZeroInflatedNegativeBinomialOutput().distribution(
-        distr_args = [
-            mx.nd.array([[1-zero_probability, zero_probability]]), # mixture probs
-            mx.nd.array([mu, alpha]), # loc, shape of Neg Bin
-            mx.nd.array([0.])
+        distr_args=[
+            mx.nd.array(
+                [[1 - zero_probability, zero_probability]]
+            ),  # mixture probs
+            mx.nd.array([mu, alpha]),  # loc, shape of Neg Bin
+            mx.nd.array([0.0]),
         ]
-    ) 
+    )
     distr_output = ZeroInflatedNegativeBinomialOutput()
 
     samples = distr.sample(num_samples).squeeze()
 
     init_biases = None
 
-    (_, zero_probability_hat),  mu_hat, alpha_hat, _ = maximum_likelihood_estimate_sgd(
+    (
+        (_, zero_probability_hat),
+        mu_hat,
+        alpha_hat,
+        _,
+    ) = maximum_likelihood_estimate_sgd(
         distr_output=distr_output,
         samples=samples,
         init_biases=init_biases,
@@ -1249,4 +1256,3 @@ def test_inflated_neg_binomial_likelihood(
     assert (
         np.abs(alpha_hat - alpha) < TOL * alpha
     ), f"alpha did not match: alpha = {alpha}, alpha_hat = {alpha_hat}"
-

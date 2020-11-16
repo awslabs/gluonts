@@ -28,6 +28,7 @@ from .distribution_output import DistributionOutput
 from .deterministic import DeterministicOutput
 from .mixture import MixtureDistributionOutput
 
+
 class Poisson(Distribution):
     r"""
     Poisson distribution, i.e. the distribution of the number of
