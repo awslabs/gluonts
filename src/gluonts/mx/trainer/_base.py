@@ -31,7 +31,9 @@ from gluonts.core.exception import GluonTSDataError, GluonTSUserError
 from gluonts.dataset.loader import DataLoader
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
+from gluonts.mx.trainer.callback import Callback, CallbackList
 from gluonts.mx.util import HybridContext
+from mxnet.metric import ndarray
 
 from . import learning_rate_scheduler as lrs
 from .model_averaging import (
@@ -98,7 +100,7 @@ class Trainer:
         Initializer of the weights of the network (default: "xavier").
     hybridize
         If set to true the network will be hybridized before training
-    post_initialize_cb
+    callbacks
         An optional callback function. If provided the function will be called with the
         initialized network `post_initialize_cb(net)` before the training starts.
         This callback can be used to e.g. overwrite parameters for warm starting, to freeze some
@@ -123,10 +125,7 @@ class Trainer:
         avg_strategy: Union[
             AveragingStrategy, IterationAveragingStrategy
         ] = SelectNBestMean(num_models=1),
-        post_initialize_callback: Optional[
-            Callable[[mx.gluon.Block], None]
-        ] = None,
-        post_epoch_callback: Optional[Callable] = None,
+        callbacks: Optional[List[Callback]] = None,
     ) -> None:
 
         if batch_size is not None:
@@ -174,8 +173,12 @@ class Trainer:
         self.avg_strategy = avg_strategy
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
-        self.post_initialize_callback = post_initialize_callback
-        self.post_epoch_callback = post_epoch_callback
+
+        self.callbacks = (
+            CallbackList(callbacks)
+            if callbacks is not None
+            else CallbackList([])
+        )
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()
@@ -287,8 +290,10 @@ class Trainer:
                             if first_forward:
                                 first_forward = False
                                 _ = net(*batch.values())
-                                if self.post_initialize_cb:
-                                    self.post_initialize_cb(net)
+
+                                self.callbacks.call_after_network_initializing(
+                                    training_network=net
+                                )
 
                             with mx.autograd.record():
                                 # we set the mode explicitly as by default mxnet assumes predict mode and hence
@@ -383,18 +388,26 @@ class Trainer:
                         train_iter,
                         num_batches_to_use=self.num_batches_per_epoch,
                     )
+
+                    should_continue = self.callbacks.call_after_epoch(
+                        epoch_no=epoch_no,
+                        epoch_loss=loss_value(epoch_loss),
+                        training_network=net,
+                    )
+
                     if is_validation_available:
                         epoch_loss = loop(
                             epoch_no, validation_iter, is_training=False
                         )
-                    should_continue = True
 
-                    if self.post_epoch_callback is not None:
-                        should_continue = self.post_epoch_callback(
+                    should_continue = (
+                        should_continue
+                        and self.callbacks.call_after_validation(
                             epoch_no=epoch_no,
-                            epoch_loss=epoch_loss,
-                            trainer=trainer,
+                            epoch_loss=loss_value(epoch_loss),
+                            training_network=net,
                         )
+                    )
 
                     # update average trigger
                     if isinstance(

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, List
+from typing import List
 
 # Third-party imports
 import numpy as np
@@ -21,13 +21,11 @@ import mxnet.gluon.nn as nn
 # First-party imports
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
-from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.support.util import copy_parameters
 
 
-# later write abstract base class and make cbs a list so that a list of callbacks is executed make methods pass
-# methods should be post initiliaze post epoch like keras
-# MAYBE NOT PUT INTO MX.
+# TODO make framework independent?
 class Callback:
     def __init__(self, **kwargs):
         pass
@@ -45,9 +43,17 @@ class Callback:
     ) -> bool:
         return True
 
+    def call_after_validation(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+    ) -> bool:
+        return True
+
 
 class CallbackList(Callback):
-    def __init__(self, callbacks: Optional[List[Callback]] = None, **kwargs):
+    def __init__(self, callbacks: List[Callback], **kwargs):
         self.callbacks = callbacks
 
     def call_after_network_initializing(
@@ -80,11 +86,11 @@ class EarlyStopping(Callback):
     def __init__(
         self,
         validation_dataset,
-        predictor: Predictor,
+        predictor: GluonPredictor,
         evaluator: Evaluator = Evaluator(),
         metric: str = "MSE",
         patience: int = 10,
-        min_delta: Optional[float] = 0.0,
+        min_delta: float = 0.0,
         verbose: bool = True,
         minimize_metric: bool = True,
         restore_best_network: bool = True,
@@ -117,12 +123,15 @@ class EarlyStopping(Callback):
             self.best_metric_value = -np.inf
             self.is_better = np.greater
 
-        self.validation_metric_history = []
+        self.validation_metric_history: List[float] = []
         self.best_network = None
         self.n_stale_epochs = 0
 
     def call_after_epoch(
-        self, epoch_no: int, training_network: nn.HybridBlock, **kwargs
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
     ) -> bool:
         should_continue = True
         copy_parameters(training_network, self.predictor.prediction_net)
@@ -173,14 +182,34 @@ class EarlyStopping(Callback):
 class LossLogger(Callback):
     def __init__(self):
         self.loss_history = []
+        self.validation_loss_history = []
 
-    def call_after_epoch(self, epoch_loss: float, **kwargs) -> bool:
+    def call_after_epoch(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+    ) -> bool:
         self.loss_history.append(epoch_loss)
+        return True
+
+    def call_after_validation(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+    ) -> bool:
+        self.validation_loss_history.append(epoch_loss)
         return True
 
 
 class TerminateOnNaN(Callback):
-    def call_after_epoch(self, epoch_loss: float, **kwargs) -> bool:
+    def call_after_epoch(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+    ) -> bool:
         return epoch_loss == epoch_loss
 
 
