@@ -85,6 +85,10 @@ class Distribution:
     def F(self):
         raise NotImplementedError()
 
+    @property
+    def domain(self) -> Tuple[float, float]:
+        raise NotImplementedError()
+
     def log_prob(self, x: Tensor) -> Tensor:
         r"""
         Compute the log-density of the distribution at `x`.
@@ -302,26 +306,22 @@ class Distribution:
         """
 
         def _tensor_cdf_bisection(
-            level: Tensor, ub=1e16, lb=-1e16, tol=1e-6, max_iter=100
+            level: Tensor,
+            domain_lb: float,
+            domain_ub: float,
+            tol=1e-6,
+            max_iter=100,
         ) -> Tensor:
             r"""
             Returns a Tensor of shape (len(level), *batch_size) with the corresponding quantiles.
             """
-            upper_bound = F.ones((len(level), *self.batch_shape)) * ub
-            lower_bound = F.ones((len(level), *self.batch_shape)) * lb
+            upper_bound = F.ones((len(level), *self.batch_shape)) * domain_ub
+            lower_bound = F.ones((len(level), *self.batch_shape)) * domain_lb
 
             for _ in range(self.all_dim):
                 level = level.expand_dims(axis=-1)
 
-            try:
-                q = F.broadcast_like(
-                    self.mean.expand_dims(axis=0),
-                    level,
-                    lhs_axes=0,
-                    rhs_axes=0,
-                )
-            except:
-                q = F.zeros((len(level), *self.batch_shape)) + 1e-6
+            q = 0.5 * F.broadcast_add(upper_bound, lower_bound)
             val = self.cdf(q) - level
 
             cnt = 0
@@ -346,8 +346,14 @@ class Distribution:
                 cnt += 1
             return q
 
+        try:
+            domain_lb, domain_ub = self.domain
+        except:
+            # default to R+ if not defined
+            domain_lb, domain_ub = (0.0, 1e16)
+
         F = self.F
-        return _tensor_cdf_bisection(level)
+        return _tensor_cdf_bisection(level, domain_lb, domain_ub)
 
     def __getitem__(self, item):
         sliced_distr = self.__class__(
