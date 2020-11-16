@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional
+from typing import Optional, List
 
 # Third-party imports
 import numpy as np
@@ -29,7 +29,51 @@ from gluonts.support.util import copy_parameters
 # methods should be post initiliaze post epoch like keras
 # MAYBE NOT PUT INTO MX.
 class Callback:
-    pass
+    def __init__(self, **kwargs):
+        pass
+
+    def call_after_network_initializing(
+        self, training_network: nn.HybridBlock
+    ) -> None:
+        pass
+
+    def call_after_epoch(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+    ) -> bool:
+        return True
+
+
+class CallbackList(Callback):
+    def __init__(self, callbacks: Optional[List[Callback]] = None, **kwargs):
+        self.callbacks = callbacks
+
+    def call_after_network_initializing(
+        self, training_network: nn.HybridBlock
+    ) -> None:
+        for callback in self.callbacks:
+            callback.call_after_network_initializing(
+                training_network=training_network
+            )
+
+    def call_after_epoch(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+    ) -> bool:
+        return np.all(
+            [
+                callback.call_after_epoch(
+                    epoch_no=epoch_no,
+                    epoch_loss=epoch_loss,
+                    training_network=training_network,
+                )
+                for callback in self.callbacks
+            ]
+        )
 
 
 class EarlyStopping(Callback):
@@ -77,7 +121,9 @@ class EarlyStopping(Callback):
         self.best_network = None
         self.n_stale_epochs = 0
 
-    def __call__(self, epoch_no: int, training_network: nn.HybridBlock, **kwargs):
+    def call_after_epoch(
+        self, epoch_no: int, training_network: nn.HybridBlock, **kwargs
+    ) -> bool:
         should_continue = True
         copy_parameters(training_network, self.predictor.prediction_net)
 
@@ -117,20 +163,32 @@ class EarlyStopping(Callback):
 
                 if self.restore_best_network:
                     print(
-                        f"Restoring best network from epoch {epoch_no-self.patience}."
+                        f"Restoring best network from epoch {epoch_no - self.patience}."
                     )
                     training_network.load_parameters("best_network.params")
 
         return should_continue
 
 
-class LoggingCallback(Callback):
-    pass
+class LossLogger(Callback):
+    def __init__(self):
+        self.loss_history = []
+
+    def call_after_epoch(self, epoch_loss: float, **kwargs) -> bool:
+        self.loss_history.append(epoch_loss)
+        return True
 
 
 class TerminateOnNaN(Callback):
-    pass
+    def call_after_epoch(self, epoch_loss: float, **kwargs) -> bool:
+        return epoch_loss == epoch_loss
 
 
 class WarmStart(Callback):
-    pass
+    def __init__(self, start_network: nn.HybridBlock):
+        self.start_network = start_network
+
+    def call_after_network_initializing(
+        self, training_network: nn.HybridBlock
+    ) -> None:
+        copy_parameters(self.start_network, training_network)

@@ -123,7 +123,9 @@ class Trainer:
         avg_strategy: Union[
             AveragingStrategy, IterationAveragingStrategy
         ] = SelectNBestMean(num_models=1),
-        post_initialize_callback: Optional[Callable[[mx.gluon.Block], None]] = None,
+        post_initialize_callback: Optional[
+            Callable[[mx.gluon.Block], None]
+        ] = None,
         post_epoch_callback: Optional[Callable] = None,
     ) -> None:
 
