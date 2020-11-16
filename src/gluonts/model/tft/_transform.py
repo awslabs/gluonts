@@ -19,7 +19,34 @@ import numpy as np
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.transform import InstanceSplitter, shift_timestamp
+from gluonts.transform import (
+    target_transformation_length,
+    MapTransformation,
+    InstanceSplitter,
+    shift_timestamp,
+)
+
+
+class BroadcastTo(MapTransformation):
+    @validated()
+    def __init__(
+        self,
+        field: str,
+        ext_length: int = 0,
+        target_field: str = FieldName.TARGET,
+    ) -> None:
+        self.field = field
+        self.ext_length = ext_length
+        self.target_field = target_field
+
+    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        length = target_transformation_length(
+            data[self.target_field], self.ext_length, is_train
+        )
+        data[self.field] = np.broadcast_to(
+            data[self.field], (data[self.field].shape[:-1] + (length,)),
+        )
+        return data
 
 
 class TFTInstanceSplitter(InstanceSplitter):
@@ -136,11 +163,12 @@ class TFTInstanceSplitter(InstanceSplitter):
                     if self.output_NTC:
                         past_piece = past_piece.transpose()
                         future_piece = future_piece.transpose()
-                    d[self._past(field)] = past_piece
                     if field not in self.past_ts_fields:
+                        d[self._past(field)] = past_piece
                         d[self._future(field)] = future_piece
-                    del d[field]
-
+                        del d[field]
+                    else:
+                        d[field] = past_piece
             pad_indicator = np.zeros(self.past_length)
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1

@@ -25,6 +25,8 @@ from gluonts.model.common import Tensor
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
+from .deterministic import DeterministicOutput
+from .mixture import MixtureDistributionOutput
 
 
 class NegativeBinomial(Distribution):
@@ -139,3 +141,8 @@ class NegativeBinomialOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return ()
+
+
+class ZeroInflatedNegativeBinomialOutput(MixtureDistributionOutput):
+    def __init__(self):
+        super().__init__([NegativeBinomialOutput(), DeterministicOutput(0)])

@@ -51,14 +51,18 @@ from .multivariate_gaussian import (
     MultivariateGaussianOutput,
 )
 from .nan_mixture import NanMixture, NanMixtureOutput
-from .neg_binomial import NegativeBinomial, NegativeBinomialOutput
+from .neg_binomial import (
+    NegativeBinomial,
+    NegativeBinomialOutput,
+    ZeroInflatedNegativeBinomialOutput,
+)
 from .piecewise_linear import (
     PiecewiseLinear,
     PiecewiseLinearOutput,
     FixedKnotsPiecewiseLinearOutput,
     TransformedPiecewiseLinear,
 )
-from .poisson import Poisson, PoissonOutput
+from .poisson import Poisson, PoissonOutput, ZeroInflatedPoissonOutput
 from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
@@ -93,6 +97,7 @@ __all__ = [
     "NanMixture",
     "NanMixtureOutput",
     "NegativeBinomialOutput",
+    "ZeroInflatedNegativeBinomialOutput",
     "NegativeBinomial",
     "UniformOutput",
     "Uniform",
@@ -102,6 +107,7 @@ __all__ = [
     "PiecewiseLinearOutput",
     "Poisson",
     "PoissonOutput",
+    "ZeroInflatedPoissonOutput",
     "TransformedPiecewiseLinear",
     "TransformedDistribution",
     "TransformedDistributionOutput",

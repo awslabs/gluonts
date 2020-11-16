@@ -36,7 +36,7 @@ class GatedLinearUnit(HybridBlock):
         if self.nonlinear:
             val = F.tanh(val)
         gate = F.sigmoid(gate)
-        return gate * val
+        return F.broadcast_mul(gate, val)
 
 
 class GatedResidualNetwork(HybridBlock):
@@ -100,7 +100,7 @@ class GatedResidualNetwork(HybridBlock):
                 )
             )
             self.mlp.add(GatedLinearUnit(axis=-1, nonlinear=False,))
-            self.lnorm = nn.LayerNorm(axis=-1)
+            self.lnorm = nn.LayerNorm(axis=-1, in_channels=self.d_output)
 
     def hybrid_forward(
         self, F, x: Tensor, c: Optional[Tensor] = None,
@@ -116,7 +116,7 @@ class GatedResidualNetwork(HybridBlock):
         if c is not None:
             x = F.concat(x, c, dim=-1)
         x = self.mlp(x)
-        x = self.lnorm(x + skip)
+        x = self.lnorm(F.broadcast_add(x, skip))
         return x
 
 
@@ -172,7 +172,7 @@ class VariableSelectionNetwork(HybridBlock):
         for var, net in zip(variables, self.variable_network):
             var_encodings.append(net(var))
         var_encodings = F.stack(*var_encodings, axis=-1)
-        var_encodings = F.sum(var_encodings * weight, axis=-1)
+        var_encodings = F.sum(F.broadcast_mul(var_encodings, weight), axis=-1)
         return var_encodings, weight
 
 
@@ -208,6 +208,7 @@ class SelfAttention(HybridBlock):
             self.dropout = nn.Dropout(dropout)
             self.q_proj = nn.Dense(
                 units=self.d_hidden,
+                in_units=self.d_hidden,
                 use_bias=self.bias,
                 flatten=False,
                 weight_initializer=init.Xavier(),
@@ -215,6 +216,7 @@ class SelfAttention(HybridBlock):
             )
             self.k_proj = nn.Dense(
                 units=self.d_hidden,
+                in_units=self.d_hidden,
                 use_bias=self.bias,
                 flatten=False,
                 weight_initializer=init.Xavier(),
@@ -222,6 +224,7 @@ class SelfAttention(HybridBlock):
             )
             self.v_proj = nn.Dense(
                 units=self.d_head if self.share_values else self.d_hidden,
+                in_units=self.d_hidden,
                 use_bias=self.bias,
                 flatten=False,
                 weight_initializer=init.Xavier(),
@@ -229,6 +232,7 @@ class SelfAttention(HybridBlock):
             )
             self.out_proj = nn.Dense(
                 units=self.d_hidden,
+                in_units=self.d_hidden,
                 use_bias=self.bias,
                 flatten=False,
                 weight_initializer=init.Xavier(),
@@ -325,14 +329,18 @@ class TemporalFusionEncoder(HybridBlock):
                 rnn.LSTMCell(hidden_size=d_hidden, input_size=d_input,)
             )
             self.gate = nn.HybridSequential()
-            self.gate.add(nn.Dense(d_hidden * 2, flatten=False))
+            self.gate.add(
+                nn.Dense(units=d_hidden * 2, in_units=d_hidden, flatten=False)
+            )
             self.gate.add(GatedLinearUnit(axis=-1, nonlinear=False))
             if d_input != d_hidden:
-                self.skip_proj = nn.Dense(d_hidden, flatten=False)
+                self.skip_proj = nn.Dense(
+                    units=d_hidden, in_units=d_input, flatten=False
+                )
                 self.add_skip = True
             else:
                 self.add_skip = False
-            self.lnorm = nn.LayerNorm(axis=-1)
+            self.lnorm = nn.LayerNorm(axis=-1, in_channels=d_hidden)
 
     def hybrid_forward(
         self, F, ctx_input: Tensor, tgt_input: Tensor, states: List[Tensor],
@@ -354,7 +362,7 @@ class TemporalFusionEncoder(HybridBlock):
         if self.add_skip:
             skip = self.skip_proj(skip)
         encodings = self.gate(encodings)
-        encodings = self.lnorm(skip + encodings)
+        encodings = self.lnorm(F.broadcast_add(skip, encodings))
         return encodings
 
 
@@ -391,23 +399,25 @@ class TemporalFusionDecoder(HybridBlock):
             self.att_net.add(
                 nn.Dense(
                     units=d_hidden * 2,
+                    in_units=d_hidden,
                     flatten=False,
                     weight_initializer=init.Xavier(),
                 )
             )
             self.att_net.add(GatedLinearUnit(axis=-1, nonlinear=False,))
-            self.att_lnorm = nn.LayerNorm(axis=-1)
+            self.att_lnorm = nn.LayerNorm(axis=-1, in_channels=d_hidden,)
             self.ff_net = nn.HybridSequential()
             self.ff_net.add(GatedResidualNetwork(d_hidden, dropout=dropout,))
             self.ff_net.add(
                 nn.Dense(
                     units=d_hidden * 2,
+                    in_units=d_hidden,
                     flatten=False,
                     weight_initializer=init.Xavier(),
                 )
             )
             self.ff_net.add(GatedLinearUnit(axis=-1, nonlinear=False,))
-            self.ff_lnorm = nn.LayerNorm(axis=-1)
+            self.ff_lnorm = nn.LayerNorm(axis=-1, in_channels=d_hidden)
 
     def hybrid_forward(
         self, F, x: Tensor, static: Tensor, mask: Tensor
@@ -423,7 +433,7 @@ class TemporalFusionDecoder(HybridBlock):
         att = self.attention(x, mask)
         att = self.att_net(att)
         x = F.slice_axis(x, axis=1, begin=self.context_length, end=None)
-        x = self.att_lnorm(x + att)
+        x = self.att_lnorm(F.broadcast_add(x, att))
         x = self.ff_net(x)
-        x = self.ff_lnorm(x + skip)
+        x = self.ff_lnorm(F.broadcast_add(x, skip))
         return x

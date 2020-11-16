@@ -36,6 +36,7 @@ from gluonts.mx.distribution import (
     DirichletMultinomial,
     Categorical,
     ZeroAndOneInflatedBeta,
+    ZeroInflatedPoissonOutput,
 )
 from gluonts.core.serde import dump_json, load_json, dump_code, load_code
 from gluonts.model.tpp.distribution import Loglogistic, Weibull
@@ -153,6 +154,7 @@ DISTRIBUTIONS_WITHOUT_STDDEV = [Loglogistic, Weibull]
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+@flaky
 def test_sampling(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
     distr = serialize_fn(distr)

@@ -16,7 +16,26 @@ A number of the below methods are available in GluonTS.
 }
 ```
 
-[Deep Factor models, a global-local forecasting method.](http://proceedings.mlr.press/v97/wang19k.html)
+Normalizing Kalman Filters
+```
+@inproceedings{bezene2020nkf,
+	Author = {Emmanuel de B\'{e}zenac, Syama S. Rangapuram, Konstantinos Benidis, Michael Bohlke-Schneider, Richard Kurle, Lorenzo Stella, Hilaf Hasson, Patrick Gallinari, Tim Januschowski},
+	Booktitle = {Advances in Neural Information Processing Systems},
+	Title = {Normalizing Kalman Filters for Multivariate Time Series Analysis},
+	Year = {2020}
+}
+```
+Particle Filters
+```
+@inproceedings{kurle20,
+	Author = {Richard Kurle, Syama Rangapuram, Emmanuel de Bezenac, Stepuhan Günnemann, Jan Gasthaus},
+	Booktitle = {Advances in Neural Information Processing Systems},
+	Title = {Deep Rao-Blackwellised Particle Filters for Time Series Forecasting},
+	Year = {2019}
+}
+```
+
+[Deep Factor models, a global-local forecasting method](http://proceedings.mlr.press/v97/wang19k.html)
 ```
 @inproceedings{wang2019deep,
 	Author = {Wang, Yuyang and Smola, Alex and Maddix, Danielle and Gasthaus, Jan and Foster, Dean and Januschowski, Tim},

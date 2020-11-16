@@ -17,7 +17,7 @@ import os
 import tempfile
 import time
 import uuid
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Callable
 
 # Third-party imports
 import mxnet as mx
@@ -32,6 +32,7 @@ from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
 from gluonts.support.util import HybridContext
+from mxnet.metric import ndarray
 
 # Relative imports
 from . import learning_rate_scheduler as lrs
@@ -98,6 +99,12 @@ class Trainer:
     init
         Initializer of the weights of the network (default: "xavier").
     hybridize
+        If set to true the network will be hybridized before training
+    post_initialize_cb
+        An optional callback function. If provided the function will be called with the
+        initialized network `post_initialize_cb(net)` before the training starts.
+        This callback can be used to e.g. overwrite parameters for warm starting, to freeze some
+        of the network parameters etc.
     """
 
     @validated()
@@ -118,6 +125,7 @@ class Trainer:
         avg_strategy: Union[
             AveragingStrategy, IterationAveragingStrategy
         ] = SelectNBestMean(num_models=1),
+        post_initialize_cb: Optional[Callable[[mx.gluon.Block], None]] = None,
     ) -> None:
 
         assert (
@@ -154,6 +162,7 @@ class Trainer:
         self.avg_strategy = avg_strategy
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
+        self.post_initialize_cb = post_initialize_cb
 
     def set_halt(self, signum: int, stack_frame: Any) -> None:
         logger.info("Received signal: {}".format(signum))
@@ -225,9 +234,12 @@ class Trainer:
                     kvstore="device",  # FIXME: initialize properly
                 )
 
+                first_forward = True
+
                 def loop(
                     epoch_no, batch_iter, is_training: bool = True
                 ) -> mx.metric.Loss:
+                    nonlocal first_forward
                     tic = time.time()
 
                     epoch_loss = mx.metric.Loss()
@@ -245,6 +257,12 @@ class Trainer:
 
                             inputs = [data_entry[k] for k in input_names]
 
+                            if first_forward:
+                                first_forward = False
+                                _ = net(*inputs)
+                                if self.post_initialize_cb:
+                                    self.post_initialize_cb(net)
+
                             with mx.autograd.record():
                                 output = net(*inputs)
 
@@ -257,26 +275,27 @@ class Trainer:
                                 else:
                                     loss = output
 
-                            if is_training:
-                                loss.backward()
-                                trainer.step(batch_size)
-
-                                # iteration averaging in training
-                                if isinstance(
-                                    self.avg_strategy,
-                                    IterationAveragingStrategy,
-                                ):
-                                    self.avg_strategy.apply(net)
-
-                            epoch_loss.update(None, preds=loss)
-                            lv = loss_value(epoch_loss)
-
-                            if not np.isfinite(lv):
+                            if not np.isfinite(ndarray.sum(loss).asscalar()):
                                 logger.warning(
-                                    "Epoch[%d] gave nan loss", epoch_no
+                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored",
+                                    batch_no,
+                                    epoch_no,
                                 )
-                                return epoch_loss
+                            else:
+                                if is_training:
+                                    loss.backward()
+                                    trainer.step(batch_size)
 
+                                    # iteration averaging in training
+                                    if isinstance(
+                                        self.avg_strategy,
+                                        IterationAveragingStrategy,
+                                    ):
+                                        self.avg_strategy.apply(net)
+
+                                epoch_loss.update(None, preds=loss)
+
+                            lv = loss_value(epoch_loss)
                             it.set_postfix(
                                 ordered_dict={
                                     "epoch": f"{epoch_no + 1}/{self.epochs}",

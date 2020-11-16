@@ -25,6 +25,8 @@ from gluonts.model.common import Tensor
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
+from .deterministic import DeterministicOutput
+from .mixture import MixtureDistributionOutput
 
 
 class Poisson(Distribution):
@@ -116,3 +118,8 @@ class PoissonOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return ()
+
+
+class ZeroInflatedPoissonOutput(MixtureDistributionOutput):
+    def __init__(self):
+        super().__init__([PoissonOutput(), DeterministicOutput(0)])

@@ -13,7 +13,7 @@
 
 # Standard library imports
 from pathlib import Path
-from typing import Iterator, List, Optional, cast, Callable
+from typing import Iterator, List, Optional, cast, Callable, Optional
 from functools import partial
 
 # Third-party imports
@@ -163,7 +163,9 @@ class PointProcessGluonPredictor(GluonPredictor):
         )
 
     def as_symbol_block_predictor(
-        self, batch: DataBatch
+        self,
+        batch: Optional[DataBatch] = None,
+        dataset: Optional[Dataset] = None,
     ) -> SymbolBlockPredictor:
         raise NotImplementedError(
             "Point process models are currently not hybridizable"

@@ -87,9 +87,27 @@ class GenPareto(Distribution):
         """
         return F.where(
             x < 0,
-            -np.inf * F.ones_like(x),
+            -10.**15 * F.ones_like(x),
             genpareto_log_prob(F.abs(x), xi, beta),
         )
+
+    def cdf(self, x: Tensor) -> Tensor:
+        F = self.F
+        x_shifted = F.broadcast_div(x, self.beta)
+        u = 1 - F.power(1 + self.xi * x_shifted, - F.reciprocal(self.xi))
+        return u
+
+
+    def quantile(self, level: Tensor):
+        F = self.F
+        # we consider level to be an independent axis and so expand it
+        # to shape (num_levels, 1, 1, ...)
+        for _ in range(self.all_dim):
+            level = level.expand_dims(axis=-1)
+
+        x_shifted = F.broadcast_div(F.power(1 - level, -self.xi) - 1, self.xi)
+        x = F.broadcast_mul(x_shifted, self.beta)
+        return x
 
     @property
     def mean(self) -> Tensor:

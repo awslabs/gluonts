@@ -11,20 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterable
+from toolz.functoolz import curry
 
-import pytest
-
-from gluonts.dataset.artificial import constant_dataset
-from gluonts.dataset.loader import PseudoShuffledIterator
+from ._partition import partition
 
 
-@pytest.mark.parametrize("data", [range(20), constant_dataset()[1],])
-def test_shuffle_iter(data: Iterable) -> None:
-    list_data = list(data)
-    shuffled_iter = PseudoShuffledIterator(
-        iter(list_data), shuffle_buffer_length=5
-    )
-    shuffled_data = list(shuffled_iter)
-    assert len(shuffled_data) == len(list_data)
-    assert all(d in shuffled_data for d in list_data)
+class Map:
+    def __init__(self, fn, xs):
+        self.fn = fn
+        self.xs = xs
+
+    def __iter__(self):
+        yield from map(self.fn, self.xs)
+
+
+lift = curry(Map)
+
+
+@partition.register
+def partition_map(xs: Map, n):
+    return [Map(xs.fn, part) for part in partition(xs.xs, n)]

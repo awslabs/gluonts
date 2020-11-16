@@ -104,7 +104,6 @@ def predictor_factory():
     "dataset_tuple", [(point_process_dataset, 1), (point_process_dataset_2, 3)]
 )
 def test_tpp_pred_dataset_2_shapes_ok(dataset_tuple, predictor_factory):
-
     dataset, ds_length = dataset_tuple
 
     predictor = predictor_factory()
