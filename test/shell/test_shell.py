@@ -128,9 +128,7 @@ def test_train_shell(train_env: TrainEnv, caplog, forecaster_type) -> None:
                 assert line.endswith("0.0")
             if "local, Coverage" in line:
                 assert line.endswith("0.0")
-            if "MASE_strict" in line:
-                assert line.endswith("0.0")
-            elif "MASE" in line or "MSIS" in line:
+            if "MASE" in line or "MSIS" in line:
                 assert line.endswith("0.0")
             if "abs_target_sum" in line:
                 assert line.endswith("270.0")

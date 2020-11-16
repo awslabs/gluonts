@@ -298,10 +298,9 @@ class Evaluator:
             "abs_target_sum": self.abs_target_sum(pred_target),
             "abs_target_mean": self.abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
-            "MASE": self.mase(pred_target, median_fcst, seasonal_error),
-            "MASE_strict": self.mase_strict(
-                pred_target, median_fcst, seasonal_error
-            ),
+            "MASE": self.mase(pred_target, median_fcst, seasonal_error)
+            if seasonal_error > Evaluator.zero_tol
+            else 0,
             "MAPE": self.mape(pred_target, median_fcst),
             "sMAPE": self.smape(pred_target, median_fcst),
             "OWA": np.nan,  # by default not calculated
@@ -321,12 +320,7 @@ class Evaluator:
                     target_fcst = median_fcst
 
                 try:
-                    val = {
-                        k: eval_fn(
-                            pred_target,
-                            target_fcst,
-                        )
-                    }
+                    val = {k: eval_fn(pred_target, target_fcst,)}
                 except:
                     val = {k: np.nan}
 
@@ -375,7 +369,6 @@ class Evaluator:
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
             "MASE": "mean",
-            "MASE_strict": "mean",
             "MAPE": "mean",
             "sMAPE": "mean",
             "OWA": "mean",
@@ -470,24 +463,7 @@ class Evaluator:
 
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         """
-        flag = seasonal_error <= Evaluator.zero_tol
-        return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
-            seasonal_error + flag
-        )
-
-    @staticmethod
-    def mase_strict(target, forecast, seasonal_error):
-        """
-        Upper bound limited continous version of MASE, avoids infinite values.
-        .. math::
-
-            mase = mean(|Y - Y_hat|) / seasonal_error
-
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-        return np.mean(np.abs(target - forecast)) / max(
-            Evaluator.zero_tol, seasonal_error
-        )
+        return np.mean(np.abs(target - forecast)) / seasonal_error
 
     @staticmethod
     def mape(target, forecast):
