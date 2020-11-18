@@ -180,136 +180,46 @@ test_cases = [
         mx.nd.random.normal(shape=(10, 20, 30)),
         mx.nd.zeros(shape=(10, 20, 30)),
         mx.nd.ones(shape=(10, 30)),
-    )
+    ),
 ]
 
 test_minmax = [
     (
         scaler.MinMax(),
-        mx.nd.array(
-            [
-                [1.0, 2.0, 3.0],
-                [4.0, 5.0, 6.0],
-            ]
-        ),
-        mx.nd.array(
-            [
-                [1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0],
-            ]
-        ),
-        mx.nd.array(
-            [
-                    [0., 0.5, 1.0],
-                    [0., 0.5, 1.0],
-            ]
-                    ),
+        mx.nd.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0],]),
+        mx.nd.array([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0],]),
+        mx.nd.array([[0.0, 0.5, 1.0], [0.0, 0.5, 1.0],]),
     ),
     (
         scaler.MinMax(),
-        mx.nd.array(
-            [
-                [1.0, 2.0, 3.0],
-                [4.0, 5.0, 6.0],
-            ]
-        ),
-        mx.nd.array(
-            [
-                [0., 1.0, 1.0],
-                [1.0, 1.0, 0.],
-            ]
-        ),
-        mx.nd.array(
-            [
-                    [0., 0, 1.0],
-                    [0., 1., 0.],
-            ]
-                    ),
+        mx.nd.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0],]),
+        mx.nd.array([[0.0, 1.0, 1.0], [1.0, 1.0, 0.0],]),
+        mx.nd.array([[0.0, 0, 1.0], [0.0, 1.0, 0.0],]),
     ),
     (
         scaler.MinMax(),
-        mx.nd.array(
-            [
-                [9.0, 9.0, 9.0],
-                [4.0, 5.0, 6.0],
-            ]
-        ),
-        mx.nd.array(
-            [
-                [1., 1., 1.],
-                [1., 1., 1.],
-            ]
-        ),
-        mx.nd.array(
-            [
-                    [1., 1., 1.],
-                    [0., 0.5, 1.],
-            ]
-                    ),
+        mx.nd.array([[9.0, 9.0, 9.0], [4.0, 5.0, 6.0],]),
+        mx.nd.array([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0],]),
+        mx.nd.array([[1.0, 1.0, 1.0], [0.0, 0.5, 1.0],]),
     ),
     (
         scaler.MinMax(),
-        mx.nd.array(
-            [
-                [9.0, 9.0, 9.0],
-                [4.0, 5.0, 6.0],
-            ]
-        ),
-        mx.nd.array(
-            [
-                [0., 1., 1.],
-                [1., 1., 1.],
-            ]
-        ),
-        mx.nd.array(
-            [
-                    [0., 1., 1.],
-                    [0., 0.5, 1.],
-            ]
-                    ),
+        mx.nd.array([[9.0, 9.0, 9.0], [4.0, 5.0, 6.0],]),
+        mx.nd.array([[0.0, 1.0, 1.0], [1.0, 1.0, 1.0],]),
+        mx.nd.array([[0.0, 1.0, 1.0], [0.0, 0.5, 1.0],]),
     ),
     (
         scaler.MinMax(),
-        mx.nd.array(
-            [
-                [0., 0., 0.],
-                [4.0, 5.0, 6.0],
-            ]
-        ),
-        mx.nd.array(
-            [
-                [1., 1., 1.],
-                [1., 1., 1.],
-            ]
-        ),
-        mx.nd.array(
-            [
-                    [0., 0., 0.],
-                    [0., 0.5, 1.],
-            ]
-                    ),
+        mx.nd.array([[0.0, 0.0, 0.0], [4.0, 5.0, 6.0],]),
+        mx.nd.array([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0],]),
+        mx.nd.array([[0.0, 0.0, 0.0], [0.0, 0.5, 1.0],]),
     ),
     (
         scaler.MinMax(axis=0),
-        mx.nd.array(
-            [
-                [1.0, 2.0, 3.0],
-                [4.0, 5.0, 6.0],
-            ]
-        ),
-        mx.nd.array(
-            [
-                [1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0],
-            ]
-        ),
-        mx.nd.array(
-            [
-                    [0., 0., 0.],
-                    [1., 1., 1.],
-            ]
-                    ),
-    )
+        mx.nd.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0],]),
+        mx.nd.array([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0],]),
+        mx.nd.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0],]),
+    ),
 ]
 
 
@@ -344,7 +254,7 @@ def test_nopscaler(target, observed):
 
 @pytest.mark.parametrize("s, target, observed, expected_scale", test_minmax)
 def test_minmaxscaler(s, target, observed, expected_scale):
-    
+
     target_scaled, scale = s(target, observed)
 
     assert np.allclose(
