@@ -91,7 +91,7 @@ class NumSplitsStrategy(BaseModel):
         ----------
         A generator yielding split versions of the window
         """
-        assert num_splits > 1, """num_splits should be > 1"""
+        assert self.num_splits > 1, """num_splits should be > 1"""
         for slice_idx in np.linspace(
             start=self.prediction_length, stop=len(window), num=self.num_splits
         ):
@@ -142,7 +142,7 @@ def generate_rolling_dataset(
         [1, 2, 3, 4, 5, 6, 7]\n
 
     i.e. maximum amount of rolls possible between the *end_time* and *start_time*.
-    The basic_strategy only cuts the last value of the target for as long as
+    The StepStrategy only cuts the last value of the target for as long as
     there is enough values after *start_time* to perform predictions on.
 
     When no end time is provided the output is as below since all datapoints
