@@ -1,5 +1,6 @@
 # Synthetic Data Generation Tutorial
 
+
 ```python
 import json
 from itertools import islice
@@ -34,18 +35,22 @@ def plot_recipe(recipe, length):
         axs[i].set_ylabel(k)
 
 
-def plot_examples(recipe, target, length, num, anomaly_indicator=None):
+def plot_examples(target, length, num, anomaly_indicator=None):
     fix, axs = plt.subplots(num, 1, figsize=(16, num * 2))
     for i in range(num):
-        xx = rcp.evaluate(recipe, length)
-        axs[i].plot(xx[target])
-        axs[i].set_ylim(0, 1.1*np.max(xx[target]))
+        xx = rcp.evaluate(
+            dict(
+                target=target,
+                anomaly_indicator=anomaly_indicator
+            ), length)
+        axs[i].plot(xx['target'])
+        axs[i].set_ylim(0, 1.1*np.max(xx['target']))
         axs[i].grid()
         if anomaly_indicator is not None:
             axs[i].fill_between(
-                np.arange(len(xx[target])), 
-                xx[anomaly_indicator] * 1.1*np.max(xx[target]), 
-                np.zeros(len(xx[target])), 
+                np.arange(len(xx['target'])), 
+                xx['anomaly_indicator'] * 1.1*np.max(xx['target']), 
+                np.zeros(len(xx['target'])), 
                 alpha=0.3,
                 color="red")
 
@@ -58,39 +63,37 @@ def print_dicts(*dicts):
         print("}\n")
 ```
 
-## Recipes
+## Data Generation Recipes
 
-Recipes are lists of `(name, expression)` tuples. The role of a recipe is to describe the generative process of a single time series. In order to do so, the `expression`s in the `(name, expression)` pairs are evaluated for each time series in the order given in the list to produce a `{name: value}` dictionary as output.
+To generate realistic artificial data, we describe the data generation process through a symbolic graph (this is akin to how mxnet symbol graphs work).
 
-
-```python
-recipe = [
-    ("myOutput1", 1.0),
-    ("myOutput2", 42)
-]
-
-rcp.evaluate(recipe, length=5)
-```
-
-### Expressions
-
-Each `expression` can either be a Python value, a string (interpreted as a reference to previously defined `name`), or a special type of `Callable`, that is evaluated each time the recipe is evaluated. 
+Your graph can contain python values as well as operators that correspond to random variables or random processes. The output of a recipe can be a list, dictionary or a value:
 
 
 ```python
-recipe = [
-    ("myOutput1", 1.0),
-    ("myOutput2", "myOutput1")  # reference to previously defined name
-]
-
-rcp.evaluate(recipe, length=5)
+rcp.evaluate(rcp.RandomGaussian(), length=5)
 ```
 
 
 ```python
-recipe = [
-    ("myOutput1", rcp.RandomGaussian()),  # callable as expression
-]
+rcp.evaluate({
+    'var1': rcp.RandomGaussian(),
+    'var2': 3.0
+}, length=5)
+```
+
+
+```python
+rcp.evaluate(
+    [3.0, rcp.RandomUniform()]
+, length=5)
+```
+
+
+```python
+recipe = dict(
+    myOutput1=rcp.RandomGaussian()
+)
 
 # multiple evaluations lead to different results, due to randomness
 print_dicts(
@@ -99,16 +102,24 @@ print_dicts(
 )
 ```
 
-### Expressions with References
+### Referencing variables
+
+Each time you create a random variable such as `RandomGaussian` the variable refers to a new independent RV.
+You can re-use and refer to previously created random variables.
 
 
 ```python
-recipe = [
-    ("stddev1", 2.0),
-    ("stddev2", rcp.RandomUniform(low=0, high=1, shape=(1, ))),
-    ("myOutput1", rcp.RandomGaussian(stddev="stddev1")),
-    ("myOutput2", rcp.RandomGaussian(stddev="stddev2"))
-]
+stddev1 = 2.0
+stddev2 = rcp.RandomUniform(low=0, high=1, shape=(1, ))
+x1 = rcp.RandomGaussian(stddev=stddev1)
+x2 = rcp.RandomGaussian(stddev=stddev2)
+x3 = 2 * x2
+
+recipe = dict(
+    x1=x1,
+    x2=x2,
+    x3=x3
+)
 
 # multiple evaluations lead to different results, due to randomness
 print_dicts(
@@ -117,12 +128,14 @@ print_dicts(
 )
 ```
 
+Note that you may create and use intermediate random varibles such as `stddev2` in the above example without including them in the output.
+
 
 ```python
-recipe = [
-    ("random_out", rcp.RandomGaussian(shape=(1,))),
-    ("fixed_out", np.random.randn(1))
-]
+recipe = dict(
+    random_out=rcp.RandomGaussian(shape=(1,)),
+    fixed_out=np.random.randn(1)
+)
 
 # note that fixed_out stays the same; 
 # it's evaluated only once when the recipe is created
@@ -135,15 +148,16 @@ print_dicts(
 ### Length
 
 Most operators in the `recipe` package have a `length` argument that is automatically passed when the expression is evaluated. The idea is that these recipes are used to generate fixed-length time series, and most operators produce
-individual components of the time series that have the same length. 
+individual components of the time series that have the same length.
 
 
 ```python
-recipe = [
-    ("random_gaussian", rcp.RandomGaussian()),
-    ("constant_vec", rcp.ConstantVec(42))
-]
-     
+recipe = dict(
+    random_gaussian=rcp.RandomGaussian(),
+    constant_vec=rcp.ConstantVec(42)
+    
+)
+
 print_dicts(
     rcp.evaluate(recipe, length=3),
     rcp.evaluate(recipe, length=5)
@@ -152,18 +166,16 @@ print_dicts(
 
 ### Operator Overloading
 
-The `Callable` operators defined in the `recipe` package overload the basic arithmetic operations (addition, subtraction, multiplication, division).
+The operators defined in the `recipe` package overload the basic arithmetic operations (addition, subtraction, multiplication, division).
 
 
 ```python
-recipe = [
-    ("x1", 42 * rcp.ConstantVec(1)),
-    ("x2", "x1" * rcp.RandomUniform()),
-    ("x3", rcp.RandomGaussian() + rcp.RandomUniform()), 
-    ("x4", rcp.Ref("x1") + "x2" + "x3")
-]
+x1 = 42 * rcp.ConstantVec(1)
+x2 = x1 * rcp.RandomUniform()
+x3 = rcp.RandomGaussian() + rcp.RandomUniform()
+result = x1 + x2 + x3
 
-rcp.evaluate(recipe, 3)
+rcp.evaluate(result, 3)
 ```
 
 ### SerDe
@@ -172,7 +184,7 @@ Recipes composed of serializable / representable components can easily be serial
 
 
 ```python
-dumped = dump_code(recipe)
+dumped = dump_code(result)
 print(dumped)
 
 reconstructed = load_code(dumped)
@@ -184,91 +196,106 @@ rcp.evaluate(reconstructed, 3)
 
 
 ```python
-recipe = [
-    ("daily_smooth_seasonality", rcp.SmoothSeasonality(period=288, phase=-72)),
-    ("noise", rcp.RandomGaussian(stddev=0.1)),
-    ("signal", rcp.Add(["daily_smooth_seasonality", "noise"]))
-]
+daily_smooth_seasonality = rcp.SmoothSeasonality(period=288, phase=-72)
+noise = rcp.RandomGaussian(stddev=0.1)
+signal = daily_smooth_seasonality + noise
+
+recipe = dict(
+    daily_smooth_seasonality=daily_smooth_seasonality,
+    noise=noise,
+    signal=signal
+)
 
 plot_recipe(recipe, 3 * 288)
-
 ```
 
 
 ```python
-recipe = [
-    ("slope", rcp.RandomUniform(low=0, high=3, shape=(1,))),
-    ("trend", rcp.LinearTrend(slope="slope")),
-    ("daily_smooth_seasonality", rcp.SmoothSeasonality(period=288, phase=-72)),
-    ("noise", rcp.RandomGaussian(stddev=0.1)),
-    ("signal", rcp.Add(["trend", "daily_smooth_seasonality", "noise"]))
-]
+slope = rcp.RandomUniform(low=0, high=3, shape=(1,))
+trend = rcp.LinearTrend(slope=slope)
+daily_smooth_seasonality = rcp.SmoothSeasonality(period=288, phase=-72)
+noise = rcp.RandomGaussian(stddev=0.1)
+signal = trend + daily_smooth_seasonality + noise
 
-plot_examples(recipe, "signal", 3 * 288, 5)
-```
-
-
-```python
-weekly_seasonal_unscaled = [
-    ('daily_smooth_seasonality', rcp.SmoothSeasonality(period=288, phase=-72)),
-    ('weekday_scale', rcp.RandomUniform(0.1, 10, shape=(1,))),
-    ('weekly_pattern', rcp.NormalizeMax(rcp.Concatenate([rcp.Ref("weekday_scale") * np.ones(5), np.ones(2)]))),
-    ('day_of_week', rcp.Dilated(rcp.Repeated('weekly_pattern'), 288)),
-    ('level', rcp.RandomUniform(low=0, high=10, shape=1)),
-    ('noise_level', rcp.RandomUniform(low=0.01, high=1, shape=1)),
-    ('noise', 'noise_level' * rcp.RandomGaussian()),
-    ('signal', rcp.Mul(['daily_smooth_seasonality','day_of_week'])),
-    ('unscaled', rcp.Add(['level', 'signal', 'noise']))
-]
-     
-plot_recipe(weekly_seasonal_unscaled, 10 * 288)
-plot_examples(weekly_seasonal_unscaled, "unscaled", 10 * 288, 5)
+plot_examples(signal, 3 * 288, 5)
 ```
 
 ## Composing Recipes
 
-As recipes are just lists of expressions that evaluated sequentially, recipes can simply be composed from smaller component recipes by concatenating the corresponding lists. It is also possible to include the output of one recipe inside another one using the `EvalRecipe` operator.
+There are many ways to combine and extend generation recipes. For example using python functions.
 
 
 ```python
-scaling = [
-    ("scale", rcp.RandomUniform(low=0, high=1000, shape=1)),
-    ("z", "scale" * rcp.Ref("unscaled"))
-]
+def weekly_seasonal_unscaled():
+    daily_smooth_seasonality = rcp.SmoothSeasonality(period=288, phase=-72)
+    weekday_scale = rcp.RandomUniform(0.1, 10, shape=(1,))
+    weekly_pattern = rcp.NormalizeMax(rcp.Concatenate([weekday_scale * np.ones(5), np.ones(2)]))
+    day_of_week = rcp.Dilated(rcp.Repeated(weekly_pattern), 288)
+    level = rcp.RandomUniform(low=0, high=10, shape=1)
+    noise_level = rcp.RandomUniform(low=0.01, high=1, shape=1)
+    noise = noise_level * rcp.RandomGaussian()
+    signal = daily_smooth_seasonality * day_of_week
+    unscaled = level + signal + noise
 
-weekly_seasonal = weekly_seasonal_unscaled + scaling
+    return dict(
+        daily_smooth_seasonality=daily_smooth_seasonality,
+        weekday_scale=weekday_scale,
+        weekly_pattern=weekly_pattern,
+        day_of_week=day_of_week,
+        level=level,
+        noise_level=noise_level,
+        noise=noise,
+        signal=signal,
+        unscaled=unscaled
+    )
 
-plot_examples(weekly_seasonal, "z", 10 * 288, 5)
+recipe = weekly_seasonal_unscaled()
+plot_recipe(recipe, 10 * 288)
+    
+plot_examples(recipe['unscaled'], 10 * 288, 5)
 ```
 
 
 ```python
-weekly_seasonality = [
-    ('daily_pattern', rcp.RandomUniform(0, 1, shape=(24,))),
-    ('daily_seasonality', rcp.Dilated(rcp.Repeated("daily_pattern"), 12)),
-    ('weekly_pattern', rcp.RandomUniform(0, 1, shape=(7,))),
-    ('weekly_seasonality', rcp.Dilated(rcp.Repeated("weekly_pattern"), 288)),
-    ('unnormalized_seasonality', rcp.Mul(['daily_seasonality', 'weekly_seasonality'])),
-    ('seasonality', rcp.NormalizeMax("unnormalized_seasonality")),
-]
+def weekly_seasonal():
+    c = weekly_seasonal_unscaled()
+    unscaled = c['unscaled']
 
-gaussian_noise_low = [
-    ('noise_level', rcp.RandomUniform(low=0.01, high=0.1, shape=1)),
-    ('noise', rcp.Ref('noise_level') * rcp.RandomGaussian()),
-]
+    scale = rcp.RandomUniform(low=0, high=1000, shape=1)
+    z = scale * unscaled
+    return z
+    
+plot_examples(weekly_seasonal(), 10 * 288, 5)
+```
 
-complex_weekly_seasonal = (
-      weekly_seasonality 
-    + [
-        ('level', rcp.RandomUniform(low=0, high=10, shape=1)),
-        ('signal', rcp.Add(['level', 'seasonality']))
-    ]
-    + gaussian_noise_low
-    + [("unscaled", rcp.Add(["signal", "noise"]))]
-    + scaling
-)
+Here is a more complex example
 
-plot_examples(complex_weekly_seasonal, "z", 10 * 288, 5)
+
+```python
+def scale(unscaled):
+    s = rcp.RandomUniform(low=0, high=1000, shape=1)
+    z = s * unscaled
+    return z
+    
+
+def complex_weekly_seasonality():
+    daily_pattern = rcp.RandomUniform(0, 1, shape=(24,))
+    daily_seasonality = rcp.Dilated(rcp.Repeated(daily_pattern), 12)
+    weekly_pattern = rcp.RandomUniform(0, 1, shape=(7,))
+    weekly_seasonality = rcp.Dilated(rcp.Repeated(weekly_pattern), 288)
+    unnormalized_seasonality = daily_seasonality * weekly_seasonality
+    seasonality = rcp.NormalizeMax(unnormalized_seasonality)
+
+    noise_level = rcp.RandomUniform(low=0.01, high=0.1, shape=1)
+    noise = noise_level * rcp.RandomGaussian()
+
+    level = rcp.RandomUniform(low=0, high=10, shape=1)
+    signal = level + seasonality
+
+    unscaled = signal + noise
+    return scale(unscaled)
+
+plot_examples(complex_weekly_seasonality(), 10 * 288, 5)
 ```
 
 ## Generating Anomalies
@@ -277,61 +304,59 @@ Anomalies are just another effect added/multiplied to a base time series. We can
 
 
 ```python
-constant_recipe = [
-    ("z", rcp.ConstantVec(1.0))
-]
+z = rcp.ConstantVec(1.0)
 
-bmc_scale_anomalies = [
-    ('normal_indicator', rcp.BinaryMarkovChain(one_to_zero=1/(288*7), zero_to_one=0.1)),
-    ('anomaly_indicator', rcp.OneMinus('normal_indicator')),
-    ('anomaly_scale', 0.5 + rcp.RandomUniform(-1.0, 1.0, shape=1)),
-    ('anomaly_multiplier', 1 + rcp.Ref('anomaly_scale') * rcp.Ref('anomaly_indicator')),
-    ('target', rcp.Mul(['z', 'anomaly_multiplier']))
-]
+def inject_anomalies(z):
+    normal_indicator = rcp.BinaryMarkovChain(one_to_zero=1/(288*7), zero_to_one=0.1)
+    anomaly_indicator = 1 - normal_indicator
+    anomaly_scale = 0.5 + rcp.RandomUniform(-1.0, 1.0, shape=1)
+    anomaly_multiplier = 1 + anomaly_scale * anomaly_indicator
+    target = z * anomaly_multiplier
+    return target, anomaly_indicator
 
-plot_examples(constant_recipe + bmc_scale_anomalies, "target", 10*288, 5, "anomaly_indicator")
+target, anomaly_indicator = inject_anomalies(z)
+plot_examples(target, 10*288, 5, anomaly_indicator)
 ```
 
 
 ```python
-plot_examples(weekly_seasonal + bmc_scale_anomalies, 'target', 288*7, 5, "anomaly_indicator")
+target, anomaly_indicator = inject_anomalies(weekly_seasonal())
+plot_examples(target, 288*7, 5, anomaly_indicator)
 ```
 
 ## Generating Changepoints
 
 
 ```python
-homoskedastic_gaussian_noise = [
-    ('level', rcp.RandomUniform(0, 10, shape=1)),
-    ('noise_level', rcp.RandomUniform(0.01, 1, shape=1)),
-    ('noise', rcp.RandomGaussian("noise_level")),
-    ('unscaled', rcp.Add(['level', 'noise'])), 
-]
+level = rcp.RandomUniform(0, 10, shape=1)
+noise_level = rcp.RandomUniform(0.01, 1, shape=1)
+noise =  rcp.RandomGaussian(noise_level)
+homoskedastic_gaussian_noise = level + noise
 ```
 
 
 ```python
-changepoint_noise_to_seasonal = [
-    ('z_1', rcp.EvalRecipe(homoskedastic_gaussian_noise, "unscaled")), 
-    ('z_2', rcp.EvalRecipe(weekly_seasonal_unscaled, "unscaled")),
-    ('z_stacked', rcp.StackPrefix('z')),
-    ('change', rcp.RandomChangepoints(1)),
-    ('unscaled', rcp.Choose("z_stacked", "change"))
-]
+z1 = homoskedastic_gaussian_noise
+z2 = weekly_seasonal_unscaled()['unscaled']
+z_stacked = rcp.Stack([z1, z2])
+change = rcp.RandomChangepoints(1)
+unscaled = rcp.Choose(z_stacked, change)
 
-changepoint_noise_to_seasonal_scaled = changepoint_noise_to_seasonal + scaling
+target = scale(unscaled)
+target, anomaly_indicator = inject_anomalies(target)
+
 ```
 
 
 ```python
-plot_examples(changepoint_noise_to_seasonal_scaled + bmc_scale_anomalies, 'target', 288*7, 10, "anomaly_indicator")
+plot_examples(target, 288*7, 10, anomaly_indicator)
 ```
 
 ## Generating several time series
 
 
 ```python
-rcp.take_as_list(rcp.generate(10, weekly_seasonal_unscaled, "2018-01-01", {}), 2)
+rcp.take_as_list(rcp.generate(10, weekly_seasonal_unscaled(), "2018-01-01", {}), 2)
 ```
 
 ## Saving to a file
