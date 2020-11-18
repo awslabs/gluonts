@@ -298,7 +298,10 @@ class Evaluator:
             "abs_target_sum": self.abs_target_sum(pred_target),
             "abs_target_mean": self.abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
-            "MASE": self.mase(pred_target, median_fcst, seasonal_error)
+            "MASE": self.mase(pred_target, median_fcst, seasonal_error),
+            "MASE_filtered": self.mase(
+                pred_target, median_fcst, seasonal_error
+            )
             if seasonal_error > Evaluator.zero_tol
             else 0,
             "MAPE": self.mape(pred_target, median_fcst),
@@ -320,7 +323,12 @@ class Evaluator:
                     target_fcst = median_fcst
 
                 try:
-                    val = {k: eval_fn(pred_target, target_fcst,)}
+                    val = {
+                        k: eval_fn(
+                            pred_target,
+                            target_fcst,
+                        )
+                    }
                 except:
                     val = {k: np.nan}
 
@@ -369,6 +377,7 @@ class Evaluator:
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
             "MASE": "mean",
+            "MASE_filtered": "mean",
             "MAPE": "mean",
             "sMAPE": "mean",
             "OWA": "mean",
