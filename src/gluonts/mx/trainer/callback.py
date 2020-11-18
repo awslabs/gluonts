@@ -17,11 +17,13 @@ from typing import List
 # Third-party imports
 import numpy as np
 import mxnet.gluon.nn as nn
+from mxnet import gluon
 
 # First-party imports
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.mx.model.predictor import GluonPredictor
+from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
 from gluonts.support.util import copy_parameters
 
 
@@ -30,57 +32,111 @@ class Callback:
     def __init__(self, **kwargs):
         pass
 
-    def call_after_network_initializing(
+    def on_network_initializing_end(
         self, training_network: nn.HybridBlock
     ) -> None:
         pass
 
-    def call_after_epoch(
+    def on_train_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
     ) -> bool:
         return True
 
-    def call_after_validation(
+    def on_validation_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
+
     ) -> bool:
         return True
 
+    def on_epoch_end(
+            self,
+            epoch_no: int,
+            epoch_loss: float,
+            training_network: nn.HybridBlock,
+            trainer: gluon.Trainer
+
+    ) -> bool:
+        return True
 
 class CallbackList(Callback):
     def __init__(self, callbacks: List[Callback], **kwargs):
         self.callbacks = callbacks
 
-    def call_after_network_initializing(
+    def on_network_initializing_end(
         self, training_network: nn.HybridBlock
     ) -> None:
         for callback in self.callbacks:
-            callback.call_after_network_initializing(
+            callback.on_network_initializing_end(
                 training_network=training_network
             )
 
-    def call_after_epoch(
+    def on_train_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
+
     ) -> bool:
         return np.all(
             [
-                callback.call_after_epoch(
+                callback.on_train_epoch_end(
                     epoch_no=epoch_no,
                     epoch_loss=epoch_loss,
                     training_network=training_network,
+                    trainer=trainer
                 )
                 for callback in self.callbacks
             ]
         )
 
+    def on_validation_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
+
+    ) -> bool:
+        return np.all(
+            [
+                callback.on_validation_epoch_end(
+                    epoch_no=epoch_no,
+                    epoch_loss=epoch_loss,
+                    training_network=training_network,
+                    trainer=trainer
+                )
+                for callback in self.callbacks
+            ]
+        )
+
+    def on_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
+
+    ) -> bool:
+        return np.all(
+            [
+                callback.on_epoch_end(
+                    epoch_no=epoch_no,
+                    epoch_loss=epoch_loss,
+                    training_network=training_network,
+                    trainer=trainer
+                )
+                for callback in self.callbacks
+            ]
+        )
 
 class EarlyStopping(Callback):
     def __init__(
@@ -127,11 +183,13 @@ class EarlyStopping(Callback):
         self.best_network = None
         self.n_stale_epochs = 0
 
-    def call_after_epoch(
+    def on_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
+
     ) -> bool:
         should_continue = True
         copy_parameters(training_network, self.predictor.prediction_net)
@@ -179,36 +237,39 @@ class EarlyStopping(Callback):
         return should_continue
 
 
-class LossLogger(Callback):
+class TrainingHistory(Callback):
     def __init__(self):
         self.loss_history = []
         self.validation_loss_history = []
 
-    def call_after_epoch(
+    def on_train_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
     ) -> bool:
         self.loss_history.append(epoch_loss)
         return True
 
-    def call_after_validation(
+    def on_validation_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
     ) -> bool:
         self.validation_loss_history.append(epoch_loss)
         return True
 
 
 class TerminateOnNaN(Callback):
-    def call_after_epoch(
+    def on_train_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
+        trainer: gluon.Trainer
     ) -> bool:
         return epoch_loss == epoch_loss
 
@@ -217,7 +278,75 @@ class WarmStart(Callback):
     def __init__(self, start_network: nn.HybridBlock):
         self.start_network = start_network
 
-    def call_after_network_initializing(
+    def on_network_initializing_end(
         self, training_network: nn.HybridBlock
     ) -> None:
         copy_parameters(self.start_network, training_network)
+
+
+class LearningRateReduction(MetricAttentiveScheduler, Callback):
+    r"""
+        This Callback decreases the learning rate based on the value of some
+        validation metric to be optimized (maximized or minimized). The value
+        of such metric is provided by calling the `step` method on the scheduler.
+        A `patience` parameter must be provided, and the scheduler will reduce
+        the learning rate if no improvement in the metric is done before
+        `patience` observations of the metric.
+
+        Examples:
+
+            `patience = 0`: learning rate will decrease at every call to
+            `step`, regardless of the metric value
+
+            `patience = 1`: learning rate is reduced as soon `step` is called
+            with a metric value which does not improve over the best encountered
+
+            `patience = 10`: learning rate is reduced if no improvement in the
+            metric is recorded in 10 successive calls to `step`
+
+        Parameters
+        ----------
+        objective
+            String, can either be `"min"` or `"max"`
+        patience
+            The patience to observe before reducing the learning rate, nonnegative integer.
+        base_lr
+            Initial learning rate to be used.
+        decay_factor
+            Factor (between 0 and 1) by which to decrease the learning rate.
+        min_lr
+            Lower bound for the learning rate, learning rate will never go below `min_lr`
+        """
+
+    def __init__(
+        self,
+        objective: str,
+        patience: int,
+        base_lr: float = 0.01,
+        decay_factor: float = 0.5,
+        min_lr: float = 0.0,
+    ) -> None:
+
+        super(LearningRateReduction, self).__init__(
+            objective=objective,
+            patience=patience,
+            base_lr=base_lr,
+            decay_factor=decay_factor,
+            min_lr=min_lr,
+        )
+
+    def on_epoch_end(
+            self,
+            epoch_no: int,
+            epoch_loss: float,
+            training_network: nn.HybridBlock,
+            trainer: gluon.Trainer
+    ) -> bool:
+        should_continue = self.step(metric_value=epoch_loss)
+        if not should_continue:
+            print(
+                "Early stopping based on learning rate scheduler callback."
+            )
+            return False
+        trainer.optimizer.learning_rate = self(trainer.optimizer.num_update)
+

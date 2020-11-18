@@ -291,7 +291,7 @@ class Trainer:
                                 first_forward = False
                                 _ = net(*batch.values())
 
-                                self.callbacks.call_after_network_initializing(
+                                self.callbacks.on_network_initializing_end(
                                     training_network=net
                                 )
 
@@ -389,7 +389,7 @@ class Trainer:
                         num_batches_to_use=self.num_batches_per_epoch,
                     )
 
-                    should_continue = self.callbacks.call_after_epoch(
+                    should_continue = self.callbacks.on_train_epoch_end(
                         epoch_no=epoch_no,
                         epoch_loss=loss_value(epoch_loss),
                         training_network=net,
@@ -400,14 +400,20 @@ class Trainer:
                             epoch_no, validation_iter, is_training=False
                         )
 
-                    should_continue = (
-                        should_continue
-                        and self.callbacks.call_after_validation(
-                            epoch_no=epoch_no,
-                            epoch_loss=loss_value(epoch_loss),
-                            training_network=net,
+                        should_continue = (
+                            should_continue
+                            and self.callbacks.on_validation_epoch_end(
+                                epoch_no=epoch_no,
+                                epoch_loss=loss_value(epoch_loss),
+                                training_network=net,
+                            )
                         )
-                    )
+
+                    should_continue = should_continue and self.callbacks.on_epoch_end(
+                                epoch_no=epoch_no,
+                                epoch_loss=loss_value(epoch_loss),
+                                training_network=net,
+                            )
 
                     # update average trigger
                     if isinstance(
@@ -418,11 +424,6 @@ class Trainer:
                         )
                         # once triggered, update the average immediately
                         self.avg_strategy.apply(net)
-                    if not lr_scheduler.step(loss_value(epoch_loss)):
-                        should_continue = False
-                        print(
-                            "Early stopping based on learning rate scheduler."
-                        )
 
                     if isinstance(
                         self.avg_strategy, IterationAveragingStrategy
@@ -452,7 +453,7 @@ class Trainer:
                     # update best epoch info - needed for the learning rate scheduler
                     if loss_value(epoch_loss) < best_epoch_info["score"]:
                         best_epoch_info = epoch_info.copy()
-
+                    # TODO fix this, put to callback:
                     if not trainer.learning_rate == curr_lr:
                         if best_epoch_info["epoch_no"] == -1:
                             raise GluonTSUserError(
