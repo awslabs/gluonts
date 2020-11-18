@@ -18,6 +18,7 @@ jobs:
     - name: Style and type checks
       run: |
         pip install black mypy -c requirements/requirements-setup.txt
-        python .devtools/githooks/pre-commit
+        python setup.py style_check
+        python setup.py type_check
     - name: Check license headers
       run: python .devtools/license check src test
