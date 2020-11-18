@@ -87,16 +87,15 @@ class GenPareto(Distribution):
         """
         return F.where(
             x < 0,
-            -10.**15 * F.ones_like(x),
+            -(10.0 ** 15) * F.ones_like(x),
             genpareto_log_prob(F.abs(x), xi, beta),
         )
 
     def cdf(self, x: Tensor) -> Tensor:
         F = self.F
         x_shifted = F.broadcast_div(x, self.beta)
-        u = 1 - F.power(1 + self.xi * x_shifted, - F.reciprocal(self.xi))
+        u = 1 - F.power(1 + self.xi * x_shifted, -F.reciprocal(self.xi))
         return u
-
 
     def quantile(self, level: Tensor):
         F = self.F
