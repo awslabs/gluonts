@@ -225,20 +225,8 @@ test_output = {
 }
 
 test_cases_quantile = [
-    (
-        Gaussian,
-        {
-            "mu": mx.nd.array([0.0]),
-            "sigma": mx.nd.array([1.0]),
-        },
-    ),
-    (
-        GenPareto,
-        {
-            "xi": mx.nd.array([1 / 3.0]),
-            "beta": mx.nd.array([1.0]),
-        },
-    ),
+    (Gaussian, {"mu": mx.nd.array([0.0]), "sigma": mx.nd.array([1.0]),},),
+    (GenPareto, {"xi": mx.nd.array([1 / 3.0]), "beta": mx.nd.array([1.0]),},),
 ]
 
 test_output_quantile = {
@@ -319,14 +307,13 @@ def test_variances(distr_class, params, serialize_fn) -> None:
     )
 
 
-
 @pytest.mark.parametrize("distr_class, params", test_cases_quantile)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_quantile(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
     distr = serialize_fn(distr)
     distr_name = distr.__class__.__name__
-    quantile = distr.quantile(test_output_quantile[distr_name]['level'])
+    quantile = distr.quantile(test_output_quantile[distr_name]["level"])
     assert np.allclose(
         quantile.asnumpy(),
         test_output_quantile[distr_name]["quantile"].asnumpy(),
@@ -340,7 +327,7 @@ def test_cdf(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
     distr = serialize_fn(distr)
     distr_name = distr.__class__.__name__
-    cdf = distr.cdf(test_output_quantile[distr_name]['x'])
+    cdf = distr.cdf(test_output_quantile[distr_name]["x"])
     assert np.allclose(
         cdf.asnumpy(),
         test_output_quantile[distr_name]["cdf"].asnumpy(),
