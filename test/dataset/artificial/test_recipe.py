@@ -17,6 +17,7 @@ import pandas as pd
 import pytest
 
 # First-party imports
+from gluonts.core.component import validated
 from gluonts.core.serde import dump_code, load_code
 from gluonts.dataset.common import (
     BasicFeatureInfo,
@@ -26,6 +27,7 @@ from gluonts.dataset.common import (
 from gluonts.dataset.artificial import RecipeDataset
 from gluonts.dataset.artificial.recipe import (
     Add,
+    Lifted,
     BinaryMarkovChain,
     Constant,
     ConstantVec,
@@ -46,6 +48,7 @@ from gluonts.dataset.artificial.recipe import (
     evaluate,
     generate,
     take_as_list,
+    Env,
 )
 
 BASE_RECIPE = [("foo", ConstantVec(1.0)), ("cat", RandomCat([10]))]
@@ -162,3 +165,34 @@ def test_generate(recipe) -> None:
         iterator=generate(length=10, recipe=BASE_RECIPE, start=start), num=10
     )
     assert len(result) == 10
+
+
+def test_two() -> None:
+    class Two(Lifted):
+        num_outputs = 2
+
+        @validated()
+        def __init__(self):
+            pass
+
+        def __call__(self, x: Env, length: int, *args, **kwargs):
+            return np.random.randn(length), np.random.randn(length)
+
+    a, b = Two()
+    evaluate(a, 100)
+
+
+def test_functional() -> None:
+    daily_smooth_seasonality = SmoothSeasonality(period=288, phase=-72)
+    noise = RandomGaussian(stddev=0.1)
+    signal = daily_smooth_seasonality + noise
+
+    recipe = dict(
+        daily_smooth_seasonality=daily_smooth_seasonality,
+        noise=noise,
+        signal=signal,
+    )
+    res = evaluate(recipe, length=100)
+    for k in recipe.keys():
+        assert k in res
+        assert len(res[k]) == 100

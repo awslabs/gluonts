@@ -90,7 +90,7 @@ class Gamma(Distribution):
         return F.where(
             x > 0,
             gamma_log_prob(F.abs(x_masked), alpha, beta),
-            -10.**15 * F.ones_like(x),
+            -(10.0 ** 15) * F.ones_like(x),
         )
 
     @property

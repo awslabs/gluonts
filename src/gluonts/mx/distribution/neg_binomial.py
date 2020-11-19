@@ -28,6 +28,7 @@ from .distribution_output import DistributionOutput
 from .deterministic import DeterministicOutput
 from .mixture import MixtureDistributionOutput
 
+
 class NegativeBinomial(Distribution):
     r"""
     Negative binomial distribution, i.e. the distribution of the number of
