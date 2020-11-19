@@ -86,7 +86,6 @@ def maximum_likelihood_estimate_sgd(
 
             num_batches += 1
             cumulative_loss += loss.item()
-        print("Epoch %s, loss: %s" % (e, cumulative_loss / num_batches))
 
     if len(distr_args[0].shape) == 1:
         return [
@@ -128,12 +127,6 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
         num_epochs=PositiveInt(10),
     )
 
-    print(
-        "concentration1:",
-        concentration1_hat,
-        "concentration0:",
-        concentration0_hat,
-    )
     assert (
         np.abs(concentration1_hat - concentration1) < TOL * concentration1
     ), f"concentration1 did not match: concentration1 = {concentration1}, concentration1_hat = {concentration1_hat}"
