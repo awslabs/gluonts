@@ -114,6 +114,27 @@ def test_align_timestamp():
         )
 
 
+def test_add_method():
+    chain = transform.AddTimeFeatures(
+        start_field=FieldName.START,
+        target_field=FieldName.TARGET,
+        output_field="time_feat",
+        time_features=[
+            time_feature.DayOfWeek(),
+            time_feature.DayOfMonth(),
+            time_feature.MonthOfYear(),
+        ],
+        pred_length=24,
+    ) + transform.AddAgeFeature(
+        target_field=FieldName.TARGET,
+        output_field="age",
+        pred_length=24,
+        log_scale=True,
+    )
+
+    assert isinstance(chain, transform.Chain)
+
+
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
