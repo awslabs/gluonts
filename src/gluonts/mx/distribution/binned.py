@@ -24,7 +24,7 @@ from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 # Relative imports
-from .distribution import Distribution, _sample_multiple, getF
+from .distribution import Distribution, _sample_multiple, getF, MAX_SUPPORT_VAL
 from .distribution_output import DistributionOutput
 
 
@@ -69,6 +69,22 @@ class Binned(Distribution):
     @property
     def F(self):
         return getF(self.bin_log_probs)
+
+    @property
+    def support(self) -> Tuple[Tensor, Tensor]:
+        F = self.F
+        return (
+            F.broadcast_minimum(
+                F.zeros(self.batch_shape),
+                F.sign(F.min(self.bin_centers, axis=-1)),
+            )
+            * MAX_SUPPORT_VAL,
+            F.broadcast_maximum(
+                F.zeros(self.batch_shape),
+                F.sign(F.max(self.bin_centers, axis=-1)),
+            )
+            * MAX_SUPPORT_VAL,
+        )
 
     @staticmethod
     def _compute_edges(F, bin_centers: Tensor) -> Tensor:

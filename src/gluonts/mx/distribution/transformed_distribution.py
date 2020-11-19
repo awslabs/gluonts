@@ -51,6 +51,10 @@ class TransformedDistribution(Distribution):
         self._event_shape: Optional[Tuple] = None
         self._batch_shape: Optional[Tuple] = None
 
+    @property
+    def support(self) -> Tuple[Tensor, Tensor]:
+        return self.base_distribution.support
+
     def _slice_bijection(
         self, trans: bij.Bijection, item: Any
     ) -> bij.Bijection:

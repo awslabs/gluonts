@@ -32,6 +32,7 @@ from gluonts.mx.distribution.distribution import (
 )
 from gluonts.mx.distribution import uniform, box_cox_transform
 from gluonts.mx.distribution.distribution_output import DistributionOutput
+from gluonts.mx.distribution.distribution import MAX_SUPPORT_VAL
 
 
 class GenPareto(Distribution):
@@ -56,6 +57,14 @@ class GenPareto(Distribution):
     @property
     def F(self):
         return getF(self.xi)
+
+    @property
+    def support(self) -> Tuple[Tensor, Tensor]:
+        F = self.F
+        return (
+            F.zeros(self.batch_shape),
+            F.ones(self.batch_shape) * MAX_SUPPORT_VAL,
+        )
 
     @property
     def batch_shape(self) -> Tuple:

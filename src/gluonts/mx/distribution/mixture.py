@@ -25,7 +25,13 @@ from gluonts.core.component import validated
 from gluonts.model.common import Tensor
 
 # Relative imports
-from .distribution import Distribution, _expand_param, _index_tensor, getF
+from .distribution import (
+    Distribution,
+    _expand_param,
+    _index_tensor,
+    getF,
+    MAX_SUPPORT_VAL,
+)
 from .distribution_output import DistributionOutput
 
 
@@ -91,6 +97,20 @@ class MixtureDistribution(Distribution):
     @property
     def F(self):
         return getF(self.mixture_probs)
+
+    @property
+    def support(self) -> Tuple[Tensor, Tensor]:
+        F = self.F
+        try:
+            lb = F.ones(self.batch_shape) * MAX_SUPPORT_VAL
+            ub = F.ones(self.batch_shape) * -MAX_SUPPORT_VAL
+            for c in self.components:
+                c_lb, c_ub = c.support
+                lb = F.broadcast_minimum(lb, c_lb)
+                ub = F.broadcast_maximum(ub, c_ub)
+            return lb, ub
+        except NotImplementedError:
+            raise NotImplementedError()
 
     def __getitem__(self, item):
         mp = _index_tensor(self.mixture_probs, item)

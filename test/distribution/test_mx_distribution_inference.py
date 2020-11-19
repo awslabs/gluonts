@@ -1153,7 +1153,6 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
     ), f"beta did not match: beta = {beta}, beta_hat = {beta_hat}"
 
 
-@pytest.mark.skip("this test fails when run locally")
 @pytest.mark.timeout(120)
 @pytest.mark.flaky(max_runs=6, min_passes=1)
 @pytest.mark.parametrize("rate", [50.0])

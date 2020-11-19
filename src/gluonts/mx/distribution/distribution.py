@@ -23,6 +23,9 @@ from mxnet import autograd
 from gluonts.model.common import Tensor
 
 
+MAX_SUPPORT_VAL = 1e16
+
+
 def nans_like(x: Tensor) -> Tensor:
     return x.zeros_like() / 0.0
 
@@ -86,7 +89,7 @@ class Distribution:
         raise NotImplementedError()
 
     @property
-    def domain(self) -> Tuple[float, float]:
+    def support(self) -> Tuple[Tensor, Tensor]:
         raise NotImplementedError()
 
     def log_prob(self, x: Tensor) -> Tensor:
@@ -306,17 +309,33 @@ class Distribution:
         """
 
         def _tensor_cdf_bisection(
-            level: Tensor,
-            domain_lb: float,
-            domain_ub: float,
-            tol=1e-6,
-            max_iter=100,
+            level: Tensor, tol=1e-6, max_iter=120,
         ) -> Tensor:
             r"""
             Returns a Tensor of shape (len(level), *batch_size) with the corresponding quantiles.
             """
-            upper_bound = F.ones((len(level), *self.batch_shape)) * domain_ub
-            lower_bound = F.ones((len(level), *self.batch_shape)) * domain_lb
+            try:
+                support_lb, support_ub = self.support
+                upper_bound = F.broadcast_like(
+                    support_lb.expand_dims(axis=0),
+                    level,
+                    lhs_axes=0,
+                    rhs_axes=0,
+                )
+                lower_bound = F.broadcast_like(
+                    support_ub.expand_dims(axis=0),
+                    level,
+                    lhs_axes=0,
+                    rhs_axes=0,
+                )
+            except:
+                # default to R if not defined
+                upper_bound = (
+                    F.ones((len(level), *self.batch_shape)) * MAX_SUPPORT_VAL
+                )
+                lower_bound = (
+                    F.ones((len(level), *self.batch_shape)) * -MAX_SUPPORT_VAL
+                )
 
             for _ in range(self.all_dim):
                 level = level.expand_dims(axis=-1)
@@ -346,14 +365,8 @@ class Distribution:
                 cnt += 1
             return q
 
-        try:
-            domain_lb, domain_ub = self.domain
-        except:
-            # default to R+ if not defined
-            domain_lb, domain_ub = (0.0, 1e16)
-
         F = self.F
-        return _tensor_cdf_bisection(level, domain_lb, domain_ub)
+        return _tensor_cdf_bisection(level)
 
     def __getitem__(self, item):
         sliced_distr = self.__class__(
