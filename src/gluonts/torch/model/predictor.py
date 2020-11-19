@@ -11,33 +11,29 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
-from typing import Iterator, Callable, Optional
+from typing import List, Iterator, Callable, Optional
+from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
 
-from gluonts.dataset.loader import InferenceDataLoader
-
-from gluonts.transform import Transformation
-
-from gluonts.model.predictor import Predictor
-
-
-from gluonts.model.forecast import Forecast
-from gluonts.model.forecast_generator import SampleForecastGenerator
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.loader import InferenceDataLoader
+from gluonts.model.forecast import Forecast
+from gluonts.model.forecast_generator import (
+    SampleForecastGenerator,
+    predict_to_numpy,
+)
+from gluonts.model.predictor import Predictor, OutputTransform
 from gluonts.torch.batchify import batchify
-from gluonts.model.forecast_generator import predict_to_numpy
+from gluonts.transform import Transformation
 
 
 @predict_to_numpy.register(nn.Module)
 def _(prediction_net: nn.Module, inputs: torch.Tensor) -> np.ndarray:
     return prediction_net(*inputs).data.numpy()
-
-
-OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
 class PyTorchPredictor(Predictor):
@@ -83,3 +79,58 @@ class PyTorchPredictor(Predictor):
                 output_transform=self.output_transform,
                 num_samples=num_samples,
             )
+
+    def serialize(self, path: Path) -> None:
+        super().serialize(path)
+
+        # serialize network
+        with (path / f"prediction_net.json").open("w") as fp:
+            print(dump_json(self.prediction_net), file=fp)
+        torch.save(
+            self.prediction_net.state_dict(), path / "prediction_net_state"
+        )
+
+        # serialize transformation chain
+        with (path / "input_transform.json").open("w") as fp:
+            print(dump_json(self.input_transform), file=fp)
+
+        # FIXME: also needs to serialize the output_transform
+
+        # serialize all remaining constructor parameters
+        with (path / "parameters.json").open("w") as fp:
+            parameters = dict(
+                batch_size=self.batch_size,
+                prediction_length=self.prediction_length,
+                freq=self.freq,
+                device=self.device,
+                forecast_generator=self.forecast_generator,
+                input_names=self.input_names,
+            )
+            print(dump_json(parameters), file=fp)
+
+    @classmethod
+    def deserialize(
+        cls, path: Path, device: Optional[torch.device] = None
+    ) -> "PyTorchPredictor":
+        # deserialize constructor parameters
+        with (path / "parameters.json").open("r") as fp:
+            parameters = load_json(fp.read())
+
+        # deserialize transformation chain
+        with (path / "input_transform.json").open("r") as fp:
+            transformation = load_json(fp.read())
+
+        # deserialize network
+        with (path / f"prediction_net.json").open("r") as fp:
+            prediction_net = load_json(fp.read())
+        prediction_net.load_state_dict(
+            torch.load(path / "prediction_net_state")
+        )
+
+        parameters["device"] = device
+
+        return PyTorchPredictor(
+            input_transform=transformation,
+            prediction_net=prediction_net,
+            **parameters,
+        )
