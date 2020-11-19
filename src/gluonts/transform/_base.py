@@ -35,7 +35,7 @@ class Transformation(metaclass=abc.ABCMeta):
         pass
 
     def chain(self, other: "Transformation") -> "Chain":
-        return Chain(self, other)
+        return Chain([self, other])
 
     def __add__(self, other: "Transformation") -> "Chain":
         return self.chain(other)
