@@ -181,14 +181,14 @@ class DataLoader(Iterable[DataBatch]):
     pass
 
 
-def win32_guard(num_worker: Optional[int]) -> Optional[int]:
-    if sys.platform == "win32":
+def win32_guard(num_workers: Optional[int]) -> Optional[int]:
+    if num_workers and sys.platform == "win32":
         logger.warning(
             "Multiprocessing is not supported on Windows, "
             "num_workers will be set to None."
         )
         return None
-    return num_worker
+    return num_workers
 
 
 class TrainDataLoader(DataLoader):
@@ -212,7 +212,7 @@ class TrainDataLoader(DataLoader):
         self.num_prefetch = num_prefetch
         self.shuffle_buffer_length = shuffle_buffer_length
 
-        if self.num_workers is None:
+        if not self.num_workers:
             iterator = construct_training_iterator(
                 dataset,
                 transform=transform,
