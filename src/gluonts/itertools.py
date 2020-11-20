@@ -21,8 +21,13 @@ T = TypeVar("T")
 def cyclic(it):
     """Like `itertools.cycle`, but does not store the data."""
 
+    at_least_one = False
     while True:
-        yield from it
+        for el in it:
+            at_least_one = True
+            yield el
+        if not at_least_one:
+            break
 
 
 def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
