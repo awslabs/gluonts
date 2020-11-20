@@ -335,9 +335,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         if loc is None and scale is None:
             return distr
         else:
-            return AffineTransformedDistribution(
-                distr, loc=loc, scale=scale
-            )
+            return AffineTransformedDistribution(distr, loc=loc, scale=scale)
 
     def domain_map(self, F, mu_vector, D_vector, W_vector):
         r"""

@@ -151,9 +151,7 @@ class LowrankGPOutput(DistributionOutput):
         if loc is None and scale is None:
             return dist
         else:
-            return AffineTransformedDistribution(
-                dist, loc=loc, scale=scale
-            )
+            return AffineTransformedDistribution(dist, loc=loc, scale=scale)
 
     @property
     def event_shape(self) -> Tuple:
