@@ -40,10 +40,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 
 
-# Skip doctests for this module, to avoid running the doc tests from wrapped numpy functions.
-doctest.testmod(optionflags=doctest.SKIP)
-
-
 ValueOrCallable = Union[Any, Callable]
 Recipe = Union[
     Callable, List[Callable], List[Tuple[str, Callable]], Dict[str, Callable]
@@ -937,3 +933,7 @@ class EvalRecipe(Lifted):
             return resolve(self.op, xx, *args, **kwargs)
         else:
             return xx
+
+
+# Skip doctests for this module, to avoid running the doc tests from wrapped numpy functions.
+doctest.testmod(optionflags=doctest.SKIP)
