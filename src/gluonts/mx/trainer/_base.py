@@ -156,8 +156,8 @@ class Trainer:
         ), "The value of `learning_rate_decay_factor` should be in the (0, 1) range"
         assert 0 <= patience, "The value of `patience` should be >= 0"
         assert (
-            0 <= minimum_learning_rate
-        ), "The value of `minimum_learning_rate` should be >= 0"
+            0 <= minimum_learning_rate <= learning_rate
+        ), "The value of `minimum_learning_rate` should be >= 0 and <= learning_rate"
         assert 0 < clip_gradient, "The value of `clip_gradient` should be > 0"
         assert 0 <= weight_decay, "The value of `weight_decay` should be => 0"
 
