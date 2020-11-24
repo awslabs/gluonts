@@ -152,8 +152,8 @@ class Trainer:
             0 < learning_rate < float("inf")
         ), "The value of `learning_rate` should be > 0"
         assert (
-            0 <= learning_rate_decay_factor < 1
-        ), "The value of `learning_rate_decay_factor` should be in the [0, 1) range"
+            0 < learning_rate_decay_factor < 1
+        ), "The value of `learning_rate_decay_factor` should be in the (0, 1) range"
         assert 0 <= patience, "The value of `patience` should be >= 0"
         assert (
             0 <= minimum_learning_rate

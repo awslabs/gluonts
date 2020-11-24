@@ -52,12 +52,12 @@ def test_learning_rate() -> None:
 def test_learning_rate_decay_factor() -> None:
     assert_valid_param(
         param_name="learning_rate_decay_factor",
-        param_values=[0, 1e-10, 0.5, 1 - 1e-10],
+        param_values=[0.1, 1e-10, 0.5, 1 - 1e-10],
     )
     assert_invalid_param(
         param_name="learning_rate_decay_factor",
-        param_values=[-2, -1e-10, +1, +5, float("inf"), float("nan")],
-        exp_msg="The value of `learning_rate_decay_factor` should be in the [0, 1) range (type=value_error)",
+        param_values=[-2, -1e-10, +1, +5, float("inf"), float("nan"), 0],
+        exp_msg="The value of `learning_rate_decay_factor` should be in the (0, 1) range (type=value_error)",
     )
 
 
