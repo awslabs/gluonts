@@ -31,11 +31,16 @@ from gluonts.core.exception import GluonTSDataError, GluonTSUserError
 from gluonts.dataset.loader import DataLoader
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
-from gluonts.mx.trainer.callback import Callback, CallbackList
+from gluonts.mx.trainer.callback import (
+    Callback,
+    CallbackList,
+    ModelAveraging,
+    LearningRateReduction,
+)
 from gluonts.mx.util import HybridContext
 from mxnet.metric import ndarray
 
-from . import learning_rate_scheduler as lrs
+# Relative imports
 from .model_averaging import (
     AveragingStrategy,
     SelectNBestMean,
@@ -122,9 +127,6 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        avg_strategy: Union[
-            AveragingStrategy, IterationAveragingStrategy
-        ] = SelectNBestMean(num_models=1),
         callbacks: Optional[List[Callback]] = None,
     ) -> None:
 
@@ -170,15 +172,25 @@ class Trainer:
         self.weight_decay = weight_decay
         self.init = init
         self.hybridize = hybridize
-        self.avg_strategy = avg_strategy
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
 
-        self.callbacks = (
-            CallbackList(callbacks)
-            if callbacks is not None
-            else CallbackList([])
-        )
+        if callbacks is None:
+            self.callbacks = CallbackList(
+                [
+                    ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
+                    LearningRateReduction(
+                        base_lr=learning_rate,
+                        decay_factor=learning_rate_decay_factor,
+                        patience=patience,
+                        min_lr=minimum_learning_rate,
+                        objective="min",
+                    ),
+                ]
+            )
+
+        else:
+            self.callbacks = CallbackList(callbacks)
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()
@@ -238,16 +250,8 @@ class Trainer:
                     "score": np.Inf,
                 }
 
-                lr_scheduler = lrs.MetricAttentiveScheduler(
-                    objective="min",
-                    patience=self.patience,
-                    decay_factor=self.learning_rate_decay_factor,
-                    min_lr=self.minimum_learning_rate,
-                )
-
                 optimizer = mx.optimizer.Adam(
                     learning_rate=self.learning_rate,
-                    lr_scheduler=lr_scheduler,
                     wd=self.weight_decay,
                     clip_gradient=self.clip_gradient,
                 )
@@ -271,11 +275,14 @@ class Trainer:
 
                     epoch_loss = mx.metric.Loss()
 
-                    # use averaged model for validation
-                    if not is_training and isinstance(
-                        self.avg_strategy, IterationAveragingStrategy
-                    ):
-                        self.avg_strategy.load_averaged_model(net)
+                    if is_training:
+                        self.callbacks.on_train_batch_start(
+                            training_network=net
+                        )
+                    else:
+                        self.callbacks.on_validation_batch_start(
+                            training_network=net
+                        )
 
                     batch_iter = itertools.islice(
                         batch_iter, num_batches_to_use
@@ -328,12 +335,9 @@ class Trainer:
                                     loss.backward()
                                     trainer.step(batch_size)
 
-                                    # iteration averaging in training
-                                    if isinstance(
-                                        self.avg_strategy,
-                                        IterationAveragingStrategy,
-                                    ):
-                                        self.avg_strategy.apply(net)
+                                    self.callbacks.on_train_batch_end(
+                                        training_network=net
+                                    )
 
                                 epoch_loss.update(None, preds=loss)
 
@@ -368,12 +372,6 @@ class Trainer:
                         lv,
                     )
 
-                    if not is_training and isinstance(
-                        self.avg_strategy, IterationAveragingStrategy
-                    ):
-                        # bring back the cached model
-                        self.avg_strategy.load_cached_model(net)
-
                     return epoch_loss
 
                 for epoch_no in range(self.epochs):
@@ -393,6 +391,7 @@ class Trainer:
                         epoch_no=epoch_no,
                         epoch_loss=loss_value(epoch_loss),
                         training_network=net,
+                        trainer=trainer,
                     )
 
                     if is_validation_available:
@@ -406,32 +405,20 @@ class Trainer:
                                 epoch_no=epoch_no,
                                 epoch_loss=loss_value(epoch_loss),
                                 training_network=net,
+                                trainer=trainer,
                             )
                         )
 
-                    should_continue = should_continue and self.callbacks.on_epoch_end(
-                                epoch_no=epoch_no,
-                                epoch_loss=loss_value(epoch_loss),
-                                training_network=net,
-                            )
-
-                    # update average trigger
-                    if isinstance(
-                        self.avg_strategy, IterationAveragingStrategy
-                    ):
-                        self.avg_strategy.update_average_trigger(
-                            metric=loss_value(epoch_loss), epoch=epoch_no + 1
+                    should_continue = (
+                        should_continue
+                        and self.callbacks.on_epoch_end(
+                            epoch_no=epoch_no,
+                            epoch_loss=loss_value(epoch_loss),
+                            training_network=net,
+                            trainer=trainer,
                         )
-                        # once triggered, update the average immediately
-                        self.avg_strategy.apply(net)
+                    )
 
-                    if isinstance(
-                        self.avg_strategy, IterationAveragingStrategy
-                    ):
-                        logging.info(
-                            "Overriding early stopping for iteration-based averaging strategies."
-                        )
-                        should_continue = True
                     if not should_continue:
                         logger.info("Stopping training")
                         break
@@ -453,6 +440,7 @@ class Trainer:
                     # update best epoch info - needed for the learning rate scheduler
                     if loss_value(epoch_loss) < best_epoch_info["score"]:
                         best_epoch_info = epoch_info.copy()
+
                     # TODO fix this, put to callback:
                     if not trainer.learning_rate == curr_lr:
                         if best_epoch_info["epoch_no"] == -1:
@@ -468,17 +456,10 @@ class Trainer:
                             best_epoch_info["params_path"], self.ctx
                         )
 
-                if isinstance(self.avg_strategy, AveragingStrategy):
-                    logging.info("Computing averaged parameters.")
-                    averaged_params_path = self.avg_strategy.apply(
-                        gluonts_temp
-                    )
-
-                    logging.info("Loading averaged parameters.")
-                    net.load_parameters(averaged_params_path, self.ctx)
-
-                if isinstance(self.avg_strategy, IterationAveragingStrategy):
-                    logging.info("Loading averaged parameters.")
-                    self.avg_strategy.load_averaged_model(net)
+                self.callbacks.on_train_end(
+                    training_network=net,
+                    temporary_file=gluonts_temp,
+                    ctx=self.ctx,
+                )
 
                 logger.info("End model training")

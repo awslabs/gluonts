@@ -12,11 +12,17 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List
+from typing import List, Optional
+import logging
 
 # Third-party imports
 import numpy as np
 import mxnet.gluon.nn as nn
+import mxnet as mx
+from gluonts.mx.trainer.model_averaging import AveragingStrategy
+from gluonts.mx.trainer.model_iteration_averaging import (
+    IterationAveragingStrategy,
+)
 from mxnet import gluon
 
 # First-party imports
@@ -26,8 +32,9 @@ from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
 from gluonts.support.util import copy_parameters
 
+# TODO: documentation
 
-# TODO make framework independent?
+
 class Callback:
     def __init__(self, **kwargs):
         pass
@@ -37,12 +44,23 @@ class Callback:
     ) -> None:
         pass
 
+    def on_train_batch_start(self, training_network: nn.HybridBlock) -> None:
+        pass
+
+    def on_validation_batch_start(
+        self, training_network: nn.HybridBlock
+    ) -> None:
+        pass
+
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+        pass
+
     def on_train_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
+        trainer: gluon.Trainer,
     ) -> bool:
         return True
 
@@ -51,20 +69,27 @@ class Callback:
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
-
+        trainer: gluon.Trainer,
     ) -> bool:
         return True
 
     def on_epoch_end(
-            self,
-            epoch_no: int,
-            epoch_loss: float,
-            training_network: nn.HybridBlock,
-            trainer: gluon.Trainer
-
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
     ) -> bool:
         return True
+
+    def on_train_end(
+        self,
+        training_network: nn.HybridBlock,
+        temporary_file: str,
+        ctx: Optional[mx.context.Context] = None,
+    ) -> None:
+        pass
+
 
 class CallbackList(Callback):
     def __init__(self, callbacks: List[Callback], **kwargs):
@@ -78,13 +103,28 @@ class CallbackList(Callback):
                 training_network=training_network
             )
 
+    def on_train_batch_start(self, training_network: nn.HybridBlock) -> None:
+        for callback in self.callbacks:
+            callback.on_train_batch_start(training_network=training_network)
+
+    def on_validation_batch_start(
+        self, training_network: nn.HybridBlock
+    ) -> None:
+        for callback in self.callbacks:
+            callback.on_validation_batch_start(
+                training_network=training_network
+            )
+
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+        for callback in self.callbacks:
+            callback.on_train_batch_end(training_network=training_network)
+
     def on_train_epoch_end(
         self,
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
-
+        trainer: gluon.Trainer,
     ) -> bool:
         return np.all(
             [
@@ -92,7 +132,7 @@ class CallbackList(Callback):
                     epoch_no=epoch_no,
                     epoch_loss=epoch_loss,
                     training_network=training_network,
-                    trainer=trainer
+                    trainer=trainer,
                 )
                 for callback in self.callbacks
             ]
@@ -103,8 +143,7 @@ class CallbackList(Callback):
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
-
+        trainer: gluon.Trainer,
     ) -> bool:
         return np.all(
             [
@@ -112,7 +151,7 @@ class CallbackList(Callback):
                     epoch_no=epoch_no,
                     epoch_loss=epoch_loss,
                     training_network=training_network,
-                    trainer=trainer
+                    trainer=trainer,
                 )
                 for callback in self.callbacks
             ]
@@ -123,8 +162,7 @@ class CallbackList(Callback):
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
-
+        trainer: gluon.Trainer,
     ) -> bool:
         return np.all(
             [
@@ -132,13 +170,27 @@ class CallbackList(Callback):
                     epoch_no=epoch_no,
                     epoch_loss=epoch_loss,
                     training_network=training_network,
-                    trainer=trainer
+                    trainer=trainer,
                 )
                 for callback in self.callbacks
             ]
         )
 
-class EarlyStopping(Callback):
+    def on_train_end(
+        self,
+        training_network: nn.HybridBlock,
+        temporary_file: str,
+        ctx: Optional[mx.context.Context] = None,
+    ) -> None:
+        for callback in self.callbacks:
+            callback.on_train_end(
+                training_network=training_network,
+                temporary_file=temporary_file,
+                ctx=ctx,
+            )
+
+
+class MetricInferenceEarlyStopping(Callback):
     def __init__(
         self,
         validation_dataset,
@@ -188,8 +240,7 @@ class EarlyStopping(Callback):
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
-
+        trainer: gluon.Trainer,
     ) -> bool:
         should_continue = True
         copy_parameters(training_network, self.predictor.prediction_net)
@@ -247,7 +298,7 @@ class TrainingHistory(Callback):
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
+        trainer: gluon.Trainer,
     ) -> bool:
         self.loss_history.append(epoch_loss)
         return True
@@ -257,7 +308,7 @@ class TrainingHistory(Callback):
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
+        trainer: gluon.Trainer,
     ) -> bool:
         self.validation_loss_history.append(epoch_loss)
         return True
@@ -269,9 +320,16 @@ class TerminateOnNaN(Callback):
         epoch_no: int,
         epoch_loss: float,
         training_network: nn.HybridBlock,
-        trainer: gluon.Trainer
+        trainer: gluon.Trainer,
     ) -> bool:
-        return epoch_loss == epoch_loss
+        is_nan = epoch_loss != epoch_loss
+        if is_nan:
+            print(
+                f"TerminateOnNaN Callback initiated stop of training at epoch {epoch_no}."
+            )
+            return False
+        else:
+            return True
 
 
 class WarmStart(Callback):
@@ -336,17 +394,93 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
         )
 
     def on_epoch_end(
-            self,
-            epoch_no: int,
-            epoch_loss: float,
-            training_network: nn.HybridBlock,
-            trainer: gluon.Trainer
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
     ) -> bool:
         should_continue = self.step(metric_value=epoch_loss)
         if not should_continue:
             print(
-                "Early stopping based on learning rate scheduler callback."
+                "Early stopping based on learning rate scheduler callback (min_lr was reached)."
             )
             return False
         trainer.optimizer.learning_rate = self(trainer.optimizer.num_update)
 
+        return True
+
+
+class ModelIterationAveraging(Callback):
+    """
+
+    """
+
+    def __init__(self, avg_strategy: IterationAveragingStrategy):
+        self.avg_strategy = avg_strategy
+
+    def on_validation_batch_start(
+        self, training_network: nn.HybridBlock
+    ) -> None:
+        # use averaged model for validation
+        self.avg_strategy.load_averaged_model(training_network)
+
+    def on_validation_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+    ) -> bool:
+        self.avg_strategy.load_cached_model(training_network)
+        return True
+
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+
+        self.avg_strategy.apply(training_network)
+
+    def on_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+    ) -> bool:
+
+        self.avg_strategy.update_average_trigger(
+            metric=epoch_loss, epoch=epoch_no + 1
+        )
+        # once triggered, update the average immediately
+        self.avg_strategy.apply(training_network)
+        return True
+
+    def on_train_end(
+        self,
+        training_network: nn.HybridBlock,
+        temporary_file: str,
+        ctx: Optional[mx.context.Context] = None,
+    ) -> None:
+
+        logging.info("Loading averaged parameters.")
+        self.avg_strategy.load_averaged_model(training_network)
+
+
+class ModelAveraging(Callback):
+    """
+
+    """
+
+    def __init__(self, avg_strategy: AveragingStrategy):
+        self.avg_strategy = avg_strategy
+
+    def on_train_end(
+        self,
+        training_network: nn.HybridBlock,
+        temporary_file: str,
+        ctx: Optional[mx.context.Context] = None,
+    ) -> None:
+        logging.info("Computing averaged parameters.")
+        averaged_params_path = self.avg_strategy.apply(temporary_file)
+
+        logging.info("Loading averaged parameters.")
+        training_network.load_parameters(averaged_params_path, ctx)
