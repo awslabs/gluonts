@@ -106,10 +106,7 @@ class Trainer:
     hybridize
         If set to true the network will be hybridized before training
     callbacks
-        An optional callback function. If provided the function will be called with the
-        initialized network `post_initialize_cb(net)` before the training starts.
-        This callback can be used to e.g. overwrite parameters for warm starting, to freeze some
-        of the network parameters etc.
+        A list of gluonts.mx.trainer.callback.Callback's to control the training.
     """
 
     @validated()
