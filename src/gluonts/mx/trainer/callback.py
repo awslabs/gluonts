@@ -27,7 +27,6 @@ from mxnet import gluon
 
 # First-party imports
 from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
 from gluonts.support.util import copy_parameters
@@ -244,6 +243,8 @@ class MetricInferenceEarlyStopping(Callback):
     ) -> bool:
         should_continue = True
         copy_parameters(training_network, self.predictor.prediction_net)
+
+        from gluonts.evaluation.backtest import make_evaluation_predictions
 
         forecast_it, ts_it = make_evaluation_predictions(
             dataset=self.validation_dataset,
