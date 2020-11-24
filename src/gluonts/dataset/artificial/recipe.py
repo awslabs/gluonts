@@ -358,6 +358,8 @@ for func_name in _NUMPY_FUNC_NAMES:
         return NumpyFunc('{func_name}', args, kwargs)
 
     lifted_numpy.{func_name} = {normalized_func_name}
+    # disable numpy docstring tests
+    lifted_numpy.{func_name}.__doc__ = lifted_numpy.{func_name}.__doc__.replace('>>>', '>>')
     """
     exec(textwrap.dedent(s))
 
@@ -933,7 +935,3 @@ class EvalRecipe(Lifted):
             return resolve(self.op, xx, *args, **kwargs)
         else:
             return xx
-
-
-# Skip doctests for this module, to avoid running the doc tests from wrapped numpy functions.
-doctest.testmod(optionflags=doctest.SKIP)
