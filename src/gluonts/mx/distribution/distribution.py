@@ -297,8 +297,8 @@ class Distribution:
 
         try:
             support_lb, support_ub = self.support_min_max
-            support_lb = F.broadcast_minimum(
-                F.broadcast_maximum(
+            support_lb = F.broadcast_maximum(
+                F.broadcast_minimum(
                     support_lb,
                     F.ones(self.batch_shape) * local_max_support_val,
                 ),
