@@ -407,7 +407,7 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
                 "Early stopping based on learning rate scheduler callback (min_lr was reached)."
             )
             return False
-        trainer.optimizer.learning_rate = self(trainer.optimizer.num_update)
+        trainer.optimizer.set_learning_rate(self(trainer.optimizer.num_update))
 
         return True
 
