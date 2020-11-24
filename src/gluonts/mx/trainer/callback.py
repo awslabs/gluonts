@@ -386,6 +386,14 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
         min_lr: float = 0.0,
     ) -> None:
 
+        assert (
+            0 < decay_factor < 1
+        ), "The value of `decay_factor` should be in the (0, 1) range"
+        assert 0 <= patience, "The value of `patience` should be >= 0"
+        assert (
+            0 <= min_lr <= base_lr
+        ), "The value of `min_lr` should be >= 0 and <= base_lr"
+
         super(LearningRateReduction, self).__init__(
             objective=objective,
             patience=patience,

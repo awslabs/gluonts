@@ -117,14 +117,25 @@ class Trainer:
         batch_size: Optional[int] = None,
         num_batches_per_epoch: int = 50,
         learning_rate: float = 1e-3,
-        learning_rate_decay_factor: float = 0.5,
-        patience: int = 10,
-        minimum_learning_rate: float = 5e-5,
+        learning_rate_decay_factor: Optional[int] = None,
+        patience: Optional[int] = None,
+        minimum_learning_rate: Optional[int] = None,
         clip_gradient: float = 10.0,
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        callbacks: Optional[List[Callback]] = None,
+        callbacks: Union[CallbackList, List[Callback]] = CallbackList(
+            [
+                ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
+                LearningRateReduction(
+                    base_lr=1e-3,
+                    decay_factor=0.5,
+                    patience=10,
+                    min_lr=5e-5,
+                    objective="min",
+                ),
+            ]
+        ),
     ) -> None:
 
         if batch_size is not None:
@@ -138,6 +149,22 @@ class Trainer:
 
         assert isinstance(batch_size, int)
 
+        if learning_rate_decay_factor is not None:
+            warnings.warn(
+                'Trainer argument "learning_rate_decay_factor" is deprecated and will not be used, modify the Callback argument instead.',
+                DeprecationWarning,
+            )
+        if patience is not None:
+            warnings.warn(
+                'Trainer argument "patience" is deprecated and will not be used, modify the Callback argument instead.',
+                DeprecationWarning,
+            )
+        if minimum_learning_rate:
+            warnings.warn(
+                'Trainer argument "minimum_learning_rate" is deprecated and will not be used, modify the Callback argument instead.',
+                DeprecationWarning,
+            )
+
         assert (
             0 <= epochs < float("inf")
         ), "The value of `epochs` should be >= 0"
@@ -148,13 +175,7 @@ class Trainer:
         assert (
             0 < learning_rate < float("inf")
         ), "The value of `learning_rate` should be > 0"
-        assert (
-            0 < learning_rate_decay_factor < 1
-        ), "The value of `learning_rate_decay_factor` should be in the (0, 1) range"
-        assert 0 <= patience, "The value of `patience` should be >= 0"
-        assert (
-            0 <= minimum_learning_rate <= learning_rate
-        ), "The value of `minimum_learning_rate` should be >= 0 and <= learning_rate"
+
         assert 0 < clip_gradient, "The value of `clip_gradient` should be > 0"
         assert 0 <= weight_decay, "The value of `weight_decay` should be => 0"
 
@@ -172,21 +193,7 @@ class Trainer:
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
 
-        if callbacks is None:
-            self.callbacks = CallbackList(
-                [
-                    ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
-                    LearningRateReduction(
-                        base_lr=learning_rate,
-                        decay_factor=learning_rate_decay_factor,
-                        patience=patience,
-                        min_lr=minimum_learning_rate,
-                        objective="min",
-                    ),
-                ]
-            )
-
-        else:
+        if not isinstance(callbacks, CallbackList):
             self.callbacks = CallbackList(callbacks)
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
