@@ -19,6 +19,7 @@ import logging
 import numpy as np
 import mxnet.gluon.nn as nn
 import mxnet as mx
+from gluonts.dataset.common import Dataset
 from gluonts.mx.trainer.model_averaging import AveragingStrategy
 from gluonts.mx.trainer.model_iteration_averaging import (
     IterationAveragingStrategy,
@@ -35,6 +36,13 @@ from gluonts.support.util import copy_parameters
 
 
 class Callback:
+    """
+    Abstract Callback base class.
+    Callbacks control the training of the GluonTS trainer.
+    To write a custom Callback you can subclass Callback and overwrite one or more of the hook methods.
+    Hook methods with boolean return value stop the training if False is returned.
+    """
+
     def __init__(self, **kwargs):
         pass
 
@@ -91,6 +99,16 @@ class Callback:
 
 
 class CallbackList(Callback):
+    """
+    Used to chain multiple callbacks to one callback.
+    Boolean hook methods are logically joined with AND, meaning that if at least one callback method returns False, the training is stopped.
+
+    Parameters
+    ----------
+    callbacks
+        A list of gluonts.mx.trainer.callback.Callback's.
+    """
+
     def __init__(self, callbacks: List[Callback], **kwargs):
         self.callbacks = callbacks
 
@@ -190,9 +208,39 @@ class CallbackList(Callback):
 
 
 class MetricInferenceEarlyStopping(Callback):
+    """
+    Early Stopping mechanism based on the prediction network.
+    Can be used to base the Early Stopping directly on a metric of interest, instead of on the training/validation loss.
+    In the same way as test datasets are used during model evaluation,
+    the time series of the validation_dataset can overlap with the train dataset time series,
+    except for a prediction_length part at the end of each time series.
+    Parameters
+    ----------
+    validation_dataset
+        An out-of-sample dataset which is used to monitor metrics
+    predictor
+        A gluon predictor, with a prediction network that matches the training network
+    evaluator
+        The Evaluator used to calculate the validation metrics.
+    metric
+        The metric on which to base the early stopping on.
+    patience
+        Number of epochs to train on given the metric did not improve more than min_delta.
+    min_delta
+        Minimum change in the monitored metric counting as an improvement
+    verbose
+        Controls, if the validation metric is printed after each epoch.
+    minimize_metric
+        The metric objective.
+    restore_best_network
+        Controls, if the best model, as assessed by the validation metrics is restored after training.
+    num_samples
+        The amount of samples drawn to calculate the inference metrics.
+    """
+
     def __init__(
         self,
-        validation_dataset,
+        validation_dataset: Dataset,
         predictor: GluonPredictor,
         evaluator: Evaluator = Evaluator(),
         metric: str = "MSE",
@@ -254,9 +302,7 @@ class MetricInferenceEarlyStopping(Callback):
         forecasts = list(forecast_it)
         tss = list(ts_it)
 
-        agg_metrics, item_metrics = self.evaluator(
-            iter(tss), iter(forecasts), num_series=len(self.validation_dataset)
-        )
+        agg_metrics, item_metrics = self.evaluator(iter(tss), iter(forecasts))
         current_metric_value = agg_metrics[self.metric]
         self.validation_metric_history.append(current_metric_value)
 
