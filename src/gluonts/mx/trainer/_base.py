@@ -106,7 +106,7 @@ class Trainer:
     hybridize
         If set to true the network will be hybridized before training
     callbacks
-        A list of gluonts.mx.trainer.callback.Callback's to control the training.
+        A list of gluonts.mx.trainer.callback.Callback's or a CallbackList to control the training.
     """
 
     @validated()
