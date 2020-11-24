@@ -23,7 +23,7 @@ from mxnet import autograd
 from gluonts.model.common import Tensor
 
 
-MAX_SUPPORT_VAL = 1e16
+MAX_SUPPORT_VAL = np.finfo(np.float64).max
 
 
 def nans_like(x: Tensor) -> Tensor:
@@ -89,7 +89,7 @@ class Distribution:
         raise NotImplementedError()
 
     @property
-    def support(self) -> Tuple[Tensor, Tensor]:
+    def support_min_max(self) -> Tuple[Tensor, Tensor]:
         raise NotImplementedError()
 
     def log_prob(self, x: Tensor) -> Tensor:
@@ -286,6 +286,76 @@ class Distribution:
         """
         raise NotImplementedError()
 
+    def _tensor_cdf_bisection(
+        self, level: Tensor, tol=1e-6, max_iter=120
+    ) -> Tensor:
+        r"""
+        Returns a Tensor of shape (len(level), *batch_size) with the corresponding quantiles.
+        """
+        F = self.F
+        local_max_support_val = min(1e16, MAX_SUPPORT_VAL)
+
+        try:
+            support_lb, support_ub = self.support_min_max
+            support_lb = F.broadcast_minimum(
+                F.broadcast_maximum(
+                    support_lb,
+                    F.ones(self.batch_shape) * local_max_support_val,
+                ),
+                F.ones(self.batch_shape) * -local_max_support_val,
+            )
+            support_ub = F.broadcast_maximum(
+                F.broadcast_minimum(
+                    support_ub,
+                    F.ones(self.batch_shape) * local_max_support_val,
+                ),
+                F.ones(self.batch_shape) * -local_max_support_val,
+            )
+
+            upper_bound = F.broadcast_like(
+                support_lb.expand_dims(axis=0), level, lhs_axes=0, rhs_axes=0
+            )
+            lower_bound = F.broadcast_like(
+                support_ub.expand_dims(axis=0), level, lhs_axes=0, rhs_axes=0
+            )
+        except NotImplementedError:
+            # default to R if not defined
+            upper_bound = (
+                F.ones((len(level), *self.batch_shape)) * local_max_support_val
+            )
+            lower_bound = (
+                F.ones((len(level), *self.batch_shape))
+                * -local_max_support_val
+            )
+
+        for _ in range(self.all_dim):
+            level = level.expand_dims(axis=-1)
+
+        q = 0.5 * F.broadcast_add(upper_bound, lower_bound)
+        val = self.cdf(q) - level
+
+        cnt = 0
+        while F.sum(F.abs(val) > tol) > 0 and cnt < max_iter:
+            mask_g = F.greater(val, tol)
+            mask_l = F.lesser(val, -tol)
+            mask_done = F.lesser_equal(F.abs(val), tol)
+
+            upper_bound = (
+                F.broadcast_mul(q, mask_g)
+                + F.broadcast_mul(upper_bound, mask_l)
+                + F.broadcast_mul(q, mask_done)
+            )
+            lower_bound = (
+                F.broadcast_mul(q, mask_l)
+                + F.broadcast_mul(lower_bound, mask_g)
+                + F.broadcast_mul(q, mask_done)
+            )
+
+            q = 0.5 * F.broadcast_add(upper_bound, lower_bound)
+            val = self.cdf(q) - level
+            cnt += 1
+        return q
+
     def quantile(self, level: Tensor) -> Tensor:
         r"""
 
@@ -308,65 +378,7 @@ class Distribution:
             where DISTRIBUTION_SHAPE is the shape of the underlying distribution.
         """
 
-        def _tensor_cdf_bisection(
-            level: Tensor, tol=1e-6, max_iter=120,
-        ) -> Tensor:
-            r"""
-            Returns a Tensor of shape (len(level), *batch_size) with the corresponding quantiles.
-            """
-            try:
-                support_lb, support_ub = self.support
-                upper_bound = F.broadcast_like(
-                    support_lb.expand_dims(axis=0),
-                    level,
-                    lhs_axes=0,
-                    rhs_axes=0,
-                )
-                lower_bound = F.broadcast_like(
-                    support_ub.expand_dims(axis=0),
-                    level,
-                    lhs_axes=0,
-                    rhs_axes=0,
-                )
-            except:
-                # default to R if not defined
-                upper_bound = (
-                    F.ones((len(level), *self.batch_shape)) * MAX_SUPPORT_VAL
-                )
-                lower_bound = (
-                    F.ones((len(level), *self.batch_shape)) * -MAX_SUPPORT_VAL
-                )
-
-            for _ in range(self.all_dim):
-                level = level.expand_dims(axis=-1)
-
-            q = 0.5 * F.broadcast_add(upper_bound, lower_bound)
-            val = self.cdf(q) - level
-
-            cnt = 0
-            while F.sum(F.abs(val) > tol) > 0 and cnt < max_iter:
-                mask_g = F.greater(val, tol)
-                mask_l = F.lesser(val, -tol)
-                mask_done = F.lesser_equal(F.abs(val), tol)
-
-                upper_bound = (
-                    F.broadcast_mul(q, mask_g)
-                    + F.broadcast_mul(upper_bound, mask_l)
-                    + F.broadcast_mul(q, mask_done)
-                )
-                lower_bound = (
-                    F.broadcast_mul(q, mask_l)
-                    + F.broadcast_mul(lower_bound, mask_g)
-                    + F.broadcast_mul(q, mask_done)
-                )
-
-                q = 0.5 * F.broadcast_add(upper_bound, lower_bound)
-                val = self.cdf(q) - level
-                cnt += 1
-            return q
-
-        F = self.F
-        return _tensor_cdf_bisection(level)
+        return self._tensor_cdf_bisection(level)
 
     def __getitem__(self, item):
         sliced_distr = self.__class__(

@@ -59,7 +59,7 @@ class GenPareto(Distribution):
         return getF(self.xi)
 
     @property
-    def support(self) -> Tuple[Tensor, Tensor]:
+    def support_min_max(self) -> Tuple[Tensor, Tensor]:
         F = self.F
         return (
             F.zeros(self.batch_shape),

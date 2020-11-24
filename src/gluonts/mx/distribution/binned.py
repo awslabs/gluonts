@@ -71,7 +71,7 @@ class Binned(Distribution):
         return getF(self.bin_log_probs)
 
     @property
-    def support(self) -> Tuple[Tensor, Tensor]:
+    def support_min_max(self) -> Tuple[Tensor, Tensor]:
         F = self.F
         return (
             F.broadcast_minimum(

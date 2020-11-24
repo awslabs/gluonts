@@ -99,13 +99,13 @@ class MixtureDistribution(Distribution):
         return getF(self.mixture_probs)
 
     @property
-    def support(self) -> Tuple[Tensor, Tensor]:
+    def support_min_max(self) -> Tuple[Tensor, Tensor]:
         F = self.F
         try:
             lb = F.ones(self.batch_shape) * MAX_SUPPORT_VAL
             ub = F.ones(self.batch_shape) * -MAX_SUPPORT_VAL
             for c in self.components:
-                c_lb, c_ub = c.support
+                c_lb, c_ub = c.support_min_max
                 lb = F.broadcast_minimum(lb, c_lb)
                 ub = F.broadcast_maximum(ub, c_ub)
             return lb, ub
