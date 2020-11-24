@@ -17,6 +17,7 @@ import itertools
 import operator
 import textwrap
 from types import SimpleNamespace
+import doctest
 from typing import (
     Any,
     Callable,
@@ -37,6 +38,11 @@ import pandas as pd
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+
+
+# Skip doctests for this module, to avoid running the doc tests from wrapped numpy functions.
+doctest.testmod(optionflags=doctest.SKIP)
+
 
 ValueOrCallable = Union[Any, Callable]
 Recipe = Union[
