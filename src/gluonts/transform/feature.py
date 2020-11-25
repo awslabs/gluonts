@@ -233,7 +233,9 @@ class AddObservedValuesIndicator(SimpleTransformation):
         nan_entries = np.isnan(value)
 
         if self.imputation_method is not None:
-            data[self.target_field] = self.imputation_method(value)
+            if nan_entries.any():
+                value = value.copy()
+                data[self.target_field] = self.imputation_method(value)
 
         data[self.output_field] = np.invert(
             nan_entries, out=nan_entries
