@@ -191,9 +191,11 @@ class Trainer:
         self.hybridize = hybridize
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
-
-        if not isinstance(callbacks, Callback):
-            self.callbacks = CallbackList(callbacks)
+        self.callbacks = (
+            callbacks
+            if isinstance(callbacks, Callback)
+            else CallbackList(callbacks)
+        )
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()
