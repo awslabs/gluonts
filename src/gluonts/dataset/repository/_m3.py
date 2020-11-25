@@ -19,12 +19,13 @@ from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
+import re
 
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 from gluonts.gluonts_tqdm import tqdm
 
 
-def check_dataset(dataset_path: Path, length: int):
+def check_dataset(dataset_path: Path, length: int, sheet_name):
     # check that things are correct
     from gluonts.dataset.common import load_datasets
 
@@ -50,6 +51,24 @@ def check_dataset(dataset_path: Path, length: int):
             == len(test_target) - ds.metadata.prediction_length
         )
         assert np.all(train_target == test_target[: len(train_target)])
+
+        assert ts_train["start"] == ts_test["start"]
+        start = ts_train["start"]
+        regex = r"^(\d{4})-(\d{2})-(\d{2})( 00:00(:00)?)?$"
+        m = re.match(regex, str(start))
+        assert m
+        month, day = m.group(2), m.group(3)
+        if sheet_name in ["M3Quart", "Other"]:
+            assert f"{month}-{day}" in [
+                "03-31",
+                "06-30",
+                "09-30",
+                "12-31",
+            ], f"Invalid time stamp `{month}-{day}`"
+        elif sheet_name == "M3Year":
+            assert (
+                f"{month}-{day}" == "12-31"
+            ), f"Invalid time stamp {month}-{day}"
 
 
 def generate_m3_dataset(dataset_path: Path, m3_freq: str):
@@ -109,16 +128,34 @@ def generate_m3_dataset(dataset_path: Path, m3_freq: str):
         target = truncate_trailing_nan(target)
         assert len(target) == n
         assert nf == subset.prediction_length
-        mock_start = "1750-01-01 00:00:00"
+        mock_start = "1750"
+
         if starting_year == 0:
             assert starting_offset == 0
             starting_year = mock_start
-        s = pd.Timestamp(str(starting_year), freq=subset.freq)
-        offset = max(starting_offset - 1, 0)
-        if offset:
-            s += offset * s.freq
-        start = str(s).split(" ")[0]
 
+        # fix bugs in M3C xls
+        if series == "N1071":
+            # bug in the m3 dataset
+            starting_offset = 1
+        if series == "N 184":
+            starting_offset = 1
+
+        offset = max(starting_offset - 1, 0)
+
+        if subset.freq == "3M":
+            assert 0 <= offset < 4
+            time_stamp = f"{starting_year}-{3 * (offset + 1):02}-15"
+        elif subset.freq == "12M":
+            assert offset == 0
+            time_stamp = f"{starting_year}-12-15"
+        elif subset.freq == "1M":
+            assert 0 <= offset < 12
+            time_stamp = f"{starting_year}-{offset + 1:02}-15"
+
+        s = pd.Timestamp(time_stamp, freq=subset.freq)
+        s = s.freq.rollforward(s)
+        start = str(s).split(" ")[0]
         cat = [i, cat_map[category]]
 
         d_train = to_dict(
@@ -153,4 +190,4 @@ def generate_m3_dataset(dataset_path: Path, m3_freq: str):
     save_to_file(train_file, train_data)
     save_to_file(test_file, test_data)
 
-    check_dataset(dataset_path, len(df))
+    check_dataset(dataset_path, len(df), subset.sheet_name)
