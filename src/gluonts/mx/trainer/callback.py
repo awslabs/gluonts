@@ -29,11 +29,7 @@ from mxnet import gluon
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.evaluation import Evaluator
-
-if (
-    TYPE_CHECKING
-):  # avoid circular import (can be removed when backwards compatibility of mx.model.predictor.GluonPredictor vs. model.predictor.GluonPredictor is removed)
-    from gluonts.mx.model.predictor import GluonPredictor  # noqa
+from gluonts.model.predictor import GluonPredictor
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
 from gluonts.support.util import copy_parameters
 
@@ -221,6 +217,33 @@ class MetricInferenceEarlyStopping(Callback):
     In the same way as test datasets are used during model evaluation,
     the time series of the validation_dataset can overlap with the train dataset time series,
     except for a prediction_length part at the end of each time series.
+
+    Example Usage:
+
+    >>> from gluonts.dataset.repository.datasets import get_dataset
+    ... from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+    ...from gluonts.mx.trainer import Trainer
+    ...from gluonts.mx.trainer.callback import MetricInferenceEarlyStopping
+    ...dataset = "m4_hourly"
+    ...dataset = get_dataset(dataset)
+    ...prediction_length = dataset.metadata.prediction_length
+    ...freq = dataset.metadata.freq
+    ...estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq = freq)
+    ...training_network = estimator.create_training_network()
+    ...transformation = estimator.create_transformation()
+    ...predictor = estimator.create_predictor(transformation=transformation, trained_network=training_network)
+    ...es_callback = MetricInferenceEarlyStopping(validation_dataset=dataset.test,
+    ...                            predictor=predictor,
+    ...                            metric="MSE",
+    ...            )
+    ...trainer = Trainer(epochs=200,
+    ...               callbacks=es_callback,
+    ...               batch_size=8,
+    ...               num_batches_per_epoch=10)
+    ...estimator.trainer = trainer
+    ...pred = estimator.train(dataset.train)
+
+
     Parameters
     ----------
     validation_dataset
@@ -249,8 +272,8 @@ class MetricInferenceEarlyStopping(Callback):
     def __init__(
         self,
         validation_dataset: Dataset,
-        predictor: "GluonPredictor",
-        evaluator: Evaluator = Evaluator(),
+        predictor: GluonPredictor,
+        evaluator: Evaluator = Evaluator(num_workers=None),
         metric: str = "MSE",
         patience: int = 10,
         min_delta: float = 0.0,
@@ -269,7 +292,7 @@ class MetricInferenceEarlyStopping(Callback):
             num_samples >= 1
         ), "EarlyStopping Callback num_samples needs to be >= 1"
 
-        self.validation_dataset = validation_dataset
+        self.validation_dataset = list(validation_dataset)
         self.predictor = predictor
         self.evaluator = evaluator
         self.metric = metric
@@ -307,10 +330,8 @@ class MetricInferenceEarlyStopping(Callback):
             predictor=self.predictor,
             num_samples=self.num_samples,
         )
-        forecasts = list(forecast_it)
-        tss = list(ts_it)
 
-        agg_metrics, item_metrics = self.evaluator(iter(tss), iter(forecasts))
+        agg_metrics, item_metrics = self.evaluator(ts_it, forecast_it)
         current_metric_value = agg_metrics[self.metric]
         self.validation_metric_history.append(current_metric_value)
 
