@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 import logging
 
 # Third-party imports
@@ -29,7 +29,11 @@ from mxnet import gluon
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.evaluation import Evaluator
-from gluonts.mx.model.predictor import GluonPredictor
+
+if (
+    TYPE_CHECKING
+):  # avoid circular import (can be removed when backwards compatibility of mx.model.predictor.GluonPredictor vs. model.predictor.GluonPredictor is removed)
+    from gluonts.mx.model.predictor import GluonPredictor  # noqa
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
 from gluonts.support.util import copy_parameters
 
@@ -245,7 +249,7 @@ class MetricInferenceEarlyStopping(Callback):
     def __init__(
         self,
         validation_dataset: Dataset,
-        predictor: GluonPredictor,
+        predictor: "GluonPredictor",
         evaluator: Evaluator = Evaluator(),
         metric: str = "MSE",
         patience: int = 10,

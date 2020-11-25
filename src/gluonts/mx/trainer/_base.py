@@ -45,7 +45,6 @@ from .model_averaging import (
     SelectNBestMean,
     save_epoch_info,
 )
-from .model_iteration_averaging import IterationAveragingStrategy
 
 logger = logging.getLogger("gluonts").getChild("trainer")
 
@@ -103,7 +102,7 @@ class Trainer:
     init
         Initializer of the weights of the network (default: "xavier").
     hybridize
-        If set to true the network will be hybridized before training
+        If set to True the network will be hybridized before training
     callbacks
         A list of gluonts.mx.trainer.callback.Callback's or a CallbackList to control the training.
     """
