@@ -33,8 +33,6 @@ from gluonts.model.predictor import GluonPredictor
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
 from gluonts.support.util import copy_parameters
 
-# TODO: documentation
-
 
 class Callback:
     """
@@ -102,7 +100,7 @@ class Callback:
 
 class CallbackList(Callback):
     """
-    Used to chain multiple callbacks to one callback.
+    Used to chain a list of callbacks to one Callback.
     Boolean hook methods are logically joined with AND, meaning that if at least one callback method returns False, the training is stopped.
 
     Parameters
@@ -232,14 +230,8 @@ class MetricInferenceEarlyStopping(Callback):
     ... training_network = estimator.create_training_network()
     ... transformation = estimator.create_transformation()
     ... predictor = estimator.create_predictor(transformation=transformation, trained_network=training_network)
-    ... es_callback = MetricInferenceEarlyStopping(validation_dataset=dataset.test,
-    ...                            predictor=predictor,
-    ...                            metric="MSE",
-    ...            )
-    ... trainer = Trainer(epochs=200,
-    ...               callbacks=es_callback,
-    ...               batch_size=8,
-    ...               num_batches_per_epoch=10)
+    ... es_callback = MetricInferenceEarlyStopping(validation_dataset=dataset.test, predictor=predictor, metric="MSE")
+    ... trainer = Trainer(epochs=200, callbacks=es_callback, batch_size=8, num_batches_per_epoch=10)
     ... estimator.trainer = trainer
     ... pred = estimator.train(dataset.train)
 
@@ -499,7 +491,12 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
 
 class ModelIterationAveraging(Callback):
     """
+    Callback to implement iteration based model averaging strategies.
 
+    Parameters
+        ----------
+        avg_strategy
+            IterationAveragingStrategy, one of NTA or Alpha_Suffix from gluonts.mx.trainer.model_iteration_averaging
     """
 
     @validated()
@@ -554,7 +551,14 @@ class ModelIterationAveraging(Callback):
 
 class ModelAveraging(Callback):
     """
+    Callback to implement model averaging strategies.
+    Selects the checkpoints with the best loss values and computes the model average or weighted model average depending on the chosen avg_strategy.
 
+
+    Parameters
+        ----------
+        avg_strategy
+            AveragingStrategy, one of SelectNBestSoftmax or SelectNBestMean from gluonts.mx.trainer.model_averaging
     """
 
     @validated()
