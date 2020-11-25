@@ -27,6 +27,7 @@ from gluonts.mx.trainer.model_iteration_averaging import (
 from mxnet import gluon
 
 # First-party imports
+from gluonts.core.component import validated
 from gluonts.evaluation import Evaluator
 from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
@@ -43,6 +44,7 @@ class Callback:
     Hook methods with boolean return value stop the training if False is returned.
     """
 
+    @validated()
     def __init__(self, **kwargs):
         pass
 
@@ -109,6 +111,7 @@ class CallbackList(Callback):
         A list of gluonts.mx.trainer.callback.Callback's.
     """
 
+    @validated()
     def __init__(self, callbacks: List[Callback], **kwargs):
         self.callbacks = callbacks
 
@@ -238,6 +241,7 @@ class MetricInferenceEarlyStopping(Callback):
         The amount of samples drawn to calculate the inference metrics.
     """
 
+    @validated()
     def __init__(
         self,
         validation_dataset: Dataset,
@@ -336,6 +340,7 @@ class MetricInferenceEarlyStopping(Callback):
 
 
 class TrainingHistory(Callback):
+    @validated()
     def __init__(self):
         self.loss_history = []
         self.validation_loss_history = []
@@ -380,6 +385,7 @@ class TerminateOnNaN(Callback):
 
 
 class WarmStart(Callback):
+    @validated()
     def __init__(self, start_network: nn.HybridBlock):
         self.start_network = start_network
 
@@ -423,6 +429,7 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
             Lower bound for the learning rate, learning rate will never go below `min_lr`
         """
 
+    @validated()
     def __init__(
         self,
         objective: str,
@@ -471,6 +478,7 @@ class ModelIterationAveraging(Callback):
 
     """
 
+    @validated()
     def __init__(self, avg_strategy: IterationAveragingStrategy):
         self.avg_strategy = avg_strategy
 
@@ -525,6 +533,7 @@ class ModelAveraging(Callback):
 
     """
 
+    @validated()
     def __init__(self, avg_strategy: AveragingStrategy):
         self.avg_strategy = avg_strategy
 
