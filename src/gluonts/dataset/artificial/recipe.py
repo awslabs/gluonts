@@ -15,6 +15,9 @@
 import functools
 import itertools
 import operator
+import textwrap
+from types import SimpleNamespace
+import doctest
 from typing import (
     Any,
     Callable,
@@ -35,6 +38,7 @@ import pandas as pd
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+
 
 ValueOrCallable = Union[Any, Callable]
 Recipe = Union[
@@ -88,19 +92,34 @@ def generate(
 
 
 def evaluate(
-    recipe: Recipe, length: int, *args, global_state: dict = None, **kwargs
+    recipe: Recipe,
+    length: ValueOrCallable,
+    *args,
+    global_state: dict = None,
+    **kwargs,
 ) -> Any:
     if global_state is None:
         global_state = {}
 
+    context = {}
     if "length" in kwargs:
         del kwargs["length"]
     if "field_name" in kwargs:
         del kwargs["field_name"]
     if "global_state" in kwargs:
         del kwargs["global_state"]
+    if "context" in kwargs:
+        context = kwargs["context"]
+        del kwargs["context"]
 
-    context = kwargs.get("context", {})
+    length_value = resolve(
+        length,
+        context,
+        length=None,
+        global_state=global_state,
+        *args,
+        **kwargs,
+    )
 
     # convert previous format into dict
     if isinstance(recipe, list) and len(recipe) > 0:
@@ -120,7 +139,7 @@ def evaluate(
                 data[k] = resolve(
                     f,
                     context,
-                    length=length,
+                    length=length_value,
                     field_name=k,
                     global_state=global_state,
                     *args,
@@ -133,7 +152,7 @@ def evaluate(
         return resolve(
             recipe,
             context,
-            length=length,
+            length=length_value,
             global_state=global_state,
             *args,
             **kwargs,
@@ -146,7 +165,7 @@ def evaluate(
                     resolve(
                         ri,
                         context,
-                        length=length,
+                        length=length_value,
                         global_state=global_state,
                         *args,
                         **kwargs,
@@ -253,6 +272,162 @@ class Lifted:
         **kwargs,
     ):
         pass
+
+
+class NumpyFunc(Lifted):
+    @validated()
+    def __init__(
+        self,
+        func: str,
+        func_args: Tuple[Any, ...],
+        func_kwargs: Dict[str, Any],
+    ):
+        import numpy
+
+        splits = func.split(".")
+        b = numpy
+        for s in splits:
+            b = getattr(b, s)
+        self.func = b
+        self.func_args = func_args
+        self.func_kwargs = func_kwargs
+
+    def __call__(self, *args, **kwargs):
+        func_args = [resolve(x, *args, **kwargs) for x in self.func_args]
+        func_kwargs = {
+            k: resolve(v, *args, **kwargs) for k, v in self.func_kwargs.items()
+        }
+        return self.func(*func_args, **func_kwargs)
+
+
+lifted_numpy = SimpleNamespace()
+lifted_numpy.random = SimpleNamespace()
+
+_NUMPY_FUNC_NAMES = [
+    "arange",
+    "argmax",
+    "argmin",
+    "clip",
+    "concatenate",
+    "convolve",
+    "exp",
+    "isfinite",
+    "isinf",
+    "isnan",
+    "log",
+    "log10",
+    "max",
+    "mean",
+    "min",
+    "nan_to_num",
+    "nanargmax",
+    "nanargmin",
+    "nanmax",
+    "nanmean",
+    "nanmin",
+    "nanpercentile",
+    "nanquantile",
+    "nansum",
+    "ones",
+    "ones_like",
+    "percentile",
+    "quantile",
+    "random.choice",
+    "random.normal",
+    "random.randn",
+    "random.uniform",
+    "repeat",
+    "reshape",
+    "shape",
+    "stack",
+    "sum",
+    "unique",
+    "zeros",
+    "zeros_like",
+]
+
+
+for func_name in _NUMPY_FUNC_NAMES:
+    normalized_func_name = f"_np_shim_{func_name.replace('.', '_')}"
+    if normalized_func_name in globals():
+        continue
+
+    s = f"""
+    @functools.wraps(np.{func_name})
+    def {normalized_func_name}(*args, **kwargs):
+        return NumpyFunc('{func_name}', args, kwargs)
+
+    lifted_numpy.{func_name} = {normalized_func_name}
+    # disable numpy docstring tests
+    lifted_numpy.{func_name}.__doc__ = lifted_numpy.{func_name}.__doc__.replace('>>>', '>>')
+    """
+    exec(textwrap.dedent(s))
+
+
+class Length(Lifted):
+    @validated()
+    def __init__(self, l: ValueOrCallable):
+        self.l = l
+
+    def __call__(self, x: Env, *args, **kwargs):
+        return len(resolve(self.l, x, *args, **kwargs))
+
+
+def lift(input: Union[int, Callable]):
+    """
+    Use this decorator to lift a function.
+
+    @lift
+    def f(x, y, length=None)
+
+    or if your function returns more results
+
+    @lift(2)
+    def f(x, y, length=None)
+
+    You can then use your function as part of a recipe. The function is called
+    with all all arguments being already resolved.
+
+    Note that you cannot serialize recipes that use the lift decorated functions.
+    """
+    if isinstance(input, int):
+        num_outs = input
+    else:
+        num_outs = 1
+
+    def w(f):
+        @functools.wraps(f)
+        def g(*f_args, **f_kwargs):
+            class Tmp(Lifted):
+                num_outputs = num_outs
+
+                @validated()
+                def __init__(self, f, f_args, f_kwargs):
+                    self.f = f
+                    self.f_args = f_args
+                    self.f_kwargs = f_kwargs
+
+                def __call__(self, x: Env, length: int, *args, **kwargs):
+                    resolved_f_args = [
+                        resolve(a, x, length, *args, **kwargs)
+                        for a in self.f_args
+                    ]
+                    resolved_f_kwargs = {
+                        k: resolve(v, x, length, *args, **kwargs)
+                        for k, v in self.f_kwargs.items()
+                    }
+                    return self.f(
+                        *resolved_f_args, **resolved_f_kwargs, length=length
+                    )
+
+            return Tmp(f, f_args, f_kwargs)
+
+        return g
+
+    if isinstance(input, int):
+        return w
+    else:
+        return w(input)
 
 
 class _LiftedUnpacked(Lifted):
