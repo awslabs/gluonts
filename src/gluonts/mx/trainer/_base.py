@@ -42,7 +42,6 @@ from mxnet.metric import ndarray
 
 # Relative imports
 from .model_averaging import (
-    AveragingStrategy,
     SelectNBestMean,
     save_epoch_info,
 )
@@ -124,7 +123,7 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        callbacks: Union[CallbackList, List[Callback]] = CallbackList(
+        callbacks: Union[Callback, List[Callback]] = CallbackList(
             [
                 ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
                 LearningRateReduction(
@@ -193,7 +192,7 @@ class Trainer:
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
 
-        if not isinstance(callbacks, CallbackList):
+        if not isinstance(callbacks, Callback):
             self.callbacks = CallbackList(callbacks)
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
