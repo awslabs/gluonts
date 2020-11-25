@@ -29,6 +29,7 @@ def test_epochs() -> None:
     )
 
 
+@pytest.mark.skip()  # TODO move to callback test
 def test_patience() -> None:
     assert_valid_param(param_name="patience", param_values=[0, 1, 10, 100])
     assert_invalid_param(
@@ -49,6 +50,7 @@ def test_learning_rate() -> None:
     )
 
 
+@pytest.mark.skip()  # TODO move to callback test
 def test_learning_rate_decay_factor() -> None:
     assert_valid_param(
         param_name="learning_rate_decay_factor",
