@@ -222,27 +222,26 @@ class MetricInferenceEarlyStopping(Callback):
 
     >>> from gluonts.dataset.repository.datasets import get_dataset
     ... from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-    ...from gluonts.mx.trainer import Trainer
-    ...from gluonts.mx.trainer.callback import MetricInferenceEarlyStopping
-    ...dataset = "m4_hourly"
-    ...dataset = get_dataset(dataset)
-    ...prediction_length = dataset.metadata.prediction_length
-    ...freq = dataset.metadata.freq
-    ...estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq = freq)
-    ...training_network = estimator.create_training_network()
-    ...transformation = estimator.create_transformation()
-    ...predictor = estimator.create_predictor(transformation=transformation, trained_network=training_network)
-    ...es_callback = MetricInferenceEarlyStopping(validation_dataset=dataset.test,
+    ... from gluonts.mx.trainer import Trainer
+    ... from gluonts.mx.trainer.callback import MetricInferenceEarlyStopping
+    ... dataset = "m4_hourly"
+    ... dataset = get_dataset(dataset)
+    ... prediction_length = dataset.metadata.prediction_length
+    ... freq = dataset.metadata.freq
+    ... estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq = freq)
+    ... training_network = estimator.create_training_network()
+    ... transformation = estimator.create_transformation()
+    ... predictor = estimator.create_predictor(transformation=transformation, trained_network=training_network)
+    ... es_callback = MetricInferenceEarlyStopping(validation_dataset=dataset.test,
     ...                            predictor=predictor,
     ...                            metric="MSE",
     ...            )
-    ...trainer = Trainer(epochs=200,
+    ... trainer = Trainer(epochs=200,
     ...               callbacks=es_callback,
     ...               batch_size=8,
     ...               num_batches_per_epoch=10)
-    ...estimator.trainer = trainer
-    ...pred = estimator.train(dataset.train)
-
+    ... estimator.trainer = trainer
+    ... pred = estimator.train(dataset.train)
 
     Parameters
     ----------
