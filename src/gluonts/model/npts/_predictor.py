@@ -221,7 +221,9 @@ class NPTSPredictor(RepresentablePredictor):
             else:
                 custom_features = None
 
-            yield self.predict_time_series(ts, num_samples, custom_features, item_id=item_id)
+            yield self.predict_time_series(
+                ts, num_samples, custom_features, item_id=item_id
+            )
 
     def predict_time_series(
         self,
@@ -283,7 +285,7 @@ class NPTSPredictor(RepresentablePredictor):
             prediction_length=self.prediction_length,
             sampling_weights_iterator=sampling_weights_iterator,
             num_samples=num_samples,
-            item_id=item_id
+            item_id=item_id,
         )
 
         return forecast
