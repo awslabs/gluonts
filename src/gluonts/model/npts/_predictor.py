@@ -13,7 +13,7 @@
 
 # Standard library imports
 from enum import Enum
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Iterator, List, Optional, Tuple, Union, Any
 
 # Third-party imports
 import numpy as np
@@ -203,6 +203,7 @@ class NPTSPredictor(RepresentablePredictor):
             index = pd.date_range(
                 start=start, freq=self.freq, periods=len(target)
             )
+            item_id = data.get("item_id", None)
 
             # Slice the time series until context_length or history length
             # depending on which ever is minimum
@@ -220,13 +221,16 @@ class NPTSPredictor(RepresentablePredictor):
             else:
                 custom_features = None
 
-            yield self.predict_time_series(ts, num_samples, custom_features)
+            yield self.predict_time_series(
+                ts, num_samples, custom_features, item_id=item_id
+            )
 
     def predict_time_series(
         self,
         ts: pd.Series,
         num_samples: int,
         custom_features: np.ndarray = None,
+        item_id: Optional[Any] = None,
     ) -> SampleForecast:
         """
         Given a training time series, this method generates `Forecast` object
@@ -243,6 +247,8 @@ class NPTSPredictor(RepresentablePredictor):
             custom features (covariates) to use
         num_samples
             number of samples to draw
+        item_id
+            item_id to identify the time series
         Returns
         -------
         Forecast
@@ -275,7 +281,11 @@ class NPTSPredictor(RepresentablePredictor):
 
         # Generate forecasts
         forecast = NPTS.predict(
-            ts, self.prediction_length, sampling_weights_iterator, num_samples
+            targets=ts,
+            prediction_length=self.prediction_length,
+            sampling_weights_iterator=sampling_weights_iterator,
+            num_samples=num_samples,
+            item_id=item_id,
         )
 
         return forecast
