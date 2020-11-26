@@ -110,14 +110,18 @@ class CallbackList(Callback):
     """
 
     @validated()
-    def __init__(self, callbacks: List[Callback], **kwargs):
-        self.callbacks = callbacks
+    def __init__(self, callbacks: Union[List[Callback], Callback], **kwargs):
 
-    def union(
+        self.callbacks = (
+            callbacks if isinstance(callbacks, list) else [callbacks]
+        )
+
+    def include(
         self, new_callbacks: Union["CallbackList", List[Callback]]
     ) -> None:
         """
-            add callbacks of a CallbackList or a list of callbacks to self.callbacks. If two Callbacks are the same type, new Callbacks are prioritized.
+            Include callbacks of a CallbackList or a list of callbacks in self.callbacks.
+            If two Callbacks are the same type, self.callbacks are prioritized and the new clalback will not be added.
             Parameters
             ----------
             callbacks
@@ -127,17 +131,13 @@ class CallbackList(Callback):
         if not isinstance(new_callbacks, list):
             new_callbacks = new_callbacks.callbacks
 
-        new_callback_types = set(
-            [type(callback) for callback in new_callbacks]
-        )
-
-        for callback in self.callbacks:
-            if type(callback) in new_callback_types:
+        callback_types = set([type(callback) for callback in self.callbacks])
+        # make sure not to have no duplicates
+        for callback in new_callbacks:
+            if type(callback) in callback_types:
                 continue
             else:
-                new_callbacks.append(callback)
-
-        self.callbacks = new_callbacks
+                self.callbacks.append(callback)
 
     def on_network_initializing_end(
         self, training_network: nn.HybridBlock
@@ -234,6 +234,7 @@ class CallbackList(Callback):
             )
 
 
+# TODO put to example notebook
 class MetricInferenceEarlyStopping(Callback):
     """
     Early Stopping mechanism based on the prediction network.
