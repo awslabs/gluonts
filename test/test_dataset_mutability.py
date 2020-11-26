@@ -15,13 +15,13 @@
 import numpy as np
 import pandas as pd
 from copy import deepcopy
+import pytest
 
 # First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.transform import (
     AddObservedValuesIndicator,
-    Chain,
     AddAgeFeature,
     AddConstFeature,
 )
@@ -45,10 +45,10 @@ ds2 = ListDataset(
     freq="1D",
 )
 
-ds1_c = deepcopy(ds1)
-ds2_c = deepcopy(ds2)
 
-transform = Chain(
+@pytest.mark.parametrize("ds", [ds1, ds2])
+@pytest.mark.parametrize(
+    "transform",
     [
         AddObservedValuesIndicator(
             target_field=FieldName.TARGET,
@@ -64,25 +64,25 @@ transform = Chain(
             output_field="constant",
             pred_length=1,
         ),
-    ]
+    ],
 )
+def test_dataset_imutability(ds, transform):
+    ds_c = deepcopy(ds)
 
-# test that using twice the transformation gives the same result
-for d in [ds1, ds2]:
-    out1 = list(transform(d, is_train=True))
-    out2 = list(transform(d, is_train=True))
+    # test that using twice the transformation gives the same result
+    out1 = transform(ds, is_train=True)
+    out2 = transform(ds, is_train=True)
     for o1, o2 in zip(out1, out2):
         for k in o1:
             if isinstance(o1[k], np.ndarray):
-                assert np.all(np.isclose(o1[k], o2[k], equal_nan=True))
+                assert np.allclose(o1[k], o2[k], equal_nan=True)
             else:
                 assert o1[k] == o2[k]
 
-# test that the original dataset did not change due to the transformation
-for zip_per_type in [zip(ds1, ds1_c), zip(list(ds2), list(ds2_c))]:
-    for d, d_c in zip_per_type:
+    # test that the original dataset did not change due to the transformation
+    for d, d_c in zip(ds, ds_c):
         for k in d:
             if isinstance(d[k], np.ndarray):
-                assert np.all(np.isclose(d[k], d_c[k], equal_nan=True))
+                assert np.allclose(d[k], d_c[k], equal_nan=True)
             else:
                 assert d[k] == d_c[k]
