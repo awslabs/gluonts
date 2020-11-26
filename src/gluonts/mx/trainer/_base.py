@@ -190,8 +190,6 @@ class Trainer:
             else CallbackList(callbacks)
         )
 
-        assert isinstance(self.callbacks, CallbackList)  # for type checking
-
         # TODO the following is done for backwards compatibility. For future versions, add the default callbacks as default arg
         if add_default_callbacks:
             default_callbacks = [
