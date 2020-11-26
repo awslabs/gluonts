@@ -52,11 +52,18 @@ class TransformedDistribution(Distribution):
         self._batch_shape: Optional[Tuple] = None
 
     @property
+    def F(self):
+        return self.base_distribution.F
+
+    @property
     def support_min_max(self) -> Tuple[Tensor, Tensor]:
+        F = self.F
         lb, ub = self.base_distribution.support_min_max
         for t in self.transforms:
-            lb = t.f(lb)
-            ub = t.f(ub)
+            _lb = t.f(lb)
+            _ub = t.f(ub)
+            lb = F.minimum(_lb, _ub)
+            ub = F.maximum(_lb, _ub)
         return lb, ub
 
     def _slice_bijection(
