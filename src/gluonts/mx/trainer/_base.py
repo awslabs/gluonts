@@ -147,6 +147,8 @@ class Trainer:
 
         assert isinstance(batch_size, int)
 
+        # TODO param disable_default_callbacks to get backwards compatibility
+        # deprecation warnings:
         if learning_rate_decay_factor is not None:
             warnings.warn(
                 'Trainer argument "learning_rate_decay_factor" is deprecated and will not be used, modify the Callback argument instead.',

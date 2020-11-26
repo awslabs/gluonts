@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, Union
 import logging
 
 # Third-party imports
@@ -112,6 +112,32 @@ class CallbackList(Callback):
     @validated()
     def __init__(self, callbacks: List[Callback], **kwargs):
         self.callbacks = callbacks
+
+    def union(
+        self, new_callbacks: Union["CallbackList", List[Callback]]
+    ) -> None:
+        """
+            add callbacks of a CallbackList or a list of callbacks to self.callbacks. If two Callbacks are the same type, new Callbacks are prioritized.
+            Parameters
+            ----------
+            callbacks
+                A gluonts.mx.trainer.callback.CallbackList.
+        """
+
+        if not isinstance(new_callbacks, list):
+            new_callbacks = new_callbacks.callbacks
+
+        new_callback_types = set(
+            [type(callback) for callback in new_callbacks]
+        )
+
+        for callback in self.callbacks:
+            if type(callback) in new_callback_types:
+                continue
+            else:
+                new_callbacks.append(callback)
+
+        self.callbacks = new_callbacks
 
     def on_network_initializing_end(
         self, training_network: nn.HybridBlock
