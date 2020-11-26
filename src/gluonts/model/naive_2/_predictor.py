@@ -154,6 +154,7 @@ class Naive2Predictor(RepresentablePredictor):
 
     def predict_item(self, item: DataEntry) -> Forecast:
         past_ts_data = item["target"]
+        item_id = item.get("item_id", None)
         forecast_start_time = forecast_start(item)
 
         assert (
@@ -164,4 +165,9 @@ class Naive2Predictor(RepresentablePredictor):
 
         samples = np.array([prediction])
 
-        return SampleForecast(samples, forecast_start_time, self.freq)
+        return SampleForecast(
+            samples=samples,
+            start_date=forecast_start_time,
+            freq=self.freq,
+            item_id=item_id,
+        )

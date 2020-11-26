@@ -11,12 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterable
+from typing import Iterable, List
+import itertools
 
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.itertools import pseudo_shuffled
+from gluonts.itertools import pseudo_shuffled, cyclic
+
+
+@pytest.mark.parametrize(
+    "data, n, expected", [([1, 2, 3], 7, [1, 2, 3, 1, 2, 3, 1]), ([], 4, [])]
+)
+def test_cyclic(data: Iterable, n: int, expected: List) -> None:
+    cyclic_data = cyclic(data)
+    actual = list(itertools.islice(cyclic_data, n))
+    assert actual == expected
 
 
 @pytest.mark.parametrize("data", [range(20), constant_dataset()[1],])
