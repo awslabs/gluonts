@@ -215,7 +215,7 @@ class ComposedBijection(Bijection):
     def __len__(self):
         return len(self._bijections)
 
-    def __iadd__(self, bijections):
+    def __iadd__(self, bijections: List[Bijection]):
         for b in bijections:
             if not isinstance(b, Bijection):
                 raise TypeError(
