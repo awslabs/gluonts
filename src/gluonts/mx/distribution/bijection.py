@@ -249,14 +249,14 @@ class ComposedBijectionBlock(BijectionBlock, ComposedBijection):
     @validated()
     def __init__(
         self,
-        bij_blocks: Optional[List[BijectionBlock]] = None,
+        bij_blocks: Optional[List[Bijection]] = None,
         *args,
         **kwargs,
     ) -> None:
         Block.__init__(self, *args, **kwargs)
         ComposedBijection.__init__(self, bij_blocks)
 
-    def __iadd__(self, bij_blocks: List[BijectionBlock]):
+    def __iadd__(self, bij_blocks: List[Bijection]):
         for b in bij_blocks:
             self.register_child(b)
         return super().__iadd__(bij_blocks)
