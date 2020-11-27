@@ -42,7 +42,10 @@ class Deterministic(Distribution):
     @validated()
     def __init__(self, value: Tensor) -> None:
         self.value = value
-        self.F = getF(value)
+
+    @property
+    def F(self):
+        return getF(self.value)
 
     @property
     def batch_shape(self) -> Tuple:

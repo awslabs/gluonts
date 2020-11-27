@@ -83,6 +83,7 @@ __all__ = [
     "ZeroInflatedBetaOutput",
     "OneInflatedBeta",
     "OneInflatedBetaOutput",
+    "GenParetoOutput",
     "GenPareto",
     "GaussianOutput",
     "Gaussian",
