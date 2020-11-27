@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Iterable
 
 # Third-party imports
 import numpy as np
@@ -123,8 +123,11 @@ class InverseBijection(Bijection):
 
 
 class ComposedBijection(Bijection):
+    """
+    Encapsulates a series of bijections and implements functions associated to their composition.
+    """
     @validated()
-    def __init__(self, bijections: Optional[List[Bijection]] = None) -> None:
+    def __init__(self, bijections: Optional[Iterable[Bijection]] = None) -> None:
         super().__init__(self)
         self._bijections: List[Bijection] = []
         if bijections is not None:
@@ -139,21 +142,64 @@ class ComposedBijection(Bijection):
         return self._bijections[0].event_dim
 
     def f(self, x: Tensor) -> Tensor:
+        """
+        Computes the forward transform of the composition of bijections.
+
+        Parameters
+        ----------
+        x
+            Input Tensor for the forward transform.
+        Returns
+        -------
+        Tensor
+            Transformation of x by the forward composition of bijections
+
+        """
         y = x
         for t in self._bijections:
             y = t.f(y)
         return y
 
     def f_inv(self, y: Tensor) -> Tensor:
+        """
+        Computes the inverse transform of a composition of bijections.
+
+        Parameters
+        ----------
+        y
+            Input Tensor for the inverse function
+
+        Returns
+        -------
+        Tensor
+            Transformation of y by the inverse composition of bijections
+        """
         x = y
         for t in reversed(self._bijections):
             x = t.f_inv(x)
         return x
 
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
+        """
+        Logarithm of the absolute value of the Jacobian determinant corresponding to the composed bijection
+
+        Parameters
+        ----------
+        x
+            input of the forward transformation or output of the inverse transform
+        y
+            output of the forward transform or input of the inverse transform
+
+        Returns
+        -------
+        Tensor
+            Jacobian evaluated for x as input or y as output
+
+        """
         ladj = 0.0
         for t in reversed(self._bijections):
             x = t.f_inv(y)
+            # TODO: change for
             # ladj = ladj + sum_trailing_axes(getF(y), t.log_abs_det_jac(x, y),
             #                                 self.event_dim - t.event_dim)
             ladj = ladj + t.log_abs_det_jac(x, y)
@@ -189,21 +235,24 @@ class ComposedBijection(Bijection):
 
 
 class BijectionBlock(Block, Bijection):
-    """BijectionBlock"""
+    """Allows a Bijection to have parameters"""
 
 
 class ComposedBijectionBlock(BijectionBlock, ComposedBijection):
+    """
+    Allows a ComposedBijection object to have parameters
+    """
     @validated()
     def __init__(
         self,
-        bij_blocks: Optional[List[BijectionBlock]] = None,
+        bij_blocks: Optional[Iterable[BijectionBlock]] = None,
         *args,
         **kwargs,
     ) -> None:
         Block.__init__(self, *args, **kwargs)
         ComposedBijection.__init__(self, bij_blocks)
 
-    def __iadd__(self, bij_blocks):
+    def __iadd__(self, bij_blocks: Iterable[BijectionBlock]):
         for b in bij_blocks:
             self.register_child(b)
         return super().__iadd__(bij_blocks)

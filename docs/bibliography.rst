@@ -5,7 +5,8 @@ Bibliography
 .. Generate labels using the so-called AMS "authorship trigraph" style.
 .. Citations are ordered alphabetically.
 
-.. [BJC19] Behrmann, Jens, et al. "Invertible residual networks." International Conference on Machine Learning. 2019.
+.. [BJC19] Jens Behrmann, Will Grathwohl, Ricky T. Q. Chen, David Duvenaud, Jörn-Henrik Jacobsen
+. "Invertible residual networks." International Conference on Machine Learning. 2019.
 
 .. [BKH16] Ba, Jimmy Lei, Jamie Ryan Kiros, and Geoffrey E. Hinton. "Layer normalization." arXiv preprint arXiv:1607.06450 (2016).
 

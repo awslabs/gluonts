@@ -26,7 +26,19 @@ from gluonts.mx.distribution.bijection import (
 )
 
 
-def log_abs_det(A):
+def log_abs_det(A: Tensor) -> Tensor:
+    """
+    Logarithm of the absolute value of matrix `A`
+    Parameters
+    ----------
+    A
+        Tensor matrix from which to compute the log absolute value of its determinant
+
+    Returns
+    -------
+        Tensor
+
+    """
     F = getF(A)
     A_squared = F.linalg.gemm2(A, A, transpose_a=True)
     L = F.linalg.potrf(A_squared)
@@ -88,7 +100,21 @@ class InvertibleResnetBlock(BijectionBlock):
     def event_dim(self) -> int:
         return len(self.event_shape)
 
-    def f(self, x):
+    def f(self, x: Tensor) -> Tensor:
+        """
+        Forward transformation of iResnet
+
+        Parameters
+        ----------
+        x
+            observations
+
+        Returns
+        -------
+        Tensor
+            transformed tensor `\text{iResnet}(x)`
+
+        """
         if x is self._cached_x:
             return self._cached_y
         y = x
@@ -99,7 +125,20 @@ class InvertibleResnetBlock(BijectionBlock):
             self._cached_y = y
         return y
 
-    def f_inv(self, y):
+    def f_inv(self, y: Tensor) -> Tensor:
+        """
+        Inverse transformation of `iResnet`
+
+        Parameters
+        ----------
+        y
+            input tensor
+        Returns
+        -------
+        Tensor
+            transformed tensor `\text{iResnet}^{-1}(y)`
+
+        """
         if y is self._cached_y:
             return self._cached_x
         x = y + self._block(y)
@@ -109,6 +148,21 @@ class InvertibleResnetBlock(BijectionBlock):
         return x
 
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
+        """
+        Logarithm of the absolute value of the Jacobian determinant corresponding to the iResnet Transform
+
+        Parameters
+        ----------
+        x
+            input of the forward transformation or output of the inverse transform
+        y
+            output of the forward transform or input of the inverse transform
+
+        Returns
+        -------
+        Tensor
+            Jacobian evaluated for x as input or y as output
+        """
         if self._ignore_logdet:
             assert x is not None
             ladj = mx.nd.zeros(x.shape[0])
@@ -131,7 +185,20 @@ class InvertibleResnetBlock(BijectionBlock):
         return ladj
 
 
-def iresnet(num_blocks, **kwargs):
+def iresnet(num_blocks: int, **block_kwargs) -> ComposedBijectionBlock:
+    """
+
+    Parameters
+    ----------
+    num_blocks
+        number of iResnet blocks
+    block_kwargs
+        keyword arguments given to initialize each block object
+
+    Returns
+    -------
+
+    """
     return ComposedBijectionBlock(
-        [InvertibleResnetBlock(**kwargs) for _ in range(num_blocks)]
+        [InvertibleResnetBlock(**block_kwargs) for _ in range(num_blocks)]
     )

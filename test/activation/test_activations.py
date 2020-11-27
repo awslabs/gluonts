@@ -43,7 +43,7 @@ def test_activation_deriv(activation, kwargs):
         return autograd.grad(output, [input], create_graph=True)[0]
 
     input = mx.nd.random.randn(500, 20)
-    act = get_activation(activation, **kwargs)()
+    act = get_activation(activation, **kwargs)
     act.initialize()
     correct_deriv = get_deriv_autograd(input, act)
     act_deriv = get_activation_deriv(act)

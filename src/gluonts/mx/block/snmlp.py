@@ -11,6 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# Standard library imports
+from typing import List, Tuple
+import warnings
+
 # Third-party imports
 import mxnet as mx
 from mxnet.gluon import Block
@@ -24,10 +28,21 @@ from gluonts.mx.activation import get_activation, get_activation_deriv
 from gluonts.mx.block.sndense import SNDense
 
 
-def jacobian_sn_mlp_block_bf(layers):
+def jacobian_sn_mlp_block_bf(layers: List[Tuple[Block, Tensor]]) -> Tensor:
     """
     Brute force computation of the jacobian of a SNMlpBlock
     jac is of shape (Batch dim1, ..., Output dim, Input dim)
+
+    Parameters
+    ----------
+    layers
+        A list of tuples where each tuple (layer, input) is associated to a composing layer of the SNMLPBlock, where layer corresponds to the associated object layer, along with its input tensor.
+
+    Returns
+    -------
+    Tensor
+        Jacobian of the SNMLPBlock computed at a given input
+
     """
     for i, (layer, input) in enumerate(layers[::-1]):
         if isinstance(layer, SNDense):
@@ -95,7 +110,7 @@ class SNMLPBlock(Block):
                     coeff=self._coeff,
                     flatten=self._flatten,
                 )
-                act = get_activation(self._activation)()
+                act = get_activation(self._activation, prefix=self._activation + "_")
                 in_dim = self._hidden_units
                 self.register_child(lin)
                 self.register_child(act)
@@ -123,6 +138,19 @@ class SNMLPBlock(Block):
 
     # noinspection PyMethodOverriding
     def forward(self, x: Tensor) -> Tensor:
+        """
+
+        Parameters
+        ----------
+        x
+            Input Tensor
+
+        Returns
+        -------
+        Tensor
+            output of SNMLPBlock
+
+        """
         self._cached_inputs = []
         for layer in self._layers:
             self._cached_inputs += [x]
@@ -130,6 +158,19 @@ class SNMLPBlock(Block):
         return x
 
     def jacobian(self, x: Tensor) -> Tensor:
+        """
+
+        Parameters
+        ----------
+        x
+            Input Tensor
+
+        Returns
+        -------
+        Tensor
+            Jacobian of the SNMLPBlock evaluated at x.
+
+        """
         if self._jacobian_method == "ignore":
             return x * 0
         elif self._jacobian_method == "bf":
@@ -137,11 +178,10 @@ class SNMLPBlock(Block):
                 len(self._cached_inputs) > 0
                 and self._cached_inputs[0] is not x
             ):
-                print(
+                warnings.warn(
                     "Input not the same, recomputing forward for jacobian term..."
                 )
                 self(x)
-                assert False
             return jacobian_sn_mlp_block_bf(
                 [(l, i) for l, i in zip(self._layers, self._cached_inputs)]
             )

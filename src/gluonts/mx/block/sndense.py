@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Union
+from typing import Optional
 
 # Third-party imports
 import mxnet as mx
@@ -46,7 +46,7 @@ class SNDense(Block):
         activation: Optional[str] = None,
         use_bias: bool = True,
         flatten: bool = True,
-        weight_initializer: Union[str, init.Initializer] = init.Orthogonal(
+        weight_initializer: init.Initializer = init.Orthogonal(
             scale=0.9
         ),
         bias_initializer="zeros",
@@ -81,7 +81,7 @@ class SNDense(Block):
                 self.bias = None
 
             if activation is not None:
-                self._act = get_activation(activation)(prefix=activation + "_")
+                self._act = get_activation(activation, prefix=activation + "_")
             else:
                 self._act = None
 
@@ -93,6 +93,19 @@ class SNDense(Block):
 
     # noinspection PyMethodOverriding
     def forward(self, x: Tensor) -> Tensor:
+        """
+
+        Parameters
+        ----------
+        x
+            Input Tensor of SNDense layer
+
+        Returns
+        -------
+        Tensor
+            Output Tensor of SNDense layer
+
+        """
         act = nd.FullyConnected(
             data=x,
             weight=self.weight,
