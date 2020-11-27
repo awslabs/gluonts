@@ -202,14 +202,14 @@ class ComposedBijection(Bijection):
         ladj = 0.0
         for t in reversed(self._bijections):
             x = t.f_inv(y)
-            # TODO: change for
+            # TODO: eventually change for
             # ladj = ladj + sum_trailing_axes(getF(y), t.log_abs_det_jac(x, y),
             #                                 self.event_dim - t.event_dim)
             ladj = ladj + t.log_abs_det_jac(x, y)
             y = x
         return ladj
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         return self._bijections[index]
 
     def __len__(self):
@@ -233,7 +233,7 @@ class ComposedBijection(Bijection):
 
         return self
 
-    def __add__(self, bijections):
+    def __add__(self, bijections: Iterable[Bijection]):
         return ComposedBijection(self._bijections + bijections)
 
 
