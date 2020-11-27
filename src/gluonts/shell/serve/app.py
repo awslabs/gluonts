@@ -150,7 +150,8 @@ def make_predictions(predictor, dataset, configuration):
     predictions = []
 
     forecast_iter = predictor.predict(
-        dataset, num_samples=configuration.num_samples,
+        dataset,
+        num_samples=configuration.num_samples,
     )
 
     for forecast in forecast_iter:

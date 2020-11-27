@@ -85,7 +85,7 @@ class DeepAREstimator(GluonEstimator):
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
     dropoutcell_type
-        Type of dropout cells to use 
+        Type of dropout cells to use
         (available: 'ZoneoutCell', 'RNNZoneoutCell', 'VariationalDropoutCell' or 'VariationalZoneoutCell';
         default: 'ZoneoutCell')
     dropout_rate

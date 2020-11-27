@@ -35,7 +35,8 @@ def _is_stackable(arrays: List, axis: int = 0) -> bool:
 
 # TODO: should the following contempate mxnet arrays or just numpy arrays?
 def _pad_arrays(
-    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0,
+    data: List[Union[np.ndarray, mx.nd.NDArray]],
+    axis: int = 0,
 ) -> List[Union[np.ndarray, mx.nd.NDArray]]:
     assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
     is_mx = isinstance(data[0], mx.nd.NDArray)

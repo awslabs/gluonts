@@ -110,7 +110,9 @@ class SNMLPBlock(Block):
                     coeff=self._coeff,
                     flatten=self._flatten,
                 )
-                act = get_activation(self._activation, prefix=self._activation + "_")
+                act = get_activation(
+                    self._activation, prefix=self._activation + "_"
+                )
                 in_dim = self._hidden_units
                 self.register_child(lin)
                 self.register_child(act)

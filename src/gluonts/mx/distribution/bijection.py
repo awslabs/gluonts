@@ -126,8 +126,11 @@ class ComposedBijection(Bijection):
     """
     Encapsulates a series of bijections and implements functions associated to their composition.
     """
+
     @validated()
-    def __init__(self, bijections: Optional[Iterable[Bijection]] = None) -> None:
+    def __init__(
+        self, bijections: Optional[Iterable[Bijection]] = None
+    ) -> None:
         super().__init__(self)
         self._bijections: List[Bijection] = []
         if bijections is not None:
@@ -242,6 +245,7 @@ class ComposedBijectionBlock(BijectionBlock, ComposedBijection):
     """
     Allows a ComposedBijection object to have parameters
     """
+
     @validated()
     def __init__(
         self,

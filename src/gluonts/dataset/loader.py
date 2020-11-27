@@ -55,9 +55,7 @@ class PseudoShuffledIterator(Iterator):
         # If the buffer is empty, fill the buffer first.
         if not self.shuffle_buffer:
             self.shuffle_buffer = list(
-                itertools.islice(
-                    self.iterator, self.shuffle_buffer_length
-                )
+                itertools.islice(self.iterator, self.shuffle_buffer_length)
             )
 
         # If buffer still empty, means all elements used, return a signal of
@@ -233,7 +231,9 @@ class TrainDataLoader(DataLoader):
         self.shuffle_buffer_length = shuffle_buffer_length
 
         transformed_dataset = TransformedDataset(
-            Cycle(dataset), transform, is_train=True,
+            Cycle(dataset),
+            transform,
+            is_train=True,
         )
 
         shuffled_iterator: Iterable[DataEntry] = (
@@ -281,7 +281,9 @@ class ValidationDataLoader(DataLoader):
         shuffle_buffer_length: Optional[int] = None,
     ) -> None:
         self.transformed_dataset = TransformedDataset(
-            dataset, transform, is_train=True,
+            dataset,
+            transform,
+            is_train=True,
         )
         self.batch_size = batch_size
         self.stack_fn = stack_fn
@@ -307,7 +309,9 @@ class InferenceDataLoader(DataLoader):
         shuffle_buffer_length: Optional[int] = None,
     ) -> None:
         self.transformed_dataset = TransformedDataset(
-            dataset, transform, is_train=False,
+            dataset,
+            transform,
+            is_train=False,
         )
         self.batch_size = batch_size
         self.stack_fn = stack_fn

@@ -46,14 +46,12 @@ class SNDense(Block):
         activation: Optional[str] = None,
         use_bias: bool = True,
         flatten: bool = True,
-        weight_initializer: init.Initializer = init.Orthogonal(
-            scale=0.9
-        ),
+        weight_initializer: init.Initializer = init.Orthogonal(scale=0.9),
         bias_initializer="zeros",
         dtype="float32",
         num_power_iter: int = 1,
         ctx: Optional[mx.Context] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self._coeff = coeff

@@ -104,7 +104,7 @@ def evaluate(
                 field_name=k,
                 global_state=global_state,
                 *args,
-                **kwargs
+                **kwargs,
             )
         except ValueError as e:
             raise ValueError('Error while evaluating key "{}"'.format(k), e)
@@ -128,7 +128,7 @@ def make_func(
                 field_name=k,
                 global_state=global_state,
                 *args,
-                **kwargs
+                **kwargs,
             )
         return data
 
@@ -186,7 +186,7 @@ class Lifted:
         field_name: str,
         global_state: Dict,
         *args,
-        **kwargs
+        **kwargs,
     ):
         pass
 
@@ -426,7 +426,7 @@ class ForEachCat(Lifted):
         field_name: str,
         global_state: Dict,
         *args,
-        **kwargs
+        **kwargs,
     ):
         c = x[self.cat_field][self.cat_idx]
         if field_name not in global_state:

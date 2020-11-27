@@ -52,7 +52,7 @@ class ActivationRegularizationLoss(Loss):
         weight: Optional[float] = None,
         batch_axis: int = 1,
         time_axis: int = 0,
-        **kwargs
+        **kwargs,
     ):
         super(ActivationRegularizationLoss, self).__init__(
             weight, batch_axis, **kwargs
@@ -71,7 +71,7 @@ class ActivationRegularizationLoss(Loss):
         ----------
         states
             the stack outputs from RNN, which consists of output from each time step.
-            
+
         Returns
         --------
         Tensor
@@ -122,7 +122,7 @@ class TemporalActivationRegularizationLoss(Loss):
         weight: Optional[float] = None,
         batch_axis: int = 1,
         time_axis: int = 0,
-        **kwargs
+        **kwargs,
     ):
         super(TemporalActivationRegularizationLoss, self).__init__(
             weight, batch_axis, **kwargs
@@ -141,7 +141,7 @@ class TemporalActivationRegularizationLoss(Loss):
         ----------
         states
             the stack outputs from RNN, which consists of output from each time step.
-            
+
         Returns
         --------
         Tensor

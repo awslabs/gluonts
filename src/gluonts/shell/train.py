@@ -123,7 +123,8 @@ def run_train(
         )
     else:
         return forecaster.train(
-            training_data=train_dataset, validation_data=validation_dataset,
+            training_data=train_dataset,
+            validation_data=validation_dataset,
         )
 
 

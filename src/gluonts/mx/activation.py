@@ -129,7 +129,7 @@ def deriv_softrelu(F, x: Tensor) -> Tensor:
     return e / (1 + e)
 
 
-def deriv_elu(F, x: Tensor, alpha: float=1.0) -> Tensor:
+def deriv_elu(F, x: Tensor, alpha: float = 1.0) -> Tensor:
     """
     Derivative function of Elu activation computed at point `x`.
 
@@ -199,8 +199,13 @@ class LipSwish(nn.HybridBlock):
     """
     Implemented LipSwish activation, i.e. LipSwish(z) := Swish(z)/ 1.1 with a learnable parameter beta.
     """
+
     @validated()
-    def __init__(self, beta_initializer: mx.init.Initializer=mx.init.Constant(1.0), **kwargs):
+    def __init__(
+        self,
+        beta_initializer: mx.init.Initializer = mx.init.Constant(1.0),
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         with self.name_scope():
             self.beta = self.params.get(

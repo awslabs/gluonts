@@ -96,7 +96,7 @@ class Representation(nn.HybridBlock):
         Returns
         -------
         Tuple[Tensor, Tensor, List[Tensor]]
-            Tuple consisting of the transformed data, the computed scale, 
+            Tuple consisting of the transformed data, the computed scale,
             and additional parameters to be passed to post_transform.
         """
         return data, F.ones_like(data), []
@@ -114,7 +114,7 @@ class Representation(nn.HybridBlock):
         scale
             The scale of the samples.
         rep_params
-            Additional representation-specific parameters used during post 
+            Additional representation-specific parameters used during post
             transformation.
 
         Returns
