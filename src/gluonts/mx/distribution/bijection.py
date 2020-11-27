@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, Union, List, Iterable
+from typing import Optional, Union, List
 
 # Third-party imports
 import numpy as np
@@ -129,7 +129,7 @@ class ComposedBijection(Bijection):
 
     @validated()
     def __init__(
-        self, bijections: Optional[Iterable[Bijection]] = None
+        self, bijections: Optional[List[Bijection]] = None
     ) -> None:
         super().__init__(self)
         self._bijections: List[Bijection] = []
@@ -233,7 +233,7 @@ class ComposedBijection(Bijection):
 
         return self
 
-    def __add__(self, bijections: Iterable[Bijection]):
+    def __add__(self, bijections: List[Bijection]):
         return ComposedBijection(self._bijections + bijections)
 
 
@@ -249,14 +249,14 @@ class ComposedBijectionBlock(BijectionBlock, ComposedBijection):
     @validated()
     def __init__(
         self,
-        bij_blocks: Optional[Iterable[BijectionBlock]] = None,
+        bij_blocks: Optional[List[BijectionBlock]] = None,
         *args,
         **kwargs,
     ) -> None:
         Block.__init__(self, *args, **kwargs)
         ComposedBijection.__init__(self, bij_blocks)
 
-    def __iadd__(self, bij_blocks: Iterable[BijectionBlock]):
+    def __iadd__(self, bij_blocks: List[BijectionBlock]):
         for b in bij_blocks:
             self.register_child(b)
         return super().__iadd__(bij_blocks)
