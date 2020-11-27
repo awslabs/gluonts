@@ -179,7 +179,6 @@ class Trainer:
     def __call__(
         self,
         net: nn.HybridBlock,
-        input_names: List[str],
         train_iter: TrainDataLoader,
         validation_iter: Optional[ValidationDataLoader] = None,
     ) -> None:  # TODO: we may want to return some training information here
@@ -251,20 +250,18 @@ class Trainer:
                         self.avg_strategy.load_averaged_model(net)
 
                     with tqdm(batch_iter) as it:
-                        for batch_no, data_entry in enumerate(it, start=1):
+                        for batch_no, batch in enumerate(it, start=1):
                             if self.halt:
                                 break
 
-                            inputs = [data_entry[k] for k in input_names]
-
                             if first_forward:
                                 first_forward = False
-                                _ = net(*inputs)
+                                _ = net(*batch.values())
                                 if self.post_initialize_cb:
                                     self.post_initialize_cb(net)
 
                             with mx.autograd.record():
-                                output = net(*inputs)
+                                output = net(*batch.values())
 
                                 # network can returns several outputs, the first being always the loss
                                 # when having multiple outputs, the forward returns a list in the case of hybrid and a
