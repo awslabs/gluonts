@@ -131,7 +131,7 @@ is currently not available in GluonTS.](https://papers.nips.cc/paper/6313-bayesi
 Tutorials are available in bibtex and with accompanying material,
  in particular slides, linked from below.
 
-### WWWW 2020
+### WWW 2020
 [paper](https://dl.acm.org/doi/10.1145/3366424.3383118)
 [slides](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
   ```
@@ -268,4 +268,3 @@ pages = {42-47}
 	Year = {2017}
 }
 ```
-
