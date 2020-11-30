@@ -105,6 +105,16 @@ class Trainer:
         If set to True the network will be hybridized before training
     callbacks
         A list of gluonts.mx.trainer.callback.Callback's or a CallbackList to control the training.
+    add_default_callbacks
+        bool, True by default. If True LearningRateReduction and ModelAveragingCallbacks are used in addition to the callbacks specified in the callbacks argument.
+        default callbacks:
+        >>>[ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
+        ...LearningRateReduction(
+        ...base_lr=learning_rate,
+        ...decay_factor=learning_rate_decay_factor,
+        ...patience=patience,
+        ...min_lr=minimum_learning_rate,
+        ...objective="min")]
     """
 
     @validated()
