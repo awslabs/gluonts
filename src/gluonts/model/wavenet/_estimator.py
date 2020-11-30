@@ -51,6 +51,7 @@ from gluonts.transform import (
     SetFieldIfNotPresent,
     SimpleTransformation,
     VstackFeatures,
+    SelectFields,
 )
 from gluonts.mx.batchify import batchify
 
@@ -275,9 +276,18 @@ class WaveNetEstimator(GluonEstimator):
             bin_edges, pred_length=self.train_window_length
         )
 
+        # ensure that the training network is created within the same MXNet
+        # context as the one that will be used during training
+        with self.trainer.ctx:
+            params = self._get_wavenet_args(bin_centers)
+            params.update(pred_length=self.train_window_length)
+            trained_net = WaveNet(**params)
+
+        input_names = get_hybrid_forward_input_names(trained_net)
+
         training_data_loader = TrainDataLoader(
             dataset=training_data,
-            transform=transformation,
+            transform=transformation + SelectFields(input_names),
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
@@ -301,16 +311,8 @@ class WaveNetEstimator(GluonEstimator):
                 **kwargs,
             )
 
-        # ensure that the training network is created within the same MXNet
-        # context as the one that will be used during training
-        with self.trainer.ctx:
-            params = self._get_wavenet_args(bin_centers)
-            params.update(pred_length=self.train_window_length)
-            trained_net = WaveNet(**params)
-
         self.trainer(
             net=trained_net,
-            input_names=get_hybrid_forward_input_names(trained_net),
             train_iter=training_data_loader,
             validation_iter=validation_data_loader,
         )

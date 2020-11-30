@@ -30,7 +30,7 @@ from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 from gluonts.support.util import get_hybrid_forward_input_names
-from gluonts.transform import Transformation
+from gluonts.transform import Transformation, SelectFields
 from gluonts.mx.batchify import batchify, as_in_context
 
 
@@ -208,9 +208,16 @@ class GluonEstimator(Estimator):
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
+        # ensure that the training network is created within the same MXNet
+        # context as the one that will be used during training
+        with self.trainer.ctx:
+            trained_net = self.create_training_network()
+
+        input_names = get_hybrid_forward_input_names(trained_net)
+
         training_data_loader = TrainDataLoader(
             dataset=training_data,
-            transform=transformation,
+            transform=transformation + SelectFields(input_names),
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             stack_fn=partial(
@@ -227,7 +234,7 @@ class GluonEstimator(Estimator):
         if validation_data is not None:
             validation_data_loader = ValidationDataLoader(
                 dataset=validation_data,
-                transform=transformation,
+                transform=transformation + SelectFields(input_names),
                 batch_size=self.trainer.batch_size,
                 stack_fn=partial(
                     batchify, ctx=self.trainer.ctx, dtype=self.dtype,
@@ -237,14 +244,8 @@ class GluonEstimator(Estimator):
                 **kwargs,
             )
 
-        # ensure that the training network is created within the same MXNet
-        # context as the one that will be used during training
-        with self.trainer.ctx:
-            trained_net = self.create_training_network()
-
         self.trainer(
             net=trained_net,
-            input_names=get_hybrid_forward_input_names(trained_net),
             train_iter=training_data_loader,
             validation_iter=validation_data_loader,
         )
