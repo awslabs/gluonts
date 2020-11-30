@@ -19,7 +19,6 @@ import logging
 import numpy as np
 import mxnet.gluon.nn as nn
 import mxnet as mx
-from gluonts.dataset.common import Dataset
 from gluonts.mx.trainer.model_averaging import AveragingStrategy
 from gluonts.mx.trainer.model_iteration_averaging import (
     IterationAveragingStrategy,
@@ -58,6 +57,11 @@ class Callback:
         pass
 
     def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+        pass
+
+    def on_validation_batch_end(
+        self, training_network: nn.HybridBlock
+    ) -> None:
         pass
 
     def on_train_epoch_end(
@@ -160,6 +164,12 @@ class CallbackList(Callback):
     def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
         for callback in self.callbacks:
             callback.on_train_batch_end(training_network=training_network)
+
+    def on_validation_batch_end(
+        self, training_network: nn.HybridBlock
+    ) -> None:
+        for callback in self.callbacks:
+            callback.on_validation_batch_end(training_network=training_network)
 
     def on_train_epoch_end(
         self,

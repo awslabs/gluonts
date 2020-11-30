@@ -351,6 +351,10 @@ class Trainer:
                                 self.callbacks.on_train_batch_end(
                                     training_network=net
                                 )
+                            else:
+                                self.callbacks.on_validation_batch_end(
+                                    training_network=net
+                                )
 
                             epoch_loss.update(None, preds=loss)
 
