@@ -19,6 +19,7 @@ import logging
 import numpy as np
 import mxnet.gluon.nn as nn
 import mxnet as mx
+from gluonts.core.exception import GluonTSUserError
 from gluonts.mx.trainer.model_averaging import AveragingStrategy
 from gluonts.mx.trainer.model_iteration_averaging import (
     IterationAveragingStrategy,
@@ -26,7 +27,7 @@ from gluonts.mx.trainer.model_iteration_averaging import (
 from mxnet import gluon
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core.component import validated, logger
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
 from gluonts.support.util import copy_parameters
 
@@ -88,6 +89,7 @@ class Callback:
         epoch_loss: float,
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
+        best_epoch_info: dict,
     ) -> bool:
         return True
 
@@ -215,6 +217,7 @@ class CallbackList(Callback):
         epoch_loss: float,
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
+        best_epoch_info: dict,
     ) -> bool:
         return np.all(
             [
@@ -223,6 +226,7 @@ class CallbackList(Callback):
                     epoch_loss=epoch_loss,
                     training_network=training_network,
                     trainer=trainer,
+                    best_epoch_info=best_epoch_info,
                 )
                 for callback in self.callbacks
             ]
@@ -364,6 +368,7 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
         epoch_loss: float,
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
+        best_epoch_info: dict,
     ) -> bool:
         should_continue = self.step(metric_value=epoch_loss)
         if not should_continue:
@@ -371,7 +376,22 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
                 "Early stopping based on learning rate scheduler callback (min_lr was reached)."
             )
             return False
+        pre_step_learning_rate = trainer.learning_rate
         trainer.optimizer.set_learning_rate(self(trainer.optimizer.num_update))
+
+        if not trainer.learning_rate == pre_step_learning_rate:
+            if best_epoch_info["epoch_no"] == -1:
+                raise GluonTSUserError(
+                    "Got NaN in first epoch. Try reducing initial learning rate."
+                )
+
+            logger.info(
+                f"Loading parameters from best epoch "
+                f"({best_epoch_info['epoch_no']})"
+            )
+            training_network.load_parameters(
+                best_epoch_info["params_path"], trainer.ctx
+            )
 
         return True
 
@@ -416,6 +436,7 @@ class ModelIterationAveraging(Callback):
         epoch_loss: float,
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
+        best_epoch_info: dict,
     ) -> bool:
 
         self.avg_strategy.update_average_trigger(

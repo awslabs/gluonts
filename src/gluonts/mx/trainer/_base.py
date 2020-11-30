@@ -427,20 +427,6 @@ class Trainer:
                         )
                     )
 
-                should_continue = (
-                    should_continue
-                    and self.callbacks.on_epoch_end(
-                        epoch_no=epoch_no,
-                        epoch_loss=loss_value(epoch_loss),
-                        training_network=net,
-                        trainer=trainer,
-                    )
-                )
-
-                if not should_continue:
-                    logger.info("Stopping training")
-                    break
-
                 # save model and epoch info
                 bp = base_path()
                 epoch_info = {
@@ -455,24 +441,24 @@ class Trainer:
 
                 save_epoch_info(bp, epoch_info)
 
-                # update best epoch info - needed for the learning rate scheduler
+                # update best epoch info
                 if loss_value(epoch_loss) < best_epoch_info["score"]:
                     best_epoch_info = epoch_info.copy()
 
-                # TODO fix this, put to callback:
-                if not trainer.learning_rate == curr_lr:
-                    if best_epoch_info["epoch_no"] == -1:
-                        raise GluonTSUserError(
-                            "Got NaN in first epoch. Try reducing initial learning rate."
-                        )
+                should_continue = (
+                    should_continue
+                    and self.callbacks.on_epoch_end(
+                        epoch_no=epoch_no,
+                        epoch_loss=loss_value(epoch_loss),
+                        training_network=net,
+                        trainer=trainer,
+                        best_epoch_info=best_epoch_info,
+                    )
+                )
 
-                    logger.info(
-                        f"Loading parameters from best epoch "
-                        f"({best_epoch_info['epoch_no']})"
-                    )
-                    net.load_parameters(
-                        best_epoch_info["params_path"], self.ctx
-                    )
+                if not should_continue:
+                    logger.info("Stopping training")
+                    break
 
             self.callbacks.on_train_end(
                 training_network=net,
