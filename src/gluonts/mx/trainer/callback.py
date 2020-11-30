@@ -90,6 +90,7 @@ class Callback:
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
         best_epoch_info: dict,
+        ctx: mx.Context,
     ) -> bool:
         return True
 
@@ -218,6 +219,7 @@ class CallbackList(Callback):
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
         best_epoch_info: dict,
+        ctx: mx.Context,
     ) -> bool:
         return np.all(
             [
@@ -227,6 +229,7 @@ class CallbackList(Callback):
                     training_network=training_network,
                     trainer=trainer,
                     best_epoch_info=best_epoch_info,
+                    ctx=ctx,
                 )
                 for callback in self.callbacks
             ]
@@ -369,6 +372,7 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
         best_epoch_info: dict,
+        ctx: mx.Context,
     ) -> bool:
         should_continue = self.step(metric_value=epoch_loss)
         if not should_continue:
@@ -390,7 +394,7 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
                 f"({best_epoch_info['epoch_no']})"
             )
             training_network.load_parameters(
-                best_epoch_info["params_path"], trainer.ctx
+                best_epoch_info["params_path"], ctx
             )
 
         return True
@@ -437,6 +441,7 @@ class ModelIterationAveraging(Callback):
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
         best_epoch_info: dict,
+        ctx: mx.Context,
     ) -> bool:
 
         self.avg_strategy.update_average_trigger(

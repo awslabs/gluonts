@@ -463,6 +463,7 @@ class Trainer:
                         training_network=net,
                         trainer=trainer,
                         best_epoch_info=best_epoch_info,
+                        ctx=self.ctx,
                     )
                 )
 
