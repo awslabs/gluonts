@@ -20,6 +20,7 @@ import numpy as np
 import mxnet.gluon.nn as nn
 import mxnet as mx
 from gluonts.core.exception import GluonTSUserError
+from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer.model_averaging import AveragingStrategy
 from gluonts.mx.trainer.model_iteration_averaging import (
     IterationAveragingStrategy,
@@ -296,13 +297,13 @@ class TerminateOnNaN(Callback):
 
 class WarmStart(Callback):
     @validated()
-    def __init__(self, start_network: nn.HybridBlock):
-        self.start_network = start_network
+    def __init__(self, predictor: GluonPredictor):
+        self.predictor = predictor
 
     def on_network_initializing_end(
         self, training_network: nn.HybridBlock
     ) -> None:
-        copy_parameters(self.start_network, training_network)
+        copy_parameters(self.predictor.prediction_net, training_network)
 
 
 class LearningRateReduction(MetricAttentiveScheduler, Callback):
