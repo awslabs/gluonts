@@ -21,7 +21,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import Seq2SeqEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
@@ -29,7 +29,7 @@ from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
-from gluonts.support.util import weighted_average
+from gluonts.mx.util import weighted_average
 
 
 class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):

@@ -20,8 +20,8 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-from gluonts.support import util
+from gluonts.mx.common import Tensor
+from gluonts.mx.util import cumsum
 
 from .bijection import AffineTransformation, Bijection
 from .distribution import Distribution, getF
@@ -124,7 +124,7 @@ class PiecewiseLinear(Distribution):
         # The actual position of the knots is obtained by cumulative sum of
         # the knot spacings. The first knot position is always 0 for quantile
         # functions; cumsum will take care of that.
-        knot_positions = util.cumsum(F, knot_spacings, exclusive=True)
+        knot_positions = cumsum(F, knot_spacings, exclusive=True)
 
         return b, knot_positions
 

@@ -23,7 +23,7 @@ from mxnet import autograd
 from gluonts.core.component import validated
 
 # First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 # Relative imports
 from . import bijection as bij

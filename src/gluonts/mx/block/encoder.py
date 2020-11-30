@@ -18,7 +18,7 @@ from typing import List, Tuple
 from mxnet.gluon import nn
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 # First-party imports
 from gluonts.mx.block.cnn import CausalConv1D

@@ -21,7 +21,7 @@ import numpy as np
 
 from gluonts.core.component import validated
 
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from .distribution import Distribution
 
 from gluonts.mx.distribution import Distribution

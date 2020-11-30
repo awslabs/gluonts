@@ -18,7 +18,8 @@ import pytest
 
 # First-party imports
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.model.common import Tensor, NPArrayLike
+from gluonts.model.common import NPArrayLike
+from gluonts.mx.common import Tensor
 from gluonts.mx.distribution.distribution import Distribution
 from gluonts.mx.distribution.distribution_output import DistributionOutput
 from gluonts.mx.distribution import (

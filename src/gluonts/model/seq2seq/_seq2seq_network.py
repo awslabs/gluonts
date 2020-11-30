@@ -15,7 +15,7 @@
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 # First-party imports
 from gluonts.mx.block.decoder import Seq2SeqDecoder

@@ -21,7 +21,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 from .binning_helpers import (
     bin_edges_from_bin_centers,

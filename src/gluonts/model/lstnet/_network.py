@@ -21,7 +21,7 @@ from mxnet.gluon import loss, nn
 from gluonts.core.component import DType, validated
 
 # First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
 

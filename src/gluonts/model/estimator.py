@@ -29,9 +29,9 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import get_hybrid_forward_input_names
-from gluonts.transform import Transformation, SelectFields
+from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.transform import Transformation, SelectFields
 
 
 class Estimator:

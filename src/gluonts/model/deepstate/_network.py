@@ -18,12 +18,12 @@ from typing import List, Optional
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.model.deepstate.issm import ISSM
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution.lds import LDS, LDSArgsProj, ParameterBounds
-from gluonts.support.util import make_nd_diag, weighted_average
+from gluonts.mx.util import make_nd_diag, weighted_average
 
 
 class DeepStateNetwork(mx.gluon.HybridBlock):

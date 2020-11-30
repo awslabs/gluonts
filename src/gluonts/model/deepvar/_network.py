@@ -18,12 +18,12 @@ from typing import List, Optional, Tuple
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 # First-party imports
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
-from gluonts.support.util import assert_shape, weighted_average
+from gluonts.mx.util import assert_shape, weighted_average
 
 
 def make_rnn_cell(

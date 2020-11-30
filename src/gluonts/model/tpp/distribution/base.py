@@ -19,7 +19,7 @@ import numpy as np
 from mxnet import autograd
 
 # First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.distribution.distribution import Distribution, getF
 from gluonts.mx.distribution.distribution_output import DistributionOutput
 from gluonts.mx.distribution.bijection import AffineTransformation, Bijection

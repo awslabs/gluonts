@@ -20,7 +20,7 @@ from mxnet import autograd, nd
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.distribution.distribution import getF
 
 # Relative imports

@@ -24,7 +24,7 @@ from mxnet.gluon.contrib.nn import HybridConcurrent
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 
 

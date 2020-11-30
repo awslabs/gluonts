@@ -19,7 +19,7 @@ import mxnet as mx
 from mxnet.gluon import HybridBlock
 
 # First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 
 def split_heads(F, x: Tensor, dim_per_head: int, heads: int) -> Tensor:

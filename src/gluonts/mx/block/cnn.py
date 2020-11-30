@@ -19,7 +19,7 @@ from mxnet import gluon
 from mxnet.gluon import nn
 
 # First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 
 class CausalConv1D(gluon.HybridBlock):

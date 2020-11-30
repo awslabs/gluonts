@@ -20,7 +20,7 @@ import numpy as np
 from mxnet import autograd
 
 # First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 
 MAX_SUPPORT_VAL = np.finfo(np.float64).max

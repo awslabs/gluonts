@@ -32,7 +32,7 @@ from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import (
+from gluonts.mx.util import (
     copy_parameters,
     get_hybrid_forward_input_names,
 )

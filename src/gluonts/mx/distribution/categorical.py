@@ -21,7 +21,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF

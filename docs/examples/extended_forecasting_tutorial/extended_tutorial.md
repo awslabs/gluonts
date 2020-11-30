@@ -834,7 +834,7 @@ from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.core.component import validated
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
 from mxnet.gluon import HybridBlock
 ```

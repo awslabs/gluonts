@@ -19,7 +19,7 @@ from mxnet.gluon import nn
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 
 class Seq2SeqEnc2Dec(nn.HybridBlock):

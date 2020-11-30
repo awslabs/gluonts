@@ -38,7 +38,7 @@ from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import NOPScaler, Scaler
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import ExpectedNumInstanceSampler
 

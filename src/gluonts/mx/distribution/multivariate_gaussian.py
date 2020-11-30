@@ -20,8 +20,8 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-from gluonts.support.linalg_util import lower_triangular_ones
+from gluonts.mx.common import Tensor
+from gluonts.mx.linalg_util import lower_triangular_ones
 
 from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput

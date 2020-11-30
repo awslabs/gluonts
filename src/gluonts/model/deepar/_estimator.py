@@ -29,7 +29,7 @@ from gluonts.mx.model.predictor import RepresentableBlockPredictor
 
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,

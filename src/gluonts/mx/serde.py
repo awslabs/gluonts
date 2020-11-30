@@ -16,7 +16,12 @@ from typing import Any
 import mxnet as mx
 
 from gluonts.core import fqname_for
-from gluonts.core.serde import encode, Kind
+from gluonts.core.serde import encode, skip_encoding, Kind
+
+
+@skip_encoding.register(mx.gluon.ParameterDict)
+def skip_encoding_mx_gluon_parameterdict(v: mx.gluon.ParameterDict) -> bool:
+    return True
 
 
 @encode.register(mx.Context)

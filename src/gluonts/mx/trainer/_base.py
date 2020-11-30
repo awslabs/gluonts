@@ -31,7 +31,7 @@ from gluonts.core.exception import GluonTSDataError, GluonTSUserError
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
-from gluonts.support.util import HybridContext
+from gluonts.mx.util import HybridContext
 from mxnet.metric import ndarray
 
 # Relative imports

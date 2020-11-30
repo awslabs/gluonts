@@ -26,7 +26,7 @@ from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import RepresentableBlockPredictor
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,

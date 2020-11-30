@@ -16,7 +16,7 @@ import pytest
 
 import mxnet as mx
 
-from gluonts.support.util import make_nd_diag
+from gluonts.mx.util import make_nd_diag
 from gluonts.mx.distribution import (
     Distribution,
     Gaussian,

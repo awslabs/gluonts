@@ -18,13 +18,13 @@ from typing import List
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from typing import Tuple
 
 # First-party imports
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
-from gluonts.support.util import weighted_average
+from gluonts.mx.util import weighted_average
 
 
 class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):

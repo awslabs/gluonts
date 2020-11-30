@@ -20,11 +20,11 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.distribution import MultivariateGaussian
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.kernels import Kernel
-from gluonts.support.linalg_util import (
+from gluonts.mx.linalg_util import (
     batch_diagonal,
     jitter_cholesky,
     jitter_cholesky_eig,

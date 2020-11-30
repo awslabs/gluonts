@@ -20,7 +20,7 @@ from mxnet import gluon
 from mxnet import init
 from mxnet.gluon import nn, rnn, HybridBlock
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 
 

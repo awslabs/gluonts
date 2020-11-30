@@ -22,7 +22,7 @@ from mxnet import gluon
 from gluonts.core.component import validated
 
 # First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 from . import Distribution
 from .bijection import AffineTransformation

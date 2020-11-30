@@ -23,7 +23,7 @@ from mxnet.gluon import nn
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.context import get_mxnet_context
 
 

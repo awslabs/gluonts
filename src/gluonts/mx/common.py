@@ -11,24 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import typing
 
-from ._base import encode, decode, Stateful, Stateless, skip_encoding
-from ._json import dump_json, load_json
-from ._repr import dump_code, load_code
+import mxnet as mx
 
-# TODO: remove
-from .np import *
-from .pd import *
-
-
-__all__ = [
-    "encode",
-    "decode",
-    "dump_code",
-    "load_code",
-    "dump_json",
-    "load_json",
-    "Stateful",
-    "Stateless",
-    "skip_encoding",
-]
+# Tensor type for HybridBlocks in Gluon
+Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]

@@ -20,7 +20,7 @@ import numpy as np
 
 # First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 
 class FeatureEmbedder(nn.HybridBlock):

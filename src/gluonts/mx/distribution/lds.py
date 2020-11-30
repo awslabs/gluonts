@@ -21,9 +21,9 @@ import numpy as np
 from gluonts.core.component import validated
 
 # First-party imports
-from gluonts.model.common import Tensor
-from gluonts.support.linalg_util import jitter_cholesky
-from gluonts.support.util import _broadcast_param, make_nd_diag
+from gluonts.mx.common import Tensor
+from gluonts.mx.linalg_util import jitter_cholesky
+from gluonts.mx.util import _broadcast_param, make_nd_diag
 
 from . import Distribution, Gaussian, MultivariateGaussian
 from .distribution import getF

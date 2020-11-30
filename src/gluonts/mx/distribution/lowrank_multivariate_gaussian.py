@@ -21,7 +21,7 @@ from mxnet import gluon
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 
 from . import bijection
 from .distribution import Distribution, _sample_multiple, getF

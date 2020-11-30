@@ -69,7 +69,7 @@ def test_appendix_c():
         ExpectedNumInstanceSampler,
     )
     from gluonts.core.component import validated
-    from gluonts.support.util import copy_parameters
+    from gluonts.mx.util import copy_parameters
 
     class MyTrainNetwork(gluon.HybridBlock):
         def __init__(self, prediction_length, cells, act_type, **kwargs):

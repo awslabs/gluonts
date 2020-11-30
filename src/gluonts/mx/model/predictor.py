@@ -28,16 +28,21 @@ import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import (
-    DType,
-    equals,
-)
+from gluonts.core.component import DType
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.mx.context import get_mxnet_context
 from gluonts.model.forecast import Forecast
-from gluonts.support.util import (
+from gluonts.model.predictor import Predictor, OutputTransform
+from gluonts.model.forecast_generator import (
+    ForecastGenerator,
+    SampleForecastGenerator,
+)
+from gluonts.model.forecast_generator import predict_to_numpy
+from gluonts.mx.batchify import batchify
+from gluonts.mx.component import equals
+from gluonts.mx.context import get_mxnet_context
+from gluonts.mx.util import (
     export_repr_block,
     export_symb_block,
     get_hybrid_forward_input_names,
@@ -46,14 +51,6 @@ from gluonts.support.util import (
     import_symb_block,
 )
 from gluonts.transform import Transformation
-from gluonts.mx.batchify import batchify
-from gluonts.model.predictor import Predictor, OutputTransform
-from gluonts.model.forecast_generator import (
-    ForecastGenerator,
-    SampleForecastGenerator,
-)
-
-from gluonts.model.forecast_generator import predict_to_numpy
 
 
 @predict_to_numpy.register(mx.gluon.Block)

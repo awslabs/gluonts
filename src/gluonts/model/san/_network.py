@@ -22,11 +22,11 @@ from mxnet.gluon.contrib.nn import HybridConcurrent
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder, FeatureAssembler
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.block.quantile_output import QuantileOutput
-from gluonts.support.util import weighted_average
+from gluonts.mx.util import weighted_average
 
 # Relative imports
 from ._layers import (

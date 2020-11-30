@@ -18,8 +18,8 @@ import numpy as np
 from gluonts.core.component import DType, validated
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
-from gluonts.model.common import Tensor
-from gluonts.support.util import erf, erfinv
+from gluonts.mx.common import Tensor
+from gluonts.mx.util import erf, erfinv
 
 from ._base import (
     FlatMapTransformation,

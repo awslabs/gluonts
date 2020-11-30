@@ -19,7 +19,7 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.distribution.distribution import softplus
 from gluonts.mx.kernels import KernelOutputDict
 

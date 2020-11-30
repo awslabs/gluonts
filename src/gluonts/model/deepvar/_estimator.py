@@ -30,7 +30,7 @@ from gluonts.mx.distribution import (
     LowrankMultivariateGaussianOutput,
 )
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature
 from gluonts.transform import (
     AddObservedValuesIndicator,

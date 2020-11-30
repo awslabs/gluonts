@@ -18,7 +18,7 @@ from typing import List, Optional, Tuple
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
 from gluonts.model.transformer.trans_encoder import TransformerEncoder
 from gluonts.mx.block.feature import FeatureEmbedder

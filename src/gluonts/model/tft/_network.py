@@ -23,10 +23,10 @@ from mxnet.gluon import nn, HybridBlock
 
 # First-party imports
 from gluonts.core.component import validated, DType
-from gluonts.model.common import Tensor
+from gluonts.mx.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder as BaseFeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
-from gluonts.support.util import weighted_average
+from gluonts.mx.util import weighted_average
 from ._layers import (
     GatedResidualNetwork,
     VariableSelectionNetwork,
