@@ -141,17 +141,17 @@ class Trainer:
         # deprecation warnings, in the future, the following callbacks should be controlled by altering callbacks:
         if learning_rate_decay_factor is not None:
             warnings.warn(
-                'Trainer argument "learning_rate_decay_factor" is deprecated. Modify the Callback argument instead.',
+                'Trainer argument "learning_rate_decay_factor" is deprecated. Use callbacks instead.',
                 DeprecationWarning,
             )
         if patience is not None:
             warnings.warn(
-                'Trainer argument "patience" is deprecated. Modify the Callback argument instead.',
+                'Trainer argument "patience" is deprecated. Use callbacks instead.',
                 DeprecationWarning,
             )
         if minimum_learning_rate:
             warnings.warn(
-                'Trainer argument "minimum_learning_rate" is deprecated. Modify the Callback argument instead.',
+                'Trainer argument "minimum_learning_rate" is deprecated. Use callbacks instead.',
                 DeprecationWarning,
             )
 
