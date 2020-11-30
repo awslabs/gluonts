@@ -182,6 +182,22 @@ class Trainer:
         train_iter: TrainDataLoader,
         validation_iter: Optional[ValidationDataLoader] = None,
     ) -> None:  # TODO: we may want to return some training information here
+        """
+        Train a network, given an iterable over training (and optionally validation) batches.
+
+        Parameters
+        ----------
+        net
+            Network to be trained. This a Gluon HybridBlock, assumed to produce a tensor
+            of loss values as output.
+        train_iter
+            An iterable over batches to be used for training. Batches are assumed to be
+            dictionaries, whose values are MXNet arrays that correspond to the network
+            inputs.
+        validation_iter
+            Similar to `train_iter` but the batches produced here are used to compute
+            validation metrics.
+        """
         is_validation_available = validation_iter is not None
         self.halt = False
 
@@ -251,6 +267,10 @@ class Trainer:
 
                     with tqdm(batch_iter) as it:
                         for batch_no, batch in enumerate(it, start=1):
+                            # `batch` here is expected to be a dictionary whose fields
+                            # should correspond 1-to-1 with the network inputs
+                            # see below how `batch.values()` is fed into the network
+
                             if self.halt:
                                 break
 
