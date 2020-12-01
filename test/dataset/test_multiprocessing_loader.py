@@ -203,7 +203,15 @@ def test_validation_loader_equivalence() -> None:
 @flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     "num_workers",
-    [i for i in [None, 1, 2,] if i is None or i <= mp.cpu_count()],
+    [
+        i
+        for i in [
+            None,
+            1,
+            2,
+        ]
+        if i is None or i <= mp.cpu_count()
+    ],
     # TODO: using more than 2 is a problem for our tests, if some of the cores are busy and fall behind
     # TODO: using multiple input queues in the loader would make this pass no matter how busy each core is
     # [i for i in [None, 1, 2, 3, 4] if i is None or i <= mp.cpu_count()],

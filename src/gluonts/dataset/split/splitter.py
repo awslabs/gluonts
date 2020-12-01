@@ -184,7 +184,7 @@ class AbstractBaseSplitter(ABC):
     Args:
         param prediction_length:
             The prediction length which is used to train themodel.
-            
+
         max_history:
             If given, all entries in the *test*-set have a max-length of
             `max_history`. This can be used to produce smaller file-sizes.

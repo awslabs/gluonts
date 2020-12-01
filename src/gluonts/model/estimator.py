@@ -221,7 +221,9 @@ class GluonEstimator(Estimator):
             batch_size=self.trainer.batch_size,
             num_batches_per_epoch=self.trainer.num_batches_per_epoch,
             stack_fn=partial(
-                batchify, ctx=self.trainer.ctx, dtype=self.dtype,
+                batchify,
+                ctx=self.trainer.ctx,
+                dtype=self.dtype,
             ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
@@ -237,7 +239,9 @@ class GluonEstimator(Estimator):
                 transform=transformation + SelectFields(input_names),
                 batch_size=self.trainer.batch_size,
                 stack_fn=partial(
-                    batchify, ctx=self.trainer.ctx, dtype=self.dtype,
+                    batchify,
+                    ctx=self.trainer.ctx,
+                    dtype=self.dtype,
                 ),
                 num_workers=num_workers,
                 num_prefetch=num_prefetch,

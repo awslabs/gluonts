@@ -414,7 +414,8 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
 
     @validated()
     def __init__(
-        self, quantile_levels: Union[List[float], np.ndarray],
+        self,
+        quantile_levels: Union[List[float], np.ndarray],
     ) -> None:
         assert all(
             [0 < q < 1 for q in quantile_levels]
@@ -424,7 +425,9 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
             np.diff(quantile_levels) > 0
         ), "Quantiles must be in increasing order, with quantile each specified once"
 
-        super().__init__(num_pieces=len(quantile_levels) + 1,)
+        super().__init__(
+            num_pieces=len(quantile_levels) + 1,
+        )
 
         # store the "knot spacings" instead of quantiles. see PiecewiseLinear
         # for more information

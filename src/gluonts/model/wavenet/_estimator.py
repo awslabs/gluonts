@@ -98,44 +98,44 @@ class QuantizeScaled(SimpleTransformation):
 
 class WaveNetEstimator(GluonEstimator):
     """
-        Model with Wavenet architecture and quantized target.
+    Model with Wavenet architecture and quantized target.
 
-        Parameters
-        ----------
-        freq
-            Frequency of the data to train on and predict
-        prediction_length
-            Length of the prediction horizon
-        trainer
-            Trainer object to be used (default: Trainer())
-        cardinality
-            Number of values of the each categorical feature (default: [1])
-        embedding_dimension
-            Dimension of the embeddings for categorical features (the same
-            dimension is used for all embeddings, default: 5)
-        num_bins
-            Number of bins used for quantization of signal (default: 1024)
-        hybridize_prediction_net
-            Boolean (default: False)
-        n_residue
-            Number of residual channels in wavenet architecture (default: 24)
-        n_skip
-            Number of skip channels in wavenet architecture (default: 32)
-        dilation_depth
-            Number of dilation layers in wavenet architecture.
-            If set to None (default), dialation_depth is set such that the receptive length is at least
-            as long as typical seasonality for the frequency and at least 2 * prediction_length.
-        n_stacks
-            Number of dilation stacks in wavenet architecture (default: 1)
-        temperature
-            Temparature used for sampling from softmax distribution.
-            For temperature = 1.0 (default) sampling is according to estimated probability.
-        act_type
-            Activation type used after before output layer (default: "elu").
-            Can be any of 'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'.
-        num_parallel_samples
-            Number of evaluation samples per time series to increase parallelism during inference.
-            This is a model optimization that does not affect the accuracy (default: 200)
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict
+    prediction_length
+        Length of the prediction horizon
+    trainer
+        Trainer object to be used (default: Trainer())
+    cardinality
+        Number of values of the each categorical feature (default: [1])
+    embedding_dimension
+        Dimension of the embeddings for categorical features (the same
+        dimension is used for all embeddings, default: 5)
+    num_bins
+        Number of bins used for quantization of signal (default: 1024)
+    hybridize_prediction_net
+        Boolean (default: False)
+    n_residue
+        Number of residual channels in wavenet architecture (default: 24)
+    n_skip
+        Number of skip channels in wavenet architecture (default: 32)
+    dilation_depth
+        Number of dilation layers in wavenet architecture.
+        If set to None (default), dialation_depth is set such that the receptive length is at least
+        as long as typical seasonality for the frequency and at least 2 * prediction_length.
+    n_stacks
+        Number of dilation stacks in wavenet architecture (default: 1)
+    temperature
+        Temparature used for sampling from softmax distribution.
+        For temperature = 1.0 (default) sampling is according to estimated probability.
+    act_type
+        Activation type used after before output layer (default: "elu").
+        Can be any of 'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'.
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 200)
     """
 
     @validated()

@@ -569,7 +569,11 @@ class QuantileForecast(Forecast):
 
         for k, v in zip(keys, self.forecast_array):
             plt.plot(
-                self.index, v, label=f"{label_prefix}q{k}", *args, **kwargs,
+                self.index,
+                v,
+                label=f"{label_prefix}q{k}",
+                *args,
+                **kwargs,
             )
             plt.legend()
         if output_file:

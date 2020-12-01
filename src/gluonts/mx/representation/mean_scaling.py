@@ -32,7 +32,7 @@ class MeanScaling(Representation):
         The minimum value to which re-scaled values will be clipped to.
         (default: 1e-10)
     clip_max
-        The maximum value to which re-scaled values will be clipped to. 
+        The maximum value to which re-scaled values will be clipped to.
         Negative values will be clipped at -clip_max and positive values at clip_max.
         (default: None)
     """

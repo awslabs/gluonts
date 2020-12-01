@@ -315,8 +315,7 @@ class ProcessStartField(pydantic.BaseModel):
     @staticmethod
     @lru_cache(maxsize=10000)
     def process(string: str, freq: str) -> pd.Timestamp:
-        """Create timestamp and align it according to frequency.
-        """
+        """Create timestamp and align it according to frequency."""
 
         timestamp = pd.Timestamp(string, freq=freq)
 

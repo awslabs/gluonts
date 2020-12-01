@@ -795,7 +795,9 @@ class Ref(Lifted):
         if not _LEGACY_WARNING_WAS_SHOWN:
             import warnings
 
-            warnings.warn("Ref is deprecated. Please use the functional api.",)
+            warnings.warn(
+                "Ref is deprecated. Please use the functional api.",
+            )
             _LEGACY_WARNING_WAS_SHOWN = True
         self.field_name = field_name
 
