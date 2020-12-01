@@ -14,9 +14,10 @@
 # Standard library imports
 from typing import List, Tuple
 
+import numpy as np
+
 # Third-party imports
 from numba import jit
-import numpy as np
 
 
 def range_overlap(

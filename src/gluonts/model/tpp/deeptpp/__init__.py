@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from ._estimator import DeepTPPEstimator
-from ._network import DeepTPPTrainingNetwork, DeepTPPPredictionNetwork
+from ._network import DeepTPPPredictionNetwork, DeepTPPTrainingNetwork
 
 __all__ = [
     "DeepTPPEstimator",

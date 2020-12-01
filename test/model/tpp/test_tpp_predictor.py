@@ -20,12 +20,13 @@ import pandas as pd
 import pytest
 from mxnet import nd
 
-# First-party imports
-from gluonts.mx.common import Tensor
 from gluonts.model.tpp import (
     PointProcessGluonPredictor,
     PointProcessSampleForecast,
 )
+
+# First-party imports
+from gluonts.mx.common import Tensor
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimeUniformSampler,

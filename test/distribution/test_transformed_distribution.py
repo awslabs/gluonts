@@ -16,14 +16,13 @@ import mxnet.ndarray as nd
 import numpy as np
 import pytest
 
+from gluonts.core.serde import dump_json, load_json
+
 # First-party imports
-from gluonts.mx.distribution import Uniform
+from gluonts.mx.distribution import Uniform, bijection
 from gluonts.mx.distribution.transformed_distribution import (
     TransformedDistribution,
 )
-from gluonts.mx.distribution import bijection
-from gluonts.core.serde import dump_json, load_json
-
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 

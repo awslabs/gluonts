@@ -20,19 +20,17 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from gluonts.core.component import validated
-
 from gluonts.mx.common import Tensor
-from .distribution import Distribution
-
-from gluonts.mx.distribution import Distribution
+from gluonts.mx.distribution import Distribution, box_cox_transform, uniform
 from gluonts.mx.distribution.distribution import (
+    MAX_SUPPORT_VAL,
+    _sample_multiple,
     getF,
     softplus,
-    _sample_multiple,
 )
-from gluonts.mx.distribution import uniform, box_cox_transform
 from gluonts.mx.distribution.distribution_output import DistributionOutput
-from gluonts.mx.distribution.distribution import MAX_SUPPORT_VAL
+
+from .distribution import Distribution
 
 
 class GenPareto(Distribution):

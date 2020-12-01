@@ -11,13 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import pytest
+
 # Third-party imports
 from mxnet import nd
-import pytest
 
 # First-party imports
 from gluonts.mx.kernels import RBFKernel
-
 
 test_cases = [
     # This tests the simple case where the amplitude and length scale parameters are constant

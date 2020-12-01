@@ -26,9 +26,8 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-
 from gluonts.mx.distribution.lds import ParameterBounds
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str

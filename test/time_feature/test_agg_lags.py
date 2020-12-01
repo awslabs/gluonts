@@ -16,11 +16,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gluonts.dataset.common import ListDataset
+
 # First-party imports
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.common import ListDataset
 from gluonts.transform import AddAggregateLags
-
 
 expected_lags_rolling = {
     "prediction_length_2": {

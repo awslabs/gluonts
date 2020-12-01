@@ -11,19 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import mxnet as mx
+
 # Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
-import mxnet as mx
 
 # First-party imports
 from gluonts.model.forecast import (
+    DistributionForecast,
     QuantileForecast,
     SampleForecast,
-    DistributionForecast,
 )
-
 from gluonts.mx.distribution import Uniform
 
 QUANTILES = np.arange(1, 100) / 100

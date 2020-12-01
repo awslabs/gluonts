@@ -20,12 +20,12 @@ from mxnet import autograd
 
 # First-party imports
 from gluonts.mx.common import Tensor
+from gluonts.mx.distribution.bijection import AffineTransformation, Bijection
 from gluonts.mx.distribution.distribution import Distribution, getF
 from gluonts.mx.distribution.distribution_output import DistributionOutput
-from gluonts.mx.distribution.bijection import AffineTransformation, Bijection
 from gluonts.mx.distribution.transformed_distribution import (
-    sum_trailing_axes,
     TransformedDistribution,
+    sum_trailing_axes,
 )
 
 

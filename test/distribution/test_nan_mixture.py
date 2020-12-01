@@ -19,12 +19,12 @@ import mxnet as mx
 import numpy as np
 import pytest
 
+from gluonts.core.serde import dump_json, load_json
+
 # First-party imports
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.common import NPArrayLike
 from gluonts.mx.common import Tensor
-from gluonts.mx.distribution.distribution import Distribution
-
 from gluonts.mx.distribution import (
     Categorical,
     CategoricalOutput,
@@ -34,7 +34,7 @@ from gluonts.mx.distribution import (
     NanMixtureOutput,
     StudentTOutput,
 )
-from gluonts.core.serde import dump_json, load_json
+from gluonts.mx.distribution.distribution import Distribution
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 

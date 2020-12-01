@@ -11,21 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Optional, Tuple, List
 import math
+
+# Standard library imports
+from typing import List, Optional, Tuple
+
+import mxnet as mx
 
 # Third-party import
 import numpy as np
-import mxnet as mx
 from mxnet import init
-from mxnet.gluon import nn, Parameter, HybridBlock
+from mxnet.gluon import HybridBlock, Parameter, nn
 from mxnet.gluon.contrib.nn import HybridConcurrent
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.common import Tensor
 
 
 def _torch_gather(F, data: Tensor, idx: Tensor, axis: int):

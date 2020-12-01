@@ -12,17 +12,16 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List
+from typing import List, Tuple
 
 # Third-party imports
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
-from typing import Tuple
 
 # First-party imports
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.common import Tensor
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.util import weighted_average
 

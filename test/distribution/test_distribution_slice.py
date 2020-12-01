@@ -12,26 +12,25 @@
 # permissions and limitations under the License.
 from typing import NamedTuple, Optional
 
-import pytest
-
 import mxnet as mx
 import numpy as np
+import pytest
 
-from gluonts.mx.distribution import (
-    TransformedDistribution,
-    StudentT,
-    Gamma,
-    Beta,
-    Dirichlet,
-    Laplace,
-    NegativeBinomial,
-    Poisson,
-    Uniform,
-    PiecewiseLinear,
-    MixtureDistribution,
-    Binned,
-)
 import gluonts.mx.distribution.bijection as bij
+from gluonts.mx.distribution import (
+    Beta,
+    Binned,
+    Dirichlet,
+    Gamma,
+    Laplace,
+    MixtureDistribution,
+    NegativeBinomial,
+    PiecewiseLinear,
+    Poisson,
+    StudentT,
+    TransformedDistribution,
+    Uniform,
+)
 from gluonts.mx.distribution.box_cox_transform import BoxCoxTransform
 from gluonts.mx.distribution.gaussian import Gaussian
 

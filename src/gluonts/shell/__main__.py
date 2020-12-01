@@ -24,10 +24,9 @@ import click
 from gluonts.core.exception import GluonTSForecasterNotFoundError
 from gluonts.shell.serve import Settings
 
+from .env import ServeEnv, TrainEnv
 from .sagemaker import TrainPaths
-from .env import TrainEnv, ServeEnv
-from .util import forecaster_type_by_name, Forecaster
-
+from .util import Forecaster, forecaster_type_by_name
 
 logger = logging.getLogger(__name__)
 

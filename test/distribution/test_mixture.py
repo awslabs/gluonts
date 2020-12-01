@@ -16,28 +16,29 @@ import mxnet as mx
 import numpy as np
 import pytest
 
+from gluonts.core.serde import dump_json, load_json
+
 # First-party imports
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.common import NPArrayLike
 from gluonts.mx.common import Tensor
-from gluonts.mx.distribution.distribution import Distribution
-from gluonts.mx.distribution.distribution_output import DistributionOutput
 from gluonts.mx.distribution import (
     Gamma,
-    Gaussian,
-    GenPareto,
-    StudentT,
-    MixtureDistribution,
     GammaOutput,
+    Gaussian,
     GaussianOutput,
+    GenPareto,
     GenParetoOutput,
-    StudentTOutput,
     LaplaceOutput,
-    MultivariateGaussianOutput,
+    MixtureDistribution,
     MixtureDistributionOutput,
+    MultivariateGaussianOutput,
+    StudentT,
+    StudentTOutput,
 )
+from gluonts.mx.distribution.distribution import Distribution
+from gluonts.mx.distribution.distribution_output import DistributionOutput
 from gluonts.testutil import empirical_cdf
-from gluonts.core.serde import dump_json, load_json
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 

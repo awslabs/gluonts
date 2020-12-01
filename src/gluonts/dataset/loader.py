@@ -11,18 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterable, Iterator, Callable, Optional, List
+import io
 import itertools
-import random
 import logging
 import multiprocessing as mp
-from multiprocessing.reduction import ForkingPickler
-import io
 import pickle
+import random
 import sys
+from multiprocessing.reduction import ForkingPickler
 from queue import Empty
+from typing import Callable, Iterable, Iterator, List, Optional
 
-from gluonts.dataset.common import DataEntry, DataBatch, Dataset
+from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.util import MPWorkerInfo
 from gluonts.itertools import batcher, cyclic, pseudo_shuffled
 from gluonts.transform import Transformation, TransformedDataset

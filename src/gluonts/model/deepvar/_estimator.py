@@ -24,11 +24,11 @@ from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.distribution import (
     DistributionOutput,
     LowrankMultivariateGaussianOutput,
 )
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature

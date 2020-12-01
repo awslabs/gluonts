@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Union
 import functools
+from typing import List, Optional, Union
 
-import numpy as np
 import mxnet as mx
+import numpy as np
 
 from gluonts.core.component import DType
 from gluonts.dataset.common import DataBatch

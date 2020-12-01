@@ -11,16 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import pytest
 import mxnet as mx
 import numpy as np
+
+# Third-party imports
+import pytest
 from mxnet import nd
 
 # First-party imports
 from gluonts.model.tpp.deeptpp._network import (
-    DeepTPPTrainingNetwork,
     DeepTPPPredictionNetwork,
+    DeepTPPTrainingNetwork,
 )
 from gluonts.model.tpp.distribution import WeibullOutput
 

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 # Third-party imports
 from mxnet import gluon
@@ -21,15 +21,12 @@ from mxnet import gluon
 from gluonts.core.component import validated
 from gluonts.mx.common import Tensor
 
+from .deterministic import Deterministic
+
 # Relative imports
-from .distribution import (
-    Distribution,
-    getF,
-    nans_like,
-)
+from .distribution import Distribution, getF, nans_like
 from .distribution_output import DistributionOutput
 from .mixture import MixtureDistribution
-from .deterministic import Deterministic
 
 
 class NanMixture(MixtureDistribution):

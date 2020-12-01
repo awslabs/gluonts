@@ -23,7 +23,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.transform import InstanceSplitter, ExpectedNumInstanceSampler
+from gluonts.transform import ExpectedNumInstanceSampler, InstanceSplitter
 
 
 class RandomNetwork(nn.Module):

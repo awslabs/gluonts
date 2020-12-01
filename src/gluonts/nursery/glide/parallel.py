@@ -14,8 +14,8 @@
 import multiprocessing as mp
 from functools import partial
 
-from toolz.itertoolz import partition_all as into_batches
 from toolz.functoolz import identity
+from toolz.itertoolz import partition_all as into_batches
 
 
 class sentinel:

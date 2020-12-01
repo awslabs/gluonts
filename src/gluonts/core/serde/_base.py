@@ -25,7 +25,6 @@ from pydantic import BaseModel
 # Relative imports
 from gluonts.core import fqname_for
 
-
 bad_type_msg = textwrap.dedent(
     """
     Cannot serialize type {}. See the documentation of the `encode` and

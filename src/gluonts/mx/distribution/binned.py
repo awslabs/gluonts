@@ -24,7 +24,7 @@ from gluonts.core.component import validated
 from gluonts.mx.common import Tensor
 
 # Relative imports
-from .distribution import Distribution, _sample_multiple, getF, MAX_SUPPORT_VAL
+from .distribution import MAX_SUPPORT_VAL, Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 

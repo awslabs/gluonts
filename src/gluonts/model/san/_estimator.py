@@ -23,8 +23,8 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import RepresentableBlockPredictor
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
@@ -38,19 +38,19 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
+    ExpandDimArray,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     RemoveFields,
     SetField,
     Transformation,
     VstackFeatures,
-    ExpandDimArray,
 )
 
 # Relative import
 from ._network import (
-    SelfAttentionTrainingNetwork,
     SelfAttentionPredictionNetwork,
+    SelfAttentionTrainingNetwork,
 )
 
 

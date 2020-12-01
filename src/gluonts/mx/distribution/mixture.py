@@ -14,8 +14,8 @@
 # Standard library imports
 from typing import List, Optional, Tuple
 
-import numpy as np
 import mxnet as mx
+import numpy as np
 
 # Third-party imports
 from mxnet import gluon
@@ -26,11 +26,11 @@ from gluonts.mx.common import Tensor
 
 # Relative imports
 from .distribution import (
+    MAX_SUPPORT_VAL,
     Distribution,
     _expand_param,
     _index_tensor,
     getF,
-    MAX_SUPPORT_VAL,
 )
 from .distribution_output import DistributionOutput
 

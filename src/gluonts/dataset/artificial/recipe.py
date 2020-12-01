@@ -11,13 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import doctest
+
 # Standard library imports
 import functools
 import itertools
 import operator
 import textwrap
 from types import SimpleNamespace
-import doctest
 from typing import (
     Any,
     Callable,
@@ -38,7 +39,6 @@ import pandas as pd
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
-
 
 ValueOrCallable = Union[Any, Callable]
 Recipe = Union[

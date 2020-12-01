@@ -19,7 +19,6 @@ from mxnet.gluon import HybridBlock
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
 from gluonts.model.transformer.layers import (
     InputLayer,
     MultiHeadAttention,
@@ -27,6 +26,7 @@ from gluonts.model.transformer.layers import (
     TransformerFeedForward,
     TransformerProcessBlock,
 )
+from gluonts.mx.common import Tensor
 
 
 class TransformerDecoder(HybridBlock):

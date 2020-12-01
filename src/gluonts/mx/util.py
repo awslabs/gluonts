@@ -11,13 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, List, Tuple, Union, cast
-from pathlib import Path
 import inspect
 import tempfile
+from pathlib import Path
+from typing import List, Optional, Tuple, Union, cast
 
-import numpy as np
 import mxnet as mx
+import numpy as np
 from mxnet.gluon.block import _flatten
 
 from gluonts.core.serde import dump_json, load_json

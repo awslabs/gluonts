@@ -11,14 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import List, Tuple, Dict, Union
+import logging
 from enum import Enum
+from itertools import chain, starmap
+
+# Standard library imports
+from typing import Dict, List, Tuple, Union
 
 # Third-party imports
 import numpy as np
-import logging
-from itertools import chain, starmap
 
 # First-party imports
 from gluonts.core.component import validated

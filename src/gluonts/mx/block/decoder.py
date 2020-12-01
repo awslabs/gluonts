@@ -18,10 +18,10 @@ from typing import List
 from mxnet.gluon import nn
 
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
 
 # First-party imports
 from gluonts.mx.block.mlp import MLP
+from gluonts.mx.common import Tensor
 
 
 class Seq2SeqDecoder(nn.HybridBlock):

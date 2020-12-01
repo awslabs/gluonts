@@ -14,13 +14,15 @@
 # Standard library imports
 from typing import Dict, List, Optional, Tuple
 
+import mxnet as mx
+
 # Third-party imports
 import numpy as np
-import mxnet as mx
+
+from gluonts.core.component import DType, validated
 
 # First-party imports
 from gluonts.mx.common import Tensor
-from gluonts.core.component import DType, validated
 
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF

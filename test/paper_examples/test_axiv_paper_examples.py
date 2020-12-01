@@ -24,10 +24,10 @@ def test_listing_1():
     Listing 1
     """
     from gluonts.dataset.repository.datasets import get_dataset
-    from gluonts.model.deepar import DeepAREstimator
-    from gluonts.mx.trainer import Trainer
     from gluonts.evaluation import Evaluator
     from gluonts.evaluation.backtest import backtest_metrics
+    from gluonts.model.deepar import DeepAREstimator
+    from gluonts.mx.trainer import Trainer
 
     # We use electricity in the paper but that would take too long to run in
     # the unit test
@@ -58,18 +58,20 @@ def test_appendix_c():
     Appendix C
     """
     from typing import List
+
     from mxnet import gluon
+
+    from gluonts.core.component import validated
     from gluonts.model.estimator import GluonEstimator
     from gluonts.model.predictor import Predictor
     from gluonts.mx.model.predictor import RepresentableBlockPredictor
     from gluonts.mx.trainer import Trainer
+    from gluonts.mx.util import copy_parameters
     from gluonts.transform import (
+        ExpectedNumInstanceSampler,
         InstanceSplitter,
         Transformation,
-        ExpectedNumInstanceSampler,
     )
-    from gluonts.core.component import validated
-    from gluonts.mx.util import copy_parameters
 
     class MyTrainNetwork(gluon.HybridBlock):
         def __init__(self, prediction_length, cells, act_type, **kwargs):
@@ -159,9 +161,9 @@ def test_appendix_c():
                 future_length=self.prediction_length,
             )
 
-    from gluonts.mx.trainer import Trainer
     from gluonts.evaluation import Evaluator
     from gluonts.evaluation.backtest import backtest_metrics
+    from gluonts.mx.trainer import Trainer
 
     dataset_info, train_ds, test_ds = constant_dataset()
 

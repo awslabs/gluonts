@@ -21,7 +21,7 @@ import pytest
 
 # First-party imports
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset.common import Dataset, ListDataset, DataEntry
+from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.model.npts import KernelType, NPTSPredictor
 from gluonts.model.npts._weighted_sampler import WeightedSampler
 

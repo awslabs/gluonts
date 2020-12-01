@@ -18,11 +18,11 @@ from functools import partial
 import numpy as np
 import pytest
 
-# First-party imports
-from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.trainer import Trainer
 
+# First-party imports
+from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 common_estimator_hps = dict(
     freq="D",

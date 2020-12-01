@@ -13,45 +13,43 @@
 
 # First-party imports
 import json
+import multiprocessing as mp
 import random
 import tempfile
 import time
-import multiprocessing as mp
-from functools import partial
-
 
 # Third-party imports
 from collections import defaultdict
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from mxnet.context import current_context
-from flaky import flaky
 import pytest
+from flaky import flaky
+from mxnet.context import current_context
+
+from gluonts.dataset.artificial import ConstantDataset, constant_dataset
+from gluonts.dataset.common import FileDataset, ListDataset
 
 # First-party imports
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
+    InferenceDataLoader,
     TrainDataLoader,
     ValidationDataLoader,
-    InferenceDataLoader,
 )
-from gluonts.dataset.common import ListDataset, FileDataset
+from gluonts.evaluation import Evaluator
+from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx.batchify import batchify
+from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
-    UniformSplitSampler,
-    InstanceSplitter,
     InstanceSampler,
+    InstanceSplitter,
+    UniformSplitSampler,
 )
-from gluonts.dataset.artificial import ConstantDataset
-
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.mx.trainer import Trainer
-from gluonts.dataset.artificial import constant_dataset
-from gluonts.evaluation import Evaluator
-from gluonts.mx.batchify import batchify
 
 # CONSTANTS:
 

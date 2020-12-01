@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from itertools import chain
+
 # Third-party imports
 import numpy as np
-from itertools import chain
 import pytest
 
 # First-party imports

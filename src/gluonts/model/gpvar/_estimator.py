@@ -27,11 +27,11 @@ from gluonts.model.deepvar._estimator import (
 )
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
 
 # First-party imports
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature

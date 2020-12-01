@@ -13,23 +13,24 @@
 
 # Third-party imports
 import numpy as np
-
-# First-party imports
-from gluonts.mx.kernels import RBFKernel
-from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
-
-# Relative imports
-from .data import (
-    load_gp_params,
-    load_exact_mean,
-    load_exact_std,
-    load_xfull,
-    load_ytrain,
-)
+import pytest
 
 # Third-party imports
 from mxnet import nd
-import pytest
+
+from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
+
+# First-party imports
+from gluonts.mx.kernels import RBFKernel
+
+# Relative imports
+from .data import (
+    load_exact_mean,
+    load_exact_std,
+    load_gp_params,
+    load_xfull,
+    load_ytrain,
+)
 
 
 def relative_error(y_hat, y_exact):

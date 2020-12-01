@@ -16,9 +16,9 @@ from typing import Tuple
 
 # Third-party imports
 from mxnet.gluon.rnn import (
-    RecurrentCell,
-    ModifierCell,
     BidirectionalCell,
+    ModifierCell,
+    RecurrentCell,
     SequentialRNNCell,
 )
 

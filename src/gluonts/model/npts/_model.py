@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Callable, Iterator, List, cast, Any, Optional
+from typing import Any, Callable, Iterator, List, Optional, cast
 
 # Third-party imports
 import numpy as np

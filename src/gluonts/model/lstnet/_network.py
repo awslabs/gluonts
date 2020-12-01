@@ -19,10 +19,10 @@ import mxnet as mx
 from mxnet.gluon import loss, nn
 
 from gluonts.core.component import DType, validated
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
 # First-party imports
 from gluonts.mx.common import Tensor
-from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
 
 class LSTNetBase(nn.HybridBlock):

@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Dict, List, Optional, Tuple, cast, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
+
+import mxnet as mx
 
 # Third-party imports
 import numpy as np
-import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
@@ -25,7 +26,7 @@ from gluonts.mx.util import cumsum
 
 from .bijection import AffineTransformation, Bijection
 from .distribution import Distribution, getF
-from .distribution_output import DistributionOutput, ArgProj
+from .distribution_output import ArgProj, DistributionOutput
 from .transformed_distribution import TransformedDistribution
 
 

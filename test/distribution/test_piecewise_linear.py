@@ -11,19 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple, List
-import pytest
+from typing import List, Tuple
 
 import mxnet as mx
 import numpy as np
+import pytest
 
+from gluonts.core.serde import dump_json, load_json
 from gluonts.mx.distribution import (
+    FixedKnotsPiecewiseLinearOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
-    FixedKnotsPiecewiseLinearOutput,
 )
 from gluonts.testutil import empirical_cdf
-from gluonts.core.serde import dump_json, load_json
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 

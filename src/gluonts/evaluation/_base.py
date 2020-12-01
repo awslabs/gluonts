@@ -33,10 +33,10 @@ import numpy as np
 import pandas as pd
 
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.time_feature import get_seasonality
 
 # First-party imports
 from gluonts.model.forecast import Forecast, Quantile
+from gluonts.time_feature import get_seasonality
 
 
 class Evaluator:

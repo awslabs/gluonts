@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from ._estimator import TreeEstimator
+
 # Relative imports
 from ._predictor import TreePredictor
-from ._estimator import TreeEstimator
 
 __all__ = ["TreeEstimator", "TreePredictor"]
 

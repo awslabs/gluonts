@@ -12,14 +12,13 @@
 # permissions and limitations under the License.
 
 
-from ._base import encode, decode, Stateful, Stateless, skip_encoding
+from ._base import Stateful, Stateless, decode, encode, skip_encoding
 from ._json import dump_json, load_json
 from ._repr import dump_code, load_code
 
 # TODO: remove
 from .np import *
 from .pd import *
-
 
 __all__ = [
     "encode",

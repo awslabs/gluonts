@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import functools
+
 # Standard library imports
 import gzip
-import functools
 from pathlib import Path
 from typing import NamedTuple
 

@@ -18,23 +18,23 @@ distributions exposed to the user.
 # Standard library imports
 from typing import List, Tuple
 
+import numpy as np
+
 # Third-party imports
 import pytest
-from pydantic import PositiveFloat, PositiveInt
-
-import numpy as np
 import torch
 import torch.nn as nn
+from pydantic import PositiveFloat, PositiveInt
+from torch.distributions import Beta
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import SGD
-from torch.utils.data import TensorDataset, DataLoader
-from torch.distributions import Beta
+from torch.utils.data import DataLoader, TensorDataset
 
 # First-party imports
 from gluonts.model.common import NPArrayLike
 from gluonts.torch.modules.distribution_output import (
-    DistributionOutput,
     BetaOutput,
+    DistributionOutput,
 )
 
 NUM_SAMPLES = 2000

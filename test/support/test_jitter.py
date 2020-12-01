@@ -15,17 +15,19 @@
 import math
 import sys
 
+import mxnet as mx
+
+# Third-party imports
+import mxnet.ndarray as nd
+import numpy as np
+import pytest
+
+from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
+
 # First-party imports
 from gluonts.mx.context import check_gpu_support
 from gluonts.mx.kernels import RBFKernel
 from gluonts.mx.linalg_util import jitter_cholesky, jitter_cholesky_eig
-from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
-
-# Third-party imports
-import mxnet.ndarray as nd
-import mxnet as mx
-import numpy as np
-import pytest
 
 
 # This test verifies that both eigenvalue decomposition and iterative jitter method

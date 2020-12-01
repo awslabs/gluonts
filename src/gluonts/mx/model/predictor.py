@@ -14,14 +14,9 @@
 # Standard library imports
 
 import logging
-from pathlib import Path
-from typing import (
-    Callable,
-    Iterator,
-    List,
-    Optional,
-)
 from functools import partial
+from pathlib import Path
+from typing import Callable, Iterator, List, Optional
 
 # Third-party imports
 import mxnet as mx
@@ -33,12 +28,12 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
-from gluonts.model.predictor import Predictor, OutputTransform
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
+    predict_to_numpy,
 )
-from gluonts.model.forecast_generator import predict_to_numpy
+from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.component import equals
 from gluonts.mx.context import get_mxnet_context

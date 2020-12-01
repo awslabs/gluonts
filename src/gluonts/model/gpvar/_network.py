@@ -18,8 +18,8 @@ from typing import List, Optional, Tuple
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
 from gluonts.model.deepvar._network import DeepVARNetwork
+from gluonts.mx.common import Tensor
 
 # First-party imports
 from gluonts.mx.distribution.distribution import getF

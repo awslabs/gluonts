@@ -22,10 +22,11 @@ from gluonts.core.component import validated
 # First-party imports
 from gluonts.mx.common import Tensor
 
+from .deterministic import DeterministicOutput
+
 # Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
-from .deterministic import DeterministicOutput
 from .mixture import MixtureDistributionOutput
 
 

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Optional, List
+from typing import List, Optional
 
 # Third-party imports
 from mxnet.gluon.loss import Loss

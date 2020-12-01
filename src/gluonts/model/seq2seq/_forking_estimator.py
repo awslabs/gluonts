@@ -50,10 +50,10 @@ from gluonts.transform import (
 
 # Relative imports
 from ._forking_network import (
-    ForkingSeq2SeqNetworkBase,
-    ForkingSeq2SeqTrainingNetwork,
-    ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqDistributionPredictionNetwork,
+    ForkingSeq2SeqNetworkBase,
+    ForkingSeq2SeqPredictionNetwork,
+    ForkingSeq2SeqTrainingNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 

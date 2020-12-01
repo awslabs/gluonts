@@ -15,7 +15,6 @@
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
 
 # First-party imports
 from gluonts.mx.block.decoder import Seq2SeqDecoder
@@ -24,6 +23,7 @@ from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import Scaler
+from gluonts.mx.common import Tensor
 
 
 class Seq2SeqNetworkBase(mx.gluon.HybridBlock):

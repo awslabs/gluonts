@@ -11,17 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, List, Tuple
 import math
+from typing import List, Optional, Tuple
 
-import numpy as np
 import mxnet as mx
-from mxnet import gluon
-from mxnet import init
-from mxnet.gluon import nn, rnn, HybridBlock
+import numpy as np
+from mxnet import gluon, init
+from mxnet.gluon import HybridBlock, nn, rnn
+
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.common import Tensor
 
 
 class GatedLinearUnit(HybridBlock):

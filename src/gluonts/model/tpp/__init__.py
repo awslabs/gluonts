@@ -11,9 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from .deeptpp import DeepTPPEstimator
 from .forecast import PointProcessSampleForecast
 from .predictor import PointProcessGluonPredictor
-from .deeptpp import DeepTPPEstimator
 
 __all__ = [
     "PointProcessGluonPredictor",

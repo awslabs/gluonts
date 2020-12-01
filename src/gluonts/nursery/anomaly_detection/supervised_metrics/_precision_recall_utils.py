@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Iterable, Optional, Callable, Tuple, List, NamedTuple
+from typing import Callable, Iterable, List, NamedTuple, Optional, Tuple
+
+import numpy as np
 
 # Third-party imports
 from joblib import Parallel, delayed
-import numpy as np
 
 # Relative imports
 from . import buffered_precision_recall

@@ -25,7 +25,6 @@ from gluonts.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.block.decoder import OneShotDecoder
 from gluonts.mx.block.enc2dec import PassThroughEnc2Dec
 from gluonts.mx.block.encoder import (
@@ -37,6 +36,7 @@ from gluonts.mx.block.encoder import (
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import NOPScaler, Scaler
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str

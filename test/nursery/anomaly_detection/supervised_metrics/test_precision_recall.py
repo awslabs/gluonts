@@ -21,9 +21,9 @@ from sklearn.metrics import auc
 
 # First-party imports
 from gluonts.nursery.anomaly_detection.supervised_metrics import (
+    aggregate_precision_recall_curve,
     buffered_precision_recall,
     segment_precision_recall,
-    aggregate_precision_recall_curve,
 )
 from gluonts.nursery.anomaly_detection.supervised_metrics._buffered_precision_recall import (
     extend_ranges,
@@ -35,7 +35,6 @@ from gluonts.nursery.anomaly_detection.supervised_metrics.utils import (
     labels_to_ranges,
     range_overlap,
 )
-
 
 TEST_CASES = [
     # edge cases

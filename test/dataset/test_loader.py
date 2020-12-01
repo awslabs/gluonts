@@ -24,15 +24,16 @@ import pytest
 import ujson
 from pandas import Timestamp
 
+from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
+
 # First-party imports
 from gluonts.dataset.common import (
     FileDataset,
     ListDataset,
     MetaData,
+    ProcessDataEntry,
     serialize_data_entry,
 )
-from gluonts.dataset.common import ProcessDataEntry
-from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 from gluonts.dataset.jsonl import JsonLinesFile
 from gluonts.dataset.util import find_files
 from gluonts.support.util import Timer

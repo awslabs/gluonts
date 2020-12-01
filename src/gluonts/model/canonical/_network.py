@@ -15,11 +15,11 @@
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
 
 # First-party imports
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler
+from gluonts.mx.common import Tensor
 from gluonts.mx.distribution import DistributionOutput
 
 

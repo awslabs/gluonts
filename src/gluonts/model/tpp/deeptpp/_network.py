@@ -16,17 +16,17 @@ from typing import List, Optional, Tuple
 
 # Third-party imports
 import mxnet as mx
-from mxnet import nd
 import numpy as np
+from mxnet import nd
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
-from gluonts.mx.distribution import CategoricalOutput
+from gluonts.model.tpp import distribution
 
 # Relative imports
 from gluonts.model.tpp.distribution.base import TPPDistributionOutput
-from gluonts.model.tpp import distribution
+from gluonts.mx.common import Tensor
+from gluonts.mx.distribution import CategoricalOutput
 
 
 # noinspection PyAbstractClass

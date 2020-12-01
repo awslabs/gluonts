@@ -15,13 +15,13 @@
 from random import randint
 from typing import List, Tuple
 
-# First-party imports
-from gluonts.dataset.common import ListDataset
-from gluonts.dataset.field_names import FieldName
-
 # Third-party imports
 import numpy as np
 import pandas as pd
+
+# First-party imports
+from gluonts.dataset.common import ListDataset
+from gluonts.dataset.field_names import FieldName
 
 
 def make_dummy_datasets_with_features(

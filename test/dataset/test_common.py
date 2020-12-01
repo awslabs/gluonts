@@ -11,10 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pytest
 import pandas as pd
+import pytest
 
-from gluonts.dataset.common import ProcessStartField, ListDataset
+from gluonts.dataset.common import ListDataset, ProcessStartField
 
 
 @pytest.mark.parametrize(

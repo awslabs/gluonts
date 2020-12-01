@@ -14,14 +14,14 @@
 # Standard library imports
 from typing import Tuple
 
+import mxnet.ndarray as nd
+
 # Third-party imports
 from mxnet.gluon import nn
 
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.mx.common import Tensor
-
-import mxnet.ndarray as nd
 
 
 class Scaler(nn.HybridBlock):

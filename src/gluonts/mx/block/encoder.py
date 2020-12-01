@@ -18,12 +18,12 @@ from typing import List, Tuple
 from mxnet.gluon import nn
 
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
 
 # First-party imports
 from gluonts.mx.block.cnn import CausalConv1D
 from gluonts.mx.block.mlp import MLP
 from gluonts.mx.block.rnn import RNN
+from gluonts.mx.common import Tensor
 
 
 class Seq2SeqEncoder(nn.HybridBlock):

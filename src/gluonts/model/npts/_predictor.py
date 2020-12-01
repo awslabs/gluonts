@@ -13,7 +13,7 @@
 
 # Standard library imports
 from enum import Enum
-from typing import Iterator, List, Optional, Tuple, Union, Any
+from typing import Any, Iterator, List, Optional, Tuple, Union
 
 # Third-party imports
 import numpy as np

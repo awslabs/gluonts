@@ -16,29 +16,29 @@ import mxnet as mx
 import numpy as np
 import pytest
 
+from gluonts.core.serde import dump_json, load_json
+
 # First-party imports
 from gluonts.mx.distribution import (
-    Uniform,
-    StudentT,
-    NegativeBinomial,
-    Laplace,
-    Gaussian,
-    Gamma,
-    GenPareto,
     Beta,
+    Binned,
+    Categorical,
+    Gamma,
+    Gaussian,
+    GenPareto,
+    Laplace,
     MultivariateGaussian,
+    NegativeBinomial,
+    OneInflatedBeta,
     PiecewiseLinear,
     Poisson,
-    ZeroInflatedPoissonOutput,
-    Binned,
+    StudentT,
     TransformedDistribution,
-    Categorical,
-    ZeroInflatedBeta,
-    OneInflatedBeta,
+    Uniform,
     ZeroAndOneInflatedBeta,
+    ZeroInflatedBeta,
+    ZeroInflatedPoissonOutput,
 )
-
-from gluonts.core.serde import load_json, dump_json
 
 test_cases = [
     (

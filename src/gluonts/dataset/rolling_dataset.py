@@ -15,9 +15,10 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel
+
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
-from pydantic import BaseModel
 
 
 class StepStrategy(BaseModel):

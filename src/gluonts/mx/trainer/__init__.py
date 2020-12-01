@@ -13,8 +13,7 @@
 
 # Relative imports
 from . import learning_rate_scheduler as lrs
-from . import model_averaging
-from . import model_iteration_averaging
+from . import model_averaging, model_iteration_averaging
 from ._base import Trainer
 
 __all__ = ["lrs", "Trainer", "model_averaging", "model_iteration_averaging"]

@@ -15,21 +15,22 @@
 import tempfile
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
+
 # Third-party imports
 import pytest
 from flaky import flaky
-import pandas as pd
-import numpy as np
 from pydantic import PositiveInt
 
 # First-party imports
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.evaluation import Evaluator
-from gluonts.model.predictor import Predictor
-from gluonts.model.naive_2 import Naive2Predictor
-from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.dataset.common import Dataset
+from gluonts.evaluation import Evaluator
+from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.model.naive_2 import Naive2Predictor
+from gluonts.model.predictor import Predictor
+from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.support.pandas import forecast_start
 
 

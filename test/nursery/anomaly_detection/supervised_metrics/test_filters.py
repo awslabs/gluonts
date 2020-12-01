@@ -22,7 +22,6 @@ from gluonts.nursery.anomaly_detection.filters import (
     n_k_filter,
 )
 
-
 LABELS_FILTER_TEST_CASES = [
     [
         [0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0],

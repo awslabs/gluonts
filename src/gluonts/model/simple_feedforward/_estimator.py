@@ -21,27 +21,26 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
+    AddObservedValuesIndicator,
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
-    AddObservedValuesIndicator,
 )
-from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
 from gluonts.transform.feature import (
     DummyValueImputation,
     MissingValueImputation,
 )
 
-
 # Relative imports
 from ._network import (
-    SimpleFeedForwardSamplingNetwork,
     SimpleFeedForwardDistributionNetwork,
+    SimpleFeedForwardSamplingNetwork,
     SimpleFeedForwardTrainingNetwork,
 )
 

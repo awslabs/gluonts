@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
 # Third-party imports
 import mxnet as mx

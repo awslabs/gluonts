@@ -22,29 +22,18 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Iterator,
-    Optional,
-    Type,
-)
+from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
 
 # Third-party imports
 import numpy as np
 
 # First-party imports
 import gluonts
-from gluonts.core.component import (
-    equals,
-    from_hyperparameters,
-    validated,
-)
 from gluonts.core import fqname_for
+from gluonts.core.component import equals, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
-
 from gluonts.model.forecast import Forecast
 
 if TYPE_CHECKING:  # avoid circular import
@@ -436,6 +425,6 @@ def fallback(fallback_cls: Type[FallbackPredictor]):
 # TODO add deprecation warning
 from gluonts.mx.model.predictor import (
     GluonPredictor,
-    SymbolBlockPredictor,
     RepresentableBlockPredictor,
+    SymbolBlockPredictor,
 )

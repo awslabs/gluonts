@@ -82,8 +82,8 @@ class RForecastPredictor(RepresentablePredictor):
         super().__init__(freq=freq, prediction_length=prediction_length)
 
         try:
-            from rpy2 import robjects, rinterface
             import rpy2.robjects.packages as rpackages
+            from rpy2 import rinterface, robjects
             from rpy2.rinterface import RRuntimeError
         except ImportError as e:
             raise ImportError(str(e) + USAGE_MESSAGE) from e

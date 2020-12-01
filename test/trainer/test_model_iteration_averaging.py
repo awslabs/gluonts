@@ -11,22 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import math
+
 # Third-party imports
 import mxnet as mx
 import mxnet.gluon.nn as nn
 import numpy as np
-import pytest
 import pandas as pd
-import math
+import pytest
 
 # First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.trainer.model_iteration_averaging import (
-    IterationAveragingStrategy,
     NTA,
     Alpha_Suffix,
+    IterationAveragingStrategy,
 )
 
 

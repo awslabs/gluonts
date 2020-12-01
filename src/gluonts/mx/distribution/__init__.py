@@ -32,12 +32,12 @@ from .gamma import Gamma, GammaOutput
 from .gaussian import Gaussian, GaussianOutput
 from .genpareto import GenPareto, GenParetoOutput
 from .inflated_beta import (
+    OneInflatedBeta,
+    OneInflatedBetaOutput,
     ZeroAndOneInflatedBeta,
     ZeroAndOneInflatedBetaOutput,
     ZeroInflatedBeta,
     ZeroInflatedBetaOutput,
-    OneInflatedBeta,
-    OneInflatedBetaOutput,
 )
 from .laplace import Laplace, LaplaceOutput
 from .logit_normal import LogitNormal, LogitNormalOutput
@@ -57,9 +57,9 @@ from .neg_binomial import (
     ZeroInflatedNegativeBinomialOutput,
 )
 from .piecewise_linear import (
+    FixedKnotsPiecewiseLinearOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
-    FixedKnotsPiecewiseLinearOutput,
     TransformedPiecewiseLinear,
 )
 from .poisson import Poisson, PoissonOutput, ZeroInflatedPoissonOutput

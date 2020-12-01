@@ -16,17 +16,19 @@ from typing import Dict, Tuple
 
 # Third-party imports
 import numpy as np
+
 from gluonts.core.component import validated
 
 # First-party imports
 from gluonts.mx.common import Tensor
 
+from .beta import Beta
+from .deterministic import Deterministic
+
 # Relative imports
 from .distribution import getF, softplus
 from .distribution_output import DistributionOutput
-from .beta import Beta
 from .mixture import MixtureDistribution
-from .deterministic import Deterministic
 
 
 class ZeroAndOneInflatedBeta(MixtureDistribution):

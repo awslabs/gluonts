@@ -11,21 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from copy import deepcopy
+
 # Third-party imports
 import numpy as np
 import pandas as pd
-from copy import deepcopy
 import pytest
 
 # First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.transform import (
-    AddObservedValuesIndicator,
     AddAgeFeature,
     AddConstFeature,
+    AddObservedValuesIndicator,
 )
-
 
 ds1 = [
     {

@@ -17,32 +17,31 @@ import numpy as np
 import pytest
 from flaky import flaky
 
+from gluonts.core.serde import dump_code, dump_json, load_code, load_json
+from gluonts.model.tpp.distribution import Loglogistic, Weibull
+
 # First-party imports
 from gluonts.mx.distribution import (
-    Uniform,
-    StudentT,
-    NegativeBinomial,
-    Laplace,
-    Gaussian,
-    Gamma,
-    GenPareto,
     Beta,
-    MultivariateGaussian,
-    Poisson,
-    PiecewiseLinear,
     Binned,
-    TransformedDistribution,
+    Categorical,
     Dirichlet,
     DirichletMultinomial,
-    Categorical,
+    Gamma,
+    Gaussian,
+    GenPareto,
+    Laplace,
+    MultivariateGaussian,
+    NegativeBinomial,
+    PiecewiseLinear,
+    Poisson,
+    StudentT,
+    TransformedDistribution,
+    Uniform,
     ZeroAndOneInflatedBeta,
     ZeroInflatedPoissonOutput,
 )
-from gluonts.core.serde import dump_json, load_json, dump_code, load_code
-from gluonts.model.tpp.distribution import Loglogistic, Weibull
-
 from gluonts.testutil import empirical_cdf
-
 
 test_cases = [
     (

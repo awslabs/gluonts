@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from functools import partial
+
 # Standard library imports
 from typing import NamedTuple, Optional
-from functools import partial
 
 # Third-party imports
 import numpy as np
@@ -28,10 +29,10 @@ from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
 from gluonts.model.predictor import Predictor
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.mx.batchify import batchify, as_in_context
-from gluonts.transform import Transformation, SelectFields
+from gluonts.transform import SelectFields, Transformation
 
 
 class Estimator:

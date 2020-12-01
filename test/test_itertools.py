@@ -11,13 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterable, List
 import itertools
+from typing import Iterable, List
 
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.itertools import pseudo_shuffled, cyclic
+from gluonts.itertools import cyclic, pseudo_shuffled
 
 
 @pytest.mark.parametrize(

@@ -22,7 +22,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
 
 # Relative imports
 from gluonts.model.transformer._network import (
@@ -32,6 +31,7 @@ from gluonts.model.transformer._network import (
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
 from gluonts.model.transformer.trans_encoder import TransformerEncoder
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
