@@ -13,14 +13,10 @@
 
 from typing import List, Optional
 
-# Standard library imports
 import numpy as np
-
-# Third-party imports
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
@@ -46,7 +42,6 @@ from gluonts.transform import (
     VstackFeatures,
 )
 
-# Relative imports
 from ._network import DeepStatePredictionNetwork, DeepStateTrainingNetwork
 
 SEASON_INDICATORS_FIELD = "seasonal_indicators"

@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import json
 import socket
 import tempfile
@@ -23,7 +22,6 @@ from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
 
 import requests
 
-# First-party imports
 from gluonts.dataset.common import DataEntry, serialize_data_entry
 from gluonts.dataset.repository.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor

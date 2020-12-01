@@ -24,7 +24,7 @@ from gluonts.core.serde import dump_json, load_json
 # First-party imports
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.common import NPArrayLike
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
     Categorical,
     CategoricalOutput,

@@ -11,17 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
 import mxnet as mx
-
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 
 from .binning_helpers import (
     bin_edges_from_bin_centers,

@@ -11,12 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 from mxnet.gluon import HybridBlock, rnn
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 
 
 class RNN(HybridBlock):

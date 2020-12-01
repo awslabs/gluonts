@@ -11,20 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, List, Optional, Tuple
 
 import mxnet as mx
-
-# Third-party imports
 import numpy as np
 
 from gluonts.core.component import DType, validated
+from gluonts.mx import Tensor
 
-# First-party imports
-from gluonts.mx.common import Tensor
-
-# Relative imports
 from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 

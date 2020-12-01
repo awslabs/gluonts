@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 import math
-
-# Standard library imports
 from typing import List, Optional, Tuple
 
 import mxnet as mx
@@ -24,10 +22,9 @@ from mxnet import init
 from mxnet.gluon import HybridBlock, Parameter, nn
 from mxnet.gluon.contrib.nn import HybridConcurrent
 
-# First-party imports
 from gluonts.core.component import validated
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
-from gluonts.mx.common import Tensor
 
 
 def _torch_gather(F, data: Tensor, idx: Tensor, axis: int):

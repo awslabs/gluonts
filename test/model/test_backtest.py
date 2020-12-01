@@ -23,9 +23,9 @@ import gluonts
 from gluonts.core.component import equals
 from gluonts.core.serde import dump_code, load_code
 from gluonts.dataset.artificial import constant_dataset
+from gluonts.dataset.stat import ScaleHistogram  # noqa
 from gluonts.dataset.stat import (
     DatasetStatistics,
-    ScaleHistogram,  # noqa
     calculate_dataset_statistics,
 )
 from gluonts.evaluation import Evaluator

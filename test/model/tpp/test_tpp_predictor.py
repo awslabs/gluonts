@@ -26,7 +26,7 @@ from gluonts.model.tpp import (
 )
 
 # First-party imports
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimeUniformSampler,

@@ -21,7 +21,7 @@ import numpy as np
 import pytest
 
 # First-party imports
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.util import (
     cumsum,
     erf,

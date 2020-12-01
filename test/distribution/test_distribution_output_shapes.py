@@ -17,7 +17,7 @@ from typing import List, Tuple, Union
 import mxnet as mx
 import pytest
 
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
     BetaOutput,
     DeterministicOutput,

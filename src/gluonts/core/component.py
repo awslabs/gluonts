@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import functools
 import inspect
 import logging
@@ -20,15 +19,12 @@ from functools import singledispatch
 from pydoc import locate
 from typing import Any, Type, TypeVar
 
-# Third-party imports
 import numpy as np
 from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
-# First-party imports
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_code, skip_encoding
 
-# Relative imports
 from . import fqname_for
 
 logger = logging.getLogger(__name__)

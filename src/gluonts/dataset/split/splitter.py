@@ -41,15 +41,12 @@ The module also supports rolling splits::
     train, test = splitter.rolling_split(whole_dataset, windows=7)
 """
 
-# Standard library imports
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-# Third-party imports
 import pandas as pd
 import pydantic
 
-# First-party imports
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 

@@ -13,8 +13,6 @@
 
 import itertools
 import logging
-
-# Standard library imports
 import multiprocessing
 import os
 import random
@@ -29,7 +27,6 @@ from typing import (
     TypeVar,
 )
 
-# Third-party imports
 import pandas as pd
 
 T = TypeVar("T")

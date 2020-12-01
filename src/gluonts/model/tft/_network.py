@@ -11,21 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
 import mxnet as nx
-
-# Third-party imports
 import numpy as np
 from mxnet import gluon, init
 from mxnet.gluon import HybridBlock, nn
 
-# First-party imports
 from gluonts.core.component import DType, validated
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder as BaseFeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
-from gluonts.mx.common import Tensor
 from gluonts.mx.util import weighted_average
 
 from ._layers import (

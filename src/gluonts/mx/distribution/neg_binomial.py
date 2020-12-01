@@ -11,20 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, List, Optional, Tuple
 
-# Third-party imports
 import numpy as np
 
 from gluonts.core.component import validated
-
-# First-party imports
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 
 from .deterministic import DeterministicOutput
-
-# Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
 from .mixture import MixtureDistributionOutput

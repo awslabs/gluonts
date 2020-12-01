@@ -13,25 +13,20 @@
 
 from typing import List, Optional, Tuple, Union
 
-# Third-party imports
 import mxnet as mx
-
-# Standard library imports
 import numpy as np
 from mxnet.gluon.contrib.rnn import VariationalDropoutCell
 from mxnet.gluon.rnn import ZoneoutCell
 
 from gluonts.core.component import DType, validated
+from gluonts.mx import Tensor
 from gluonts.mx.block.dropout import RNNZoneoutCell, VariationalZoneoutCell
-
-# First-party imports
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.regularization import (
     ActivationRegularizationLoss,
     TemporalActivationRegularizationLoss,
 )
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.common import Tensor
 from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.util import weighted_average

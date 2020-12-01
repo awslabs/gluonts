@@ -21,7 +21,7 @@ import numpy as np
 from mxnet.gluon.block import _flatten
 
 from gluonts.core.serde import dump_json, load_json
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 
 MXNET_HAS_ERF = hasattr(mx.nd, "erf")
 MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")

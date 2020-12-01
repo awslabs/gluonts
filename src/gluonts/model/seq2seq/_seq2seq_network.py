@@ -11,19 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 
 from gluonts.core.component import validated
-
-# First-party imports
+from gluonts.mx import Tensor
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import Seq2SeqEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import Scaler
-from gluonts.mx.common import Tensor
 
 
 class Seq2SeqNetworkBase(mx.gluon.HybridBlock):

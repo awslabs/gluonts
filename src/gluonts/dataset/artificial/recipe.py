@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 import doctest
-
-# Standard library imports
 import functools
 import itertools
 import operator
@@ -32,11 +30,9 @@ from typing import (
     cast,
 )
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 

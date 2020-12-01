@@ -11,11 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import json
 from pathlib import Path
 
-# First-party imports
 from gluonts.dataset.artificial import ArtificialDataset
 from gluonts.dataset.artificial.generate_synthetic import generate_sf2
 from gluonts.dataset.common import serialize_data_entry

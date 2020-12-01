@@ -11,11 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import functools
 import sys
 
-# Third-party imports
 from tqdm import tqdm as _tqdm
 
 # TODO: when we have upgraded this will give notebook progress bars

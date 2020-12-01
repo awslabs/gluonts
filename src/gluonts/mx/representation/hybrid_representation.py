@@ -14,14 +14,11 @@
 from typing import List, Optional, Tuple
 
 import mxnet as mx
-
-# Standard library imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.context import get_mxnet_context
 
 from .representation import Representation

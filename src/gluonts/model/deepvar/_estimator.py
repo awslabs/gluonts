@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Callable, List, Optional
 
 import numpy as np
@@ -19,7 +18,6 @@ import pandas as pd
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
@@ -49,7 +47,6 @@ from gluonts.transform import (
     cdf_to_gaussian_forward_transform,
 )
 
-# Relative imports
 from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
 
 

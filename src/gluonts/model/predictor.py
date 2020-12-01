@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import functools
 import itertools
 import json
@@ -24,10 +23,8 @@ from pydoc import locate
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 import gluonts
 from gluonts.core import fqname_for
 from gluonts.core.component import equals, from_hyperparameters, validated

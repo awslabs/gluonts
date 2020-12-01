@@ -15,10 +15,8 @@ import logging
 from functools import singledispatch
 from typing import Callable, Iterator, List, Optional
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName

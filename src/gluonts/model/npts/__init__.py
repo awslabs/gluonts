@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 from ._estimator import NPTSEstimator
-
-# Relative imports
 from ._predictor import KernelType, NPTSPredictor
 
 __all__ = ["KernelType", "NPTSEstimator", "NPTSPredictor"]

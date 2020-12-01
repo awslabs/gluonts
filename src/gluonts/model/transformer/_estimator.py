@@ -11,19 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-
-# Relative imports
 from gluonts.model.transformer._network import (
     TransformerPredictionNetwork,
     TransformerTrainingNetwork,

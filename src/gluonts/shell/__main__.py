@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import traceback
 from pathlib import Path
 from typing import Optional
 
-# Third-party imports
 import click
 
-# Relative imports
 from gluonts.core.exception import GluonTSForecasterNotFoundError
 from gluonts.shell.serve import Settings
 

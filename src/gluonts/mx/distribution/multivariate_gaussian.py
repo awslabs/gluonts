@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from typing import Optional, Tuple
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.linalg_util import lower_triangular_ones
 
 from .distribution import Distribution, _sample_multiple, getF

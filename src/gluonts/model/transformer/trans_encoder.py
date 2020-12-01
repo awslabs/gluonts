@@ -11,13 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.model.transformer.layers import (
     InputLayer,
@@ -25,7 +22,7 @@ from gluonts.model.transformer.layers import (
     TransformerFeedForward,
     TransformerProcessBlock,
 )
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 
 
 class TransformerEncoder(HybridBlock):

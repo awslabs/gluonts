@@ -15,7 +15,6 @@ from typing import Optional
 
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.estimator import GluonEstimator, TrainOutput
@@ -32,7 +31,6 @@ from gluonts.transform import (
     Transformation,
 )
 
-# Relative imports
 from ._network import DeepTPPPredictionNetwork, DeepTPPTrainingNetwork
 
 

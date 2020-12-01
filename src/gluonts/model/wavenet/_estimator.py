@@ -11,17 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import re
 from functools import partial
 from typing import Dict, List, Optional
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
-# First-party imports
 from gluonts import transform
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset

@@ -13,13 +13,9 @@
 
 from typing import List, Optional
 
-# Standard library imports
 import numpy as np
-
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import calculate_dataset_statistics
@@ -52,7 +48,6 @@ from gluonts.transform.feature import (
     MissingValueImputation,
 )
 
-# Relative imports
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
 
 

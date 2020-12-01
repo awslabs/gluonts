@@ -20,8 +20,8 @@ from mxnet import gluon, init
 from mxnet.gluon import HybridBlock, nn, rnn
 
 from gluonts.core.component import validated
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
-from gluonts.mx.common import Tensor
 
 
 class GatedLinearUnit(HybridBlock):

@@ -11,15 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-
-# Relative imports
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepvar._estimator import (
     get_lags_for_frequency,
@@ -27,8 +23,6 @@ from gluonts.model.deepvar._estimator import (
 )
 from gluonts.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-
-# First-party imports
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
 from gluonts.mx.model.predictor import RepresentableBlockPredictor

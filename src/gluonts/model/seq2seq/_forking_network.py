@@ -11,23 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import DType, validated
+from gluonts.mx import Tensor
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import Seq2SeqEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.common import Tensor
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.util import weighted_average
 

@@ -11,20 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from typing import List, Optional
 
-# Third-party imports
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn
 
 from gluonts.core.component import validated
-
-# First-party imports
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
-from gluonts.mx.common import Tensor
 
 
 class LookupValues(gluon.HybridBlock):

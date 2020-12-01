@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 
 import logging
 from functools import partial
 from pathlib import Path
 from typing import Callable, Iterator, List, Optional
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset

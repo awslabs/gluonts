@@ -11,20 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import re
 from enum import Enum
 from typing import Callable, Dict, List, NamedTuple, Optional, Set, Union
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pandas as pd
 import pydantic
 
 from gluonts.core.component import validated
-
-# First-party imports
 from gluonts.core.exception import GluonTSUserError
 from gluonts.mx.distribution import Distribution
 

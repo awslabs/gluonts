@@ -11,19 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Optional, Tuple
 
-# Third-party imports
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 
 from .deterministic import Deterministic
-
-# Relative imports
 from .distribution import Distribution, getF, nans_like
 from .distribution_output import DistributionOutput
 from .mixture import MixtureDistribution

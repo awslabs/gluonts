@@ -11,12 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import json
 import logging
 from typing import Any, Optional, Type, Union
 
-# First-party imports
 import gluonts
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code

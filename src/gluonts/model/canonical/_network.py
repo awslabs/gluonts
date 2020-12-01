@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-
-# First-party imports
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler
-from gluonts.mx.common import Tensor
 from gluonts.mx.distribution import DistributionOutput
 
 

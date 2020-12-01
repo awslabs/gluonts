@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import os
 import tempfile
@@ -19,14 +18,12 @@ import time
 import uuid
 from typing import Any, Callable, List, Optional, Union
 
-# Third-party imports
 import mxnet as mx
 import mxnet.autograd as autograd
 import mxnet.gluon.nn as nn
 import numpy as np
 from mxnet.metric import ndarray
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.core.exception import GluonTSDataError, GluonTSUserError
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
@@ -34,7 +31,6 @@ from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
 from gluonts.mx.util import HybridContext
 
-# Relative imports
 from . import learning_rate_scheduler as lrs
 from .model_averaging import (
     AveragingStrategy,

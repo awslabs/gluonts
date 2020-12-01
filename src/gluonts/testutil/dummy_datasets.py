@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from random import randint
 from typing import List, Tuple
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 

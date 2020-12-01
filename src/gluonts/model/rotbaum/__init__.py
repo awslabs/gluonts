@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 from ._estimator import TreeEstimator
-
-# Relative imports
 from ._predictor import TreePredictor
 
 __all__ = ["TreeEstimator", "TreePredictor"]

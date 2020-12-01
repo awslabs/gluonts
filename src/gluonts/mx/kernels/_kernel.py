@@ -11,8 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
-from gluonts.mx.common import Tensor
+from gluonts.mx import Tensor
 
 
 class Kernel:

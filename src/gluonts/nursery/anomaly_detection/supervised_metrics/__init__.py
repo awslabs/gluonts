@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from ._buffered_precision_recall import buffered_precision_recall
 from ._precision_recall_utils import (
     aggregate_precision_recall,
