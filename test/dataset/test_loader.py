@@ -21,10 +21,10 @@ from typing import Any, Iterator
 import numpy as np
 import pandas as pd
 import pytest
-import ujson
 from pandas import Timestamp
 
 # First-party imports
+from gluonts import json
 from gluonts.dataset.common import (
     FileDataset,
     ListDataset,
@@ -50,10 +50,10 @@ def load_json(path: Path, freq: str) -> Iterator[Any]:
             yield json.loads(line)
 
 
-def load_ujson(path: Path, freq: str) -> Iterator[Any]:
+def load_json(path: Path, freq: str) -> Iterator[Any]:
     for file in find_files(path, FileDataset.is_valid):
         for line in open(file):
-            yield ujson.loads(line)
+            yield json.loads(line)
 
 
 def load_json_lines_file(path: Path, freq: str) -> Iterator[Any]:
@@ -106,7 +106,7 @@ def test_io_speed() -> None:
     fixtures = [
         ("baseline", baseline, 60_000),
         # ('json.loads', load_json, xxx),
-        ("ujson.loads", load_ujson, 20_000),
+        ("json.loads", load_json, 20_000),
         ("JsonLinesFile", load_json_lines_file, 10_000),
         ("ListDataset", load_list_dataset, 500),
         ("FileDataset", load_file_dataset, 500),
