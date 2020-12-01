@@ -48,11 +48,11 @@ __all__ = [
 
 from functools import partial
 
-from ._partition import divide_into, partition
+from ._partition import partition, divide_into
 from .parallel import ParApply
-from .pipeline import Pipeline
 from .sequential import Apply
-from .util import Map, lift
+from .pipeline import Pipeline
+from .util import lift, Map
 
 
 def imap_unordered(fn, data, num_workers, batch_size=1):
