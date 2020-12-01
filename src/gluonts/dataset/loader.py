@@ -37,7 +37,9 @@ def construct_training_iterator(
     shuffle_buffer_length: Optional[int] = None,
 ) -> Iterator[DataEntry]:
     transformed_dataset = TransformedDataset(
-        cyclic(dataset), transform, is_train=True,
+        cyclic(dataset),
+        transform,
+        is_train=True,
     )
 
     if shuffle_buffer_length is None:
@@ -115,7 +117,8 @@ class MultiProcessBatcher(Iterator):
         exhausted_event,
     ):
         MPWorkerInfo.set_worker_info(
-            num_workers=num_workers, worker_id=worker_id,
+            num_workers=num_workers,
+            worker_id=worker_id,
         )
 
         data_iterator = construct_training_iterator(
@@ -254,14 +257,17 @@ class ValidationDataLoader(DataLoader):
         shuffle_buffer_length: Optional[int] = None,
     ) -> None:
         self.transformed_dataset = TransformedDataset(
-            dataset, transform, is_train=True,
+            dataset,
+            transform,
+            is_train=True,
         )
         self.batch_size = batch_size
         self.stack_fn = stack_fn
 
     def __iter__(self):
         yield from map(
-            self.stack_fn, batcher(self.transformed_dataset, self.batch_size),
+            self.stack_fn,
+            batcher(self.transformed_dataset, self.batch_size),
         )
 
 
@@ -279,12 +285,15 @@ class InferenceDataLoader(DataLoader):
         shuffle_buffer_length: Optional[int] = None,
     ) -> None:
         self.transformed_dataset = TransformedDataset(
-            dataset, transform, is_train=False,
+            dataset,
+            transform,
+            is_train=False,
         )
         self.batch_size = batch_size
         self.stack_fn = stack_fn
 
     def __iter__(self):
         yield from map(
-            self.stack_fn, batcher(self.transformed_dataset, self.batch_size),
+            self.stack_fn,
+            batcher(self.transformed_dataset, self.batch_size),
         )

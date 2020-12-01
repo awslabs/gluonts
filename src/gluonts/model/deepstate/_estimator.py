@@ -96,18 +96,18 @@ class DeepStateEstimator(GluonEstimator):
         state space model
     past_length
         This is the length of the training time series;
-        i.e., number of steps to unroll the RNN for before computing 
+        i.e., number of steps to unroll the RNN for before computing
         predictions.
-        Set this to (at most) the length of the shortest time series in the 
+        Set this to (at most) the length of the shortest time series in the
         dataset.
-        (default: None, in which case the training length is set such that 
+        (default: None, in which case the training length is set such that
         at least
         `num_seasons_to_train` seasons are included in the training.
         See `num_seasons_to_train`)
     num_periods_to_train
         (Used only when `past_length` is not set)
         Number of periods to include in the training time series. (default: 4)
-        Here period corresponds to the longest cycle one can expect given 
+        Here period corresponds to the longest cycle one can expect given
         the granularity of the time series.
         See: https://stats.stackexchange.com/questions/120806/frequency
         -value-for-seconds-minutes-intervals-data-in-r
@@ -121,7 +121,7 @@ class DeepStateEstimator(GluonEstimator):
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism 
+        Number of evaluation samples per time series to increase parallelism
         during inference.
         This is a model optimization that does not affect the accuracy (
         default: 100).
@@ -147,7 +147,7 @@ class DeepStateEstimator(GluonEstimator):
     prior_cov_bounds
         Lower and upper bounds for the diagonal of the prior covariance matrix
     innovation_bounds
-        Lower and upper bounds for the standard deviation of the observation 
+        Lower and upper bounds for the standard deviation of the observation
         noise
     """
 

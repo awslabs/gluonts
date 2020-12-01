@@ -44,7 +44,8 @@ class BroadcastTo(MapTransformation):
             data[self.target_field], self.ext_length, is_train
         )
         data[self.field] = np.broadcast_to(
-            data[self.field], (data[self.field].shape[:-1] + (length,)),
+            data[self.field],
+            (data[self.field].shape[:-1] + (length,)),
         )
         return data
 
@@ -105,7 +106,10 @@ class TFTInstanceSplitter(InstanceSplitter):
 
         if is_train:
             sampling_bounds = (
-                (0, len_target - self.future_length - self.lead_time,)
+                (
+                    0,
+                    len_target - self.future_length - self.lead_time,
+                )
                 if self.pick_incomplete
                 else (
                     self.past_length,

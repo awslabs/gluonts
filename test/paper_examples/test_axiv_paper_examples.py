@@ -44,7 +44,9 @@ def test_listing_1():
 
     evaluator = Evaluator(quantiles=(0.1, 0.5, 0.9))
     agg_metrics, item_metrics = backtest_metrics(
-        test_dataset=test_ds, predictor=predictor, evaluator=evaluator,
+        test_dataset=test_ds,
+        predictor=predictor,
+        evaluator=evaluator,
     )
 
 
@@ -173,5 +175,7 @@ def test_appendix_c():
 
     evaluator = Evaluator(quantiles=(0.1, 0.5, 0.9))
     agg_metrics, item_metrics = backtest_metrics(
-        test_dataset=test_ds, predictor=predictor, evaluator=evaluator,
+        test_dataset=test_ds,
+        predictor=predictor,
+        evaluator=evaluator,
     )

@@ -134,9 +134,9 @@ class SelfAttention(HybridBlock):
         bidirectional : bool, optional
             if False, add a mask to avoid backward attention, by default False
         dist_enc : Optional[str], optional
-            add relative distance embeddings to dot-product attention, can be 
+            add relative distance embeddings to dot-product attention, can be
                 'add' (linearly combine key and dist),
-                'dot' (dot product between key and dist), 
+                'dot' (dot product between key and dist),
                 or None (disabled),
             by default None
         share_values : bool, optional
@@ -225,11 +225,11 @@ class SelfAttention(HybridBlock):
     def _split_head(self, F, x: Tensor) -> Tensor:
         """
         Split hidden state into multi-heads
-        
+
         Args
         ----------
             x : Tensor [batch, length, d_hidden]
-        
+
         Returns
         -------
             Tensor [batch, n_head, length, d_head]
@@ -241,11 +241,11 @@ class SelfAttention(HybridBlock):
     def _merge_head(self, F, x: Tensor) -> Tensor:
         """
         Merge multi-heads into one hidden state
-        
+
         Args
         ----------
             x : Tensor [batch, n_head, length, d_head]
-        
+
         Returns
         -------
             Tensor [batch, length, d_hidden]

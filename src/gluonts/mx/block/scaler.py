@@ -179,7 +179,7 @@ class MeanScaler(Scaler):
 
 class MinMax(Scaler):
     """
-    The 'MinMax' scales the input data using a min-max approach along the specified axis. 
+    The 'MinMax' scales the input data using a min-max approach along the specified axis.
     """
 
     @validated()
@@ -207,7 +207,7 @@ class MinMax(Scaler):
         Returns
         -------
         Tensor
-            shape (N, T, C) or (N, C, T) scaled along the specified axis. 
+            shape (N, T, C) or (N, C, T) scaled along the specified axis.
 
         """
 
