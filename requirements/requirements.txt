@@ -5,4 +5,3 @@ pandas>=1.0
 pydantic~=1.1,<1.7
 tqdm~=4.23
 toolz~=0.10
-ujson~=1.35

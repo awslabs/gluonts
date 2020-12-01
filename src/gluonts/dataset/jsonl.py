@@ -17,10 +17,8 @@ import functools
 from pathlib import Path
 from typing import NamedTuple
 
-# Third-party imports
-import ujson as json
-
 # First-party imports
+from gluonts import json
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.util import get_bounds_for_mp_data_loading
 
