@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import Callable, Iterator, List, cast
+from typing import Callable, Iterator, List, cast, Any, Optional
 
 # Third-party imports
 import numpy as np
@@ -120,6 +120,7 @@ class NPTS:
         prediction_length: int,
         sampling_weights_iterator: Iterator[np.ndarray],
         num_samples: int,
+        item_id: Optional[Any] = None,
     ) -> SampleForecast:
         """
         Given the `targets`, generates `Forecast` containing prediction
@@ -138,7 +139,8 @@ class NPTS:
             iterator over weights used for sampling
         num_samples
             number of samples to set in the :class:`SampleForecast` object
-
+        item_id
+            item_id to identify the time series
         Returns
         -------
         SampleForecast
@@ -172,7 +174,10 @@ class NPTS:
         forecast_start = targets.index[-1] + 1 * targets.index.freq
 
         return SampleForecast(
-            samples=samples_pred_range, start_date=forecast_start, freq=freq
+            samples=samples_pred_range,
+            start_date=forecast_start,
+            freq=freq,
+            item_id=item_id,
         )
 
     @staticmethod
