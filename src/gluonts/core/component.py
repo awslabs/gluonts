@@ -23,7 +23,7 @@ import numpy as np
 from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
 from gluonts.core.exception import GluonTSHyperparametersError
-from gluonts.core.serde import dump_code, skip_encoding
+from gluonts.core.serde import dump_code
 
 from . import fqname_for
 
@@ -175,6 +175,22 @@ def equals_dict(this: dict, that: dict) -> bool:
 @equals.register(np.ndarray)
 def equals_ndarray(this: np.ndarray, that: np.ndarray) -> bool:
     return np.shape == np.shape and np.all(this == that)
+
+
+@singledispatch
+def skip_encoding(v: Any) -> bool:
+    """
+    Tells whether the input value `v` should be encoded using the
+    :func:`~gluonts.core.serde.encode` function.
+
+    This is used by :func:`validated` to determine which values need to
+    be skipped when recording the initializer arguments for later
+    serialization.
+
+    This is the fallback implementation, and can be specialized for
+    specific types by registering handler functions.
+    """
+    return False
 
 
 class BaseValidatedInitializerModel(BaseModel):

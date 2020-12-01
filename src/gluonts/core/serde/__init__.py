@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 
-from ._base import Stateful, Stateless, decode, encode, skip_encoding
+from ._base import Stateful, Stateless, decode, encode
 from ._json import dump_json, load_json
 from ._repr import dump_code, load_code
 
@@ -29,5 +29,4 @@ __all__ = [
     "load_json",
     "Stateful",
     "Stateless",
-    "skip_encoding",
 ]

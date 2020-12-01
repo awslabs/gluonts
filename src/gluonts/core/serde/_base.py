@@ -78,11 +78,6 @@ class Kind(str, Enum):
 
 
 @singledispatch
-def skip_encoding(v: Any) -> bool:
-    return False
-
-
-@singledispatch
 def encode(v: Any) -> Any:
     """
     Transforms a value `v` as a serializable intermediate representation (for

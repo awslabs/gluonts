@@ -13,7 +13,7 @@
 
 import mxnet as mx
 
-from gluonts.core.component import equals, equals_default_impl
+from gluonts.core.component import equals, equals_default_impl, skip_encoding
 
 
 @equals.register(mx.gluon.ParameterDict)
@@ -125,4 +125,9 @@ def equals_representable_block(
     if not equals_parameter_dict(this.collect_params(), that.collect_params()):
         return False
 
+    return True
+
+
+@skip_encoding.register(mx.gluon.ParameterDict)
+def skip_encoding_mx_gluon_parameterdict(v: mx.gluon.ParameterDict) -> bool:
     return True
