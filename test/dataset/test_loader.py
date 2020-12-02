@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-import json
 import tempfile
 from pathlib import Path
 from typing import Any, Iterator
@@ -43,12 +42,6 @@ def baseline(path: Path, freq: str) -> Iterator[Any]:
     for file in find_files(path, FileDataset.is_valid):
         for line in open(file):
             yield line
-
-
-def load_json(path: Path, freq: str) -> Iterator[Any]:
-    for file in find_files(path, FileDataset.is_valid):
-        for line in open(file):
-            yield json.loads(line)
 
 
 def load_json(path: Path, freq: str) -> Iterator[Any]:
