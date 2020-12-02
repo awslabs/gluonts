@@ -16,7 +16,5 @@ from gluonts.core.component import equals
 
 
 @equals.register(torch.Tensor)
-def equals_tensor(
-    this: torch.Tensor, that: torch.Tensor
-) -> bool:
+def equals_tensor(this: torch.Tensor, that: torch.Tensor) -> bool:
     return torch.allclose(this, that)
