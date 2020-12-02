@@ -16,8 +16,7 @@ import gzip
 from pathlib import Path
 from typing import NamedTuple
 
-import ujson as json
-
+from gluonts import json
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.util import get_bounds_for_mp_data_loading
 

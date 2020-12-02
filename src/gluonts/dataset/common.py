@@ -109,8 +109,7 @@ class TrainDatasets(NamedTuple):
             Whether to delete previous version in this folder.
         """
         import shutil
-
-        import ujson as json
+        from gluonts import json
 
         path = Path(path_str)
 
