@@ -23,9 +23,6 @@ from mxnet.gluon.block import _flatten
 from gluonts.core.serde import dump_json, load_json
 from gluonts.mx import Tensor
 
-MXNET_HAS_ERF = hasattr(mx.nd, "erf")
-MXNET_HAS_ERFINV = hasattr(mx.nd, "erfinv")
-
 
 class HybridContext:
     """
@@ -461,86 +458,3 @@ def _broadcast_param(param, axes, sizes):
         )
 
     return param
-
-
-def erf(F, x: Union[Tensor, np.array]) -> Union[Tensor, np.array]:
-    if F is mx.nd or F is mx.sym:
-        if MXNET_HAS_ERF:
-            return F.erf(x)
-    # Using numerical recipes approximation for erf function
-    # accurate to 1E-7
-
-    ones = F.ones_like(x)
-    zeros = F.zeros_like(x)
-
-    t = ones / (ones + 0.5 * F.abs(x))
-
-    coefficients = [
-        1.00002368,
-        0.37409196,
-        0.09678418,
-        -0.18628806,
-        0.27886807,
-        -1.13520398,
-        1.48851587,
-        -0.82215223,
-        0.17087277,
-    ]
-
-    inner = zeros
-    for c in coefficients[::-1]:
-        inner = t * (c + inner)
-
-    res = ones - t * F.exp((inner - 1.26551223 - F.square(x)))
-    return F.where(x >= zeros, res, -1.0 * res)
-
-
-def erfinv(F, x: Union[Tensor, np.array]) -> Union[Tensor, np.array]:
-    if F is mx.nd or F is mx.sym:
-        if MXNET_HAS_ERFINV:
-            return F.erfinv(x)
-
-    zeros = F.zeros_like(x)
-
-    w = -F.log((1.0 - x) * (1.0 + x))
-    mask_lesser = w < (zeros + 5.0)
-
-    w = F.where(mask_lesser, w - 2.5, F.sqrt(w) - 3.0)
-
-    coefficients_lesser = [
-        2.81022636e-08,
-        3.43273939e-07,
-        -3.5233877e-06,
-        -4.39150654e-06,
-        0.00021858087,
-        -0.00125372503,
-        -0.00417768164,
-        0.246640727,
-        1.50140941,
-    ]
-
-    coefficients_greater_equal = [
-        -0.000200214257,
-        0.000100950558,
-        0.00134934322,
-        -0.00367342844,
-        0.00573950773,
-        -0.0076224613,
-        0.00943887047,
-        1.00167406,
-        2.83297682,
-    ]
-
-    p = F.where(
-        mask_lesser,
-        coefficients_lesser[0] + zeros,
-        coefficients_greater_equal[0] + zeros,
-    )
-
-    for c_l, c_ge in zip(
-        coefficients_lesser[1:], coefficients_greater_equal[1:]
-    ):
-        c = F.where(mask_lesser, c_l + zeros, c_ge + zeros)
-        p = c + p * w
-
-    return p * x

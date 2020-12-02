@@ -17,7 +17,6 @@ import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.util import erfinv
 
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
@@ -93,7 +92,7 @@ class LogitNormal(Distribution):
         F = self.F
         exp = F.exp(
             self.mu
-            + (self.sigma * F.sqrt(F.full(1, 2)) * erfinv(F, 2 * level - 1))
+            + (self.sigma * F.sqrt(F.full(1, 2)) * F.erfinv(2 * level - 1))
         )
         return exp / (1 + exp)
 

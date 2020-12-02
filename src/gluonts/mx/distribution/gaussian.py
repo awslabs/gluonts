@@ -19,7 +19,6 @@ import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.util import erf, erfinv
 
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
@@ -84,7 +83,7 @@ class Gaussian(Distribution):
         u = F.broadcast_div(
             F.broadcast_minus(x, self.mu), self.sigma * math.sqrt(2.0)
         )
-        return (erf(F, u) + 1.0) / 2.0
+        return (F.erf(u) + 1.0) / 2.0
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
@@ -119,7 +118,7 @@ class Gaussian(Distribution):
         return F.broadcast_add(
             self.mu,
             F.broadcast_mul(
-                self.sigma, math.sqrt(2.0) * erfinv(F, 2.0 * level - 1.0)
+                self.sigma, math.sqrt(2.0) * F.erfinv(2.0 * level - 1.0)
             ),
         )
 

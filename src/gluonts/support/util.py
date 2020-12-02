@@ -99,3 +99,79 @@ def get_download_path() -> Path:
 def map_dct_values(fn: Callable, dct: dict) -> dict:
     """Maps `fn` over a dicts values."""
     return {key: fn(value) for key, value in dct.items()}
+
+
+def erf(x: np.array) -> np.array:
+    # Using numerical recipes approximation for erf function
+    # accurate to 1E-7
+
+    ones = np.ones_like(x)
+    zeros = np.zeros_like(x)
+
+    t = ones / (ones + 0.5 * np.abs(x))
+
+    coefficients = [
+        1.00002368,
+        0.37409196,
+        0.09678418,
+        -0.18628806,
+        0.27886807,
+        -1.13520398,
+        1.48851587,
+        -0.82215223,
+        0.17087277,
+    ]
+
+    inner = zeros
+    for c in coefficients[::-1]:
+        inner = t * (c + inner)
+
+    res = ones - t * np.exp((inner - 1.26551223 - np.square(x)))
+    return np.where(x >= zeros, res, -1.0 * res)
+
+
+def erfinv(x: np.array) -> np.array:
+    zeros = np.zeros_like(x)
+
+    w = -np.log((1.0 - x) * (1.0 + x))
+    mask_lesser = w < (zeros + 5.0)
+
+    w = np.where(mask_lesser, w - 2.5, np.sqrt(w) - 3.0)
+
+    coefficients_lesser = [
+        2.81022636e-08,
+        3.43273939e-07,
+        -3.5233877e-06,
+        -4.39150654e-06,
+        0.00021858087,
+        -0.00125372503,
+        -0.00417768164,
+        0.246640727,
+        1.50140941,
+    ]
+
+    coefficients_greater_equal = [
+        -0.000200214257,
+        0.000100950558,
+        0.00134934322,
+        -0.00367342844,
+        0.00573950773,
+        -0.0076224613,
+        0.00943887047,
+        1.00167406,
+        2.83297682,
+    ]
+
+    p = np.where(
+        mask_lesser,
+        coefficients_lesser[0] + zeros,
+        coefficients_greater_equal[0] + zeros,
+    )
+
+    for c_l, c_ge in zip(
+        coefficients_lesser[1:], coefficients_greater_equal[1:]
+    ):
+        c = np.where(mask_lesser, c_l + zeros, c_ge + zeros)
+        p = c + p * w
+
+    return p * x

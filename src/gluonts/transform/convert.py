@@ -18,8 +18,7 @@ import numpy as np
 from gluonts.core.component import DType, validated
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
-from gluonts.mx import Tensor
-from gluonts.mx.util import erf, erfinv
+from gluonts.support.util import erf, erfinv
 
 from ._base import (
     FlatMapTransformation,
@@ -615,12 +614,12 @@ class CDFtoGaussianTransform(MapTransformation):
     @staticmethod
     def standard_gaussian_cdf(x: np.array) -> np.array:
         u = x / (np.sqrt(2.0))
-        return (erf(np, u) + 1.0) / 2.0
+        return (erf(u) + 1.0) / 2.0
 
     @staticmethod
     def standard_gaussian_ppf(y: np.array) -> np.array:
         y_clipped = np.clip(y, a_min=1.0e-6, a_max=1.0 - 1.0e-6)
-        return np.sqrt(2.0) * erfinv(np, 2.0 * y_clipped - 1.0)
+        return np.sqrt(2.0) * erfinv(2.0 * y_clipped - 1.0)
 
     @staticmethod
     def winsorized_cutoff(m: np.array) -> np.array:
@@ -679,7 +678,7 @@ class CDFtoGaussianTransform(MapTransformation):
 
 
 def cdf_to_gaussian_forward_transform(
-    input_batch: DataEntry, outputs: Tensor
+    input_batch: DataEntry, outputs: np.ndarray
 ) -> np.ndarray:
     """
     Forward transformation of the CDFtoGaussianTransform.
@@ -698,10 +697,10 @@ def cdf_to_gaussian_forward_transform(
     """
 
     def _empirical_cdf_inverse_transform(
-        batch_target_sorted: Tensor,
-        batch_predictions: Tensor,
-        slopes: Tensor,
-        intercepts: Tensor,
+        batch_target_sorted: np.ndarray,
+        batch_predictions: np.ndarray,
+        slopes: np.ndarray,
+        intercepts: np.ndarray,
     ) -> np.ndarray:
         """
         Apply forward transformation of the empirical CDF.
