@@ -19,7 +19,7 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import calculate_dataset_statistics
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.predictor import RepresentableBlockPredictor

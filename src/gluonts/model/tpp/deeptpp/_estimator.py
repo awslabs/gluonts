@@ -17,7 +17,7 @@ from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.estimator import GluonEstimator, TrainOutput
+from gluonts.mx.model.estimator import GluonEstimator, TrainOutput
 from gluonts.model.predictor import Predictor
 from gluonts.model.tpp import PointProcessGluonPredictor
 from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput

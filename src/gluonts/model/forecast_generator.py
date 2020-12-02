@@ -145,8 +145,3 @@ class SampleForecastGenerator(ForecastGenerator):
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch["forecast_start"])
-
-
-# import mxnet-dependent DistributionForecastGenerator for backwards compatibility
-# TODO add deprecation warning
-from gluonts.mx.model.forecast_generator import DistributionForecastGenerator

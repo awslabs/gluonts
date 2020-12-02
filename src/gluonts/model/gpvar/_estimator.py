@@ -21,7 +21,7 @@ from gluonts.model.deepvar._estimator import (
     get_lags_for_frequency,
     time_features_from_frequency_str,
 )
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput

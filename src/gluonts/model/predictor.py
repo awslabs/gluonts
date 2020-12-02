@@ -416,12 +416,3 @@ def fallback(fallback_cls: Type[FallbackPredictor]):
         return fallback_predict
 
     return decorator
-
-
-# import mxnet-dependent Predictor classes for backwards compatibility
-# TODO add deprecation warning
-from gluonts.mx.model.predictor import (
-    GluonPredictor,
-    RepresentableBlockPredictor,
-    SymbolBlockPredictor,
-)
