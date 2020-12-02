@@ -14,10 +14,8 @@
 import numpy as np
 import pytest
 
-# Third-party imports
 from mxnet import nd
 
-# First-party imports
 from gluonts.mx.block.regularization import (
     ActivationRegularizationLoss,
     TemporalActivationRegularizationLoss,

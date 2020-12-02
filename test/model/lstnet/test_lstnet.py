@@ -14,10 +14,8 @@
 import numpy as np
 import pandas as pd
 
-# Third-party imports
 import pytest
 
-# First-party imports
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper

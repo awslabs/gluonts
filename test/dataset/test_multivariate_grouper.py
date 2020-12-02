@@ -13,10 +13,8 @@
 
 import numpy as np
 
-# Standard library imports
 import pytest
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 

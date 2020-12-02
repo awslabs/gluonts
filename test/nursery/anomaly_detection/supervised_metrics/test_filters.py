@@ -11,11 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.nursery.anomaly_detection.filters import (
     fill_forward,
     labels_filter,

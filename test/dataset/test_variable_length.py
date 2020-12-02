@@ -14,12 +14,10 @@ import itertools
 from functools import partial
 from typing import Any, Dict
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.loader import (
     DataLoader,

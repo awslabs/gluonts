@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from pathlib import Path
 from typing import List, NamedTuple
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pandas as pd
 import pytest
 from pydantic import BaseModel
 
-# First-party imports
 from gluonts.core import serde
 
 # Example Types

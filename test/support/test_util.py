@@ -15,12 +15,10 @@ import tempfile
 from pathlib import Path
 from typing import List
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.mx import Tensor
 from gluonts.mx.util import (
     cumsum,

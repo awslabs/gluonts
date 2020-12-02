@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
@@ -20,7 +19,6 @@ from flaky import flaky
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
 from gluonts.model.tpp.distribution import Loglogistic, Weibull
 
-# First-party imports
 from gluonts.mx.distribution import (
     Beta,
     Binned,

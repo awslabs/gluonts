@@ -11,14 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
 import json
 import multiprocessing as mp
 import random
 import tempfile
 import time
 
-# Third-party imports
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
@@ -32,7 +30,6 @@ from mxnet.context import current_context
 from gluonts.dataset.artificial import ConstantDataset, constant_dataset
 from gluonts.dataset.common import FileDataset, ListDataset
 
-# First-party imports
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     InferenceDataLoader,

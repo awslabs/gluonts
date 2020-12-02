@@ -13,10 +13,8 @@
 
 import pytest
 
-# Third-party imports
 from mxnet import nd
 
-# First-party imports
 from gluonts.mx.kernels import RBFKernel
 
 test_cases = [

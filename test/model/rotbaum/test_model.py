@@ -13,11 +13,9 @@
 
 from itertools import chain
 
-# Third-party imports
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.model.rotbaum import TreeEstimator
 
 

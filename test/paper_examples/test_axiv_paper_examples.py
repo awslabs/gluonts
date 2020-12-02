@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.field_names import FieldName
 
@@ -62,7 +61,7 @@ def test_appendix_c():
     from mxnet import gluon
 
     from gluonts.core.component import validated
-    from gluonts.model.estimator import GluonEstimator
+    from gluonts.mx.model.estimator import GluonEstimator
     from gluonts.model.predictor import Predictor
     from gluonts.mx.model.predictor import RepresentableBlockPredictor
     from gluonts.mx.trainer import Trainer

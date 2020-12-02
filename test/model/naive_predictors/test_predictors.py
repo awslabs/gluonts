@@ -11,19 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import tempfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-# Third-party imports
 import pytest
 from flaky import flaky
 from pydantic import PositiveInt
 
-# First-party imports
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator

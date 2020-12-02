@@ -11,17 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Tuple
 
 import mxnet as mx
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
 import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for

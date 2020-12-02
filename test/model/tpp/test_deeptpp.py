@@ -14,11 +14,9 @@
 import mxnet as mx
 import numpy as np
 
-# Third-party imports
 import pytest
 from mxnet import nd
 
-# First-party imports
 from gluonts.model.tpp.deeptpp._network import (
     DeepTPPPredictionNetwork,
     DeepTPPTrainingNetwork,

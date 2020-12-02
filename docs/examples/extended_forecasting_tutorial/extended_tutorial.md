@@ -28,7 +28,6 @@ In the extended forecasting tutorial we cover the following topics.
 
 
 ```python
-# Third-party imports
 %matplotlib inline
 import mxnet as mx
 from mxnet import gluon

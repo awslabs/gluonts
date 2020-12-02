@@ -13,14 +13,12 @@
 
 import math
 
-# Third-party imports
 import mxnet as mx
 import mxnet.gluon.nn as nn
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer

@@ -13,10 +13,8 @@
 
 import mxnet as mx
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.mx.distribution.gaussian import Gaussian
 from gluonts.mx.distribution.mixture import MixtureDistribution
 from gluonts.mx.distribution.uniform import Uniform

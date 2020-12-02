@@ -11,14 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 
 from gluonts.core.serde import dump_json, load_json
 
-# First-party imports
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.common import NPArrayLike
 from gluonts.mx import Tensor

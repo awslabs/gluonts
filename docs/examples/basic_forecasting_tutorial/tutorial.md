@@ -14,7 +14,6 @@ GluonTS contains:
 
 
 ```python
-# Third-party imports
 %matplotlib inline
 import mxnet as mx
 from mxnet import gluon

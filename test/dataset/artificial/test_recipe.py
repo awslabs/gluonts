@@ -11,14 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
 import gluonts.dataset.artificial.recipe as rcp
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.core.serde import dump_code, load_code
 from gluonts.dataset.artificial import RecipeDataset

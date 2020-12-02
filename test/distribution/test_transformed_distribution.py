@@ -11,14 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet.ndarray as nd
 import numpy as np
 import pytest
 
 from gluonts.core.serde import dump_json, load_json
 
-# First-party imports
 from gluonts.mx.distribution import Uniform, bijection
 from gluonts.mx.distribution.transformed_distribution import (
     TransformedDistribution,

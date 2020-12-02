@@ -13,11 +13,9 @@
 
 import mxnet as mx
 
-# Third-party imports
 import pytest
 from flaky import flaky
 
-# First-party imports
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper

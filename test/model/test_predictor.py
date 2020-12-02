@@ -11,10 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.predictor import Localizer, ParallelizedPredictor

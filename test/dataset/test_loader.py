@@ -11,12 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import tempfile
 from pathlib import Path
 from typing import Any, Iterator
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
@@ -24,7 +22,6 @@ from pandas import Timestamp
 
 from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 
-# First-party imports
 from gluonts import json
 from gluonts.dataset.common import (
     FileDataset,

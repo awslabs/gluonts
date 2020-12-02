@@ -17,13 +17,10 @@ import os
 
 import mxnet as mx
 
-# Third-party imports
 import numpy as np
 
-# Standard library imports
 import pytest
 
-# First-party imports
 from gluonts.mx.distribution.lds import LDS
 
 
