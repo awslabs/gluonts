@@ -26,7 +26,8 @@ from gluonts.model.forecast_generator import (
     SampleForecastGenerator,
     predict_to_numpy,
 )
-from gluonts.model.predictor import Predictor, OutputTransform
+from gluonts.torch.component import equals
+from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.torch.batchify import batchify
 from gluonts.transform import Transformation
 
@@ -79,6 +80,19 @@ class PyTorchPredictor(Predictor):
                 output_transform=self.output_transform,
                 num_samples=num_samples,
             )
+
+    def __eq__(self, that):
+        if type(self) != type(that):
+            return False
+
+        # TODO: also consider equality of the pipelines
+        # if not equals(self.input_transform, that.input_transform):
+        #    return False
+
+        return equals(
+            self.prediction_net.state_dict(),
+            that.prediction_net.state_dict(),
+        )
 
     def serialize(self, path: Path) -> None:
         super().serialize(path)
