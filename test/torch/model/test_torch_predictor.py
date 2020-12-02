@@ -78,17 +78,4 @@ def test_pytorch_predictor_serde():
     with tempfile.TemporaryDirectory() as temp_dir:
         predictor.serialize(Path(temp_dir))
         predictor_exp = Predictor.deserialize(Path(temp_dir))
-
-    test_data = [
-        {
-            FieldName.START: pd.Timestamp("2020-01-01 00:00:00", freq="1H"),
-            FieldName.TARGET: np.random.uniform(size=(100,)).astype("f"),
-        }
-        for _ in range(20)
-    ]
-
-    forecast = list(predictor.predict(test_data))
-    forecast_exp = list(predictor_exp.predict(test_data))
-
-    for f, f_exp in zip(forecast, forecast_exp):
-        assert np.allclose(f.samples, f_exp.samples)
+    assert predictor == predictor_exp
