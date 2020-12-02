@@ -11,13 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from ._buffered_precision_recall import buffered_precision_recall
-from ._segment_precision_recall import segment_precision_recall
 from ._precision_recall_utils import (
     aggregate_precision_recall,
     aggregate_precision_recall_curve,
 )
+from ._segment_precision_recall import segment_precision_recall
 
 __all__ = [
     "aggregate_precision_recall",

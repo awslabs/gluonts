@@ -11,17 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Any, List, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 from mxnet import autograd
 
-# First-party imports
-from gluonts.model.common import Tensor
-
+from gluonts.mx import Tensor
 
 MAX_SUPPORT_VAL = np.finfo(np.float64).max
 

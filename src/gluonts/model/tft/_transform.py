@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from collections import Counter
-from typing import Optional, List, Iterator
+from typing import Iterator, List, Optional
 
 import numpy as np
 
@@ -20,10 +20,10 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.transform import (
-    target_transformation_length,
-    MapTransformation,
     InstanceSplitter,
+    MapTransformation,
     shift_timestamp,
+    target_transformation_length,
 )
 
 

@@ -13,13 +13,11 @@
 
 from typing import Dict, Optional, Union, cast
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pandas as pd
 from pandas import to_timedelta
 
-# First-party imports
 from gluonts.model.forecast import Config, Forecast, OutputType
 
 

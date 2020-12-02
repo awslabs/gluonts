@@ -15,76 +15,74 @@
 Test that maximizing likelihood allows to correctly recover distribution parameters for all
 distributions exposed to the user.
 """
-# Standard library imports
-from typing import Iterable, List, Tuple
 from functools import reduce
 
-# Third-party imports
+from typing import Iterable, List, Tuple
+
 import mxnet as mx
 import numpy as np
 import pytest
 from pydantic import PositiveFloat, PositiveInt
 
-# First-party imports
 from gluonts.model.common import NPArrayLike
-from gluonts.mx.distribution.box_cox_transform import (
-    InverseBoxCoxTransform,
-    InverseBoxCoxTransformOutput,
-)
-from gluonts.mx.distribution import (
-    DistributionOutput,
-    StudentT,
-    StudentTOutput,
-    Gamma,
-    GammaOutput,
-    Beta,
-    BetaOutput,
-    MultivariateGaussian,
-    MultivariateGaussianOutput,
-    LowrankMultivariateGaussian,
-    LowrankMultivariateGaussianOutput,
-    Dirichlet,
-    DirichletOutput,
-    DirichletMultinomial,
-    DirichletMultinomialOutput,
-    NegativeBinomial,
-    NegativeBinomialOutput,
-    ZeroInflatedNegativeBinomialOutput,
-    Laplace,
-    LaplaceOutput,
-    Gaussian,
-    GaussianOutput,
-    GenPareto,
-    GenParetoOutput,
-    Poisson,
-    PoissonOutput,
-    ZeroInflatedPoissonOutput,
-    PiecewiseLinear,
-    PiecewiseLinearOutput,
-    Binned,
-    BinnedOutput,
-    Categorical,
-    CategoricalOutput,
-    LogitNormal,
-    LogitNormalOutput,
-    ZeroInflatedBeta,
-    OneInflatedBeta,
-    ZeroAndOneInflatedBeta,
-    ZeroInflatedBetaOutput,
-    ZeroAndOneInflatedBetaOutput,
-    OneInflatedBetaOutput,
-)
-from gluonts.mx.distribution.transformed_distribution_output import (
-    TransformedDistributionOutput,
-)
-from gluonts.mx.distribution.transformed_distribution import (
-    TransformedDistribution,
-)
 from gluonts.model.tpp.distribution import (
     Loglogistic,
     LoglogisticOutput,
     Weibull,
     WeibullOutput,
+)
+from gluonts.mx.distribution import (
+    Beta,
+    BetaOutput,
+    Binned,
+    BinnedOutput,
+    Categorical,
+    CategoricalOutput,
+    Dirichlet,
+    DirichletMultinomial,
+    DirichletMultinomialOutput,
+    DirichletOutput,
+    DistributionOutput,
+    Gamma,
+    GammaOutput,
+    Gaussian,
+    GaussianOutput,
+    GenPareto,
+    GenParetoOutput,
+    Laplace,
+    LaplaceOutput,
+    LogitNormal,
+    LogitNormalOutput,
+    LowrankMultivariateGaussian,
+    LowrankMultivariateGaussianOutput,
+    MultivariateGaussian,
+    MultivariateGaussianOutput,
+    NegativeBinomial,
+    NegativeBinomialOutput,
+    OneInflatedBeta,
+    OneInflatedBetaOutput,
+    PiecewiseLinear,
+    PiecewiseLinearOutput,
+    Poisson,
+    PoissonOutput,
+    StudentT,
+    StudentTOutput,
+    ZeroAndOneInflatedBeta,
+    ZeroAndOneInflatedBetaOutput,
+    ZeroInflatedBeta,
+    ZeroInflatedBetaOutput,
+    ZeroInflatedNegativeBinomialOutput,
+    ZeroInflatedPoissonOutput,
+)
+from gluonts.mx.distribution.box_cox_transform import (
+    InverseBoxCoxTransform,
+    InverseBoxCoxTransformOutput,
+)
+from gluonts.mx.distribution.transformed_distribution import (
+    TransformedDistribution,
+)
+from gluonts.mx.distribution.transformed_distribution_output import (
+    TransformedDistributionOutput,
 )
 
 pytestmark = pytest.mark.timeout(60)

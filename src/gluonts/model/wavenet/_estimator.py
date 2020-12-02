@@ -11,31 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import re
-from typing import Dict, List, Optional
 from functools import partial
+from typing import Dict, List, Optional
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
-# First-party imports
 from gluonts import transform
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
+from gluonts.mx.batchify import batchify
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import (
-    copy_parameters,
-    get_hybrid_forward_input_names,
-)
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.time_feature import (
     get_seasonality,
     time_features_from_frequency_str,
@@ -48,12 +43,11 @@ from gluonts.transform import (
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
+    SelectFields,
     SetFieldIfNotPresent,
     SimpleTransformation,
     VstackFeatures,
-    SelectFields,
 )
-from gluonts.mx.batchify import batchify
 
 
 class QuantizeScaled(SimpleTransformation):

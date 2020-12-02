@@ -13,8 +13,14 @@
 
 # !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
 
+import typing
 from pkgutil import extend_path
+
+import mxnet as mx
 
 __path__ = extend_path(__path__, __name__)  # type: ignore
 
 from gluonts.mx.prelude import *
+
+# Tensor type for HybridBlocks in Gluon
+Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]

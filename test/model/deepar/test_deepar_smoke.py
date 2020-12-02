@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from functools import partial
 
-# Third-party imports
 import numpy as np
 import pytest
 
-# First-party imports
-from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.trainer import Trainer
 
+from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 common_estimator_hps = dict(
     freq="D",

@@ -12,13 +12,13 @@
 # permissions and limitations under the License.
 import json
 import logging
+import multiprocessing as mp
 import os
 import signal
 import time
 import traceback
-import multiprocessing as mp
 from queue import Empty as QueueEmpty
-from typing import Callable, Iterable, Tuple, NamedTuple, List
+from typing import Callable, Iterable, List, NamedTuple, Tuple
 
 from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel

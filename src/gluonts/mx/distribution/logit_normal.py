@@ -11,18 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, List, Tuple
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-from gluonts.support.util import erfinv
+from gluonts.mx import Tensor
 
-# Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
 
@@ -97,7 +92,7 @@ class LogitNormal(Distribution):
         F = self.F
         exp = F.exp(
             self.mu
-            + (self.sigma * F.sqrt(F.full(1, 2)) * erfinv(F, 2 * level - 1))
+            + (self.sigma * F.sqrt(F.full(1, 2)) * F.erfinv(2 * level - 1))
         )
         return exp / (1 + exp)
 

@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Callable, List, Optional  # noqa: F401
 
-# Third-party imports
 import mxnet.gluon.nn as nn
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 
 class FeatureEmbedder(nn.HybridBlock):

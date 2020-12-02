@@ -13,13 +13,9 @@
 
 import pytest
 
-from gluonts.model.seq2seq import (
-    MQCNNEstimator,
-    MQRNNEstimator,
-)
-from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
-
+from gluonts.model.seq2seq import MQCNNEstimator, MQRNNEstimator
 from gluonts.mx.distribution import GaussianOutput
+from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 
 @pytest.fixture()

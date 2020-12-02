@@ -15,5 +15,4 @@
 from .serve import ServeEnv, ServePaths
 from .train import TrainEnv, TrainPaths
 
-
 __all__ = ["ServeEnv", "ServePaths", "TrainEnv", "TrainPaths"]

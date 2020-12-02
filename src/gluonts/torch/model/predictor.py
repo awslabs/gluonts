@@ -11,8 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Iterator, Callable, Optional
 from pathlib import Path
+from typing import Callable, Iterator, List, Optional
 
 import numpy as np
 import torch
@@ -26,7 +26,7 @@ from gluonts.model.forecast_generator import (
     SampleForecastGenerator,
     predict_to_numpy,
 )
-from gluonts.model.predictor import Predictor, OutputTransform
+from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.torch.batchify import batchify
 from gluonts.transform import Transformation
 

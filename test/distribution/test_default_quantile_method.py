@@ -11,15 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import numpy as np
 import mxnet as mx
 
-# First-party imports
-from gluonts.mx.distribution.gaussian import Gaussian
-from gluonts.mx.distribution.uniform import Uniform
-from gluonts.mx.distribution.mixture import MixtureDistribution
+import numpy as np
 
+from gluonts.mx.distribution.gaussian import Gaussian
+from gluonts.mx.distribution.mixture import MixtureDistribution
+from gluonts.mx.distribution.uniform import Uniform
 
 # In these tests we can use only distributions that have a cdf method but do not have a quantile method.
 # The mixture distribution satisfies these conditions. The components of the mixture should have a cdf method.

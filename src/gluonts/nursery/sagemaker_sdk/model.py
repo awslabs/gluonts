@@ -12,11 +12,9 @@
 # permissions and limitations under the License.
 
 
-# Standard library imports
 import logging
 from typing import Dict
 
-# Third-party imports
 import sagemaker
 from pkg_resources import parse_version
 from sagemaker import session
@@ -28,7 +26,6 @@ from sagemaker.predictor import (
     json_serializer,
 )
 
-# First-party imports
 from .defaults import FRAMEWORK_NAME, GLUONTS_VERSION, LOWEST_MMS_VERSION
 
 logger = logging.getLogger(__name__)

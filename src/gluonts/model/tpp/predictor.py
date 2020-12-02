@@ -11,30 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from pathlib import Path
-from typing import Iterator, List, Optional, cast, Callable, Optional
 from functools import partial
+from pathlib import Path
+from typing import Callable, Iterator, List, Optional, cast
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
 from gluonts.model.predictor import OutputTransform
-from gluonts.mx.model.predictor import (
-    GluonPredictor,
-    SymbolBlockPredictor,
-)
-from gluonts.transform import Transformation
 from gluonts.mx.batchify import batchify
+from gluonts.mx.model.predictor import GluonPredictor, SymbolBlockPredictor
+from gluonts.transform import Transformation
 
-# Relative imports
 from .forecast import PointProcessSampleForecast
 
 

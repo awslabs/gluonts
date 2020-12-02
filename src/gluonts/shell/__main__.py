@@ -11,23 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import traceback
 from pathlib import Path
 from typing import Optional
 
-# Third-party imports
 import click
 
-# Relative imports
 from gluonts.core.exception import GluonTSForecasterNotFoundError
 from gluonts.shell.serve import Settings
 
+from .env import ServeEnv, TrainEnv
 from .sagemaker import TrainPaths
-from .env import TrainEnv, ServeEnv
-from .util import forecaster_type_by_name, Forecaster
-
+from .util import Forecaster, forecaster_type_by_name
 
 logger = logging.getLogger(__name__)
 

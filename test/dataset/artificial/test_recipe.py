@@ -11,33 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
+import gluonts.dataset.artificial.recipe as rcp
+
 from gluonts.core.component import validated
 from gluonts.core.serde import dump_code, load_code
-from gluonts.dataset.common import (
-    BasicFeatureInfo,
-    CategoricalFeatureInfo,
-    MetaData,
-)
 from gluonts.dataset.artificial import RecipeDataset
-import gluonts.dataset.artificial.recipe as rcp
-from gluonts.dataset.artificial.recipe import lifted_numpy as lnp
-
 from gluonts.dataset.artificial.recipe import (
     Add,
-    Lifted,
     BinaryMarkovChain,
     Constant,
     ConstantVec,
     Debug,
+    Env,
     Eval,
     ForEachCat,
     Lag,
+    Lifted,
     LinearTrend,
     Mul,
     NanWhere,
@@ -50,8 +43,13 @@ from gluonts.dataset.artificial.recipe import (
     Stack,
     evaluate,
     generate,
-    take_as_list,
-    Env,
+)
+from gluonts.dataset.artificial.recipe import lifted_numpy as lnp
+from gluonts.dataset.artificial.recipe import take_as_list
+from gluonts.dataset.common import (
+    BasicFeatureInfo,
+    CategoricalFeatureInfo,
+    MetaData,
 )
 
 BASE_RECIPE = [("foo", ConstantVec(1.0)), ("cat", RandomCat([10]))]

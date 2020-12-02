@@ -11,22 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, Tuple
 
-# Third-party imports
 import numpy as np
+
 from gluonts.core.component import validated
+from gluonts.mx import Tensor
 
-# First-party imports
-from gluonts.model.common import Tensor
-
-# Relative imports
+from .beta import Beta
+from .deterministic import Deterministic
 from .distribution import getF, softplus
 from .distribution_output import DistributionOutput
-from .beta import Beta
 from .mixture import MixtureDistribution
-from .deterministic import Deterministic
 
 
 class ZeroAndOneInflatedBeta(MixtureDistribution):

@@ -11,27 +11,24 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
-import numpy as np
 import mxnet as nx
-from mxnet import gluon
-from mxnet import init
-from mxnet.gluon import nn, HybridBlock
+import numpy as np
+from mxnet import gluon, init
+from mxnet.gluon import HybridBlock, nn
 
-# First-party imports
-from gluonts.core.component import validated, DType
-from gluonts.model.common import Tensor
+from gluonts.core.component import DType, validated
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder as BaseFeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
-from gluonts.support.util import weighted_average
+from gluonts.mx.util import weighted_average
+
 from ._layers import (
     GatedResidualNetwork,
-    VariableSelectionNetwork,
-    TemporalFusionEncoder,
     TemporalFusionDecoder,
+    TemporalFusionEncoder,
+    VariableSelectionNetwork,
 )
 
 

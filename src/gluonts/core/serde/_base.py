@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import textwrap
 from enum import Enum
 from functools import singledispatch
@@ -19,12 +18,9 @@ from pathlib import PurePath
 from pydoc import locate
 from typing import Any, NamedTuple, cast
 
-# Third-party imports
 from pydantic import BaseModel
 
-# Relative imports
 from gluonts.core import fqname_for
-
 
 bad_type_msg = textwrap.dedent(
     """

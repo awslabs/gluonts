@@ -11,30 +11,30 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple, List, Union
-import pytest
 from itertools import product
+from typing import List, Tuple, Union
 
 import mxnet as mx
+import pytest
 
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
-    DistributionOutput,
-    GaussianOutput,
-    GammaOutput,
     BetaOutput,
+    DeterministicOutput,
+    DirichletMultinomialOutput,
+    DirichletOutput,
+    DistributionOutput,
+    GammaOutput,
+    GaussianOutput,
     LaplaceOutput,
+    LowrankMultivariateGaussianOutput,
     MixtureDistributionOutput,
     MultivariateGaussianOutput,
-    LowrankMultivariateGaussianOutput,
     NegativeBinomialOutput,
     PiecewiseLinearOutput,
     PoissonOutput,
     StudentTOutput,
     UniformOutput,
-    DirichletOutput,
-    DirichletMultinomialOutput,
-    DeterministicOutput,
 )
 
 

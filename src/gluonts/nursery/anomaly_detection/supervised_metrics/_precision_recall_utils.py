@@ -11,14 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Iterable, Optional, Callable, Tuple, List, NamedTuple
+from typing import Callable, Iterable, List, NamedTuple, Optional, Tuple
 
-# Third-party imports
-from joblib import Parallel, delayed
 import numpy as np
+from joblib import Parallel, delayed
 
-# Relative imports
 from . import buffered_precision_recall
 from .utils import labels_to_ranges
 

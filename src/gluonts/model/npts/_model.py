@@ -11,17 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Callable, Iterator, List, cast, Any, Optional
+from typing import Any, Callable, Iterator, List, Optional, cast
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.model.forecast import SampleForecast
 
-# Relative imports
 from ._weighted_sampler import WeightedSampler
 
 

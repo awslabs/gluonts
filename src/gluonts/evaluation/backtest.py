@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import re
 from typing import Dict, Iterator, NamedTuple, Optional, Tuple
 
-# Third-party imports
 import pandas as pd
 
-# First-party imports
 import gluonts  # noqa
 from gluonts import transform
 from gluonts.core.serde import load_code

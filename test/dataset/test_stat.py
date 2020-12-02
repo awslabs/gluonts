@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import unittest
 from typing import cast
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import (

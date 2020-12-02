@@ -28,7 +28,6 @@ In the extended forecasting tutorial we cover the following topics.
 
 
 ```python
-# Third-party imports
 %matplotlib inline
 import mxnet as mx
 from mxnet import gluon
@@ -829,12 +828,12 @@ The estimator class is configured by a few hyperparameters and implements the re
 
 
 ```python
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.core.component import validated
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
 from mxnet.gluon import HybridBlock
 ```

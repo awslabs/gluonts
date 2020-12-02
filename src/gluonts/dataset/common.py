@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -28,13 +27,11 @@ from typing import (
     cast,
 )
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pydantic
 from pandas.tseries.offsets import Tick
 
-# First-party imports
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
 

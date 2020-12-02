@@ -11,12 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Tuple
 
-# Third-party imports
-from numba import jit
 import numpy as np
+from numba import jit
 
 
 def range_overlap(

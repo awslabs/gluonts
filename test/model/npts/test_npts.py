@@ -11,17 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 from typing import Optional
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
 from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset.common import Dataset, ListDataset, DataEntry
+from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.model.npts import KernelType, NPTSPredictor
 from gluonts.model.npts._weighted_sampler import WeightedSampler
 

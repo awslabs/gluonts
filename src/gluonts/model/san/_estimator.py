@@ -11,22 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import RepresentableBlockPredictor
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -38,19 +35,19 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
+    ExpandDimArray,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     RemoveFields,
     SetField,
     Transformation,
     VstackFeatures,
-    ExpandDimArray,
 )
 
 # Relative import
 from ._network import (
-    SelfAttentionTrainingNetwork,
     SelfAttentionPredictionNetwork,
+    SelfAttentionTrainingNetwork,
 )
 
 

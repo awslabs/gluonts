@@ -11,20 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import pytest
 import numpy as np
 import pandas as pd
 
-# First-party imports
+import pytest
+
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
-from gluonts.model.lstnet import LSTNetEstimator
-from gluonts.mx.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.evaluation import MultivariateEvaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
-
+from gluonts.model.lstnet import LSTNetEstimator
+from gluonts.mx.trainer import Trainer
 
 NUM_SERIES = 10
 NUM_SAMPLES = 5

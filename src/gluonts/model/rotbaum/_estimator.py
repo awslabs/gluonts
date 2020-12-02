@@ -11,13 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.estimator import Estimator, Predictor
 from gluonts.transform import FilterTransformation, Transformation
 
-# Relative imports
 from ._predictor import TreePredictor
 
 

@@ -13,13 +13,13 @@
 
 import json
 import os
+import re
 import warnings
 from pathlib import Path
 from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
-import re
 
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 from gluonts.gluonts_tqdm import tqdm

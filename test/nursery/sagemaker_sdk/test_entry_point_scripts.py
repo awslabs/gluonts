@@ -10,20 +10,20 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+import argparse
 import platform
 import tempfile
 from pathlib import Path
-import argparse
 
 import pytest
 
 from gluonts.core import serde
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.nursery.sagemaker_sdk.defaults import NUM_SAMPLES, QUANTILES
 from gluonts.nursery.sagemaker_sdk.entry_point_scripts.train_entry_point import (
     train,
 )
-from gluonts.nursery.sagemaker_sdk.defaults import QUANTILES, NUM_SAMPLES
 
 
 def create_arguments(temp_dir_abs_path, dataset_name, s3_dataset_path=None):

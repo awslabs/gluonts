@@ -11,28 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
-from typing import List, Optional
 from distutils.util import strtobool
+from typing import List, Optional
 
-# Third-party imports
-import numpy as np
 import mxnet as mx
+import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
-
-from gluonts.mx.distribution import DistributionOutput
-
 from gluonts.mx.block.decoder import ForkingMLPDecoder
 from gluonts.mx.block.encoder import (
     HierarchicalCausalConv1DEncoder,
     RNNEncoder,
 )
 from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.trainer import Trainer
 
 

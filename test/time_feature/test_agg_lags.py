@@ -11,16 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
-from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.common import ListDataset
-from gluonts.transform import AddAggregateLags
 
+from gluonts.dataset.field_names import FieldName
+from gluonts.transform import AddAggregateLags
 
 expected_lags_rolling = {
     "prediction_length_2": {

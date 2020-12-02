@@ -11,21 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple, Union
 
-# Third-party imports
 import numpy as np
 from mxnet import autograd
 
-# First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
+from gluonts.mx.distribution.bijection import AffineTransformation, Bijection
 from gluonts.mx.distribution.distribution import Distribution, getF
 from gluonts.mx.distribution.distribution_output import DistributionOutput
-from gluonts.mx.distribution.bijection import AffineTransformation, Bijection
 from gluonts.mx.distribution.transformed_distribution import (
-    sum_trailing_axes,
     TransformedDistribution,
+    sum_trailing_axes,
 )
 
 

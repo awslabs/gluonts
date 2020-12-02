@@ -11,20 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Optional, Tuple, List
 import math
+from typing import List, Optional, Tuple
+
+import mxnet as mx
 
 # Third-party import
 import numpy as np
-import mxnet as mx
 from mxnet import init
-from mxnet.gluon import nn, Parameter, HybridBlock
+from mxnet.gluon import HybridBlock, Parameter, nn
 from mxnet.gluon.contrib.nn import HybridConcurrent
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 
 

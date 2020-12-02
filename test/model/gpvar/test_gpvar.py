@@ -11,21 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import pytest
-from flaky import flaky
 import mxnet as mx
 
-# First-party imports
+import pytest
+from flaky import flaky
+
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.mx.distribution import LowrankMultivariateGaussian
-from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput, GPArgProj
-from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.evaluation import MultivariateEvaluator
-from gluonts.model.gpvar import GPVAREstimator
-from gluonts.mx.trainer import Trainer
-from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.dataset.common import TrainDatasets
+from gluonts.dataset.multivariate_grouper import MultivariateGrouper
+from gluonts.evaluation import MultivariateEvaluator
+from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.model.gpvar import GPVAREstimator
+from gluonts.mx.distribution import LowrankMultivariateGaussian
+from gluonts.mx.distribution.lowrank_gp import GPArgProj, LowrankGPOutput
+from gluonts.mx.trainer import Trainer
 
 
 def load_multivariate_constant_dataset():

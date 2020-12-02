@@ -15,8 +15,7 @@ import random
 
 import pytest
 
-from gluonts.core import serde
-from gluonts.core import ty
+from gluonts.core import serde, ty
 
 
 class StatefulClass(serde.Stateful):

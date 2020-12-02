@@ -11,19 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, List, Tuple
 
-# Third-party imports
 import numpy as np
 import pytest
 from sklearn.metrics import auc
 
-# First-party imports
 from gluonts.nursery.anomaly_detection.supervised_metrics import (
+    aggregate_precision_recall_curve,
     buffered_precision_recall,
     segment_precision_recall,
-    aggregate_precision_recall_curve,
 )
 from gluonts.nursery.anomaly_detection.supervised_metrics._buffered_precision_recall import (
     extend_ranges,
@@ -35,7 +32,6 @@ from gluonts.nursery.anomaly_detection.supervised_metrics.utils import (
     labels_to_ranges,
     range_overlap,
 )
-
 
 TEST_CASES = [
     # edge cases
