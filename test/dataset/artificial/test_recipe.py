@@ -227,3 +227,14 @@ def test_length() -> None:
     u = rcp.Constant(np.array([1, 2, 3, 4, 5, 6, 7]))
     x = u * RandomGaussian()
     assert len(evaluate(x, length=rcp.Length(u))) == 7
+
+    l = rcp.Length()
+    assert evaluate(l, length=9) == 9
+
+
+def test_arp() -> None:
+    u = rcp.normalized_ar1(1e-4, norm="minmax")
+    x = evaluate(u, length=1000)
+    assert len(x) == 1000
+    assert x.max() == 1
+    assert x.min() == 0
