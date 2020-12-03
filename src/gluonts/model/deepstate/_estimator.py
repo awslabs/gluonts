@@ -13,24 +13,19 @@
 
 from typing import List, Optional
 
-# Standard library imports
 import numpy as np
-
-# Third-party imports
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-
 from gluonts.mx.distribution.lds import ParameterBounds
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
@@ -47,7 +42,6 @@ from gluonts.transform import (
     VstackFeatures,
 )
 
-# Relative imports
 from ._network import DeepStatePredictionNetwork, DeepStateTrainingNetwork
 
 SEASON_INDICATORS_FIELD = "seasonal_indicators"
@@ -96,18 +90,18 @@ class DeepStateEstimator(GluonEstimator):
         state space model
     past_length
         This is the length of the training time series;
-        i.e., number of steps to unroll the RNN for before computing 
+        i.e., number of steps to unroll the RNN for before computing
         predictions.
-        Set this to (at most) the length of the shortest time series in the 
+        Set this to (at most) the length of the shortest time series in the
         dataset.
-        (default: None, in which case the training length is set such that 
+        (default: None, in which case the training length is set such that
         at least
         `num_seasons_to_train` seasons are included in the training.
         See `num_seasons_to_train`)
     num_periods_to_train
         (Used only when `past_length` is not set)
         Number of periods to include in the training time series. (default: 4)
-        Here period corresponds to the longest cycle one can expect given 
+        Here period corresponds to the longest cycle one can expect given
         the granularity of the time series.
         See: https://stats.stackexchange.com/questions/120806/frequency
         -value-for-seconds-minutes-intervals-data-in-r
@@ -121,7 +115,7 @@ class DeepStateEstimator(GluonEstimator):
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism 
+        Number of evaluation samples per time series to increase parallelism
         during inference.
         This is a model optimization that does not affect the accuracy (
         default: 100).
@@ -147,7 +141,7 @@ class DeepStateEstimator(GluonEstimator):
     prior_cov_bounds
         Lower and upper bounds for the diagonal of the prior covariance matrix
     innovation_bounds
-        Lower and upper bounds for the standard deviation of the observation 
+        Lower and upper bounds for the standard deviation of the observation
         noise
     """
 

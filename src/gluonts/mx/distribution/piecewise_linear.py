@@ -11,21 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Dict, List, Optional, Tuple, cast, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
-# Third-party imports
-import numpy as np
 import mxnet as mx
+import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-from gluonts.support import util
+from gluonts.mx import Tensor
+from gluonts.mx.util import cumsum
 
 from .bijection import AffineTransformation, Bijection
 from .distribution import Distribution, getF
-from .distribution_output import DistributionOutput, ArgProj
+from .distribution_output import ArgProj, DistributionOutput
 from .transformed_distribution import TransformedDistribution
 
 
@@ -124,7 +121,7 @@ class PiecewiseLinear(Distribution):
         # The actual position of the knots is obtained by cumulative sum of
         # the knot spacings. The first knot position is always 0 for quantile
         # functions; cumsum will take care of that.
-        knot_positions = util.cumsum(F, knot_spacings, exclusive=True)
+        knot_positions = cumsum(F, knot_spacings, exclusive=True)
 
         return b, knot_positions
 
@@ -414,7 +411,8 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
 
     @validated()
     def __init__(
-        self, quantile_levels: Union[List[float], np.ndarray],
+        self,
+        quantile_levels: Union[List[float], np.ndarray],
     ) -> None:
         assert all(
             [0 < q < 1 for q in quantile_levels]
@@ -424,7 +422,9 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
             np.diff(quantile_levels) > 0
         ), "Quantiles must be in increasing order, with quantile each specified once"
 
-        super().__init__(num_pieces=len(quantile_levels) + 1,)
+        super().__init__(
+            num_pieces=len(quantile_levels) + 1,
+        )
 
         # store the "knot spacings" instead of quantiles. see PiecewiseLinear
         # for more information

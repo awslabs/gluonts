@@ -11,47 +11,42 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
 import json
+import multiprocessing as mp
 import random
 import tempfile
 import time
-import multiprocessing as mp
-from functools import partial
 
-
-# Third-party imports
 from collections import defaultdict
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from mxnet.context import current_context
-from flaky import flaky
 import pytest
+from flaky import flaky
+from mxnet.context import current_context
 
-# First-party imports
+from gluonts.dataset.artificial import ConstantDataset, constant_dataset
+from gluonts.dataset.common import FileDataset, ListDataset
+
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
+    InferenceDataLoader,
     TrainDataLoader,
     ValidationDataLoader,
-    InferenceDataLoader,
 )
-from gluonts.dataset.common import ListDataset, FileDataset
+from gluonts.evaluation import Evaluator
+from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx.batchify import batchify
+from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
-    UniformSplitSampler,
-    InstanceSplitter,
     InstanceSampler,
+    InstanceSplitter,
+    UniformSplitSampler,
 )
-from gluonts.dataset.artificial import ConstantDataset
-
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.mx.trainer import Trainer
-from gluonts.dataset.artificial import constant_dataset
-from gluonts.evaluation import Evaluator
-from gluonts.mx.batchify import batchify
 
 # CONSTANTS:
 
@@ -203,7 +198,15 @@ def test_validation_loader_equivalence() -> None:
 @flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     "num_workers",
-    [i for i in [None, 1, 2,] if i is None or i <= mp.cpu_count()],
+    [
+        i
+        for i in [
+            None,
+            1,
+            2,
+        ]
+        if i is None or i <= mp.cpu_count()
+    ],
     # TODO: using more than 2 is a problem for our tests, if some of the cores are busy and fall behind
     # TODO: using multiple input queues in the loader would make this pass no matter how busy each core is
     # [i for i in [None, 1, 2, 3, 4] if i is None or i <= mp.cpu_count()],

@@ -11,17 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Tuple
 
-# Third-party imports
+import mxnet.ndarray as nd
 from mxnet.gluon import nn
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-
-import mxnet.ndarray as nd
+from gluonts.mx import Tensor
 
 
 class Scaler(nn.HybridBlock):
@@ -179,7 +175,7 @@ class MeanScaler(Scaler):
 
 class MinMax(Scaler):
     """
-    The 'MinMax' scales the input data using a min-max approach along the specified axis. 
+    The 'MinMax' scales the input data using a min-max approach along the specified axis.
     """
 
     @validated()
@@ -207,7 +203,7 @@ class MinMax(Scaler):
         Returns
         -------
         Tensor
-            shape (N, T, C) or (N, C, T) scaled along the specified axis. 
+            shape (N, T, C) or (N, C, T) scaled along the specified axis.
 
         """
 

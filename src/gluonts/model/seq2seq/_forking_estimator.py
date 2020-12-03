@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
@@ -32,7 +29,7 @@ from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
@@ -48,12 +45,11 @@ from gluonts.transform import (
     VstackFeatures,
 )
 
-# Relative imports
 from ._forking_network import (
-    ForkingSeq2SeqNetworkBase,
-    ForkingSeq2SeqTrainingNetwork,
-    ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqDistributionPredictionNetwork,
+    ForkingSeq2SeqNetworkBase,
+    ForkingSeq2SeqPredictionNetwork,
+    ForkingSeq2SeqTrainingNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 

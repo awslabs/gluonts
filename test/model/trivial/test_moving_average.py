@@ -11,13 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
-from gluonts.dataset.common import ListDataset
-from gluonts.model.trivial.mean import MovingAveragePredictor
-
-# Third-party imports
 import numpy as np
 import pytest
+
+from gluonts.dataset.common import ListDataset
+from gluonts.model.trivial.mean import MovingAveragePredictor
 
 
 def get_predictions(

@@ -11,20 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import List
+from typing import List, Tuple
 
-# Third-party imports
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-from typing import Tuple
-
-# First-party imports
+from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
-from gluonts.support.util import weighted_average
+from gluonts.mx.util import weighted_average
 
 
 class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
@@ -120,7 +115,8 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             An array containing the scale of the distribution.
         """
         scaled_target, target_scale = self.scaler(
-            past_target, F.ones_like(past_target),
+            past_target,
+            F.ones_like(past_target),
         )
         mlp_outputs = self.mlp(scaled_target)
         distr_args = self.distr_args_proj(mlp_outputs)

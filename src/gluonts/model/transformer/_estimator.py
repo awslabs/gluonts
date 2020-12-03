@@ -11,20 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-
-# Relative imports
 from gluonts.model.transformer._network import (
     TransformerPredictionNetwork,
     TransformerTrainingNetwork,
@@ -32,8 +26,9 @@ from gluonts.model.transformer._network import (
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
 from gluonts.model.transformer.trans_encoder import TransformerEncoder
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -56,66 +51,66 @@ from gluonts.transform import (
 
 class TransformerEstimator(GluonEstimator):
     """
-        Construct a Transformer estimator.
+    Construct a Transformer estimator.
 
-        This implements a Transformer model, close to the one described in
-        [Vaswani2017]_.
+    This implements a Transformer model, close to the one described in
+    [Vaswani2017]_.
 
-        .. [Vaswani2017] Vaswani, Ashish, et al. "Attention is all you need."
-            Advances in neural information processing systems. 2017.
+    .. [Vaswani2017] Vaswani, Ashish, et al. "Attention is all you need."
+        Advances in neural information processing systems. 2017.
 
-        Parameters
-        ----------
-        freq
-            Frequency of the data to train on and predict
-        prediction_length
-            Length of the prediction horizon
-        context_length
-            Number of steps to unroll the RNN for before computing predictions
-            (default: None, in which case context_length = prediction_length)
-        trainer
-            Trainer object to be used (default: Trainer())
-        dropout_rate
-            Dropout regularization parameter (default: 0.1)
-        cardinality
-            Number of values of the each categorical feature (default: [1])
-        embedding_dimension
-            Dimension of the embeddings for categorical features (the same
-            dimension is used for all embeddings, default: 5)
-        distr_output
-            Distribution to use to evaluate observations and sample predictions
-            (default: StudentTOutput())
-        model_dim
-            Dimension of the transformer network, i.e., embedding dimension of the input
-            (default: 32)
-        inner_ff_dim_scale
-            Dimension scale of the inner hidden layer of the transformer's
-            feedforward network (default: 4)
-        pre_seq
-            Sequence that defined operations of the processing block before the main transformer
-            network. Available operations: 'd' for dropout, 'r' for residual connections
-            and 'n' for normalization (default: 'dn')
-        post_seq
-            seq
-            Sequence that defined operations of the processing block in and after the main
-            transformer network. Available operations: 'd' for dropout, 'r' for residual connections
-            and 'n' for normalization (default: 'drn').
-        act_type
-            Activation type of the transformer network (default: 'softrelu')
-        num_heads
-            Number of heads in the multi-head attention (default: 8)
-        scaling
-            Whether to automatically scale the target values (default: true)
-        lags_seq
-            Indices of the lagged target values to use as inputs of the RNN
-            (default: None, in which case these are automatically determined
-            based on freq)
-        time_features
-            Time features to use as inputs of the RNN (default: None, in which
-            case these are automatically determined based on freq)
-        num_parallel_samples
-            Number of evaluation samples per time series to increase parallelism during inference.
-            This is a model optimization that does not affect the accuracy (default: 100)
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict
+    prediction_length
+        Length of the prediction horizon
+    context_length
+        Number of steps to unroll the RNN for before computing predictions
+        (default: None, in which case context_length = prediction_length)
+    trainer
+        Trainer object to be used (default: Trainer())
+    dropout_rate
+        Dropout regularization parameter (default: 0.1)
+    cardinality
+        Number of values of the each categorical feature (default: [1])
+    embedding_dimension
+        Dimension of the embeddings for categorical features (the same
+        dimension is used for all embeddings, default: 5)
+    distr_output
+        Distribution to use to evaluate observations and sample predictions
+        (default: StudentTOutput())
+    model_dim
+        Dimension of the transformer network, i.e., embedding dimension of the input
+        (default: 32)
+    inner_ff_dim_scale
+        Dimension scale of the inner hidden layer of the transformer's
+        feedforward network (default: 4)
+    pre_seq
+        Sequence that defined operations of the processing block before the main transformer
+        network. Available operations: 'd' for dropout, 'r' for residual connections
+        and 'n' for normalization (default: 'dn')
+    post_seq
+        seq
+        Sequence that defined operations of the processing block in and after the main
+        transformer network. Available operations: 'd' for dropout, 'r' for residual connections
+        and 'n' for normalization (default: 'drn').
+    act_type
+        Activation type of the transformer network (default: 'softrelu')
+    num_heads
+        Number of heads in the multi-head attention (default: 8)
+    scaling
+        Whether to automatically scale the target values (default: true)
+    lags_seq
+        Indices of the lagged target values to use as inputs of the RNN
+        (default: None, in which case these are automatically determined
+        based on freq)
+    time_features
+        Time features to use as inputs of the RNN (default: None, in which
+        case these are automatically determined based on freq)
+    num_parallel_samples
+        Number of evaluation samples per time series to increase parallelism during inference.
+        This is a model optimization that does not affect the accuracy (default: 100)
     """
 
     @validated()

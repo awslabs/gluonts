@@ -11,20 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List
 
-# Third-party imports
 from mxnet.gluon import HybridBlock, nn
 
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.rnn import RNN
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
@@ -37,7 +35,6 @@ from gluonts.transform import (
     Transformation,
 )
 
-# Relative imports
 from ._network import CanonicalPredictionNetwork, CanonicalTrainingNetwork
 
 

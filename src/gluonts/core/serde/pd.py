@@ -13,9 +13,9 @@
 
 from typing import Any
 
-from ._base import encode, Kind
-
 import pandas as pd
+
+from ._base import Kind, encode
 
 
 @encode.register(pd.Timestamp)

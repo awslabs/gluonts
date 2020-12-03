@@ -11,25 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
+import pytest
 
-# First-party imports
-from gluonts.mx.kernels import RBFKernel
+from mxnet import nd
+
 from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
 
-# Relative imports
+from gluonts.mx.kernels import RBFKernel
+
 from .data import (
-    load_gp_params,
     load_exact_mean,
     load_exact_std,
+    load_gp_params,
     load_xfull,
     load_ytrain,
 )
-
-# Third-party imports
-from mxnet import nd
-import pytest
 
 
 def relative_error(y_hat, y_exact):

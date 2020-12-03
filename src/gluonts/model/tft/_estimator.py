@@ -11,43 +11,37 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Dict, List
 from itertools import chain
+from typing import Dict, List, Optional
 
-import numpy as np
 import mxnet as mx
+import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import RepresentableBlockPredictor
-from gluonts.support.util import copy_parameters
-from gluonts.time_feature import (
-    TimeFeature,
-    time_features_from_frequency_str,
-)
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
+from gluonts.mx.util import copy_parameters
+from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
+    SetField,
     Transformation,
     VstackFeatures,
-    SetField,
 )
 
-from ._transform import (
-    BroadcastTo,
-    TFTInstanceSplitter,
-)
 from ._network import (
-    TemporalFusionTransformerTrainingNetwork,
     TemporalFusionTransformerPredictionNetwork,
+    TemporalFusionTransformerTrainingNetwork,
 )
+from ._transform import BroadcastTo, TFTInstanceSplitter
 
 
 def _default_feat_args(dims_or_cardinalities: List[int]):
@@ -174,7 +168,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             transforms.extend(
                 [
                     SetField(
-                        output_field=FieldName.FEAT_STATIC_CAT, value=[0.0],
+                        output_field=FieldName.FEAT_STATIC_CAT,
+                        value=[0.0],
                     ),
                     AsNumpyArray(
                         field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
@@ -194,7 +189,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             transforms.extend(
                 [
                     SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0],
+                        output_field=FieldName.FEAT_STATIC_REAL,
+                        value=[0.0],
                     ),
                     AsNumpyArray(
                         field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
@@ -213,10 +209,12 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             transforms.extend(
                 [
                     SetField(
-                        output_field=FieldName.FEAT_DYNAMIC_CAT, value=[[0.0]],
+                        output_field=FieldName.FEAT_DYNAMIC_CAT,
+                        value=[[0.0]],
                     ),
                     AsNumpyArray(
-                        field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=2,
+                        field=FieldName.FEAT_DYNAMIC_CAT,
+                        expected_ndim=2,
                     ),
                     BroadcastTo(
                         field=FieldName.FEAT_DYNAMIC_CAT,

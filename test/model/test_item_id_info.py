@@ -11,13 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import numpy as np
 import pytest
 
-import numpy as np
-
+from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.model.estimator import Estimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.mx.trainer import Trainer
 
 

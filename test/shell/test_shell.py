@@ -11,22 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import json
-from typing import ContextManager
 import sys
 from distutils.util import strtobool
+from typing import ContextManager
 
-# Third-party imports
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.core.component import equals
 from gluonts.dataset.common import FileDataset, ListDataset
-from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.model.seq2seq import MQCNNEstimator
-from gluonts.shell.env import TrainEnv, ServeEnv
+from gluonts.model.trivial.mean import MeanPredictor
+from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
 
 try:

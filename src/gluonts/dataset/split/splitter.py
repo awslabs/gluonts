@@ -41,15 +41,12 @@ The module also supports rolling splits::
     train, test = splitter.rolling_split(whole_dataset, windows=7)
 """
 
-# Standard library imports
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-# Third-party imports
 import pandas as pd
 import pydantic
 
-# First-party imports
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 
@@ -184,7 +181,7 @@ class AbstractBaseSplitter(ABC):
     Args:
         param prediction_length:
             The prediction length which is used to train themodel.
-            
+
         max_history:
             If given, all entries in the *test*-set have a max-length of
             `max_history`. This can be used to produce smaller file-sizes.

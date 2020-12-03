@@ -11,12 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 from .representation import Representation
 
@@ -32,7 +30,7 @@ class MeanScaling(Representation):
         The minimum value to which re-scaled values will be clipped to.
         (default: 1e-10)
     clip_max
-        The maximum value to which re-scaled values will be clipped to. 
+        The maximum value to which re-scaled values will be clipped to.
         Negative values will be clipped at -clip_max and positive values at clip_max.
         (default: None)
     """

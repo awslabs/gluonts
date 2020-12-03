@@ -11,20 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Tuple
 
-# Third-party imports
 from mxnet.gluon.rnn import (
-    RecurrentCell,
-    ModifierCell,
     BidirectionalCell,
+    ModifierCell,
+    RecurrentCell,
     SequentialRNNCell,
 )
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 
 class VariationalZoneoutCell(ModifierCell):
@@ -47,7 +44,7 @@ class VariationalZoneoutCell(ModifierCell):
     zoneout_states
         The dropout rate for state inputs on the first state channel.
         Won't apply dropout if it equals 0.
-    
+
     """
 
     @validated()
@@ -160,7 +157,7 @@ class RNNZoneoutCell(ModifierCell):
     zoneout_states
         The dropout rate for state inputs on the first state channel.
         Won't apply dropout if it equals 0.
-    
+
     """
 
     @validated()

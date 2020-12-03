@@ -13,13 +13,11 @@
 
 from typing import List
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 
-# First-party imports
 from gluonts.core.component import validated
 
 
@@ -137,6 +135,7 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
     features_by_offsets = {
         offsets.YearEnd: [],
+        offsets.QuarterEnd: [MonthOfYear],
         offsets.MonthEnd: [MonthOfYear],
         offsets.Week: [DayOfMonth, WeekOfYear],
         offsets.Day: [DayOfWeek, DayOfMonth, DayOfYear],

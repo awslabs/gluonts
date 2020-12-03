@@ -13,23 +13,18 @@
 
 from typing import List, Optional
 
-# Standard library imports
 import numpy as np
-
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import calculate_dataset_statistics
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -53,7 +48,6 @@ from gluonts.transform.feature import (
     MissingValueImputation,
 )
 
-# Relative imports
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
 
 
@@ -87,7 +81,7 @@ class DeepAREstimator(GluonEstimator):
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
     dropoutcell_type
-        Type of dropout cells to use 
+        Type of dropout cells to use
         (available: 'ZoneoutCell', 'RNNZoneoutCell', 'VariationalDropoutCell' or 'VariationalZoneoutCell';
         default: 'ZoneoutCell')
     dropout_rate

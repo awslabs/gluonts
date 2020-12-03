@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import multiprocessing
 from ipaddress import IPv4Address
 from typing import Optional, Type, Union
 
-# Third-party imports
 from flask import Flask
 from gunicorn.app.base import BaseApplication
 from pydantic import BaseSettings
 
-# First-party imports
 import gluonts
 from gluonts.core import fqname_for
 from gluonts.model.estimator import Estimator
@@ -55,7 +52,9 @@ class Settings(BaseSettings):
     sagemaker_server_timeout: int = 100
 
     gluonts_batch_timeout: int = 0
-    gluonts_batch_fallback_predictor: str = "gluonts.model.trivial.mean.MeanPredictor"
+    gluonts_batch_fallback_predictor: str = (
+        "gluonts.model.trivial.mean.MeanPredictor"
+    )
 
     sagemaker_batch: bool = False
     sagemaker_batch_strategy: str = "SINGLE_RECORD"

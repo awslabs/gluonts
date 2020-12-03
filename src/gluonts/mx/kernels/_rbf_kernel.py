@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from typing import Dict, Tuple
 
-# First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF, softplus
 
-# Relative imports
 from . import Kernel, KernelOutputDict
 
 

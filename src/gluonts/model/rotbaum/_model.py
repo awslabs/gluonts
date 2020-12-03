@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import xgboost
 
-# First-party imports
 from gluonts.core.component import validated
 
 

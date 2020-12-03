@@ -14,7 +14,6 @@
 import logging
 from typing import Any, Callable, Iterator, List, Optional
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
@@ -22,11 +21,9 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import InferenceDataLoader
-from gluonts.model.forecast import DistributionForecast
-
-# First-party imports
 from gluonts.model.forecast_generator import ForecastGenerator
 from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.model.forecast import DistributionForecast
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 

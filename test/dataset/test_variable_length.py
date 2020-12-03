@@ -12,21 +12,19 @@
 # permissions and limitations under the License.
 import itertools
 from functools import partial
-from typing import Dict, Any
+from typing import Any, Dict
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.loader import (
     DataLoader,
-    TrainDataLoader,
     InferenceDataLoader,
+    TrainDataLoader,
 )
-from gluonts.mx.batchify import batchify, stack, _pad_arrays
+from gluonts.mx.batchify import _pad_arrays, batchify, stack
 from gluonts.testutil.dummy_datasets import get_dataset
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
@@ -196,7 +194,10 @@ def test_variable_length_stack(pp_dataset, array_type, multi_processing):
     ]
 
     assert isinstance(multi_processing, bool)
-    stacked = stack(arrays, variable_length=True,)
+    stacked = stack(
+        arrays,
+        variable_length=True,
+    )
 
     assert stacked.shape[0] == 3
     assert stacked.shape[1] > 0
@@ -218,7 +219,10 @@ def test_variable_length_stack_zerosize(
     ]
 
     assert isinstance(multi_processing, bool)
-    stacked = stack(arrays, variable_length=True,)
+    stacked = stack(
+        arrays,
+        variable_length=True,
+    )
 
     assert stacked.shape[0] == 5
     assert stacked.shape[1] == 1

@@ -12,12 +12,11 @@
 # permissions and limitations under the License.
 import itertools
 
-import pytest
 import mxnet as mx
 import numpy as np
+import pytest
 
 from gluonts.mx.distribution import Binned, BinnedOutput
-
 
 COMMON_KWARGS = {
     "bin_log_probs": mx.nd.array([[0.1, 0.2, 0.1, 0.05, 0.2, 0.1, 0.25]])

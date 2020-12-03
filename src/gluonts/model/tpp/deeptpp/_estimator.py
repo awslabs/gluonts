@@ -13,27 +13,25 @@
 from functools import partial
 from typing import Optional
 
-from gluonts.mx.batchify import batchify
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.estimator import GluonEstimator, TrainOutput
+from gluonts.mx.model.estimator import GluonEstimator, TrainOutput
 from gluonts.model.predictor import Predictor
 from gluonts.model.tpp import PointProcessGluonPredictor
 from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput
+from gluonts.mx.batchify import batchify
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
-    ContinuousTimeUniformSampler,
     ContinuousTimeInstanceSplitter,
+    ContinuousTimeUniformSampler,
     RenameFields,
     Transformation,
 )
 
-# Relative imports
-from ._network import DeepTPPTrainingNetwork, DeepTPPPredictionNetwork
+from ._network import DeepTPPPredictionNetwork, DeepTPPTrainingNetwork
 
 
 class DeepTPPEstimator(GluonEstimator):

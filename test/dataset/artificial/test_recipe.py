@@ -11,30 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
+import gluonts.dataset.artificial.recipe as rcp
+
 from gluonts.core.component import validated
 from gluonts.core.serde import dump_code, load_code
-from gluonts.dataset.common import (
-    BasicFeatureInfo,
-    CategoricalFeatureInfo,
-    MetaData,
-)
 from gluonts.dataset.artificial import RecipeDataset
 from gluonts.dataset.artificial.recipe import (
     Add,
-    Lifted,
     BinaryMarkovChain,
     Constant,
     ConstantVec,
     Debug,
+    Env,
     Eval,
     ForEachCat,
     Lag,
+    Lifted,
     LinearTrend,
     Mul,
     NanWhere,
@@ -47,8 +43,13 @@ from gluonts.dataset.artificial.recipe import (
     Stack,
     evaluate,
     generate,
-    take_as_list,
-    Env,
+)
+from gluonts.dataset.artificial.recipe import lifted_numpy as lnp
+from gluonts.dataset.artificial.recipe import take_as_list
+from gluonts.dataset.common import (
+    BasicFeatureInfo,
+    CategoricalFeatureInfo,
+    MetaData,
 )
 
 BASE_RECIPE = [("foo", ConstantVec(1.0)), ("cat", RandomCat([10]))]
@@ -196,3 +197,33 @@ def test_functional() -> None:
     for k in recipe.keys():
         assert k in res
         assert len(res[k]) == 100
+
+
+def test_lifted_decorator() -> None:
+    @rcp.lift
+    def something(a, b, length):
+        return np.concatenate([a[:10], b[:10]])
+
+    noise1 = lnp.random.uniform(size=1000)
+    noise2 = lnp.random.uniform(size=1000)
+    res = something(noise1, noise2)
+    length = rcp.Length(res)
+    res = evaluate(res, length=length)
+    assert len(res) == 20
+
+    @rcp.lift(2)
+    def something_else(a, b, length):
+        return a[:10], b[:10]
+
+    noise1 = lnp.random.uniform(size=1000)
+    noise2 = lnp.random.uniform(size=1000)
+    a, b = something_else(noise1, noise2)
+    res = evaluate([a, b], length=length)
+    assert len(res[0]) == 10
+    assert len(res[1]) == 10
+
+
+def test_length() -> None:
+    u = rcp.Constant(np.array([1, 2, 3, 4, 5, 6, 7]))
+    x = u * RandomGaussian()
+    assert len(evaluate(x, length=rcp.Length(u))) == 7

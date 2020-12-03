@@ -13,28 +13,23 @@
 
 from typing import List, Optional, Tuple, Union
 
-# Third-party imports
 import mxnet as mx
-from mxnet.gluon.rnn import ZoneoutCell
-from mxnet.gluon.contrib.rnn import VariationalDropoutCell
-
-# Standard library imports
 import numpy as np
+from mxnet.gluon.contrib.rnn import VariationalDropoutCell
+from mxnet.gluon.rnn import ZoneoutCell
 
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
-
-# First-party imports
+from gluonts.mx import Tensor
+from gluonts.mx.block.dropout import RNNZoneoutCell, VariationalZoneoutCell
 from gluonts.mx.block.feature import FeatureEmbedder
-from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.distribution import Distribution, DistributionOutput
-from gluonts.mx.distribution.distribution import getF
-from gluonts.support.util import weighted_average
-from gluonts.mx.block.dropout import VariationalZoneoutCell, RNNZoneoutCell
 from gluonts.mx.block.regularization import (
     ActivationRegularizationLoss,
     TemporalActivationRegularizationLoss,
 )
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution import Distribution, DistributionOutput
+from gluonts.mx.distribution.distribution import getF
+from gluonts.mx.util import weighted_average
 
 
 def prod(xs):

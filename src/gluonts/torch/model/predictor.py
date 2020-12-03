@@ -11,8 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Iterator, Callable, Optional
 from pathlib import Path
+from typing import Callable, Iterator, List, Optional
 
 import numpy as np
 import torch
@@ -26,7 +26,8 @@ from gluonts.model.forecast_generator import (
     SampleForecastGenerator,
     predict_to_numpy,
 )
-from gluonts.model.predictor import Predictor, OutputTransform
+from gluonts.torch.component import equals
+from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.torch.batchify import batchify
 from gluonts.transform import Transformation
 
@@ -80,6 +81,19 @@ class PyTorchPredictor(Predictor):
                 num_samples=num_samples,
             )
 
+    def __eq__(self, that):
+        if type(self) != type(that):
+            return False
+
+        # TODO: also consider equality of the pipelines
+        # if not equals(self.input_transform, that.input_transform):
+        #    return False
+
+        return equals(
+            self.prediction_net.state_dict(),
+            that.prediction_net.state_dict(),
+        )
+
     def serialize(self, path: Path) -> None:
         super().serialize(path)
 
@@ -102,7 +116,6 @@ class PyTorchPredictor(Predictor):
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
                 freq=self.freq,
-                device=self.device,
                 forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )

@@ -13,10 +13,10 @@
 
 import pandas as pd
 
-from gluonts.dataset.split.splitter import TimeSeriesSlice
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.dataset.split import DateSplitter, OffsetSplitter
-from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.split.splitter import TimeSeriesSlice
 
 
 def make_series(data, start="2020", freq="D"):

@@ -16,7 +16,7 @@ from typing import Any
 import mxnet as mx
 
 from gluonts.core import fqname_for
-from gluonts.core.serde import encode, Kind
+from gluonts.core.serde import Kind, encode
 
 
 @encode.register(mx.Context)

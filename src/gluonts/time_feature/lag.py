@@ -11,10 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 import numpy as np
 from pandas.tseries.frequencies import to_offset
 
@@ -85,9 +83,16 @@ def get_lags_for_frequency(
     # multiple, granularity = get_granularity(freq_str)
     offset = to_offset(freq_str)
 
-    if offset.name == "M":
+    if offset.name == "A-DEC":  # normalized string for YearEnd aka Y
+        lags = []
+    elif offset.name == "Q-DEC":  # normalized string for QuarterEnd aka Q
+        assert (
+            offset.n == 1
+        ), "Only multiple 1 is supported for quarterly. Use x month instead."
+        lags = _make_lags_for_month(offset.n * 3.0)
+    elif offset.name == "M":
         lags = _make_lags_for_month(offset.n)
-    elif offset.name == "W-SUN":
+    elif offset.name == "W-SUN":  # normalized string for WeekEnd aka W
         lags = _make_lags_for_week(offset.n)
     elif offset.name == "D":
         lags = _make_lags_for_day(offset.n) + _make_lags_for_week(

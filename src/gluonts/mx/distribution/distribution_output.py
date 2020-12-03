@@ -11,18 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Callable, Dict, Optional, Tuple
 
-# Third-party imports
 import numpy as np
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
-# Relative imports
 from .bijection import AffineTransformation
 from .distribution import Distribution
 from .transformed_distribution import AffineTransformedDistribution

@@ -11,22 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import re
 from enum import Enum
 from typing import Callable, Dict, List, NamedTuple, Optional, Set, Union
 
-# Third-party imports
-import mxnet as mx
 import numpy as np
 import pandas as pd
 import pydantic
 
 from gluonts.core.component import validated
-
-# First-party imports
 from gluonts.core.exception import GluonTSUserError
-from gluonts.mx.distribution import Distribution
 
 
 class Quantile(NamedTuple):
@@ -325,23 +319,21 @@ class SampleForecast(Forecast):
     @validated()
     def __init__(
         self,
-        samples: Union[mx.nd.NDArray, np.ndarray],
+        samples: np.ndarray,
         start_date: pd.Timestamp,
         freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
         assert isinstance(
-            samples, (np.ndarray, mx.ndarray.ndarray.NDArray)
-        ), "samples should be either a numpy or an mxnet array"
+            samples, np.ndarray
+        ), "samples should be a numpy array"
         assert (
             len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3
         ), "samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {}".format(
             len(np.shape(samples))
         )
-        self.samples = (
-            samples if (isinstance(samples, np.ndarray)) else samples.asnumpy()
-        )
+        self.samples = samples
         self._sorted_samples_value = None
         self._mean = None
         self._dim = None
@@ -569,96 +561,15 @@ class QuantileForecast(Forecast):
 
         for k, v in zip(keys, self.forecast_array):
             plt.plot(
-                self.index, v, label=f"{label_prefix}q{k}", *args, **kwargs,
+                self.index,
+                v,
+                label=f"{label_prefix}q{k}",
+                *args,
+                **kwargs,
             )
             plt.legend()
         if output_file:
             plt.savefig(output_file)
-
-
-class DistributionForecast(Forecast):
-    """
-    A `Forecast` object that uses a GluonTS distribution directly.
-    This can for instance be used to represent marginal probability
-    distributions for each time point -- although joint distributions are
-    also possible, e.g. when using MultiVariateGaussian).
-
-    Parameters
-    ----------
-    distribution
-        Distribution object. This should represent the entire prediction
-        length, i.e., if we draw `num_samples` samples from the distribution,
-        the sample shape should be
-
-           samples = trans_dist.sample(num_samples)
-           samples.shape -> (num_samples, prediction_length)
-
-    start_date
-        start of the forecast
-    freq
-        forecast frequency
-    info
-        additional information that the forecaster may provide e.g. estimated
-        parameters, number of iterations ran etc.
-    """
-
-    @validated()
-    def __init__(
-        self,
-        distribution: Distribution,
-        start_date: pd.Timestamp,
-        freq: str,
-        item_id: Optional[str] = None,
-        info: Optional[Dict] = None,
-    ) -> None:
-        self.distribution = distribution
-        self.shape = (
-            self.distribution.batch_shape + self.distribution.event_shape
-        )
-        self.prediction_length = self.shape[0]
-        self.item_id = item_id
-        self.info = info
-
-        assert isinstance(
-            start_date, pd.Timestamp
-        ), "start_date should be a pandas Timestamp object"
-        self.start_date = start_date
-
-        assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
-        self._mean = None
-
-    @property
-    def mean(self) -> np.ndarray:
-        """
-        Forecast mean.
-        """
-        if self._mean is not None:
-            return self._mean
-        else:
-            self._mean = self.distribution.mean.asnumpy()
-            return self._mean
-
-    @property
-    def mean_ts(self) -> pd.Series:
-        """
-        Forecast mean, as a pandas.Series object.
-        """
-        return pd.Series(self.mean, index=self.index)
-
-    def quantile(self, level: Union[float, str]) -> np.ndarray:
-        level = Quantile.parse(level).value
-        q = self.distribution.quantile(mx.nd.array([level])).asnumpy()[0]
-        return q
-
-    def to_sample_forecast(self, num_samples: int = 200) -> SampleForecast:
-        return SampleForecast(
-            samples=self.distribution.sample(num_samples),
-            start_date=self.start_date,
-            freq=self.freq,
-            item_id=self.item_id,
-            info=self.info,
-        )
 
 
 class OutputType(str, Enum):

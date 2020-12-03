@@ -13,8 +13,6 @@
 
 
 import json
-
-# Standard library imports
 import logging
 import tarfile
 from functools import partial
@@ -24,14 +22,11 @@ from typing import Dict, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 import s3fs
-
-# Third-party imports
 import sagemaker
 from sagemaker.estimator import Framework
 from sagemaker.s3 import parse_s3_url
 from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
 
-# First-party imports
 from gluonts.core import serde
 from gluonts.dataset.repository import datasets
 from gluonts.model.estimator import Estimator

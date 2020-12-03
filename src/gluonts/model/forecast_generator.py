@@ -12,22 +12,16 @@
 # permissions and limitations under the License.
 
 import logging
-from typing import Callable, Iterator, List, Optional
 from functools import singledispatch
+from typing import Callable, Iterator, List, Optional
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import InferenceDataLoader
-from gluonts.model.forecast import (
-    Forecast,
-    QuantileForecast,
-    SampleForecast,
-)
+from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
@@ -151,8 +145,3 @@ class SampleForecastGenerator(ForecastGenerator):
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch["forecast_start"])
-
-
-# import mxnet-dependent DistributionForecastGenerator for backwards compatibility
-# TODO add deprecation warning
-from gluonts.mx.model.forecast_generator import DistributionForecastGenerator

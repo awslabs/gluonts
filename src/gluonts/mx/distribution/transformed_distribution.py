@@ -11,21 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Any, List, Optional, Tuple
 
 import mxnet as mx
 import numpy as np
-
-# Third-party imports
 from mxnet import autograd
 
 from gluonts.core.component import validated
+from gluonts.mx import Tensor
 
-# First-party imports
-from gluonts.model.common import Tensor
-
-# Relative imports
 from . import bijection as bij
 from .distribution import Distribution, _index_tensor, getF
 from .bijection import AffineTransformation
@@ -51,6 +45,21 @@ class TransformedDistribution(Distribution):
         self._event_dim: Optional[int] = None
         self._event_shape: Optional[Tuple] = None
         self._batch_shape: Optional[Tuple] = None
+
+    @property
+    def F(self):
+        return self.base_distribution.F
+
+    @property
+    def support_min_max(self) -> Tuple[Tensor, Tensor]:
+        F = self.F
+        lb, ub = self.base_distribution.support_min_max
+        for t in self.transforms:
+            _lb = t.f(lb)
+            _ub = t.f(ub)
+            lb = F.minimum(_lb, _ub)
+            ub = F.maximum(_lb, _ub)
+        return lb, ub
 
     def _slice_bijection(
         self, trans: bij.Bijection, item: Any

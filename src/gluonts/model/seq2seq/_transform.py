@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from collections import Counter
 from typing import Iterator, List, Optional
 
-# Third-party imports
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName

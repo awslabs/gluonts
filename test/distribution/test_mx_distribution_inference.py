@@ -15,76 +15,74 @@
 Test that maximizing likelihood allows to correctly recover distribution parameters for all
 distributions exposed to the user.
 """
-# Standard library imports
-from typing import Iterable, List, Tuple
 from functools import reduce
 
-# Third-party imports
+from typing import Iterable, List, Tuple
+
 import mxnet as mx
 import numpy as np
 import pytest
 from pydantic import PositiveFloat, PositiveInt
 
-# First-party imports
 from gluonts.model.common import NPArrayLike
-from gluonts.mx.distribution.box_cox_transform import (
-    InverseBoxCoxTransform,
-    InverseBoxCoxTransformOutput,
-)
-from gluonts.mx.distribution import (
-    DistributionOutput,
-    StudentT,
-    StudentTOutput,
-    Gamma,
-    GammaOutput,
-    Beta,
-    BetaOutput,
-    MultivariateGaussian,
-    MultivariateGaussianOutput,
-    LowrankMultivariateGaussian,
-    LowrankMultivariateGaussianOutput,
-    Dirichlet,
-    DirichletOutput,
-    DirichletMultinomial,
-    DirichletMultinomialOutput,
-    NegativeBinomial,
-    NegativeBinomialOutput,
-    ZeroInflatedNegativeBinomialOutput,
-    Laplace,
-    LaplaceOutput,
-    Gaussian,
-    GaussianOutput,
-    GenPareto,
-    GenParetoOutput,
-    Poisson,
-    PoissonOutput,
-    ZeroInflatedPoissonOutput,
-    PiecewiseLinear,
-    PiecewiseLinearOutput,
-    Binned,
-    BinnedOutput,
-    Categorical,
-    CategoricalOutput,
-    LogitNormal,
-    LogitNormalOutput,
-    ZeroInflatedBeta,
-    OneInflatedBeta,
-    ZeroAndOneInflatedBeta,
-    ZeroInflatedBetaOutput,
-    ZeroAndOneInflatedBetaOutput,
-    OneInflatedBetaOutput,
-)
-from gluonts.mx.distribution.transformed_distribution_output import (
-    TransformedDistributionOutput,
-)
-from gluonts.mx.distribution.transformed_distribution import (
-    TransformedDistribution,
-)
 from gluonts.model.tpp.distribution import (
     Loglogistic,
     LoglogisticOutput,
     Weibull,
     WeibullOutput,
+)
+from gluonts.mx.distribution import (
+    Beta,
+    BetaOutput,
+    Binned,
+    BinnedOutput,
+    Categorical,
+    CategoricalOutput,
+    Dirichlet,
+    DirichletMultinomial,
+    DirichletMultinomialOutput,
+    DirichletOutput,
+    DistributionOutput,
+    Gamma,
+    GammaOutput,
+    Gaussian,
+    GaussianOutput,
+    GenPareto,
+    GenParetoOutput,
+    Laplace,
+    LaplaceOutput,
+    LogitNormal,
+    LogitNormalOutput,
+    LowrankMultivariateGaussian,
+    LowrankMultivariateGaussianOutput,
+    MultivariateGaussian,
+    MultivariateGaussianOutput,
+    NegativeBinomial,
+    NegativeBinomialOutput,
+    OneInflatedBeta,
+    OneInflatedBetaOutput,
+    PiecewiseLinear,
+    PiecewiseLinearOutput,
+    Poisson,
+    PoissonOutput,
+    StudentT,
+    StudentTOutput,
+    ZeroAndOneInflatedBeta,
+    ZeroAndOneInflatedBetaOutput,
+    ZeroInflatedBeta,
+    ZeroInflatedBetaOutput,
+    ZeroInflatedNegativeBinomialOutput,
+    ZeroInflatedPoissonOutput,
+)
+from gluonts.mx.distribution.box_cox_transform import (
+    InverseBoxCoxTransform,
+    InverseBoxCoxTransformOutput,
+)
+from gluonts.mx.distribution.transformed_distribution import (
+    TransformedDistribution,
+)
+from gluonts.mx.distribution.transformed_distribution_output import (
+    TransformedDistributionOutput,
 )
 
 pytestmark = pytest.mark.timeout(60)
@@ -1159,7 +1157,9 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
 @pytest.mark.parametrize("hybridize", [False, True])
 def test_inflated_poisson_likelihood(
-    rate: float, hybridize: bool, zero_probability: float,
+    rate: float,
+    hybridize: bool,
+    zero_probability: float,
 ) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
@@ -1206,7 +1206,10 @@ def test_inflated_poisson_likelihood(
 @pytest.mark.parametrize("zero_probability", [0.3])
 @pytest.mark.parametrize("hybridize", [False, True])
 def test_inflated_neg_binomial_likelihood(
-    mu: float, alpha: float, zero_probability: float, hybridize: bool,
+    mu: float,
+    alpha: float,
+    zero_probability: float,
+    hybridize: bool,
 ) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
