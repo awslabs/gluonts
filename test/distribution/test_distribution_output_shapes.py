@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# type: ignore
+
 
 import pytest
 from itertools import product
