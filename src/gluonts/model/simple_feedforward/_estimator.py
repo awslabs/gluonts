@@ -28,6 +28,7 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
+    InstanceSampler,
 )
 from gluonts.transform.feature import (
     DummyValueImputation,
@@ -92,6 +93,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
+    train_sampler
+        Controls the sampling of windows during training.
     """
 
     # The validated() decorator makes sure that parameters are checked by
@@ -112,6 +115,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         batch_normalization: bool = False,
         mean_scaling: bool = True,
         num_parallel_samples: int = 100,
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
     ) -> None:
         """
         Defines an estimator. All parameters should be serializable.
@@ -151,6 +155,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             if imputation_method is not None
             else DummyValueImputation(self.distr_output.value_in_support)
         )
+        self.train_sampler = train_sampler
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -172,7 +177,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     time_series_fields=[FieldName.OBSERVED_VALUES],
