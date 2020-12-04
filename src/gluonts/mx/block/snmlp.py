@@ -21,9 +21,9 @@ from mxnet.gluon import Block
 from mxnet.ndarray import linalg_gemm2 as gemm2
 
 # First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.core.component import validated
-from gluonts.support.util import _broadcast_param
+from gluonts.mx.util import _broadcast_param
 from gluonts.mx.activation import get_activation, get_activation_deriv
 from gluonts.mx.block.sndense import SNDense
 

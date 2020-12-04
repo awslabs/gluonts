@@ -21,7 +21,7 @@ import mxnet.gluon.nn as nn
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 
 def get_activation(activation: str, **kwargs) -> nn.HybridBlock:

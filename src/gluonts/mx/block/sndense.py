@@ -24,7 +24,7 @@ from mxnet.gluon import Block
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.mx.context import get_mxnet_context
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.activation import get_activation
 
 
