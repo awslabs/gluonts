@@ -16,8 +16,8 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-from gluonts.support.util import _broadcast_param
+from gluonts.mx import Tensor
+from gluonts.mx.util import _broadcast_param
 from gluonts.mx.block.snmlp import SNMLPBlock
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.distribution.bijection import (
