@@ -46,6 +46,7 @@ from gluonts.transform import (
     SetField,
     Transformation,
     VstackFeatures,
+    InstanceSampler,
 )
 
 
@@ -111,6 +112,8 @@ class TransformerEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
+    train_sampler
+        Controls the sampling of windows during training.
     """
 
     @validated()
@@ -136,6 +139,7 @@ class TransformerEstimator(GluonEstimator):
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
         num_parallel_samples: int = 100,
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -200,6 +204,7 @@ class TransformerEstimator(GluonEstimator):
         self.decoder = TransformerDecoder(
             self.prediction_length, self.config, prefix="dec_"
         )
+        self.train_sampler = train_sampler
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -254,7 +259,7 @@ class TransformerEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.history_length,
                     future_length=self.prediction_length,
                     time_series_fields=[

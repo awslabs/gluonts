@@ -45,6 +45,7 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
+    InstanceSampler,
 )
 
 from ._network import GPVARPredictionNetwork, GPVARTrainingNetwork
@@ -120,6 +121,8 @@ class GPVAREstimator(GluonEstimator):
     use_marginal_transformation
         Whether marginal (CDFtoGaussianTransform) transformation is used by the
         model
+    train_sampler
+        Controls the sampling of windows during training.
     """
 
     @validated()
@@ -146,6 +149,7 @@ class GPVAREstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 100,
         use_marginal_transformation: bool = False,
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -194,6 +198,7 @@ class GPVAREstimator(GluonEstimator):
             if time_features is not None
             else time_features_from_frequency_str(self.freq)
         )
+        self.train_sampler = train_sampler
 
         self.history_length = self.context_length + max(self.lags_seq)
         self.pick_incomplete = pick_incomplete
@@ -264,7 +269,7 @@ class GPVAREstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.history_length,
                     future_length=self.prediction_length,
                     time_series_fields=[
