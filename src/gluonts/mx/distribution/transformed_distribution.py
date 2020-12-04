@@ -22,6 +22,7 @@ from gluonts.mx import Tensor
 
 from . import bijection as bij
 from .distribution import Distribution, _index_tensor, getF
+from .bijection import AffineTransformation
 
 
 class TransformedDistribution(Distribution):
@@ -189,6 +190,47 @@ class TransformedDistribution(Distribution):
         for t in self.transforms:
             q = t.f(q)
         return q
+
+
+class AffineTransformedDistribution(TransformedDistribution):
+    @validated()
+    def __init__(
+        self,
+        base_distribution: Distribution,
+        loc: Optional[Tensor] = None,
+        scale: Optional[Tensor] = None,
+    ) -> None:
+        super().__init__(base_distribution, [AffineTransformation(loc, scale)])
+
+        self.loc = loc
+        self.scale = scale
+
+    @property
+    def mean(self) -> Tensor:
+        return (
+            self.base_distribution.mean
+            if self.loc is None
+            else self.base_distribution.mean + self.loc
+        )
+
+    @property
+    def stddev(self) -> Tensor:
+        return (
+            self.base_distribution.stddev
+            if self.scale is None
+            else self.base_distribution.stddev * self.scale
+        )
+
+    @property
+    def variance(self) -> Tensor:
+        # TODO: cover the multivariate case here too
+        return (
+            self.base_distribution.variance
+            if self.scale is None
+            else self.base_distribution.variance * self.scale ** 2
+        )
+
+    # TODO: crps
 
 
 def sum_trailing_axes(F, x: Tensor, k: int) -> Tensor:

@@ -21,7 +21,7 @@ from gluonts.mx import Tensor
 
 from .bijection import AffineTransformation
 from .distribution import Distribution
-from .transformed_distribution import TransformedDistribution
+from .transformed_distribution import AffineTransformedDistribution
 
 
 class ArgProj(gluon.HybridBlock):
@@ -137,9 +137,7 @@ class DistributionOutput(Output):
             return self.distr_cls(*distr_args)
         else:
             distr = self.distr_cls(*distr_args)
-            return TransformedDistribution(
-                distr, [AffineTransformation(loc=loc, scale=scale)]
-            )
+            return AffineTransformedDistribution(distr, loc=loc, scale=scale)
 
     @property
     def event_shape(self) -> Tuple:

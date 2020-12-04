@@ -23,7 +23,7 @@ from . import LowrankMultivariateGaussian, bijection
 from .distribution_output import (
     ArgProj,
     DistributionOutput,
-    TransformedDistribution,
+    AffineTransformedDistribution,
 )
 from .lowrank_multivariate_gaussian import inv_softplus, sigma_minimum
 
@@ -148,9 +148,7 @@ class LowrankGPOutput(DistributionOutput):
         if loc is None and scale is None:
             return dist
         else:
-            return TransformedDistribution(
-                dist, [bijection.AffineTransformation(loc=loc, scale=scale)]
-            )
+            return AffineTransformedDistribution(dist, loc=loc, scale=scale)
 
     @property
     def event_shape(self) -> Tuple:

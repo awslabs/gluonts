@@ -25,7 +25,7 @@ from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import (
     ArgProj,
     DistributionOutput,
-    TransformedDistribution,
+    AffineTransformedDistribution,
 )
 
 sigma_minimum = 1e-3
@@ -332,9 +332,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         if loc is None and scale is None:
             return distr
         else:
-            return TransformedDistribution(
-                distr, [bijection.AffineTransformation(loc=loc, scale=scale)]
-            )
+            return AffineTransformedDistribution(distr, loc=loc, scale=scale)
 
     def domain_map(self, F, mu_vector, D_vector, W_vector):
         r"""
