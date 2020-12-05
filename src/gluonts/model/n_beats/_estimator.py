@@ -26,6 +26,7 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
+    InstanceSampler,
 )
 
 from ._network import (
@@ -100,6 +101,8 @@ class NBEATSEstimator(GluonEstimator):
         Unlike other models in GluonTS this network does not use a distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".
         The default value is "MAPE".
+    train_sampler
+        Controls the sampling of windows during training.
     kwargs
         Arguments passed to 'GluonEstimator'.
     """
@@ -123,6 +126,7 @@ class NBEATSEstimator(GluonEstimator):
         sharing: Optional[List[bool]] = None,
         stack_types: Optional[List[str]] = None,
         loss_function: Optional[str] = "MAPE",
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
         **kwargs,
     ) -> None:
         """
@@ -196,6 +200,7 @@ class NBEATSEstimator(GluonEstimator):
             validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
             invalidation_message=f"Values of 'stack_types' should be one of {VALID_N_BEATS_STACK_TYPES}",
         )
+        self.train_sampler = train_sampler
 
     def _validate_nbeats_argument(
         self,
@@ -241,7 +246,7 @@ class NBEATSEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     time_series_fields=[],

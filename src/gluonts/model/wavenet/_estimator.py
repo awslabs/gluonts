@@ -47,6 +47,7 @@ from gluonts.transform import (
     SetFieldIfNotPresent,
     SimpleTransformation,
     VstackFeatures,
+    InstanceSampler,
 )
 
 
@@ -130,6 +131,8 @@ class WaveNetEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 200)
+    train_sampler
+        Controls the sampling of windows during training.
     """
 
     @validated()
@@ -156,6 +159,7 @@ class WaveNetEstimator(GluonEstimator):
         temperature: float = 1.0,
         act_type: str = "elu",
         num_parallel_samples: int = 200,
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
     ) -> None:
         """
         Model with Wavenet architecture and quantized target.
@@ -205,6 +209,7 @@ class WaveNetEstimator(GluonEstimator):
         self.temperature = temperature
         self.act_type = act_type
         self.num_parallel_samples = num_parallel_samples
+        self.train_sampler = train_sampler
 
         seasonality = (
             get_seasonality(
@@ -353,7 +358,7 @@ class WaveNetEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=pred_length,
                     output_NTC=False,
