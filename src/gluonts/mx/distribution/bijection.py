@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 import numpy as np
+from mxnet.gluon.nn import Block
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -114,6 +115,144 @@ class InverseBijection(Bijection):
     @property
     def sign(self) -> Union[float, Tensor]:
         return self._bijection.sign
+
+
+class ComposedBijection(Bijection):
+    """
+    Encapsulates a series of bijections and implements functions associated to their composition.
+    """
+
+    @validated()
+    def __init__(self, bijections: Optional[List[Bijection]] = None) -> None:
+        super().__init__(self)
+        self._bijections: List[Bijection] = []
+        if bijections is not None:
+            self.__iadd__(bijections)
+
+    @property
+    def event_shape(self):
+        return self._bijections[0].event_shape
+
+    @property
+    def event_dim(self):
+        return self._bijections[0].event_dim
+
+    def f(self, x: Tensor) -> Tensor:
+        """
+        Computes the forward transform of the composition of bijections.
+
+        Parameters
+        ----------
+        x
+            Input Tensor for the forward transform.
+        Returns
+        -------
+        Tensor
+            Transformation of x by the forward composition of bijections
+
+        """
+        y = x
+        for t in self._bijections:
+            y = t.f(y)
+        return y
+
+    def f_inv(self, y: Tensor) -> Tensor:
+        """
+        Computes the inverse transform of a composition of bijections.
+
+        Parameters
+        ----------
+        y
+            Input Tensor for the inverse function
+
+        Returns
+        -------
+        Tensor
+            Transformation of y by the inverse composition of bijections
+        """
+        x = y
+        for t in reversed(self._bijections):
+            x = t.f_inv(x)
+        return x
+
+    def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
+        """
+        Logarithm of the absolute value of the Jacobian determinant corresponding to the composed bijection
+
+        Parameters
+        ----------
+        x
+            input of the forward transformation or output of the inverse transform
+        y
+            output of the forward transform or input of the inverse transform
+
+        Returns
+        -------
+        Tensor
+            Jacobian evaluated for x as input or y as output
+
+        """
+        ladj = 0.0
+        for t in reversed(self._bijections):
+            x = t.f_inv(y)
+            # TODO: eventually change for
+            # ladj = ladj + sum_trailing_axes(getF(y), t.log_abs_det_jac(x, y),
+            #                                 self.event_dim - t.event_dim)
+            ladj = ladj + t.log_abs_det_jac(x, y)
+            y = x
+        return ladj
+
+    def __getitem__(self, index: int):
+        return self._bijections[index]
+
+    def __len__(self):
+        return len(self._bijections)
+
+    def __iadd__(self, bijections: List[Bijection]):
+        for b in bijections:
+            if not isinstance(b, Bijection):
+                raise TypeError(
+                    f"Object is of type {type(b)}"
+                    f" but should inherit from {Bijection}."
+                )
+
+            if len(self._bijections) > 0 and b.event_shape != self.event_shape:
+                raise RuntimeError(
+                    f"Bijection {b} has event_shape of '{b.event_shape}'"
+                    f"but should be of '{self.event_shape}'"
+                )
+
+            self._bijections.append(b)
+
+        return self
+
+    def __add__(self, bijections: List[Bijection]):
+        return ComposedBijection(self._bijections + bijections)
+
+
+class BijectionBlock(Block, Bijection):
+    """Allows a Bijection to have parameters"""
+
+
+class ComposedBijectionBlock(BijectionBlock, ComposedBijection):
+    """
+    Allows a ComposedBijection object to have parameters
+    """
+
+    @validated()
+    def __init__(
+        self,
+        bij_blocks: Optional[List[Bijection]] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        Block.__init__(self, *args, **kwargs)
+        ComposedBijection.__init__(self, bij_blocks)
+
+    def __iadd__(self, bij_blocks: List[Bijection]):
+        for b in bij_blocks:
+            self.register_child(b)
+        return super().__iadd__(bij_blocks)
 
 
 class _Exp(Bijection):
