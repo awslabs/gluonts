@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 import itertools
 from functools import partial
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
 import mxnet as mx
 import numpy as np
@@ -20,6 +20,7 @@ import pytest
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.loader import (
+    DataBatch,
     DataLoader,
     InferenceDataLoader,
     TrainDataLoader,
@@ -46,7 +47,7 @@ def loader_factory():
         context_interval_length: float,
         is_train: bool = True,
         override_args: dict = None,
-    ) -> DataLoader:
+    ) -> Iterable[DataBatch]:
 
         if override_args is None:
             override_args = {}
@@ -68,8 +69,8 @@ def loader_factory():
         kwargs.update(override_args)
 
         if is_train:
-            return TrainDataLoader(
-                num_batches_per_epoch=22, num_workers=None, **kwargs
+            return itertools.islice(
+                TrainDataLoader(num_workers=None, **kwargs), 22
             )
         else:
             return InferenceDataLoader(num_workers=None, **kwargs)

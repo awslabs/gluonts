@@ -202,7 +202,6 @@ class TrainDataLoader(DataLoader):
         transform: Transformation,
         batch_size: int,
         stack_fn: Callable,
-        num_batches_per_epoch: int,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
@@ -210,7 +209,6 @@ class TrainDataLoader(DataLoader):
     ) -> None:
         self.batch_size = batch_size
         self.stack_fn = stack_fn
-        self.num_batches_per_epoch = num_batches_per_epoch
         self.num_workers = win32_guard(num_workers)
         self.num_prefetch = num_prefetch
         self.shuffle_buffer_length = shuffle_buffer_length
@@ -234,13 +232,8 @@ class TrainDataLoader(DataLoader):
                 shuffle_buffer_length=shuffle_buffer_length,
             )
 
-    def __len__(self):
-        return self.num_batches_per_epoch
-
     def __iter__(self):
-        yield from itertools.islice(
-            self.batch_iterator, self.num_batches_per_epoch
-        )
+        yield from self.batch_iterator
 
 
 class ValidationDataLoader(DataLoader):

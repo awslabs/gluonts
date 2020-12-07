@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import itertools
 import logging
 import os
 import tempfile
@@ -261,7 +262,12 @@ class Trainer:
                     ):
                         self.avg_strategy.load_averaged_model(net)
 
-                    with tqdm(batch_iter) as it:
+                    with tqdm(
+                        itertools.islice(
+                            batch_iter, self.num_batches_per_epoch
+                        ),
+                        total=self.num_batches_per_epoch,
+                    ) as it:
                         for batch_no, batch in enumerate(it, start=1):
                             # `batch` here is expected to be a dictionary whose fields
                             # should correspond 1-to-1 with the network inputs
