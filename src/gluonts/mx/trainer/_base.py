@@ -17,6 +17,7 @@ import os
 import tempfile
 import time
 import uuid
+import warnings
 from typing import Any, Callable, List, Optional, Union
 
 import mxnet as mx
@@ -27,7 +28,7 @@ from mxnet.metric import ndarray
 
 from gluonts.core.component import validated
 from gluonts.core.exception import GluonTSDataError, GluonTSUserError
-from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
+from gluonts.dataset.loader import DataLoader
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
 from gluonts.mx.util import HybridContext
@@ -109,7 +110,7 @@ class Trainer:
         self,
         ctx: Optional[mx.Context] = None,
         epochs: int = 100,
-        batch_size: int = 32,
+        batch_size: Optional[int] = None,
         num_batches_per_epoch: int = 50,
         learning_rate: float = 1e-3,
         learning_rate_decay_factor: float = 0.5,
@@ -124,6 +125,17 @@ class Trainer:
         ] = SelectNBestMean(num_models=1),
         post_initialize_cb: Optional[Callable[[mx.gluon.Block], None]] = None,
     ) -> None:
+
+        if batch_size is not None:
+            warnings.warn(
+                "batch_size argument is deprecated",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        else:
+            batch_size = 32
+
+        assert isinstance(batch_size, int)
 
         assert (
             0 <= epochs < float("inf")
@@ -176,8 +188,8 @@ class Trainer:
     def __call__(
         self,
         net: nn.HybridBlock,
-        train_iter: TrainDataLoader,
-        validation_iter: Optional[ValidationDataLoader] = None,
+        train_iter: DataLoader,
+        validation_iter: Optional[DataLoader] = None,
     ) -> None:  # TODO: we may want to return some training information here
         """
         Train a network, given an iterable over training (and optionally validation) batches.
@@ -218,8 +230,6 @@ class Trainer:
                 static_alloc=True,
                 static_shape=True,
             ):
-                batch_size = train_iter.batch_size
-
                 best_epoch_info = {
                     "params_path": "%s-%s.params" % (base_path(), "init"),
                     "epoch_no": -1,
@@ -293,6 +303,8 @@ class Trainer:
                                     loss = output[0]
                                 else:
                                     loss = output
+
+                                batch_size = loss.shape[0]
 
                             if not np.isfinite(ndarray.sum(loss).asscalar()):
                                 logger.warning(

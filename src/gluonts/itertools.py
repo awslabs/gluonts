@@ -74,13 +74,13 @@ class cached(Iterable):
             yield from self.cache
 
 
-def pseudo_shuffled(iterator: Iterator, shuffle_buffer_length: int):
+def pseudo_shuffled(iterable: Iterable, shuffle_buffer_length: int):
     """
-    An iterator that yields item from a given iterator in a pseudo-shuffled order.
+    An iterator that yields item from a given iterable in a pseudo-shuffled order.
     """
     shuffle_buffer = []
 
-    for element in iterator:
+    for element in iterable:
         shuffle_buffer.append(element)
         if len(shuffle_buffer) >= shuffle_buffer_length:
             yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
