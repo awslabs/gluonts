@@ -233,7 +233,8 @@ def test_length() -> None:
 
 
 def test_arp() -> None:
-    u = rcp.normalized_ar1(1e-4, norm="minmax")
+    time_scale = 10 ** lnp.random.uniform(low=1, high=10)
+    u = rcp.normalized_ar1(time_scale, norm="minmax")
     x = evaluate(u, length=1000)
     assert len(x) == 1000
     assert x.max() == 1
