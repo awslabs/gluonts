@@ -47,13 +47,11 @@ from gluonts.support.util import (
 )
 from gluonts.transform import Transformation
 from gluonts.mx.batchify import batchify
-from gluonts.model.predictor import Predictor
+from gluonts.model.predictor import Predictor, OutputTransform
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
 )
-
-OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 from gluonts.model.forecast_generator import predict_to_numpy
 
