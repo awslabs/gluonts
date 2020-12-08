@@ -1035,16 +1035,25 @@ class ARp(Lifted):
 
         phi = resolve(self.phi, x, length, *args, **kwargs)
         phi = np.asarray(phi, dtype=np.float64)
+        assert phi.ndim == 1, "phi should be a 1d array"
+        assert len(phi) > 0, "phi should have length > 0"
         sigma = resolve(self.sigma, x, length, *args, **kwargs)
+        sigma = float(sigma)
         xhist = resolve(self.xhist, x, length, *args, **kwargs)
         if xhist is None:
             xhist = np.zeros_like(phi)
-        assert len(xhist) == len(phi)
+        xhist = np.asarray(xhist, dtype=np.float64)
+        assert (
+            xhist.shape == phi.shape
+        ), "xhist should have the same length as phi"
         c = resolve(self.c, x, length, *args, **kwargs)
         noise = resolve(self.noise, x, length, *args, **kwargs)
         if noise is not None:
             noise = np.asarray(noise, dtype=np.float64)
-            assert len(noise) == length
+            assert noise.ndim == 1, "the noise should be a 1d array"
+            assert (
+                len(noise) == length
+            ), f"len(noise) should be be length={length}"
 
         v = ar_p(
             phi=phi,
@@ -1067,7 +1076,7 @@ def normalized_ar1(tau, x0=None, norm="minmax", sigma=1.0):
     'standard' -> 0 mean, unit variance
     """
     assert norm in [None, "minmax", "standard"]
-    phi = np.exp(-1.0 / tau)
+    phi = lifted_numpy.exp(-1.0 / tau)
     a = ARp(phi=[phi], xhist=[x0] if x0 is not None else None, sigma=sigma)
 
     if norm is None:
