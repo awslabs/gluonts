@@ -7,9 +7,14 @@ Please read through this document before submitting any issues or pull requests 
 information to effectively respond to your bug report or contribution.
 
 
+## Questions and discussion topics
+
+Questions and discussion topics can be proposed using [discussions](https://github.com/awslabs/gluon-ts/discussions).
+
+
 ## Reporting Bugs/Feature Requests
 
-We welcome you to use the GitHub issue tracker to report bugs or suggest features.
+We welcome you to use the GitHub [issue tracker](https://github.com/awslabs/gluon-ts/issues/new/choose) to report bugs or suggest features.
 
 When filing an issue, please check [existing open](https://github.com/awslabs/gluon-ts/issues), or [recently closed](https://github.com/awslabs/gluon-ts/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), issues to make sure somebody else hasn't already
 reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
