@@ -100,3 +100,10 @@ def checked(fn):
     fn_wrapper.__checked__ = checked_args
 
     return fn_wrapper
+
+
+PositiveInt = pydantic.PositiveInt
+PositiveInt0 = pydantic.conint(ge=0)
+
+PositiveFloat = pydantic.PositiveFloat
+PositiveFloat0 = pydantic.confloat(ge=0)

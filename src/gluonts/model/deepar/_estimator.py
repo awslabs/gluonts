@@ -11,11 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from enum import Enum
 from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 
+from gluonts.core import ty
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import calculate_dataset_statistics
@@ -50,6 +52,13 @@ from gluonts.transform.feature import (
 )
 
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
+
+
+class DropoutcellType(str, Enum):
+    ZoneoutCell = "ZoneoutCell"
+    RNNZoneoutCell = "RNNZoneoutCell"
+    VariationalDropoutCell = "VariationalDropoutCell"
+    VariationalZoneoutCell = "VariationalZoneoutCell"
 
 
 class DeepAREstimator(GluonEstimator):
@@ -131,64 +140,35 @@ class DeepAREstimator(GluonEstimator):
     def __init__(
         self,
         freq: str,
-        prediction_length: int,
+        prediction_length: ty.PositiveInt,
         trainer: Trainer = Trainer(),
-        context_length: Optional[int] = None,
-        num_layers: int = 2,
-        num_cells: int = 40,
+        context_length: Optional[ty.PositiveInt] = None,
+        num_layers: ty.PositiveInt = 2,
+        num_cells: ty.PositiveInt = 40,
         cell_type: str = "lstm",
-        dropoutcell_type: str = "ZoneoutCell",
-        dropout_rate: float = 0.1,
+        dropoutcell_type: DropoutcellType = DropoutcellType.ZoneoutCell,
+        dropout_rate: ty.PositiveFloat0 = 0.1,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
         use_feat_static_real: bool = False,
-        cardinality: Optional[List[int]] = None,
-        embedding_dimension: Optional[List[int]] = None,
+        cardinality: List[ty.PositiveInt] = [1],
+        embedding_dimension: Optional[List[ty.PositiveInt]] = None,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
-        num_parallel_samples: int = 100,
+        num_parallel_samples: ty.PositiveInt = 100,
         imputation_method: Optional[MissingValueImputation] = None,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
         dtype: DType = np.float32,
-        alpha: float = 0.0,
-        beta: float = 0.0,
+        alpha: ty.PositiveFloat0 = 0.0,
+        beta: ty.PositiveFloat0 = 0.0,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert num_layers > 0, "The value of `num_layers` should be > 0"
-        assert num_cells > 0, "The value of `num_cells` should be > 0"
-        supported_dropoutcell_types = [
-            "ZoneoutCell",
-            "RNNZoneoutCell",
-            "VariationalDropoutCell",
-            "VariationalZoneoutCell",
-        ]
-        assert (
-            dropoutcell_type in supported_dropoutcell_types
-        ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
-        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert (cardinality and use_feat_static_cat) or (
             not (cardinality or use_feat_static_cat)
         ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
-        assert cardinality is None or all(
-            [c > 0 for c in cardinality]
-        ), "Elements of `cardinality` should be > 0"
-        assert embedding_dimension is None or all(
-            [e > 0 for e in embedding_dimension]
-        ), "Elements of `embedding_dimension` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_parallel_samples` should be > 0"
-        assert alpha >= 0, "The value of `alpha` should be >= 0"
-        assert beta >= 0, "The value of `beta` should be >= 0"
 
         self.freq = freq
         self.context_length = (
