@@ -16,8 +16,9 @@ from functools import partial
 
 import numpy as np
 from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
+from gluonts.core import fqname_for
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
@@ -53,7 +54,10 @@ class GluonEstimator(Estimator):
 
     @classmethod
     def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
-        Model = getattr(cls.__init__, "Model", None)
+        if issubclass(cls, BaseModel):
+            Model = cls
+        else:
+            Model = getattr(cls.__init__, "Model", None)
 
         if not Model:
             raise AttributeError(

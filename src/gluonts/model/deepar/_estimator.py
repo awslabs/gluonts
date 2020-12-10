@@ -16,6 +16,7 @@ from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
+from pydantic import BaseModel
 
 from gluonts.core import ty
 from gluonts.core.component import DType, validated
@@ -61,7 +62,7 @@ class DropoutcellType(str, Enum):
     VariationalZoneoutCell = "VariationalZoneoutCell"
 
 
-class DeepAREstimator(GluonEstimator):
+class DeepAREstimator(BaseModel, GluonEstimator):
     """
     Construct a DeepAR estimator.
 
@@ -136,84 +137,63 @@ class DeepAREstimator(GluonEstimator):
         The scaling coefficient of the temporal activation regularization
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: ty.PositiveInt,
-        trainer: Trainer = Trainer(),
-        context_length: Optional[ty.PositiveInt] = None,
-        num_layers: ty.PositiveInt = 2,
-        num_cells: ty.PositiveInt = 40,
-        cell_type: str = "lstm",
-        dropoutcell_type: DropoutcellType = DropoutcellType.ZoneoutCell,
-        dropout_rate: ty.PositiveFloat0 = 0.1,
-        use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        use_feat_static_real: bool = False,
-        cardinality: List[ty.PositiveInt] = [1],
-        embedding_dimension: Optional[List[ty.PositiveInt]] = None,
-        distr_output: DistributionOutput = StudentTOutput(),
-        scaling: bool = True,
-        lags_seq: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
-        num_parallel_samples: ty.PositiveInt = 100,
-        imputation_method: Optional[MissingValueImputation] = None,
-        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
-        dtype: DType = np.float32,
-        alpha: ty.PositiveFloat0 = 0.0,
-        beta: ty.PositiveFloat0 = 0.0,
-    ) -> None:
-        super().__init__(trainer=trainer, dtype=dtype)
-        self.freq = freq
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
-        self.prediction_length = prediction_length
-        self.distr_output = distr_output
-        self.distr_output.dtype = dtype
-        self.num_layers = num_layers
-        self.num_cells = num_cells
-        self.cell_type = cell_type
-        self.dropoutcell_type = dropoutcell_type
-        self.dropout_rate = dropout_rate
-        self.use_feat_dynamic_real = use_feat_dynamic_real
-        self.use_feat_static_cat = use_feat_static_cat
-        self.use_feat_static_real = use_feat_static_real
-        self.cardinality = (
-            cardinality if cardinality and use_feat_static_cat else [1]
-        )
-        self.embedding_dimension = (
-            embedding_dimension
-            if embedding_dimension is not None
-            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
-        )
-        self.scaling = scaling
-        self.lags_seq = (
-            lags_seq
-            if lags_seq is not None
-            else get_lags_for_frequency(freq_str=freq)
-        )
-        self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(self.freq)
-        )
+    class Config:
+        arbitrary_types_allowed = True
 
-        self.history_length = self.context_length + max(self.lags_seq)
+    freq: str
+    prediction_length: ty.PositiveInt
+    alpha: ty.PositiveFloat0 = 0.0
+    beta: ty.PositiveFloat0 = 0.0
+    cardinality: List[ty.PositiveInt] = [1]
+    cell_type: str = "lstm"
+    context_length: Optional[ty.PositiveInt] = None
+    distr_output: DistributionOutput = StudentTOutput()
+    dropout_rate: ty.PositiveFloat0 = 0.1
+    dropoutcell_type: DropoutcellType = DropoutcellType.ZoneoutCell
+    dtype: DType = np.float32
+    embedding_dimension: Optional[List[ty.PositiveInt]] = None
+    imputation_method: Optional[MissingValueImputation] = None
+    lags_seq: Optional[List[int]] = None
+    num_cells: ty.PositiveInt = 40
+    num_layers: ty.PositiveInt = 2
+    num_parallel_samples: ty.PositiveInt = 100
+    scaling: bool = True
+    time_features: Optional[List[TimeFeature]] = None
+    train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0)
+    trainer: Trainer = Trainer()
+    use_feat_dynamic_real: bool = False
+    use_feat_static_cat: bool = False
+    use_feat_static_real: bool = False
 
-        self.num_parallel_samples = num_parallel_samples
+    def __init__(self, **fields):
+        BaseModel.__init__(self, **fields)
 
-        self.imputation_method = (
-            imputation_method
-            if imputation_method is not None
-            else DummyValueImputation(self.distr_output.value_in_support)
-        )
+        if self.context_length is None:
+            self.context_length = self.prediction_length
 
-        self.train_sampler = train_sampler
+        if self.embedding_dimension is None:
+            self.embedding_dimension = [
+                min(50, (cat + 1) // 2) for cat in self.cardinality
+            ]
 
-        self.alpha = alpha
-        self.beta = beta
+        if self.lags_seq is None:
+            self.lags_seq = get_lags_for_frequency(freq_str=self.freq)
+
+        if self.time_features is None:
+            self.time_features = time_features_from_frequency_str(self.freq)
+
+        if self.imputation_method is None:
+            self.imputation_method = DummyValueImputation(
+                self.distr_output.value_in_support
+            )
+
+    @property
+    def lead_time(self):
+        return 0
+
+    @property
+    def history_length(self):
+        return self.context_length + max(self.lags_seq)
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
