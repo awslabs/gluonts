@@ -165,11 +165,6 @@ class DeepAREstimator(GluonEstimator):
         beta: ty.PositiveFloat0 = 0.0,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
-
-        assert (cardinality and use_feat_static_cat) or (
-            not (cardinality or use_feat_static_cat)
-        ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
-
         self.freq = freq
         self.context_length = (
             context_length if context_length is not None else prediction_length
