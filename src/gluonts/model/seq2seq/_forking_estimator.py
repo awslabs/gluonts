@@ -156,6 +156,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         dtype: DType = np.float32,
         num_forking: Optional[int] = None,
         max_ts_len: Optional[int] = None,
+        batch_size: int = 32,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -175,6 +176,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         assert embedding_dimension is None or all(
             e > 0 for e in embedding_dimension
         ), "Elements of `embedding_dimension` should be > 0"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.encoder = encoder
         self.decoder = decoder
@@ -223,6 +225,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         )
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
+        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         chain = []
@@ -452,7 +455,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

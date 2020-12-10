@@ -140,6 +140,7 @@ class TransformerEstimator(GluonEstimator):
         use_feat_static_cat: bool = False,
         num_parallel_samples: int = 100,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -162,6 +163,7 @@ class TransformerEstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -187,6 +189,7 @@ class TransformerEstimator(GluonEstimator):
         )
         self.history_length = self.context_length + max(self.lags_seq)
         self.scaling = scaling
+        self.batch_size = batch_size
 
         self.config = {
             "model_dim": model_dim,
@@ -310,7 +313,7 @@ class TransformerEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

@@ -150,6 +150,7 @@ class GPVAREstimator(GluonEstimator):
         conditioning_length: int = 100,
         use_marginal_transformation: bool = False,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -165,6 +166,7 @@ class GPVAREstimator(GluonEstimator):
             num_parallel_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         if distr_output is not None:
             self.distr_output = distr_output
@@ -187,6 +189,7 @@ class GPVAREstimator(GluonEstimator):
         self.cell_type = cell_type
         self.num_parallel_samples = num_parallel_samples
         self.dropout_rate = dropout_rate
+        self.batch_size = batch_size
 
         self.lags_seq = (
             lags_seq
@@ -331,7 +334,7 @@ class GPVAREstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

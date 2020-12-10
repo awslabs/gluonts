@@ -171,6 +171,7 @@ class DeepStateEstimator(GluonEstimator):
         noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         innovation_bounds: ParameterBounds = ParameterBounds(1e-6, 0.01),
+        batch_size: int = 32,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -198,6 +199,7 @@ class DeepStateEstimator(GluonEstimator):
             np.isfinite(p.lower) and np.isfinite(p.upper) and p.lower > 0
             for p in [noise_std_bounds, prior_cov_bounds, innovation_bounds]
         ), "All parameter bounds should be finite, and lower bounds should be positive"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.past_length = (
@@ -239,6 +241,7 @@ class DeepStateEstimator(GluonEstimator):
         self.noise_std_bounds = noise_std_bounds
         self.prior_cov_bounds = prior_cov_bounds
         self.innovation_bounds = innovation_bounds
+        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -356,7 +359,7 @@ class DeepStateEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

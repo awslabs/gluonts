@@ -99,6 +99,7 @@ class DeepTPPEstimator(GluonEstimator):
         num_parallel_samples: int = 100,
         num_training_instances: int = 100,
         freq: str = "H",
+        batch_size: int = 32,
     ) -> None:
         assert (
             not trainer.hybridize
@@ -122,6 +123,7 @@ class DeepTPPEstimator(GluonEstimator):
         assert (
             num_training_instances > 0
         ), "The value of `num_training_instances` should be > 0"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.num_hidden_dimensions = num_hidden_dimensions
         self.prediction_interval_length = prediction_interval_length
@@ -136,6 +138,7 @@ class DeepTPPEstimator(GluonEstimator):
         self.num_parallel_samples = num_parallel_samples
         self.num_training_instances = num_training_instances
         self.freq = freq
+        self.batch_size = batch_size
 
     def create_training_network(self) -> HybridBlock:
         return DeepTPPTrainingNetwork(
@@ -184,7 +187,7 @@ class DeepTPPEstimator(GluonEstimator):
         return PointProcessGluonPredictor(
             input_names=["target", "valid_length"],
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             prediction_interval_length=self.prediction_interval_length,
             freq=self.freq,
             ctx=self.trainer.ctx,

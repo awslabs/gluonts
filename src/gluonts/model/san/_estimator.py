@@ -77,6 +77,7 @@ class SelfAttentionEstimator(GluonEstimator):
         use_feat_static_real: bool = False,
         use_feat_static_cat: bool = True,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(100),
+        batch_size: int = 32,
     ):
         super().__init__(trainer=trainer)
         self.freq = freq
@@ -102,6 +103,7 @@ class SelfAttentionEstimator(GluonEstimator):
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
         self.train_sampler = train_sampler
+        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         transforms = []
@@ -273,7 +275,7 @@ class SelfAttentionEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

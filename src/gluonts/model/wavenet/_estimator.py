@@ -160,6 +160,7 @@ class WaveNetEstimator(GluonEstimator):
         act_type: str = "elu",
         num_parallel_samples: int = 200,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
     ) -> None:
         """
         Model with Wavenet architecture and quantized target.
@@ -210,6 +211,7 @@ class WaveNetEstimator(GluonEstimator):
         self.act_type = act_type
         self.num_parallel_samples = num_parallel_samples
         self.train_sampler = train_sampler
+        self.batch_size = batch_size
 
         seasonality = (
             get_seasonality(
@@ -287,7 +289,7 @@ class WaveNetEstimator(GluonEstimator):
         training_data_loader = TrainDataLoader(
             dataset=training_data,
             transform=transformation + SelectFields(input_names),
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
@@ -300,7 +302,7 @@ class WaveNetEstimator(GluonEstimator):
             validation_data_loader = ValidationDataLoader(
                 dataset=validation_data,
                 transform=transformation,
-                batch_size=self.trainer.batch_size,
+                batch_size=self.batch_size,
                 stack_fn=partial(
                     batchify, ctx=self.trainer.ctx, dtype=self.dtype
                 ),
@@ -413,7 +415,7 @@ class WaveNetEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

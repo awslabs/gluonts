@@ -218,6 +218,7 @@ class DeepVAREstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 200,
         use_marginal_transformation=False,
+        batch_size: int = 32,
         **kwargs,
     ) -> None:
         super().__init__(trainer=trainer, **kwargs)
@@ -240,6 +241,7 @@ class DeepVAREstimator(GluonEstimator):
         assert (
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -280,6 +282,7 @@ class DeepVAREstimator(GluonEstimator):
         self.history_length = self.context_length + max(self.lags_seq)
         self.pick_incomplete = pick_incomplete
         self.scaling = scaling
+        self.batch_size = batch_size
 
         if self.use_marginal_transformation:
             self.output_transform: Optional[
@@ -404,7 +407,7 @@ class DeepVAREstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

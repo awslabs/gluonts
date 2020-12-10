@@ -116,6 +116,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         mean_scaling: bool = True,
         num_parallel_samples: int = 100,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
     ) -> None:
         """
         Defines an estimator. All parameters should be serializable.
@@ -134,6 +135,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.num_hidden_dimensions = (
             num_hidden_dimensions
@@ -156,6 +158,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             else DummyValueImputation(self.distr_output.value_in_support)
         )
         self.train_sampler = train_sampler
+        self.batch_size = batch_size
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -216,7 +219,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             return RepresentableBlockPredictor(
                 input_transform=transformation,
                 prediction_net=prediction_network,
-                batch_size=self.trainer.batch_size,
+                batch_size=self.batch_size,
                 freq=self.freq,
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
@@ -236,7 +239,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             return RepresentableBlockPredictor(
                 input_transform=transformation,
                 prediction_net=prediction_network,
-                batch_size=self.trainer.batch_size,
+                batch_size=self.batch_size,
                 forecast_generator=DistributionForecastGenerator(
                     self.distr_output
                 ),

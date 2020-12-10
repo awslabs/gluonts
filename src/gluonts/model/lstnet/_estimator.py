@@ -119,6 +119,7 @@ class LSTNetEstimator(GluonEstimator):
         skip_rnn_num_cells: int = 10,
         scaling: bool = True,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer, lead_time=lead_time, dtype=dtype)
@@ -140,6 +141,7 @@ class LSTNetEstimator(GluonEstimator):
         self.skip_rnn_num_cells = skip_rnn_num_cells
         self.scaling = scaling
         self.train_sampler = train_sampler
+        self.batch_size = batch_size
         self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
@@ -219,7 +221,7 @@ class LSTNetEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             lead_time=self.lead_time,

@@ -52,6 +52,7 @@ class CanonicalEstimator(GluonEstimator):
         cardinality: List[int] = list([1]),
         embedding_dimension: int = 10,
         distr_output: DistributionOutput = StudentTOutput(),
+        batch_size: int = 32,
     ) -> None:
         super().__init__(trainer=trainer)
 
@@ -65,6 +66,7 @@ class CanonicalEstimator(GluonEstimator):
         self.embedding_dimensions = [embedding_dimension for _ in cardinality]
         self.model = model
         self.is_sequential = is_sequential
+        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         return Chain(
@@ -123,7 +125,7 @@ class CanonicalEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_net,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

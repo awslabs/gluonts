@@ -154,6 +154,7 @@ class DeepAREstimator(GluonEstimator):
         dtype: DType = np.float32,
         alpha: float = 0.0,
         beta: float = 0.0,
+        batch_size: int = 32,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
 
@@ -189,6 +190,7 @@ class DeepAREstimator(GluonEstimator):
         ), "The value of `num_parallel_samples` should be > 0"
         assert alpha >= 0, "The value of `alpha` should be >= 0"
         assert beta >= 0, "The value of `beta` should be >= 0"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -239,6 +241,7 @@ class DeepAREstimator(GluonEstimator):
 
         self.alpha = alpha
         self.beta = beta
+        self.batch_size = batch_size
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -382,7 +385,7 @@ class DeepAREstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

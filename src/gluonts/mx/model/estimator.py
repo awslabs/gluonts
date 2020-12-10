@@ -129,7 +129,7 @@ class GluonEstimator(Estimator):
         training_data_loader = TrainDataLoader(
             dataset=training_data,
             transform=transformation + SelectFields(input_names),
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             stack_fn=partial(
                 batchify,
                 ctx=self.trainer.ctx,
@@ -147,7 +147,7 @@ class GluonEstimator(Estimator):
             validation_data_loader = ValidationDataLoader(
                 dataset=validation_data,
                 transform=transformation + SelectFields(input_names),
-                batch_size=self.trainer.batch_size,
+                batch_size=self.batch_size,
                 stack_fn=partial(
                     batchify,
                     ctx=self.trainer.ctx,

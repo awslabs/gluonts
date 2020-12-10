@@ -107,6 +107,7 @@ class GaussianProcessEstimator(GluonEstimator):
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        batch_size: int = 32,
     ) -> None:
         self.float_type = dtype
         super().__init__(trainer=trainer, dtype=self.float_type)
@@ -121,6 +122,7 @@ class GaussianProcessEstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -139,6 +141,7 @@ class GaussianProcessEstimator(GluonEstimator):
             else time_features_from_frequency_str(self.freq)
         )
         self.num_parallel_samples = num_parallel_samples
+        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         return Chain(
@@ -207,7 +210,7 @@ class GaussianProcessEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
