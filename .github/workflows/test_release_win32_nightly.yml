@@ -27,7 +27,7 @@ jobs:
         $tmp=$tmp.psobject.properties.value.trim() 
         git clone https://github.com/awslabs/gluon-ts --branch $tmp
         cd gluon-ts
-        python -m pip install --upgrade pip
+        python -m pip install pip==20.2
         pip install -r requirements/requirements-mxnet.txt
         pip install torch==1.6.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/torch_stable.html
         pip install gluonts
