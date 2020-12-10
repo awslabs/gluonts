@@ -18,18 +18,6 @@ from typing import Iterable, Iterator, List, TypeVar
 T = TypeVar("T")
 
 
-def cyclic(it):
-    """Like `itertools.cycle`, but does not store the data."""
-
-    at_least_one = False
-    while True:
-        for el in it:
-            at_least_one = True
-            yield el
-        if not at_least_one:
-            break
-
-
 def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     """Groups elements from `iterable` into batches of size `batch_size`.
 
@@ -74,16 +62,40 @@ class cached(Iterable):
             yield from self.cache
 
 
-def pseudo_shuffled(iterable: Iterable, shuffle_buffer_length: int):
+class cyclic(Iterable):
     """
-    An iterator that yields item from a given iterable in a pseudo-shuffled order.
+    Like `itertools.cycle`, but does not store the data.
     """
-    shuffle_buffer = []
 
-    for element in iterable:
-        shuffle_buffer.append(element)
-        if len(shuffle_buffer) >= shuffle_buffer_length:
+    def __init__(self, iterable: Iterable) -> None:
+        self.iterable = iterable
+
+    def __iter__(self):
+        at_least_one = False
+        while True:
+            for el in self.iterable:
+                at_least_one = True
+                yield el
+            if not at_least_one:
+                break
+
+
+class pseudo_shuffled(Iterable):
+    """
+    Yields items from a given iterable in a pseudo-shuffled order.
+    """
+
+    def __init__(self, iterable: Iterable, shuffle_buffer_length: int) -> None:
+        self.iterable = iterable
+        self.shuffle_buffer_length = shuffle_buffer_length
+
+    def __iter__(self):
+        shuffle_buffer = []
+
+        for element in self.iterable:
+            shuffle_buffer.append(element)
+            if len(shuffle_buffer) >= self.shuffle_buffer_length:
+                yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
+
+        while shuffle_buffer:
             yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
-
-    while shuffle_buffer:
-        yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
