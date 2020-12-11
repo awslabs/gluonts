@@ -102,6 +102,11 @@ class pseudo_shuffled(Iterable):
 
 
 class iterable_slice(Iterable):
+    """
+    An iterable version of `itertools.islice`, i.e. one that can be iterated
+    over multiple times.
+    """
+
     def __init__(self, iterable: Iterable, length: Optional[int]) -> None:
         self.iterable = iterable
         self.length = length

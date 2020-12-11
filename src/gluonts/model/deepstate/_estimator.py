@@ -143,6 +143,8 @@ class DeepStateEstimator(GluonEstimator):
     innovation_bounds
         Lower and upper bounds for the standard deviation of the observation
         noise
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()

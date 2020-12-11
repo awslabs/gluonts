@@ -84,6 +84,8 @@ class DeepTPPEstimator(GluonEstimator):
     freq
         Similar to the :code:`freq` of discrete-time models, specifies the time
         unit by which inter-arrival times are given.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()

@@ -129,6 +129,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
     max_ts_len
         Returns the length of the longest time series in the dataset to be used in bounding context_length.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()

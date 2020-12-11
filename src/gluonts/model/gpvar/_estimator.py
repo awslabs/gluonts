@@ -123,6 +123,8 @@ class GPVAREstimator(GluonEstimator):
         model
     train_sampler
         Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()

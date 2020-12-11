@@ -125,6 +125,8 @@ class DeepAREstimator(GluonEstimator):
         The scaling coefficient of the activation regularization
     beta
         The scaling coefficient of the temporal activation regularization
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()

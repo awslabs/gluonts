@@ -95,6 +95,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         This is a model optimization that does not affect the accuracy (default: 100)
     train_sampler
         Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     # The validated() decorator makes sure that parameters are checked by

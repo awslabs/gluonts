@@ -89,6 +89,8 @@ class GaussianProcessEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100).
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()

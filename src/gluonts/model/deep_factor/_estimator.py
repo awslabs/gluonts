@@ -77,6 +77,8 @@ class DeepFactorEstimator(GluonEstimator):
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()

@@ -92,6 +92,8 @@ class LSTNetEstimator(GluonEstimator):
         Whether to automatically scale the target values (default: True)
     train_sampler
         Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     dtype
         Data type (default: np.float32)
     """
