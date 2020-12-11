@@ -12,6 +12,9 @@
 # permissions and limitations under the License.
 
 import itertools
+import pickle
+import tempfile
+from pathlib import Path
 from typing import Iterable, List, Tuple
 
 import pytest
@@ -71,3 +74,28 @@ def test_iterate_multiple_times(
 ):
     for expected_elements in expected_elements_per_iteration:
         assert list(data) == expected_elements
+
+
+@pytest.mark.parametrize(
+    "iterable, assert_content",
+    [
+        (cached(range(5)), True),
+        (pseudo_shuffled(range(20), 5), False),
+        (iterable_slice(cyclic(range(5)), 9), True),
+    ],
+)
+def test_pickle(iterable: Iterable, assert_content: bool):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(Path(tmpdir) / "temp.pickle", "wb") as fp:
+            pickle.dump(iterable, fp)
+
+        with open(Path(tmpdir) / "temp.pickle", "rb") as fp:
+            iterable_copy = pickle.load(fp)
+
+    data = list(iterable)
+    data_copy = list(iterable_copy)
+
+    assert len(data) == len(data_copy)
+
+    if assert_content:
+        assert data == data_copy
