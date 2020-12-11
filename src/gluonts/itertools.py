@@ -18,6 +18,24 @@ from typing import Iterable, Iterator, List, Optional, TypeVar
 T = TypeVar("T")
 
 
+class cyclic(Iterable):
+    """
+    Like `itertools.cycle`, but does not store the data.
+    """
+
+    def __init__(self, iterable: Iterable) -> None:
+        self.iterable = iterable
+
+    def __iter__(self):
+        at_least_one = False
+        while True:
+            for el in self.iterable:
+                at_least_one = True
+                yield el
+            if not at_least_one:
+                break
+
+
 def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     """Groups elements from `iterable` into batches of size `batch_size`.
 
@@ -62,33 +80,6 @@ class cached(Iterable):
             yield from self.cache
 
 
-class cyclic(Iterable):
-    """
-    Like `itertools.cycle`, but does not store the data.
-    """
-
-    def __init__(self, iterable: Iterable) -> None:
-        self.iterable = iterable
-
-    def __iter__(self):
-        at_least_one = False
-        while True:
-            for el in self.iterable:
-                at_least_one = True
-                yield el
-            if not at_least_one:
-                break
-
-
-class iterable_slice(Iterable):
-    def __init__(self, iterable: Iterable, length: Optional[int]) -> None:
-        self.iterable = iterable
-        self.length = length
-
-    def __iter__(self):
-        return itertools.islice(self.iterable, self.length)
-
-
 class pseudo_shuffled(Iterable):
     """
     Yields items from a given iterable in a pseudo-shuffled order.
@@ -108,3 +99,12 @@ class pseudo_shuffled(Iterable):
 
         while shuffle_buffer:
             yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
+
+
+class iterable_slice(Iterable):
+    def __init__(self, iterable: Iterable, length: Optional[int]) -> None:
+        self.iterable = iterable
+        self.length = length
+
+    def __iter__(self):
+        return itertools.islice(self.iterable, self.length)
