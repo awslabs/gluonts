@@ -147,7 +147,6 @@ class NBEATSEstimator(GluonEstimator):
         assert (
             loss_function is None or loss_function in VALID_LOSS_FUNCTIONS
         ), f"The loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -159,7 +158,6 @@ class NBEATSEstimator(GluonEstimator):
         # num_stacks has to be handled separately because other arguments have to match its length
         self.num_stacks = num_stacks
         self.loss_function = loss_function
-        self.batch_size = batch_size
 
         self.widths = self._validate_nbeats_argument(
             argument_value=widths,

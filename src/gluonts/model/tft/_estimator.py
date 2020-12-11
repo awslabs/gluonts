@@ -82,7 +82,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -103,7 +102,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         self.static_feature_dims = static_feature_dims
         self.dynamic_feature_dims = dynamic_feature_dims
         self.past_dynamic_features = past_dynamic_features
-        self.batch_size = batch_size
 
         self.past_dynamic_cardinalities = {}
         self.past_dynamic_feature_dims = {}

@@ -98,7 +98,7 @@ class DeepFactorEstimator(GluonEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_length > 0
@@ -124,7 +124,6 @@ class DeepFactorEstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -135,7 +134,6 @@ class DeepFactorEstimator(GluonEstimator):
         self.num_parallel_samples = num_parallel_samples
         self.cardinality = cardinality
         self.embedding_dimensions = [embedding_dimension for _ in cardinality]
-        self.batch_size = batch_size
 
         self.global_model = RNNModel(
             mode=cell_type,

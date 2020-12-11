@@ -51,9 +51,6 @@ def test_listing_1():
     )
 
 
-@pytest.mark.xfail(
-    reason="Changes in how batch_size is set broke this snippet."
-)
 def test_appendix_c():
     """
     Test GluonTS paper examples from arxiv paper:

@@ -156,7 +156,7 @@ class DeepAREstimator(GluonEstimator):
         beta: float = 0.0,
         batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer, dtype=dtype)
+        super().__init__(trainer=trainer, batch_size=batch_size, dtype=dtype)
 
         assert (
             prediction_length > 0
@@ -190,7 +190,6 @@ class DeepAREstimator(GluonEstimator):
         ), "The value of `num_parallel_samples` should be > 0"
         assert alpha >= 0, "The value of `alpha` should be >= 0"
         assert beta >= 0, "The value of `beta` should be >= 0"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -241,7 +240,6 @@ class DeepAREstimator(GluonEstimator):
 
         self.alpha = alpha
         self.beta = beta
-        self.batch_size = batch_size
 
     @classmethod
     def derive_auto_fields(cls, train_iter):

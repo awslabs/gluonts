@@ -241,7 +241,6 @@ class DeepVAREstimator(GluonEstimator):
         assert (
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.context_length = (
@@ -282,7 +281,6 @@ class DeepVAREstimator(GluonEstimator):
         self.history_length = self.context_length + max(self.lags_seq)
         self.pick_incomplete = pick_incomplete
         self.scaling = scaling
-        self.batch_size = batch_size
 
         if self.use_marginal_transformation:
             self.output_transform: Optional[

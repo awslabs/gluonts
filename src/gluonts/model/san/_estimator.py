@@ -79,7 +79,7 @@ class SelfAttentionEstimator(GluonEstimator):
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(100),
         batch_size: int = 32,
     ):
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or prediction_length
@@ -103,7 +103,6 @@ class SelfAttentionEstimator(GluonEstimator):
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
         self.train_sampler = train_sampler
-        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         transforms = []

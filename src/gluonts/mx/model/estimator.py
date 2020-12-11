@@ -45,9 +45,17 @@ class GluonEstimator(Estimator):
 
     @validated()
     def __init__(
-        self, trainer: Trainer, lead_time: int = 0, dtype: DType = np.float32
+        self,
+        trainer: Trainer,
+        batch_size: int = 32,
+        lead_time: int = 0,
+        dtype: DType = np.float32,
     ) -> None:
         super().__init__(lead_time=lead_time)
+
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
+
+        self.batch_size = batch_size
         self.trainer = trainer
         self.dtype = dtype
 

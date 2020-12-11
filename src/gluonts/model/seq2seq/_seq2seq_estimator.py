@@ -74,9 +74,8 @@ class Seq2SeqEstimator(GluonEstimator):
         assert quantiles is None or all(
             0 <= d <= 1 for d in quantiles
         ), "Elements of `quantiles` should be >= 0 and <= 1"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         self.context_length = (
             context_length if context_length is not None else prediction_length
@@ -95,7 +94,6 @@ class Seq2SeqEstimator(GluonEstimator):
             embedding_dims=[embedding_dimension for _ in cardinality],
         )
         self.num_parallel_samples = num_parallel_samples
-        self.batch_size = batch_size
 
     def create_transformation(self) -> transform.Transformation:
         return transform.Chain(

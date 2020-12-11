@@ -158,7 +158,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         max_ts_len: Optional[int] = None,
         batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (distr_output is None) != (quantile_output is None)
         assert (
@@ -176,7 +176,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         assert embedding_dimension is None or all(
             e > 0 for e in embedding_dimension
         ), "Elements of `embedding_dimension` should be > 0"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.encoder = encoder
         self.decoder = decoder
@@ -225,7 +224,6 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         )
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
-        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         chain = []

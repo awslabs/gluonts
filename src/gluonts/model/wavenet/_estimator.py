@@ -190,7 +190,7 @@ class WaveNetEstimator(GluonEstimator):
               'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'
         """
 
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -211,7 +211,6 @@ class WaveNetEstimator(GluonEstimator):
         self.act_type = act_type
         self.num_parallel_samples = num_parallel_samples
         self.train_sampler = train_sampler
-        self.batch_size = batch_size
 
         seasonality = (
             get_seasonality(

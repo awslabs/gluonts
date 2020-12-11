@@ -54,7 +54,7 @@ class CanonicalEstimator(GluonEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         # TODO: error checking
         self.freq = freq
@@ -66,7 +66,6 @@ class CanonicalEstimator(GluonEstimator):
         self.embedding_dimensions = [embedding_dimension for _ in cardinality]
         self.model = model
         self.is_sequential = is_sequential
-        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         return Chain(

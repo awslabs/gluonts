@@ -122,7 +122,6 @@ class GaussianProcessEstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -141,7 +140,6 @@ class GaussianProcessEstimator(GluonEstimator):
             else time_features_from_frequency_str(self.freq)
         )
         self.num_parallel_samples = num_parallel_samples
-        self.batch_size = batch_size
 
     def create_transformation(self) -> Transformation:
         return Chain(

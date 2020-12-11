@@ -105,7 +105,7 @@ class DeepTPPEstimator(GluonEstimator):
             not trainer.hybridize
         ), "DeepTPP currently only supports the non-hybridized training"
 
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_interval_length > 0
@@ -123,7 +123,6 @@ class DeepTPPEstimator(GluonEstimator):
         assert (
             num_training_instances > 0
         ), "The value of `num_training_instances` should be > 0"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.num_hidden_dimensions = num_hidden_dimensions
         self.prediction_interval_length = prediction_interval_length
@@ -138,7 +137,6 @@ class DeepTPPEstimator(GluonEstimator):
         self.num_parallel_samples = num_parallel_samples
         self.num_training_instances = num_training_instances
         self.freq = freq
-        self.batch_size = batch_size
 
     def create_training_network(self) -> HybridBlock:
         return DeepTPPTrainingNetwork(

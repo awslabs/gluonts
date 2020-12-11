@@ -121,7 +121,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         """
         Defines an estimator. All parameters should be serializable.
         """
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_length > 0
@@ -135,7 +135,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
 
         self.num_hidden_dimensions = (
             num_hidden_dimensions
@@ -158,7 +157,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             else DummyValueImputation(self.distr_output.value_in_support)
         )
         self.train_sampler = train_sampler
-        self.batch_size = batch_size
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a

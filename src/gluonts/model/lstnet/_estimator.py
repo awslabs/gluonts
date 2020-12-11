@@ -141,7 +141,6 @@ class LSTNetEstimator(GluonEstimator):
         self.skip_rnn_num_cells = skip_rnn_num_cells
         self.scaling = scaling
         self.train_sampler = train_sampler
-        self.batch_size = batch_size
         self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
