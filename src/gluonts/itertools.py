@@ -13,7 +13,7 @@
 
 import itertools
 import random
-from typing import Iterable, Iterator, List, TypeVar
+from typing import Iterable, Iterator, List, Optional, TypeVar
 
 T = TypeVar("T")
 
@@ -78,6 +78,15 @@ class cyclic(Iterable):
                 yield el
             if not at_least_one:
                 break
+
+
+class iterable_slice(Iterable):
+    def __init__(self, iterable: Iterable, length: Optional[int]) -> None:
+        self.iterable = iterable
+        self.length = length
+
+    def __iter__(self):
+        return itertools.islice(self.iterable, self.length)
 
 
 class pseudo_shuffled(Iterable):

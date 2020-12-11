@@ -24,7 +24,7 @@ from typing import Callable, Iterable, Iterator, List, Optional
 
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.util import MPWorkerInfo
-from gluonts.itertools import batcher, cyclic, pseudo_shuffled
+from gluonts.itertools import batcher, cyclic, iterable_slice, pseudo_shuffled
 from gluonts.transform import Transformation, TransformedDataset
 
 logger = logging.getLogger(__name__)
@@ -201,6 +201,7 @@ def TrainDataLoader(
     transform: Transformation,
     batch_size: int,
     stack_fn: Callable,
+    num_batches_per_epoch: Optional[int] = None,
     num_workers: Optional[int] = None,
     num_prefetch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
@@ -216,15 +217,18 @@ def TrainDataLoader(
         if shuffle_buffer_length is not None
         else transformed_dataset
     )
-    return iter(
-        DataLoader(
-            data_iterable=data_iterable,
-            batch_size=batch_size,
-            stack_fn=stack_fn,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            decode_fn=decode_fn,
-        )
+    data_loader = DataLoader(
+        data_iterable=data_iterable,
+        batch_size=batch_size,
+        stack_fn=stack_fn,
+        num_workers=num_workers,
+        num_prefetch=num_prefetch,
+        decode_fn=decode_fn,
+    )
+    return (
+        iter(data_loader)
+        if num_batches_per_epoch is None
+        else iterable_slice(iter(data_loader), num_batches_per_epoch)
     )
 
 
