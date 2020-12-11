@@ -12,12 +12,18 @@
 # permissions and limitations under the License.
 
 import itertools
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.itertools import cyclic, pseudo_shuffled
+from gluonts.itertools import (
+    batcher,
+    cached,
+    cyclic,
+    iterable_slice,
+    pseudo_shuffled,
+)
 
 
 @pytest.mark.parametrize(
@@ -42,3 +48,26 @@ def test_pseudo_shuffled(data: Iterable) -> None:
     shuffled_data = list(shuffled_iter)
     assert len(shuffled_data) == len(list_data)
     assert all(d in shuffled_data for d in list_data)
+
+
+@pytest.mark.parametrize(
+    "data, expected_elements_per_iteration",
+    [
+        (cached(range(4)), (list(range(4)),) * 5),
+        (batcher(range(10), 3), ([[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]], [])),
+        (iterable_slice(range(10), 3), ([0, 1, 2],) * 5),
+        (
+            iterable_slice(iter(range(10)), 3),
+            ([0, 1, 2], [3, 4, 5], [6, 7, 8], [9], []),
+        ),
+        (
+            iterable_slice(iter(cyclic(range(5))), 3),
+            ([0, 1, 2], [3, 4, 0], [1, 2, 3], [4, 0, 1]),
+        ),
+    ],
+)
+def test_iterate_multiple_times(
+    data: Iterable, expected_elements_per_iteration: Tuple[List]
+):
+    for expected_elements in expected_elements_per_iteration:
+        assert list(data) == expected_elements
