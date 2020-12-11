@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import pytest
+
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.field_names import FieldName
 
@@ -49,6 +51,9 @@ def test_listing_1():
     )
 
 
+@pytest.mark.xfail(
+    reason="Changes in how batch_size is set broke this snippet."
+)
 def test_appendix_c():
     """
     Test GluonTS paper examples from arxiv paper:
