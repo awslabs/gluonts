@@ -33,6 +33,8 @@ from gluonts.transform import (
     SetFieldIfNotPresent,
     TestSplitSampler,
     Transformation,
+    ExpectedNumInstanceSampler,
+    InstanceSplitter,
 )
 
 from ._network import (
@@ -89,6 +91,8 @@ class GaussianProcessEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100).
+    train_forecast
+        If set to true, the kernel hyper-parameters will also be optimised to maximise the predictive log likelihood.
     """
 
     @validated()
@@ -107,6 +111,7 @@ class GaussianProcessEstimator(GluonEstimator):
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        train_forecast: bool = False,
     ) -> None:
         self.float_type = dtype
         super().__init__(trainer=trainer, dtype=self.float_type)
@@ -139,6 +144,7 @@ class GaussianProcessEstimator(GluonEstimator):
             else time_features_from_frequency_str(self.freq)
         )
         self.num_parallel_samples = num_parallel_samples
+        self.train_forecast = train_forecast
 
     def create_transformation(self) -> Transformation:
         return Chain(
@@ -155,16 +161,16 @@ class GaussianProcessEstimator(GluonEstimator):
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-                CanonicalInstanceSplitter(
+                InstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    instance_sampler=TestSplitSampler(),
-                    time_series_fields=[FieldName.FEAT_TIME],
-                    instance_length=self.context_length,
-                    use_prediction_features=True,
-                    prediction_length=self.prediction_length,
+                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    past_length=self.context_length,
+                    future_length=self.prediction_length,
+                    time_series_fields=[FieldName.FEAT_TIME,],
+                    dummy_value=0.0,
                 ),
             ]
         )
