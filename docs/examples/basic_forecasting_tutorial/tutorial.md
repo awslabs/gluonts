@@ -365,9 +365,10 @@ class MyEstimator(GluonEstimator):
         freq: str,
         context_length: int,
         prediction_length: int,
-        trainer: Trainer = Trainer()
+        batch_size: int = 32,
+        trainer: Trainer = Trainer(),
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.freq = freq

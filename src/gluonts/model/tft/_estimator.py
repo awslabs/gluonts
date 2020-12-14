@@ -70,6 +70,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         static_feature_dims: Dict[str, int] = {},
         dynamic_feature_dims: Dict[str, int] = {},
         past_dynamic_features: List[str] = [],
+        batch_size: int = 32,
     ) -> None:
         super(TemporalFusionTransformerEstimator, self).__init__(
             trainer=trainer
@@ -362,7 +363,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

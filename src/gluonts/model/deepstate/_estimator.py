@@ -143,6 +143,8 @@ class DeepStateEstimator(GluonEstimator):
     innovation_bounds
         Lower and upper bounds for the standard deviation of the observation
         noise
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -171,8 +173,9 @@ class DeepStateEstimator(GluonEstimator):
         noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         innovation_bounds: ParameterBounds = ParameterBounds(1e-6, 0.01),
+        batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_length > 0
@@ -356,7 +359,7 @@ class DeepStateEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

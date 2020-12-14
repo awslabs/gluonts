@@ -77,8 +77,9 @@ class SelfAttentionEstimator(GluonEstimator):
         use_feat_static_real: bool = False,
         use_feat_static_cat: bool = True,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(100),
+        batch_size: int = 32,
     ):
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or prediction_length
@@ -273,7 +274,7 @@ class SelfAttentionEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

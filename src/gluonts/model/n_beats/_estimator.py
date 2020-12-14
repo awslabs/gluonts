@@ -103,6 +103,8 @@ class NBEATSEstimator(GluonEstimator):
         The default value is "MAPE".
     train_sampler
         Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     kwargs
         Arguments passed to 'GluonEstimator'.
     """
@@ -127,6 +129,7 @@ class NBEATSEstimator(GluonEstimator):
         stack_types: Optional[List[str]] = None,
         loss_function: Optional[str] = "MAPE",
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
         **kwargs,
     ) -> None:
         """
@@ -293,7 +296,7 @@ class NBEATSEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

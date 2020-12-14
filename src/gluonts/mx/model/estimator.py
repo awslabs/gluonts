@@ -45,9 +45,18 @@ class GluonEstimator(Estimator):
 
     @validated()
     def __init__(
-        self, trainer: Trainer, lead_time: int = 0, dtype: DType = np.float32
+        self,
+        *,
+        trainer: Trainer,
+        batch_size: int = 32,
+        lead_time: int = 0,
+        dtype: DType = np.float32,
     ) -> None:
         super().__init__(lead_time=lead_time)
+
+        assert batch_size > 0, "The value of `batch_size` should be > 0"
+
+        self.batch_size = batch_size
         self.trainer = trainer
         self.dtype = dtype
 
@@ -129,7 +138,7 @@ class GluonEstimator(Estimator):
         training_data_loader = TrainDataLoader(
             dataset=training_data,
             transform=transformation + SelectFields(input_names),
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             stack_fn=partial(
                 batchify,
                 ctx=self.trainer.ctx,
@@ -147,7 +156,7 @@ class GluonEstimator(Estimator):
             validation_data_loader = ValidationDataLoader(
                 dataset=validation_data,
                 transform=transformation + SelectFields(input_names),
-                batch_size=self.trainer.batch_size,
+                batch_size=self.batch_size,
                 stack_fn=partial(
                     batchify,
                     ctx=self.trainer.ctx,

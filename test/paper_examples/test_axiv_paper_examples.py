@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import pytest
+
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.field_names import FieldName
 

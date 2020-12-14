@@ -193,6 +193,8 @@ class DeepVAREstimator(GluonEstimator):
         Set maximum length for conditioning the marginal transformation
     use_marginal_transformation
         Whether marginal (empirical cdf, gaussian ppf) transformation is used.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -218,6 +220,7 @@ class DeepVAREstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 200,
         use_marginal_transformation=False,
+        batch_size: int = 32,
         **kwargs,
     ) -> None:
         super().__init__(trainer=trainer, **kwargs)
@@ -404,7 +407,7 @@ class DeepVAREstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

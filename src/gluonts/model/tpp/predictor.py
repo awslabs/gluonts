@@ -20,7 +20,7 @@ import numpy as np
 
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import DataBatch, InferenceDataLoader
+from gluonts.dataset.loader import DataBatch, DataLoader, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
 from gluonts.model.predictor import OutputTransform
@@ -34,7 +34,7 @@ from .forecast import PointProcessSampleForecast
 class PointProcessForecastGenerator(ForecastGenerator):
     def __call__(
         self,
-        inference_data_loader: InferenceDataLoader,
+        inference_data_loader: DataLoader,
         prediction_net: mx.gluon.Block,
         input_names: List[str],
         freq: str,
@@ -105,9 +105,6 @@ class PointProcessGluonPredictor(GluonPredictor):
     The predictor also accounts for the fact that the prediction network
     outputs a 2-tuple of Tensors, for the samples themselves and their
     `valid_length`.
-
-    Finally, this class uses a VariableLengthInferenceDataLoader as opposed
-    to the default InferenceDataLoader.
 
     Parameters
     ----------

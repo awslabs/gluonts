@@ -92,6 +92,8 @@ class LSTNetEstimator(GluonEstimator):
         Whether to automatically scale the target values (default: True)
     train_sampler
         Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     dtype
         Data type (default: np.float32)
     """
@@ -119,6 +121,7 @@ class LSTNetEstimator(GluonEstimator):
         skip_rnn_num_cells: int = 10,
         scaling: bool = True,
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer, lead_time=lead_time, dtype=dtype)
@@ -219,7 +222,7 @@ class LSTNetEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             lead_time=self.lead_time,

@@ -84,6 +84,8 @@ class DeepTPPEstimator(GluonEstimator):
     freq
         Similar to the :code:`freq` of discrete-time models, specifies the time
         unit by which inter-arrival times are given.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -99,12 +101,13 @@ class DeepTPPEstimator(GluonEstimator):
         num_parallel_samples: int = 100,
         num_training_instances: int = 100,
         freq: str = "H",
+        batch_size: int = 32,
     ) -> None:
         assert (
             not trainer.hybridize
         ), "DeepTPP currently only supports the non-hybridized training"
 
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_interval_length > 0
@@ -184,7 +187,7 @@ class DeepTPPEstimator(GluonEstimator):
         return PointProcessGluonPredictor(
             input_names=["target", "valid_length"],
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             prediction_interval_length=self.prediction_interval_length,
             freq=self.freq,
             ctx=self.trainer.ctx,

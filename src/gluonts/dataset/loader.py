@@ -24,43 +24,20 @@ from typing import Callable, Iterable, Iterator, List, Optional
 
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.util import MPWorkerInfo
-from gluonts.itertools import batcher, cyclic, pseudo_shuffled
+from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
 from gluonts.transform import Transformation, TransformedDataset
 
 logger = logging.getLogger(__name__)
-
-
-def construct_training_iterator(
-    dataset: Dataset,
-    *,
-    transform: Transformation,
-    shuffle_buffer_length: Optional[int] = None,
-) -> Iterator[DataEntry]:
-    transformed_dataset = TransformedDataset(
-        cyclic(dataset),
-        transform,
-        is_train=True,
-    )
-
-    if shuffle_buffer_length is None:
-        return iter(transformed_dataset)
-    else:
-        return pseudo_shuffled(
-            iter(transformed_dataset),
-            shuffle_buffer_length=shuffle_buffer_length,
-        )
 
 
 class MultiProcessBatcher(Iterator):
     def __init__(
         self,
         dataset: Dataset,
-        transform: Transformation,
         batch_size: int,
         stack_fn: Callable,
         num_workers: int,
         max_queue_size: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
         decode_fn: Callable = lambda x: x,
     ):
         assert num_workers >= 1
@@ -89,8 +66,6 @@ class MultiProcessBatcher(Iterator):
                     worker_id,
                     num_workers,
                     dataset,
-                    transform,
-                    shuffle_buffer_length,
                     batch_size,
                     stack_fn,
                     self.batch_queue,
@@ -108,8 +83,6 @@ class MultiProcessBatcher(Iterator):
         worker_id: int,
         num_workers: int,
         dataset,
-        transform,
-        shuffle_buffer_length: int,
         batch_size: int,
         stack_fn: Callable,
         batch_queue: mp.Queue,
@@ -121,13 +94,7 @@ class MultiProcessBatcher(Iterator):
             worker_id=worker_id,
         )
 
-        data_iterator = construct_training_iterator(
-            dataset,
-            transform=transform,
-            shuffle_buffer_length=shuffle_buffer_length,
-        )
-
-        for batch in batcher(data_iterator, batch_size):
+        for batch in batcher(dataset, batch_size):
             stacked_batch = stack_fn(batch)
             try:
                 if terminate_event.is_set():
@@ -180,10 +147,6 @@ class MultiProcessBatcher(Iterator):
             p.join()
 
 
-class DataLoader(Iterable[DataBatch]):
-    pass
-
-
 def win32_guard(num_workers: Optional[int]) -> Optional[int]:
     if num_workers and sys.platform == "win32":
         logger.warning(
@@ -194,99 +157,110 @@ def win32_guard(num_workers: Optional[int]) -> Optional[int]:
     return num_workers
 
 
-class TrainDataLoader(DataLoader):
+class DataLoader(Iterable[DataBatch]):
     def __init__(
         self,
-        dataset: Dataset,
+        data_iterable: Iterable[DataEntry],
         *,
-        transform: Transformation,
         batch_size: int,
         stack_fn: Callable,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
         decode_fn: Callable = lambda x: x,
     ) -> None:
+        self.data_iterable = data_iterable
         self.batch_size = batch_size
         self.stack_fn = stack_fn
         self.num_workers = win32_guard(num_workers)
         self.num_prefetch = num_prefetch
-        self.shuffle_buffer_length = shuffle_buffer_length
+        self.decode_fn = decode_fn
 
-        if not self.num_workers:
-            iterator = construct_training_iterator(
-                dataset,
-                transform=transform,
-                shuffle_buffer_length=shuffle_buffer_length,
-            )
-            self.batch_iterator = map(stack_fn, batcher(iterator, batch_size))
-        else:
-            self.batch_iterator = MultiProcessBatcher(
-                dataset,
-                transform=transform,
-                batch_size=batch_size,
-                stack_fn=stack_fn,
-                decode_fn=decode_fn,
+    def __iter__(self):
+        batch_iterator = (
+            map(self.stack_fn, batcher(self.data_iterable, self.batch_size))
+            if not self.num_workers
+            else MultiProcessBatcher(
+                self.data_iterable,
+                batch_size=self.batch_size,
+                stack_fn=self.stack_fn,
+                decode_fn=self.decode_fn,
                 num_workers=self.num_workers,
-                max_queue_size=num_prefetch,
-                shuffle_buffer_length=shuffle_buffer_length,
+                max_queue_size=self.num_prefetch,
             )
-
-    def __iter__(self):
-        yield from self.batch_iterator
-
-
-class ValidationDataLoader(DataLoader):
-    def __init__(
-        self,
-        dataset: Dataset,
-        *,
-        transform: Transformation,
-        batch_size: int,
-        stack_fn: Callable,
-        # FIXME: the following aren't used
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-    ) -> None:
-        self.transformed_dataset = TransformedDataset(
-            dataset,
-            transform,
-            is_train=True,
-        )
-        self.batch_size = batch_size
-        self.stack_fn = stack_fn
-
-    def __iter__(self):
-        yield from map(
-            self.stack_fn,
-            batcher(self.transformed_dataset, self.batch_size),
         )
 
+        return batch_iterator
 
-class InferenceDataLoader(DataLoader):
-    def __init__(
-        self,
-        dataset: Dataset,
-        *,
-        transform: Transformation,
-        batch_size: int,
-        stack_fn: Callable,
-        # FIXME: the following aren't used
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-    ) -> None:
-        self.transformed_dataset = TransformedDataset(
-            dataset,
-            transform,
-            is_train=False,
-        )
-        self.batch_size = batch_size
-        self.stack_fn = stack_fn
 
-    def __iter__(self):
-        yield from map(
-            self.stack_fn,
-            batcher(self.transformed_dataset, self.batch_size),
+# TODO: the following are for backward compatibility, and could eventually be removed
+
+
+def TrainDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation,
+    batch_size: int,
+    stack_fn: Callable,
+    num_batches_per_epoch: Optional[int] = None,
+    num_workers: Optional[int] = None,
+    num_prefetch: Optional[int] = None,
+    shuffle_buffer_length: Optional[int] = None,
+    decode_fn: Callable = lambda x: x,
+):
+    transformed_dataset = TransformedDataset(
+        Cyclic(dataset), transform, is_train=True
+    )
+    data_iterable = (
+        PseudoShuffled(
+            transformed_dataset, shuffle_buffer_length=shuffle_buffer_length
         )
+        if shuffle_buffer_length is not None
+        else transformed_dataset
+    )
+    data_loader = DataLoader(
+        data_iterable=data_iterable,
+        batch_size=batch_size,
+        stack_fn=stack_fn,
+        num_workers=num_workers,
+        num_prefetch=num_prefetch,
+        decode_fn=decode_fn,
+    )
+    return (
+        iter(data_loader)
+        if num_batches_per_epoch is None
+        else IterableSlice(iter(data_loader), num_batches_per_epoch)
+    )
+
+
+def ValidationDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation,
+    batch_size: int,
+    stack_fn: Callable,
+    num_workers: Optional[int] = None,
+    num_prefetch: Optional[int] = None,
+    shuffle_buffer_length: Optional[int] = None,
+):
+    return DataLoader(
+        data_iterable=TransformedDataset(dataset, transform, is_train=True),
+        batch_size=batch_size,
+        stack_fn=stack_fn,
+    )
+
+
+def InferenceDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation,
+    batch_size: int,
+    stack_fn: Callable,
+    num_workers: Optional[int] = None,
+    num_prefetch: Optional[int] = None,
+    shuffle_buffer_length: Optional[int] = None,
+):
+    return DataLoader(
+        data_iterable=TransformedDataset(dataset, transform, is_train=False),
+        batch_size=batch_size,
+        stack_fn=stack_fn,
+    )

@@ -89,6 +89,8 @@ class GaussianProcessEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100).
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -107,6 +109,7 @@ class GaussianProcessEstimator(GluonEstimator):
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        batch_size: int = 32,
     ) -> None:
         self.float_type = dtype
         super().__init__(trainer=trainer, dtype=self.float_type)
@@ -207,7 +210,7 @@ class GaussianProcessEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

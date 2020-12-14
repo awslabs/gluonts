@@ -125,6 +125,8 @@ class DeepAREstimator(GluonEstimator):
         The scaling coefficient of the activation regularization
     beta
         The scaling coefficient of the temporal activation regularization
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -154,8 +156,9 @@ class DeepAREstimator(GluonEstimator):
         dtype: DType = np.float32,
         alpha: float = 0.0,
         beta: float = 0.0,
+        batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer, dtype=dtype)
+        super().__init__(trainer=trainer, batch_size=batch_size, dtype=dtype)
 
         assert (
             prediction_length > 0
@@ -382,7 +385,7 @@ class DeepAREstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

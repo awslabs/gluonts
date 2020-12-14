@@ -63,6 +63,7 @@ class Seq2SeqEstimator(GluonEstimator):
         quantiles: Optional[List[float]] = None,
         trainer: Trainer = Trainer(),
         num_parallel_samples: int = 100,
+        batch_size: int = 32,
     ) -> None:
         assert (
             prediction_length > 0
@@ -74,7 +75,7 @@ class Seq2SeqEstimator(GluonEstimator):
             0 <= d <= 1 for d in quantiles
         ), "Elements of `quantiles` should be >= 0 and <= 1"
 
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         self.context_length = (
             context_length if context_length is not None else prediction_length
@@ -175,7 +176,7 @@ class Seq2SeqEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

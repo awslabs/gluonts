@@ -848,9 +848,10 @@ class MyEstimator(GluonEstimator):
         context_length: int,
         freq: str,
         num_cells: int,
+        batch_size: int = 32,
         trainer: Trainer = Trainer()
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.freq = freq
@@ -1059,9 +1060,10 @@ class MyProbEstimator(GluonEstimator):
             distr_output: DistributionOutput,
             num_cells: int,
             num_sample_paths: int = 100,
+            batch_size: int = 32,
             trainer: Trainer = Trainer()
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.freq = freq
@@ -1298,9 +1300,10 @@ class MyProbEstimator(GluonEstimator):
             num_cells: int,
             num_sample_paths: int = 100,
             scaling: bool = True,
+            batch_size: int = 32,
             trainer: Trainer = Trainer()
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.freq = freq
@@ -1652,9 +1655,10 @@ class MyProbRNNEstimator(GluonEstimator):
             num_layers: int,
             num_sample_paths: int = 100,
             scaling: bool = True,
+            batch_size: int = 32,
             trainer: Trainer = Trainer()
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.freq = freq
