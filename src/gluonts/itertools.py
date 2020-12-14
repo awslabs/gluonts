@@ -18,7 +18,7 @@ from typing import Iterable, Iterator, List, Optional, TypeVar
 T = TypeVar("T")
 
 
-class cyclic(Iterable):
+class Cyclic(Iterable):
     """
     Like `itertools.cycle`, but does not store the data.
     """
@@ -54,7 +54,7 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     return iter(get_batch, [])
 
 
-class cached(Iterable):
+class Cached(Iterable):
     """
     An iterable wrapper, which caches values in a list the first time it is iterated.
 
@@ -80,7 +80,7 @@ class cached(Iterable):
             yield from self.cache
 
 
-class pseudo_shuffled(Iterable):
+class PseudoShuffled(Iterable):
     """
     Yields items from a given iterable in a pseudo-shuffled order.
     """
@@ -101,7 +101,7 @@ class pseudo_shuffled(Iterable):
             yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
 
 
-class iterable_slice(Iterable):
+class IterableSlice(Iterable):
     """
     An iterable version of `itertools.islice`, i.e. one that can be iterated
     over multiple times.

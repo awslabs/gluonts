@@ -24,7 +24,7 @@ from typing import Callable, Iterable, Iterator, List, Optional
 
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.util import MPWorkerInfo
-from gluonts.itertools import batcher, cyclic, iterable_slice, pseudo_shuffled
+from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
 from gluonts.transform import Transformation, TransformedDataset
 
 logger = logging.getLogger(__name__)
@@ -208,10 +208,10 @@ def TrainDataLoader(
     decode_fn: Callable = lambda x: x,
 ):
     transformed_dataset = TransformedDataset(
-        cyclic(dataset), transform, is_train=True
+        Cyclic(dataset), transform, is_train=True
     )
     data_iterable = (
-        pseudo_shuffled(
+        PseudoShuffled(
             transformed_dataset, shuffle_buffer_length=shuffle_buffer_length
         )
         if shuffle_buffer_length is not None
@@ -228,7 +228,7 @@ def TrainDataLoader(
     return (
         iter(data_loader)
         if num_batches_per_epoch is None
-        else iterable_slice(iter(data_loader), num_batches_per_epoch)
+        else IterableSlice(iter(data_loader), num_batches_per_epoch)
     )
 
 

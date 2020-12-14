@@ -46,6 +46,7 @@ class GluonEstimator(Estimator):
     @validated()
     def __init__(
         self,
+        *,
         trainer: Trainer,
         batch_size: int = 32,
         lead_time: int = 0,

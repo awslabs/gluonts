@@ -22,10 +22,10 @@ import pytest
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.itertools import (
     batcher,
-    cached,
-    cyclic,
-    iterable_slice,
-    pseudo_shuffled,
+    Cached,
+    Cyclic,
+    IterableSlice,
+    PseudoShuffled,
 )
 
 
@@ -33,7 +33,7 @@ from gluonts.itertools import (
     "data, n, expected", [([1, 2, 3], 7, [1, 2, 3, 1, 2, 3, 1]), ([], 4, [])]
 )
 def test_cyclic(data: Iterable, n: int, expected: List) -> None:
-    cyclic_data = cyclic(data)
+    cyclic_data = Cyclic(data)
     actual = list(itertools.islice(cyclic_data, n))
     assert actual == expected
 
@@ -47,7 +47,7 @@ def test_cyclic(data: Iterable, n: int, expected: List) -> None:
 )
 def test_pseudo_shuffled(data: Iterable) -> None:
     list_data = list(data)
-    shuffled_iter = pseudo_shuffled(iter(list_data), shuffle_buffer_length=5)
+    shuffled_iter = PseudoShuffled(iter(list_data), shuffle_buffer_length=5)
     shuffled_data = list(shuffled_iter)
     assert len(shuffled_data) == len(list_data)
     assert all(d in shuffled_data for d in list_data)
@@ -56,15 +56,15 @@ def test_pseudo_shuffled(data: Iterable) -> None:
 @pytest.mark.parametrize(
     "data, expected_elements_per_iteration",
     [
-        (cached(range(4)), (list(range(4)),) * 5),
+        (Cached(range(4)), (list(range(4)),) * 5),
         (batcher(range(10), 3), ([[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]], [])),
-        (iterable_slice(range(10), 3), ([0, 1, 2],) * 5),
+        (IterableSlice(range(10), 3), ([0, 1, 2],) * 5),
         (
-            iterable_slice(iter(range(10)), 3),
+            IterableSlice(iter(range(10)), 3),
             ([0, 1, 2], [3, 4, 5], [6, 7, 8], [9], []),
         ),
         (
-            iterable_slice(iter(cyclic(range(5))), 3),
+            IterableSlice(iter(Cyclic(range(5))), 3),
             ([0, 1, 2], [3, 4, 0], [1, 2, 3], [4, 0, 1]),
         ),
     ],
@@ -79,9 +79,9 @@ def test_iterate_multiple_times(
 @pytest.mark.parametrize(
     "iterable, assert_content",
     [
-        (cached(range(5)), True),
-        (pseudo_shuffled(range(20), 5), False),
-        (iterable_slice(cyclic(range(5)), 9), True),
+        (Cached(range(5)), True),
+        (PseudoShuffled(range(20), 5), False),
+        (IterableSlice(Cyclic(range(5)), 9), True),
     ],
 )
 def test_pickle(iterable: Iterable, assert_content: bool):
