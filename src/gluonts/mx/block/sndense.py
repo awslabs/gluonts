@@ -19,7 +19,6 @@ import mxnet as mx
 from mxnet import nd
 from mxnet import autograd
 from mxnet import init
-from mxnet.gluon import Block
 
 # First-party imports
 from gluonts.core.component import validated
@@ -31,7 +30,7 @@ from gluonts.mx.activation import get_activation
 EPSILON = 1e-12
 
 
-class SNDense(Block):
+class SNDense(mx.gluon.HybridBlock):
     """
     Dense layer with spectral normalization applied to
     weights, as in [BJC19]_.
@@ -72,11 +71,11 @@ class SNDense(Block):
             )
 
             if use_bias:
-                self.bias = self.params.get(
+                self._bias = self.params.get(
                     "bias", shape=(units,), init=bias_initializer, dtype=dtype
                 )
             else:
-                self.bias = None
+                self._bias = None
 
             if activation is not None:
                 self._act = get_activation(activation, prefix=activation + "_")
@@ -90,7 +89,7 @@ class SNDense(Block):
         )
 
     # noinspection PyMethodOverriding
-    def forward(self, x: Tensor) -> Tensor:
+    def hybrid_forward(self, F, x, _weight, _u, _bias=None):
         """
 
         Parameters
@@ -106,9 +105,9 @@ class SNDense(Block):
         """
         act = nd.FullyConnected(
             data=x,
-            weight=self.weight,
-            bias=self.bias.data(),
-            no_bias=self.bias is None,
+            weight=self._spectral_norm(_weight, _u),
+            bias=_bias,
+            no_bias=_bias is None,
             num_hidden=self._units,
             flatten=self._flatten,
             name="fwd",
