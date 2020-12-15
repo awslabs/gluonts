@@ -230,11 +230,12 @@ class LDS(Distribution):
         #   or residual-sum-of-squares
         log_p, final_mean, final_cov = self.kalman_filter(x, observed)
         if scale is not None:
-            # log_abs_det_jac: sum over all the output dimensions.
-            ladj = self.F.sum(self.F.log(scale), axis=-1, keepdims=True)
+            F = self.F
+            # log_abs_det_jac: sum over all output dimensions.
+            ladj = -F.sum(F.log(F.abs(scale)), axis=-1, keepdims=True)
 
-            # subtract `ladj` for every time step.
-            log_p = self.F.broadcast_sub(log_p, ladj)
+            # Sum `ladj` over all time steps.
+            log_p = F.broadcast_add(log_p, ladj)
         return log_p, final_mean, final_cov
 
     def kalman_filter(
