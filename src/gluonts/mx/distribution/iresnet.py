@@ -21,8 +21,8 @@ from gluonts.mx.util import _broadcast_param
 from gluonts.mx.block.snmlp import SNMLPBlock
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.distribution.bijection import (
-    BijectionBlock,
-    ComposedBijectionBlock,
+    BijectionHybridBlock,
+    ComposedBijectionHybridBlock,
 )
 
 
@@ -45,7 +45,7 @@ def log_abs_det(A: Tensor) -> Tensor:
     return F.diag(L, axis1=-2, axis2=-1).abs().log().sum(-1)
 
 
-class InvertibleResnetBlock(BijectionBlock):
+class InvertibleResnetHybridBlock(BijectionHybridBlock):
     """
     Based on [BJC19]_,
     apart from f and f_inv that are swapped.
@@ -185,7 +185,7 @@ class InvertibleResnetBlock(BijectionBlock):
         return ladj
 
 
-def iresnet(num_blocks: int, **block_kwargs) -> ComposedBijectionBlock:
+def iresnet(num_blocks: int, **block_kwargs) -> ComposedBijectionHybridBlock:
     """
 
     Parameters
@@ -199,6 +199,9 @@ def iresnet(num_blocks: int, **block_kwargs) -> ComposedBijectionBlock:
     -------
 
     """
-    return ComposedBijectionBlock(
-        [InvertibleResnetBlock(**block_kwargs) for _ in range(num_blocks)]
+    return ComposedBijectionHybridBlock(
+        [
+            InvertibleResnetHybridBlock(**block_kwargs)
+            for _ in range(num_blocks)
+        ]
     )

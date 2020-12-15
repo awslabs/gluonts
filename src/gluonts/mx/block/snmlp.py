@@ -17,7 +17,6 @@ import warnings
 
 # Third-party imports
 import mxnet as mx
-from mxnet.gluon import Block
 from mxnet.ndarray import linalg_gemm2 as gemm2
 
 # First-party imports
@@ -28,7 +27,9 @@ from gluonts.mx.activation import get_activation, get_activation_deriv
 from gluonts.mx.block.sndense import SNDense
 
 
-def jacobian_sn_mlp_block_bf(layers: List[Tuple[Block, Tensor]]) -> Tensor:
+def jacobian_sn_mlp_block_bf(
+    layers: List[Tuple[mx.gluon.HybridBlock, Tensor]]
+) -> Tensor:
     """
     Brute force computation of the jacobian of a SNMlpBlock
     jac is of shape (Batch dim1, ..., Output dim, Input dim)
@@ -68,7 +69,7 @@ def jacobian_sn_mlp_block_bf(layers: List[Tuple[Block, Tensor]]) -> Tensor:
     return jac
 
 
-class SNMLPBlock(Block):
+class SNMLPBlock(mx.gluon.HybridBlock):
     @validated()
     def __init__(
         self,
@@ -139,7 +140,7 @@ class SNMLPBlock(Block):
         ]
 
     # noinspection PyMethodOverriding
-    def forward(self, x: Tensor) -> Tensor:
+    def hybrid_forward(self, F, x: Tensor) -> Tensor:
         """
 
         Parameters

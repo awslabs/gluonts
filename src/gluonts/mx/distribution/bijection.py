@@ -14,7 +14,7 @@
 from typing import Optional, Union, List
 
 import numpy as np
-from mxnet.gluon.nn import Block
+from mxnet.gluon.nn import HybridBlock
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -230,11 +230,11 @@ class ComposedBijection(Bijection):
         return ComposedBijection(self._bijections + bijections)
 
 
-class BijectionBlock(Block, Bijection):
+class BijectionHybridBlock(HybridBlock, Bijection):
     """Allows a Bijection to have parameters"""
 
 
-class ComposedBijectionBlock(BijectionBlock, ComposedBijection):
+class ComposedBijectionHybridBlock(BijectionHybridBlock, ComposedBijection):
     """
     Allows a ComposedBijection object to have parameters
     """
@@ -246,7 +246,7 @@ class ComposedBijectionBlock(BijectionBlock, ComposedBijection):
         *args,
         **kwargs,
     ) -> None:
-        Block.__init__(self, *args, **kwargs)
+        HybridBlock.__init__(self, *args, **kwargs)
         ComposedBijection.__init__(self, bij_blocks)
 
     def __iadd__(self, bij_blocks: List[Bijection]):
