@@ -267,15 +267,13 @@ class LDS(Distribution):
             Scale of each sequence in x, shape (batch_size, output_dim)
         output_transform
             Specifies the (inverse of) transformation to be applied to the target time series.
-            Given target `x` is first scaled then the inverse of `output_transform` is applied to make it more
-            Gaussian-like.
+            Given target `x` is first scaled then the inverse of `output_transform` is applied to make it more Gaussian-like.
 
         Returns
         -------
         Tensor
             Transformed target, shape (batch_size, seq_length, output_dim)
-            log_abs_det_jac,    shape (batch_size, 1) if `output_transform` is None,
-                                otherwise (batch_size, seq_length)
+            log_abs_det_jac,    shape (batch_size, 1) if `output_transform` is None, (batch_size, seq_length) otherwise
         """
         F = self.F
 
