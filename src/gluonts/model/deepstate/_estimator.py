@@ -90,7 +90,7 @@ class DeepStateEstimator(GluonEstimator):
         Flag to indicate whether to include trend component in the
         state space model
     output_transform
-        Specifies the transformation to be applied to the target time series.
+        Specifies the (inverse of) transformation to be applied to the target time series.
         This is a bijection with learnable parameters (e.g., a normalizing flow) and should be an instance of
         `ComposedBijectionHybridBlock`.
     past_length

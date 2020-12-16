@@ -20,7 +20,7 @@ from gluonts.model.deepstate.issm import ISSM
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.distribution.bijection import Bijection
+from gluonts.mx.distribution.bijection import ComposedBijectionHybridBlock
 from gluonts.mx.distribution.lds import LDS, LDSArgsProj, ParameterBounds
 from gluonts.mx.util import make_nd_diag, weighted_average
 
@@ -32,7 +32,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         num_layers: int,
         num_cells: int,
         cell_type: str,
-        output_transform: Optional[Bijection],
+        output_transform: Optional[ComposedBijectionHybridBlock],
         past_length: int,
         prediction_length: int,
         issm: ISSM,
@@ -165,6 +165,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
 
 
 class DeepStateTrainingNetwork(DeepStateNetwork):
+
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
