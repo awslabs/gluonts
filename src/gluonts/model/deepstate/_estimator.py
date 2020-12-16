@@ -22,6 +22,7 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
+from gluonts.mx.distribution.bijection import ComposedBijectionHybridBlock
 from gluonts.mx.distribution.lds import ParameterBounds
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
@@ -88,6 +89,10 @@ class DeepStateEstimator(GluonEstimator):
     add_trend
         Flag to indicate whether to include trend component in the
         state space model
+    output_transform
+        Specifies the transformation to be applied to the target time series.
+        This is a bijection with learnable parameters (e.g., a normalizing flow) and should be an instance of
+        `ComposedBijectionHybridBlock`.
     past_length
         This is the length of the training time series;
         i.e., number of steps to unroll the RNN for before computing
@@ -154,6 +159,7 @@ class DeepStateEstimator(GluonEstimator):
         prediction_length: int,
         cardinality: List[int],
         add_trend: bool = False,
+        output_transform: Optional[ComposedBijectionHybridBlock] = None,
         past_length: Optional[int] = None,
         num_periods_to_train: int = 4,
         trainer: Trainer = Trainer(
@@ -210,6 +216,7 @@ class DeepStateEstimator(GluonEstimator):
         )
         self.prediction_length = prediction_length
         self.add_trend = add_trend
+        self.output_transform = output_transform
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
@@ -321,6 +328,7 @@ class DeepStateEstimator(GluonEstimator):
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
+            output_transform=self.output_transform,
             past_length=self.past_length,
             prediction_length=self.prediction_length,
             issm=self.issm,
@@ -340,6 +348,7 @@ class DeepStateEstimator(GluonEstimator):
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
+            output_transform=self.output_transform,
             past_length=self.past_length,
             prediction_length=self.prediction_length,
             issm=self.issm,

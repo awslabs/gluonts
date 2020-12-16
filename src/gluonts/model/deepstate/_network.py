@@ -20,6 +20,7 @@ from gluonts.model.deepstate.issm import ISSM
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution.bijection import Bijection
 from gluonts.mx.distribution.lds import LDS, LDSArgsProj, ParameterBounds
 from gluonts.mx.util import make_nd_diag, weighted_average
 
@@ -31,6 +32,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         num_layers: int,
         num_cells: int,
         cell_type: str,
+        output_transform: Optional[Bijection],
         past_length: int,
         prediction_length: int,
         issm: ISSM,
@@ -47,6 +49,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
+        self.output_transform = output_transform
         self.past_length = past_length
         self.prediction_length = prediction_length
         self.issm = issm
@@ -162,7 +165,6 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
 
 
 class DeepStateTrainingNetwork(DeepStateNetwork):
-
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
@@ -195,8 +197,9 @@ class DeepStateTrainingNetwork(DeepStateNetwork):
             x=past_target.slice_axis(
                 axis=1, begin=-self.past_length, end=None
             ),
-            observed=observed_context.min(axis=-1, keepdims=False),
             scale=scale,
+            output_transform=self.output_transform,
+            observed=observed_context.min(axis=-1, keepdims=False),
         )
 
         return weighted_average(
@@ -244,8 +247,9 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
             x=past_target.slice_axis(
                 axis=1, begin=-self.past_length, end=None
             ),
-            observed=observed_context.min(axis=-1, keepdims=False),
             scale=scale,
+            output_transform=self.output_transform,
+            observed=observed_context.min(axis=-1, keepdims=False),
         )
 
         lds_prediction, _ = self.compute_lds(
@@ -260,7 +264,9 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
         )
 
         samples = lds_prediction.sample(
-            num_samples=self.num_parallel_samples, scale=scale
+            num_samples=self.num_parallel_samples,
+            scale=scale,
+            output_transform=self.output_transform,
         )
 
         # convert samples from
