@@ -11,19 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from typing import List, Optional
 
-# Third-party imports
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-
-# First-party imports
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 
 
@@ -274,7 +270,10 @@ class WaveNet(nn.HybridBlock):
         return full_features
 
     def target_feature_embedding(
-        self, F, target, features,
+        self,
+        F,
+        target,
+        features,
     ):
         """
         Provides a joint embedding for the target and features.
@@ -453,12 +452,12 @@ class WaveNetSampler(WaveNet):
         **kwargs,
     ):
         """
-        Same arguments as WaveNet. In addition
-        :param pred_length: prediction length
-        :param num_samples: number of sample paths to generate in parallel in the graph
-        :param temperature: if set to 1.0 (default), sample according to estimated probabilities
--         if set to 0.0 most likely sample at each step is chosen.
-        :param post_transform: An optional post transform that will be applied to the samples.
+                Same arguments as WaveNet. In addition
+                :param pred_length: prediction length
+                :param num_samples: number of sample paths to generate in parallel in the graph
+                :param temperature: if set to 1.0 (default), sample according to estimated probabilities
+        -         if set to 0.0 most likely sample at each step is chosen.
+                :param post_transform: An optional post transform that will be applied to the samples.
         """
         super().__init__(bin_values=bin_values, **kwargs)
         self.num_samples = num_samples
@@ -580,7 +579,9 @@ class WaveNetSampler(WaveNet):
                 axis=-1,
             )
             embedding = self.target_feature_embedding(
-                F, target=current_target, features=blow_up(current_features),
+                F,
+                target=current_target,
+                features=blow_up(current_features),
             )
 
             # (batch_size, 1, num_bins) where 1 corresponds to the time axis.

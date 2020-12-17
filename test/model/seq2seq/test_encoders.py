@@ -11,11 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import pytest
 from mxnet import nd
 
-# First-party imports
 from gluonts.mx.block.encoder import HierarchicalCausalConv1DEncoder
 
 

@@ -28,7 +28,7 @@ data structures with explicit recursion.
 import json
 from typing import Any, Optional
 
-from ._base import encode, decode
+from ._base import decode, encode
 
 
 def dump_json(o: Any, indent: Optional[int] = None) -> str:

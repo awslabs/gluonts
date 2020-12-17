@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.time_feature import get_seasonality
 
 VALID_N_BEATS_STACK_TYPES = "G", "S", "T"
@@ -300,7 +297,7 @@ class NBEATSSeasonalBlock(NBEATSBlock):
 
 
 class NBEATSTrendBlock(NBEATSBlock):
-    """"
+    """ "
     The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
     This is the Trend block variant.
 

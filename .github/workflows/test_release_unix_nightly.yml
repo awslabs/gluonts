@@ -25,14 +25,15 @@ jobs:
       run: |
         git clone https://github.com/awslabs/gluon-ts --branch $(curl https://api.github.com/repos/awslabs/gluon-ts/releases/latest | grep tag_name | cut -d : -f 2,3 | tr -d \"\ | tr -d \,\ )
         cd gluon-ts
-        python -m pip install --upgrade pip
+        python -m pip install pip==20.2
         pip install -r requirements/requirements-mxnet.txt
-        pip install torch==1.6.0+cpu --no-cache-dir
+        pip install torch==1.6.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/torch_stable.html
         pip install gluonts
+        pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
-        pip install -r requirements/requirements-extras-shell.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-rotbaum.txt
         pip install -r requirements/requirements-extras-anomaly-evaluation.txt
     - name: Test with pytest
       run: |

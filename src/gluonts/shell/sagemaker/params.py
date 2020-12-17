@@ -12,14 +12,12 @@
 # permissions and limitations under the License.
 
 
-# Standard library imports
-from typing import Any, Union
 from itertools import count
+from typing import Any, Union
 
-# First-party imports
-from gluonts.core.serde import load_json, dump_json
-from gluonts.support.util import map_dct_values
+from gluonts.core.serde import dump_json, load_json
 from gluonts.itertools import batcher
+from gluonts.support.util import map_dct_values
 
 
 def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:

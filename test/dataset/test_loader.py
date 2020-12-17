@@ -11,28 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-import json
 import tempfile
 from pathlib import Path
 from typing import Any, Iterator
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
-import ujson
 from pandas import Timestamp
 
-# First-party imports
+from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
+
+from gluonts import json
 from gluonts.dataset.common import (
     FileDataset,
     ListDataset,
     MetaData,
+    ProcessDataEntry,
     serialize_data_entry,
 )
-from gluonts.dataset.common import ProcessDataEntry
-from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 from gluonts.dataset.jsonl import JsonLinesFile
 from gluonts.dataset.util import find_files
 from gluonts.support.util import Timer
@@ -48,12 +45,6 @@ def load_json(path: Path, freq: str) -> Iterator[Any]:
     for file in find_files(path, FileDataset.is_valid):
         for line in open(file):
             yield json.loads(line)
-
-
-def load_ujson(path: Path, freq: str) -> Iterator[Any]:
-    for file in find_files(path, FileDataset.is_valid):
-        for line in open(file):
-            yield ujson.loads(line)
 
 
 def load_json_lines_file(path: Path, freq: str) -> Iterator[Any]:
@@ -106,7 +97,7 @@ def test_io_speed() -> None:
     fixtures = [
         ("baseline", baseline, 60_000),
         # ('json.loads', load_json, xxx),
-        ("ujson.loads", load_ujson, 20_000),
+        ("json.loads", load_json, 20_000),
         ("JsonLinesFile", load_json_lines_file, 10_000),
         ("ListDataset", load_list_dataset, 500),
         ("FileDataset", load_file_dataset, 500),

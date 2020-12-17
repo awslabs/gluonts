@@ -11,22 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import RepresentableBlockPredictor
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -38,19 +35,20 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
+    ExpandDimArray,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     RemoveFields,
     SetField,
     Transformation,
     VstackFeatures,
-    ExpandDimArray,
+    InstanceSampler,
 )
 
 # Relative import
 from ._network import (
-    SelfAttentionTrainingNetwork,
     SelfAttentionPredictionNetwork,
+    SelfAttentionTrainingNetwork,
 )
 
 
@@ -73,14 +71,15 @@ class SelfAttentionEstimator(GluonEstimator):
         pre_layer_norm: bool = False,
         dropout: float = 0.1,
         temperature: float = 1.0,
-        num_instances_per_series: int = 100,
         time_features: Optional[List[TimeFeature]] = None,
         use_feat_dynamic_real: bool = True,
         use_feat_dynamic_cat: bool = False,
         use_feat_static_real: bool = False,
         use_feat_static_cat: bool = True,
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(100),
+        batch_size: int = 32,
     ):
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or prediction_length
@@ -95,7 +94,6 @@ class SelfAttentionEstimator(GluonEstimator):
         self.pre_layer_norm = pre_layer_norm
         self.dropout = dropout
         self.temperature = temperature
-        self.num_instances_per_series = num_instances_per_series
 
         self.time_features = time_features or time_features_from_frequency_str(
             self.freq
@@ -104,13 +102,15 @@ class SelfAttentionEstimator(GluonEstimator):
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
+        self.train_sampler = train_sampler
 
     def create_transformation(self) -> Transformation:
         transforms = []
         if self.use_feat_dynamic_real:
             transforms.append(
                 AsNumpyArray(
-                    field=FieldName.FEAT_DYNAMIC_REAL, expected_ndim=2,
+                    field=FieldName.FEAT_DYNAMIC_REAL,
+                    expected_ndim=2,
                 )
             )
         else:
@@ -122,7 +122,8 @@ class SelfAttentionEstimator(GluonEstimator):
                         * (self.context_length + self.prediction_length),
                     ),
                     AsNumpyArray(
-                        field=FieldName.FEAT_DYNAMIC_REAL, expected_ndim=2,
+                        field=FieldName.FEAT_DYNAMIC_REAL,
+                        expected_ndim=2,
                     ),
                     # SwapAxes(input_fields=[FieldName.FEAT_DYNAMIC_REAL], axes=(0,1)),
                 ]
@@ -130,7 +131,8 @@ class SelfAttentionEstimator(GluonEstimator):
         if self.use_feat_dynamic_cat:
             transforms.append(
                 AsNumpyArray(
-                    field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=2,
+                    field=FieldName.FEAT_DYNAMIC_CAT,
+                    expected_ndim=2,
                 )
             )
         else:
@@ -159,23 +161,29 @@ class SelfAttentionEstimator(GluonEstimator):
         if self.use_feat_static_real:
             transforms.append(
                 AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1,
+                    field=FieldName.FEAT_STATIC_REAL,
+                    expected_ndim=1,
                 )
             )
         else:
             transforms.extend(
                 [
                     SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[],
+                        output_field=FieldName.FEAT_STATIC_REAL,
+                        value=[],
                     ),
                     AsNumpyArray(
-                        field=FieldName.FEAT_STATIC_REAL, expected_ndim=1,
+                        field=FieldName.FEAT_STATIC_REAL,
+                        expected_ndim=1,
                     ),
                 ]
             )
         if self.use_feat_static_cat:
             transforms.append(
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1,)
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_CAT,
+                    expected_ndim=1,
+                )
             )
         time_series_fields = [FieldName.OBSERVED_VALUES]
         if self.use_feat_dynamic_cat:
@@ -217,9 +225,7 @@ class SelfAttentionEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(
-                        num_instances=self.num_instances_per_series,
-                    ),
+                    train_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     time_series_fields=time_series_fields,
@@ -268,7 +274,7 @@ class SelfAttentionEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

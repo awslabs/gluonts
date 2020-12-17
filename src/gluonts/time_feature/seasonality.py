@@ -15,11 +15,17 @@ import logging
 
 import pandas as pd
 
-
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_SEASONALITIES = {"H": 24, "D": 1, "W": 1, "M": 12, "B": 5}
+DEFAULT_SEASONALITIES = {
+    "H": 24,
+    "D": 1,
+    "W-SUN": 1,
+    "M": 12,
+    "B": 5,
+    "Q-DEC": 4,
+}
 
 
 def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:

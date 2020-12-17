@@ -23,12 +23,16 @@ from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.transform import InstanceSplitter, ExpectedNumInstanceSampler
+from gluonts.transform import ExpectedNumInstanceSampler, InstanceSplitter
 
 
 class RandomNetwork(nn.Module):
     @validated()
-    def __init__(self, prediction_length: int, context_length: int,) -> None:
+    def __init__(
+        self,
+        prediction_length: int,
+        context_length: int,
+    ) -> None:
         super().__init__()
         assert prediction_length > 0
         assert context_length > 0
@@ -68,23 +72,10 @@ def test_pytorch_predictor_serde():
         prediction_net=pred_net,
         batch_size=16,
         input_transform=transformation,
-        device=None,
+        device=torch.device("cpu"),
     )
 
     with tempfile.TemporaryDirectory() as temp_dir:
         predictor.serialize(Path(temp_dir))
         predictor_exp = Predictor.deserialize(Path(temp_dir))
-
-    test_data = [
-        {
-            FieldName.START: pd.Timestamp("2020-01-01 00:00:00", freq="1H"),
-            FieldName.TARGET: np.random.uniform(size=(100,)).astype("f"),
-        }
-        for _ in range(20)
-    ]
-
-    forecast = list(predictor.predict(test_data))
-    forecast_exp = list(predictor_exp.predict(test_data))
-
-    for f, f_exp in zip(forecast, forecast_exp):
-        assert np.allclose(f.samples, f_exp.samples)
+    assert predictor == predictor_exp

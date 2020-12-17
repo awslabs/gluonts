@@ -15,9 +15,8 @@ import math
 
 from mxnet.gluon import HybridBlock, nn
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 
 

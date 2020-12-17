@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
@@ -32,7 +29,7 @@ from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
@@ -48,12 +45,11 @@ from gluonts.transform import (
     VstackFeatures,
 )
 
-# Relative imports
 from ._forking_network import (
-    ForkingSeq2SeqNetworkBase,
-    ForkingSeq2SeqTrainingNetwork,
-    ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqDistributionPredictionNetwork,
+    ForkingSeq2SeqNetworkBase,
+    ForkingSeq2SeqPredictionNetwork,
+    ForkingSeq2SeqTrainingNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 
@@ -133,6 +129,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
     max_ts_len
         Returns the length of the longest time series in the dataset to be used in bounding context_length.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -160,8 +158,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         dtype: DType = np.float32,
         num_forking: Optional[int] = None,
         max_ts_len: Optional[int] = None,
+        batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (distr_output is None) != (quantile_output is None)
         assert (
@@ -456,7 +455,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from collections import defaultdict
 from typing import Any, List, NamedTuple, Optional, Set
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.field_names import FieldName

@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import multiprocessing
 import sys
@@ -28,15 +27,12 @@ from typing import (
     Union,
 )
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.time_feature import get_seasonality
-
-# First-party imports
 from gluonts.model.forecast import Forecast, Quantile
+from gluonts.time_feature import get_seasonality
 
 
 class Evaluator:
@@ -313,7 +309,12 @@ class Evaluator:
                     target_fcst = median_fcst
 
                 try:
-                    val = {k: eval_fn(pred_target, target_fcst,)}
+                    val = {
+                        k: eval_fn(
+                            pred_target,
+                            target_fcst,
+                        )
+                    }
                 except:
                     val = {k: np.nan}
 

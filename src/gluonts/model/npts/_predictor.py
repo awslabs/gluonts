@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from enum import Enum
-from typing import Iterator, List, Optional, Tuple, Union, Any
+from typing import Any, Iterator, List, Optional, Tuple, Union
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.common import Dataset
@@ -27,7 +24,6 @@ from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.time_feature import time_features_from_frequency_str
 
-# Relative imports
 from ._model import NPTS
 
 

@@ -11,17 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from typing import Optional, Tuple
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-from gluonts.support.linalg_util import lower_triangular_ones
+from gluonts.mx import Tensor
+from gluonts.mx.linalg_util import lower_triangular_ones
 
 from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
@@ -127,7 +124,9 @@ class MultivariateGaussian(Distribution):
         def s(mu: Tensor, L: Tensor) -> Tensor:
             F = self.F
             samples_std_normal = F.sample_normal(
-                mu=F.zeros_like(mu), sigma=F.ones_like(mu), dtype=dtype,
+                mu=F.zeros_like(mu),
+                sigma=F.ones_like(mu),
+                dtype=dtype,
             ).expand_dims(axis=-1)
             samples = (
                 F.linalg_gemm2(L, samples_std_normal).squeeze(axis=-1) + mu

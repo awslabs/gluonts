@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Tuple
 
-# Third-party imports
 import mxnet as mx
 
-# First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import softplus
 from gluonts.mx.kernels import KernelOutputDict
 

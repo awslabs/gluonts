@@ -11,21 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-import numpy as np
 import mxnet as mx
-
-# Third-party imports
+import numpy as np
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
-# Relative imports
-from .distribution import Distribution, _expand_param, _index_tensor, getF
+from .distribution import (
+    MAX_SUPPORT_VAL,
+    Distribution,
+    _expand_param,
+    _index_tensor,
+    getF,
+)
 from .distribution_output import DistributionOutput
 
 
@@ -77,12 +78,12 @@ class MixtureDistribution(Distribution):
                                     the axis)."""
 
             expected_shape = self.batch_shape + (len(components),)
-            assert len(expected_shape) == len(mixture_probs.shape), (
+            assert len(expected_shape) == len(self.mixture_probs.shape), (
                 assertion_message
                 + " Maybe you need to expand the shape of mixture_probs at the zeroth axis."
             )
             for expected_dim, given_dim in zip(
-                expected_shape, mixture_probs.shape
+                expected_shape, self.mixture_probs.shape
             ):
                 assert (
                     expected_dim == given_dim
@@ -92,9 +93,25 @@ class MixtureDistribution(Distribution):
     def F(self):
         return getF(self.mixture_probs)
 
+    @property
+    def support_min_max(self) -> Tuple[Tensor, Tensor]:
+        F = self.F
+        lb = F.ones(self.batch_shape) * MAX_SUPPORT_VAL
+        ub = F.ones(self.batch_shape) * -MAX_SUPPORT_VAL
+        for c in self.components:
+            c_lb, c_ub = c.support_min_max
+            lb = F.broadcast_minimum(lb, c_lb)
+            ub = F.broadcast_maximum(ub, c_ub)
+        return lb, ub
+
     def __getitem__(self, item):
+        mp = _index_tensor(self.mixture_probs, item)
+        # fix edge case: if batch_shape == (1,) the mixture_probs shape is squeezed to (k,)
+        # reshape it to (1, k)
+        if len(mp.shape) == 1:
+            mp = mp.reshape(1, -1)
         return MixtureDistribution(
-            _index_tensor(self.mixture_probs, item),
+            mp,
             [c[item] for c in self.components],
         )
 
@@ -134,8 +151,14 @@ class MixtureDistribution(Distribution):
     def mean(self) -> Tensor:
         F = self.F
         mean_values = F.stack(*[c.mean for c in self.components], axis=-1)
+        mixture_probs_expanded = self.mixture_probs
+        for _ in range(self.event_dim):
+            mixture_probs_expanded = mixture_probs_expanded.expand_dims(
+                axis=-2
+            )
         return F.sum(
-            F.broadcast_mul(mean_values, self.mixture_probs, axis=-1), axis=-1
+            F.broadcast_mul(mean_values, mixture_probs_expanded, axis=-1),
+            axis=-1,
         )
 
     def cdf(self, x: Tensor) -> Tensor:

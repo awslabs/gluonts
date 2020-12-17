@@ -11,22 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Optional
 
-# Third-party imports
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.lstnet._network import LSTNetPredict, LSTNetTrain
 from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AsNumpyArray,
@@ -34,6 +31,7 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
+    InstanceSampler,
 )
 
 
@@ -92,6 +90,10 @@ class LSTNetEstimator(GluonEstimator):
         Number of RNN cells for each layer for skip part (default: 10)
     scaling
         Whether to automatically scale the target values (default: True)
+    train_sampler
+        Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     dtype
         Data type (default: np.float32)
     """
@@ -118,6 +120,8 @@ class LSTNetEstimator(GluonEstimator):
         skip_rnn_num_layers: int = 1,
         skip_rnn_num_cells: int = 10,
         scaling: bool = True,
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(trainer=trainer, lead_time=lead_time, dtype=dtype)
@@ -138,6 +142,7 @@ class LSTNetEstimator(GluonEstimator):
         self.skip_rnn_num_layers = skip_rnn_num_layers
         self.skip_rnn_num_cells = skip_rnn_num_cells
         self.scaling = scaling
+        self.train_sampler = train_sampler
         self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
@@ -156,7 +161,7 @@ class LSTNetEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     time_series_fields=[FieldName.OBSERVED_VALUES],
                     past_length=self.context_length,
                     future_length=self.prediction_length,
@@ -217,7 +222,7 @@ class LSTNetEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             lead_time=self.lead_time,

@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import os
 from pathlib import Path
 from typing import Dict, Iterator, Optional
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import SampleForecast
@@ -82,8 +79,8 @@ class RForecastPredictor(RepresentablePredictor):
         super().__init__(freq=freq, prediction_length=prediction_length)
 
         try:
-            from rpy2 import robjects, rinterface
             import rpy2.robjects.packages as rpackages
+            from rpy2 import rinterface, robjects
             from rpy2.rinterface import RRuntimeError
         except ImportError as e:
             raise ImportError(str(e) + USAGE_MESSAGE) from e

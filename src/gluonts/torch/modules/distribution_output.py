@@ -11,25 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Callable, Dict, Optional, Tuple
 
-# Third-party imports
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import (
-    Distribution,
-    TransformedDistribution,
     AffineTransform,
     Beta,
+    Distribution,
+    TransformedDistribution,
 )
 
-# First-party imports
 from gluonts.core.component import DType, validated
 
-# Relative imports
 from .lambda_layer import LambdaLayer
 
 

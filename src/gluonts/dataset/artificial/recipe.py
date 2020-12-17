@@ -11,13 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
+import doctest
 import functools
 import itertools
 import operator
 import textwrap
 from types import SimpleNamespace
-import doctest
 from typing import (
     Any,
     Callable,
@@ -31,14 +30,11 @@ from typing import (
     cast,
 )
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
-
 
 ValueOrCallable = Union[Any, Callable]
 Recipe = Union[
@@ -58,6 +54,12 @@ def resolve(val_or_callable: ValueOrCallable, context: Env, *args, **kwargs):
         return context[key]
     elif isinstance(val_or_callable, str):
         return context[val_or_callable]
+    elif isinstance(val_or_callable, list):
+        return [resolve(v, context, *args, **kwargs) for v in val_or_callable]
+    elif isinstance(val_or_callable, tuple):
+        return tuple(
+            [resolve(v, context, *args, **kwargs) for v in val_or_callable]
+        )
     else:
         return val_or_callable
 
@@ -240,6 +242,27 @@ class Lifted:
     def __pow__(self, other):
         return _LiftedBinaryOp(self, other, "**")
 
+    def __rpow__(self, other):
+        return _LiftedBinaryOp(other, self, "**")
+
+    def __and__(self, other):
+        return _LiftedBinaryOp(self, other, "&")
+
+    def __rand__(self, other):
+        return _LiftedBinaryOp(other, self, "&")
+
+    def __or__(self, other):
+        return _LiftedBinaryOp(self, other, "|")
+
+    def __ror__(self, other):
+        return _LiftedBinaryOp(other, self, "|")
+
+    def __xor__(self, other):
+        return _LiftedBinaryOp(self, other, "^")
+
+    def __rxor__(self, other):
+        return _LiftedBinaryOp(other, self, "^")
+
     def __gt__(self, other):
         return _LiftedBinaryOp(self, other, ">")
 
@@ -274,6 +297,17 @@ class Lifted:
         pass
 
 
+def expand_shape(s, length):
+    if isinstance(s, int):
+        s = (s,)
+    if s is None or len(s) == 0:
+        return s
+    s = np.array(s)
+    if np.any(s == 0):
+        s[s == 0] = length
+    return tuple(s)
+
+
 class NumpyFunc(Lifted):
     @validated()
     def __init__(
@@ -292,56 +326,122 @@ class NumpyFunc(Lifted):
         self.func_args = func_args
         self.func_kwargs = func_kwargs
 
-    def __call__(self, *args, **kwargs):
-        func_args = [resolve(x, *args, **kwargs) for x in self.func_args]
-        func_kwargs = {
-            k: resolve(v, *args, **kwargs) for k, v in self.func_kwargs.items()
-        }
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        func_args = [
+            resolve(u, x, length=length, *args, **kwargs)
+            for u in self.func_args
+        ]
+        func_kwargs = {}
+        for k, v in self.func_kwargs.items():
+            v = resolve(v, x, length=length, *args, **kwargs)
+            if k in ["shape", "size"]:
+                v = expand_shape(v, length=length)
+            func_kwargs[k] = v
         return self.func(*func_args, **func_kwargs)
 
 
 lifted_numpy = SimpleNamespace()
 lifted_numpy.random = SimpleNamespace()
 
+
 _NUMPY_FUNC_NAMES = [
+    "abs",
+    "all",
+    "any",
     "arange",
+    "arccos",
+    "arccosh",
+    "arcsin",
+    "arcsinh",
+    "arctan",
+    "arctan2",
+    "arctanh",
     "argmax",
     "argmin",
+    "ceil",
     "clip",
     "concatenate",
     "convolve",
+    "cos",
+    "cosh",
+    "cumsum",
+    "cumprod",
+    "divmod",
     "exp",
+    "floor",
+    "floor_divide",
     "isfinite",
     "isinf",
     "isnan",
+    "linspace",
     "log",
     "log10",
     "max",
     "mean",
+    "mod",
     "min",
     "nan_to_num",
     "nanargmax",
     "nanargmin",
+    "nancumsum",
+    "nancumprod",
     "nanmax",
     "nanmean",
     "nanmin",
     "nanpercentile",
     "nanquantile",
     "nansum",
+    "nanstd",
+    "nanprod",
+    "nanvar",
     "ones",
     "ones_like",
     "percentile",
+    "power",
+    "prod",
     "quantile",
+    "random.beta",
+    "random.binomial",
     "random.choice",
+    "random.chisquare",
+    "random.dirichlet",
+    "random.exponential",
+    "random.gamma",
+    "random.geometric",
+    "random.gumbel",
+    "random.hypergeometric",
+    "random.laplace",
+    "random.logistic",
+    "random.lognormal",
+    "random.logseries",
+    "random.multinomial",
+    "random.negative_binomial",
     "random.normal",
+    "random.pareto",
+    "random.power",
+    "random.poisson",
     "random.randn",
+    "random.randint",
+    "random.shuffle",
     "random.uniform",
+    "random.vonmises",
+    "random.weibull",
+    "remainder",
     "repeat",
     "reshape",
+    "round",
+    "sin",
+    "sinh",
     "shape",
     "stack",
+    "std",
     "sum",
+    "take",
+    "tan",
+    "tanh",
     "unique",
+    "var",
+    "where",
     "zeros",
     "zeros_like",
 ]
@@ -366,11 +466,17 @@ for func_name in _NUMPY_FUNC_NAMES:
 
 class Length(Lifted):
     @validated()
-    def __init__(self, l: ValueOrCallable):
+    def __init__(self, l: ValueOrCallable = None):
         self.l = l
 
-    def __call__(self, x: Env, *args, **kwargs):
-        return len(resolve(self.l, x, *args, **kwargs))
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        l = resolve(self.l, x, length, *args, **kwargs)
+        if l is None:
+            assert (
+                length is not None
+            ), "Cannot get value for Length() when length is not provided in evaluate"
+            return length
+        return len(l)
 
 
 def lift(input: Union[int, Callable]):
@@ -458,6 +564,9 @@ class _LiftedBinaryOp(Lifted):
             "<=": operator.le,
             "==": operator.eq,
             "!=": operator.ne,
+            "|": operator.or_,
+            "&": operator.and_,
+            "^": operator.xor,
         }[op]
 
     def __call__(self, *args, **kwargs):
@@ -476,8 +585,7 @@ class RandomGaussian(Lifted):
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         stddev = resolve(self.stddev, x, length, *args, **kwargs)
-        s = np.array(self.shape)
-        s[s == 0] = length
+        s = expand_shape(self.shape, length)
         return stddev * np.random.randn(*s)
 
 
@@ -521,8 +629,7 @@ class RandomSymmetricDirichlet(Lifted):
 
     def __call__(self, x, length, *args, **kwargs):
         alpha = resolve(self.alpha, x, length, *args, **kwargs)
-        s = np.array(self.shape)
-        s[s == 0] = length
+        s = expand_shape(self.shape, length)
         return np.random.dirichlet(alpha * np.ones(s))
 
 
@@ -795,7 +902,9 @@ class Ref(Lifted):
         if not _LEGACY_WARNING_WAS_SHOWN:
             import warnings
 
-            warnings.warn("Ref is deprecated. Please use the functional api.",)
+            warnings.warn(
+                "Ref is deprecated. Please use the functional api.",
+            )
             _LEGACY_WARNING_WAS_SHOWN = True
         self.field_name = field_name
 
@@ -818,8 +927,7 @@ class RandomUniform(Lifted):
     def __call__(self, x: Env, length: int, *args, **kwargs):
         low = resolve(self.low, x, length, *args, **kwargs)
         high = resolve(self.high, x, length, *args, **kwargs)
-        s = np.array(self.shape)
-        s[s == 0] = length
+        s = expand_shape(self.shape, length)
         return np.random.uniform(low, high, s)
 
 
@@ -838,12 +946,8 @@ class RandomInteger(Lifted):
     def __call__(self, x: Env, length: int, *args, **kwargs):
         low = resolve(self.low, x, length, *args, **kwargs)
         high = resolve(self.high, x, length, *args, **kwargs)
-        if self.shape is not None:
-            s = np.array(self.shape)
-            s[s == 0] = length
-            return np.random.randint(low, high, s)
-        else:
-            return np.random.randint(low, high)
+        s = expand_shape(self.shape, length)
+        return np.random.randint(low, high, s)
 
 
 class RandomChangepoints(Lifted):
@@ -903,6 +1007,88 @@ class Dilated(Lifted):
         inner = self.source(x, length // self.dilation + 1, **kwargs)
         out = np.repeat(inner, self.dilation)
         return out[:length]
+
+
+class ARp(Lifted):
+    def __init__(
+        self,
+        phi: ValueOrCallable,
+        sigma: ValueOrCallable,
+        xhist: ValueOrCallable = None,
+        c: ValueOrCallable = 0.0,
+        noise: ValueOrCallable = None,
+    ):
+        """
+        Draw samples from an ARp process.
+        Parametrized as in
+
+        https://en.wikipedia.org/wiki/Autoregressive_model#Graphs_of_AR(p)_processes
+        """
+        self.phi = phi
+        self.sigma = sigma
+        self.c = c
+        self.xhist = xhist
+        self.noise = noise
+
+    def __call__(self, x: Env, length: int, *args, **kwargs):
+        from .ar_p import ar_p
+
+        phi = resolve(self.phi, x, length, *args, **kwargs)
+        phi = np.asarray(phi, dtype=np.float64)
+        assert phi.ndim == 1, "phi should be a 1d array"
+        assert len(phi) > 0, "phi should have length > 0"
+        sigma = resolve(self.sigma, x, length, *args, **kwargs)
+        sigma = float(sigma)
+        xhist = resolve(self.xhist, x, length, *args, **kwargs)
+        if xhist is None:
+            xhist = np.zeros_like(phi)
+        xhist = np.asarray(xhist, dtype=np.float64)
+        assert (
+            xhist.shape == phi.shape
+        ), "xhist should have the same length as phi"
+        c = resolve(self.c, x, length, *args, **kwargs)
+        noise = resolve(self.noise, x, length, *args, **kwargs)
+        if noise is not None:
+            noise = np.asarray(noise, dtype=np.float64)
+            assert noise.ndim == 1, "the noise should be a 1d array"
+            assert (
+                len(noise) == length
+            ), f"len(noise) should be be length={length}"
+
+        v = ar_p(
+            phi=phi,
+            sigma=sigma,
+            length=length,
+            xhist=xhist,
+            c=c,
+            noise=noise,
+        )
+        return v
+
+
+def normalized_ar1(tau, x0=None, norm="minmax", sigma=1.0):
+    r"""
+    Returns an ar1 process with an auto correlation time of tau.
+
+    norm can be
+    None -> no normalization
+    'minmax' -> min_max_scaled
+    'standard' -> 0 mean, unit variance
+    """
+    assert norm in [None, "minmax", "standard"]
+    phi = lifted_numpy.exp(-1.0 / tau)
+    a = ARp(phi=[phi], xhist=[x0] if x0 is not None else None, sigma=sigma)
+
+    if norm is None:
+        return a
+    elif norm == "minmax":
+        amin = lifted_numpy.min(a)
+        amax = lifted_numpy.max(a)
+        return (a - amin) / (amax - amin)
+    elif norm == "standard":
+        return (a - lifted_numpy.mean(a)) / lifted_numpy.std(a)
+    else:
+        raise NotImplementedError()
 
 
 class Choose(Lifted):

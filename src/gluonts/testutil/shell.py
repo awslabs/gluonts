@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import json
 import socket
 import tempfile
@@ -23,11 +22,10 @@ from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
 
 import requests
 
-# First-party imports
 from gluonts.dataset.common import DataEntry, serialize_data_entry
 from gluonts.dataset.repository.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor
-from gluonts.shell.env import TrainEnv, ServeEnv
+from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.sagemaker import ServePaths, TrainPaths
 from gluonts.shell.sagemaker.params import encode_sagemaker_parameters
 from gluonts.shell.serve import Settings, make_gunicorn_app

@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
@@ -29,9 +26,9 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
+    InstanceSampler,
 )
 
-# Relative imports
 from ._network import (
     VALID_LOSS_FUNCTIONS,
     VALID_N_BEATS_STACK_TYPES,
@@ -104,6 +101,10 @@ class NBEATSEstimator(GluonEstimator):
         Unlike other models in GluonTS this network does not use a distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".
         The default value is "MAPE".
+    train_sampler
+        Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     kwargs
         Arguments passed to 'GluonEstimator'.
     """
@@ -127,6 +128,8 @@ class NBEATSEstimator(GluonEstimator):
         sharing: Optional[List[bool]] = None,
         stack_types: Optional[List[str]] = None,
         loss_function: Optional[str] = "MAPE",
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
         **kwargs,
     ) -> None:
         """
@@ -200,6 +203,7 @@ class NBEATSEstimator(GluonEstimator):
             validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
             invalidation_message=f"Values of 'stack_types' should be one of {VALID_N_BEATS_STACK_TYPES}",
         )
+        self.train_sampler = train_sampler
 
     def _validate_nbeats_argument(
         self,
@@ -245,7 +249,7 @@ class NBEATSEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     time_series_fields=[],
@@ -292,7 +296,7 @@ class NBEATSEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

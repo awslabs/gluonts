@@ -11,16 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
 from gluonts.time_feature.holiday import (
+    BLACK_FRIDAY,
     CHRISTMAS_DAY,
     CHRISTMAS_EVE,
     COLUMBUS_DAY,
+    CYBER_MONDAY,
     EASTER_MONDAY,
     EASTER_SUNDAY,
     GOOD_FRIDAY,
@@ -35,8 +35,6 @@ from gluonts.time_feature.holiday import (
     SPECIAL_DATE_FEATURES,
     SUPERBOWL,
     THANKSGIVING,
-    BLACK_FRIDAY,
-    CYBER_MONDAY,
     SpecialDateFeatureSet,
     squared_exponential_kernel,
 )

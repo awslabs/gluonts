@@ -11,19 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-
-# First-party imports
+from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
-from gluonts.support.util import assert_shape, weighted_average
+from gluonts.mx.util import assert_shape, weighted_average
 
 
 def make_rnn_cell(

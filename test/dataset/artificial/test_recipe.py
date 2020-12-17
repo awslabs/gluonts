@@ -11,33 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
+import gluonts.dataset.artificial.recipe as rcp
+
 from gluonts.core.component import validated
 from gluonts.core.serde import dump_code, load_code
-from gluonts.dataset.common import (
-    BasicFeatureInfo,
-    CategoricalFeatureInfo,
-    MetaData,
-)
 from gluonts.dataset.artificial import RecipeDataset
-import gluonts.dataset.artificial.recipe as rcp
-from gluonts.dataset.artificial.recipe import lifted_numpy as lnp
-
 from gluonts.dataset.artificial.recipe import (
     Add,
-    Lifted,
     BinaryMarkovChain,
     Constant,
     ConstantVec,
     Debug,
+    Env,
     Eval,
     ForEachCat,
     Lag,
+    Lifted,
     LinearTrend,
     Mul,
     NanWhere,
@@ -50,8 +43,13 @@ from gluonts.dataset.artificial.recipe import (
     Stack,
     evaluate,
     generate,
-    take_as_list,
-    Env,
+)
+from gluonts.dataset.artificial.recipe import lifted_numpy as lnp
+from gluonts.dataset.artificial.recipe import take_as_list
+from gluonts.dataset.common import (
+    BasicFeatureInfo,
+    CategoricalFeatureInfo,
+    MetaData,
 )
 
 BASE_RECIPE = [("foo", ConstantVec(1.0)), ("cat", RandomCat([10]))]
@@ -229,3 +227,15 @@ def test_length() -> None:
     u = rcp.Constant(np.array([1, 2, 3, 4, 5, 6, 7]))
     x = u * RandomGaussian()
     assert len(evaluate(x, length=rcp.Length(u))) == 7
+
+    l = rcp.Length()
+    assert evaluate(l, length=9) == 9
+
+
+def test_arp() -> None:
+    time_scale = 10 ** lnp.random.uniform(low=1, high=10)
+    u = rcp.normalized_ar1(time_scale, norm="minmax")
+    x = evaluate(u, length=1000)
+    assert len(x) == 1000
+    assert x.max() == 1
+    assert x.min() == 0

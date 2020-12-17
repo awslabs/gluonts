@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, Tuple
 
 import numpy as np
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution_output import ArgProj
 
-# Relative imports
 from . import Kernel
 
 

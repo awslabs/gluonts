@@ -17,7 +17,6 @@ from pkgutil import extend_path
 
 from pkg_resources import DistributionNotFound, get_distribution
 
-
 __path__ = extend_path(__path__, __name__)  # type: ignore
 
 try:

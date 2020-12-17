@@ -11,47 +11,42 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
 import json
+import multiprocessing as mp
 import random
 import tempfile
 import time
-import multiprocessing as mp
-from functools import partial
-
-
-# Third-party imports
 from collections import defaultdict
+from functools import partial
+from itertools import islice
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from mxnet.context import current_context
-from flaky import flaky
 import pytest
+from flaky import flaky
+from mxnet.context import current_context
 
-# First-party imports
+from gluonts.dataset.artificial import ConstantDataset, constant_dataset
+from gluonts.dataset.common import FileDataset, ListDataset
+
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
+    InferenceDataLoader,
     TrainDataLoader,
     ValidationDataLoader,
-    InferenceDataLoader,
 )
-from gluonts.dataset.common import ListDataset, FileDataset
+from gluonts.evaluation import Evaluator
+from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx.batchify import batchify
+from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
-    UniformSplitSampler,
-    InstanceSplitter,
     InstanceSampler,
+    InstanceSplitter,
+    UniformSplitSampler,
 )
-from gluonts.dataset.artificial import ConstantDataset
-
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.mx.trainer import Trainer
-from gluonts.dataset.artificial import constant_dataset
-from gluonts.evaluation import Evaluator
-from gluonts.mx.batchify import batchify
 
 # CONSTANTS:
 
@@ -203,7 +198,15 @@ def test_validation_loader_equivalence() -> None:
 @flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     "num_workers",
-    [i for i in [None, 1, 2,] if i is None or i <= mp.cpu_count()],
+    [
+        i
+        for i in [
+            None,
+            1,
+            2,
+        ]
+        if i is None or i <= mp.cpu_count()
+    ],
     # TODO: using more than 2 is a problem for our tests, if some of the cores are busy and fall behind
     # TODO: using multiple input queues in the loader would make this pass no matter how busy each core is
     # [i for i in [None, 1, 2, 3, 4] if i is None or i <= mp.cpu_count()],
@@ -211,8 +214,9 @@ def test_validation_loader_equivalence() -> None:
 def test_train_loader_goes_over_all_data(num_workers) -> None:
     batch_size = 4
     num_batches_per_epoch = 4
-
-    X = 3
+    num_time_series = batch_size * num_batches_per_epoch * 3
+    num_passes = 5
+    num_epochs = num_passes * 3
 
     simple_data = [
         {
@@ -220,11 +224,8 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             "target": np.random.uniform(size=40).astype(float).tolist(),
             "item_id": i,
         }
-        for i in range(batch_size * num_batches_per_epoch * X)
+        for i in range(num_time_series)
     ]
-
-    num_passes = 5
-    num_epochs = X * num_passes
 
     def test_dataset(dataset):
         class ExactlyOneSampler(InstanceSampler):
@@ -250,13 +251,12 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             batch_size=batch_size,
             stack_fn=partial(batchify, ctx=current_context()),
             num_workers=num_workers,
-            num_batches_per_epoch=num_batches_per_epoch,
         )
 
         item_ids = defaultdict(int)
 
         for epoch in range(num_epochs):
-            for batch in dl:
+            for batch in islice(dl, num_batches_per_epoch):
                 for item_id in batch["item_id"]:
                     item_ids[item_id] += 1
 
@@ -340,43 +340,32 @@ def test_training_loader_batch_size_hard_constraint() -> None:
         train_data_transformed_original,
     ) = get_dataset_and_transformation()
 
-    train_dataset_loader_01 = TrainDataLoader(
+    train_dataset_loader_1 = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        num_batches_per_epoch=30,
     )
 
-    train_dataset_loader_02 = TrainDataLoader(
+    train_dataset_loader_2 = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        num_batches_per_epoch=30,
         shuffle_buffer_length=3 * BATCH_SIZE,
     )
 
-    # multi-processed training dataset
-    mp_training_data_loader_result_01 = list(train_dataset_loader_01)
-
-    # multi-processed training dataset
-    mp_training_data_loader_result_02 = list(train_dataset_loader_02)
+    batches_1 = list(islice(train_dataset_loader_1, 30))
+    batches_2 = list(islice(train_dataset_loader_2, 30))
 
     assert all(
-        [
-            len(batch["item_id"]) == BATCH_SIZE
-            for batch in mp_training_data_loader_result_01
-        ]
+        [len(batch["item_id"]) == BATCH_SIZE for batch in batches_1]
     ), "Not every batch from training loader is right size."
 
     assert all(
-        [
-            len(batch["item_id"]) == BATCH_SIZE
-            for batch in mp_training_data_loader_result_02
-        ]
+        [len(batch["item_id"]) == BATCH_SIZE for batch in batches_2]
     ), "Not every batch from training loader is right size, with shuffling on."
 
 
@@ -401,28 +390,19 @@ def test_training_loader_soft_constraint_01() -> None:
 
     # CASE 01: EVERY TS VISITED AT LEAST ONCE
 
-    train_dataset_loader_01 = TrainDataLoader(
+    train_dataset_loader = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
-    # give all the workers a little time to get ready, so they can start at the same time
-    time.sleep(1.5)
-
-    # multi-processed training dataset
-    mp_training_data_loader_result_01 = list(train_dataset_loader_01)
-
-    # should contain an entry for every time series id
-    transformation_counts_01 = get_transformation_counts(
-        mp_training_data_loader_result_01
-    )
+    batches = list(islice(train_dataset_loader, int(3 * exp_num_batches)))
+    transformation_counts = get_transformation_counts(batches)
 
     assert all(
-        [k in transformation_counts_01 for k in range(CD_NUM_TIME_SERIES)]
+        [k in transformation_counts for k in range(CD_NUM_TIME_SERIES)]
     ), "Not every time series processed at least once."
 
 
@@ -442,25 +422,19 @@ def test_training_loader_soft_constraint_02() -> None:
 
     # CASE 02: NOT EVERY TS VISITED ONCE
 
-    train_dataset_loader_02 = TrainDataLoader(
+    train_dataset_loader = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        num_batches_per_epoch=int(0.5 * exp_num_batches),
     )
 
-    # multi-processed training dataset
-    mp_training_data_loader_result_02 = list(train_dataset_loader_02)
-
-    # should contain an entry for every time series id
-    transformation_counts_02 = get_transformation_counts(
-        mp_training_data_loader_result_02
-    )
+    batches = list(islice(train_dataset_loader, int(0.5 * exp_num_batches)))
+    transformation_counts = get_transformation_counts(batches)
 
     assert not all(
-        [k in transformation_counts_02 for k in range(CD_NUM_TIME_SERIES)]
+        [k in transformation_counts for k in range(CD_NUM_TIME_SERIES)]
     ), "It should not have been possible to process every time series once. "
 
 
@@ -478,25 +452,19 @@ def test_training_loader_soft_constraint_03() -> None:
 
     # CASE 03: ONE WORKER TRAVERSES ALL
 
-    train_dataset_loader_03 = TrainDataLoader(
+    train_dataset_loader = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
         num_workers=1,  # This is the crucial difference
-        num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
-    # multi-processed training dataset
-    mp_training_data_loader_result_03 = list(train_dataset_loader_03)
-
-    # should contain an entry for every time series id
-    transformation_counts_03 = get_transformation_counts(
-        mp_training_data_loader_result_03
-    )
+    batches = list(islice(train_dataset_loader, int(3 * exp_num_batches)))
+    transformation_counts = get_transformation_counts(batches)
 
     assert all(
-        k in transformation_counts_03 for k in range(CD_NUM_TIME_SERIES)
+        k in transformation_counts for k in range(CD_NUM_TIME_SERIES)
     ), "One worker should be able to traverse all in one sweep, and should not deplete its iterator."
 
 

@@ -16,8 +16,8 @@ from distutils.util import strtobool
 from functools import partial
 from typing import Dict
 
-from gluonts.model import forecast
 from gluonts.dataset.common import Dataset, FileDataset, ListDataset, MetaData
+from gluonts.model import forecast
 from gluonts.support.util import map_dct_values
 
 from . import sagemaker

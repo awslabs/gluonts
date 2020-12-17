@@ -98,13 +98,13 @@ dataset_recipes = OrderedDict(
         "m4_quarterly": partial(
             generate_m4_dataset,
             m4_freq="Quarterly",
-            pandas_freq="3M",
+            pandas_freq="Q",
             prediction_length=8,
         ),
         "m4_yearly": partial(
             generate_m4_dataset,
             m4_freq="Yearly",
-            pandas_freq="12M",
+            pandas_freq="Y",
             prediction_length=6,
         ),
         "m5": partial(

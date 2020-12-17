@@ -11,38 +11,35 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 from flaky import flaky
 
-# First-party imports
+from gluonts.core.serde import dump_code, dump_json, load_code, load_json
+from gluonts.model.tpp.distribution import Loglogistic, Weibull
+
 from gluonts.mx.distribution import (
-    Uniform,
-    StudentT,
-    NegativeBinomial,
-    Laplace,
-    Gaussian,
-    Gamma,
-    GenPareto,
     Beta,
-    MultivariateGaussian,
-    Poisson,
-    PiecewiseLinear,
     Binned,
-    TransformedDistribution,
+    Categorical,
     Dirichlet,
     DirichletMultinomial,
-    Categorical,
+    Gamma,
+    Gaussian,
+    GenPareto,
+    Laplace,
+    MultivariateGaussian,
+    NegativeBinomial,
+    PiecewiseLinear,
+    Poisson,
+    StudentT,
+    TransformedDistribution,
+    Uniform,
     ZeroAndOneInflatedBeta,
     ZeroInflatedPoissonOutput,
 )
-from gluonts.core.serde import dump_json, load_json, dump_code, load_code
-from gluonts.model.tpp.distribution import Loglogistic, Weibull
-
 from gluonts.testutil import empirical_cdf
-
 
 test_cases = [
     (

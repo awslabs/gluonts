@@ -11,19 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from itertools import islice
 from functools import partial
+from itertools import islice
 
 import mxnet as mx
 
-from gluonts.mx.distribution import StudentTOutput
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.loader import TrainDataLoader
-from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.batchify import batchify
+from gluonts.mx.distribution import StudentTOutput
 from gluonts.mx.trainer import Trainer
-
+from gluonts.mx.util import get_hybrid_forward_input_names
 
 ds_info, train_ds, test_ds = constant_dataset()
 freq = ds_info.metadata.freq
@@ -52,7 +51,6 @@ def test_distribution():
         dataset=train_ds,
         transform=train_output.transformation,
         batch_size=batch_size,
-        num_batches_per_epoch=estimator.trainer.num_batches_per_epoch,
         stack_fn=partial(batchify, ctx=mx.cpu()),
     )
 

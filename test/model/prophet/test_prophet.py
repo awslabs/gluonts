@@ -11,13 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
-from gluonts.model.prophet import ProphetPredictor, PROPHET_IS_INSTALLED
+from gluonts.model.prophet import PROPHET_IS_INSTALLED, ProphetPredictor
 
 # conditionally skip these tests if `fbprophet` is not installed
 # see https://docs.pytest.org/en/latest/skipping.html for details

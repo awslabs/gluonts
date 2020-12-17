@@ -11,16 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Optional
 
-# Third-party imports
 import numpy as np
-
-# Third-party imports
 import statsmodels.api as sm
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.model.forecast import Forecast, SampleForecast

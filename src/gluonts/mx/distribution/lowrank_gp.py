@@ -11,22 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from collections import OrderedDict
 from typing import Optional, Tuple
 
-# Third-party imports
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 from . import LowrankMultivariateGaussian, bijection
 from .distribution_output import (
     ArgProj,
     DistributionOutput,
-    TransformedDistribution,
+    AffineTransformedDistribution,
 )
 from .lowrank_multivariate_gaussian import inv_softplus, sigma_minimum
 
@@ -151,9 +148,7 @@ class LowrankGPOutput(DistributionOutput):
         if loc is None and scale is None:
             return dist
         else:
-            return TransformedDistribution(
-                dist, [bijection.AffineTransformation(loc=loc, scale=scale)]
-            )
+            return AffineTransformedDistribution(dist, loc=loc, scale=scale)
 
     @property
     def event_shape(self) -> Tuple:

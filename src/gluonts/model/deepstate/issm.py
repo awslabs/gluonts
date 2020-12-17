@@ -11,17 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Tuple
 
-# Third-party imports
 from pandas.tseries.frequencies import to_offset
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF
-from gluonts.support.util import _broadcast_param
+from gluonts.mx.util import _broadcast_param
 from gluonts.time_feature import (
     DayOfWeek,
     HourOfDay,

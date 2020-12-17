@@ -11,23 +11,29 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterable, Iterator, List, TypeVar
 import itertools
 import random
+from typing import Iterable, Iterator, List, Optional, TypeVar
 
 T = TypeVar("T")
 
 
-def cyclic(it):
-    """Like `itertools.cycle`, but does not store the data."""
+class Cyclic(Iterable):
+    """
+    Like `itertools.cycle`, but does not store the data.
+    """
 
-    at_least_one = False
-    while True:
-        for el in it:
-            at_least_one = True
-            yield el
-        if not at_least_one:
-            break
+    def __init__(self, iterable: Iterable) -> None:
+        self.iterable = iterable
+
+    def __iter__(self):
+        at_least_one = False
+        while True:
+            for el in self.iterable:
+                at_least_one = True
+                yield el
+            if not at_least_one:
+                break
 
 
 def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
@@ -48,7 +54,7 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     return iter(get_batch, [])
 
 
-class cached(Iterable):
+class Cached(Iterable):
     """
     An iterable wrapper, which caches values in a list the first time it is iterated.
 
@@ -74,16 +80,36 @@ class cached(Iterable):
             yield from self.cache
 
 
-def pseudo_shuffled(iterator: Iterator, shuffle_buffer_length: int):
+class PseudoShuffled(Iterable):
     """
-    An iterator that yields item from a given iterator in a pseudo-shuffled order.
+    Yields items from a given iterable in a pseudo-shuffled order.
     """
-    shuffle_buffer = []
 
-    for element in iterator:
-        shuffle_buffer.append(element)
-        if len(shuffle_buffer) >= shuffle_buffer_length:
+    def __init__(self, iterable: Iterable, shuffle_buffer_length: int) -> None:
+        self.iterable = iterable
+        self.shuffle_buffer_length = shuffle_buffer_length
+
+    def __iter__(self):
+        shuffle_buffer = []
+
+        for element in self.iterable:
+            shuffle_buffer.append(element)
+            if len(shuffle_buffer) >= self.shuffle_buffer_length:
+                yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
+
+        while shuffle_buffer:
             yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
 
-    while shuffle_buffer:
-        yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
+
+class IterableSlice(Iterable):
+    """
+    An iterable version of `itertools.islice`, i.e. one that can be iterated
+    over multiple times.
+    """
+
+    def __init__(self, iterable: Iterable, length: Optional[int]) -> None:
+        self.iterable = iterable
+        self.length = length
+
+    def __iter__(self):
+        return itertools.islice(self.iterable, self.length)

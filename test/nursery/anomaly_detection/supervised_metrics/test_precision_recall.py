@@ -11,19 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, List, Tuple
 
-# Third-party imports
 import numpy as np
 import pytest
 from sklearn.metrics import auc
 
-# First-party imports
 from gluonts.nursery.anomaly_detection.supervised_metrics import (
+    aggregate_precision_recall_curve,
     buffered_precision_recall,
     segment_precision_recall,
-    aggregate_precision_recall_curve,
 )
 from gluonts.nursery.anomaly_detection.supervised_metrics._buffered_precision_recall import (
     extend_ranges,
@@ -35,7 +32,6 @@ from gluonts.nursery.anomaly_detection.supervised_metrics.utils import (
     labels_to_ranges,
     range_overlap,
 )
-
 
 TEST_CASES = [
     # edge cases
@@ -172,14 +168,38 @@ def test_segment_precision_recall(test_case: Dict):
 
 
 TEST_CASES_LABELS_TO_RANGES = [
-    {"labels": [0], "ranges": [],},
-    {"labels": [1], "ranges": [range(0, 1)],},
-    {"labels": [0] * 10, "ranges": [],},
-    {"labels": [1] * 10, "ranges": [range(0, 10)],},
-    {"labels": [1, 0], "ranges": [range(0, 1)],},
-    {"labels": [1, 0, 1, 1], "ranges": [range(0, 1), range(2, 4)],},
-    {"labels": [1, 0, 1, 1, 0], "ranges": [range(0, 1), range(2, 4)],},
-    {"labels": [0, 1, 1, 0], "ranges": [range(1, 3)],},
+    {
+        "labels": [0],
+        "ranges": [],
+    },
+    {
+        "labels": [1],
+        "ranges": [range(0, 1)],
+    },
+    {
+        "labels": [0] * 10,
+        "ranges": [],
+    },
+    {
+        "labels": [1] * 10,
+        "ranges": [range(0, 10)],
+    },
+    {
+        "labels": [1, 0],
+        "ranges": [range(0, 1)],
+    },
+    {
+        "labels": [1, 0, 1, 1],
+        "ranges": [range(0, 1), range(2, 4)],
+    },
+    {
+        "labels": [1, 0, 1, 1, 0],
+        "ranges": [range(0, 1), range(2, 4)],
+    },
+    {
+        "labels": [0, 1, 1, 0],
+        "ranges": [range(1, 3)],
+    },
     {
         "labels": [0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1],
         "ranges": [range(2, 4), range(6, 7), range(8, 11), range(12, 13)],

@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 
-# Relative imports
 from .estimator import GluonTSFramework
 from .model import GluonTSModel, GluonTSPredictor
 

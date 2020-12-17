@@ -11,13 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import itertools
 
-# Third-party imports
 import mxnet as mx
 
-# First-party imports
 from gluonts.model.deepar._network import DeepARTrainingNetwork
 
 

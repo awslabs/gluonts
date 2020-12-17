@@ -16,7 +16,8 @@ from typing import Any
 import numpy as np
 
 from gluonts.core import fqname_for
-from ._base import encode, Kind
+
+from ._base import Kind, encode
 
 
 @encode.register(np.dtype)

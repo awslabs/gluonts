@@ -13,13 +13,9 @@
 
 import pytest
 
-from gluonts.model.seq2seq import (
-    MQCNNEstimator,
-    MQRNNEstimator,
-)
-from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
-
+from gluonts.model.seq2seq import MQCNNEstimator, MQRNNEstimator
 from gluonts.mx.distribution import GaussianOutput
+from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 
 @pytest.fixture()
@@ -76,7 +72,11 @@ def test_accuracy(
 @pytest.mark.parametrize("enable_decoder_dynamic_feature", [True, False])
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize(
-    "quantiles, distr_output", [([0.5, 0.1], None), (None, GaussianOutput()),]
+    "quantiles, distr_output",
+    [
+        ([0.5, 0.1], None),
+        (None, GaussianOutput()),
+    ],
 )
 def test_mqcnn_covariate_smoke_test(
     use_past_feat_dynamic_real,

@@ -13,13 +13,13 @@
 
 import json
 import os
+import re
 import warnings
 from pathlib import Path
 from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
-import re
 
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 from gluonts.gluonts_tqdm import tqdm
@@ -71,6 +71,12 @@ def check_dataset(dataset_path: Path, length: int, sheet_name):
             ), f"Invalid time stamp {month}-{day}"
 
 
+class M3Setting(NamedTuple):
+    sheet_name: str
+    prediction_length: int
+    freq: str
+
+
 def generate_m3_dataset(dataset_path: Path, m3_freq: str):
     from gluonts.dataset.repository.datasets import default_dataset_path
 
@@ -81,16 +87,11 @@ def generate_m3_dataset(dataset_path: Path, m3_freq: str):
             f"Please download the file and copy the files to this location: {m3_xls_path}"
         )
 
-    class M3Setting(NamedTuple):
-        sheet_name: str
-        prediction_length: int
-        freq: str
-
     subsets = {
-        "yearly": M3Setting("M3Year", 6, "12M"),
-        "quarterly": M3Setting("M3Quart", 8, "3M"),
-        "monthly": M3Setting("M3Month", 18, "1M"),
-        "other": M3Setting("M3Other", 8, "3M"),
+        "yearly": M3Setting("M3Year", 6, "Y"),
+        "quarterly": M3Setting("M3Quart", 8, "Q"),
+        "monthly": M3Setting("M3Month", 18, "M"),
+        "other": M3Setting("M3Other", 8, "Q"),
     }
     assert (
         m3_freq.lower() in subsets
@@ -143,13 +144,13 @@ def generate_m3_dataset(dataset_path: Path, m3_freq: str):
 
         offset = max(starting_offset - 1, 0)
 
-        if subset.freq == "3M":
+        if subset.freq == "Q":
             assert 0 <= offset < 4
             time_stamp = f"{starting_year}-{3 * (offset + 1):02}-15"
-        elif subset.freq == "12M":
+        elif subset.freq == "Y":
             assert offset == 0
             time_stamp = f"{starting_year}-12-15"
-        elif subset.freq == "1M":
+        elif subset.freq == "M":
             assert 0 <= offset < 12
             time_stamp = f"{starting_year}-{offset + 1:02}-15"
 

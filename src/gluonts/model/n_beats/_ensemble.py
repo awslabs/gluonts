@@ -14,20 +14,15 @@
 import copy
 import logging
 import os
-
-# Standard library imports
 from itertools import product
 from pathlib import Path
 from typing import Iterator, List, Optional
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 from pydantic import ValidationError
 
 from gluonts.core import fqname_for
-
-# First-party imports
 from gluonts.core.component import from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_json, load_json
@@ -41,8 +36,6 @@ from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 
 from ._estimator import NBEATSEstimator
-
-# Relative imports
 from ._network import VALID_LOSS_FUNCTIONS
 
 # None is also a valid parameter
@@ -50,7 +43,7 @@ AGGREGATION_METHODS = "median", "mean", "none"
 
 
 class NBEATSEnsemblePredictor(Predictor):
-    """"
+    """ "
     An ensemble predictor for N-BEATS.
     Calling '.predict' will result in::
 
