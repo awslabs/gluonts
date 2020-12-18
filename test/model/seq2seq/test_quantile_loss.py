@@ -47,4 +47,3 @@ def test_compute_quantile_loss(quantile_weights, correct_qt_loss) -> None:
         assert (
             nd.mean(loss(y_true, y_pred)) - correct_qt_loss < 1e-5
         ), f"computing weighted quantile loss fails!"
-
