@@ -15,7 +15,6 @@ from mxnet import nd
 
 from gluonts.mx.block.quantile_output import QuantileLoss
 
-
 def test_compute_quantile_loss() -> None:
     y_true = nd.ones(shape=(10, 10, 10))
     y_pred = nd.zeros(shape=(10, 10, 10, 2))
@@ -36,3 +35,21 @@ def test_compute_quantile_loss() -> None:
             - correct_qt_loss[idx]
             < 1e-5
         ), f"computing quantile loss at quantile {q} fails!"
+
+def test_compute_weighted_quantile_loss() -> None:
+    y_true = nd.ones(shape=(10, 10, 10))
+    y_pred = nd.zeros(shape=(10, 10, 10, 2))
+
+    quantiles = [0.5, 0.9]
+    quantile_weights = [0.5, 0.5]
+
+    loss = QuantileLoss(quantiles, quantile_weights)
+    # print(nd.mean(loss(y_true, y_pred)))
+    correct_weighted_qt_loss = 1.4
+    assert (
+        nd.mean(
+            loss(y_true, y_pred)
+        )
+        - correct_weighted_qt_loss
+        < 1e+2
+    ), f"computing weighted quantile loss fails!"
