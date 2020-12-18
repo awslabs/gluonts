@@ -106,19 +106,19 @@ class ISSM:
         pass
 
     def latent_dim(self) -> int:
-        raise NotImplemented()
+        raise NotImplementedError
 
     def output_dim(self) -> int:
-        raise NotImplemented()
+        raise NotImplementedError
 
     def emission_coeff(self, seasonal_indicators: Tensor):
-        raise NotImplemented()
+        raise NotImplementedError
 
     def transition_coeff(self, seasonal_indicators: Tensor):
-        raise NotImplemented()
+        raise NotImplementedError
 
     def innovation_coeff(self, seasonal_indicators: Tensor):
-        raise NotImplemented()
+        raise NotImplementedError
 
     def get_issm_coeff(
         self, seasonal_indicators: Tensor

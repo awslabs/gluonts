@@ -141,7 +141,9 @@ class TransformedDistribution(Distribution):
     def sample_rep(
         self, num_samples: Optional[int] = None, dtype=np.float
     ) -> Tensor:
-        s = self.base_distribution.sample_rep(dtype=dtype)
+        s = self.base_distribution.sample_rep(
+            num_samples=num_samples, dtype=dtype
+        )
         for t in self.transforms:
             s = t.f(s)
         return s
