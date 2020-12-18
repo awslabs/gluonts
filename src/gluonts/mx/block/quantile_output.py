@@ -24,12 +24,12 @@ from gluonts.mx import Tensor
 class QuantileLoss(Loss):
     @validated()
     def __init__(
-        self,
-        quantiles: List[float],
-        quantile_weights: List[float] = None,
-        weight=None,
-        batch_axis=0,
-        **kwargs,
+            self,
+            quantiles: List[float],
+            quantile_weights: List[float] = None,
+            weight=None,
+            batch_axis=0,
+            **kwargs,
     ) -> None:
         """
         Represents the quantile loss used to fit decoders that learn quantiles.
@@ -53,14 +53,14 @@ class QuantileLoss(Loss):
         self.quantiles = quantiles
         self.num_quantiles = len(quantiles)
         self.quantile_weights = (
-            nd.ones(self.num_quantiles) / self.num_quantiles
+            [1.0/self.num_quantiles for i in range(self.num_quantiles)]
             if not quantile_weights
             else quantile_weights
         )
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self, F, y_true: Tensor, y_pred: Tensor, sample_weight=None
+            self, F, y_true: Tensor, y_pred: Tensor, sample_weight=None
     ):
         """
         Compute the weighted sum of quantile losses.
@@ -94,8 +94,8 @@ class QuantileLoss(Loss):
         for i, y_pred_q in enumerate(y_pred_all):
             q = self.quantiles[i]
             weighted_qt = (
-                self.compute_quantile_loss(F, y_true, y_pred_q, q)
-                * self.quantile_weights[i].asscalar()
+                    self.compute_quantile_loss(F, y_true, y_pred_q, q)
+                    * self.quantile_weights[i]
             )
             qt_loss.append(weighted_qt)
         stacked_qt_losses = F.stack(*qt_loss, axis=-1)
@@ -109,7 +109,7 @@ class QuantileLoss(Loss):
 
     @staticmethod
     def compute_quantile_loss(
-        F, y_true: Tensor, y_pred_p: Tensor, p: float
+            F, y_true: Tensor, y_pred_p: Tensor, p: float
     ) -> Tensor:
         """
         Compute the quantile loss of the given quantile
@@ -198,9 +198,9 @@ class QuantileOutput:
 
     @validated()
     def __init__(
-        self,
-        quantiles: List[float],
-        quantile_weights: Optional[List[float]] = None,
+            self,
+            quantiles: List[float],
+            quantile_weights: Optional[List[float]] = None,
     ) -> None:
         self.quantiles = quantiles
         self.quantile_weights = quantile_weights
