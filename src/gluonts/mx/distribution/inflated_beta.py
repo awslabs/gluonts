@@ -75,7 +75,9 @@ class ZeroAndOneInflatedBeta(MixtureDistribution):
         F = self.F
 
         # mask zeros for the Beta distribution input to prevent NaN gradients
-        inputs = F.where(F.logical_or(x == 0, x == 1), x.zeros_like() + 0.5, x)
+        inputs = F.where(
+            F.broadcast_logical_or(x == 0, x == 1), x.zeros_like() + 0.5, x
+        )
 
         # compute log density, case by case
         return F.where(
