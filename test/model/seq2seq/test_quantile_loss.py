@@ -48,18 +48,3 @@ def test_compute_quantile_loss(quantile_weights, correct_qt_loss) -> None:
             nd.mean(loss(y_true, y_pred)) - correct_qt_loss < 1e-5
         ), f"computing weighted quantile loss fails!"
 
-
-#
-# def test_compute_weighted_quantile_loss() -> None:
-#     y_true = nd.ones(shape=(10, 10, 10))
-#     y_pred = nd.zeros(shape=(10, 10, 10, 2))
-#
-#     quantiles = [0.5, 0.9]
-#     quantile_weights = [0.5, 0.5]
-#
-#     loss = QuantileLoss(quantiles, quantile_weights)
-#     # print(nd.mean(loss(y_true, y_pred)))
-#     correct_weighted_qt_loss = 1.4
-#     assert (
-#         nd.mean(loss(y_true, y_pred)) - correct_weighted_qt_loss < 1e2
-#     ), f"computing weighted quantile loss fails!"
