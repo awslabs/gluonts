@@ -12,42 +12,54 @@
 # permissions and limitations under the License.
 
 from mxnet import nd
+import pytest
 
 from gluonts.mx.block.quantile_output import QuantileLoss
 
 
-def test_compute_quantile_loss() -> None:
+@pytest.mark.parametrize(
+    "quantile_weights, correct_qt_loss",
+    [
+        (None, [1.0, 1.8]),
+        ([0.5, 0.5], 1.4),
+    ],
+)
+def test_compute_quantile_loss(quantile_weights, correct_qt_loss) -> None:
     y_true = nd.ones(shape=(10, 10, 10))
     y_pred = nd.zeros(shape=(10, 10, 10, 2))
 
     quantiles = [0.5, 0.9]
-
-    loss = QuantileLoss(quantiles)
-
-    correct_qt_loss = [1.0, 1.8]
-
-    for idx, q in enumerate(quantiles):
-        assert (
-            nd.mean(
-                loss.compute_quantile_loss(
-                    nd.ndarray, y_true, y_pred[:, :, :, idx], q
-                )
-            )
-            - correct_qt_loss[idx]
-            < 1e-5
-        ), f"computing quantile loss at quantile {q} fails!"
-
-
-def test_compute_weighted_quantile_loss() -> None:
-    y_true = nd.ones(shape=(10, 10, 10))
-    y_pred = nd.zeros(shape=(10, 10, 10, 2))
-
-    quantiles = [0.5, 0.9]
-    quantile_weights = [0.5, 0.5]
 
     loss = QuantileLoss(quantiles, quantile_weights)
-    # print(nd.mean(loss(y_true, y_pred)))
-    correct_weighted_qt_loss = 1.4
-    assert (
-        nd.mean(loss(y_true, y_pred)) - correct_weighted_qt_loss < 1e2
-    ), f"computing weighted quantile loss fails!"
+    print(quantile_weights, correct_qt_loss)
+    if quantile_weights == None:
+        for idx, q in enumerate(quantiles):
+            assert (
+                nd.mean(
+                    loss.compute_quantile_loss(
+                        nd.ndarray, y_true, y_pred[:, :, :, idx], q
+                    )
+                )
+                - correct_qt_loss[idx]
+                < 1e-5
+            ), f"computing quantile loss at quantile {q} fails!"
+    else:
+        assert (
+            nd.mean(loss(y_true, y_pred)) - correct_qt_loss < 1e-5
+        ), f"computing weighted quantile loss fails!"
+
+
+#
+# def test_compute_weighted_quantile_loss() -> None:
+#     y_true = nd.ones(shape=(10, 10, 10))
+#     y_pred = nd.zeros(shape=(10, 10, 10, 2))
+#
+#     quantiles = [0.5, 0.9]
+#     quantile_weights = [0.5, 0.5]
+#
+#     loss = QuantileLoss(quantiles, quantile_weights)
+#     # print(nd.mean(loss(y_true, y_pred)))
+#     correct_weighted_qt_loss = 1.4
+#     assert (
+#         nd.mean(loss(y_true, y_pred)) - correct_weighted_qt_loss < 1e2
+#     ), f"computing weighted quantile loss fails!"
