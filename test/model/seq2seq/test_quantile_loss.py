@@ -15,6 +15,7 @@ from mxnet import nd
 
 from gluonts.mx.block.quantile_output import QuantileLoss
 
+
 def test_compute_quantile_loss() -> None:
     y_true = nd.ones(shape=(10, 10, 10))
     y_pred = nd.zeros(shape=(10, 10, 10, 2))

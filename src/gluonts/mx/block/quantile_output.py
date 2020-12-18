@@ -109,7 +109,7 @@ class QuantileLoss(Loss):
 
     @staticmethod
     def compute_quantile_loss(
-            F, y_true: Tensor, y_pred_p: Tensor, p: float
+        F, y_true: Tensor, y_pred_p: Tensor, p: float
     ) -> Tensor:
         """
         Compute the quantile loss of the given quantile
