@@ -53,7 +53,7 @@ class QuantileLoss(Loss):
         self.quantiles = quantiles
         self.num_quantiles = len(quantiles)
         self.quantile_weights = (
-            [1.0/self.num_quantiles for i in range(self.num_quantiles)]
+            [1.0 / self.num_quantiles for i in range(self.num_quantiles)]
             if not quantile_weights
             else quantile_weights
         )
