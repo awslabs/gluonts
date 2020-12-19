@@ -31,8 +31,8 @@ def test_compute_quantile_loss(quantile_weights, correct_qt_loss) -> None:
     quantiles = [0.5, 0.9]
 
     loss = QuantileLoss(quantiles, quantile_weights)
-    print(quantile_weights, correct_qt_loss)
-    if quantile_weights == None:
+    tol = 1e-5
+    if not quantile_weights:
         for idx, q in enumerate(quantiles):
             assert (
                 nd.mean(
@@ -41,9 +41,9 @@ def test_compute_quantile_loss(quantile_weights, correct_qt_loss) -> None:
                     )
                 )
                 - correct_qt_loss[idx]
-                < 1e-5
+                < tol
             ), f"computing quantile loss at quantile {q} fails!"
     else:
         assert (
-            nd.mean(loss(y_true, y_pred)) - correct_qt_loss < 1e-5
+            nd.mean(loss(y_true, y_pred)) - correct_qt_loss < tol
         ), f"computing weighted quantile loss fails!"
