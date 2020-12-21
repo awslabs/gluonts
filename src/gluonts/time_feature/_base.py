@@ -116,9 +116,9 @@ class WeekOfYear(TimeFeature):
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
-            return (index.weekofyear - 1) / 52.0 - 0.5
+            return (index.isocalendar().week - 1) / 52.0 - 0.5
         else:
-            return (index.weekofyear - 1).map(float)
+            return (index.isocalendar().week - 1).map(float)
 
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
