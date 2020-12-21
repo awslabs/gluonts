@@ -24,6 +24,13 @@ from gluonts.time_feature import (
     DayOfYear,
     WeekOfYear,
     MonthOfYear,
+    MinuteOfHourIndex,
+    HourOfDayIndex,
+    DayOfWeekIndex,
+    DayOfMonthIndex,
+    DayOfYearIndex,
+    WeekOfYearIndex,
+    MonthOfYearIndex,
 )
 
 
@@ -59,39 +66,39 @@ def test_feature_normalized_bounds(
     "feature, index, cardinality",
     [
         (
-            MinuteOfHour(normalized=False),
+            MinuteOfHourIndex(),
             pd.date_range(
                 "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1min"
             ),
             60,
         ),
         (
-            HourOfDay(normalized=False),
+            HourOfDayIndex(),
             pd.date_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
             24,
         ),
         (
-            DayOfWeek(normalized=False),
+            DayOfWeekIndex(),
             pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
             7,
         ),
         (
-            DayOfMonth(normalized=False),
+            DayOfMonthIndex(),
             pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
             31,
         ),
         (
-            DayOfYear(normalized=False),
+            DayOfYearIndex(),
             pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
             366,
         ),
         (
-            WeekOfYear(normalized=False),
+            WeekOfYearIndex(),
             pd.date_range("01-01-2015", periods=53 * 5, freq="W"),
             53,
         ),
         (
-            MonthOfYear(normalized=False),
+            MonthOfYearIndex(),
             pd.date_range("01-01-2015", periods=12 * 5, freq="M"),
             12,
         ),

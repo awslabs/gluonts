@@ -12,14 +12,21 @@
 # permissions and limitations under the License.
 
 from ._base import (
+    TimeFeature,
     DayOfMonth,
     DayOfWeek,
     DayOfYear,
     HourOfDay,
     MinuteOfHour,
     MonthOfYear,
-    TimeFeature,
     WeekOfYear,
+    DayOfMonthIndex,
+    DayOfWeekIndex,
+    DayOfYearIndex,
+    HourOfDayIndex,
+    MinuteOfHourIndex,
+    MonthOfYearIndex,
+    WeekOfYearIndex,
     time_features_from_frequency_str,
 )
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
@@ -35,6 +42,14 @@ __all__ = [
     "MonthOfYear",
     "TimeFeature",
     "WeekOfYear",
+    "DayOfMonthIndex",
+    "DayOfWeekIndex",
+    "DayOfYearIndex",
+    "HourOfDayIndex",
+    "MinuteOfHourIndex",
+    "MonthOfYearIndex",
+    "TimeFeatureIndex",
+    "WeekOfYearIndex",
     "SPECIAL_DATE_FEATURES",
     "SpecialDateFeatureSet",
     "get_lags_for_frequency",
