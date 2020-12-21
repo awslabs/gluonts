@@ -20,12 +20,12 @@ from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.util import _broadcast_param
 from gluonts.time_feature import (
-    DayOfWeek,
-    HourOfDay,
-    MinuteOfHour,
-    MonthOfYear,
     TimeFeature,
-    WeekOfYear,
+    DayOfWeekIndex,
+    HourOfDayIndex,
+    MinuteOfHourIndex,
+    MonthOfYearIndex,
+    WeekOfYearIndex,
 )
 
 
@@ -310,19 +310,19 @@ class CompositeISSM(ISSM):
     def seasonal_features(cls, freq: str) -> List[TimeFeature]:
         offset = to_offset(freq)
         if offset.name == "M":
-            return [MonthOfYear(normalized=False)]
+            return [MonthOfYearIndex()]
         elif offset.name == "W-SUN":
-            return [WeekOfYear(normalized=False)]
+            return [WeekOfYearIndex()]
         elif offset.name == "D":
-            return [DayOfWeek(normalized=False)]
+            return [DayOfWeekIndex()]
         elif offset.name == "B":  # TODO: check this case
-            return [DayOfWeek(normalized=False)]
+            return [DayOfWeekIndex()]
         elif offset.name == "H":
-            return [HourOfDay(normalized=False), DayOfWeek(normalized=False)]
+            return [HourOfDayIndex(), DayOfWeekIndex()]
         elif offset.name == "T":
             return [
-                MinuteOfHour(normalized=False),
-                HourOfDay(normalized=False),
+                MinuteOfHourIndex(),
+                HourOfDayIndex(),
             ]
         else:
             RuntimeError(f"Unsupported frequency {offset.name}")
