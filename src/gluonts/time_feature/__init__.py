@@ -34,13 +34,13 @@ from .lag import get_lags_for_frequency
 from .seasonality import get_seasonality
 
 __all__ = [
+    "TimeFeature",
     "DayOfMonth",
     "DayOfWeek",
     "DayOfYear",
     "HourOfDay",
     "MinuteOfHour",
     "MonthOfYear",
-    "TimeFeature",
     "WeekOfYear",
     "DayOfMonthIndex",
     "DayOfWeekIndex",
@@ -48,7 +48,6 @@ __all__ = [
     "HourOfDayIndex",
     "MinuteOfHourIndex",
     "MonthOfYearIndex",
-    "TimeFeatureIndex",
     "WeekOfYearIndex",
     "SPECIAL_DATE_FEATURES",
     "SpecialDateFeatureSet",
