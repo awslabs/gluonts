@@ -19,6 +19,13 @@ from mxnet.gluon import nn
 from gluonts.mx import Tensor
 
 
+def _get_singleton(a):
+    if isinstance(a, (list, tuple)):
+        assert len(a) == 1
+        return a[0]
+    return a
+
+
 class CausalConv1D(gluon.HybridBlock):
     """
     1D causal temporal convolution, where the term causal means that output[t]
@@ -60,10 +67,8 @@ class CausalConv1D(gluon.HybridBlock):
     ):
         super(CausalConv1D, self).__init__(**kwargs)
 
-        self.dilation = dilation if isinstance(dilation, int) else dilation[0]
-        self.kernel_size = (
-            kernel_size if isinstance(kernel_size, int) else kernel_size[0]
-        )
+        self.dilation = _get_singleton(dilation)
+        self.kernel_size = _get_singleton(kernel_size)
         self.padding = self.dilation * (self.kernel_size - 1)
         self.conv1d = nn.Conv1D(
             channels=channels,
