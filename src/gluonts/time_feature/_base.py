@@ -80,9 +80,9 @@ class DayOfMonth(TimeFeature):
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
-            return index.day / 30.0 - 0.5
+            return (index.day - 1) / 30.0 - 0.5
         else:
-            return index.day.map(float)
+            return (index.day - 1).map(float)
 
 
 class DayOfYear(TimeFeature):
@@ -92,9 +92,9 @@ class DayOfYear(TimeFeature):
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
-            return index.dayofyear / 364.0 - 0.5
+            return (index.dayofyear - 1) / 365.0 - 0.5
         else:
-            return index.dayofyear.map(float)
+            return (index.dayofyear - 1).map(float)
 
 
 class MonthOfYear(TimeFeature):
@@ -104,9 +104,9 @@ class MonthOfYear(TimeFeature):
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
-            return index.month / 11.0 - 0.5
+            return (index.month - 1) / 11.0 - 0.5
         else:
-            return index.month.map(float)
+            return (index.month - 1).map(float)
 
 
 class WeekOfYear(TimeFeature):
@@ -116,9 +116,9 @@ class WeekOfYear(TimeFeature):
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
-            return index.weekofyear / 51.0 - 0.5
+            return (index.weekofyear - 1) / 52.0 - 0.5
         else:
-            return index.weekofyear.map(float)
+            return (index.weekofyear - 1).map(float)
 
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
