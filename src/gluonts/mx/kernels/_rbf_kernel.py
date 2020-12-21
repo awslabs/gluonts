@@ -117,16 +117,13 @@ class RBFKernelOutput(KernelOutputDict):
         return amplitude_scaling, length_scale_scaling, sigma_scaling
 
     # noinspection PyMethodOverriding,PyPep8Naming
-    @classmethod
-    def domain_map(
-        cls, F, amplitude: Tensor, length_scale: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+    def domain_map(self, F, amplitude, length_scale):
         """
         This function applies the softmax to the RBF Kernel hyper-parameters.
 
         Parameters
         ----------
-        F: mx.symbol or mx.nd
+        F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
         amplitude
@@ -136,7 +133,7 @@ class RBFKernelOutput(KernelOutputDict):
 
         Returns
         -------
-        Tuple
+        Tuple[Tensor, Tenspr]
             Two GP RBF kernel hyper-parameters.
             Each is a Tensor of shape: (batch_size, 1, 1).
         """
