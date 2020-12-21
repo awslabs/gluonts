@@ -62,10 +62,10 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
     def hybrid_forward(
         self,
         F,
-        encoder_output_static: Tensor,
-        encoder_output_dynamic: Tensor,
-        future_features_dynamic: Tensor,
-    ) -> Tuple[Tensor, Tensor]:
+        encoder_output_static,
+        encoder_output_dynamic,
+        future_features_dynamic,
+    ):
         """
         Parameters
         ----------
@@ -100,10 +100,10 @@ class FutureFeatIntegratorEnc2Dec(Seq2SeqEnc2Dec):
     def hybrid_forward(
         self,
         F,
-        encoder_output_static: Tensor,
-        encoder_output_dynamic: Tensor,
-        future_features_dynamic: Tensor,
-    ) -> Tuple[Tensor, Tensor]:
+        encoder_output_static,
+        encoder_output_dynamic,
+        future_features_dynamic,
+    ):
         """
         Parameters
         ----------

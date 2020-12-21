@@ -30,9 +30,7 @@ class Seq2SeqDecoder(nn.HybridBlock):
         super().__init__(**kwargs)
 
     # noinspection PyMethodOverriding
-    def hybrid_forward(
-        self, F, dynamic_input: Tensor, static_input: Tensor
-    ) -> None:
+    def hybrid_forward(self, F, dynamic_input, static_input):
         """
         Abstract function definition of the hybrid_forward.
 
@@ -47,7 +45,7 @@ class Seq2SeqDecoder(nn.HybridBlock):
             static features, shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         """
-        pass
+        raise NotImplementedError
 
 
 # TODO: add support for static variables at some point
@@ -165,9 +163,7 @@ class OneShotDecoder(Seq2SeqDecoder):
                 units=decoder_length * static_outputs_per_time_step
             )
 
-    def hybrid_forward(
-        self, F, static_input: Tensor, dynamic_input: Tensor
-    ) -> Tensor:
+    def hybrid_forward(self, F, static_input, dynamic_input):
         """
         OneShotDecoder forward call
 

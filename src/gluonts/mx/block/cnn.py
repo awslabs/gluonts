@@ -53,20 +53,22 @@ class CausalConv1D(gluon.HybridBlock):
     def __init__(
         self,
         channels: int,
-        kernel_size: int,
-        dilation: int = 1,
+        kernel_size: Union[int, Tuple[int], List[int]],
+        dilation: Union[int, Tuple[int], List[int]] = 1,
         activation: Optional[str] = None,
         **kwargs,
     ):
         super(CausalConv1D, self).__init__(**kwargs)
 
-        self.dilation = dilation
-        self.kernel_size = kernel_size
-        self.padding = dilation * (kernel_size - 1)
+        self.dilation = dilation if isinstance(dilation, int) else dilation[0]
+        self.kernel_size = (
+            kernel_size if isinstance(kernel_size, int) else kernel_size[0]
+        )
+        self.padding = self.dilation * (self.kernel_size - 1)
         self.conv1d = nn.Conv1D(
             channels=channels,
-            kernel_size=kernel_size,
-            dilation=dilation,
+            kernel_size=self.kernel_size,
+            dilation=self.dilation,
             padding=self.padding,
             activation=activation,
             **kwargs,

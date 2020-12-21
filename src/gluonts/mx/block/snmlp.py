@@ -95,11 +95,11 @@ class SNMLPBlock(mx.gluon.HybridBlock):
         self._weight_initializer = mx.init.Orthogonal(scale=self._coeff)
         self._bias_initializer = "zeros"
         self._flatten = flatten
-        self._cached_inputs = []
+        self._cached_inputs: List[Tensor] = []
 
         in_dim = self._in_units
         with self.name_scope():
-            self._layers = []
+            self._layers: List[mx.gluon.HybridBlock] = []
             for i in range(self._num_hidden_layers):
                 lin = SNDense(
                     self._hidden_units,
