@@ -85,8 +85,8 @@ class ServerFacade:
     def batch_invocations(
         self, data_entries: Iterable[DataEntry]
     ) -> List[dict]:
-        instances = map(serialize_data_entry, data_entries)
-        instances = list(map(json.dumps, instances))
+        instances_pre = map(serialize_data_entry, data_entries)
+        instances = list(map(json.dumps, instances_pre))
 
         response = requests.post(
             url=self.url("/invocations"), data="\n".join(instances)
