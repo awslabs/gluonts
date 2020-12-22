@@ -81,7 +81,7 @@ class ActivationRegularizationLoss(Loss):
                     state = F.stack(*state, axis=self._time_axis)
                 means.append(
                     self._alpha
-                    * state.__pow__(2).mean(
+                    * F.power(state, 2).mean(
                         axis=self._batch_axis, exclude=True
                     )
                 )
@@ -158,7 +158,7 @@ class TemporalActivationRegularizationLoss(Loss):
                 sub_state_diff = F.elemwise_sub(sub_state_1, sub_state_2)
                 means.append(
                     self._beta
-                    * sub_state_diff.__pow__(2).mean(
+                    * F.power(sub_state_diff, 2).mean(
                         axis=self._batch_axis, exclude=True
                     )
                 )

@@ -124,6 +124,7 @@ class VariationalZoneoutCell(ModifierCell):
         )
 
         self._initialize_states_masks(F, next_states)
+        assert self.zoneout_states_mask is not None
 
         new_states = (
             [

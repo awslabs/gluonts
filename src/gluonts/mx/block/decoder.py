@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import List, Optional
 
 from mxnet.gluon import nn
 
@@ -31,23 +31,22 @@ class Seq2SeqDecoder(nn.HybridBlock):
 
     # noinspection PyMethodOverriding
     def hybrid_forward(
-        self, F, dynamic_input: Tensor, static_input: Tensor
-    ) -> None:
+        self, F, static_input: Tensor, dynamic_input: Tensor
+    ) -> Tensor:
         """
         Abstract function definition of the hybrid_forward.
 
         Parameters
         ----------
+        static_input
+            static features, shape (batch_size, channels_seq[-1] + 1) or (N, C)
+
         dynamic_input
             dynamic_features, shape (batch_size, sequence_length, channels_seq[-1]
             + 1 + decoder_length * num_feat_dynamic)
             or (N, T, C)
-
-        static_input
-            static features, shape (batch_size, channels_seq[-1] + 1) or (N, C)
-
         """
-        pass
+        raise NotImplementedError
 
 
 # TODO: add support for static variables at some point
@@ -105,7 +104,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
 
     # TODO: add support for static input at some point
     def hybrid_forward(
-        self, F, dynamic_input: Tensor, static_input: Tensor = None
+        self, F, static_input: Tensor, dynamic_input: Tensor
     ) -> Tensor:
         """
         ForkingMLPDecoder forward call.
@@ -115,12 +114,12 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
+        static_input
+            not used in this decoder.
         dynamic_input
             dynamic_features, shape (batch_size, sequence_length, num_features) or (N, T, C)
             where sequence_length is equal to the encoder length, and num_features is equal
             to channels_seq[-1] + 1 + decoder_length * num_feat_dynamic for the MQ-CNN for example.
-        static_input
-            not used in this decoder.
 
         Returns
         -------

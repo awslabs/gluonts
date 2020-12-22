@@ -146,27 +146,25 @@ class PeriodicKernelOutput(KernelOutputDict):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     @classmethod
-    def domain_map(
-        cls, F, amplitude: Tensor, length_scale: Tensor, frequency: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
-        """
+    def domain_map(cls, F, amplitude, length_scale, frequency):
+        r"""
         This function applies the softmax to the Periodic Kernel hyper-parameters.
 
         Parameters
         ----------
-        F : ModuleType
+        F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-        amplitude : Tensor
+        amplitude
             Periodic kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
-        length_scale : Tensor
+        length_scale
             Periodic kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
-        frequency : Tensor
+        frequency
             Periodic kernel hyper-parameter of shape (batch_size, 1, 1).
 
         Returns
         -------
-        Tuple
+        Tuple[Tensor, Tensor, Tensor]
             Three GP Periodic kernel hyper-parameters.
             Each is a Tensor of shape: (batch_size, 1, 1).
         """

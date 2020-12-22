@@ -26,9 +26,9 @@ class QuantileLoss(Loss):
     def __init__(
         self,
         quantiles: List[float],
-        quantile_weights: List[float] = None,
-        weight=None,
-        batch_axis=0,
+        quantile_weights: Optional[List[float]] = None,
+        weight: Optional[float] = None,
+        batch_axis: int = 0,
         **kwargs,
     ) -> None:
         """
@@ -42,10 +42,10 @@ class QuantileLoss(Loss):
         quantile_weights
             weights of the quantiles.
 
-        weight:
+        weight
             weighting of the loss.
 
-        batch_axis:
+        batch_axis
             indicates axis that represents the batch.
         """
         super().__init__(weight, batch_axis, **kwargs)
