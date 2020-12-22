@@ -263,7 +263,7 @@ class NBEATSEstimator(GluonEstimator):
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     time_series_fields=[FieldName.OBSERVED_VALUES],
-                )
+                ),
             ]
         )
 
@@ -283,7 +283,7 @@ class NBEATSEstimator(GluonEstimator):
             stack_types=self.stack_types,
             loss_function=self.loss_function,
             freq=self.freq,
-            scale=self.scale
+            scale=self.scale,
         )
 
     # we now define how the prediction happens given that we are provided a
@@ -302,7 +302,7 @@ class NBEATSEstimator(GluonEstimator):
             sharing=self.sharing,
             stack_types=self.stack_types,
             params=trained_network.collect_params(),
-            scale=self.scale
+            scale=self.scale,
         )
 
         return RepresentableBlockPredictor(

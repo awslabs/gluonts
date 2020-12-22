@@ -517,7 +517,13 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                     )
 
     # noinspection PyMethodOverriding,PyPep8Naming
-    def hybrid_forward(self, F, past_target: Tensor, past_observed_values: Tensor, future_observed_values: Tensor):
+    def hybrid_forward(
+        self,
+        F,
+        past_target: Tensor,
+        past_observed_values: Tensor,
+        future_observed_values: Tensor,
+    ):
 
         past_target, scale = self.scaler(past_target, past_observed_values)
 
@@ -536,11 +542,11 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
 
         forecast = F.broadcast_mul(forecast, scale)
 
-        return forecast if future_observed_values is None else forecast * future_observed_values
-
-
-
-
+        return (
+            forecast
+            if future_observed_values is None
+            else forecast * future_observed_values
+        )
 
     def smape_loss(self, F, forecast: Tensor, future_target: Tensor) -> Tensor:
         r"""
@@ -639,8 +645,12 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
-            self, F, past_target: Tensor, future_target: Tensor,
-            past_observed_values: Tensor, future_observed_values: Tensor
+        self,
+        F,
+        past_target: Tensor,
+        future_target: Tensor,
+        past_observed_values: Tensor,
+        future_observed_values: Tensor,
     ) -> Tensor:
         """
 
@@ -666,9 +676,10 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             Loss tensor. Shape: (batch_size, ).
         """
         forecast = super().hybrid_forward(
-            F, past_target=past_target,
+            F,
+            past_target=past_target,
             past_observed_values=past_observed_values,
-            future_observed_values=future_observed_values
+            future_observed_values=future_observed_values,
         )
 
         if self.loss_function == "sMAPE":
@@ -694,8 +705,12 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
-            self, F, past_target: Tensor, future_target: Tensor = None,
-            past_observed_values: Tensor = None, future_observed_values: Tensor = None,
+        self,
+        F,
+        past_target: Tensor,
+        future_target: Tensor = None,
+        past_observed_values: Tensor = None,
+        future_observed_values: Tensor = None,
     ) -> Tensor:
         """
 
@@ -719,9 +734,10 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
             Prediction sample. Shape: (batch_size, 1, prediction_length).
         """
         forecasts = super().hybrid_forward(
-            F, past_target=past_target,
+            F,
+            past_target=past_target,
             past_observed_values=past_observed_values,
-            future_observed_values=None
+            future_observed_values=None,
         )
 
         # dimension collapsed previously because we only have one sample each:
