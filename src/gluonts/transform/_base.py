@@ -29,7 +29,7 @@ class Transformation(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
-    ) -> Iterator[DataEntry]:
+    ) -> Iterable[DataEntry]:
         pass
 
     def chain(self, other: "Transformation") -> "Chain":
@@ -46,7 +46,7 @@ class Chain(Transformation):
 
     @validated()
     def __init__(self, trans: List[Transformation]) -> None:
-        self.transformations = []
+        self.transformations: List[Transformation] = []
         for transformation in trans:
             # flatten chains
             if isinstance(transformation, Chain):
@@ -56,7 +56,7 @@ class Chain(Transformation):
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
-    ) -> Iterator[DataEntry]:
+    ) -> Iterable[DataEntry]:
         tmp = data_it
         for t in self.transformations:
             tmp = t(tmp, is_train)
@@ -66,7 +66,7 @@ class Chain(Transformation):
 class Identity(Transformation):
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
-    ) -> Iterator[DataEntry]:
+    ) -> Iterable[DataEntry]:
         return data_it
 
 

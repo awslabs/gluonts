@@ -100,7 +100,7 @@ class KernelOutputDict(KernelOutput):
     # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> tuple:
         raise NotImplementedError()
 
     # noinspection PyMethodOverriding,PyPep8Naming
