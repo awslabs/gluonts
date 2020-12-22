@@ -184,8 +184,8 @@ def test_seasonality_issm_h():
 
     season_indices = [[0] * 10, [0] * 2 + [1] * 8]
 
-    for item in range(1, 2):
-        for time in range(2, 10):
+    for item in range(2):
+        for time in range(10):
             season_indicator = mx.nd.one_hot(
                 mx.nd.array([season_indices[item][time]]), 12
             )
@@ -253,8 +253,8 @@ def test_composite_issm_h():
 
     season_indices_moy = [[0] * 10, [0] * 2 + [1] * 8]
 
-    for item in range(1, 2):
-        for time in range(2, 10):
+    for item in range(2):
+        for time in range(10):
             expected_coeff = mx.nd.concat(
                 mx.nd.ones((1, 1)),
                 mx.nd.one_hot(
@@ -328,8 +328,8 @@ def test_composite_issm_h_default():
 
     season_indices_dow = [[2] * 3 + [3] * 7, [3] * 10]
 
-    for item in range(1, 2):
-        for time in range(2, 10):
+    for item in range(2):
+        for time in range(10):
             expected_coeff = mx.nd.concat(
                 mx.nd.ones((1, 2)),
                 mx.nd.one_hot(
