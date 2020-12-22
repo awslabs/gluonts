@@ -19,7 +19,7 @@ from mxnet.gluon import nn
 from gluonts.mx import Tensor
 
 
-def _get_singleton(a: Union[int, List[int], Tuple[int]) -> int:
+def _get_int(a: Union[int, List[int], Tuple[int]]) -> int:
     if isinstance(a, (list, tuple)):
         assert len(a) == 1
         return a[0]
@@ -67,8 +67,8 @@ class CausalConv1D(gluon.HybridBlock):
     ):
         super(CausalConv1D, self).__init__(**kwargs)
 
-        self.dilation = _get_singleton(dilation)
-        self.kernel_size = _get_singleton(kernel_size)
+        self.dilation = _get_int(dilation)
+        self.kernel_size = _get_int(kernel_size)
         self.padding = self.dilation * (self.kernel_size - 1)
         self.conv1d = nn.Conv1D(
             channels=channels,
