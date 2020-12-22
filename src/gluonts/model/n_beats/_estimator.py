@@ -133,7 +133,7 @@ class NBEATSEstimator(GluonEstimator):
         loss_function: Optional[str] = "MAPE",
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
         batch_size: int = 32,
-        scale: Optional[bool] = True,
+        scale: Optional[bool] = False,
         **kwargs,
     ) -> None:
         """
