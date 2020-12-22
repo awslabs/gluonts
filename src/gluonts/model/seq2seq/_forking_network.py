@@ -195,7 +195,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         # arguments: dynamic_input, static_input
         # TODO: optimize what we pass to the decoder for the prediction case,
         #  where we we only need to pass the encoder output for the last time step
-        dec_output = self.decoder(dec_input_dynamic, dec_input_static)
+        dec_output = self.decoder(dec_input_static, dec_input_dynamic)
 
         # the output shape should be: (batch_size, num_forking, dec_len, decoder_mlp_dim_seq[0])
         return dec_output, scale
