@@ -36,7 +36,7 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
         encoder_output_static: Tensor,
         encoder_output_dynamic: Tensor,
         future_features_dynamic: Tensor,
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor]:
         """
         Parameters
         ----------
@@ -62,10 +62,10 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
     def hybrid_forward(
         self,
         F,
-        encoder_output_static,
-        encoder_output_dynamic,
-        future_features_dynamic,
-    ):
+        encoder_output_static: Tensor,
+        encoder_output_dynamic: Tensor,
+        future_features_dynamic: Tensor,
+    ) -> Tuple[Tensor, Tensor]:
         """
         Parameters
         ----------
@@ -100,10 +100,10 @@ class FutureFeatIntegratorEnc2Dec(Seq2SeqEnc2Dec):
     def hybrid_forward(
         self,
         F,
-        encoder_output_static,
-        encoder_output_dynamic,
-        future_features_dynamic,
-    ):
+        encoder_output_static: Tensor,
+        encoder_output_dynamic: Tensor,
+        future_features_dynamic: Tensor,
+    ) -> Tuple[Tensor, Tensor]:
         """
         Parameters
         ----------
@@ -141,4 +141,4 @@ class FutureFeatIntegratorEnc2Dec(Seq2SeqEnc2Dec):
             encoder_output_dynamic, future_features_dynamic, dim=2
         )
 
-        return (encoder_output_static, total_dec_input_dynamic)
+        return encoder_output_static, total_dec_input_dynamic
