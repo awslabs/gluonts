@@ -19,7 +19,7 @@ from mxnet.gluon import nn
 from gluonts.mx import Tensor
 
 
-def _get_singleton(a):
+def _get_singleton(a: Union[int, List[int], Tuple[int]) -> int:
     if isinstance(a, (list, tuple)):
         assert len(a) == 1
         return a[0]
