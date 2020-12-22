@@ -522,7 +522,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         F,
         past_target: Tensor,
         past_observed_values: Tensor,
-        future_observed_values: Tensor,
+        future_target: Optional[Tensor],
+        future_observed_values: Optional[Tensor],
     ):
 
         past_target, scale = self.scaler(past_target, past_observed_values)
@@ -679,6 +680,7 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             F,
             past_target=past_target,
             past_observed_values=past_observed_values,
+            future_target=None,
             future_observed_values=future_observed_values,
         )
 
@@ -737,6 +739,7 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
             F,
             past_target=past_target,
             past_observed_values=past_observed_values,
+            future_target=None,
             future_observed_values=None,
         )
 
