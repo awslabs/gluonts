@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import List, Optional
 
 import mxnet as mx
 import numpy as np
@@ -648,8 +648,8 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
         self,
         F,
         past_target: Tensor,
-        future_target: Tensor,
         past_observed_values: Tensor,
+        future_target: Tensor,
         future_observed_values: Tensor,
     ) -> Tensor:
         """
@@ -708,9 +708,9 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
         self,
         F,
         past_target: Tensor,
-        future_target: Tensor = None,
-        past_observed_values: Tensor = None,
-        future_observed_values: Tensor = None,
+        past_observed_values: Tensor,
+        future_target: Optional[Tensor] = None,
+        future_observed_values: Optional[Tensor] = None,
     ) -> Tensor:
         """
 
