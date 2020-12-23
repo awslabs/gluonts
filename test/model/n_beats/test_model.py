@@ -54,7 +54,7 @@ def args(dsinfo):
     }
 
 
-@pytest.fixture(params=["generic", "interpretable", "ensemble"])
+@pytest.fixture(params=["generic", "interpretable"])
 def name(request):
     return request.param
 
@@ -69,10 +69,10 @@ def estimator_config(args, name):
 @pytest.mark.skip("Skipping slow test.")
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_accuracy(accuracy_test, estimator_config, hybridize):
-    Estimator, hyperparameters = estimator_config[1:]
-    hyperparameters.update(num_batches_per_epoch=200, hybridize=hybridize)
+    estimator_cls, hyperparameters = estimator_config[1:]
+    hyperparameters.update(num_batches_per_epoch=50, hybridize=hybridize)
 
-    accuracy_test(Estimator, hyperparameters, accuracy=0.3)
+    accuracy_test(estimator_cls, hyperparameters, accuracy=0.3)
 
 
 def test_repr(repr_test, estimator_config):
@@ -80,6 +80,4 @@ def test_repr(repr_test, estimator_config):
 
 
 def test_serialize(serialize_test, estimator_config):
-    if estimator_config[0] == "generic":
-        pytest.skip("Too slow.")
     serialize_test(*estimator_config[1:])
