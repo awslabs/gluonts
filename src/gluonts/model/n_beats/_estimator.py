@@ -27,6 +27,7 @@ from gluonts.transform import (
     InstanceSplitter,
     Transformation,
     InstanceSampler,
+    AddObservedValuesIndicator,
 )
 
 from ._network import (
@@ -105,6 +106,8 @@ class NBEATSEstimator(GluonEstimator):
         Controls the sampling of windows during training.
     batch_size
         The size of the batches to be used training and prediction.
+    scale
+        if True scales the input observations by the mean
     kwargs
         Arguments passed to 'GluonEstimator'.
     """
@@ -130,6 +133,7 @@ class NBEATSEstimator(GluonEstimator):
         loss_function: Optional[str] = "MAPE",
         train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
         batch_size: int = 32,
+        scale: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -151,6 +155,7 @@ class NBEATSEstimator(GluonEstimator):
         ), f"The loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
 
         self.freq = freq
+        self.scale = scale
         self.prediction_length = prediction_length
         self.context_length = (
             context_length
@@ -244,6 +249,11 @@ class NBEATSEstimator(GluonEstimator):
     def create_transformation(self) -> Transformation:
         return Chain(
             [
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                    dtype=self.dtype,
+                ),
                 InstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,
@@ -252,8 +262,8 @@ class NBEATSEstimator(GluonEstimator):
                     train_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=self.prediction_length,
-                    time_series_fields=[],
-                )
+                    time_series_fields=[FieldName.OBSERVED_VALUES],
+                ),
             ]
         )
 
@@ -273,6 +283,7 @@ class NBEATSEstimator(GluonEstimator):
             stack_types=self.stack_types,
             loss_function=self.loss_function,
             freq=self.freq,
+            scale=self.scale,
         )
 
     # we now define how the prediction happens given that we are provided a
@@ -291,6 +302,7 @@ class NBEATSEstimator(GluonEstimator):
             sharing=self.sharing,
             stack_types=self.stack_types,
             params=trained_network.collect_params(),
+            scale=self.scale,
         )
 
         return RepresentableBlockPredictor(
