@@ -12,6 +12,9 @@ GluonTS contains:
 * Plotting and evaluation facilities
 * Artificial and real datasets (only external datasets with blessed license)
 
+```python
+!pip install matplotlib mxnet pandas gluonts
+```
 
 ```python
 %matplotlib inline
