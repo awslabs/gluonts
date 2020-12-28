@@ -269,7 +269,7 @@ class DeepStateEstimator(GluonEstimator):
                 ),
                 # Unnormalized seasonal features
                 AddTimeFeatures(
-                    time_features=CompositeISSM.seasonal_features(self.freq),
+                    time_features=self.issm.time_features(),
                     pred_length=self.prediction_length,
                     start_field=FieldName.START,
                     target_field=FieldName.TARGET,
