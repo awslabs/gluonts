@@ -133,7 +133,13 @@ class DistributionOutput(Output):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedDistribution(
-                distr, [AffineTransform(loc=loc, scale=scale)]
+                distr,
+                [
+                    AffineTransform(
+                        loc=0.0 if loc is None else loc,
+                        scale=1.0 if scale is None else scale,
+                    )
+                ],
             )
 
     @property
