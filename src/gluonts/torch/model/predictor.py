@@ -137,7 +137,7 @@ class PyTorchPredictor(Predictor):
         with (path / f"prediction_net.json").open("r") as fp:
             prediction_net = load_json(fp.read())
         prediction_net.load_state_dict(
-            torch.load(path / "prediction_net_state")
+            torch.load(path / "prediction_net_state", map_location=device)
         )
 
         parameters["device"] = device
