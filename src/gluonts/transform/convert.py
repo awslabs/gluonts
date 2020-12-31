@@ -438,7 +438,9 @@ class CDFtoGaussianTransform(MapTransformation):
         # sorts along the time dimension to compute empirical CDF of each
         # dimension
         if is_train:
-            past_target_vec = self._add_noise(past_target_vec)
+            past_target_vec = self._add_noise(past_target_vec).astype(
+                self.dtype
+            )
 
         past_target_vec.sort(axis=0)
 
@@ -542,7 +544,7 @@ class CDFtoGaussianTransform(MapTransformation):
         noise = np.random.normal(
             loc=np.zeros_like(x), scale=np.ones_like(x) * std * scale_noise
         )
-        x = (x + noise).astype(self.dtype)
+        x = x + noise
         return x
 
     @staticmethod
