@@ -33,7 +33,7 @@ def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
     raise NotImplementedError
 
 
-@singleddispatch
+@singledispatch
 def data_entry_to_numpy(data_entry) -> DataEntry:
     raise NotImplementedError
 
