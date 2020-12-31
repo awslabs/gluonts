@@ -37,9 +37,11 @@ from gluonts.transform import Transformation
 def _(prediction_net: nn.Module, inputs: torch.Tensor) -> np.ndarray:
     return prediction_net(*inputs).cpu().numpy()
 
+
 @data_entry_to_numpy.register(nn.Module)
 def _(data_entry: DataEntry) -> DataEntry:
-    return {key:value.cpu().numpy() for (key,value) in data_entry.items()}
+    return {key: value.cpu().numpy() for (key, value) in data_entry.items()}
+
 
 class PyTorchPredictor(Predictor):
     def __init__(
