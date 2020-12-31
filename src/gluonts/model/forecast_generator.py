@@ -13,7 +13,7 @@
 
 import logging
 from functools import singledispatch
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional, Dict
 
 import numpy as np
 
@@ -34,7 +34,7 @@ def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
 
 
 @singledispatch
-def data_entry_to_numpy(data_entry) -> DataEntry:
+def data_entry_to_numpy(data_entry) -> Dict[str, np.ndarray]:
     raise NotImplementedError
 
 

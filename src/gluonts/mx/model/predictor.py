@@ -15,7 +15,7 @@
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional, Dict
 
 import mxnet as mx
 import numpy as np
@@ -51,8 +51,8 @@ def _(prediction_net: mx.gluon.Block, inputs: mx.ndarray) -> np.ndarray:
     return prediction_net(*inputs).asnumpy()
 
 
-@data_entry_to_numpy.register(mx.gluon.Block)
-def _(data_entry: DataEntry) -> DataEntry:
+@data_entry_to_numpy.register
+def _(data_entry: dict[str, mx.ndarray.NDArray]) -> Dict[str, np.ndarray]:
     return {key: value.asnumpy() for (key, value) in data_entry.items()}
 
 
