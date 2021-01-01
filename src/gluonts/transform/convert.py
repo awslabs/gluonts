@@ -728,9 +728,6 @@ def cdf_to_gaussian_forward_transform(
             Forward transformed outputs.
 
         """
-        slopes = tensor_to_ndarray(slopes)
-        intercepts = tensor_to_ndarray(intercepts)
-        batch_target_sorted = tensor_to_ndarray(batch_target_sorted)
 
         batch_size, num_timesteps, target_dim = batch_target_sorted.shape
         indices = np.floor(batch_predictions * num_timesteps)
@@ -754,11 +751,11 @@ def cdf_to_gaussian_forward_transform(
     batch_size, samples, target_dim, time = outputs.shape
     for sample_index in range(0, samples):
         outputs[:, sample_index, :, :] = _empirical_cdf_inverse_transform(
-            input_batch["past_target_sorted"],
+            tensor_to_ndarray(input_batch["past_target_sorted"]),
             CDFtoGaussianTransform.standard_gaussian_cdf(
                 outputs[:, sample_index, :, :]
             ),
-            input_batch["slopes"],
-            input_batch["intercepts"],
+            tensor_to_ndarray(input_batch["slopes"]),
+            tensor_to_ndarray(input_batch["intercepts"]),
         )
     return outputs
