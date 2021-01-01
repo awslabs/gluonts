@@ -11,9 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import numpy as np
+
 import mxnet as mx
 
-from gluonts.core.component import equals, equals_default_impl, skip_encoding
+from gluonts.core.component import (
+    equals,
+    equals_default_impl,
+    skip_encoding,
+    tensor_to_ndarray,
+)
 
 
 @equals.register(mx.gluon.ParameterDict)
@@ -131,3 +138,8 @@ def equals_representable_block(
 @skip_encoding.register(mx.gluon.ParameterDict)
 def skip_encoding_mx_gluon_parameterdict(v: mx.gluon.ParameterDict) -> bool:
     return True
+
+
+@tensor_to_ndarray.register(mx.ndarray.NDArray)
+def _(tensor: mx.ndarray.NDArray) -> np.ndarray:
+    return tensor.asnumpy()

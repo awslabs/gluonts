@@ -33,11 +33,6 @@ def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
     raise NotImplementedError
 
 
-@singledispatch
-def data_entry_to_numpy(data_entry) -> Dict[str, np.ndarray]:
-    raise NotImplementedError
-
-
 def log_once(msg):
     global LOG_CACHE
     if msg not in LOG_CACHE:
@@ -82,7 +77,7 @@ class QuantileForecastGenerator(ForecastGenerator):
             inputs = [batch[k] for k in input_names]
             outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
-                outputs = output_transform(data_entry_to_numpy(batch), outputs)
+                outputs = output_transform(batch, outputs)
 
             if num_samples:
                 log_once(
@@ -123,16 +118,14 @@ class SampleForecastGenerator(ForecastGenerator):
             inputs = [batch[k] for k in input_names]
             outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
-                outputs = output_transform(data_entry_to_numpy(batch), outputs)
+                outputs = output_transform(batch, outputs)
             if num_samples:
                 num_collected_samples = outputs[0].shape[0]
                 collected_samples = [outputs]
                 while num_collected_samples < num_samples:
                     outputs = predict_to_numpy(prediction_net, inputs)
                     if output_transform is not None:
-                        outputs = output_transform(
-                            data_entry_to_numpy(batch), outputs
-                        )
+                        outputs = output_transform(batch, outputs)
                     collected_samples.append(outputs)
                     num_collected_samples += outputs[0].shape[0]
                 outputs = [

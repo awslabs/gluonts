@@ -15,7 +15,7 @@ from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import DType, validated, tensor_to_ndarray
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
 from gluonts.support.util import erf, erfinv
@@ -728,6 +728,9 @@ def cdf_to_gaussian_forward_transform(
             Forward transformed outputs.
 
         """
+        slopes = tensor_to_ndarray(slopes)
+        intercepts = tensor_to_ndarray(intercepts)
+        batch_target_sorted = tensor_to_ndarray(batch_target_sorted)
 
         batch_size, num_timesteps, target_dim = batch_target_sorted.shape
         indices = np.floor(batch_predictions * num_timesteps)

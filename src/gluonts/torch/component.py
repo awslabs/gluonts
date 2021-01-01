@@ -11,10 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import numpy as np
+
 import torch
-from gluonts.core.component import equals
+
+from gluonts.core.component import equals, tensor_to_ndarray
 
 
 @equals.register(torch.Tensor)
 def equals_tensor(this: torch.Tensor, that: torch.Tensor) -> bool:
     return torch.allclose(this, that)
+
+
+@tensor_to_ndarray.register(torch.Tensor)
+def _(tensor: torch.Tensor) -> np.ndarray:
+    return tensor.cpu().numpy()

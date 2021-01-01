@@ -23,7 +23,6 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
-    data_entry_to_numpy,
 )
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.model.forecast import DistributionForecast
@@ -89,9 +88,7 @@ class DistributionForecastGenerator(ForecastGenerator):
             inputs = [batch[k] for k in input_names]
             outputs = prediction_net(*inputs)
             if output_transform is not None:
-                outputs = output_transform(
-                    data_entry_to_numpy(batch), outputs.asnumpy()
-                )
+                outputs = output_transform(batch, outputs.asnumpy())
             if num_samples:
                 log_once(
                     "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."

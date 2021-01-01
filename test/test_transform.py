@@ -26,7 +26,6 @@ from gluonts.core.serde import dump_code, dump_json, load_code, load_json
 from gluonts.dataset.common import DataEntry, ListDataset, ProcessStartField
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
-from gluonts.model.forecast_generator import data_entry_to_numpy
 from gluonts.transform import (
     CausalMeanValueImputation,
     DummyValueImputation,
@@ -677,7 +676,7 @@ def test_cdf_to_gaussian_transformation():
         u["intercepts"] = mx.nd.array(np.expand_dims(u["intercepts"], axis=0))
 
         back_transformed = transform.cdf_to_gaussian_forward_transform(
-            data_entry_to_numpy(u), fake_output
+            u, fake_output
         )
 
         # Get any sample/batch (slopes[i][:, d]they are all the same)
