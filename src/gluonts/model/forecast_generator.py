@@ -13,7 +13,7 @@
 
 import logging
 from functools import singledispatch
-from typing import Callable, Iterator, List, Optional, Dict
+from typing import Callable, Iterator, List, Optional
 
 import numpy as np
 

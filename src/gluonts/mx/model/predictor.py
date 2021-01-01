@@ -15,7 +15,7 @@
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, Dict
+from typing import Callable, Iterator, List, Optional
 
 import mxnet as mx
 import numpy as np

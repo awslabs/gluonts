@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, Dict
+from typing import Callable, Iterator, List, Optional
 
 import numpy as np
 import torch
