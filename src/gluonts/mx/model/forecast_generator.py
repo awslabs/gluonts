@@ -86,7 +86,7 @@ class DistributionForecastGenerator(ForecastGenerator):
             inputs = [batch[k] for k in input_names]
             outputs = prediction_net(*inputs)
             if output_transform is not None:
-                outputs = output_transform(batch, outputs)
+                outputs = output_transform(batch, outputs.asnumpy())
             if num_samples:
                 log_once(
                     "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."

@@ -178,6 +178,11 @@ def equals_ndarray(this: np.ndarray, that: np.ndarray) -> bool:
 
 
 @singledispatch
+def tensor_to_numpy(tensor) -> np.ndarray:
+    raise NotImplementedError
+
+
+@singledispatch
 def skip_encoding(v: Any) -> bool:
     """
     Tells whether the input value `v` should be encoded using the
