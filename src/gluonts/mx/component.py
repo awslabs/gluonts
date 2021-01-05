@@ -19,7 +19,7 @@ from gluonts.core.component import (
     equals,
     equals_default_impl,
     skip_encoding,
-    tensor_to_ndarray,
+    tensor_to_numpy,
 )
 
 
@@ -140,6 +140,6 @@ def skip_encoding_mx_gluon_parameterdict(v: mx.gluon.ParameterDict) -> bool:
     return True
 
 
-@tensor_to_ndarray.register(mx.ndarray.NDArray)
+@tensor_to_numpy.register(mx.ndarray.NDArray)
 def _(tensor: mx.ndarray.NDArray) -> np.ndarray:
     return tensor.asnumpy()

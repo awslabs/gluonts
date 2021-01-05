@@ -178,7 +178,7 @@ def equals_ndarray(this: np.ndarray, that: np.ndarray) -> bool:
 
 
 @singledispatch
-def tensor_to_ndarray(tensor) -> np.ndarray:
+def tensor_to_numpy(tensor) -> np.ndarray:
     raise NotImplementedError
 
 

@@ -15,7 +15,7 @@ import numpy as np
 
 import torch
 
-from gluonts.core.component import equals, tensor_to_ndarray
+from gluonts.core.component import equals, tensor_to_numpy
 
 
 @equals.register(torch.Tensor)
@@ -23,6 +23,6 @@ def equals_tensor(this: torch.Tensor, that: torch.Tensor) -> bool:
     return torch.allclose(this, that)
 
 
-@tensor_to_ndarray.register(torch.Tensor)
+@tensor_to_numpy.register(torch.Tensor)
 def _(tensor: torch.Tensor) -> np.ndarray:
     return tensor.cpu().numpy()
