@@ -31,6 +31,7 @@ jobs:
         pip install -r requirements/requirements-extras-m-competitions.txt
         pip install -r requirements/requirements-rotbaum.txt
         pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
     - name: Test with pytest
       run: |
         pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test
