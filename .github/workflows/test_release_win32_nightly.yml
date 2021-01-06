@@ -37,6 +37,7 @@ jobs:
         pip install -r requirements/requirements-extras-m-competitions.txt
         pip install -r requirements/requirements-rotbaum.txt
         pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
       shell: powershell
     - name: Test with pytest
       run: |
