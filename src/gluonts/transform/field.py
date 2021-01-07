@@ -17,10 +17,10 @@ from typing import Any, Dict, List
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 
-from ._base import MapTransformation, SimpleTransformation
+from ._base import MapTransformation
 
 
-class RenameFields(SimpleTransformation):
+class RenameFields(MapTransformation):
     """
     Rename fields using a mapping, if source field present.
 
@@ -37,7 +37,7 @@ class RenameFields(SimpleTransformation):
         for new_key, count in values_count.items():
             assert count == 1, f"Mapped key {new_key} occurs multiple time"
 
-    def transform(self, data: DataEntry):
+    def map_transform(self, data: DataEntry):
         for key, new_key in self.mapping.items():
             if key in data:
                 # no implicit overriding
@@ -47,7 +47,7 @@ class RenameFields(SimpleTransformation):
         return data
 
 
-class RemoveFields(SimpleTransformation):
+class RemoveFields(MapTransformation):
     """ "
     Remove field names if present.
 
@@ -61,13 +61,13 @@ class RemoveFields(SimpleTransformation):
     def __init__(self, field_names: List[str]) -> None:
         self.field_names = field_names
 
-    def transform(self, data: DataEntry) -> DataEntry:
+    def map_transform(self, data: DataEntry) -> DataEntry:
         for k in self.field_names:
             data.pop(k, None)
         return data
 
 
-class SetField(SimpleTransformation):
+class SetField(MapTransformation):
     """
     Sets a field in the dictionary with the given value.
 
@@ -84,12 +84,12 @@ class SetField(SimpleTransformation):
         self.output_field = output_field
         self.value = value
 
-    def transform(self, data: DataEntry) -> DataEntry:
+    def map_transform(self, data: DataEntry) -> DataEntry:
         data[self.output_field] = self.value
         return data
 
 
-class SetFieldIfNotPresent(SimpleTransformation):
+class SetFieldIfNotPresent(MapTransformation):
     """Sets a field in the dictionary with the given value, in case it does not
     exist already.
 
@@ -106,7 +106,7 @@ class SetFieldIfNotPresent(SimpleTransformation):
         self.output_field = field
         self.value = value
 
-    def transform(self, data: DataEntry) -> DataEntry:
+    def map_transform(self, data: DataEntry) -> DataEntry:
         if self.output_field not in data.keys():
             data[self.output_field] = self.value
         return data
@@ -126,5 +126,5 @@ class SelectFields(MapTransformation):
     def __init__(self, input_fields: List[str]) -> None:
         self.input_fields = input_fields
 
-    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+    def map_transform(self, data: DataEntry) -> DataEntry:
         return {f: data[f] for f in self.input_fields}

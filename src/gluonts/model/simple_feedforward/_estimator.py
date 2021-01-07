@@ -11,24 +11,36 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional
+from functools import partial
+from typing import List, Optional, Tuple
 
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
+from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.transform import (
     AddObservedValuesIndicator,
     Chain,
     ExpectedNumInstanceSampler,
-    InstanceSplitter,
-    Transformation,
     InstanceSampler,
+    InstanceSplitter,
+    TestSplitSampler,
+    ValidationSplitSampler,
+    SelectFields,
+    Transformation,
 )
 from gluonts.transform.feature import (
     DummyValueImputation,
@@ -117,7 +129,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         batch_normalization: bool = False,
         mean_scaling: bool = True,
         num_parallel_samples: int = 100,
-        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        train_sampler: Optional[InstanceSampler] = None,
         batch_size: int = 32,
     ) -> None:
         """
@@ -158,34 +170,91 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             if imputation_method is not None
             else DummyValueImputation(self.distr_output.value_in_support)
         )
-        self.train_sampler = train_sampler
+        self.train_sampler = (
+            train_sampler
+            if train_sampler is not None
+            else ExpectedNumInstanceSampler(1.0, skip_final=prediction_length)
+        )
 
-    # here we do only a simple operation to convert the input data to a form
+    # Here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
     # conditioning part and a to-predict part, for each training example.
-    # fFr a more complex transformation example, see the `gluonts.model.deepar`
+    # For a more complex transformation example, see the `gluonts.model.deepar`
     # transformation that includes time features, age feature, observed values
     # indicator, ...
     def create_transformation(self) -> Transformation:
-        return Chain(
-            [
-                AddObservedValuesIndicator(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.OBSERVED_VALUES,
-                    dtype=self.dtype,
-                    imputation_method=self.imputation_method,
-                ),
-                InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=self.train_sampler,
-                    past_length=self.context_length,
-                    future_length=self.prediction_length,
-                    time_series_fields=[FieldName.OBSERVED_VALUES],
-                ),
-            ]
+        return AddObservedValuesIndicator(
+            target_field=FieldName.TARGET,
+            output_field=FieldName.OBSERVED_VALUES,
+            dtype=self.dtype,
+            imputation_method=self.imputation_method,
+        )
+
+    def create_training_data_loader(
+        self,
+        training_data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            SimpleFeedForwardTrainingNetwork
+        )
+
+        training_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=self.train_sampler,
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+            time_series_fields=[FieldName.OBSERVED_VALUES],
+        )
+
+        return TrainDataLoader(
+            dataset=training_data,
+            transform=training_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(
+                batchify,
+                ctx=self.trainer.ctx,
+                dtype=self.dtype,
+            ),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        validation_data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            SimpleFeedForwardTrainingNetwork
+        )
+
+        validation_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=ValidationSplitSampler(
+                skip_final=self.prediction_length
+            ),
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+            time_series_fields=[FieldName.OBSERVED_VALUES],
+        )
+
+        return ValidationDataLoader(
+            dataset=validation_data,
+            transform=validation_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(
+                batchify,
+                ctx=self.trainer.ctx,
+                dtype=self.dtype,
+            ),
+            **kwargs,
         )
 
     # defines the network, we get to see one batch to initialize it.
@@ -204,6 +273,17 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     # we now define how the prediction happens given that we are provided a
     # training network.
     def create_predictor(self, transformation, trained_network):
+        prediction_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=TestSplitSampler(),
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+            time_series_fields=[FieldName.OBSERVED_VALUES],
+        )
+
         if self.sampling is True:
             prediction_network = SimpleFeedForwardSamplingNetwork(
                 num_hidden_dimensions=self.num_hidden_dimensions,
@@ -217,7 +297,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             )
 
             return RepresentableBlockPredictor(
-                input_transform=transformation,
+                input_transform=transformation + prediction_splitter,
                 prediction_net=prediction_network,
                 batch_size=self.batch_size,
                 freq=self.freq,
@@ -237,7 +317,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                 num_parallel_samples=self.num_parallel_samples,
             )
             return RepresentableBlockPredictor(
-                input_transform=transformation,
+                input_transform=transformation + prediction_splitter,
                 prediction_net=prediction_network,
                 batch_size=self.batch_size,
                 forecast_generator=DistributionForecastGenerator(

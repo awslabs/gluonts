@@ -27,9 +27,7 @@ class Transformation(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def __call__(
-        self, data_it: Iterable[DataEntry], is_train: bool
-    ) -> Iterable[DataEntry]:
+    def __call__(self, data_it: Iterable[DataEntry]) -> Iterable[DataEntry]:
         pass
 
     def chain(self, other: "Transformation") -> "Chain":
@@ -54,19 +52,15 @@ class Chain(Transformation):
             else:
                 self.transformations.append(transformation)
 
-    def __call__(
-        self, data_it: Iterable[DataEntry], is_train: bool
-    ) -> Iterable[DataEntry]:
+    def __call__(self, data_it: Iterable[DataEntry]) -> Iterable[DataEntry]:
         tmp = data_it
         for t in self.transformations:
-            tmp = t(tmp, is_train)
+            tmp = t(tmp)
         return tmp
 
 
 class Identity(Transformation):
-    def __call__(
-        self, data_it: Iterable[DataEntry], is_train: bool
-    ) -> Iterable[DataEntry]:
+    def __call__(self, data_it: Iterable[DataEntry]) -> Iterable[DataEntry]:
         return data_it
 
 
@@ -75,26 +69,25 @@ class MapTransformation(Transformation):
     Base class for Transformations that returns exactly one result per input in the stream.
     """
 
-    def __call__(
-        self, data_it: Iterable[DataEntry], is_train: bool
-    ) -> Iterator:
+    def __call__(self, data_it: Iterable[DataEntry]) -> Iterator:
         for data_entry in data_it:
             try:
-                yield self.map_transform(data_entry.copy(), is_train)
+                yield self.map_transform(data_entry.copy())
             except Exception as e:
                 raise e
 
     @abc.abstractmethod
-    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+    def map_transform(self, data: DataEntry) -> DataEntry:
         pass
 
 
+# TODO deprecate the following somehow
 class SimpleTransformation(MapTransformation):
     """
     Element wise transformations that are the same in train and test mode
     """
 
-    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+    def map_transform(self, data: DataEntry) -> DataEntry:
         return self.transform(data)
 
     @abc.abstractmethod
@@ -102,7 +95,7 @@ class SimpleTransformation(MapTransformation):
         pass
 
 
-class AdhocTransform(SimpleTransformation):
+class AdhocTransform(MapTransformation):
     """
     Applies a function as a transformation
     This is called ad-hoc, because it is not serializable.
@@ -113,7 +106,7 @@ class AdhocTransform(SimpleTransformation):
     def __init__(self, func: Callable[[DataEntry], DataEntry]) -> None:
         self.func = func
 
-    def transform(self, data: DataEntry) -> DataEntry:
+    def map_transform(self, data: DataEntry) -> DataEntry:
         return self.func(data.copy())
 
 
@@ -123,16 +116,12 @@ class FlatMapTransformation(Transformation):
     elements from the input stream.
     """
 
-    def __call__(
-        self, data_it: Iterable[DataEntry], is_train: bool
-    ) -> Iterator:
+    def __call__(self, data_it: Iterable[DataEntry]) -> Iterator:
         num_idle_transforms = 0
         for data_entry in data_it:
             num_idle_transforms += 1
             try:
-                for result in self.flatmap_transform(
-                    data_entry.copy(), is_train
-                ):
+                for result in self.flatmap_transform(data_entry.copy()):
                     num_idle_transforms = 0
                     yield result
             except Exception as e:
@@ -147,9 +136,7 @@ class FlatMapTransformation(Transformation):
                 )
 
     @abc.abstractmethod
-    def flatmap_transform(
-        self, data: DataEntry, is_train: bool
-    ) -> Iterator[DataEntry]:
+    def flatmap_transform(self, data: DataEntry) -> Iterator[DataEntry]:
         pass
 
 
@@ -157,8 +144,6 @@ class FilterTransformation(FlatMapTransformation):
     def __init__(self, condition: Callable[[DataEntry], bool]) -> None:
         self.condition = condition
 
-    def flatmap_transform(
-        self, data: DataEntry, is_train: bool
-    ) -> Iterator[DataEntry]:
+    def flatmap_transform(self, data: DataEntry) -> Iterator[DataEntry]:
         if self.condition(data):
             yield data

@@ -51,6 +51,7 @@ __all__ = [
     "TargetDimIndicator",
     "TransformedDataset",
     "TestSplitSampler",
+    "ValidationSplitSampler",
     "Transformation",
     "UniformSplitSampler",
     "VstackFeatures",
@@ -115,6 +116,7 @@ from .sampler import (
     ExpectedNumInstanceSampler,
     InstanceSampler,
     TestSplitSampler,
+    ValidationSplitSampler,
     UniformSplitSampler,
 )
 from .split import (

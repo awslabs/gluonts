@@ -20,13 +20,13 @@ from pydantic import ValidationError
 
 from gluonts.core.component import DType, from_hyperparameters, validated
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
+from gluonts.dataset.loader import DataLoader
+from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.trainer import Trainer
-from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.transform import SelectFields, Transformation
+from gluonts.transform import Transformation, TransformedDataset
 
 
 class TrainOutput(NamedTuple):
@@ -117,6 +117,16 @@ class GluonEstimator(Estimator):
         """
         raise NotImplementedError
 
+    def create_training_data_loader(
+        self, data: Dataset, **kwargs
+    ) -> DataLoader:
+        raise NotImplementedError
+
+    def create_validation_data_loader(
+        self, data: Dataset, **kwargs
+    ) -> DataLoader:
+        raise NotImplementedError
+
     def train_model(
         self,
         training_data: Dataset,
@@ -124,63 +134,53 @@ class GluonEstimator(Estimator):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs,
+        cache_data: bool = False,
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
-        # ensure that the training network is created within the same MXNet
-        # context as the one that will be used during training
-        with self.trainer.ctx:
-            trained_net = self.create_training_network()
+        transformed_training_data = TransformedDataset(
+            training_data, transformation
+        )
 
-        input_names = get_hybrid_forward_input_names(trained_net)
-
-        training_data_loader = TrainDataLoader(
-            dataset=training_data,
-            transform=transformation + SelectFields(input_names),
-            batch_size=self.batch_size,
-            stack_fn=partial(
-                batchify,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
-            ),
+        training_data_loader = self.create_training_data_loader(
+            transformed_training_data
+            if not cache_data
+            else Cached(transformed_training_data),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
         validation_data_loader = None
-        if validation_data is not None:
-            validation_data_loader = ValidationDataLoader(
-                dataset=validation_data,
-                transform=transformation + SelectFields(input_names),
-                batch_size=self.batch_size,
-                stack_fn=partial(
-                    batchify,
-                    ctx=self.trainer.ctx,
-                    dtype=self.dtype,
-                ),
-                num_workers=num_workers,
-                num_prefetch=num_prefetch,
-                **kwargs,
+
+        if validation_data:
+            transformed_validation_data = TransformedDataset(
+                validation_data, transformation
             )
 
+            validation_data_loader = self.create_validation_data_loader(
+                transformed_validation_data
+                if not cache_data
+                else Cached(transformed_validation_data),
+                num_workers=num_workers,
+            )
+
+        training_network = self.create_training_network()
+
         self.trainer(
-            net=trained_net,
+            net=training_network,
             train_iter=training_data_loader,
             validation_iter=validation_data_loader,
         )
 
         with self.trainer.ctx:
-            # ensure that the prediction network is created within the same MXNet
-            # context as the one that was used during training
-            return TrainOutput(
-                transformation=transformation,
-                trained_net=trained_net,
-                predictor=self.create_predictor(transformation, trained_net),
-            )
+            predictor = self.create_predictor(transformation, training_network)
+
+        return TrainOutput(
+            transformation=transformation,
+            trained_net=training_network,
+            predictor=predictor,
+        )
 
     def train(
         self,
@@ -189,6 +189,7 @@ class GluonEstimator(Estimator):
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
+        cache_data: bool = False,
         **kwargs,
     ) -> Predictor:
         return self.train_model(
@@ -197,5 +198,4 @@ class GluonEstimator(Estimator):
             num_workers,
             num_prefetch,
             shuffle_buffer_length,
-            **kwargs,
         ).predictor

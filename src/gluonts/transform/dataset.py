@@ -38,11 +38,9 @@ class TransformedDataset(Dataset):
         self,
         base_dataset: Dataset,
         transformation: Transformation,
-        is_train=True,
     ) -> None:
         self.base_dataset = base_dataset
         self.transformation = transformation
-        self.is_train = is_train
 
     def __len__(self):
         # NOTE this is unsafe when transformations are run with is_train = True
@@ -50,6 +48,4 @@ class TransformedDataset(Dataset):
         return sum(1 for _ in self)
 
     def __iter__(self) -> Iterator[DataEntry]:
-        yield from self.transformation(
-            self.base_dataset, is_train=self.is_train
-        )
+        yield from self.transformation(self.base_dataset)

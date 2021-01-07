@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Tuple
+
 import numpy as np
 
 from gluonts.core.component import validated
@@ -19,28 +21,29 @@ from gluonts.dataset.stat import ScaleHistogram
 
 class InstanceSampler:
     """
-    An InstanceSampler is called with the time series and the valid
-    index bounds a, b and should return a set of indices a <= i <= b
-    at which training instances will be generated.
+    An InstanceSampler is called with the time series ``ts``, and returns
+    a set of indices at which training instances will be generated.
 
-    The object should be called with:
-
-    Parameters
-    ----------
-    ts
-        target that should be sampled with shape (dim, seq_len)
-    a
-        first index of the target that can be sampled
-    b
-        last index of the target that can be sampled
-
-    Returns
-    -------
-    np.ndarray
-        Selected points to sample
+    The sampled indices ``i`` satisfy ``a <= i <= b``, where ``a = skip_initial``
+    and ``b = ts.shape[axis] - skip_final``.
     """
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+    def __init__(
+        self, *, axis: int = -1, skip_initial: int = 0, skip_final: int = 0
+    ) -> None:
+        self.axis = axis
+        self.skip_initial = skip_initial
+        self.skip_final = skip_final
+
+    def _get_bounds(
+        self, ts: np.ndarray, skip_initial: int = 0, skip_final: int = 0
+    ) -> Tuple[int, int]:
+        return (
+            self.skip_initial,
+            ts.shape[self.axis] - self.skip_final,
+        )
+
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
 
@@ -55,13 +58,15 @@ class UniformSplitSampler(InstanceSampler):
     """
 
     @validated()
-    def __init__(self, p: float) -> None:
+    def __init__(self, p: float, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.p = p
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        assert (
-            a <= b
-        ), "First index must be less than or equal to the last index."
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+
+        if a > b:
+            return np.array([], dtype=int)
 
         window_size = b - a + 1
         (indices,) = np.where(np.random.random_sample(window_size) < self.p)
@@ -75,11 +80,18 @@ class TestSplitSampler(InstanceSampler):
     """
 
     @validated()
-    def __init__(self) -> None:
-        pass
+    def __init__(self, allow_empty_interval=False, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.allow_empty_interval = allow_empty_interval
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        return np.array([b])
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+        assert self.allow_empty_interval or a <= b
+        return np.array([b]) if a <= b else np.array([], dtype=int)
+
+
+def ValidationSplitSampler(**kwargs) -> TestSplitSampler:
+    return TestSplitSampler(**kwargs, allow_empty_interval=True)
 
 
 class ExpectedNumInstanceSampler(InstanceSampler):
@@ -96,20 +108,29 @@ class ExpectedNumInstanceSampler(InstanceSampler):
     """
 
     @validated()
-    def __init__(self, num_instances: float) -> None:
+    def __init__(self, num_instances: float, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.num_instances = num_instances
         self.total_length = 0
         self.n = 0
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
         window_size = b - a + 1
+
+        if window_size <= 0:
+            return np.array([], dtype=int)
 
         self.n += 1
         self.total_length += window_size
         avg_length = self.total_length / self.n
 
-        sampler = UniformSplitSampler(self.num_instances / avg_length)
-        return sampler(ts, a, b)
+        if avg_length <= 0:
+            return np.array([], dtype=int)
+
+        p = self.num_instances / avg_length
+        (indices,) = np.where(np.random.random_sample(window_size) < p)
+        return indices + a
 
 
 class BucketInstanceSampler(InstanceSampler):
@@ -128,13 +149,15 @@ class BucketInstanceSampler(InstanceSampler):
     """
 
     @validated()
-    def __init__(self, scale_histogram: ScaleHistogram) -> None:
+    def __init__(self, scale_histogram: ScaleHistogram, **kwargs) -> None:
+        super().__init__(**kwargs)
         # probability of sampling a bucket i is the inverse of its number of
         # elements
         self.scale_histogram = scale_histogram
         self.lookup = np.arange(2 ** 13)
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> None:
+    def __call__(self, ts: np.ndarray) -> None:
+        a, b = self._get_bounds(ts)
         while ts.shape[-1] >= len(self.lookup):
             self.lookup = np.arange(2 * len(self.lookup))
         p = 1.0 / self.scale_histogram.count(ts)
