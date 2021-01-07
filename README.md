@@ -26,7 +26,7 @@ GluonTS requires Python 3.6, and the easiest
 way to install it is via `pip`:
 
 ```bash
-pip install --upgrade mxnet==1.6 gluonts
+pip install --upgrade mxnet~=1.7 gluonts
 ```
 
 ## Dockerfiles
