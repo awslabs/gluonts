@@ -17,6 +17,8 @@ from pydoc import locate
 
 from toolz.dicttoolz import keymap
 
+from gluonts.core import serde
+
 
 def asdict(trie):
     if not isinstance(trie, defaultdict):
@@ -65,8 +67,8 @@ def load_references(parameters: dict) -> dict:
 def eval_nested(data):
     if isinstance(data, dict) and "@" in data:
         Type = data.pop("@")
-        args = []
 
+        args = []
         for idx in map(str, count(start=0)):
             if idx not in data:
                 break
@@ -88,3 +90,35 @@ def decode_nested_parameters(parameters: dict) -> dict:
 
     nested = Trie(parameters_with_objects).asdict()
     return eval_nested(nested)
+
+
+class Path:
+    def __init__(self, *parts):
+        self.parts = list(parts)
+
+    def __truediv__(self, other):
+        return Path(*self.parts + [other])
+
+    def __repr__(self):
+        return ".".join(self.parts)
+
+
+def _encode(data, path, result):
+    if isinstance(data, dict) and data.get("__kind__") == "instance":
+        result[str(path / "@")] = data["class"]
+
+        for n, arg in enumerate(data["args"]):
+            _encode(arg, path / f"{n}", result)
+
+        for name, value in data["kwargs"].items():
+            _encode(value, path / name, result)
+    else:
+        result[str(path)] = data
+
+
+def encode_nested_parameters(obj) -> dict:
+    encoded = serde.encode(obj)
+
+    result = {}
+    _encode(encoded, Path(), result)
+    return result
