@@ -18,6 +18,7 @@ from typing import Dict, Optional
 from pydantic import BaseModel
 
 from .params import decode_sagemaker_parameters
+from .nested_params import decode_nested_parameters
 
 
 class DataConfig(BaseModel):
@@ -105,4 +106,5 @@ class TrainEnv:
     def _load_hyperparameters(self) -> dict:
         with self.path.hyperparameters.open() as json_file:
             raw = json.load(json_file)
-            return decode_sagemaker_parameters(raw)
+            decoded = decode_sagemaker_parameters(raw)
+            return decode_nested_parameters(decoded)
