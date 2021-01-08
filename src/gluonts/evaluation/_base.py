@@ -630,6 +630,7 @@ class MultivariateEvaluator(Evaluator):
             seasonality=seasonality,
             alpha=alpha,
             custom_eval_fn=custom_eval_fn,
+            num_workers=None,
         )
         self._eval_dims = eval_dims
         self.target_agg_funcs = target_agg_funcs
