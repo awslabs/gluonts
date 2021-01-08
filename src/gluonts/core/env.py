@@ -58,18 +58,24 @@ class Context:
     def __call__(self, **kwargs):
         return DelayedContext(self, kwargs)
 
-    def bind(self, **values):
+    def bind(self, *keys, **values):
         def dec(fn):
             sig = inspect.signature(fn)
 
             @functools.wraps(fn)
             def wrapper(*args, **kwargs):
-                env_kwargs = {
-                    **{
+                env_kwargs = {}
+                for key in keys:
+                    try:
+                        env_kwargs[key] = self[key]
+                    except KeyError:
+                        pass
+                env_kwargs.update(
+                    {
                         key: self.get(key, default)
                         for key, default in values.items()
-                    },
-                }
+                    }
+                )
                 return fn(
                     **{
                         **env_kwargs,
@@ -92,3 +98,6 @@ class DelayedContext:
 
     def __exit__(self, *args):
         return self.context.pop()
+
+
+env = Context()

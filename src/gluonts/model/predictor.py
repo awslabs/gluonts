@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
 import numpy as np
 
 import gluonts
+from gluonts import env
 from gluonts.core import fqname_for
 from gluonts.core.component import equals, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSException
@@ -238,6 +239,7 @@ class ParallelizedPredictor(Predictor):
         Number of items to pass per call
     """
 
+    @env.bind("num_workers")
     def __init__(
         self,
         base_predictor: Predictor,
