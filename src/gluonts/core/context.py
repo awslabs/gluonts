@@ -24,6 +24,7 @@ a concrete value along the call-chain, it is shared through the context.
 the number of workers in multiprocessing.
 
 Example::
+
     from gluonts.core.context import Context
 
     class MyContext(Context):
@@ -44,7 +45,6 @@ Example::
 
 Another option is to inject the context to a function. This has the advantage,
 that you can still manually pass values, but use the context as a fallback::
-
 
     @ctx._inject("debug")
     def fn(debug):
