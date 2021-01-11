@@ -69,7 +69,7 @@ class _Config:
 
 
 class Context:
-    _cls_types = {}
+    _cls_types: dict = {}
 
     def __init_subclass__(cls):
         cls._cls_types = {}
