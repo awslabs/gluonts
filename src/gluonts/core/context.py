@@ -55,7 +55,7 @@ class Context:
         inner = ", ".join(list(repr(dct) for dct in self.chain))
         return f"<Context [{inner}]>"
 
-    def __call__(self, **kwargs):
+    def let(self, **kwargs):
         return DelayedContext(self, kwargs)
 
     def bind(self, *keys, **values):
