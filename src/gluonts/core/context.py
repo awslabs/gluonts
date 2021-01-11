@@ -20,7 +20,7 @@ class Context:
         self._default = {}
         self.chain = [self._default, kwargs]
 
-    def set_default(self, key, value, force=False):
+    def set_default(self, key, value, *, force=False):
         assert (
             force or key not in self._default
         ), "Attempt of overwriting default value"
