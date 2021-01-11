@@ -1164,7 +1164,7 @@ An important issue that a practitioner needs to deal with often is the different
 
 
 ```python
-from gluonts.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 ```
 
 
