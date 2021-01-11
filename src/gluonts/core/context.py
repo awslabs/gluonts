@@ -98,6 +98,3 @@ class DelayedContext:
 
     def __exit__(self, *args):
         return self.context.pop()
-
-
-env = Context()
