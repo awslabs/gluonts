@@ -42,11 +42,11 @@ Example::
     # no message will be printed
     fn()
 
-Another option is to bind the context to a function. This has the advantage,
+Another option is to inject the context to a function. This has the advantage,
 that you can still manually pass values, but use the context as a fallback::
 
 
-    @ctx._bind("debug")
+    @ctx._inject("debug")
     def fn(debug):
         ...
 """
@@ -145,7 +145,7 @@ class Context:
     def _let(self, **kwargs):
         return DelayedContext(self, kwargs)
 
-    def _bind(self, *keys, **values):
+    def _inject(self, *keys, **values):
         def dec(fn):
             sig = inspect.signature(fn)
 
@@ -188,8 +188,10 @@ class DelayedContext:
 
 
 def let(context, **kwargs):
+    "`let(ctx, ...)` is the same as `ctx._let(...)`."
     return context._let(**kwargs)
 
 
-def bind(context, *args, **kwargs):
-    return context._bind(*args, **kwargs)
+def inject(context, *args, **kwargs):
+    "`inject(ctx, ...)` is the same as `ctx._inject(...)`."
+    return context._inject(*args, **kwargs)

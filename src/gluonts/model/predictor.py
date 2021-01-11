@@ -239,7 +239,7 @@ class ParallelizedPredictor(Predictor):
         Number of items to pass per call
     """
 
-    @env.bind("num_workers")
+    @env._inject("num_workers")
     def __init__(
         self,
         base_predictor: Predictor,
