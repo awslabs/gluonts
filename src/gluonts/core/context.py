@@ -11,54 +11,141 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+"""
+gluonts.context
+~~~~~~~~~~~~~~~
+
+This modules offers a `Context`-class, which allows to manage a global context.
+
+The idea is to support a form of dependency injection, where instead of passing
+a concrete value along the call-chain, it is shared through the context.
+
+`gluonts.env` is such a context and is used to manage global settings, such as
+the number of workers in multiprocessing.
+
+Example::
+    from gluonts.core.context import Context
+
+    class MyContext(Context):
+        debug: bool = False
+
+    def fn():
+        if ctx.debug:
+            print("In debug mode.")
+
+    # we use `_let` instead of `let` to avoid possible name-collisions
+    # so you can do `ctx._let(let=...)`
+    with ctx._let(debug=True):
+        # this will print the message
+        fn()
+
+    # no message will be printed
+    fn()
+
+Another option is to bind the context to a function. This has the advantage,
+that you can still manually pass values, but use the context as a fallback::
+
+
+    @ctx._bind("debug")
+    def fn(debug):
+        ...
+"""
+
 import functools
 import inspect
+from typing import Any
+
+import pydantic
+
+
+class _Config:
+    arbitrary_types_allowed = True
 
 
 class Context:
+    _cls_types = {}
+
+    def __init_subclass__(cls):
+        cls._cls_types = {}
+
+        for name, ty in cls.__annotations__.items():
+            default = getattr(cls, name, ...)
+            cls._cls_types[name] = ty, default
+
     def __init__(self, **kwargs):
         self._default = {}
-        self.chain = [self._default, kwargs]
+        self._types = {}
+        self._chain = [self._default, kwargs]
 
-    def set_default(self, key, value, *, force=False):
+        for key, (ty, default) in self._cls_types.items():
+            self._declare(key, ty, default=default)
+
+    def _declare(self, key, type=Any, *, default=..., force=False):
         assert (
-            force or key not in self._default
-        ), "Attempt of overwriting default value"
-        self._default[key] = value
+            force or key not in self._types
+        ), f"Attempt of overwriting already declared value {key}"
 
-    def get(self, key, default=None):
+        self._types[key] = pydantic.create_model(
+            key, **{key: (type, ...)}, __config__=_Config
+        )
+
+        if default != ...:
+            self._set_(self._default, key, default)
+
+    def _get(self, key, default=None):
         try:
             return self[key]
         except KeyError:
             return default
 
     def __getitem__(self, key):
-        for dct in reversed(self.chain):
+        for dct in reversed(self._chain):
             try:
                 return dct[key]
             except KeyError:
                 pass
         raise KeyError(key)
 
-    def __setitem__(self, key, value):
-        self.chain[-1][key] = value
+    def __getattr__(self, key):
+        if key.startswith("_"):
+            return self.__dict__[key]
+        else:
+            return self[key]
 
-    def push(self, **kwargs):
-        self.chain.append(kwargs)
+    def _set_(self, dct, key, value):
+        model = self._types.get(key)
+        if model is not None:
+            value = getattr(model.parse_obj({key: value}), key)
+
+        dct[key] = value
+
+    def __setitem__(self, key, value):
+        self._set_(self._chain[-1], key, value)
+
+    def __setattr__(self, key, value):
+        if key.startswith("_"):
+            self.__dict__[key] = value
+        else:
+            self[key] = value
+
+    def _push(self, **kwargs):
+        self._chain.append({})
+        for key, value in kwargs.items():
+            self[key] = value
         return self
 
-    def pop(self):
-        assert len(self.chain) > 2, "Can't pop initial context."
-        return self.chain.pop()
+    def _pop(self):
+        assert len(self._chain) > 2, "Can't pop initial context."
+        return self._chain.pop()
 
     def __repr__(self):
-        inner = ", ".join(list(repr(dct) for dct in self.chain))
+        inner = ", ".join(list(repr(dct) for dct in self._chain))
         return f"<Context [{inner}]>"
 
-    def let(self, **kwargs):
+    def _let(self, **kwargs):
         return DelayedContext(self, kwargs)
 
-    def bind(self, *keys, **values):
+    def _bind(self, *keys, **values):
         def dec(fn):
             sig = inspect.signature(fn)
 
@@ -97,4 +184,12 @@ class DelayedContext:
         return self.context.push(**self.kwargs)
 
     def __exit__(self, *args):
-        return self.context.pop()
+        self.context.pop()
+
+
+def let(context, **kwargs):
+    return context._let(**kwargs)
+
+
+def bind(context, *args, **kwargs):
+    return context._bind(*args, **kwargs)
