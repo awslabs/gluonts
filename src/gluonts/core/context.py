@@ -112,9 +112,9 @@ class Context:
                 pass
         raise KeyError(key)
 
-    def __getattr__(self, key):
+    def __getattribute__(self, key):
         if key.startswith("_"):
-            return self.__dict__[key]
+            return super().__getattribute__(key)
         else:
             return self[key]
 
@@ -187,10 +187,10 @@ class DelayedContext:
         self.kwargs = kwargs
 
     def __enter__(self):
-        return self.context.push(**self.kwargs)
+        return self.context._push(**self.kwargs)
 
     def __exit__(self, *args):
-        self.context.pop()
+        self.context._pop()
 
 
 def let(context, **kwargs):
