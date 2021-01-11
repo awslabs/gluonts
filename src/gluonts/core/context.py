@@ -12,8 +12,8 @@
 # permissions and limitations under the License.
 
 """
-gluonts.context
-~~~~~~~~~~~~~~~
+gluonts.core.context
+~~~~~~~~~~~~~~~~~~~~
 
 This modules offers a `Context`-class, which allows to manage a global context.
 
@@ -49,6 +49,12 @@ that you can still manually pass values, but use the context as a fallback::
     @ctx._inject("debug")
     def fn(debug):
         ...
+
+    # this will use the value defined in the context
+    fn()
+
+    # but one can still set the value manually
+    fn(False)
 """
 
 import functools
