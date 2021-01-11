@@ -10,10 +10,11 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
+import re
 from collections import defaultdict
 from itertools import count
 from pydoc import locate
+from typing import List
 
 from toolz.dicttoolz import keymap
 
@@ -80,16 +81,41 @@ def eval_nested(data):
     return data
 
 
-def decode_nested_parameters(parameters: dict) -> dict:
+def load(mapping: dict) -> object:
     def split_path(s):
         return tuple(s.split("."))
 
-    path_parameters = keymap(split_path, parameters)
-
-    parameters_with_objects = load_references(path_parameters)
-
-    nested = Trie(parameters_with_objects).asdict()
+    pathes = keymap(split_path, mapping)
+    objects = load_references(pathes)
+    nested = Trie(objects).asdict()
     return eval_nested(nested)
+
+
+def decode_nested_parameters(parameters: dict) -> dict:
+    inputs = split_by_prefix(parameters)
+    return {prefix: load(args) for prefix, args in inputs.items()}
+
+
+def split_by_prefix(data: dict) -> List[dict]:
+    rx = re.compile(r"\$(\w+)\.")
+
+    namespace = defaultdict(dict)
+
+    def split_key(key):
+        key_parts = rx.split(key, 1)
+        if len(key_parts) == 1:
+            prefix = ""
+            suffix = key_parts[0]
+        else:
+            _, prefix, suffix = key_parts
+
+        return prefix, suffix
+
+    for key, value in data.items():
+        prefix, suffix = split_key(key)
+        namespace[prefix][suffix] = value
+
+    return namespace
 
 
 class Path:
