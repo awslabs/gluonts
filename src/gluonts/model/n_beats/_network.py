@@ -15,10 +15,10 @@ from typing import List, Optional
 
 import mxnet as mx
 import numpy as np
-from gluonts.block.scaler import MeanScaler, NOPScaler
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.util import weighted_average
 from gluonts.time_feature import get_seasonality
 
