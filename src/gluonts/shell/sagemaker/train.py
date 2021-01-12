@@ -13,7 +13,7 @@
 
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from pydantic import BaseModel
 
@@ -106,7 +106,7 @@ class TrainEnv:
                 config = json.load(json_file)
                 return config["current_host"]
 
-    def _load_hyperparameters(self) -> dict:
+    def _load_hyperparameters(self) -> Tuple[dict, Optional[dict]]:
         with self.path.hyperparameters.open() as json_file:
             raw = json.load(json_file)
             decoded = decode_sagemaker_parameters(raw)

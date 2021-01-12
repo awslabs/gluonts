@@ -115,8 +115,8 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
     try:
         env = TrainEnv(Path(data_path))
 
-        if env.env:
-            gluonts_env._push(env.env)
+        if env.env is not None:
+            gluonts_env._push(**env.env)
 
         if forecaster is None:
             try:

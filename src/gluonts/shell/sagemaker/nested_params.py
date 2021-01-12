@@ -96,10 +96,10 @@ def decode_nested_parameters(parameters: dict) -> dict:
     return {prefix: load(args) for prefix, args in inputs.items()}
 
 
-def split_by_prefix(data: dict) -> List[dict]:
+def split_by_prefix(data: dict) -> dict:
     rx = re.compile(r"\$(\w+)\.")
 
-    namespace = defaultdict(dict)
+    namespace: dict = defaultdict(dict)
 
     def split_key(key):
         key_parts = rx.split(key, 1)
@@ -115,7 +115,7 @@ def split_by_prefix(data: dict) -> List[dict]:
         prefix, suffix = split_key(key)
         namespace[prefix][suffix] = value
 
-    return namespace
+    return dict(namespace)
 
 
 class Path:
@@ -145,6 +145,6 @@ def _encode(data, path, result):
 def encode_nested_parameters(obj) -> dict:
     encoded = serde.encode(obj)
 
-    result = {}
+    result: dict = {}
     _encode(encoded, Path(), result)
     return result
