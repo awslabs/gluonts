@@ -66,7 +66,10 @@ class TrainEnv:
         self.inputdataconfig = self._load_inputdataconfig()
         self.channels = self._load_channels()
         self.current_host = self._get_current_host()
-        self.hyperparameters = self._load_hyperparameters()
+
+        hyperparameters, env = self._load_hyperparameters()
+        self.hyperparameters = hyperparameters
+        self.env = env
 
     def _load_inputdataconfig(self) -> Optional[InpuDataConfig]:
         if self.path.inputdataconfig.exists():
@@ -107,4 +110,8 @@ class TrainEnv:
         with self.path.hyperparameters.open() as json_file:
             raw = json.load(json_file)
             decoded = decode_sagemaker_parameters(raw)
-            return decode_nested_parameters(decoded)
+
+            nested = decode_nested_parameters(decoded)
+            hyperparameters = nested.get("", {})
+            env = nested.get("env", None)
+            return hyperparameters, env
