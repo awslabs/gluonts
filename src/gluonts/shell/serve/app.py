@@ -252,7 +252,19 @@ def batch_inference_invocations(
         lines = list(map(json.dumps, map(jsonify_floats, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")
 
-    return invocations
+    def invocations_error_wrapper() -> Response:
+        try:
+            return invocations()
+        except Exception as error:
+            return Response(
+                json.dumps({"error": traceback.format_exc(error)}),
+                mimetype="application/jsonlines",
+            )
+
+    if settings.gluonts_batch_suppress_errors:
+        return invocations_error_wrapper
+    else:
+        return invocations
 
 
 def make_app(

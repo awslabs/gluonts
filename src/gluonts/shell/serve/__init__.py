@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     gluonts_batch_fallback_predictor: str = (
         "gluonts.model.trivial.mean.MeanPredictor"
     )
+    gluonts_batch_suppress_errors: bool = False
     gluonts_forward_fields: List[str] = []
 
     sagemaker_batch: bool = False
