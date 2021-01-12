@@ -13,10 +13,10 @@
 
 
 import os
-from .core.context import Context
+from .core.settings import Settings
 
 
-class Environment(Context):
+class Environment(Settings):
     # Maximum number of times a transformation can receive an input without
     # returning an output. This parameter is intended to catch infinite loops
     # or inefficiencies, when transformations never or rarely return

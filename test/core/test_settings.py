@@ -11,61 +11,61 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.core.context import Context, let, inject
+from gluonts.core.settings import Settings, let, inject
 
 
-class MyContext(Context):
+class MySettings(Settings):
     foo: str = "bar"
 
 
-ctx = MyContext()
+settings = MySettings()
 
 
 def test_functional():
-    ctx = Context()
-    ctx._declare("foo", str, default="bar")
+    settings = Settings()
+    settings._declare("foo", str, default="bar")
 
-    assert ctx.foo == "bar"
+    assert settings.foo == "bar"
 
 
 def test_declarative():
-    assert ctx.foo == "bar"
+    assert settings.foo == "bar"
 
 
 def test_get():
-    with ctx._let(foo="hello"):
-        assert ctx["foo"] == "hello"
-        assert ctx.foo == "hello"
-        assert ctx._get("foo") == "hello"
+    with settings._let(foo="hello"):
+        assert settings["foo"] == "hello"
+        assert settings.foo == "hello"
+        assert settings._get("foo") == "hello"
 
 
 def test_let():
-    assert ctx.foo == "bar"
+    assert settings.foo == "bar"
 
-    with let(ctx, foo="hello"):
-        assert ctx.foo == "hello"
+    with let(settings, foo="hello"):
+        assert settings.foo == "hello"
 
-    assert ctx.foo == "bar"
+    assert settings.foo == "bar"
 
-    with ctx._let(foo="hello"):
-        assert ctx.foo == "hello"
+    with settings._let(foo="hello"):
+        assert settings.foo == "hello"
 
-    assert ctx.foo == "bar"
+    assert settings.foo == "bar"
 
 
 def test_inject():
-    @ctx._inject("a")
+    @settings._inject("a")
     def x(a, b):
         return a, b
 
-    with ctx._let(a=42):
+    with settings._let(a=42):
         assert x(b=0) == (42, 0)
         assert x(1, 2) == (1, 2)
 
-    @ctx._inject("b")
+    @settings._inject("b")
     def x(a, b):
         return a, b
 
-    with ctx._let(b=42):
+    with settings._let(b=42):
         assert x(0) == (0, 42)
         assert x(1, 2) == (1, 2)
