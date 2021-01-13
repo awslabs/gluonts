@@ -22,10 +22,12 @@ from typing import (
     Tuple,
     TypeVar,
     Optional,
+    Union,
 )
 
 from gluonts.dataset.field_names import FieldName
 import pandas as pd
+from toolz import concat
 
 T = TypeVar("T")
 
@@ -77,9 +79,7 @@ def get_bounds_for_mp_data_loading(dataset_len: int) -> DataLoadingBounds:
     return DataLoadingBounds(lower=lower, upper=upper)
 
 
-def _split(
-    it: Iterator[T], fn: Callable[[T], bool]
-) -> Tuple[List[T], List[T]]:
+def _split(it: List[T], fn: Callable[[T], bool]) -> Tuple[List[T], List[T]]:
     left, right = [], []
 
     for val in it:
@@ -91,20 +91,27 @@ def _split(
     return left, right
 
 
-def _list_files(directory: Path) -> Iterator[Path]:
-    for dirname, _, filenames in os.walk(directory):
-        for filename in filenames:
-            yield Path(dirname, filename)
+def _list_files(paths: List[Path]) -> List[Path]:
+    return list(
+        concat([path] if path.is_file() else path.rglob("*") for path in paths)
+    )
 
 
 def true_predicate(*args) -> bool:
     return True
 
 
+def resolve_paths(p: Union[str, Path, List[str], List[Path]]) -> List[Path]:
+    if isinstance(p, (str, Path)):
+        return [Path(p)]
+    return [Path(pi) for pi in p]
+
+
 def find_files(
-    data_dir: Path, predicate: Callable[[Path], bool] = true_predicate
+    paths: Union[str, Path, List[str], List[Path]],
+    predicate: Callable[[Path], bool] = true_predicate,
 ) -> List[Path]:
-    all_files = _list_files(data_dir)
+    all_files = _list_files(resolve_paths(paths))
     chosen, ignored = _split(all_files, predicate)
 
     for ign in ignored:
