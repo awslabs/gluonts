@@ -23,10 +23,11 @@ from gluonts.support.util import erf, erfinv
 from ._base import (
     FlatMapTransformation,
     MapTransformation,
+    SimpleTransformation,
 )
 
 
-class AsNumpyArray(MapTransformation):
+class AsNumpyArray(SimpleTransformation):
     """
     Converts the value of a field into a numpy array.
 
@@ -47,7 +48,7 @@ class AsNumpyArray(MapTransformation):
         self.expected_ndim = expected_ndim
         self.dtype = dtype
 
-    def map_transform(self, data: DataEntry) -> DataEntry:
+    def transform(self, data: DataEntry) -> DataEntry:
         value = np.asarray(data[self.field], dtype=self.dtype)
 
         assert_data_error(
@@ -62,7 +63,7 @@ class AsNumpyArray(MapTransformation):
         return data
 
 
-class ExpandDimArray(MapTransformation):
+class ExpandDimArray(SimpleTransformation):
     """
     Expand dims in the axis specified, if the axis is not present does nothing.
     (This essentially calls np.expand_dims)
@@ -80,13 +81,13 @@ class ExpandDimArray(MapTransformation):
         self.field = field
         self.axis = axis
 
-    def map_transform(self, data: DataEntry) -> DataEntry:
+    def transform(self, data: DataEntry) -> DataEntry:
         if self.axis is not None:
             data[self.field] = np.expand_dims(data[self.field], axis=self.axis)
         return data
 
 
-class VstackFeatures(MapTransformation):
+class VstackFeatures(SimpleTransformation):
     """
     Stack fields together using ``np.vstack`` when h_stack = False.
     Otherwise stack fields together using ``np.hstack``.
@@ -124,7 +125,7 @@ class VstackFeatures(MapTransformation):
         )
         self.h_stack = h_stack
 
-    def map_transform(self, data: DataEntry) -> DataEntry:
+    def transform(self, data: DataEntry) -> DataEntry:
         r = [
             data[fname]
             for fname in self.input_fields
@@ -137,7 +138,7 @@ class VstackFeatures(MapTransformation):
         return data
 
 
-class ConcatFeatures(MapTransformation):
+class ConcatFeatures(SimpleTransformation):
     """
     Concatenate fields together using ``np.concatenate``.
 
@@ -170,7 +171,7 @@ class ConcatFeatures(MapTransformation):
             ]
         )
 
-    def map_transform(self, data: DataEntry) -> DataEntry:
+    def transform(self, data: DataEntry) -> DataEntry:
         r = [
             data[fname]
             for fname in self.input_fields
@@ -183,7 +184,7 @@ class ConcatFeatures(MapTransformation):
         return data
 
 
-class SwapAxes(MapTransformation):
+class SwapAxes(SimpleTransformation):
     """
     Apply `np.swapaxes` to fields.
 
@@ -200,7 +201,7 @@ class SwapAxes(MapTransformation):
         self.input_fields = input_fields
         self.axis1, self.axis2 = axes
 
-    def map_transform(self, data: DataEntry) -> DataEntry:
+    def transform(self, data: DataEntry) -> DataEntry:
         for field in self.input_fields:
             data[field] = self.swap(data[field])
         return data
@@ -217,7 +218,7 @@ class SwapAxes(MapTransformation):
             )
 
 
-class ListFeatures(MapTransformation):
+class ListFeatures(SimpleTransformation):
     """
     Creates a new field which contains a list of features.
 
@@ -248,14 +249,14 @@ class ListFeatures(MapTransformation):
             ]
         )
 
-    def map_transform(self, data: DataEntry) -> DataEntry:
+    def transform(self, data: DataEntry) -> DataEntry:
         data[self.output_field] = [data[fname] for fname in self.input_fields]
         for fname in self.cols_to_drop:
             del data[fname]
         return data
 
 
-class TargetDimIndicator(MapTransformation):
+class TargetDimIndicator(SimpleTransformation):
     """
     Label-encoding of the target dimensions.
     """
@@ -265,7 +266,7 @@ class TargetDimIndicator(MapTransformation):
         self.field_name = field_name
         self.target_field = target_field
 
-    def map_transform(self, data: DataEntry) -> DataEntry:
+    def transform(self, data: DataEntry) -> DataEntry:
         data[self.field_name] = np.arange(0, data[self.target_field].shape[0])
         return data
 
@@ -290,27 +291,32 @@ class SampleTargetDim(FlatMapTransformation):
         self.num_samples = num_samples
         self.shuffle = shuffle
 
-    def flatmap_transform(self, data: DataEntry) -> Iterator[DataEntry]:
-        # (target_dim,)
-        target_dimensions = data[self.field_name]
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool, slice_future_target: bool = True
+    ) -> Iterator[DataEntry]:
+        if not is_train:
+            yield data
+        else:
+            # (target_dim,)
+            target_dimensions = data[self.field_name]
 
-        if self.shuffle:
-            np.random.shuffle(target_dimensions)
+            if self.shuffle:
+                np.random.shuffle(target_dimensions)
 
-        target_dimensions = target_dimensions[: self.num_samples]
+            target_dimensions = target_dimensions[: self.num_samples]
 
-        data[self.field_name] = target_dimensions
-        # (seq_len, target_dim) -> (seq_len, num_samples)
+            data[self.field_name] = target_dimensions
+            # (seq_len, target_dim) -> (seq_len, num_samples)
 
-        for field in [
-            f"past_{self.target_field}",
-            f"future_{self.target_field}",
-            f"past_{self.observed_values_field}",
-            f"future_{self.observed_values_field}",
-        ]:
-            data[field] = data[field][:, target_dimensions]
+            for field in [
+                f"past_{self.target_field}",
+                f"future_{self.target_field}",
+                f"past_{self.observed_values_field}",
+                f"future_{self.observed_values_field}",
+            ]:
+                data[field] = data[field][:, target_dimensions]
 
-        yield data
+            yield data
 
 
 class CDFtoGaussianTransform(MapTransformation):
@@ -363,8 +369,8 @@ class CDFtoGaussianTransform(MapTransformation):
         self.target_dim = target_dim
         self.dtype = dtype
 
-    def map_transform(self, data: DataEntry) -> DataEntry:
-        self._preprocess_data(data)
+    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        self._preprocess_data(data, is_train=is_train)
         self._calc_pw_linear_params(data)
 
         for target_field in [self.past_target_field, self.future_target_field]:
@@ -378,18 +384,21 @@ class CDFtoGaussianTransform(MapTransformation):
             )
         return data
 
-    def _preprocess_data(self, data: DataEntry):
+    def _preprocess_data(self, data: DataEntry, is_train: bool):
         """
         Performs several preprocess operations for computing the empirical CDF.
         1) Reshaping the data.
         2) Normalizing the target length.
-        3) Adding noise to avoid zero slopes
+        3) Adding noise to avoid zero slopes (training only)
         4) Sorting the target to compute the empirical CDF
 
         Parameters
         ----------
         data
             DataEntry with input data.
+        is_train
+            if is_train is True, this function adds noise to the target to
+            avoid zero slopes in the piece-wise linear function.
         Returns
         -------
 
@@ -428,8 +437,10 @@ class CDFtoGaussianTransform(MapTransformation):
 
         # sorts along the time dimension to compute empirical CDF of each
         # dimension
-
-        past_target_vec = self._add_noise(past_target_vec).astype(self.dtype)
+        if is_train:
+            past_target_vec = self._add_noise(past_target_vec).astype(
+                self.dtype
+            )
 
         past_target_vec.sort(axis=0)
 

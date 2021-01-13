@@ -18,7 +18,6 @@ import multiprocessing as mp
 import pickle
 import random
 import sys
-import warnings
 from multiprocessing.reduction import ForkingPickler
 from queue import Empty
 from typing import Callable, Iterable, Iterator, List, Optional
@@ -208,7 +207,9 @@ def TrainDataLoader(
     shuffle_buffer_length: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
 ):
-    transformed_dataset = TransformedDataset(Cyclic(dataset), transform)
+    transformed_dataset = TransformedDataset(
+        Cyclic(dataset), transform, is_train=True
+    )
     data_iterable = (
         PseudoShuffled(
             transformed_dataset, shuffle_buffer_length=shuffle_buffer_length
@@ -231,6 +232,23 @@ def TrainDataLoader(
     )
 
 
+def ValidationDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation,
+    batch_size: int,
+    stack_fn: Callable,
+    num_workers: Optional[int] = None,
+    num_prefetch: Optional[int] = None,
+    shuffle_buffer_length: Optional[int] = None,
+):
+    return DataLoader(
+        data_iterable=TransformedDataset(dataset, transform, is_train=True),
+        batch_size=batch_size,
+        stack_fn=stack_fn,
+    )
+
+
 def InferenceDataLoader(
     dataset: Dataset,
     *,
@@ -242,15 +260,7 @@ def InferenceDataLoader(
     shuffle_buffer_length: Optional[int] = None,
 ):
     return DataLoader(
-        data_iterable=TransformedDataset(dataset, transform),
+        data_iterable=TransformedDataset(dataset, transform, is_train=False),
         batch_size=batch_size,
         stack_fn=stack_fn,
     )
-
-
-def ValidationDataLoader(*args, **kwargs):
-    warnings.warn(
-        "gluonts.dataset.loader.ValidationDataLoader is deprecated. Use InferenceDataLoader instead.",
-        DeprecationWarning,
-    )
-    return InferenceDataLoader(*args, **kwargs)
