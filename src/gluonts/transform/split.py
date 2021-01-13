@@ -128,7 +128,6 @@ class InstanceSplitter(FlatMapTransformation):
         lead_time: int = 0,
         output_NTC: bool = True,
         time_series_fields: Optional[List[str]] = None,
-        pick_incomplete: bool = True,
         dummy_value: float = 0.0,
     ) -> None:
 
@@ -146,7 +145,6 @@ class InstanceSplitter(FlatMapTransformation):
         self.is_pad_field = is_pad_field
         self.start_field = start_field
         self.forecast_start_field = forecast_start_field
-        self.pick_incomplete = pick_incomplete
         self.dummy_value = dummy_value
 
     def _past(self, col_name):
@@ -165,43 +163,14 @@ class InstanceSplitter(FlatMapTransformation):
 
         len_target = target.shape[-1]
 
-        minimum_length = (
-            self.future_length
-            if self.pick_incomplete
-            else self.past_length + self.future_length
-        ) + self.lead_time
+        sampled_indices = (
+            self.train_sampler(target)
+            if is_train
+            else np.array([len_target], dtype=int)
+        )
 
-        if is_train:
-            sampling_bounds = (
-                (
-                    0,
-                    len_target - self.future_length - self.lead_time,
-                )  # TODO: create parameter lower sampling bound for NBEATS
-                if self.pick_incomplete
-                else (
-                    self.past_length,
-                    len_target - self.future_length - self.lead_time,
-                )
-            )
-
-            # We currently cannot handle time series that are
-            # too short during training, so we just skip these.
-            # If we want to include them we would need to pad and to
-            # mask the loss.
-            sampled_indices = (
-                np.array([], dtype=int)
-                if len_target < minimum_length
-                else self.train_sampler(target, *sampling_bounds)
-            )
-        else:
-            assert self.pick_incomplete or len_target >= self.past_length
-            sampled_indices = np.array([len_target], dtype=int)
         for i in sampled_indices:
             pad_length = max(self.past_length - i, 0)
-            if not self.pick_incomplete:
-                assert (
-                    pad_length == 0
-                ), f"pad_length should be zero, got {pad_length}"
             d = data.copy()
             for ts_field in slice_cols:
                 if i > self.past_length:
@@ -357,9 +326,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
                     else []
                 )
             else:
-                sampling_indices = self.instance_sampler(
-                    ts_target, self.instance_length, len_target
-                )
+                sampling_indices = self.instance_sampler(ts_target)
         else:
             sampling_indices = [len_target]
 

@@ -133,9 +133,10 @@ def test_add_method():
     assert isinstance(chain, transform.Chain)
 
 
+@pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
-def test_AddTimeFeatures(start, target):
+def test_AddTimeFeatures(start, target, is_train: bool):
     pred_length = 13
     t = transform.AddTimeFeatures(
         start_field=FieldName.START,
@@ -149,9 +150,9 @@ def test_AddTimeFeatures(start, target):
     assert_serializable(t)
 
     data = {"start": start, "target": target}
-    res = t.map_transform(data)
+    res = t.map_transform(data, is_train=is_train)
     mat = res["myout"]
-    expected_length = len(target) + pred_length
+    expected_length = len(target) + (0 if is_train else pred_length)
     assert mat.shape == (2, expected_length)
     tmp_idx = pd.date_range(
         start=start, freq=start.freq, periods=expected_length
@@ -160,9 +161,10 @@ def test_AddTimeFeatures(start, target):
     assert np.alltrue(mat[1] == time_feature.DayOfMonth()(tmp_idx))
 
 
+@pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
-def test_AddTimeFeatures_empty_time_features(start, target):
+def test_AddTimeFeatures_empty_time_features(start, target, is_train: bool):
     pred_length = 13
     t = transform.AddTimeFeatures(
         start_field=FieldName.START,
@@ -175,13 +177,14 @@ def test_AddTimeFeatures_empty_time_features(start, target):
     assert_serializable(t)
 
     data = {"start": start, "target": target}
-    res = t.map_transform(data)
+    res = t.map_transform(data, is_train=is_train)
     assert res["myout"] is None
 
 
+@pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
-def test_AddAgeFeatures(start, target):
+def test_AddAgeFeatures(start, target, is_train: bool):
     pred_length = 13
     t = transform.AddAgeFeature(
         pred_length=pred_length,
@@ -193,8 +196,8 @@ def test_AddAgeFeatures(start, target):
     assert_serializable(t)
 
     data = {"start": start, "target": target}
-    out = t.map_transform(data)
-    expected_length = len(target) + pred_length
+    out = t.map_transform(data, is_train=is_train)
+    expected_length = len(target) + (0 if is_train else pred_length)
     assert out["age"].shape[-1] == expected_length
     assert np.allclose(
         out["age"],
@@ -207,11 +210,12 @@ def test_AddAgeFeatures(start, target):
 @pytest.mark.parametrize(
     "pick_incomplete", TEST_VALUES["allow_target_padding"]
 )
+@pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
 @pytest.mark.parametrize("lead_time", TEST_VALUES["lead_time"])
 def test_InstanceSplitter(
-    start, target, lead_time: int, pick_incomplete: bool
+    start, target, lead_time: int, is_train: bool, pick_incomplete: bool
 ):
     train_length = 100
     pred_length = 13
@@ -220,7 +224,7 @@ def test_InstanceSplitter(
         is_pad_field=FieldName.IS_PAD,
         start_field=FieldName.START,
         forecast_start_field=FieldName.FORECAST_START,
-        instance_sampler=transform.UniformSplitSampler(
+        train_sampler=transform.UniformSplitSampler(
             p=1.0,
             skip_initial=0 if pick_incomplete else train_length,
             skip_final=lead_time + pred_length,
@@ -241,16 +245,19 @@ def test_InstanceSplitter(
         "some_other_col": "ABC",
     }
 
-    out = list(t.flatmap_transform(data))
+    out = list(t.flatmap_transform(data, is_train=is_train))
 
-    assert len(out) == max(
-        0,
-        len(target)
-        - pred_length
-        - lead_time
-        + 1
-        - (0 if pick_incomplete else train_length),
-    )
+    if is_train:
+        assert len(out) == max(
+            0,
+            len(target)
+            - pred_length
+            - lead_time
+            + 1
+            - (0 if pick_incomplete else train_length),
+        )
+    else:
+        assert len(out) == 1
 
     for o in out:
         assert "target" not in o
@@ -260,14 +267,19 @@ def test_InstanceSplitter(
         assert len(o["past_some_time_feature"]) == train_length
         assert len(o["past_target"]) == train_length
 
-        assert len(o["future_target"]) == pred_length
-        assert len(o["future_some_time_feature"]) == pred_length
+        if is_train:
+            assert len(o["future_target"]) == pred_length
+            assert len(o["future_some_time_feature"]) == pred_length
+        else:
+            assert len(o["future_target"]) == 0
+            assert len(o["future_some_time_feature"]) == pred_length
 
     # expected_length = len(target) + (0 if is_train else pred_length)
     # assert len(out['age']) == expected_length
     # assert np.alltrue(out['age'] == np.log10(2.0 + np.arange(expected_length)))
 
 
+@pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
 @pytest.mark.parametrize(
@@ -279,6 +291,7 @@ def test_InstanceSplitter(
 def test_CanonicalInstanceSplitter(
     start,
     target,
+    is_train: bool,
     use_prediction_features: bool,
     allow_target_padding: bool,
 ):
@@ -290,7 +303,8 @@ def test_CanonicalInstanceSplitter(
         start_field=FieldName.START,
         forecast_start_field=FieldName.FORECAST_START,
         instance_sampler=transform.UniformSplitSampler(
-            p=1.0, skip_initial=train_length
+            p=1.0,
+            skip_initial=train_length,
         ),
         instance_length=train_length,
         prediction_length=pred_length,
@@ -309,10 +323,15 @@ def test_CanonicalInstanceSplitter(
         "some_other_col": "ABC",
     }
 
-    out = list(t.flatmap_transform(data))
+    out = list(t.flatmap_transform(data, is_train=is_train))
 
     min_num_instances = 1 if allow_target_padding else 0
-    assert len(out) == max(min_num_instances, len(target) - train_length + 1)
+    if is_train:
+        assert len(out) == max(
+            min_num_instances, len(target) - train_length + 1
+        )
+    else:
+        assert len(out) == 1
 
     for o in out:
         assert "target" not in o
@@ -323,7 +342,7 @@ def test_CanonicalInstanceSplitter(
         assert len(o["past_some_time_feature"]) == train_length
         assert len(o["past_target"]) == train_length
 
-        if use_prediction_features:
+        if use_prediction_features and not is_train:
             assert len(o["future_some_time_feature"]) == pred_length
 
 
@@ -367,7 +386,7 @@ def test_Transformation():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=transform.ExpectedNumInstanceSampler(
+                train_sampler=transform.ExpectedNumInstanceSampler(
                     num_instances=4
                 ),
                 past_length=train_length,
@@ -379,11 +398,12 @@ def test_Transformation():
 
     assert_serializable(t)
 
-    for u in t(iter(ds)):
+    for u in t(iter(ds), is_train=True):
         print(u)
 
 
-def test_multi_dim_transformation():
+@pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
+def test_multi_dim_transformation(is_train):
     train_length = 10
 
     first_dim: list = list(np.arange(1, 11, 1))
@@ -437,7 +457,7 @@ def test_multi_dim_transformation():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=transform.ExpectedNumInstanceSampler(
+                train_sampler=transform.ExpectedNumInstanceSampler(
                     num_instances=4, skip_final=pred_length
                 ),
                 past_length=train_length,
@@ -450,8 +470,8 @@ def test_multi_dim_transformation():
 
     assert_serializable(t)
 
-    if True:  # is_train:
-        for u in t(iter(ds)):
+    if is_train:
+        for u in t(iter(ds), is_train=True):
             assert_shape(u["past_target"], (2, 10))
             assert_shape(u["past_dynamic_feat"], (4, 10))
             assert_shape(u["past_observed_values"], (2, 10))
@@ -467,23 +487,23 @@ def test_multi_dim_transformation():
                 np.array([first_dim, second_dim]),
                 u["past_is_pad"],
             )
-    # else:
-    #     for u in t(iter(ds), is_train=False):
-    #         assert_shape(u["past_target"], (2, 10))
-    #         assert_shape(u["past_dynamic_feat"], (4, 10))
-    #         assert_shape(u["past_observed_values"], (2, 10))
-    #         assert_shape(u["future_target"], (2, 0))
+    else:
+        for u in t(iter(ds), is_train=False):
+            assert_shape(u["past_target"], (2, 10))
+            assert_shape(u["past_dynamic_feat"], (4, 10))
+            assert_shape(u["past_observed_values"], (2, 10))
+            assert_shape(u["future_target"], (2, 0))
 
-    #         assert_padded_array(
-    #             u["past_observed_values"],
-    #             np.array([[1.0] * 9 + [0.0], [0.0] + [1.0] * 9]),
-    #             u["past_is_pad"],
-    #         )
-    #         assert_padded_array(
-    #             u["past_target"],
-    #             np.array([first_dim, second_dim]),
-    #             u["past_is_pad"],
-    #         )
+            assert_padded_array(
+                u["past_observed_values"],
+                np.array([[1.0] * 9 + [0.0], [0.0] + [1.0] * 9]),
+                u["past_is_pad"],
+            )
+            assert_padded_array(
+                u["past_target"],
+                np.array([first_dim, second_dim]),
+                u["past_is_pad"],
+            )
 
 
 def test_ExpectedNumInstanceSampler():
@@ -499,7 +519,7 @@ def test_ExpectedNumInstanceSampler():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=transform.ExpectedNumInstanceSampler(
+                train_sampler=transform.ExpectedNumInstanceSampler(
                     num_instances=4, skip_final=pred_length
                 ),
                 past_length=train_length,
@@ -514,7 +534,7 @@ def test_ExpectedNumInstanceSampler():
 
     repetition = 2
     for i in range(repetition):
-        for data in t(iter(ds)):
+        for data in t(iter(ds), is_train=True):
             target_values = data["past_target"]
             # for simplicity, discard values that are zeros to avoid confusion with padding
             target_values = target_values[target_values > 0]
@@ -540,7 +560,7 @@ def test_BucketInstanceSampler():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=transform.BucketInstanceSampler(
+                train_sampler=transform.BucketInstanceSampler(
                     dataset_stats.scale_histogram
                 ),
                 past_length=train_length,
@@ -555,7 +575,7 @@ def test_BucketInstanceSampler():
 
     repetition = 200
     for i in range(repetition):
-        for data in t(iter(ds)):
+        for data in t(iter(ds), is_train=True):
             target_values = data["past_target"]
             # for simplicity, discard values that are zeros to avoid confusion with padding
             target_values = target_values[target_values > 0]
@@ -642,7 +662,7 @@ def test_cdf_to_gaussian_transformation():
         ]
     )
 
-    for u in t(iter(ds)):
+    for u in t(iter(ds), is_train=False):
 
         fake_output = make_fake_output(u)
 
@@ -716,7 +736,7 @@ def test_target_dim_indicator():
         ]
     )
 
-    for data_entry in t(dataset):
+    for data_entry in t(dataset, is_train=True):
         assert (
             data_entry["target_dimensions"] == np.array([0, 1, 2, 3])
         ).all()
@@ -762,9 +782,7 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
         2,
         1,
-        instance_sampler=transform.ContinuousTimeUniformSampler(
-            num_instances=10
-        ),
+        train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
     )
 
     # no boundary conditions
@@ -776,17 +794,14 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
     assert all([a == b for a, b in zip([0], res)])
 
 
-@pytest.mark.skip
 def test_ctsplitter_no_train_last_point(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
         2,
         1,
-        instance_sampler=transform.ContinuousTimeUniformSampler(
-            num_instances=10
-        ),
+        train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
     )
 
-    iter_de = splitter(point_process_dataset)
+    iter_de = splitter(point_process_dataset, is_train=False)
 
     d_out = next(iter(iter_de))
 
@@ -805,12 +820,12 @@ def test_ctsplitter_train_correct(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
         1,
         1,
-        instance_sampler=MockContinuousTimeSampler(
+        train_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99], num_instances=3
         ),
     )
 
-    iter_de = splitter(point_process_dataset)
+    iter_de = splitter(point_process_dataset, is_train=True)
 
     outputs = list(iter_de)
 
@@ -844,12 +859,12 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
         1,
         1,
-        instance_sampler=MockContinuousTimeSampler(
+        train_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99], num_instances=3
         ),
     )
 
-    iter_de = splitter(shuffle_iterator())
+    iter_de = splitter(shuffle_iterator(), is_train=True)
 
     outputs = list(iter_de)
 
@@ -859,10 +874,10 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
 def test_ctsplitter_train_samples_correct_times(point_process_dataset):
 
     splitter = transform.ContinuousTimeInstanceSplitter(
-        1.25, 1.25, instance_sampler=transform.ContinuousTimeUniformSampler(20)
+        1.25, 1.25, train_sampler=transform.ContinuousTimeUniformSampler(20)
     )
 
-    iter_de = splitter(point_process_dataset)
+    iter_de = splitter(point_process_dataset, is_train=True)
 
     assert all(
         [
@@ -880,12 +895,12 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
         0.01,
         0.01,
-        instance_sampler=MockContinuousTimeSampler(
+        train_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99], num_instances=3
         ),
     )
 
-    iter_de = splitter(point_process_dataset)
+    iter_de = splitter(point_process_dataset, is_train=True)
 
     for d in iter_de:
         assert d["future_valid_length"] == d["past_valid_length"] == 0
@@ -979,7 +994,7 @@ def test_AddObservedIndicator():
 
             d = {"target": array_value.copy()}
 
-            res = transfo.map_transform(d)
+            res = transfo.transform(d)
 
             assert np.array_equal(d_expected_results[method][i], res["target"])
             assert np.array_equal(

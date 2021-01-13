@@ -130,6 +130,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         mean_scaling: bool = True,
         num_parallel_samples: int = 100,
         train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
         batch_size: int = 32,
     ) -> None:
         """
@@ -175,6 +176,11 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             if train_sampler is not None
             else ExpectedNumInstanceSampler(1.0, skip_final=prediction_length)
         )
+        self.validation_sampler = (
+            validation_sampler
+            if validation_sampler is not None
+            else ValidationSplitSampler(skip_final=prediction_length)
+        )
 
     # Here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -204,7 +210,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             is_pad_field=FieldName.IS_PAD,
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=self.train_sampler,
+            train_sampler=self.train_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length,
             time_series_fields=[FieldName.OBSERVED_VALUES],
@@ -237,9 +243,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             is_pad_field=FieldName.IS_PAD,
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=ValidationSplitSampler(
-                skip_final=self.prediction_length
-            ),
+            train_sampler=self.validation_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length,
             time_series_fields=[FieldName.OBSERVED_VALUES],
@@ -278,7 +282,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             is_pad_field=FieldName.IS_PAD,
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=TestSplitSampler(),
+            train_sampler=TestSplitSampler(),
             past_length=self.context_length,
             future_length=self.prediction_length,
             time_series_fields=[FieldName.OBSERVED_VALUES],
