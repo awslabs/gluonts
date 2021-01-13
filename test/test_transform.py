@@ -224,10 +224,16 @@ def test_InstanceSplitter(
         is_pad_field=FieldName.IS_PAD,
         start_field=FieldName.START,
         forecast_start_field=FieldName.FORECAST_START,
-        train_sampler=transform.UniformSplitSampler(
-            p=1.0,
-            skip_initial=0 if pick_incomplete else train_length,
-            skip_final=lead_time + pred_length,
+        instance_sampler=(
+            transform.UniformSplitSampler(
+                p=1.0,
+                skip_initial=0 if pick_incomplete else train_length,
+                skip_final=lead_time + pred_length,
+            )
+            if is_train
+            else transform.TestSplitSampler(
+                skip_initial=0 if pick_incomplete else train_length
+            )
         ),
         past_length=train_length,
         future_length=pred_length,
@@ -245,7 +251,12 @@ def test_InstanceSplitter(
         "some_other_col": "ABC",
     }
 
-    out = list(t.flatmap_transform(data, is_train=is_train))
+    if not is_train and not pick_incomplete and len(target) < train_length:
+        with pytest.raises(AssertionError):
+            out = list(t.flatmap_transform(data, is_train=is_train))
+        return
+    else:
+        out = list(t.flatmap_transform(data, is_train=is_train))
 
     if is_train:
         assert len(out) == max(
@@ -302,9 +313,17 @@ def test_CanonicalInstanceSplitter(
         is_pad_field=FieldName.IS_PAD,
         start_field=FieldName.START,
         forecast_start_field=FieldName.FORECAST_START,
-        instance_sampler=transform.UniformSplitSampler(
-            p=1.0,
-            skip_initial=train_length,
+        instance_sampler=(
+            transform.UniformSplitSampler(
+                p=1.0,
+                skip_initial=train_length,
+            )
+            if is_train
+            else (
+                transform.ValidationSplitSampler()
+                if allow_target_padding
+                else transform.TestSplitSampler()
+            )
         ),
         instance_length=train_length,
         prediction_length=pred_length,
@@ -325,7 +344,7 @@ def test_CanonicalInstanceSplitter(
 
     out = list(t.flatmap_transform(data, is_train=is_train))
 
-    min_num_instances = 1 if allow_target_padding else 0
+    min_num_instances = 1 if allow_target_padding and not is_train else 0
     if is_train:
         assert len(out) == max(
             min_num_instances, len(target) - train_length + 1
@@ -386,7 +405,7 @@ def test_Transformation():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=transform.ExpectedNumInstanceSampler(
+                instance_sampler=transform.ExpectedNumInstanceSampler(
                     num_instances=4
                 ),
                 past_length=train_length,
@@ -457,8 +476,12 @@ def test_multi_dim_transformation(is_train):
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=transform.ExpectedNumInstanceSampler(
-                    num_instances=4, skip_final=pred_length
+                instance_sampler=(
+                    transform.ExpectedNumInstanceSampler(
+                        num_instances=4, skip_final=pred_length
+                    )
+                    if is_train
+                    else transform.TestSplitSampler()
                 ),
                 past_length=train_length,
                 future_length=pred_length,
@@ -519,7 +542,7 @@ def test_ExpectedNumInstanceSampler():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=transform.ExpectedNumInstanceSampler(
+                instance_sampler=transform.ExpectedNumInstanceSampler(
                     num_instances=4, skip_final=pred_length
                 ),
                 past_length=train_length,
@@ -560,7 +583,7 @@ def test_BucketInstanceSampler():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=transform.BucketInstanceSampler(
+                instance_sampler=transform.BucketInstanceSampler(
                     dataset_stats.scale_histogram
                 ),
                 past_length=train_length,

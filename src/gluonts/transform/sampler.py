@@ -73,15 +73,23 @@ class UniformSplitSampler(InstanceSampler):
         return indices + a
 
 
-class TestSplitSampler(InstanceSampler):
+class PredictionSplitSampler(InstanceSampler):
     """
     Sampler used for prediction. Always selects the last time point for
     splitting i.e. the forecast point for the time series.
     """
 
     @validated()
-    def __init__(self, allow_empty_interval=False, **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(
+        self,
+        allow_empty_interval=False,
+        axis: int = -1,
+        skip_initial: int = 0,
+        skip_final: int = 0,
+    ) -> None:
+        super().__init__(
+            axis=axis, skip_initial=skip_initial, skip_final=skip_final
+        )
         self.allow_empty_interval = allow_empty_interval
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
@@ -90,8 +98,26 @@ class TestSplitSampler(InstanceSampler):
         return np.array([b]) if a <= b else np.array([], dtype=int)
 
 
-def ValidationSplitSampler(**kwargs) -> TestSplitSampler:
-    return TestSplitSampler(**kwargs, allow_empty_interval=True)
+def ValidationSplitSampler(
+    axis: int = -1, skip_initial: int = 0, skip_final: int = 0
+) -> PredictionSplitSampler:
+    return PredictionSplitSampler(
+        allow_empty_interval=True,
+        axis=axis,
+        skip_initial=skip_initial,
+        skip_final=skip_final,
+    )
+
+
+def TestSplitSampler(
+    axis: int = -1, skip_initial: int = 0
+) -> PredictionSplitSampler:
+    return PredictionSplitSampler(
+        allow_empty_interval=False,
+        axis=axis,
+        skip_initial=skip_initial,
+        skip_final=0,
+    )
 
 
 class ExpectedNumInstanceSampler(InstanceSampler):

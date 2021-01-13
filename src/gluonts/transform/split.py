@@ -91,7 +91,7 @@ class InstanceSplitter(FlatMapTransformation):
         field containing the start date of the time series
     forecast_start_field
         output field that will contain the time point where the forecast starts
-    train_sampler
+    instance_sampler
         instance sampler that provides sampling indices given a time-series
     past_length
         length of the target seen before making prediction
@@ -122,7 +122,7 @@ class InstanceSplitter(FlatMapTransformation):
         is_pad_field: str,
         start_field: str,
         forecast_start_field: str,
-        train_sampler: InstanceSampler,
+        instance_sampler: InstanceSampler,
         past_length: int,
         future_length: int,
         lead_time: int = 0,
@@ -133,7 +133,7 @@ class InstanceSplitter(FlatMapTransformation):
 
         assert future_length > 0
 
-        self.train_sampler = train_sampler
+        self.instance_sampler = instance_sampler
         self.past_length = past_length
         self.future_length = future_length
         self.lead_time = lead_time
@@ -163,11 +163,7 @@ class InstanceSplitter(FlatMapTransformation):
 
         len_target = target.shape[-1]
 
-        sampled_indices = (
-            self.train_sampler(target)
-            if is_train
-            else np.array([len_target], dtype=int)
-        )
+        sampled_indices = self.instance_sampler(target)
 
         for i in sampled_indices:
             pad_length = max(self.past_length - i, 0)
@@ -317,18 +313,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 
         len_target = ts_target.shape[-1]
 
-        if is_train:
-            if len_target < self.instance_length:
-                sampling_indices = (
-                    # Returning [] for all time series will cause this to be in loop forever!
-                    [len_target]
-                    if self.allow_target_padding
-                    else []
-                )
-            else:
-                sampling_indices = self.instance_sampler(ts_target)
-        else:
-            sampling_indices = [len_target]
+        sampling_indices = self.instance_sampler(ts_target)
 
         for i in sampling_indices:
             d = data.copy()
