@@ -21,6 +21,8 @@ from torch.distributions import (
     AffineTransform,
     Beta,
     Distribution,
+    Normal,
+    StudentT,
     TransformedDistribution,
 )
 
@@ -175,6 +177,27 @@ class DistributionOutput(Output):
         define a distribution of the right event_shape.
         """
         raise NotImplementedError()
+
+
+class NormalOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
+    distr_cls: type = Normal
+
+    @classmethod
+    def domain_map(cls, loc, scale):
+        scale = F.softplus(scale)
+        return loc.squeeze(-1), scale.squeeze(-1)
+
+
+class StudentTOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
+    distr_cls: type = StudentT
+
+    @classmethod
+    def domain_map(cls, df, loc, scale):
+        scale = F.softplus(scale)
+        df = 2.0 + F.softplus(df)
+        return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
 
 class BetaOutput(DistributionOutput):
