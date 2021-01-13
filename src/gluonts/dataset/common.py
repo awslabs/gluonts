@@ -10,7 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
+import re
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -25,15 +25,21 @@ from typing import (
     Optional,
     Union,
     cast,
+    Sequence,
+    Tuple,
 )
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import pydantic
+from gluonts.dataset.util import get_bounds_for_mp_data_loading
+from gluonts.gluonts_tqdm import tqdm
 from pandas.tseries.offsets import Tick
 
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
+from .arrow import ArrowWriter, ArrowReader
 
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]
@@ -158,18 +164,18 @@ class FileDataset(Dataset):
 
     def __init__(
         self,
-        path: Path,
+        path: Union[str, Path, List[Path], List[str]],
         freq: str,
         one_dim_target: bool = True,
         cache: bool = False,
     ) -> None:
         self.cache = cache
-        self.path = path
+        self.paths = util.resolve_paths(path)
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
         self._len_per_file = None
 
         if not self.files():
-            raise OSError(f"no valid file found in {path}")
+            raise OSError(f"no valid file found in {self.paths}")
 
         # necessary, in order to preserve the cached datasets, in case caching was enabled
         self._json_line_files = [
@@ -207,13 +213,144 @@ class FileDataset(Dataset):
         List[Path]
             List of the paths of all files composing the dataset.
         """
-        return util.find_files(self.path, self.is_valid)
+        return util.find_files(self.paths, self.is_valid)
 
     @classmethod
     def is_valid(cls, path: Path) -> bool:
-        # TODO: given that we only support json, should we also filter json
-        # TODO: in the extension?
-        return not (path.name.startswith(".") or path.name == "_SUCCESS")
+        valid_endings = [
+            ".json",
+            ".jsonl",
+            ".json.gz",
+            ".jsonl.gz",
+        ]
+        if not any(path.name.endswith(ending) for ending in valid_endings):
+            return False
+        return not path.name.startswith(".")
+
+
+class ArrowDataset(Dataset):
+    _SOURCE_COL_NAME = "_GLUONTS_SOURCE"
+    _ROW_COL_NAME = "_GLUONTS_ROW"
+
+    def __init__(
+        self,
+        table: pa.Table,
+        freq: str,
+        chunk_size: int = 100,
+    ):
+        """
+
+        An on disk Dataset based on pyarrow tables that is faster than json for large datasets or
+        datasets with long time series.
+
+        Use `ArrowDataset.load_files` to load the dataset from disk and
+        `ArrowDataset.write_table_from_records` to save recors in arrow format.
+        """
+        self.table = table
+        self.chunk_size = chunk_size
+        self.freq = freq
+        self._process = ProcessDataEntry(self.freq, one_dim_target=True)
+        self.reader = ArrowReader(self.table, chunk_size=self.chunk_size)
+
+    @classmethod
+    def load_files(
+        cls,
+        paths: Union[str, Path, List[str], List[Path]],
+        freq: str,
+        chunk_size: int = 100,
+    ):
+        paths = util.resolve_paths(paths) if paths is not None else None
+        files = util.find_files(paths, lambda p: str(p).endswith(".arrow"))
+        assert (
+            len(files) > 0
+        ), f"Could not find any arrow files in paths: {paths}"
+        return MemmapArrowDataset(files, freq, chunk_size)
+
+    def __iter__(self) -> Iterator[DataEntry]:
+        row_number = 0
+        bounds = get_bounds_for_mp_data_loading(len(self))
+        for rec in self.reader.iter_slice(bounds.lower, bounds.upper):
+            if self._SOURCE_COL_NAME in rec:
+                rec["source"] = SourceContext(
+                    source=rec[self._SOURCE_COL_NAME],
+                    row=rec[self._ROW_COL_NAME],
+                )
+                del rec[self._SOURCE_COL_NAME]
+                del rec[self._ROW_COL_NAME]
+            else:
+                rec["source"] = SourceContext(
+                    source="arrow.Table", row=row_number
+                )
+            rec = self._process(rec)
+            yield rec
+            row_number += 1
+
+    def __len__(self):
+        return len(self.table)
+
+    @classmethod
+    def write_table_from_records(
+        cls,
+        it: Iterable[DataEntry],
+        file_path: Union[str, Path],
+        chunk_size=100,
+    ) -> None:
+        """
+        Write time series records as an arrow dataset to the file_path.
+        """
+        file_path = Path(file_path)
+        msg = f"Converting to arrow dataset: {file_path}"
+        l: Optional[int] = None
+        try:
+            l = len(it)  # type: ignore
+        except:
+            l = None
+        with ArrowWriter(file_path, chunk_size=chunk_size) as writer:
+            for rec in tqdm(it, total=l, desc=msg):
+                rec = rec.copy()
+                float_np_fields = [
+                    "target",
+                    "feat_static_real",
+                    "feat_dynamic_real",
+                ]
+                for field in float_np_fields:
+                    if field in rec:
+                        rec[field] = np.asarray(rec[field], dtype=np.float32)
+                int_np_fields = ["feat_static_cat", "feat_dynamic_cat"]
+                for field in int_np_fields:
+                    if field in rec:
+                        rec[field] = np.asarray(rec[field], dtype=np.int32)
+                if "start" in rec:
+                    rec["start"] = pd.Timestamp(rec["start"])
+                if "source" in rec:
+                    del rec["source"]
+                writer.write_record(rec)
+
+
+class MemmapArrowDataset(ArrowDataset):
+    def __init__(self, files: List[Path], freq: str, chunk_size: int):
+        """
+        Arrow dataset using memory mapped files that closes the files when the object is deleted.
+        """
+        self.files = files
+        self.mmaps = [pa.memory_map(str(p)) for p in files]
+        tables = []
+        for file_path, mm in zip(files, self.mmaps):
+            t = pa.ipc.open_stream(mm).read_all()
+            source_col = pa.repeat(str(file_path), len(t)).dictionary_encode()
+            t = t.append_column(self._SOURCE_COL_NAME, source_col)
+            row_col = pa.array(np.arange(len(t)))
+            t = t.append_column(self._ROW_COL_NAME, row_col)
+            tables.append(t)
+        if len(tables) > 1:
+            table = pa.concat_tables(tables)
+        else:
+            table = tables[0]
+        super().__init__(table, freq=freq, chunk_size=chunk_size)
+
+    def __del__(self):
+        for mm in self.mmaps:
+            mm.close()
 
 
 class ListDataset(Dataset):
@@ -455,7 +592,7 @@ class ProcessDataEntry:
 
 
 def load_datasets(
-    metadata: Path, train: Path, test: Optional[Path]
+    metadata: Path, train: Path, test: Optional[Path], use_arrow=True
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
@@ -475,9 +612,22 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds = FileDataset(path=train, freq=meta.freq)
-    test_ds = FileDataset(path=test, freq=meta.freq) if test else None
-
+    files = util._list_files(util.resolve_paths(train))
+    has_arrow_files = any(str(fname).endswith(".arrow") for fname in files)
+    if use_arrow and has_arrow_files:
+        print(f"loading arrow files from {train}, {test}")
+        train_ds = ArrowDataset.load_files(
+            paths=train, freq=meta.freq, chunk_size=200
+        )
+        test_ds = (
+            ArrowDataset.load_files(paths=test, freq=meta.freq, chunk_size=200)
+            if test
+            else None
+        )
+    else:
+        print(f"loading json files from {train}, {test}")
+        train_ds = FileDataset(path=train, freq=meta.freq)
+        test_ds = FileDataset(path=test, freq=meta.freq) if test else None
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 
 

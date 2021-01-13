@@ -26,6 +26,7 @@ from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
 from gluonts.dataset.repository._m3 import generate_m3_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._m5 import generate_m5_dataset
+from gluonts.dataset.util import find_files
 from gluonts.support.util import get_download_path
 
 m4_freq = "Hourly"
@@ -122,6 +123,7 @@ def materialize_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
+    use_arrow: bool = True,
 ) -> Path:
     """
     Ensures that the dataset is materialized under the `path / dataset_name`
@@ -166,6 +168,7 @@ def get_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
+    use_arrow: bool = True,
 ) -> TrainDatasets:
     """
     Get a repository dataset.
@@ -194,6 +197,7 @@ def get_dataset(
         metadata=dataset_path,
         train=dataset_path / "train",
         test=dataset_path / "test",
+        use_arrow=use_arrow,
     )
 
 

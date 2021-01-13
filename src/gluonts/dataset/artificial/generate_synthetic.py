@@ -24,6 +24,7 @@ from gluonts.dataset.artificial._base import (
     ComplexSeasonalTimeSeries,
     ConstantDataset,
 )
+from gluonts.dataset.common import ArrowWriter
 from gluonts.dataset.field_names import FieldName
 
 
@@ -78,33 +79,37 @@ def generate_sf2(
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename))
     with open(filename, "w") as json_file:
-        for ts in time_series:
-            if is_missing:
-                target = []  # type: List
-                # For Forecast don't output feat_static_cat and feat_static_real
-                for j, val in enumerate(ts[FieldName.TARGET]):
-                    # only add ones that are not missing
-                    if j != 0 and j % num_missing == 0:
-                        target.append(None)
-                    else:
-                        target.append(val)
-                ts[FieldName.TARGET] = target
-            ts.pop(FieldName.FEAT_STATIC_CAT, None)
-            ts.pop(FieldName.FEAT_STATIC_REAL, None)
-            # Chop features in training set
-            if (
-                FieldName.FEAT_DYNAMIC_REAL in ts.keys()
-                and "train" in filename
-            ):
-                # TODO: Fix for missing values
-                for i, feat_dynamic_real in enumerate(
-                    ts[FieldName.FEAT_DYNAMIC_REAL]
+        with ArrowWriter(filename.replace(".json", ".arrow")) as aw:
+            for ts in time_series:
+                ts = ts.copy()
+                del ts["source"]
+                if is_missing:
+                    target = []  # type: List
+                    # For Forecast don't output feat_static_cat and feat_static_real
+                    for j, val in enumerate(ts[FieldName.TARGET]):
+                        # only add ones that are not missing
+                        if j != 0 and j % num_missing == 0:
+                            target.append(None)
+                        else:
+                            target.append(val)
+                    ts[FieldName.TARGET] = target
+                ts.pop(FieldName.FEAT_STATIC_CAT, None)
+                ts.pop(FieldName.FEAT_STATIC_REAL, None)
+                # Chop features in training set
+                if (
+                    FieldName.FEAT_DYNAMIC_REAL in ts.keys()
+                    and "train" in filename
                 ):
-                    ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
-                        : len(ts[FieldName.TARGET])
-                    ]
-            json.dump(ts, json_file)
-            json_file.write("\n")
+                    # TODO: Fix for missing values
+                    for i, feat_dynamic_real in enumerate(
+                        ts[FieldName.FEAT_DYNAMIC_REAL]
+                    ):
+                        ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
+                            : len(ts[FieldName.TARGET])
+                        ]
+                json.dump(ts, json_file)
+                json_file.write("\n")
+                aw.write_record(ts)
 
 
 def generate_sf2s_and_csv(

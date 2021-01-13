@@ -467,7 +467,7 @@ class GluonTSFramework(Framework):
         serialized = serde.dump_json(estimator)
 
         with self._s3fs.open(locations.estimator_path, "w") as estimator_file:
-            estimator_file.write(serialized)
+            estimator_file.write_record(serialized)
 
     def _prepare_inputs(self, locations, dataset):
         s3_json_input = partial(

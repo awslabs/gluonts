@@ -17,6 +17,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
+import pandas as pd
+from gluonts.gluonts_tqdm import tqdm
+from gluonts.dataset.common import ArrowWriter, FileDataset, ArrowDataset
 
 
 def to_dict(
@@ -47,13 +50,14 @@ def to_dict(
 
 
 def save_to_file(path: Path, data: List[Dict]):
-    print(f"saving time-series into {path}")
     path_dir = os.path.dirname(path)
     os.makedirs(path_dir, exist_ok=True)
     with open(path, "wb") as fp:
-        for d in data:
+        for d in tqdm(data, desc=f"saving time-series into {path}"):
             fp.write(json.dumps(d).encode("utf-8"))
             fp.write("\n".encode("utf-8"))
+    arrow_path = Path(str(path).replace(".json", ".arrow"))
+    ArrowDataset.write_table_from_records(data, arrow_path)
 
 
 def metadata(
