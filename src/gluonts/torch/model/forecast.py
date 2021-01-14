@@ -35,8 +35,10 @@ class DistributionForecast(Forecast):
         Distribution object. This should represent the entire prediction
         length, i.e., if we draw `num_samples` samples from the distribution,
         the sample shape should be
-           samples = trans_dist.sample(num_samples)
-           samples.shape -> (num_samples, prediction_length)
+
+            samples = trans_dist.sample(num_samples)
+            samples.shape -> (num_samples, prediction_length)
+
     start_date
         start of the forecast
     freq

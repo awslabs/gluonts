@@ -27,7 +27,8 @@ jobs:
         cd gluon-ts
         python -m pip install pip==20.2
         pip install -r requirements/requirements-mxnet.txt
-        pip install -r requirements/requirements-pytorch.txt -f https://download.pytorch.org/whl/torch_stable.html
+        pip install torch~=1.6.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/torch_stable.html
+        pip install pytorch-lightning~=1.1
         pip install gluonts
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
