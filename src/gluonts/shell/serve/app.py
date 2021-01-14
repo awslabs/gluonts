@@ -245,6 +245,10 @@ def batch_inference_invocations(
 
         log_scored(when=end_time)
 
+        for forward_field in settings.gluonts_forward_fields:
+            for input_item, prediction in zip(dataset, predictions):
+                prediction[forward_field] = input_item.get(forward_field)
+
         lines = list(map(json.dumps, map(jsonify_floats, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")
 
