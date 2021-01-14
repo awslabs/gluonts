@@ -11,14 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 
 import mxnet as mx
 import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
-from gluonts.model.forecast import Forecast, SampleForecast, Quantile
+from gluonts.model.forecast import Forecast, SampleForecast, Quantile, QuantileForecast
 from gluonts.mx.distribution import Distribution
 
 
@@ -104,4 +104,14 @@ class DistributionForecast(Forecast):
             freq=self.freq,
             item_id=self.item_id,
             info=self.info,
+        )
+
+    def to_quantile_forecast(self, quantiles: List[Union[float, str]]):
+        return QuantileForecast(
+            forecast_arrays=np.array([self.quantile(q) for q in quantiles]),
+            forecast_keys=quantiles,
+            start_date=self.start_date,
+            freq=self.freq,
+            item_id=self.item_id,
+            info=self.info
         )
