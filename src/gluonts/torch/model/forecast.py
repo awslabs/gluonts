@@ -11,14 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Dict, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
 import torch
 from torch.distributions import Distribution
 
-from gluonts.model.forecast import Forecast, SampleForecast, Quantile
+from gluonts.model.forecast import Forecast, Quantile, SampleForecast
 
 
 class DistributionForecast(Forecast):

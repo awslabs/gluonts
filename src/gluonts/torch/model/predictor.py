@@ -27,9 +27,9 @@ from gluonts.model.forecast_generator import (
     SampleForecastGenerator,
     predict_to_numpy,
 )
-from gluonts.torch.component import equals
 from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.torch.batchify import batchify
+from gluonts.torch.component import equals
 from gluonts.transform import Transformation
 
 

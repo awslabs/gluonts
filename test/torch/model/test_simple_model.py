@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Callable
+from typing import Callable, List
 
-from torch import nn
-import torch
 import pytorch_lightning as pl
+import torch
+from torch import nn
 
 from gluonts.dataset.artificial import default_synthetic
 from gluonts.dataset.field_names import FieldName
@@ -24,20 +24,20 @@ from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.torch.batchify import batchify
-from gluonts.torch.support.util import copy_parameters
-from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.model.forecast_generator import (
     DistributionForecastGenerator,
 )
+from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.modules.distribution_output import (
     NormalOutput,
     StudentTOutput,
 )
+from gluonts.torch.support.util import copy_parameters
 from gluonts.transform import (
-    Chain,
     AddObservedValuesIndicator,
-    InstanceSplitter,
+    Chain,
     ExpectedNumInstanceSampler,
+    InstanceSplitter,
 )
 
 

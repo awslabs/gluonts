@@ -18,7 +18,6 @@ distributions exposed to the user.
 from typing import List, Tuple
 
 import numpy as np
-
 import pytest
 import torch
 import torch.nn as nn
