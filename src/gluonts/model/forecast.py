@@ -455,14 +455,16 @@ class SampleForecast(Forecast):
             ]
         )
 
-    def to_quantile_forecast(self, quantiles: List[Union[float, str]]) -> "QuantileForecast":
+    def to_quantile_forecast(
+        self, quantiles: List[Union[float, str]]
+    ) -> "QuantileForecast":
         return QuantileForecast(
             forecast_arrays=np.array([self.quantile(q) for q in quantiles]),
             start_date=self.start_date,
             freq=self.freq,
             forecast_keys=quantiles,
             item_id=self.item_id,
-            info=self.info
+            info=self.info,
         )
 
 

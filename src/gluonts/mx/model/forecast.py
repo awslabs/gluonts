@@ -18,7 +18,12 @@ import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
-from gluonts.model.forecast import Forecast, SampleForecast, Quantile, QuantileForecast
+from gluonts.model.forecast import (
+    Forecast,
+    SampleForecast,
+    Quantile,
+    QuantileForecast,
+)
 from gluonts.mx.distribution import Distribution
 
 
@@ -113,5 +118,5 @@ class DistributionForecast(Forecast):
             start_date=self.start_date,
             freq=self.freq,
             item_id=self.item_id,
-            info=self.info
+            info=self.info,
         )
