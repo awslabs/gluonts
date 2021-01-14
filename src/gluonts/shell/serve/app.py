@@ -257,7 +257,7 @@ def batch_inference_invocations(
             return invocations()
         except Exception as error:
             return Response(
-                json.dumps({"error": traceback.format_exc(error)}),
+                json.dumps({"error": traceback.format_exc()}),
                 mimetype="application/jsonlines",
             )
 
