@@ -1,1 +1,2 @@
-torch
+torch~=1.7
+pytorch-lightning~=1.1
