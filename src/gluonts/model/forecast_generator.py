@@ -51,25 +51,25 @@ def recursively_zip_arrays(x) -> Iterator:
     raise NotImplementedError
 
 
-@recursively_zip_arrays.register
+@recursively_zip_arrays.register(np.ndarray)
 def _(x: np.ndarray) -> Iterator[list]:
     for i in range(x.shape[0]):
         yield x[i]
 
 
-@recursively_zip_arrays.register
+@recursively_zip_arrays.register(tuple)
 def _(x: tuple) -> Iterator[tuple]:
     for m in zip(*[recursively_zip_arrays(y) for y in x]):
         yield tuple([r for r in m])
 
 
-@recursively_zip_arrays.register
+@recursively_zip_arrays.register(list)
 def _(x: list) -> Iterator[list]:
     for m in zip(*[recursively_zip_arrays(y) for y in x]):
         yield [r for r in m]
 
 
-@recursively_zip_arrays.register
+@recursively_zip_arrays.register(type(None))
 def _(x: type(None)) -> Iterator[type(None)]:
     while True:
         yield None

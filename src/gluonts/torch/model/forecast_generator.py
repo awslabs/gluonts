@@ -23,13 +23,13 @@ from gluonts.model.forecast_generator import (
 from gluonts.torch.model.forecast import DistributionForecast
 
 
-@recursively_zip_arrays.register
+@recursively_zip_arrays.register(torch.Tensor)
 def _(x: torch.Tensor) -> Iterator[torch.Tensor]:
     for i in range(x.shape[0]):
         yield x[i]
 
 
-@make_distribution_forecast.register
+@make_distribution_forecast.register(torch.distributions.Distribution)
 def _(
     distr: torch.distributions.Distribution, *args, **kwargs
 ) -> DistributionForecast:

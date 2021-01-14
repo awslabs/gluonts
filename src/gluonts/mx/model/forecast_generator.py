@@ -24,12 +24,12 @@ from gluonts.mx.distribution import Distribution
 from gluonts.mx.model.forecast import DistributionForecast
 
 
-@recursively_zip_arrays.register
+@recursively_zip_arrays.register(mx.nd.NDArray)
 def _(x: mx.nd.NDArray) -> Iterator[mx.nd.NDArray]:
     for i in range(x.shape[0]):
         yield x[i]
 
 
-@make_distribution_forecast.register
+@make_distribution_forecast.register(Distribution)
 def _(distr: Distribution, *args, **kwargs) -> DistributionForecast:
     return DistributionForecast(distr, *args, **kwargs)
