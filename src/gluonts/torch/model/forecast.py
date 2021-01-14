@@ -57,9 +57,7 @@ class DistributionForecast(Forecast):
         info: Optional[Dict] = None,
     ) -> None:
         self.distribution = distribution
-        self.shape = (
-            self.distribution.batch_shape + self.distribution.event_shape
-        )
+        self.shape = distribution.batch_shape + distribution.event_shape
         self.prediction_length = self.shape[0]
         self.item_id = item_id
         self.info = info
@@ -93,8 +91,7 @@ class DistributionForecast(Forecast):
 
     def quantile(self, level: Union[float, str]) -> np.ndarray:
         level = Quantile.parse(level).value
-        q = self.distribution.icdf(torch.tensor([level])).cpu().numpy()
-        return q
+        return self.distribution.icdf(torch.tensor([level])).cpu().numpy()
 
     def to_sample_forecast(self, num_samples: int = 200) -> SampleForecast:
         return SampleForecast(
