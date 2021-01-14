@@ -20,17 +20,16 @@ import numpy as np
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import InferenceDataLoader
+from gluonts.dataset.loader import DataLoader
 from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 LOG_CACHE = set([])
-# different deep learning frameworks generate predictions and the tensor to numpy conversion differently,
-# use a dispatching function to prevent needing a ForecastGenerators for each framework
-@singledispatch
-def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
-    raise NotImplementedError
+OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG = (
+    "The `output_transform` argument is not supported and will be ignored."
+)
+NOT_SAMPLE_BASED_MSG = "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
 
 
 def log_once(msg):
@@ -40,6 +39,47 @@ def log_once(msg):
         LOG_CACHE.add(msg)
 
 
+# different deep learning frameworks generate predictions and the tensor to numpy conversion differently,
+# use a dispatching function to prevent needing a ForecastGenerators for each framework
+@singledispatch
+def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
+    raise NotImplementedError
+
+
+@singledispatch
+def recursively_zip_arrays(x) -> Iterator:
+    raise NotImplementedError
+
+
+@recursively_zip_arrays.register
+def _(x: np.ndarray) -> Iterator[list]:
+    for i in range(x.shape[0]):
+        yield x[i]
+
+
+@recursively_zip_arrays.register
+def _(x: tuple) -> Iterator[tuple]:
+    for m in zip(*[recursively_zip_arrays(y) for y in x]):
+        yield tuple([r for r in m])
+
+
+@recursively_zip_arrays.register
+def _(x: list) -> Iterator[list]:
+    for m in zip(*[recursively_zip_arrays(y) for y in x]):
+        yield [r for r in m]
+
+
+@recursively_zip_arrays.register
+def _(x: type(None)) -> Iterator[type(None)]:
+    while True:
+        yield None
+
+
+@singledispatch
+def make_distribution_forecast(distr, *args, **kwargs) -> Forecast:
+    raise NotImplementedError
+
+
 class ForecastGenerator:
     """
     Classes used to bring the output of a network into a class.
@@ -47,7 +87,7 @@ class ForecastGenerator:
 
     def __call__(
         self,
-        inference_data_loader: InferenceDataLoader,
+        inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
         freq: str,
@@ -65,7 +105,7 @@ class QuantileForecastGenerator(ForecastGenerator):
 
     def __call__(
         self,
-        inference_data_loader: InferenceDataLoader,
+        inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
         freq: str,
@@ -80,9 +120,7 @@ class QuantileForecastGenerator(ForecastGenerator):
                 outputs = output_transform(batch, outputs)
 
             if num_samples:
-                log_once(
-                    "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
-                )
+                log_once(NOT_SAMPLE_BASED_MSG)
 
             i = -1
             for i, output in enumerate(outputs):
@@ -106,7 +144,7 @@ class SampleForecastGenerator(ForecastGenerator):
 
     def __call__(
         self,
-        inference_data_loader: InferenceDataLoader,
+        inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
         freq: str,
@@ -137,6 +175,49 @@ class SampleForecastGenerator(ForecastGenerator):
             for i, output in enumerate(outputs):
                 yield SampleForecast(
                     output,
+                    start_date=batch["forecast_start"][i],
+                    freq=freq,
+                    item_id=batch[FieldName.ITEM_ID][i]
+                    if FieldName.ITEM_ID in batch
+                    else None,
+                    info=batch["info"][i] if "info" in batch else None,
+                )
+            assert i + 1 == len(batch["forecast_start"])
+
+
+class DistributionForecastGenerator(ForecastGenerator):
+    @validated()
+    def __init__(self, distr_output) -> None:
+        self.distr_output = distr_output
+
+    def __call__(
+        self,
+        inference_data_loader: DataLoader,
+        prediction_net,
+        input_names: List[str],
+        freq: str,
+        output_transform: Optional[OutputTransform],
+        num_samples: Optional[int],
+        **kwargs
+    ) -> Iterator[Forecast]:
+        for batch in inference_data_loader:
+            inputs = [batch[k] for k in input_names]
+            outputs = prediction_net(*inputs)
+
+            if output_transform:
+                log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)
+            if num_samples:
+                log_once(NOT_SAMPLE_BASED_MSG)
+
+            distributions = [
+                self.distr_output.distribution(*u)
+                for u in recursively_zip_arrays(outputs)
+            ]
+
+            i = -1
+            for i, distr in enumerate(distributions):
+                yield make_distribution_forecast(
+                    distr,
                     start_date=batch["forecast_start"][i],
                     freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]

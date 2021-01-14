@@ -11,79 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Any, Iterator, List, Optional
+from typing import Iterator
 
-import numpy as np
 import torch
-from torch import nn
 
-from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import DataLoader
-from gluonts.model.forecast_generator import ForecastGenerator, OutputTransform
+from gluonts.model.forecast_generator import (
+    recursively_zip_arrays,
+    make_distribution_forecast,
+    DistributionForecastGenerator,  # this is for analogy with gluonts.mx.model.forecast_generator
+)
 from gluonts.torch.model.forecast import DistributionForecast
-from gluonts.torch.modules.distribution_output import DistributionOutput
 
 
-def _extract_instances(x: Any) -> Any:
-    """
-    Helper function to extract individual instances from batched
-    mxnet results.
-    For a tensor `a`
-      _extract_instances(a) -> [a[0], a[1], ...]
-    For (nested) tuples of tensors `(a, (b, c))`
-      _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b[1], c[1])), ...]
-    """
-    if isinstance(x, (np.ndarray, torch.Tensor)):
-        for i in range(x.shape[0]):
-            # yield x[i: i + 1]
-            yield x[i]
-    elif isinstance(x, tuple):
-        for m in zip(*[_extract_instances(y) for y in x]):
-            yield tuple([r for r in m])
-    elif isinstance(x, list):
-        for m in zip(*[_extract_instances(y) for y in x]):
-            yield [r for r in m]
-    elif x is None:
-        while True:
-            yield None
-    else:
-        assert False
+@recursively_zip_arrays.register
+def _(x: torch.Tensor) -> Iterator[torch.Tensor]:
+    for i in range(x.shape[0]):
+        yield x[i]
 
 
-class DistributionForecastGenerator(ForecastGenerator):
-    def __init__(self, distr_output: DistributionOutput) -> None:
-        self.distr_output = distr_output
-
-    def __call__(
-        self,
-        inference_data_loader: DataLoader,
-        prediction_net: nn.Module,
-        input_names: List[str],
-        freq: str,
-        output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
-    ) -> Iterator[DistributionForecast]:
-        for batch in inference_data_loader:
-            inputs = [batch[k] for k in input_names]
-            outputs = prediction_net(*inputs)
-            if output_transform is not None:
-                outputs = output_transform(batch, outputs)
-
-            distributions = [
-                self.distr_output.distribution(*u)
-                for u in _extract_instances(outputs)
-            ]
-
-            i = -1
-            for i, distr in enumerate(distributions):
-                yield DistributionForecast(
-                    distr,
-                    start_date=batch["forecast_start"][i],
-                    freq=freq,
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
-                    info=batch["info"][i] if "info" in batch else None,
-                )
-            assert i + 1 == len(batch["forecast_start"])
+@make_distribution_forecast.register
+def _(
+    distr: torch.distributions.Distribution, *args, **kwargs
+) -> DistributionForecast:
+    return DistributionForecast(distr, *args, **kwargs)
