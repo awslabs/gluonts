@@ -84,18 +84,19 @@ class StatefulDistributionForecastGenerator(ForecastGenerator):
                 s for s in _extract_instances(network_state_batch)
             ]
 
-            i = -1
-            for i, (distr, network_state) in enumerate(
+            idx = -1
+            for idx, (distr, network_state) in enumerate(
                 zip(distributions, network_states)
             ):
                 trans_states = {
-                    k: to_numpy(b[i]) for k, b in transformation_states.items()
+                    k: to_numpy(b[idx])
+                    for k, b in transformation_states.items()
                 }
                 yield DistributionForecast(
                     distr,
-                    start_date=batch["forecast_start"][i],
+                    start_date=batch["forecast_start"][idx],
                     freq=freq,
-                    item_id=batch[FieldName.ITEM_ID][i]
+                    item_id=batch[FieldName.ITEM_ID][idx]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info={
@@ -105,7 +106,7 @@ class StatefulDistributionForecastGenerator(ForecastGenerator):
                         }
                     },
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert idx + 1 == len(batch["forecast_start"])
 
 
 # This handles the case where batch elements are dictionaries (two-lines change)
