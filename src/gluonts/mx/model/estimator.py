@@ -194,8 +194,9 @@ class GluonEstimator(Estimator):
     ) -> Predictor:
         return self.train_model(
             training_data,
-            validation_data,
-            num_workers,
-            num_prefetch,
-            shuffle_buffer_length,
+            validation_data=validation_data,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
+            cache_data=cache_data,
         ).predictor
