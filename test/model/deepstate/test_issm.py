@@ -11,22 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import mxnet as mx
 import numpy as np
 import pandas as pd
-import mxnet as mx
 
-from gluonts.time_feature import (
-    DayOfWeekIndex,
-    MonthOfYearIndex,
-)
 from gluonts.model.deepstate.issm import (
-    _make_block_diagonal,
+    CompositeISSM,
     LevelISSM,
     LevelTrendISSM,
     SeasonalityISSM,
-    CompositeISSM,
     ZeroFeature,
+    _make_block_diagonal,
 )
+from gluonts.time_feature import DayOfWeekIndex, MonthOfYearIndex
 
 
 def test_zero_feature():

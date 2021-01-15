@@ -285,7 +285,7 @@ class WaveNetEstimator(GluonEstimator):
             params.update(pred_length=self.train_window_length)
             trained_net = WaveNet(**params)
 
-        input_names = get_hybrid_forward_input_names(trained_net)
+        input_names = get_hybrid_forward_input_names(type(trained_net))
 
         training_data_loader = TrainDataLoader(
             dataset=training_data,
@@ -360,7 +360,7 @@ class WaveNetEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=self.train_sampler,
+                    instance_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=pred_length,
                     output_NTC=False,

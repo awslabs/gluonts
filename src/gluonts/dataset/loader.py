@@ -241,11 +241,15 @@ def ValidationDataLoader(
     num_workers: Optional[int] = None,
     num_prefetch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
+    decode_fn: Callable = lambda x: x,
 ):
     return DataLoader(
         data_iterable=TransformedDataset(dataset, transform, is_train=True),
         batch_size=batch_size,
         stack_fn=stack_fn,
+        num_workers=num_workers,
+        num_prefetch=num_prefetch,
+        decode_fn=decode_fn,
     )
 
 
@@ -258,9 +262,11 @@ def InferenceDataLoader(
     num_workers: Optional[int] = None,
     num_prefetch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
+    decode_fn: Callable = lambda x: x,
 ):
     return DataLoader(
         data_iterable=TransformedDataset(dataset, transform, is_train=False),
         batch_size=batch_size,
         stack_fn=stack_fn,
+        decode_fn=decode_fn,
     )

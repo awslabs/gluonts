@@ -22,11 +22,11 @@ from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.util import _broadcast_param
 from gluonts.time_feature import (
-    TimeFeature,
     DayOfWeekIndex,
     HourOfDayIndex,
     MinuteOfHourIndex,
     MonthOfYearIndex,
+    TimeFeature,
     WeekOfYearIndex,
 )
 

@@ -196,29 +196,42 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             imputation_method=self.imputation_method,
         )
 
-    def create_training_data_loader(
-        self,
-        training_data: Dataset,
-        **kwargs,
-    ) -> DataLoader:
-        input_names = get_hybrid_forward_input_names(
-            SimpleFeedForwardTrainingNetwork
-        )
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
 
-        training_splitter = InstanceSplitter(
+        instance_sampler = {
+            "training": self.train_sampler,
+            "validation": self.validation_sampler,
+            "test": TestSplitSampler(),
+        }[mode]
+
+        return InstanceSplitter(
             target_field=FieldName.TARGET,
             is_pad_field=FieldName.IS_PAD,
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=self.train_sampler,
+            instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length,
             time_series_fields=[FieldName.OBSERVED_VALUES],
         )
 
-        return TrainDataLoader(
-            dataset=training_data,
-            transform=training_splitter + SelectFields(input_names),
+    def _create_data_loader(self, mode: str, data: Dataset, **kwargs):
+        assert mode in ["training", "validation"]
+
+        data_loader_type = {
+            "training": TrainDataLoader,
+            "validation": ValidationDataLoader,
+        }[mode]
+
+        input_names = get_hybrid_forward_input_names(
+            SimpleFeedForwardTrainingNetwork
+        )
+        instance_splitter = self._create_instance_splitter(mode)
+
+        return data_loader_type(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(
                 batchify,
@@ -229,37 +242,19 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             **kwargs,
         )
 
-    def create_validation_data_loader(
+    def create_training_data_loader(
         self,
-        validation_data: Dataset,
+        data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        input_names = get_hybrid_forward_input_names(
-            SimpleFeedForwardTrainingNetwork
-        )
+        return self._create_data_loader("training", data, **kwargs)
 
-        validation_splitter = InstanceSplitter(
-            target_field=FieldName.TARGET,
-            is_pad_field=FieldName.IS_PAD,
-            start_field=FieldName.START,
-            forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=self.validation_sampler,
-            past_length=self.context_length,
-            future_length=self.prediction_length,
-            time_series_fields=[FieldName.OBSERVED_VALUES],
-        )
-
-        return ValidationDataLoader(
-            dataset=validation_data,
-            transform=validation_splitter + SelectFields(input_names),
-            batch_size=self.batch_size,
-            stack_fn=partial(
-                batchify,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
-            ),
-            **kwargs,
-        )
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        return self._create_data_loader("validation", data, **kwargs)
 
     # defines the network, we get to see one batch to initialize it.
     # the network should return at least one tensor that is used as a loss to minimize in the training loop.
@@ -277,16 +272,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     # we now define how the prediction happens given that we are provided a
     # training network.
     def create_predictor(self, transformation, trained_network):
-        prediction_splitter = InstanceSplitter(
-            target_field=FieldName.TARGET,
-            is_pad_field=FieldName.IS_PAD,
-            start_field=FieldName.START,
-            forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=TestSplitSampler(),
-            past_length=self.context_length,
-            future_length=self.prediction_length,
-            time_series_fields=[FieldName.OBSERVED_VALUES],
-        )
+        prediction_splitter = self._create_instance_splitter("test")
 
         if self.sampling is True:
             prediction_network = SimpleFeedForwardSamplingNetwork(

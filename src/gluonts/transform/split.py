@@ -347,7 +347,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
                 past_ts = past_ts.transpose() if self.output_NTC else past_ts
                 d[self._past(ts_field)] = past_ts
 
-                if self.use_prediction_features and not is_train:
+                if self.use_prediction_features:
                     if not ts_field == self.target_field:
                         future_ts = full_ts[
                             ..., i : i + self.prediction_length
