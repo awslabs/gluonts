@@ -25,6 +25,7 @@ from gluonts.mx.util import (
     export_symb_block,
     hybrid_block_to_symbol_block,
     import_symb_block,
+    weighted_average,
 )
 from gluonts.support.util import erf, erfinv
 
@@ -203,3 +204,20 @@ def test_symb_block_import_backward_compatible(block_type) -> None:
             pytest.fail(
                 "Symbol block import fails when format json is not in path"
             )
+
+
+@pytest.mark.parametrize("x", [[1, 2, 3, 4]])
+@pytest.mark.parametrize("weights", [[1, 0, 1, 0]])
+def test_weighted_average(x, weights) -> None:
+    x = mx.nd.array(x)
+    weights = mx.nd.array(weights)
+    assert weighted_average(
+        F=mx.nd, x=x, weights=weights, axis=0
+    ) == mx.nd.array([2.0])
+    assert weighted_average(
+        F=mx.nd,
+        x=x,
+        weights=weights,
+        axis=0,
+        include_zeros_in_denominator=True,
+    ) == mx.nd.array([1.0])
