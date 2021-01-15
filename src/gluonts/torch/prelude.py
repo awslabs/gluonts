@@ -11,16 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from .component import *
+from .model.forecast_generator import *
 
-import typing
-from pkgutil import extend_path
-
-import mxnet as mx
-
-__path__ = extend_path(__path__, __name__)  # type: ignore
-
-# Tensor type for HybridBlocks in Gluon
-Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
-
-from gluonts.mx.prelude import *
+__all__ = []
