@@ -26,6 +26,9 @@ from gluonts.core import serde
 # -------------
 from gluonts.core.component import equals, equals_list
 
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx.trainer import Trainer
+
 
 class Span(NamedTuple):
     path: Path
@@ -188,3 +191,31 @@ def test_timestamp_encode_decode() -> None:
 )
 def test_string_escape(serialize_fn) -> None:
     assert serialize_fn(r"a\b") == r"a\b"
+
+
+def test_clone_with_params():
+    estim1 = DeepAREstimator(
+        prediction_length=10, freq="1min", trainer=Trainer(epochs=1)
+    )
+    estim2 = serde.clone_with_params(
+        estim1, {"prediction_length": 2, "trainer.epochs": 10}
+    )
+    assert estim1.prediction_length == 10
+    assert estim2.prediction_length == 2
+    assert estim1.trainer.epochs == 1
+    assert estim2.trainer.epochs == 10
+
+    flat_params1 = serde.get_flat_params(estim1, prefix="estimator")
+    flat_params2 = serde.get_flat_params(estim2, prefix="estimator")
+    for (k1, v1), (k2, v2) in zip(flat_params1, flat_params2):
+        assert k1 == k2
+        if k1 in ["estimator.trainer.epochs", "estimator.prediction_length"]:
+            assert v1 != v2
+        else:
+            assert v1 == v2
+    d1 = dict(flat_params1)
+    d2 = dict(flat_params2)
+    assert d1["estimator.trainer.epochs"] == 1
+    assert d2["estimator.trainer.epochs"] == 10
+    assert d1["estimator.prediction_length"] == 10
+    assert d2["estimator.prediction_length"] == 2

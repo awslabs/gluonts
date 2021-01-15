@@ -15,6 +15,7 @@
 from ._base import Stateful, Stateless, decode, encode
 from ._json import dump_json, load_json
 from ._repr import dump_code, load_code
+from ._util import clone_with_params, get_flat_params
 
 # TODO: remove
 from .np import *
@@ -27,6 +28,8 @@ __all__ = [
     "load_code",
     "dump_json",
     "load_json",
+    "clone_with_params",
+    "get_flat_params",
     "Stateful",
     "Stateless",
 ]
