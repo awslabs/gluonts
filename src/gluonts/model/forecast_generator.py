@@ -23,6 +23,8 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataLoader
 from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
 
+logger = logging.getLogger(__name__)
+
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 LOG_CACHE = set([])
@@ -35,7 +37,7 @@ NOT_SAMPLE_BASED_MSG = "Forecast is not sample based. Ignoring parameter `num_sa
 def log_once(msg):
     global LOG_CACHE
     if msg not in LOG_CACHE:
-        logging.info(msg)
+        logger.info(msg)
         LOG_CACHE.add(msg)
 
 
@@ -48,6 +50,21 @@ def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
 
 @singledispatch
 def recursively_zip_arrays(x) -> Iterator:
+    """
+    Helper function to recursively zip nested collections of arrays.
+
+    This defines the fallback implementation, which one can specialized for specific types
+    using by doing ``@recursively_zip_arrays.register`` on the type. Implementations for
+    lists, tuples, and NumPy arrays are provided.
+
+    For an array `a` (e.g. a numpy array)
+
+        _extract_instances(a) -> [a[0], a[1], ...]
+
+    For (nested) tuples of arrays `(a, (b, c))`
+
+        _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b[1], c[1])), ...]
+    """
     raise NotImplementedError
 
 
