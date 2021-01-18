@@ -35,9 +35,7 @@ class InstanceSampler:
         self.skip_initial = skip_initial
         self.skip_final = skip_final
 
-    def _get_bounds(
-        self, ts: np.ndarray, skip_initial: int = 0, skip_final: int = 0
-    ) -> Tuple[int, int]:
+    def _get_bounds(self, ts: np.ndarray) -> Tuple[int, int]:
         return (
             self.skip_initial,
             ts.shape[self.axis] - self.skip_final,

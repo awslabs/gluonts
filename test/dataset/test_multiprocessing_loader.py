@@ -39,7 +39,7 @@ from gluonts.dataset.loader import (
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.mx.batchify import batchify
+from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
@@ -104,8 +104,9 @@ def get_dataset_and_transformation():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=UniformSplitSampler(
-                    p=SPLITTING_SAMPLE_PROBABILITY  # THIS IS IMPORTANT FOR THE TEST
+                instance_sampler=UniformSplitSampler(
+                    p=SPLITTING_SAMPLE_PROBABILITY,  # THIS IS IMPORTANT FOR THE TEST
+                    skip_final=list_dataset_pred_length,
                 ),
                 past_length=CONTEXT_LEN,
                 future_length=list_dataset_pred_length,
@@ -121,6 +122,7 @@ def get_dataset_and_transformation():
             transform=transformation,
             batch_size=BATCH_SIZE,
             stack_fn=partial(batchify, ctx=current_context()),
+            decode_fn=partial(as_in_context, ctx=current_context()),
             num_workers=None,  # This is the crucial difference
         )
     )
@@ -162,6 +164,7 @@ def test_validation_loader_equivalence() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
     )
 
@@ -229,7 +232,8 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
 
     def test_dataset(dataset):
         class ExactlyOneSampler(InstanceSampler):
-            def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+            def __call__(self, ts: np.ndarray) -> np.ndarray:
+                a, b = self._get_bounds(ts)
                 window_size = b - a + 1
                 assert window_size > 0
                 return np.array([a])
@@ -239,7 +243,7 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             is_pad_field=FieldName.IS_PAD,
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
-            train_sampler=ExactlyOneSampler(),
+            instance_sampler=ExactlyOneSampler(),
             past_length=10,
             future_length=5,
             dummy_value=1.0,
@@ -250,6 +254,7 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             transform=transformation,
             batch_size=batch_size,
             stack_fn=partial(batchify, ctx=current_context()),
+            decode_fn=partial(as_in_context, ctx=current_context()),
             num_workers=num_workers,
         )
 
@@ -345,6 +350,7 @@ def test_training_loader_batch_size_hard_constraint() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
     )
 
@@ -353,6 +359,7 @@ def test_training_loader_batch_size_hard_constraint() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
         shuffle_buffer_length=3 * BATCH_SIZE,
     )
@@ -395,6 +402,7 @@ def test_training_loader_soft_constraint_01() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
     )
 
@@ -427,6 +435,7 @@ def test_training_loader_soft_constraint_02() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
     )
 
@@ -457,6 +466,7 @@ def test_training_loader_soft_constraint_03() -> None:
         transform=transformation,
         batch_size=BATCH_SIZE,
         stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=1,  # This is the crucial difference
     )
 
