@@ -18,7 +18,12 @@ import numpy as np
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
 
-from gluonts.core.component import DType, from_hyperparameters, validated
+from gluonts.core.component import (
+    DType,
+    from_hyperparameters,
+    validated,
+    GluonTSHyperparametersError,
+)
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
 from gluonts.itertools import Cached
