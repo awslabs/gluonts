@@ -18,6 +18,8 @@ from pathlib import PurePath
 from pydoc import locate
 from typing import Any, NamedTuple, cast
 
+from toolz.dicttoolz import valmap
+
 from pydantic import BaseModel
 
 from gluonts.core import fqname_for
@@ -182,8 +184,7 @@ def encode(v: Any) -> Any:
     if isinstance(v, (float, int, str)):
         return v
 
-    # we have to check for namedtuples first, to encode them not as plain
-    # tuples (which would become lists)
+    # check for namedtuples first, to encode them not as plain tuples
     if isinstance(v, tuple) and hasattr(v, "_asdict"):
         v = cast(NamedTuple, v)
         return {
@@ -203,19 +204,19 @@ def encode(v: Any) -> Any:
         return list(map(encode, v))
 
     if isinstance(v, dict):
-        return {k: encode(v) for k, v in v.items()}
+        return valmap(encode, v)
 
     if isinstance(v, type):
         return {"__kind__": Kind.Type, "class": fqname_for(v)}
 
     if hasattr(v, "__getnewargs_ex__"):
         args, kwargs = v.__getnewargs_ex__()  # mypy: ignore
-        # args need to be a list, since we encode tuples explicitly
-        args = list(args)
+
         return {
             "__kind__": Kind.Instance,
             "class": fqname_for(v.__class__),
-            "args": encode(args),
+            # args need to be a list, since we encode tuples explicitly
+            "args": encode(list(args)),
             "kwargs": encode(kwargs),
         }
 
@@ -278,37 +279,32 @@ def decode(r: Any) -> Any:
     """
 
     # structural recursion over the possible shapes of r
-    # r = { 'class': ..., 'args': ... }
-    # r = { 'class': ..., 'kwargs': ... }
-    if type(r) == dict and r.get("__kind__") == Kind.Instance:
+    if type(r) == dict and "__kind__" in r:
+        kind = r["__kind__"]
         cls = cast(Any, locate(r["class"]))
-        args = decode(r["args"]) if "args" in r else []
-        kwargs = decode(r["kwargs"]) if "kwargs" in r else {}
-        return cls(*args, **kwargs)
-    # r = { 'class': ..., 'args': ... }
-    # r = { 'class': ..., 'kwargs': ... }
-    if type(r) == dict and r.get("__kind__") == Kind.Type:
-        return locate(r["class"])
 
-    if type(r) == dict and r.get("__kind__") == Kind.Stateful:
-        cls = cast(Any, locate(r["class"]))
-        obj = cls.__new__(cls)
-        kwargs = decode(r["kwargs"]) if "kwargs" in r else {}
-        obj.__dict__.update(kwargs)
-        return obj
+        assert cls is not None, f"Can not locate {r['class']}."
 
-    # r = { k1: v1, ..., kn: vn }
-    elif type(r) == dict:
-        return {k: decode(v) for k, v in r.items()}
-    # r = ( y1, ..., yn )
-    elif type(r) == tuple:
-        return tuple([decode(y) for y in r])
-    # r = [ y1, ..., yn ]
-    elif type(r) == list:
-        return [decode(y) for y in r]
-    # r = { y1, ..., yn }
-    elif type(r) == set:
-        return {decode(y) for y in r}
-    # r = a
-    else:
-        return r
+        if kind == Kind.Type:
+            return cls
+
+        args = decode(r.get("args", []))
+        kwargs = decode(r.get("kwargs", {}))
+
+        if kind == Kind.Instance:
+            return cls(*args, **kwargs)
+
+        if kind == Kind.Stateful:
+            obj = cls.__new__(cls)
+            obj.__dict__.update(kwargs)
+            return obj
+
+        raise ValueError(f"Unknown kind {kind}.")
+
+    if type(r) == dict:
+        return valmap(decode, r)
+
+    if type(r) == list:
+        return list(map(decode, r))
+
+    return r
