@@ -22,7 +22,6 @@ def parse_expr(v):
 
 @parse_expr.register
 def parse_str(v: str):
-    print("str", v)
     return v
 
 
@@ -92,7 +91,6 @@ def parse_attribute(v: ast.Attribute, path=()):
 
 @parse_expr.register
 def parse_name_constant(v: ast.Name):
-    # return v.id
     return {"__kind__": "type", "class": v.id}
 
 
@@ -101,11 +99,7 @@ def parse_expr_call(v: ast.Call):
     args = list(map(parse_expr, v.args))
     kwargs = dict(map(parse_keyword, v.keywords))
 
-    # if isinstance(v.func, ast.Attribute):
     class_name = parse_expr(v.func)["class"]
-    # else:
-    # class_name = parse_expr(v.func)
-
     obj = {"__kind__": "instance", "class": class_name}
 
     if args:
