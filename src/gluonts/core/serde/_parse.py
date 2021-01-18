@@ -20,18 +20,13 @@ def parse_expr(v):
     raise ValueError(v)
 
 
-@parse_expr.register(str)
-def parse_str(v: str):
-    return v
-
-
 @parse_expr.register(ast.Num)
 def parse_num(v: ast.Num):
     return v.n
 
 
 @parse_expr.register(ast.UnaryOp)
-def parse_num(v: ast.UnaryOp):
+def parse_unary_op(v: ast.UnaryOp):
     operand = parse_expr(v.operand)
 
     assert isinstance(operand, (float, int))
@@ -41,29 +36,29 @@ def parse_num(v: ast.UnaryOp):
 
 
 @parse_expr.register(ast.Str)
-def parse_num(v: ast.Str):
+def parse_str(v: ast.Str):
     return v.s
 
 
 @parse_expr.register(ast.List)
-def parse_num(v: ast.List):
+def parse_list(v: ast.List):
     return list(map(parse_expr, v.elts))
 
 
 @parse_expr.register(ast.Tuple)
-def parse_num(v: ast.Tuple):
+def parse_tuple(v: ast.Tuple):
     return tuple(map(parse_expr, v.elts))
 
 
 @parse_expr.register(ast.Dict)
-def parse_num(v: ast.Dict):
+def parse_dict(v: ast.Dict):
     keys = map(parse_expr, v.keys)
     values = map(parse_expr, v.values)
     return dict(zip(keys, values))
 
 
 @parse_expr.register(ast.Set)
-def parse_num(v: ast.Set):
+def parse_set(v: ast.Set):
     return set(map(parse_expr, v.elts))
 
 
@@ -90,7 +85,7 @@ def parse_attribute(v: ast.Attribute, path=()):
 
 
 @parse_expr.register(ast.Name)
-def parse_name_constant(v: ast.Name):
+def parse_name(v: ast.Name):
     return {"__kind__": "type", "class": v.id}
 
 
