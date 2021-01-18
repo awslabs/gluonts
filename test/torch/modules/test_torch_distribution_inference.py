@@ -268,14 +268,12 @@ def test_poisson(rate: float) -> None:
     ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
 
 
-@pytest.mark.parametrize("total_count_logit", [(2.5, 0.7)])
-def test_neg_binomial(total_count_logit: Tuple[float, float]) -> None:
+# The following parameters match the Gluon-based test, adjusted for the different parametrization
+@pytest.mark.parametrize("total_count, logit", [(1 / 0.7, np.log(2.5 * 0.7))])
+def test_neg_binomial(total_count: float, logit: float) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
-    # test instance
-    total_count, logit = total_count_logit
-
     # generate samples
     total_counts = torch.zeros((NUM_SAMPLES,)) + total_count
     logits = torch.zeros((NUM_SAMPLES,)) + logit
@@ -285,7 +283,7 @@ def test_neg_binomial(total_count_logit: Tuple[float, float]) -> None:
 
     init_biases = [
         inv_softplus(total_count - START_TOL_MULTIPLE * TOL * total_count),
-        inv_softplus(logit - START_TOL_MULTIPLE * TOL * logit),
+        logit - START_TOL_MULTIPLE * TOL * logit,
     ]
 
     total_count_hat, logit_hat = maximum_likelihood_estimate_sgd(
