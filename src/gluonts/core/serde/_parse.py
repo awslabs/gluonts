@@ -20,17 +20,17 @@ def parse_expr(v):
     raise ValueError(v)
 
 
-@parse_expr.register
+@parse_expr.register(str)
 def parse_str(v: str):
     return v
 
 
-@parse_expr.register
+@parse_expr.register(ast.Num)
 def parse_num(v: ast.Num):
     return v.n
 
 
-@parse_expr.register
+@parse_expr.register(ast.UnaryOp)
 def parse_num(v: ast.UnaryOp):
     operand = parse_expr(v.operand)
 
@@ -40,44 +40,44 @@ def parse_num(v: ast.UnaryOp):
     return -operand
 
 
-@parse_expr.register
+@parse_expr.register(ast.Str)
 def parse_num(v: ast.Str):
     return v.s
 
 
-@parse_expr.register
+@parse_expr.register(ast.List)
 def parse_num(v: ast.List):
     return list(map(parse_expr, v.elts))
 
 
-@parse_expr.register
+@parse_expr.register(ast.Tuple)
 def parse_num(v: ast.Tuple):
     return tuple(map(parse_expr, v.elts))
 
 
-@parse_expr.register
+@parse_expr.register(ast.Dict)
 def parse_num(v: ast.Dict):
     keys = map(parse_expr, v.keys)
     values = map(parse_expr, v.values)
     return dict(zip(keys, values))
 
 
-@parse_expr.register
+@parse_expr.register(ast.Set)
 def parse_num(v: ast.Set):
     return set(map(parse_expr, v.elts))
 
 
-@parse_expr.register
+@parse_expr.register(ast.keyword)
 def parse_keyword(v: ast.keyword):
     return v.arg, parse_expr(v.value)
 
 
-@parse_expr.register
+@parse_expr.register(ast.NameConstant)
 def parse_name_constant(v: ast.NameConstant):
     return v.value
 
 
-@parse_expr.register
+@parse_expr.register(ast.Attribute)
 def parse_attribute(v: ast.Attribute, path=()):
     if isinstance(v.value, ast.Name):
         return {
@@ -89,12 +89,12 @@ def parse_attribute(v: ast.Attribute, path=()):
         return parse_attribute(v.value, (v.attr,) + path)
 
 
-@parse_expr.register
+@parse_expr.register(ast.Name)
 def parse_name_constant(v: ast.Name):
     return {"__kind__": "type", "class": v.id}
 
 
-@parse_expr.register
+@parse_expr.register(ast.Call)
 def parse_expr_call(v: ast.Call):
     args = list(map(parse_expr, v.args))
     kwargs = dict(map(parse_keyword, v.keywords))
