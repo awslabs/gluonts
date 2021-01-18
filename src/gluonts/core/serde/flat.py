@@ -11,6 +11,27 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+"""
+Flat encoding for serde.
+
+`flat.encode` always returns a flat dictionary, where keys contain information
+for nested objects:
+
+    class Inner(NamedTuple):
+        val: int
+
+    class Outer(NamedTuple):
+        inner: Inner
+
+    value = Outer(inner=Inner(val=42))
+
+    assert encode(value) == {
+        '()': '__main__.Outer',
+        'inner.()': '__main__.Inner',
+        'inner.val': 42},
+    }
+"""
+
 from collections import defaultdict
 from itertools import count
 from typing import Any
@@ -20,11 +41,12 @@ from toolz.dicttoolz import keymap, valmap
 from ._base import encode as base_encode, Kind, decode as base_decode
 
 
-def join(a, b):
+def join(a, b, sep="."):
+    """Joins `a` and `b` using `sep`."""
     if not a:
         return b
 
-    return f"{a}.{b}"
+    return f"{a}{sep}{b}"
 
 
 def _encode(data: Any, path: str, result: dict):
@@ -34,7 +56,7 @@ def _encode(data: Any, path: str, result: dict):
         if kind == Kind.Instance:
             result[join(path, "()")] = data["class"]
 
-            for n, arg in enumerate(data["args"]):
+            for n, arg in enumerate(data.get("args", [])):
                 _encode(arg, join(path, n), result)
 
             for name, value in data["kwargs"].items():
@@ -135,7 +157,10 @@ def decode(data: dict) -> Any:
 
 
 def encode(obj) -> dict:
-    """Encode a given object into a flat-dictionary."""
+    """Encode a given object into a flat-dictionary.
+
+    It uses the default-encoding, to then flatten the output.
+    """
     encoded = base_encode(obj)
 
     result: dict = {}
@@ -144,7 +169,10 @@ def encode(obj) -> dict:
 
 
 def clone(data, kwargs=None):
+    """Create a copy of a given value, by calling `encode` and `decode` on it.
 
+    If `kwargs` is provided, it's possible to overwrite nested values.
+    """
     encoded = encode(data)
     if kwargs:
         encoded.update(kwargs)
