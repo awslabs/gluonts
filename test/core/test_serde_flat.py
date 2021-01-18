@@ -11,23 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from . import flat
-from ._base import Stateful, Stateless, decode, encode
-from ._json import dump_json, load_json
-from ._repr import dump_code, load_code
+from gluonts.core import serde
+from gluonts.core.component import equals
+from gluonts.model.deepar import DeepAREstimator
 
-# TODO: remove
-from .np import *
-from .pd import *
 
-__all__ = [
-    "flat",
-    "encode",
-    "decode",
-    "dump_code",
-    "load_code",
-    "dump_json",
-    "load_json",
-    "Stateful",
-    "Stateless",
-]
+def test_nested_params():
+    deepar = DeepAREstimator(prediction_length=7, freq="D")
+
+    assert equals(deepar, serde.flat.decode(serde.flat.encode(deepar)))
+
+    deepar2 = serde.flat.clone(deepar, {"trainer.epochs": 999})
+    assert deepar2.trainer.epochs == 999
