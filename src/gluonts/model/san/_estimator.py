@@ -11,19 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from functools import partial
 from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-from gluonts.dataset.common import DataEntry
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
-from gluonts.mx.util import copy_parameters
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -38,7 +45,10 @@ from gluonts.transform import (
     ExpandDimArray,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
+    ValidationSplitSampler,
+    TestSplitSampler,
     RemoveFields,
+    SelectFields,
     SetField,
     Transformation,
     VstackFeatures,
@@ -76,7 +86,8 @@ class SelfAttentionEstimator(GluonEstimator):
         use_feat_dynamic_cat: bool = False,
         use_feat_static_real: bool = False,
         use_feat_static_cat: bool = True,
-        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(100),
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
         batch_size: int = 32,
     ):
         super().__init__(trainer=trainer, batch_size=batch_size)
@@ -102,7 +113,16 @@ class SelfAttentionEstimator(GluonEstimator):
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
-        self.train_sampler = train_sampler
+        self.train_sampler = (
+            train_sampler
+            if train_sampler is not None
+            else ExpectedNumInstanceSampler(1.0, skip_final=prediction_length)
+        )
+        self.validation_sampler = (
+            validation_sampler
+            if validation_sampler is not None
+            else ValidationSplitSampler(skip_final=prediction_length)
+        )
 
     def create_transformation(self) -> Transformation:
         transforms = []
@@ -185,11 +205,6 @@ class SelfAttentionEstimator(GluonEstimator):
                     expected_ndim=1,
                 )
             )
-        time_series_fields = [FieldName.OBSERVED_VALUES]
-        if self.use_feat_dynamic_cat:
-            time_series_fields.append(FieldName.FEAT_DYNAMIC_CAT)
-        if self.use_feat_dynamic_real or (self.time_features is not None):
-            time_series_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
         transforms.extend(
             [
@@ -220,20 +235,75 @@ class SelfAttentionEstimator(GluonEstimator):
                         else []
                     ),
                 ),
-                InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=self.train_sampler,
-                    past_length=self.context_length,
-                    future_length=self.prediction_length,
-                    time_series_fields=time_series_fields,
-                    pick_incomplete=True,
-                ),
             ]
         )
         return Chain(transforms)
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        instance_sampler = {
+            "training": self.train_sampler,
+            "validation": self.validation_sampler,
+            "test": TestSplitSampler(),
+        }[mode]
+
+        time_series_fields = [FieldName.OBSERVED_VALUES]
+        if self.use_feat_dynamic_cat:
+            time_series_fields.append(FieldName.FEAT_DYNAMIC_CAT)
+        if self.use_feat_dynamic_real or (self.time_features is not None):
+            time_series_fields.append(FieldName.FEAT_DYNAMIC_REAL)
+
+        return InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=instance_sampler,
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+            time_series_fields=time_series_fields,
+        )
+
+    def _create_data_loader(self, mode: str, data: Dataset, **kwargs):
+        assert mode in ["training", "validation"]
+
+        data_loader_type = {
+            "training": TrainDataLoader,
+            "validation": ValidationDataLoader,
+        }[mode]
+
+        input_names = get_hybrid_forward_input_names(
+            SelfAttentionTrainingNetwork
+        )
+        instance_splitter = self._create_instance_splitter(mode)
+
+        return data_loader_type(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(
+                batchify,
+                ctx=self.trainer.ctx,
+                dtype=self.dtype,
+            ),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        return self._create_data_loader("training", data, **kwargs)
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        return self._create_data_loader("validation", data, **kwargs)
 
     def create_training_network(self) -> SelfAttentionTrainingNetwork:
         return SelfAttentionTrainingNetwork(
@@ -255,6 +325,8 @@ class SelfAttentionEstimator(GluonEstimator):
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> RepresentableBlockPredictor:
+        prediction_splitter = self._create_instance_splitter("test")
+
         prediction_network = SelfAttentionPredictionNetwork(
             context_length=self.context_length,
             prediction_length=self.prediction_length,
@@ -272,7 +344,7 @@ class SelfAttentionEstimator(GluonEstimator):
         )
         copy_parameters(trained_network, prediction_network)
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
             freq=self.freq,
