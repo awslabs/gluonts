@@ -15,7 +15,7 @@
 Flat encoding for serde.
 
 `flat.encode` always returns a flat dictionary, where keys contain information
-for nested objects:
+for nested objects::
 
     class Inner(NamedTuple):
         val: int
@@ -30,6 +30,7 @@ for nested objects:
         'inner.()': '__main__.Inner',
         'inner.val': 42},
     }
+
 """
 
 from collections import defaultdict
