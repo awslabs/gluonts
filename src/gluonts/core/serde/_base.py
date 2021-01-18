@@ -18,7 +18,7 @@ from pathlib import PurePath
 from pydoc import locate
 from typing import Any, NamedTuple, cast
 
-from toolz.dicttolz import valmap
+from toolz.dicttoolz import valmap
 
 from pydantic import BaseModel
 
@@ -184,8 +184,7 @@ def encode(v: Any) -> Any:
     if isinstance(v, (float, int, str)):
         return v
 
-    # we have to check for namedtuples first, to encode them not as plain
-    # tuples (which would become lists)
+    # check for namedtuples first, to encode them not as plain tuples
     if isinstance(v, tuple) and hasattr(v, "_asdict"):
         v = cast(NamedTuple, v)
         return {
@@ -284,11 +283,13 @@ def decode(r: Any) -> Any:
         kind = r["__kind__"]
         cls = cast(Any, locate(r["class"]))
 
+        assert cls is not None, f"Can not locate {r['class']}."
+
         if kind == Kind.Type:
             return cls
 
-        args = decode(r.get("args"), [])
-        kwargs = decode(r.get("kwargs"), {})
+        args = decode(r.get("args", []))
+        kwargs = decode(r.get("kwargs", {}))
 
         if kind == Kind.Instance:
             return cls(*args, **kwargs)
