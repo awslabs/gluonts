@@ -23,6 +23,7 @@ from gluonts.time_feature import time_features_from_frequency_str
 
 # if we import TestSplitSampler as Test... pytest thinks it's a test
 from gluonts.transform import TestSplitSampler as TSplitSampler
+from gluonts.transform import ValidationSplitSampler
 
 
 def make_dataset(N, train_length):
@@ -51,7 +52,7 @@ def test_forking_sequence_splitter() -> None:
                 pred_length=dec_len,
             ),
             ForkingSequenceSplitter(
-                train_sampler=TSplitSampler(),
+                instance_sampler=ValidationSplitSampler(skip_final=dec_len),
                 enc_len=enc_len,
                 dec_len=dec_len,
                 encoder_series_fields=["age"],
@@ -124,7 +125,9 @@ def test_forking_sequence_with_features(is_train) -> None:
                 pred_length=10,
             ),
             ForkingSequenceSplitter(
-                train_sampler=TSplitSampler(),
+                instance_sampler=ValidationSplitSampler(skip_final=dec_len)
+                if is_train
+                else TSplitSampler(),
                 enc_len=enc_len,
                 dec_len=dec_len,
                 num_forking=num_forking,
