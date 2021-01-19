@@ -27,7 +27,7 @@ from gluonts.model.tpp import (
 from gluonts.mx import Tensor
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
-    ContinuousTimeUniformSampler,
+    ContinuousTimePredictionSampler,
 )
 
 from .common import point_process_dataset, point_process_dataset_2
@@ -87,7 +87,11 @@ def predictor_factory():
             freq="H",
             ctx=mx.cpu(),
             input_transform=ContinuousTimeInstanceSplitter(
-                1, 5, ContinuousTimeUniformSampler(num_instances=5)
+                1,
+                5,
+                ContinuousTimePredictionSampler(
+                    allow_empty_interval=False, skip_initial=1
+                ),
             ),
         )
 

@@ -197,10 +197,19 @@ class ContinuousTimePointSampler:
     specified interval.
     """
 
-    def __init__(self, num_instances: int) -> None:
-        self.num_instances = num_instances
+    def __init__(
+        self, *, skip_initial: float = 0.0, skip_final: float = 0.0
+    ) -> None:
+        self.skip_initial = skip_initial
+        self.skip_final = skip_final
 
-    def __call__(self, a: float, b: float) -> np.ndarray:
+    def _get_bounds(self, interval_length: float) -> Tuple[float, float]:
+        return (
+            self.skip_initial,
+            interval_length - self.skip_final,
+        )
+
+    def __call__(self, interval_length: float) -> np.ndarray:
         """
         Returns random points in the real interval between :code:`a` and
         :code:`b`.
@@ -221,6 +230,39 @@ class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
     interval between :code:`a` and :code:`b`.
     """
 
-    def __call__(self, a: float, b: float) -> np.ndarray:
-        assert a <= b, "Interval start time must be before interval end time."
-        return np.random.rand(self.num_instances) * (b - a) + a
+    def __init__(
+        self,
+        num_instances: int,
+        *,
+        skip_initial: float = 0.0,
+        skip_final: float = 0.0
+    ) -> None:
+        super().__init__(skip_initial=skip_initial, skip_final=skip_final)
+        self.num_instances = num_instances
+
+    def __call__(self, interval_length: float) -> np.ndarray:
+        a, b = self._get_bounds(interval_length)
+        return (
+            np.random.rand(self.num_instances) * (b - a) + a
+            if a <= b
+            else np.array([])
+        )
+
+
+class ContinuousTimePredictionSampler(ContinuousTimePointSampler):
+    def __init__(
+        self,
+        *,
+        allow_empty_interval=False,
+        skip_initial: float = 0.0,
+        skip_final: float = 0.0
+    ) -> None:
+        super().__init__(skip_initial=skip_initial, skip_final=skip_final)
+        self.allow_empty_interval = allow_empty_interval
+
+    def __call__(self, interval_length: float) -> np.ndarray:
+        a, b = self._get_bounds(interval_length)
+        assert (
+            self.allow_empty_interval or a <= b
+        ), "Interval start time must be before interval end time."
+        return np.array([b]) if a <= b else np.array([])

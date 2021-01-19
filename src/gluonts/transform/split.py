@@ -420,7 +420,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         self,
         past_interval_length: float,
         future_interval_length: float,
-        train_sampler: ContinuousTimePointSampler,
+        instance_sampler: ContinuousTimePointSampler,
         target_field: str = FieldName.TARGET,
         start_field: str = FieldName.START,
         end_field: str = "end",
@@ -431,7 +431,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
             future_interval_length > 0
         ), "Prediction interval must have length greater than 0."
 
-        self.train_sampler = train_sampler
+        self.instance_sampler = instance_sampler
         self.past_interval_length = past_interval_length
         self.future_interval_length = future_interval_length
         self.target_field = target_field
@@ -455,19 +455,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
             data[self.end_field] - data[self.start_field]
         ) / data[self.start_field].freq.delta
 
-        # sample forecast start times in continuous time
-        if is_train:
-            if total_interval_length < (
-                self.future_interval_length + self.past_interval_length
-            ):
-                sampling_times: np.ndarray = np.array([])
-            else:
-                sampling_times = self.train_sampler(
-                    self.past_interval_length,
-                    total_interval_length - self.future_interval_length,
-                )
-        else:
-            sampling_times = np.array([total_interval_length])
+        sampling_times = self.instance_sampler(total_interval_length)
 
         ia_times = data[self.target_field][0, :]
         marks = data[self.target_field][1:, :]
