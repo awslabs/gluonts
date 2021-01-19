@@ -57,8 +57,15 @@ def loader_factory():
             future_interval_length=prediction_interval_length,
             past_interval_length=context_interval_length,
             instance_sampler=(
-                ContinuousTimeUniformSampler(num_instances=10, skip_initial=context_interval_length, skip_final=prediction_interval_length)
-                if is_train else ContinuousTimePredictionSampler(skip_initial=context_interval_length)
+                ContinuousTimeUniformSampler(
+                    num_instances=10,
+                    skip_initial=context_interval_length,
+                    skip_final=prediction_interval_length,
+                )
+                if is_train
+                else ContinuousTimePredictionSampler(
+                    skip_initial=context_interval_length
+                )
             ),
         )
 
