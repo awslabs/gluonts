@@ -125,8 +125,8 @@ class MultiProcessBatcher(Iterator):
             got = self.batch_queue.get(timeout=120)
             worker_id, batch = pickle.loads(got)
             batch = self.decode_fn(batch)
-        except Empty:
-            raise StopIteration()
+        except (Empty, FileNotFoundError):
+            raise StopIteration
 
         return batch
 

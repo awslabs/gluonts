@@ -42,7 +42,6 @@ from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
-    Chain,
     InstanceSampler,
     InstanceSplitter,
     UniformSplitSampler,
@@ -55,7 +54,6 @@ NUM_WORKERS_MP = (
     5  # 5 is specific and intentional, see train set soft constraint test
 )
 CONTEXT_LEN = 7
-SPLITTING_SAMPLE_PROBABILITY = 1  # crucial for the ValidationDataLoader test
 CD_NUM_STEPS = 14
 CD_NUM_TIME_SERIES = 47  # too small and batch test might fail
 CD_MAX_LEN_MULTIPLICATION_FACTOR = 3
@@ -97,22 +95,18 @@ def get_dataset_and_transformation():
     list_dataset_pred_length = dataset.prediction_length
 
     # use every possible time point to split the time series
-    transformation = Chain(
-        [
-            InstanceSplitter(
-                target_field=FieldName.TARGET,
-                is_pad_field=FieldName.IS_PAD,
-                start_field=FieldName.START,
-                forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=UniformSplitSampler(
-                    p=SPLITTING_SAMPLE_PROBABILITY,  # THIS IS IMPORTANT FOR THE TEST
-                    skip_final=list_dataset_pred_length,
-                ),
-                past_length=CONTEXT_LEN,
-                future_length=list_dataset_pred_length,
-                dummy_value=1.0,
-            ),
-        ]
+    transformation = InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=UniformSplitSampler(
+            p=1.0,
+            skip_final=list_dataset_pred_length,
+        ),
+        past_length=CONTEXT_LEN,
+        future_length=list_dataset_pred_length,
+        dummy_value=1.0,
     )
 
     # original no multiprocessing processed validation dataset
