@@ -343,34 +343,30 @@ class WaveNetEstimator(GluonEstimator):
             past_target="past_target",
         )
 
-    def _create_data_loader(self, mode: str, data: Dataset, **kwargs):
+    def _create_data_loader(
+        self, mode: str, data: Dataset, **kwargs
+    ) -> DataLoader:
         assert mode in ["training", "validation"]
 
-        data_loader_type = {
-            "training": TrainDataLoader,
-            "validation": ValidationDataLoader,
-        }[mode]
+        DataLoaderType = (
+            TrainDataLoader if mode is "training" else ValidationDataLoader
+        )
+        assert isinstance(DataLoaderType, Callable[..., DataLoader])
 
         input_names = get_hybrid_forward_input_names(WaveNet)
         instance_splitter = self._create_instance_splitter(mode)
 
-        return data_loader_type(
+        return DataLoaderType(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
-            stack_fn=partial(
-                batchify,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
-            ),
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
             decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
     def create_training_data_loader(
-        self,
-        data: Dataset,
-        **kwargs,
+        self, data: Dataset, **kwargs
     ) -> DataLoader:
         return self._create_data_loader("training", data, **kwargs)
 

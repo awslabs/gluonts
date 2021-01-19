@@ -192,10 +192,12 @@ class DeepFactorEstimator(GluonEstimator):
             future_length=self.prediction_length,
         )
 
-    def _create_data_loader(self, mode: str, data: Dataset, **kwargs):
+    def _create_data_loader(
+        self, mode: str, data: Dataset, **kwargs
+    ) -> DataLoader:
         assert mode in ["training", "validation"]
 
-        data_loader_type = {
+        DataLoaderType: Callable[..., DataLoader] = {
             "training": TrainDataLoader,
             "validation": ValidationDataLoader,
         }[mode]
@@ -203,15 +205,11 @@ class DeepFactorEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(DeepFactorTrainingNetwork)
         instance_splitter = self._create_instance_splitter(mode)
 
-        return data_loader_type(
+        return DataLoaderType(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
-            stack_fn=partial(
-                batchify,
-                ctx=self.trainer.ctx,
-                dtype=self.dtype,
-            ),
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
             decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
