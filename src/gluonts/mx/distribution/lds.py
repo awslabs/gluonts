@@ -65,7 +65,7 @@ def _safe_split(x, num_outputs, axis, squeeze_axis, *args, **kwargs):
             num_outputs=num_outputs,
             squeeze_axis=squeeze_axis,
             *args,
-            **kwargs
+            **kwargs,
         )
     return [x.squeeze(axis=axis)] if squeeze_axis else [x]
 

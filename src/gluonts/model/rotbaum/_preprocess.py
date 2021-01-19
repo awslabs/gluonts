@@ -43,7 +43,7 @@ class PreprocessGeneric:
         stratify_targets: bool = False,
         n_ignore_last: int = 0,
         max_n_datapts: int = 400000,
-        **kwargs
+        **kwargs,
     ):
         """
         Parameters
@@ -280,7 +280,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         use_feat_dynamic_cat=False,
         cardinality: Cardinality = CardinalityLabel.auto,
         one_hot_encode: bool = True,  # Should improve accuracy but will slow down model
-        **kwargs
+        **kwargs,
     ):
 
         if one_hot_encode:
@@ -295,7 +295,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             stratify_targets=stratify_targets,
             n_ignore_last=n_ignore_last,
             num_samples=num_samples,
-            **kwargs
+            **kwargs,
         )
 
         self.use_feat_static_real = use_feat_static_real

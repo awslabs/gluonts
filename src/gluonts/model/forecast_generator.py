@@ -53,7 +53,7 @@ class ForecastGenerator:
         freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         raise NotImplementedError()
 
@@ -71,7 +71,7 @@ class QuantileForecastGenerator(ForecastGenerator):
         freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]
@@ -112,7 +112,7 @@ class SampleForecastGenerator(ForecastGenerator):
         freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]

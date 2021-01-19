@@ -24,12 +24,15 @@ def _orjson():
     def dump(obj, fp):
         return print(dumps(obj), file=fp)
 
-    return "orjson", {
-        "loads": orjson.loads,
-        "load": load,
-        "dumps": dumps,
-        "dump": dump,
-    }
+    return (
+        "orjson",
+        {
+            "loads": orjson.loads,
+            "load": load,
+            "dumps": dumps,
+            "dump": dump,
+        },
+    )
 
 
 def _ujson():

@@ -49,7 +49,7 @@ class ActivationRegularizationLoss(Loss):
         weight: Optional[float] = None,
         batch_axis: int = 1,
         time_axis: int = 0,
-        **kwargs
+        **kwargs,
     ):
         super(ActivationRegularizationLoss, self).__init__(
             weight, batch_axis, **kwargs
@@ -119,7 +119,7 @@ class TemporalActivationRegularizationLoss(Loss):
         weight: Optional[float] = None,
         batch_axis: int = 1,
         time_axis: int = 0,
-        **kwargs
+        **kwargs,
     ):
         super(TemporalActivationRegularizationLoss, self).__init__(
             weight, batch_axis, **kwargs
