@@ -134,31 +134,39 @@ class GluonEstimator(Estimator):
 
     def train_model(
         self,
-        training_data: Dataset,
+        training_data: Optional[Dataset] = None,
         validation_data: Optional[Dataset] = None,
+        training_data_loader: Optional[DataLoader] = None,
+        validation_data_loader: Optional[DataLoader] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
     ) -> TrainOutput:
-        transformation = self.create_transformation()
+        assert (training_data is None) != (
+            training_data_loader is None
+        ), "You must provide either `training_data` or `training_data_loader`"
+        assert (validation_data is None) or (
+            validation_data_loader is None
+        ), "You can provide either `validation_data` or `validation_data_loader`"
 
-        transformed_training_data = TransformedDataset(
-            training_data, transformation
-        )
+        if training_data_loader is None:
+            transformation = self.create_transformation()
 
-        training_data_loader = self.create_training_data_loader(
-            transformed_training_data
-            if not cache_data
-            else Cached(transformed_training_data),
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
-        )
+            transformed_training_data = TransformedDataset(
+                training_data, transformation
+            )
 
-        validation_data_loader = None
+            training_data_loader = self.create_training_data_loader(
+                transformed_training_data
+                if not cache_data
+                else Cached(transformed_training_data),
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                shuffle_buffer_length=shuffle_buffer_length,
+            )
 
-        if validation_data:
+        if validation_data_loader is None and validation_data is not None:
             transformed_validation_data = TransformedDataset(
                 validation_data, transformation
             )
@@ -189,8 +197,10 @@ class GluonEstimator(Estimator):
 
     def train(
         self,
-        training_data: Dataset,
+        training_data: Optional[Dataset] = None,
         validation_data: Optional[Dataset] = None,
+        training_data_loader: Optional[DataLoader] = None,
+        validation_data_loader: Optional[DataLoader] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
@@ -198,8 +208,10 @@ class GluonEstimator(Estimator):
         **kwargs,
     ) -> Predictor:
         return self.train_model(
-            training_data,
+            training_data=training_data,
             validation_data=validation_data,
+            training_data_loader=training_data_loader,
+            validation_data_loader=validation_data_loader,
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
