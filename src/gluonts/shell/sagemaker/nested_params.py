@@ -12,11 +12,8 @@
 # permissions and limitations under the License.
 import re
 from collections import defaultdict
-from itertools import count
-from pydoc import locate
-from typing import List
 
-from toolz.dicttoolz import keymap, valmap
+from toolz.dicttoolz import valmap
 
 from gluonts.core import serde
 
