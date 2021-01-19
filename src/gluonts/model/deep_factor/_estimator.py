@@ -198,7 +198,7 @@ class DeepFactorEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepFactorTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("train")
+        instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

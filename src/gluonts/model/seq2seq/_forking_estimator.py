@@ -442,7 +442,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             ForkingSeq2SeqTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("train")
+        instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
