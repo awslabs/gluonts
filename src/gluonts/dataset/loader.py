@@ -125,7 +125,7 @@ class MultiProcessBatcher(Iterator):
             got = self.batch_queue.get(timeout=120)
             worker_id, batch = pickle.loads(got)
             batch = self.decode_fn(batch)
-        except (Empty, FileNotFoundError):
+        except Empty:
             raise StopIteration
 
         return batch
@@ -247,8 +247,6 @@ def ValidationDataLoader(
         data_iterable=TransformedDataset(dataset, transform, is_train=True),
         batch_size=batch_size,
         stack_fn=stack_fn,
-        num_workers=num_workers,
-        num_prefetch=num_prefetch,
         decode_fn=decode_fn,
     )
 
