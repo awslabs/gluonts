@@ -11,25 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, Union, List
+from typing import Dict, Optional, Union
 
-import mxnet as mx
 import numpy as np
 import pandas as pd
+import torch
+from torch.distributions import Distribution
 
-from gluonts.core.component import validated
-from gluonts.model.forecast import (
-    Forecast,
-    SampleForecast,
-    Quantile,
-    QuantileForecast,
-)
-from gluonts.mx.distribution import Distribution
+from gluonts.model.forecast import Forecast, Quantile, SampleForecast
 
 
 class DistributionForecast(Forecast):
     """
-    A `Forecast` object that uses a GluonTS distribution directly.
+    A `Forecast` object that uses a distribution directly.
+
     This can for instance be used to represent marginal probability
     distributions for each time point -- although joint distributions are
     also possible, e.g. when using MultiVariateGaussian).
@@ -53,7 +48,6 @@ class DistributionForecast(Forecast):
         parameters, number of iterations ran etc.
     """
 
-    @validated()
     def __init__(
         self,
         distribution: Distribution,
@@ -63,9 +57,7 @@ class DistributionForecast(Forecast):
         info: Optional[Dict] = None,
     ) -> None:
         self.distribution = distribution
-        self.shape = (
-            self.distribution.batch_shape + self.distribution.event_shape
-        )
+        self.shape = distribution.batch_shape + distribution.event_shape
         self.prediction_length = self.shape[0]
         self.item_id = item_id
         self.info = info
@@ -87,7 +79,7 @@ class DistributionForecast(Forecast):
         if self._mean is not None:
             return self._mean
         else:
-            self._mean = self.distribution.mean.asnumpy()
+            self._mean = self.distribution.mean.cpu().numpy()
             return self._mean
 
     @property
@@ -95,26 +87,15 @@ class DistributionForecast(Forecast):
         """
         Forecast mean, as a pandas.Series object.
         """
-        return pd.Series(self.mean, index=self.index)
+        return pd.Series(data=self.mean, index=self.index)
 
     def quantile(self, level: Union[float, str]) -> np.ndarray:
         level = Quantile.parse(level).value
-        q = self.distribution.quantile(mx.nd.array([level])).asnumpy()[0]
-        return q
+        return self.distribution.icdf(torch.tensor([level])).cpu().numpy()
 
     def to_sample_forecast(self, num_samples: int = 200) -> SampleForecast:
         return SampleForecast(
-            samples=self.distribution.sample(num_samples),
-            start_date=self.start_date,
-            freq=self.freq,
-            item_id=self.item_id,
-            info=self.info,
-        )
-
-    def to_quantile_forecast(self, quantiles: List[Union[float, str]]):
-        return QuantileForecast(
-            forecast_arrays=np.array([self.quantile(q) for q in quantiles]),
-            forecast_keys=quantiles,
+            samples=self.distribution.sample((num_samples,)),
             start_date=self.start_date,
             freq=self.freq,
             item_id=self.item_id,

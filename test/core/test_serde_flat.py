@@ -11,27 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import importlib
-import sys
-import warnings
-
-import gluonts.mx.kernels
-
-warnings.warn(
-    "gluonts.kernels is deprecated. Use gluonts.mx.kernels instead.",
-    DeprecationWarning,
-    stacklevel=2,
-)
+from gluonts.core import serde
+from gluonts.core.component import equals
+from gluonts.model.deepar import DeepAREstimator
 
 
-sys.modules["gluonts.kernels"] = gluonts.mx.kernels
+def test_nested_params():
+    deepar = DeepAREstimator(prediction_length=7, freq="D")
 
-for submodule in (
-    "_kernel",
-    "_kernel_output",
-    "_periodic_kernel",
-    "_rbf_kernel",
-):
-    sys.modules[f"gluonts.kernels.{submodule}"] = importlib.import_module(
-        f"gluonts.mx.kernels.{submodule}"
-    )
+    assert equals(deepar, serde.flat.decode(serde.flat.encode(deepar)))
+
+    deepar2 = serde.flat.clone(deepar, {"trainer.epochs": 999})
+    assert deepar2.trainer.epochs == 999

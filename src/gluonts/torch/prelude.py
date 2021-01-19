@@ -11,32 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import importlib
-import sys
-import warnings
+from .component import *
+from .model.forecast_generator import *
 
-import gluonts.mx.block
-
-warnings.warn(
-    "gluonts.block is deprecated. Use gluonts.mx.block instead.",
-    DeprecationWarning,
-    stacklevel=2,
-)
-
-
-sys.modules["gluonts.block"] = gluonts.mx.block
-
-for submodule in (
-    "cnn",
-    "decoder",
-    "enc2dec",
-    "encoder",
-    "feature",
-    "mlp",
-    "quantile_output",
-    "rnn",
-    "scaler",
-):
-    sys.modules[f"gluonts.block.{submodule}"] = importlib.import_module(
-        f"gluonts.mx.block.{submodule}"
-    )
+__all__ = []

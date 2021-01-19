@@ -157,7 +157,7 @@ def test_dynamic_loading():
     code = dedent(
         """
         dict(
-           trainer=gluonts.trainer.Trainer(
+           trainer=gluonts.mx.trainer.Trainer(
                ctx="cpu(0)",
                epochs=5,
                learning_rate=0.001,

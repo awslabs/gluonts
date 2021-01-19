@@ -23,12 +23,13 @@ from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
+    ForecastGenerator,
     SampleForecastGenerator,
     predict_to_numpy,
 )
-from gluonts.torch.component import equals
 from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.torch.batchify import batchify
+from gluonts.torch.component import equals
 from gluonts.transform import Transformation
 
 
@@ -47,7 +48,7 @@ class PyTorchPredictor(Predictor):
         freq: str,
         device: torch.device,
         input_transform: Transformation,
-        forecast_generator: SampleForecastGenerator = SampleForecastGenerator(),
+        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
     ) -> None:
         super().__init__(prediction_length, freq)

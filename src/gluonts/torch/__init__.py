@@ -11,13 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import os
+# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
 
-"""
-Maximum number of times a transformation can receive an input without returning an output.
-This parameter is intended to catch infinite loops or inefficiencies, when transformations
-never or rarely return something.
-"""
-GLUONTS_MAX_IDLE_TRANSFORMS = int(
-    os.environ.get("GLUONTS_MAX_IDLE_TRANSFORMS", "100")
-)
+from pkgutil import extend_path
+
+__path__ = extend_path(__path__, __name__)  # type: ignore
+
+from gluonts.torch.prelude import *

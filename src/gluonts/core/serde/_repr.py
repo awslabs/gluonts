@@ -10,6 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+import ast
 import importlib
 import itertools
 import json
@@ -18,11 +19,13 @@ import re
 from functools import singledispatch
 from typing import Any
 
+
 import numpy as np
 
 from gluonts.core import fqname_for
 
-from ._base import Kind, encode
+from ._base import Kind, encode, decode
+from ._parse import parse
 
 
 @singledispatch
@@ -58,34 +61,38 @@ def as_repr_float(x: float):
 def as_repr_dict(x: dict):
     kind = x.get("__kind__")
 
-    if kind:
-        if kind == Kind.Type:
-            return x["class"]
+    if kind == Kind.Stateful:
+        raise ValueError(
+            f"Can not encode create representation for stateful object {x}."
+        )
 
-        if kind == Kind.Instance:
-            if x["class"] == "builtins.tuple":
-                data = x["args"][0]
-                inner = ", ".join(map(as_repr, data))
-                # account for the extra `,` in `(x,)`
-                if len(data) == 1:
-                    inner += ","
-                return f"({inner})"
+    if kind == Kind.Type:
+        return x["class"]
 
-            if x["class"] == "builtins.set":
-                data = x["args"][0]
-                return f"set({as_repr(data)})"
+    if kind == Kind.Instance:
+        if x["class"] == "builtins.tuple":
+            data = x["args"][0]
+            inner = ", ".join(map(as_repr, data))
+            # account for the extra `,` in `(x,)`
+            if len(data) == 1:
+                inner += ","
+            return f"({inner})"
 
-            args = x.get("args", [])
-            kwargs = x.get("kwargs", {})
+        if x["class"] == "builtins.set":
+            data = x["args"][0]
+            return f"set({as_repr(data)})"
 
-            fqname = x["class"]
-            bindings = ", ".join(
-                itertools.chain(
-                    map(as_repr, args),
-                    [f"{k}={as_repr(v)}" for k, v in kwargs.items()],
-                )
+        args = x.get("args", [])
+        kwargs = x.get("kwargs", {})
+
+        fqname = x["class"]
+        bindings = ", ".join(
+            itertools.chain(
+                map(as_repr, args),
+                [f"{k}={as_repr(v)}" for k, v in kwargs.items()],
             )
-            return f"{fqname}({bindings})"
+        )
+        return f"{fqname}({bindings})"
 
     inner = ", ".join(f"{as_repr(k)}: {as_repr(v)}" for k, v in x.items())
     return f"{{{inner}}}"
@@ -114,56 +121,5 @@ def dump_code(o: Any) -> str:
     return as_repr(encode(o))
 
 
-def load_code(c: str) -> Any:
-    """
-    Deserializes an object from a Python code string.
-
-    Parameters
-    ----------
-    c
-        A string representing the object as Python code.
-
-    Returns
-    -------
-    Any
-        The deserialized object.
-
-    See Also
-    --------
-    dump_code
-        Inverse function.
-    """
-
-    def _load_code(code: str, modules=None):
-        if modules is None:
-            modules = {}
-        try:
-            return eval(code, modules)
-        except NameError as e:
-            m = re.match(r"name '(?P<module>.+)' is not defined", str(e))
-            if m:
-                name = m["module"]
-                return _load_code(
-                    code,
-                    {**(modules or {}), name: importlib.import_module(name)},
-                )
-            else:
-                raise e
-        except AttributeError as e:
-            m = re.match(
-                r"module '(?P<module>.+)' has no attribute '(?P<package>.+)'",
-                str(e),
-            )
-            if m:
-                module, package = m["module"], m["package"]
-                name = f"{module}.{package}"
-                return _load_code(
-                    code,
-                    {**(modules or {}), name: importlib.import_module(name)},
-                )
-            else:
-                raise e
-        except Exception as e:
-            raise e
-
-    return _load_code(c)
+def load_code(s):
+    return decode(parse(s))

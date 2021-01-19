@@ -20,7 +20,7 @@ import mxnet as mx
 
 __path__ = extend_path(__path__, __name__)  # type: ignore
 
-from gluonts.mx.prelude import *
-
 # Tensor type for HybridBlocks in Gluon
 Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
+
+from gluonts.mx.prelude import *

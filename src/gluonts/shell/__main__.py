@@ -138,10 +138,10 @@ if __name__ == "__main__":
     import logging
     import os
 
-    from gluonts import gluonts_tqdm
+    from gluonts.env import env
 
     if "TRAINING_JOB_NAME" in os.environ:
-        gluonts_tqdm.USE_TQDM = False
+        env._push(use_tqdm=False)
 
     logging.basicConfig(
         level=logging.INFO,
