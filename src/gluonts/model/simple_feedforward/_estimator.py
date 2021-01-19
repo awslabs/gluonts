@@ -216,21 +216,16 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             time_series_fields=[FieldName.OBSERVED_VALUES],
         )
 
-    def _create_data_loader(
-        self, mode: str, data: Dataset, **kwargs
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
     ) -> DataLoader:
-        assert mode in ["training", "validation"]
-
-        DataLoaderType = (
-            TrainDataLoader if mode is "training" else ValidationDataLoader
-        )
-
         input_names = get_hybrid_forward_input_names(
             SimpleFeedForwardTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter(mode)
-
-        return DataLoaderType(
+        instance_splitter = self._create_instance_splitter("train")
+        return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
@@ -239,19 +234,23 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             **kwargs,
         )
 
-    def create_training_data_loader(
-        self,
-        data: Dataset,
-        **kwargs,
-    ) -> DataLoader:
-        return self._create_data_loader("training", data, **kwargs)
-
     def create_validation_data_loader(
         self,
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        return self._create_data_loader("validation", data, **kwargs)
+        input_names = get_hybrid_forward_input_names(
+            SimpleFeedForwardTrainingNetwork
+        )
+        instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
 
     # defines the network, we get to see one batch to initialize it.
     # the network should return at least one tensor that is used as a loss to minimize in the training loop.
