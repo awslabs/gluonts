@@ -337,7 +337,6 @@ class DeepStateEstimator(GluonEstimator):
         DataLoaderType = (
             TrainDataLoader if mode is "training" else ValidationDataLoader
         )
-        assert isinstance(DataLoaderType, Callable[..., DataLoader])
 
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
         instance_splitter = self._create_instance_splitter(mode)

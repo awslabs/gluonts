@@ -161,7 +161,7 @@ class Seq2SeqEstimator(GluonEstimator):
             is_pad_field=FieldName.IS_PAD,
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
-            train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+            instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length,
             time_series_fields=[FieldName.FEAT_DYNAMIC_REAL],
@@ -175,7 +175,6 @@ class Seq2SeqEstimator(GluonEstimator):
         DataLoaderType = (
             TrainDataLoader if mode is "training" else ValidationDataLoader
         )
-        assert isinstance(DataLoaderType, Callable[..., DataLoader])
 
         input_names = get_hybrid_forward_input_names(Seq2SeqTrainingNetwork)
         instance_splitter = self._create_instance_splitter(mode)

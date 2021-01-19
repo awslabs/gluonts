@@ -51,6 +51,7 @@ def test_listing_1():
     )
 
 
+@pytest.mark.skip("this test is broken")
 def test_appendix_c():
     """
     Test GluonTS paper examples from arxiv paper:

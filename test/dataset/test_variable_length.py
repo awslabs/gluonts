@@ -30,6 +30,7 @@ from gluonts.testutil.dummy_datasets import get_dataset
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimeUniformSampler,
+    ContinuousTimePredictionSampler,
 )
 
 
@@ -55,7 +56,10 @@ def loader_factory():
         splitter = ContinuousTimeInstanceSplitter(
             future_interval_length=prediction_interval_length,
             past_interval_length=context_interval_length,
-            train_sampler=ContinuousTimeUniformSampler(num_instances=10),
+            instance_sampler=(
+                ContinuousTimeUniformSampler(num_instances=10, skip_initial=context_interval_length, skip_final=prediction_interval_length)
+                if is_train else ContinuousTimePredictionSampler(skip_initial=context_interval_length)
+            ),
         )
 
         kwargs: Dict[str, Any] = dict(

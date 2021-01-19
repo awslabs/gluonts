@@ -803,9 +803,13 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
     ts = np.cumsum(ia_times)
 
     splitter = transform.ContinuousTimeInstanceSplitter(
-        2,
-        1,
-        train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
+        past_interval_length=2,
+        future_interval_length=1,
+        instance_sampler=transform.ContinuousTimeUniformSampler(
+            num_instances=10,
+            skip_initial=2,
+            skip_final=1,
+        ),
     )
 
     # no boundary conditions
@@ -819,9 +823,12 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
 
 def test_ctsplitter_no_train_last_point(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
-        2,
-        1,
-        train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
+        past_interval_length=2,
+        future_interval_length=1,
+        instance_sampler=transform.ContinuousTimePredictionSampler(
+            allow_empty_interval=False,
+            skip_initial=2,
+        ),
     )
 
     iter_de = splitter(point_process_dataset, is_train=False)
@@ -841,9 +848,9 @@ def test_ctsplitter_no_train_last_point(point_process_dataset):
 
 def test_ctsplitter_train_correct(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
-        1,
-        1,
-        train_sampler=MockContinuousTimeSampler(
+        past_interval_length=1,
+        future_interval_length=1,
+        instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99], num_instances=3
         ),
     )
@@ -880,9 +887,9 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
                 yield d
 
     splitter = transform.ContinuousTimeInstanceSplitter(
-        1,
-        1,
-        train_sampler=MockContinuousTimeSampler(
+        past_interval_length=1,
+        future_interval_length=1,
+        instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99], num_instances=3
         ),
     )
@@ -897,7 +904,13 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
 def test_ctsplitter_train_samples_correct_times(point_process_dataset):
 
     splitter = transform.ContinuousTimeInstanceSplitter(
-        1.25, 1.25, train_sampler=transform.ContinuousTimeUniformSampler(20)
+        past_interval_length=1.25,
+        future_interval_length=1.25,
+        instance_sampler=transform.ContinuousTimeUniformSampler(
+            20,
+            skip_initial=1.25,
+            skip_final=1.25,
+        ),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -918,7 +931,7 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
         0.01,
         0.01,
-        train_sampler=MockContinuousTimeSampler(
+        instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99], num_instances=3
         ),
     )
