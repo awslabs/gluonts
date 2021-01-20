@@ -275,15 +275,11 @@ class Trainer:
                     ):
                         self.avg_strategy.load_averaged_model(net)
 
-                    batch_iter_length = None
+                    batch_iter = itertools.islice(
+                        batch_iter, num_batches_to_use
+                    )
 
-                    if num_batches_to_use:
-                        batch_iter = itertools.islice(
-                            batch_iter, num_batches_to_use
-                        )
-                        batch_iter_length = num_batches_to_use
-
-                    with tqdm(batch_iter, total=batch_iter_length) as it:
+                    with tqdm(batch_iter, total=num_batches_to_use) as it:
                         for batch_no, batch in enumerate(it, start=1):
                             # `batch` here is expected to be a dictionary whose fields
                             # should correspond 1-to-1 with the network inputs
