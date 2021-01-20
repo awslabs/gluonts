@@ -244,12 +244,12 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         self.train_sampler = (
             train_sampler
             if train_sampler is not None
-            else ValidationSplitSampler(skip_final=prediction_length)
+            else ValidationSplitSampler(min_future=prediction_length)
         )
         self.validation_sampler = (
             validation_sampler
             if validation_sampler is not None
-            else ValidationSplitSampler(skip_final=prediction_length)
+            else ValidationSplitSampler(min_future=prediction_length)
         )
 
     def create_transformation(self) -> Transformation:

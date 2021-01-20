@@ -310,16 +310,16 @@ class DeepVAREstimator(GluonEstimator):
             if train_sampler is not None
             else ExpectedNumInstanceSampler(
                 1.0,
-                skip_initial=0 if pick_incomplete else self.history_length,
-                skip_final=prediction_length,
+                min_past=0 if pick_incomplete else self.history_length,
+                min_future=prediction_length,
             )
         )
         self.validation_sampler = (
             validation_sampler
             if validation_sampler is not None
             else ValidationSplitSampler(
-                skip_initial=0 if pick_incomplete else self.history_length,
-                skip_final=prediction_length,
+                min_past=0 if pick_incomplete else self.history_length,
+                min_future=prediction_length,
             )
         )
 

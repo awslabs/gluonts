@@ -163,14 +163,14 @@ class LSTNetEstimator(GluonEstimator):
             train_sampler
             if train_sampler is not None
             else ExpectedNumInstanceSampler(
-                1.0, skip_final=prediction_length + lead_time
+                1.0, min_future=prediction_length + lead_time
             )
         )
         self.validation_sampler = (
             validation_sampler
             if validation_sampler is not None
             else ValidationSplitSampler(
-                skip_final=prediction_length + lead_time
+                min_future=prediction_length + lead_time
             )
         )
         self.dtype = dtype

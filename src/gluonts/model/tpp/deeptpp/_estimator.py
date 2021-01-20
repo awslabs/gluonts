@@ -157,16 +157,16 @@ class DeepTPPEstimator(GluonEstimator):
         instance_sampler = {
             "training": ContinuousTimeUniformSampler(
                 num_instances=self.num_training_instances,
-                skip_initial=self.context_interval_length,
-                skip_final=self.prediction_interval_length,
+                min_past=self.context_interval_length,
+                min_future=self.prediction_interval_length,
             ),
             "validation": ContinuousTimePredictionSampler(
                 allow_empty_interval=True,
-                skip_initial=self.context_interval_length,
-                skip_final=self.prediction_interval_length,
+                min_past=self.context_interval_length,
+                min_future=self.prediction_interval_length,
             ),
             "test": ContinuousTimePredictionSampler(
-                skip_initial=self.context_interval_length,
+                min_past=self.context_interval_length,
                 allow_empty_interval=False,
             ),
         }[mode]

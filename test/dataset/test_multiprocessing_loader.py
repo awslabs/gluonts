@@ -102,7 +102,7 @@ def get_dataset_and_transformation():
         forecast_start_field=FieldName.FORECAST_START,
         instance_sampler=UniformSplitSampler(
             p=1.0,
-            skip_final=list_dataset_pred_length,
+            min_future=list_dataset_pred_length,
         ),
         past_length=CONTEXT_LEN,
         future_length=list_dataset_pred_length,

@@ -52,7 +52,7 @@ def test_forking_sequence_splitter() -> None:
                 pred_length=dec_len,
             ),
             ForkingSequenceSplitter(
-                instance_sampler=ValidationSplitSampler(skip_final=dec_len),
+                instance_sampler=ValidationSplitSampler(min_future=dec_len),
                 enc_len=enc_len,
                 dec_len=dec_len,
                 encoder_series_fields=["age"],
@@ -125,7 +125,7 @@ def test_forking_sequence_with_features(is_train) -> None:
                 pred_length=10,
             ),
             ForkingSequenceSplitter(
-                instance_sampler=ValidationSplitSampler(skip_final=dec_len)
+                instance_sampler=ValidationSplitSampler(min_future=dec_len)
                 if is_train
                 else TSplitSampler(),
                 enc_len=enc_len,

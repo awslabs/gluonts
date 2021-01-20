@@ -98,10 +98,10 @@ class CanonicalEstimator(GluonEstimator):
 
         instance_sampler = {
             "training": ValidationSplitSampler(
-                skip_final=self.prediction_length
+                min_future=self.prediction_length
             ),
             "validation": ValidationSplitSampler(
-                skip_final=self.prediction_length
+                min_future=self.prediction_length
             ),
             "test": TestSplitSampler(),
         }[mode]

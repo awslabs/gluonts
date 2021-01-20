@@ -224,13 +224,13 @@ class WaveNetEstimator(GluonEstimator):
             train_sampler
             if train_sampler is not None
             else ExpectedNumInstanceSampler(
-                1.0, skip_final=self.train_window_length
+                1.0, min_future=self.train_window_length
             )
         )
         self.validation_sampler = (
             validation_sampler
             if validation_sampler is not None
-            else ValidationSplitSampler(skip_final=self.train_window_length)
+            else ValidationSplitSampler(min_future=self.train_window_length)
         )
         self.negative_data = negative_data
 

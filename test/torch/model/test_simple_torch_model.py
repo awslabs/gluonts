@@ -171,7 +171,7 @@ def test_simple_model():
         forecast_start_field=FieldName.FORECAST_START,
         instance_sampler=ExpectedNumInstanceSampler(
             num_instances=1,
-            skip_final=prediction_length,
+            min_future=prediction_length,
         ),
         past_length=context_length,
         future_length=prediction_length,

@@ -112,12 +112,12 @@ class Seq2SeqEstimator(GluonEstimator):
         self.train_sampler = (
             train_sampler
             if train_sampler is not None
-            else ExpectedNumInstanceSampler(1.0, skip_final=prediction_length)
+            else ExpectedNumInstanceSampler(1.0, min_future=prediction_length)
         )
         self.validation_sampler = (
             validation_sampler
             if validation_sampler is not None
-            else ValidationSplitSampler(skip_final=prediction_length)
+            else ValidationSplitSampler(min_future=prediction_length)
         )
         self.num_parallel_samples = num_parallel_samples
 

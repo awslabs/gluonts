@@ -90,7 +90,7 @@ def predictor_factory():
                 1,
                 5,
                 ContinuousTimePredictionSampler(
-                    allow_empty_interval=False, skip_initial=1
+                    allow_empty_interval=False, min_past=1
                 ),
             ),
         )

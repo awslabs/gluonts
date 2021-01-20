@@ -24,21 +24,21 @@ class InstanceSampler:
     An InstanceSampler is called with the time series ``ts``, and returns
     a set of indices at which training instances will be generated.
 
-    The sampled indices ``i`` satisfy ``a <= i <= b``, where ``a = skip_initial``
-    and ``b = ts.shape[axis] - skip_final``.
+    The sampled indices ``i`` satisfy ``a <= i <= b``, where ``a = min_past``
+    and ``b = ts.shape[axis] - min_future``.
     """
 
     def __init__(
-        self, *, axis: int = -1, skip_initial: int = 0, skip_final: int = 0
+        self, *, axis: int = -1, min_past: int = 0, min_future: int = 0
     ) -> None:
         self.axis = axis
-        self.skip_initial = skip_initial
-        self.skip_final = skip_final
+        self.min_past = min_past
+        self.min_future = min_future
 
     def _get_bounds(self, ts: np.ndarray) -> Tuple[int, int]:
         return (
-            self.skip_initial,
-            ts.shape[self.axis] - self.skip_final,
+            self.min_past,
+            ts.shape[self.axis] - self.min_future,
         )
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
@@ -82,12 +82,10 @@ class PredictionSplitSampler(InstanceSampler):
         self,
         allow_empty_interval=False,
         axis: int = -1,
-        skip_initial: int = 0,
-        skip_final: int = 0,
+        min_past: int = 0,
+        min_future: int = 0,
     ) -> None:
-        super().__init__(
-            axis=axis, skip_initial=skip_initial, skip_final=skip_final
-        )
+        super().__init__(axis=axis, min_past=min_past, min_future=min_future)
         self.allow_empty_interval = allow_empty_interval
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
@@ -97,24 +95,24 @@ class PredictionSplitSampler(InstanceSampler):
 
 
 def ValidationSplitSampler(
-    axis: int = -1, skip_initial: int = 0, skip_final: int = 0
+    axis: int = -1, min_past: int = 0, min_future: int = 0
 ) -> PredictionSplitSampler:
     return PredictionSplitSampler(
         allow_empty_interval=True,
         axis=axis,
-        skip_initial=skip_initial,
-        skip_final=skip_final,
+        min_past=min_past,
+        min_future=min_future,
     )
 
 
 def TestSplitSampler(
-    axis: int = -1, skip_initial: int = 0
+    axis: int = -1, min_past: int = 0
 ) -> PredictionSplitSampler:
     return PredictionSplitSampler(
         allow_empty_interval=False,
         axis=axis,
-        skip_initial=skip_initial,
-        skip_final=0,
+        min_past=min_past,
+        min_future=0,
     )
 
 
@@ -198,15 +196,15 @@ class ContinuousTimePointSampler:
     """
 
     def __init__(
-        self, *, skip_initial: float = 0.0, skip_final: float = 0.0
+        self, *, min_past: float = 0.0, min_future: float = 0.0
     ) -> None:
-        self.skip_initial = skip_initial
-        self.skip_final = skip_final
+        self.min_past = min_past
+        self.min_future = min_future
 
     def _get_bounds(self, interval_length: float) -> Tuple[float, float]:
         return (
-            self.skip_initial,
-            interval_length - self.skip_final,
+            self.min_past,
+            interval_length - self.min_future,
         )
 
     def __call__(self, interval_length: float) -> np.ndarray:
@@ -234,10 +232,10 @@ class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
         self,
         num_instances: int,
         *,
-        skip_initial: float = 0.0,
-        skip_final: float = 0.0
+        min_past: float = 0.0,
+        min_future: float = 0.0
     ) -> None:
-        super().__init__(skip_initial=skip_initial, skip_final=skip_final)
+        super().__init__(min_past=min_past, min_future=min_future)
         self.num_instances = num_instances
 
     def __call__(self, interval_length: float) -> np.ndarray:
@@ -254,10 +252,10 @@ class ContinuousTimePredictionSampler(ContinuousTimePointSampler):
         self,
         *,
         allow_empty_interval=False,
-        skip_initial: float = 0.0,
-        skip_final: float = 0.0
+        min_past: float = 0.0,
+        min_future: float = 0.0
     ) -> None:
-        super().__init__(skip_initial=skip_initial, skip_final=skip_final)
+        super().__init__(min_past=min_past, min_future=min_future)
         self.allow_empty_interval = allow_empty_interval
 
     def __call__(self, interval_length: float) -> np.ndarray:

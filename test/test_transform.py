@@ -227,12 +227,12 @@ def test_InstanceSplitter(
         instance_sampler=(
             transform.UniformSplitSampler(
                 p=1.0,
-                skip_initial=0 if pick_incomplete else train_length,
-                skip_final=lead_time + pred_length,
+                min_past=0 if pick_incomplete else train_length,
+                min_future=lead_time + pred_length,
             )
             if is_train
             else transform.TestSplitSampler(
-                skip_initial=0 if pick_incomplete else train_length
+                min_past=0 if pick_incomplete else train_length
             )
         ),
         past_length=train_length,
@@ -316,7 +316,7 @@ def test_CanonicalInstanceSplitter(
         instance_sampler=(
             transform.UniformSplitSampler(
                 p=1.0,
-                skip_initial=train_length,
+                min_past=train_length,
             )
             if is_train
             else (
@@ -478,7 +478,7 @@ def test_multi_dim_transformation(is_train):
                 forecast_start_field=FieldName.FORECAST_START,
                 instance_sampler=(
                     transform.ExpectedNumInstanceSampler(
-                        num_instances=4, skip_final=pred_length
+                        num_instances=4, min_future=pred_length
                     )
                     if is_train
                     else transform.TestSplitSampler()
@@ -543,7 +543,7 @@ def test_ExpectedNumInstanceSampler():
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
                 instance_sampler=transform.ExpectedNumInstanceSampler(
-                    num_instances=4, skip_final=pred_length
+                    num_instances=4, min_future=pred_length
                 ),
                 past_length=train_length,
                 future_length=pred_length,
@@ -807,8 +807,8 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
         future_interval_length=1,
         instance_sampler=transform.ContinuousTimeUniformSampler(
             num_instances=10,
-            skip_initial=2,
-            skip_final=1,
+            min_past=2,
+            min_future=1,
         ),
     )
 
@@ -827,7 +827,7 @@ def test_ctsplitter_no_train_last_point(point_process_dataset):
         future_interval_length=1,
         instance_sampler=transform.ContinuousTimePredictionSampler(
             allow_empty_interval=False,
-            skip_initial=2,
+            min_past=2,
         ),
     )
 
@@ -908,8 +908,8 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
         future_interval_length=1.25,
         instance_sampler=transform.ContinuousTimeUniformSampler(
             20,
-            skip_initial=1.25,
-            skip_final=1.25,
+            min_past=1.25,
+            min_future=1.25,
         ),
     )
 
