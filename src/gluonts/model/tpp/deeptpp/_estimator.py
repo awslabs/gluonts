@@ -32,6 +32,7 @@ from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
     ContinuousTimeInstanceSplitter,
+    ContinuousTimePointSampler,
     ContinuousTimeUniformSampler,
     ContinuousTimePredictionSampler,
     SelectFields,
@@ -154,7 +155,7 @@ class DeepTPPEstimator(GluonEstimator):
     def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
 
-        instance_sampler = {
+        instance_sampler: ContinuousTimePointSampler = {
             "training": ContinuousTimeUniformSampler(
                 num_instances=self.num_training_instances,
                 min_past=self.context_interval_length,
