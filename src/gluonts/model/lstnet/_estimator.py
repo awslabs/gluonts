@@ -163,7 +163,7 @@ class LSTNetEstimator(GluonEstimator):
             train_sampler
             if train_sampler is not None
             else ExpectedNumInstanceSampler(
-                1.0, min_future=prediction_length + lead_time
+                num_instances=1.0, min_future=prediction_length + lead_time
             )
         )
         self.validation_sampler = (

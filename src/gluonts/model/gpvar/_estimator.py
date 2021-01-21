@@ -217,7 +217,7 @@ class GPVAREstimator(GluonEstimator):
             train_sampler
             if train_sampler is not None
             else ExpectedNumInstanceSampler(
-                1.0,
+                num_instances=1.0,
                 min_past=0 if pick_incomplete else self.history_length,
                 min_future=prediction_length,
             )

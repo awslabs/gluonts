@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple
+from typing import Tuple, List
 
 import mxnet as mx
 
@@ -584,7 +584,7 @@ def test_BucketInstanceSampler():
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
                 instance_sampler=transform.BucketInstanceSampler(
-                    dataset_stats.scale_histogram
+                    scale_histogram=dataset_stats.scale_histogram
                 ),
                 past_length=train_length,
                 future_length=pred_length,
@@ -786,12 +786,10 @@ def point_process_dataset():
 
 
 class MockContinuousTimeSampler(transform.ContinuousTimePointSampler):
-    # noinspection PyMissingConstructor,PyUnusedLocal
-    def __init__(self, ret_values, *args, **kwargs):
-        self._ret_values = ret_values
+    ret_values: List[float]
 
     def __call__(self, *args, **kwargs):
-        return np.array(self._ret_values)
+        return np.array(self.ret_values)
 
 
 @pytest.fixture
@@ -851,7 +849,7 @@ def test_ctsplitter_train_correct(point_process_dataset):
         past_interval_length=1,
         future_interval_length=1,
         instance_sampler=MockContinuousTimeSampler(
-            ret_values=[1.01, 1.5, 1.99], num_instances=3
+            ret_values=[1.01, 1.5, 1.99]
         ),
     )
 
@@ -890,7 +888,7 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
         past_interval_length=1,
         future_interval_length=1,
         instance_sampler=MockContinuousTimeSampler(
-            ret_values=[1.01, 1.5, 1.99], num_instances=3
+            ret_values=[1.01, 1.5, 1.99]
         ),
     )
 
@@ -907,7 +905,7 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
         past_interval_length=1.25,
         future_interval_length=1.25,
         instance_sampler=transform.ContinuousTimeUniformSampler(
-            20,
+            num_instances=20,
             min_past=1.25,
             min_future=1.25,
         ),
@@ -932,7 +930,7 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         0.01,
         0.01,
         instance_sampler=MockContinuousTimeSampler(
-            ret_values=[1.01, 1.5, 1.99], num_instances=3
+            ret_values=[1.01, 1.5, 1.99]
         ),
     )
 

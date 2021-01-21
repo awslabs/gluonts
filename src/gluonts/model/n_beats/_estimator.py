@@ -217,7 +217,9 @@ class NBEATSEstimator(GluonEstimator):
         self.train_sampler = (
             train_sampler
             if train_sampler is not None
-            else ExpectedNumInstanceSampler(1.0, min_future=prediction_length)
+            else ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=prediction_length
+            )
         )
         self.validation_sampler = (
             validation_sampler

@@ -14,12 +14,13 @@
 from typing import Tuple
 
 import numpy as np
+from pydantic import BaseModel
 
 from gluonts.core.component import validated
 from gluonts.dataset.stat import ScaleHistogram
 
 
-class InstanceSampler:
+class InstanceSampler(BaseModel):
     """
     An InstanceSampler is called with the time series ``ts``, and returns
     a set of indices at which training instances will be generated.
@@ -28,12 +29,12 @@ class InstanceSampler:
     and ``b = ts.shape[axis] - min_future``.
     """
 
-    def __init__(
-        self, *, axis: int = -1, min_past: int = 0, min_future: int = 0
-    ) -> None:
-        self.axis = axis
-        self.min_past = min_past
-        self.min_future = min_future
+    axis: int = -1
+    min_past: int = 0
+    min_future: int = 0
+
+    class Config:
+        arbitrary_types_allowed = True
 
     def _get_bounds(self, ts: np.ndarray) -> Tuple[int, int]:
         return (
@@ -55,10 +56,7 @@ class UniformSplitSampler(InstanceSampler):
         Probability of selecting a time point
     """
 
-    @validated()
-    def __init__(self, p: float, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.p = p
+    p: float
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
         a, b = self._get_bounds(ts)
@@ -77,16 +75,7 @@ class PredictionSplitSampler(InstanceSampler):
     splitting i.e. the forecast point for the time series.
     """
 
-    @validated()
-    def __init__(
-        self,
-        allow_empty_interval=False,
-        axis: int = -1,
-        min_past: int = 0,
-        min_future: int = 0,
-    ) -> None:
-        super().__init__(axis=axis, min_past=min_past, min_future=min_future)
-        self.allow_empty_interval = allow_empty_interval
+    allow_empty_interval: bool = False
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
         a, b = self._get_bounds(ts)
@@ -129,12 +118,9 @@ class ExpectedNumInstanceSampler(InstanceSampler):
         number of training examples generated per time series on average
     """
 
-    @validated()
-    def __init__(self, num_instances: float, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.num_instances = num_instances
-        self.total_length = 0
-        self.n = 0
+    num_instances: float
+    total_length: int = 0
+    n: int = 0
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
         a, b = self._get_bounds(ts)
@@ -170,13 +156,8 @@ class BucketInstanceSampler(InstanceSampler):
         value of the time series.
     """
 
-    @validated()
-    def __init__(self, scale_histogram: ScaleHistogram, **kwargs) -> None:
-        super().__init__(**kwargs)
-        # probability of sampling a bucket i is the inverse of its number of
-        # elements
-        self.scale_histogram = scale_histogram
-        self.lookup = np.arange(2 ** 13)
+    scale_histogram: ScaleHistogram
+    lookup: np.ndarray = np.arange(2 ** 13)
 
     def __call__(self, ts: np.ndarray) -> None:
         a, b = self._get_bounds(ts)
@@ -188,18 +169,15 @@ class BucketInstanceSampler(InstanceSampler):
         return indices
 
 
-class ContinuousTimePointSampler:
+class ContinuousTimePointSampler(BaseModel):
     """
     Abstract class for "continuous time" samplers, which, given a lower bound
     and upper bound, sample "points" (events) in continuous time from a
     specified interval.
     """
 
-    def __init__(
-        self, *, min_past: float = 0.0, min_future: float = 0.0
-    ) -> None:
-        self.min_past = min_past
-        self.min_future = min_future
+    min_past: float = 0.0
+    min_future: float = 0.0
 
     def _get_bounds(self, interval_length: float) -> Tuple[float, float]:
         return (
@@ -228,15 +206,7 @@ class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
     interval between :code:`a` and :code:`b`.
     """
 
-    def __init__(
-        self,
-        num_instances: int,
-        *,
-        min_past: float = 0.0,
-        min_future: float = 0.0
-    ) -> None:
-        super().__init__(min_past=min_past, min_future=min_future)
-        self.num_instances = num_instances
+    num_instances: int
 
     def __call__(self, interval_length: float) -> np.ndarray:
         a, b = self._get_bounds(interval_length)
@@ -248,15 +218,7 @@ class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
 
 
 class ContinuousTimePredictionSampler(ContinuousTimePointSampler):
-    def __init__(
-        self,
-        *,
-        allow_empty_interval=False,
-        min_past: float = 0.0,
-        min_future: float = 0.0
-    ) -> None:
-        super().__init__(min_past=min_past, min_future=min_future)
-        self.allow_empty_interval = allow_empty_interval
+    allow_empty_interval: bool = False
 
     def __call__(self, interval_length: float) -> np.ndarray:
         a, b = self._get_bounds(interval_length)
