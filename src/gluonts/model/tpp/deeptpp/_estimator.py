@@ -155,7 +155,7 @@ class DeepTPPEstimator(GluonEstimator):
     def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
 
-        instance_sampler: ContinuousTimePointSampler = {
+        instance_sampler = {
             "training": ContinuousTimeUniformSampler(
                 num_instances=self.num_training_instances,
                 min_past=self.context_interval_length,
@@ -171,6 +171,8 @@ class DeepTPPEstimator(GluonEstimator):
                 allow_empty_interval=False,
             ),
         }[mode]
+
+        assert isinstance(instance_sampler, ContinuousTimePointSampler)
 
         return Chain(
             [
