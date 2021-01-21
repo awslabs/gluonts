@@ -223,7 +223,7 @@ class DeepVAREstimator(GluonEstimator):
         batch_size: int = 32,
         **kwargs,
     ) -> None:
-        super().__init__(trainer=trainer, **kwargs)
+        super().__init__(trainer=trainer, batch_size=batch_size, **kwargs)
 
         assert (
             prediction_length > 0

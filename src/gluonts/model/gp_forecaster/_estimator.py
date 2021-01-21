@@ -112,7 +112,9 @@ class GaussianProcessEstimator(GluonEstimator):
         batch_size: int = 32,
     ) -> None:
         self.float_type = dtype
-        super().__init__(trainer=trainer, dtype=self.float_type)
+        super().__init__(
+            trainer=trainer, batch_size=batch_size, dtype=self.float_type
+        )
 
         assert (
             prediction_length > 0
