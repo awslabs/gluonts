@@ -103,7 +103,14 @@ class RForecastPredictor(RepresentablePredictor):
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
-        supported_methods = ["ets", "arima", "tbats", "croston", "mlp", "thetaf"]
+        supported_methods = [
+            "ets",
+            "arima",
+            "tbats",
+            "croston",
+            "mlp",
+            "thetaf",
+        ]
         assert (
             method_name in supported_methods
         ), f"method {method_name} is not supported please use one of {supported_methods}"
