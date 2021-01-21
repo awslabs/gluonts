@@ -11,13 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import os
+from gluonts.shell.sagemaker.nested_params import decode_nested_parameters
 
-"""
-Maximum number of times a transformation can receive an input without returning an output.
-This parameter is intended to catch infinite loops or inefficiencies, when transformations
-never or rarely return something.
-"""
-GLUONTS_MAX_IDLE_TRANSFORMS = int(
-    os.environ.get("GLUONTS_MAX_IDLE_TRANSFORMS", "100")
-)
+
+def test_nested_params():
+    data = decode_nested_parameters(
+        {
+            "$env.num_workers": "4",
+            "$evaluation.quantiles": [0.1, 0.5, 0.9],
+            "prediction_length": 14,
+        }
+    )
+
+    hps = data.pop("")
+    assert hps["prediction_length"] == 14
+
+    env = data.pop("env")
+    assert env["num_workers"] == "4"
+
+    evaluation = data.pop("evaluation")
+    assert evaluation["quantiles"] == [0.1, 0.5, 0.9]

@@ -71,7 +71,7 @@ class DeepTPPEstimator(GluonEstimator):
     embedding_dim
         The dimension of vector embeddings for marks (used as input to the GRU).
     trainer
-        :code:`gluonts.trainer.Trainer` object which will be used to train the
+        :code:`gluonts.mx.trainer.Trainer` object which will be used to train the
         estimator. Note that :code:`Trainer(hybridize=False)` must be set as
         :code:`DeepTPPEstimator` currently does not support hybridization.
     num_hidden_dimensions

@@ -225,7 +225,7 @@ class InstanceSplitter(FlatMapTransformation):
                     ..., i + lt : i + lt + pl
                 ]
                 del d[ts_field]
-            pad_indicator = np.zeros(self.past_length)
+            pad_indicator = np.zeros(self.past_length, dtype=target.dtype)
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1
 
@@ -374,7 +374,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
             )
 
             # set is_pad field
-            is_pad = np.zeros(self.instance_length)
+            is_pad = np.zeros(self.instance_length, dtype=ts_target.dtype)
             if pad_length > 0:
                 is_pad[:pad_length] = 1
             d[self.is_pad_field] = is_pad

@@ -15,7 +15,7 @@ from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import DType, validated, tensor_to_numpy
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
 from gluonts.support.util import erf, erfinv
@@ -337,6 +337,7 @@ class CDFtoGaussianTransform(MapTransformation):
         observed_values_field: str,
         cdf_suffix="_cdf",
         max_context_length: Optional[int] = None,
+        dtype: DType = np.float32,
     ) -> None:
         """
         Constructor for CDFtoGaussianTransform.
@@ -353,6 +354,8 @@ class CDFtoGaussianTransform(MapTransformation):
             Suffix to mark the field with the transformed target.
         max_context_length
             Sets the maximum context length for the empirical CDF.
+        dtype
+            numpy dtype of output.
         """
         self.target_field = target_field
         self.past_target_field = "past_" + self.target_field
@@ -364,6 +367,7 @@ class CDFtoGaussianTransform(MapTransformation):
         self.cdf_suffix = cdf_suffix
         self.max_context_length = max_context_length
         self.target_dim = target_dim
+        self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         self._preprocess_data(data, is_train=is_train)
@@ -434,7 +438,9 @@ class CDFtoGaussianTransform(MapTransformation):
         # sorts along the time dimension to compute empirical CDF of each
         # dimension
         if is_train:
-            past_target_vec = self._add_noise(past_target_vec)
+            past_target_vec = self._add_noise(past_target_vec).astype(
+                self.dtype
+            )
 
         past_target_vec.sort(axis=0)
 
@@ -486,8 +492,8 @@ class CDFtoGaussianTransform(MapTransformation):
         intercepts = quantiles - slopes * sorted_target
 
         # Populate new fields with the piece-wise linear parameters.
-        data[self.slopes_field] = slopes
-        data[self.intercepts_field] = intercepts
+        data[self.slopes_field] = slopes.astype(self.dtype)
+        data[self.intercepts_field] = intercepts.astype(self.dtype)
 
     def _empirical_cdf_forward_transform(
         self,
@@ -722,10 +728,7 @@ def cdf_to_gaussian_forward_transform(
             Forward transformed outputs.
 
         """
-        slopes = slopes.asnumpy()
-        intercepts = intercepts.asnumpy()
 
-        batch_target_sorted = batch_target_sorted.asnumpy()
         batch_size, num_timesteps, target_dim = batch_target_sorted.shape
         indices = np.floor(batch_predictions * num_timesteps)
         # indices = indices - 1
@@ -748,11 +751,11 @@ def cdf_to_gaussian_forward_transform(
     batch_size, samples, target_dim, time = outputs.shape
     for sample_index in range(0, samples):
         outputs[:, sample_index, :, :] = _empirical_cdf_inverse_transform(
-            input_batch["past_target_sorted"],
+            tensor_to_numpy(input_batch["past_target_sorted"]),
             CDFtoGaussianTransform.standard_gaussian_cdf(
                 outputs[:, sample_index, :, :]
             ),
-            input_batch["slopes"],
-            input_batch["intercepts"],
+            tensor_to_numpy(input_batch["slopes"]),
+            tensor_to_numpy(input_batch["intercepts"]),
         )
     return outputs

@@ -255,8 +255,9 @@ class GluonTSFramework(Framework):
         # must be set
         self.py_version = PYTHON_VERSION
 
-        # automatically retrieves credentials using context manager, see: https://s3fs.readthedocs.io/en/latest/
-        self._s3fs = s3fs.S3FileSystem()
+        self._s3fs = s3fs.S3FileSystem(
+            session=sagemaker_session.boto_session._session
+        )
 
     def create_model(
         self,

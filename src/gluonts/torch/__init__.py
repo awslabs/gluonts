@@ -11,32 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import importlib
-import sys
-import warnings
+# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
 
-import gluonts.mx.block
+from pkgutil import extend_path
 
-warnings.warn(
-    "gluonts.block is deprecated. Use gluonts.mx.block instead.",
-    DeprecationWarning,
-    stacklevel=2,
-)
+__path__ = extend_path(__path__, __name__)  # type: ignore
 
-
-sys.modules["gluonts.block"] = gluonts.mx.block
-
-for submodule in (
-    "cnn",
-    "decoder",
-    "enc2dec",
-    "encoder",
-    "feature",
-    "mlp",
-    "quantile_output",
-    "rnn",
-    "scaler",
-):
-    sys.modules[f"gluonts.block.{submodule}"] = importlib.import_module(
-        f"gluonts.mx.block.{submodule}"
-    )
+from gluonts.torch.prelude import *

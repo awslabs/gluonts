@@ -13,11 +13,12 @@
 
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from pydantic import BaseModel
 
 from .params import decode_sagemaker_parameters
+from .nested_params import decode_nested_parameters
 
 
 class DataConfig(BaseModel):
@@ -65,7 +66,10 @@ class TrainEnv:
         self.inputdataconfig = self._load_inputdataconfig()
         self.channels = self._load_channels()
         self.current_host = self._get_current_host()
-        self.hyperparameters = self._load_hyperparameters()
+
+        hyperparameters, env = self._load_hyperparameters()
+        self.hyperparameters = hyperparameters
+        self.env = env
 
     def _load_inputdataconfig(self) -> Optional[InpuDataConfig]:
         if self.path.inputdataconfig.exists():
@@ -102,7 +106,12 @@ class TrainEnv:
                 config = json.load(json_file)
                 return config["current_host"]
 
-    def _load_hyperparameters(self) -> dict:
+    def _load_hyperparameters(self) -> Tuple[dict, Optional[dict]]:
         with self.path.hyperparameters.open() as json_file:
             raw = json.load(json_file)
-            return decode_sagemaker_parameters(raw)
+            decoded = decode_sagemaker_parameters(raw)
+
+            nested = decode_nested_parameters(decoded)
+            hyperparameters = nested.get("", {})
+            env = nested.get("env", None)
+            return hyperparameters, env
