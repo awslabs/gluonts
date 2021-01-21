@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-
+from . import flat
 from ._base import Stateful, Stateless, decode, encode
 from ._json import dump_json, load_json
 from ._repr import dump_code, load_code
@@ -21,6 +21,7 @@ from .np import *
 from .pd import *
 
 __all__ = [
+    "flat",
     "encode",
     "decode",
     "dump_code",

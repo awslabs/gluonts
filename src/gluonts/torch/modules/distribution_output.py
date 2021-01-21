@@ -21,6 +21,11 @@ from torch.distributions import (
     AffineTransform,
     Beta,
     Distribution,
+    Gamma,
+    NegativeBinomial,
+    Normal,
+    Poisson,
+    StudentT,
     TransformedDistribution,
 )
 
@@ -36,12 +41,12 @@ class PtArgProj(nn.Module):
 
     Parameters
     ----------
+    in_features
+        Size of the incoming features.
     dim_args
         Dictionary with string key and int value
         dimension of each arguments that will be passed to the domain
         map, the names are not used.
-    in_features
-        Size of the incoming features.
     domain_map
         Function returning a tuple containing one tensor
         a function or a nn.Module. This will be called with num_args
@@ -177,6 +182,37 @@ class DistributionOutput(Output):
         raise NotImplementedError()
 
 
+class NormalOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
+    distr_cls: type = Normal
+
+    @classmethod
+    def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
+        scale = F.softplus(scale)
+        return loc.squeeze(-1), scale.squeeze(-1)
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()
+
+
+class StudentTOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
+    distr_cls: type = StudentT
+
+    @classmethod
+    def domain_map(
+        cls, df: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor
+    ):
+        scale = F.softplus(scale)
+        df = 2.0 + F.softplus(df)
+        return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()
+
+
 class BetaOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"concentration1": 1, "concentration0": 1}
     distr_cls: type = Beta
@@ -185,25 +221,7 @@ class BetaOutput(DistributionOutput):
     def domain_map(
         cls, concentration1: torch.Tensor, concentration0: torch.Tensor
     ):
-        r"""
-        Maps raw tensors to valid arguments for constructing a Beta
-        distribution.
-
-        Parameters
-        ----------
-        concentration1:
-            Tensor of shape `(*batch_shape, 1)`
-        concentration0:
-            Tensor of shape `(*batch_shape, 1)`
-
-        Returns
-        -------
-        Tuple[Tensor, Tensor]:
-            Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
-            positive orthant.
-        """
         epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-
         concentration1 = F.softplus(concentration1) + epsilon
         concentration0 = F.softplus(concentration0) + epsilon
         return concentration1.squeeze(dim=-1), concentration0.squeeze(dim=-1)
@@ -215,3 +233,51 @@ class BetaOutput(DistributionOutput):
     @property
     def value_in_support(self) -> float:
         return 0.5
+
+
+class GammaOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"concentration": 1, "rate": 1}
+    distr_cls: type = Gamma
+
+    @classmethod
+    def domain_map(cls, concentration: torch.Tensor, rate: torch.Tensor):
+        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
+        concentration = F.softplus(concentration) + epsilon
+        rate = F.softplus(rate) + epsilon
+        return concentration.squeeze(dim=-1), rate.squeeze(dim=-1)
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()
+
+    @property
+    def value_in_support(self) -> float:
+        return 0.5
+
+
+class PoissonOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"rate": 1}
+    distr_cls: type = Poisson
+
+    @classmethod
+    def domain_map(cls, rate: torch.Tensor):
+        rate_pos = F.softplus(rate).clone()
+        return (rate_pos.squeeze(-1),)
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()
+
+
+class NegativeBinomialOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"total_count": 1, "logits": 1}
+    distr_cls: type = NegativeBinomial
+
+    @classmethod
+    def domain_map(cls, total_count: torch.Tensor, logits: torch.Tensor):
+        total_count = F.softplus(total_count)
+        return total_count.squeeze(-1), logits.squeeze(-1)
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()
