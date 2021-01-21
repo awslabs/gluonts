@@ -65,7 +65,7 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         coeff: float = 0.9,
         use_caching: bool = True,
         *args,
-        **kwargs,
+        **kwargs
     ):
         super().__init__(*args, **kwargs)
         assert len(event_shape) == 1

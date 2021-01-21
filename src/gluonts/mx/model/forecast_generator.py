@@ -80,7 +80,7 @@ class DistributionForecastGenerator(ForecastGenerator):
         freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs,
+        **kwargs
     ) -> Iterator[DistributionForecast]:
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]

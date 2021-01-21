@@ -63,12 +63,7 @@ def get_prediction_dataframe(series):
 
 
 class TabularPredictor(Predictor):
-    def __init__(
-        self,
-        ag_model,
-        freq: str,
-        prediction_length: int,
-    ) -> None:
+    def __init__(self, ag_model, freq: str, prediction_length: int,) -> None:
         self.ag_model = ag_model  # task?
         self.freq = freq
         self.prediction_length = prediction_length
@@ -108,27 +103,54 @@ class TabularEstimator(Estimator):
         self.task = task
         self.freq = freq
         self.prediction_length = prediction_length
-        default_kwargs = {
-            "excluded_model_types": ["KNN", "XT", "RF"],
-            "hyperparameters": "light",
-            "num_bagging_sets": 1,
-            "presets": [
-                "best_quality_with_high_quality_refit",
-                "optimize_for_deployment",
-            ],
-            "eval_metric": "mean_absolute_error",
-        }
-        self.kwargs = {**default_kwargs, **kwargs}
+        self.kwargs = kwargs
 
     def train(self, training_data: Dataset) -> TabularPredictor:
+        # every time there is only one time series passed
+        # list(training_data)[0] is essentially getting the only time series
         dfs = [
             get_prediction_dataframe(to_pandas(entry))
             for entry in training_data
         ]
         df = pd.concat(dfs)
 
+        if "excluded_model_types" not in self.kwargs:
+            excluded_model_types = ["KNN", "XT", "RF"]
+        else:
+            excluded_model_types = self.kwargs["excluded_model_types"]
+
+        if "hyperparameters" not in self.kwargs:
+            hyperparameters = "light"
+        else:
+            hyperparameters = self.kwargs["hyperparameters"]
+
+        if "num_bagging_sets" not in self.kwargs:
+            num_bagging_sets = 1
+        else:
+            num_bagging_sets = self.kwargs["num_bagging_sets"]
+
+        if "presets" not in self.kwargs:
+            presets = [
+                "best_quality_with_high_quality_refit",
+                "optimize_for_deployment",
+            ]
+        else:
+            presets = self.kwargs["presets"]
+
+        if "eval_metric" not in self.kwargs:
+            eval_metric = "mean_absolute_error"
+        else:
+            eval_metric = self.kwargs["eval_metric"]
+
         ag_model = self.task.fit(
-            df, label="target", problem_type="regression", **self.kwargs
+            df,
+            label="target",
+            problem_type="regression",
+            excluded_model_types=excluded_model_types,
+            hyperparameters=hyperparameters,
+            num_bagging_sets=num_bagging_sets,
+            presets=presets,
+            eval_metric=eval_metric,
         )
 
         return TabularPredictor(ag_model, self.freq, self.prediction_length)
