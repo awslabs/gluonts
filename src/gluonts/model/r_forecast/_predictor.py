@@ -53,7 +53,7 @@ class RForecastPredictor(RepresentablePredictor):
         Number of time points to be predicted.
     method
         The method from rforecast to be used one of
-        "ets", "arima", "tbats", "croston", "mlp".
+        "ets", "arima", "tbats", "croston", "mlp", "thetaf".
     period
         The period to be used (this is called `frequency` in the R forecast
         package), result to a tentative reasonable default if not specified
@@ -103,7 +103,7 @@ class RForecastPredictor(RepresentablePredictor):
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
-        supported_methods = ["ets", "arima", "tbats", "croston", "mlp"]
+        supported_methods = ["ets", "arima", "tbats", "croston", "mlp", "thetaf"]
         assert (
             method_name in supported_methods
         ), f"method {method_name} is not supported please use one of {supported_methods}"

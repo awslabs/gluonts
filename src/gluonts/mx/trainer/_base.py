@@ -315,7 +315,7 @@ class Trainer:
                             else:
                                 if is_training:
                                     loss.backward()
-                                    trainer.step(batch_size, ignore_stale_grad=True)
+                                    trainer.step(batch_size)
 
                                     # iteration averaging in training
                                     if isinstance(
