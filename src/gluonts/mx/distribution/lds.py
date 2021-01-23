@@ -18,6 +18,7 @@ import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
+from gluonts.mx.distribution.bijection import ComposedBijectionHybridBlock
 from gluonts.mx.linalg_util import jitter_cholesky
 from gluonts.mx.util import _broadcast_param, make_nd_diag
 
@@ -198,6 +199,7 @@ class LDS(Distribution):
         self,
         x: Tensor,
         scale: Optional[Tensor] = None,
+        output_transform: Optional[ComposedBijectionHybridBlock] = None,
         observed: Optional[Tensor] = None,
     ):
         """
@@ -211,6 +213,11 @@ class LDS(Distribution):
             Observations, shape (batch_size, seq_length, output_dim)
         scale
             Scale of each sequence in x, shape (batch_size, output_dim)
+        output_transform
+            Specifies the (inverse of) transformation to be applied to the target time series.
+            Given target `x` is first scaled then the inverse of `output_transform` is applied to make it more Gaussian-like.
+            The transformed target is then passed to the LDS to compute the density.
+            The log-probability the given target `x` is returned after adjusting the density of LDS.
         observed
             Flag tensor indicating which observations are genuine (1.0) and
             which are missing (0.0)
@@ -218,25 +225,92 @@ class LDS(Distribution):
         Returns
         -------
         Tensor
-            Log probabilities, shape (batch_size, seq_length)
+            Log probabilities adjusted to scaling and `output_transform`, shape (batch_size, seq_length)
         Tensor
             Final mean, shape (batch_size, latent_dim)
         Tensor
             Final covariance, shape (batch_size, latent_dim, latent_dim)
         """
-        if scale is not None:
-            x = self.F.broadcast_div(x, scale.expand_dims(axis=1))
-        # TODO: Based on form of the prior decide to do either filtering
-        #   or residual-sum-of-squares
-        log_p, final_mean, final_cov = self.kalman_filter(x, observed)
-        if scale is not None:
-            F = self.F
-            # log_abs_det_jac: sum over all output dimensions.
-            ladj = -F.sum(F.log(F.abs(scale)), axis=-1, keepdims=True)
+        F = self.F
+        x_transformed, ladj = self.transform(x, scale, output_transform)
+        log_p, final_mean, final_cov = self.kalman_filter(
+            x_transformed, observed
+        )
 
-            # Sum `ladj` over all time steps.
-            log_p = F.broadcast_add(log_p, ladj)
+        if scale is not None or output_transform is not None:
+            # Get the shape right if only scaling is done.
+            ladj = F.broadcast_add(ladj, F.zeros_like(log_p))
+            # Mask `ladj` for missing values as these should not modify log prob.
+            ladj = F.where(
+                condition=observed,
+                x=ladj * observed,
+                y=self.F.zeros_like(ladj),
+            )
+            log_p = log_p + ladj
+
         return log_p, final_mean, final_cov
+
+    def transform(
+        self,
+        x: Tensor,
+        scale: Optional[Tensor] = None,
+        output_transform: Optional[ComposedBijectionHybridBlock] = None,
+    ):
+        """
+        Scales and then transforms the target `x` by the (inverse of) `output_transform`.
+
+        Parameters
+        ----------
+        x
+            Observations, shape (batch_size, seq_length, output_dim)
+        scale
+            Scale of each sequence in x, shape (batch_size, output_dim)
+        output_transform
+            Specifies the (inverse of) transformation to be applied to the target time series.
+            Given target `x` is first scaled then the inverse of `output_transform` is applied to make it more Gaussian-like.
+
+        Returns
+        -------
+        Tensor
+            Transformed target, shape (batch_size, seq_length, output_dim)
+            log_abs_det_jac,    shape (batch_size, 1) if `output_transform` is None, (batch_size, seq_length) otherwise
+        """
+        F = self.F
+
+        def _scale(x):
+            x_scaled, ladj = x, None
+            if scale is not None:
+                # We apply scaling before transforming the target by the given output transformation.
+                x_scaled = F.broadcast_div(x, scale.expand_dims(axis=1))
+
+                # log_abs_det_jac: sum over all output dimensions. Shape (batch_size, 1)
+                ladj = -F.sum(F.log(F.abs(scale)), axis=-1, keepdims=True)
+            return x_scaled, ladj
+
+        def _output_transform(x):
+            x_transformed, ladj = x, None
+            if output_transform is not None:
+                x_transformed = output_transform.f_inv(x)
+
+                # We need the `ladj` of the inverse transform but we compute `ladj` of the forward transform which only
+                # differs by sign. Shape (batch_size, seq_length)
+                ladj = -output_transform.log_abs_det_jac(x, x_transformed)
+            return x_transformed, ladj
+
+        x_scaled, ladj_scaling = _scale(x)
+        x_scaled_transformed, ladj_transform = _output_transform(x_scaled)
+
+        if scale is not None and output_transform is not None:
+            # Sum `ladj_scaling` over all time steps.
+            ladj = F.broadcast_add(ladj_scaling, ladj_transform)
+        elif scale is not None:
+            ladj = ladj_scaling
+        elif output_transform is not None:
+            ladj = ladj_transform
+        else:
+            ladj = None
+
+        return x_scaled_transformed, ladj
 
     def kalman_filter(
         self, targets: Tensor, observed: Tensor
@@ -340,7 +414,10 @@ class LDS(Distribution):
         return F.concat(*log_p_seq, dim=1), mean, cov
 
     def sample(
-        self, num_samples: Optional[int] = None, scale: Optional[Tensor] = None
+        self,
+        num_samples: Optional[int] = None,
+        scale: Optional[Tensor] = None,
+        output_transform: Optional[ComposedBijectionHybridBlock] = None,
     ) -> Tensor:
         r"""
         Generates samples from the LDS: p(z_1, z_2, \ldots, z_{`seq_length`}).
@@ -351,6 +428,9 @@ class LDS(Distribution):
             Number of samples to generate
         scale
             Scale of each sequence in x, shape (batch_size, output_dim)
+        output_transform
+            Specifies the (forward) transformation to be applied to the samples.
+            Samples from LDS are first transformed by `output_transform` and are then scaled.
 
         Returns
         -------
@@ -453,6 +533,10 @@ class LDS(Distribution):
 
         # (num_samples, batch_size, seq_length, obs_dim)
         samples = F.concat(*samples_seq, dim=-2)
+
+        if output_transform is not None:
+            samples = output_transform.f(samples)
+
         return (
             samples
             if scale is None

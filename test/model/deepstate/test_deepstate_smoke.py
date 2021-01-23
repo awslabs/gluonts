@@ -17,13 +17,14 @@ import pytest
 
 from gluonts.model.deepstate import DeepStateEstimator
 from gluonts.mx.trainer import Trainer
+from gluonts.mx.distribution.iresnet import iresnet
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 common_estimator_hps = dict(
     freq="D",
     prediction_length=3,
     trainer=Trainer(
-        epochs=3, num_batches_per_epoch=2, batch_size=1, hybridize=True
+        epochs=3, num_batches_per_epoch=2, batch_size=1, hybridize=False
     ),
     past_length=10,
     add_trend=True,
@@ -114,9 +115,13 @@ common_estimator_hps = dict(
         ),
     ],
 )
-def test_deepstate_smoke(estimator, datasets):
+@pytest.mark.parametrize(
+    "output_transform",
+    [None, iresnet(num_blocks=3, num_hidden_layers=3, event_shape=(1,))],
+)
+def test_deepstate_smoke(estimator, datasets, output_transform):
     # TODO: pass `dtype` below once you add `dtype` support to `DeepStateEstimator`
-    estimator = estimator()
+    estimator = estimator(output_transform=output_transform)
     dataset_train, dataset_test = datasets
     predictor = estimator.train(dataset_train)
     forecasts = list(predictor.predict(dataset_test))
