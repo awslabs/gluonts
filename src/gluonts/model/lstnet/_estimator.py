@@ -124,7 +124,12 @@ class LSTNetEstimator(GluonEstimator):
         batch_size: int = 32,
         dtype: DType = np.float32,
     ) -> None:
-        super().__init__(trainer=trainer, lead_time=lead_time, dtype=dtype)
+        super().__init__(
+            trainer=trainer,
+            lead_time=lead_time,
+            batch_size=batch_size,
+            dtype=dtype,
+        )
         self.freq = freq
         self.num_series = num_series
         self.skip_size = skip_size

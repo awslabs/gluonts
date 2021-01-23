@@ -139,7 +139,7 @@ class NBEATSEstimator(GluonEstimator):
         """
         Defines an estimator. All parameters should be serializable.
         """
-        super().__init__(trainer=trainer, **kwargs)
+        super().__init__(trainer=trainer, batch_size=batch_size, **kwargs)
 
         assert (
             prediction_length > 0

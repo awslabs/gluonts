@@ -73,7 +73,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         batch_size: int = 32,
     ) -> None:
         super(TemporalFusionTransformerEstimator, self).__init__(
-            trainer=trainer
+            trainer=trainer, batch_size=batch_size
         )
         assert (
             prediction_length > 0
