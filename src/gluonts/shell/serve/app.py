@@ -12,13 +12,13 @@
 # permissions and limitations under the License.
 import json
 import logging
+import multiprocessing as mp
 import os
 import signal
 import time
 import traceback
-import multiprocessing as mp
 from queue import Empty as QueueEmpty
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, Iterable, List, NamedTuple, Tuple
 
 from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel
@@ -150,7 +150,8 @@ def make_predictions(predictor, dataset, configuration):
     predictions = []
 
     forecast_iter = predictor.predict(
-        dataset, num_samples=configuration.num_samples,
+        dataset,
+        num_samples=configuration.num_samples,
     )
 
     for forecast in forecast_iter:
@@ -167,13 +168,33 @@ def make_predictions(predictor, dataset, configuration):
     return predictions
 
 
+class ScoredInstanceStat(NamedTuple):
+    amount: int
+    duration: float
+
+
 def batch_inference_invocations(
     predictor_factory, configuration, settings
 ) -> Callable[[], Response]:
     predictor = predictor_factory({"configuration": configuration.dict()})
 
-    scored_instances = []
+    scored_instances: List[ScoredInstanceStat] = []
     last_scored = [time.time()]
+
+    def log_scored(when):
+        N = 60
+        diff = when - last_scored[0]
+        if diff > N:
+            scored_amount = sum(info.amount for info in scored_instances)
+            time_used = sum(info.duration for info in scored_instances)
+
+            logger.info(
+                f"Worker pid={os.getpid()}: scored {scored_amount} using on "
+                f"avg {round(time_used / scored_amount, 1)} s/ts over the "
+                f"last {round(diff)} seconds."
+            )
+            scored_instances.clear()
+            last_scored[0] = time.time()
 
     def invocations() -> Response:
         request_data = request.data.decode("utf8").strip()
@@ -187,6 +208,8 @@ def batch_inference_invocations(
             instances = []
 
         dataset = ListDataset(instances, predictor.freq)
+
+        start_time = time.time()
 
         if settings.gluonts_batch_timeout > 0:
             predictions = with_timeout(
@@ -212,21 +235,36 @@ def batch_inference_invocations(
         else:
             predictions = make_predictions(predictor, dataset, configuration)
 
-        scored_instances.append(len(predictions))
-        N = 60
-        diff = time.time() - last_scored[0]
-        if diff > N:
-            logger.info(
-                f"Worker {os.getpid()} Scored {sum(scored_instances)} in last "
-                f"{int(diff)} seconds."
+        end_time = time.time()
+
+        scored_instances.append(
+            ScoredInstanceStat(
+                amount=len(predictions), duration=end_time - start_time
             )
-            scored_instances.clear()
-            last_scored[0] = time.time()
+        )
+
+        log_scored(when=end_time)
+
+        for forward_field in settings.gluonts_forward_fields:
+            for input_item, prediction in zip(dataset, predictions):
+                prediction[forward_field] = input_item.get(forward_field)
 
         lines = list(map(json.dumps, map(jsonify_floats, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")
 
-    return invocations
+    def invocations_error_wrapper() -> Response:
+        try:
+            return invocations()
+        except Exception as error:
+            return Response(
+                json.dumps({"error": traceback.format_exc()}),
+                mimetype="application/jsonlines",
+            )
+
+    if settings.gluonts_batch_suppress_errors:
+        return invocations_error_wrapper
+    else:
+        return invocations
 
 
 def make_app(

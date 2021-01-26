@@ -11,37 +11,33 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
+    AddObservedValuesIndicator,
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
-    AddObservedValuesIndicator,
+    InstanceSampler,
 )
-from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.transform.feature import (
     DummyValueImputation,
     MissingValueImputation,
 )
 
-
-# Relative imports
 from ._network import (
-    SimpleFeedForwardSamplingNetwork,
     SimpleFeedForwardDistributionNetwork,
+    SimpleFeedForwardSamplingNetwork,
     SimpleFeedForwardTrainingNetwork,
 )
 
@@ -97,6 +93,10 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
+    train_sampler
+        Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     # The validated() decorator makes sure that parameters are checked by
@@ -117,11 +117,13 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         batch_normalization: bool = False,
         mean_scaling: bool = True,
         num_parallel_samples: int = 100,
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
     ) -> None:
         """
         Defines an estimator. All parameters should be serializable.
         """
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_length > 0
@@ -156,6 +158,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             if imputation_method is not None
             else DummyValueImputation(self.distr_output.value_in_support)
         )
+        self.train_sampler = train_sampler
 
     # here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -177,7 +180,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=self.prediction_length,
                     time_series_fields=[FieldName.OBSERVED_VALUES],
@@ -216,7 +219,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             return RepresentableBlockPredictor(
                 input_transform=transformation,
                 prediction_net=prediction_network,
-                batch_size=self.trainer.batch_size,
+                batch_size=self.batch_size,
                 freq=self.freq,
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
@@ -236,7 +239,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             return RepresentableBlockPredictor(
                 input_transform=transformation,
                 prediction_net=prediction_network,
-                batch_size=self.trainer.batch_size,
+                batch_size=self.batch_size,
                 forecast_generator=DistributionForecastGenerator(
                     self.distr_output
                 ),

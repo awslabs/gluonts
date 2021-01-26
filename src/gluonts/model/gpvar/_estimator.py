@@ -11,28 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-
-# Relative imports
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepvar._estimator import (
     get_lags_for_frequency,
     time_features_from_frequency_str,
 )
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
-
-# First-party imports
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.model.predictor import Predictor
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -50,6 +45,7 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
+    InstanceSampler,
 )
 
 from ._network import GPVARPredictionNetwork, GPVARTrainingNetwork
@@ -125,6 +121,10 @@ class GPVAREstimator(GluonEstimator):
     use_marginal_transformation
         Whether marginal (CDFtoGaussianTransform) transformation is used by the
         model
+    train_sampler
+        Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -151,8 +151,10 @@ class GPVAREstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 100,
         use_marginal_transformation: bool = False,
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_length > 0
@@ -199,6 +201,7 @@ class GPVAREstimator(GluonEstimator):
             if time_features is not None
             else time_features_from_frequency_str(self.freq)
         )
+        self.train_sampler = train_sampler
 
         self.history_length = self.context_length + max(self.lags_seq)
         self.pick_incomplete = pick_incomplete
@@ -269,7 +272,7 @@ class GPVAREstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.history_length,
                     future_length=self.prediction_length,
                     time_series_fields=[
@@ -331,7 +334,7 @@ class GPVAREstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

@@ -11,14 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Callable, Dict, Iterator, List, NamedTuple, Optional
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.forecast import SampleForecast

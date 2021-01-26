@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Callable, List, Optional
 
 import numpy as np
@@ -19,17 +18,17 @@ import pandas as pd
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.model.predictor import Predictor
 from gluonts.mx.distribution import (
     DistributionOutput,
     LowrankMultivariateGaussianOutput,
 )
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -48,7 +47,6 @@ from gluonts.transform import (
     cdf_to_gaussian_forward_transform,
 )
 
-# Relative imports
 from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
 
 
@@ -195,6 +193,8 @@ class DeepVAREstimator(GluonEstimator):
         Set maximum length for conditioning the marginal transformation
     use_marginal_transformation
         Whether marginal (empirical cdf, gaussian ppf) transformation is used.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -220,9 +220,10 @@ class DeepVAREstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 200,
         use_marginal_transformation=False,
+        batch_size: int = 32,
         **kwargs,
     ) -> None:
-        super().__init__(trainer=trainer, **kwargs)
+        super().__init__(trainer=trainer, batch_size=batch_size, **kwargs)
 
         assert (
             prediction_length > 0
@@ -406,7 +407,7 @@ class DeepVAREstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

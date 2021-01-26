@@ -11,31 +11,28 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Tuple
 
-# Third-party imports
+import mxnet as mx
+
 import numpy as np
 import pandas as pd
-import mxnet as mx
 import pytest
 
-# First-party imports
 import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
-from gluonts.dataset.common import ProcessStartField, DataEntry, ListDataset
+from gluonts.dataset.common import DataEntry, ListDataset, ProcessStartField
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
-
 from gluonts.transform import (
-    MissingValueImputation,
-    LeavesMissingValues,
-    DummyValueImputation,
-    MeanValueImputation,
-    LastValueImputation,
     CausalMeanValueImputation,
+    DummyValueImputation,
+    LastValueImputation,
+    LeavesMissingValues,
+    MeanValueImputation,
+    MissingValueImputation,
     RollingMeanValueImputation,
 )
 
@@ -112,6 +109,27 @@ def test_align_timestamp():
         assert (
             aligned_with("2012-03-05 09:14:11", "3M") == "2012-03-31 00:00:00"
         )
+
+
+def test_add_method():
+    chain = transform.AddTimeFeatures(
+        start_field=FieldName.START,
+        target_field=FieldName.TARGET,
+        output_field="time_feat",
+        time_features=[
+            time_feature.DayOfWeek(),
+            time_feature.DayOfMonth(),
+            time_feature.MonthOfYear(),
+        ],
+        pred_length=24,
+    ) + transform.AddAgeFeature(
+        target_field=FieldName.TARGET,
+        output_field="age",
+        pred_length=24,
+        log_scale=True,
+    )
+
+    assert isinstance(chain, transform.Chain)
 
 
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
@@ -726,7 +744,6 @@ def test_target_dim_indicator():
 
 @pytest.fixture
 def point_process_dataset():
-
     ia_times = np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1])
     marks = np.array([0, 1, 2, 0, 1, 2, 2, 2])
 
@@ -754,6 +771,7 @@ class MockContinuousTimeSampler(transform.ContinuousTimePointSampler):
         return np.array(self._ret_values)
 
 
+@pytest.fixture
 def test_ctsplitter_mask_sorted(point_process_dataset):
     d = next(iter(point_process_dataset))
 
@@ -898,6 +916,7 @@ def test_AddObservedIndicator():
     array_values = [
         np.array([np.nan, 1.0, 1.0, np.nan, 2.0, np.nan, 1.0, np.nan]),
         np.array([np.nan]),
+        np.array([np.nan, np.nan, np.nan, np.nan, np.nan]),
         np.array([10.0]),
     ]
 
@@ -923,31 +942,37 @@ def test_AddObservedIndicator():
         "dummy_value": [
             np.array([0.0, 1.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "mean": [
             np.array([1.25, 1.0, 1.0, 1.25, 2.0, 1.25, 1.0, 1.25]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "causal_mean": [
             np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.2, 1.0, 9 / 7]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "last_value": [
             np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "rolling_mean10": [
             np.array([1.0, 1.0, 1.0, 1.0, 2.0, 1.1, 1.0, 1.2]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
         "rolling_mean1": [
             np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]),
             np.array([0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([10.0]),
         ],
     }
@@ -955,6 +980,7 @@ def test_AddObservedIndicator():
     expected_missindicators = [
         np.array([0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
         np.array([0.0]),
+        np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
         np.array([1.0]),
     ]
 

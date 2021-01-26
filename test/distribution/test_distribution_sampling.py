@@ -11,36 +11,35 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 from flaky import flaky
 
-# First-party imports
-from gluonts.mx.distribution import (
-    Uniform,
-    StudentT,
-    NegativeBinomial,
-    Laplace,
-    Gaussian,
-    Gamma,
-    Beta,
-    MultivariateGaussian,
-    Poisson,
-    PiecewiseLinear,
-    Binned,
-    TransformedDistribution,
-    Dirichlet,
-    DirichletMultinomial,
-    Categorical,
-    ZeroAndOneInflatedBeta,
-)
-from gluonts.core.serde import dump_json, load_json, dump_code, load_code
+from gluonts.core.serde import dump_code, dump_json, load_code, load_json
 from gluonts.model.tpp.distribution import Loglogistic, Weibull
 
+from gluonts.mx.distribution import (
+    Beta,
+    Binned,
+    Categorical,
+    Dirichlet,
+    DirichletMultinomial,
+    Gamma,
+    Gaussian,
+    GenPareto,
+    Laplace,
+    MultivariateGaussian,
+    NegativeBinomial,
+    PiecewiseLinear,
+    Poisson,
+    StudentT,
+    TransformedDistribution,
+    Uniform,
+    ZeroAndOneInflatedBeta,
+    ZeroInflatedPoissonOutput,
+)
 from gluonts.testutil import empirical_cdf
-
 
 test_cases = [
     (
@@ -125,6 +124,13 @@ test_cases = [
         Weibull,
         {"rate": mx.nd.array([0.5, 2.0]), "shape": mx.nd.array([1.5, 5.0])},
     ),
+    (
+        GenPareto,
+        {
+            "xi": mx.nd.array([1 / 3.0, 1 / 4.0]),
+            "beta": mx.nd.array([1.0, 1 / 2.0]),
+        },
+    ),
 ]
 
 
@@ -145,6 +151,7 @@ DISTRIBUTIONS_WITHOUT_STDDEV = [Loglogistic, Weibull]
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+@flaky
 def test_sampling(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
     distr = serialize_fn(distr)

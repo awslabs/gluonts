@@ -11,22 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import json
-from typing import ContextManager
 import sys
 from distutils.util import strtobool
+from typing import ContextManager
 
-# Third-party imports
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.core.component import equals
 from gluonts.dataset.common import FileDataset, ListDataset
-from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.model.seq2seq import MQCNNEstimator
-from gluonts.shell.sagemaker import ServeEnv, TrainEnv
+from gluonts.model.trivial.mean import MeanPredictor
+from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
 
 try:
@@ -57,6 +54,8 @@ def train_env(listify_dataset) -> ContextManager[TrainEnv]:
         "num_prefetch": 4,
         "shuffle_buffer_length": 256,
         "epochs": 3,
+        "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
+        "test_quantiles": [0.25, 0.75],
     }
     with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
@@ -101,17 +100,17 @@ def batch_transform(monkeypatch, train_env):
     }
 
     monkeypatch.setenv("INFERENCE_CONFIG", json.dumps(inference_config))
+    monkeypatch.setenv("GLUONTS_FORWARD_FIELDS", json.dumps(["foo"]))
     return inference_config
 
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_listify_dataset(train_env: TrainEnv, listify_dataset):
-    for dataset_name in train_env.datasets.keys():
-        assert (
-            isinstance(train_env.datasets[dataset_name], ListDataset)
-            if strtobool(listify_dataset)
-            else isinstance(train_env.datasets[dataset_name], FileDataset)
-        )
+    for dataset in train_env.datasets.values():
+        if listify_dataset == "yes":
+            assert isinstance(dataset, ListDataset)
+        else:
+            assert isinstance(dataset, FileDataset)
 
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
@@ -235,10 +234,13 @@ def test_dynamic_batch_shell(
     assert execution_parameters["MaxPayloadInMB"] == 6
 
     for entry in train_env.datasets["train"]:
+        entry["foo"] = 42
         forecast = dynamic_server.batch_invocations([entry])[0]
 
         for output_type in batch_transform["output_types"]:
             assert output_type in forecast
+
+        assert forecast["foo"] == 42
 
         act_mean = np.array(forecast["mean"])
         act_samples = np.array(forecast["samples"])

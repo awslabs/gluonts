@@ -11,19 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import csv
 import json
 import os
 from typing import List, TextIO
 
-# Third-party imports
 import holidays
-
-# Third party imports
 import pandas as pd
 
-# First-party imports
 from gluonts.dataset.artificial._base import (
     ArtificialDataset,
     ComplexSeasonalTimeSeries,

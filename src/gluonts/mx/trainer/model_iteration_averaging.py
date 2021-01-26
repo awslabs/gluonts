@@ -11,23 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
-# Third-party imports
 import mxnet as mx
 import mxnet.gluon.nn as nn
 
-# First-party imports
 from gluonts.core.component import validated
 
 
 class IterationAveragingStrategy:
 
     r"""
-    The model averaging is based on paper 
-    "Stochastic Gradient Descent for Non-smooth Optimization: Convergence Results and Optimal Averaging Schemes", 
-    (http://proceedings.mlr.press/v28/shamir13.pdf), 
+    The model averaging is based on paper
+    "Stochastic Gradient Descent for Non-smooth Optimization: Convergence Results and Optimal Averaging Schemes",
+    (http://proceedings.mlr.press/v28/shamir13.pdf),
     which implements polynomial-decay averaging, parameterized by eta.
     When eta = 0, it is equivalent to simple average over all iterations with same weights.
     """
@@ -112,8 +109,8 @@ class IterationAveragingStrategy:
 
     def load_averaged_model(self, model: nn.HybridBlock):
         r"""
-        When validating/evaluating the averaged model in the half way of training, 
-        use load_averaged_model first to load the averaged model and overwrite the current model, 
+        When validating/evaluating the averaged model in the half way of training,
+        use load_averaged_model first to load the averaged model and overwrite the current model,
         do the evaluation, and then use load_cached_model to load the current model back.
 
         Parameters
@@ -153,8 +150,8 @@ class IterationAveragingStrategy:
 class NTA(IterationAveragingStrategy):
     r"""
     Implement Non-monotonically Triggered AvSGD (NTA).
-    This method is based on paper "Regularizing and Optimizing LSTM Language Models", 
-    (https://openreview.net/pdf?id=SyyGPP0TZ), and an implementation is available in Salesforce GitHub 
+    This method is based on paper "Regularizing and Optimizing LSTM Language Models",
+    (https://openreview.net/pdf?id=SyyGPP0TZ), and an implementation is available in Salesforce GitHub
     (https://github.com/salesforce/awd-lstm-lm/blob/master/main.py)
     Note that it mismatches the arxiv (and gluonnlp) version, which is referred to as NTA_V2 below
     """
@@ -232,7 +229,7 @@ class Alpha_Suffix(IterationAveragingStrategy):
 
     r"""
     Implement Alpha Suffix model averaging.
-    This method is based on paper "Making Gradient Descent Optimalfor Strongly Convex Stochastic Optimization", 
+    This method is based on paper "Making Gradient Descent Optimalfor Strongly Convex Stochastic Optimization",
     (https://arxiv.org/pdf/1109.5647.pdf).
     """
 

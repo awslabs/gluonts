@@ -11,19 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
 from gluonts.model.transformer.trans_encoder import TransformerEncoder
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
-
-# First-party imports
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
 

@@ -11,16 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import List
+from typing import List, Optional
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.util import weighted_average
 from gluonts.time_feature import get_seasonality
 
 VALID_N_BEATS_STACK_TYPES = "G", "S", "T"
@@ -300,7 +299,7 @@ class NBEATSSeasonalBlock(NBEATSBlock):
 
 
 class NBEATSTrendBlock(NBEATSBlock):
-    """"
+    """ "
     The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
     This is the Trend block variant.
 
@@ -419,6 +418,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         A list of strings of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
+    scale
+        if True scales the input observations by the mean
     kwargs
         Arguments passed to 'HybridBlock'.
     """
@@ -437,6 +438,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         expansion_coefficient_lengths: List[int],
         sharing: List[bool],
         stack_types: List[str],
+        scale: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -450,6 +452,11 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         self.stack_types = stack_types
         self.prediction_length = prediction_length
         self.context_length = context_length
+
+        if scale:
+            self.scaler = MeanScaler(keepdims=True)
+        else:
+            self.scaler = NOPScaler(keepdims=True)
 
         with self.name_scope():
             self.net_blocks: List[NBEATSBlock] = []
@@ -511,21 +518,39 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                     )
 
     # noinspection PyMethodOverriding,PyPep8Naming
-    def hybrid_forward(self, F, past_target: Tensor, future_target: Tensor):
+    def hybrid_forward(
+        self,
+        F,
+        past_target: Tensor,
+        past_observed_values: Tensor,
+        future_target: Optional[Tensor],
+        future_observed_values: Optional[Tensor],
+    ):
+
+        past_target, scale = self.scaler(past_target, past_observed_values)
+
         if len(self.net_blocks) == 1:  # if first block is also last block
-            return self.net_blocks[0](past_target)
+            forecast = self.net_blocks[0](past_target)
         else:
             backcast, forecast = self.net_blocks[0](past_target)
-            backcast = past_target - backcast
+            backcast = (past_target - backcast) * past_observed_values
             # connect regular blocks (all except last)
             for i in range(1, len(self.net_blocks) - 1):
                 b, f = self.net_blocks[i](backcast)
-                backcast = backcast - b
+                backcast = (backcast - b) * past_observed_values
                 forecast = forecast + f
             # connect last block
-            return forecast + self.net_blocks[-1](backcast)
+            forecast = forecast + self.net_blocks[-1](backcast)
 
-    def smape_loss(self, F, forecast: Tensor, future_target: Tensor) -> Tensor:
+        return F.broadcast_mul(forecast, scale)
+
+    def smape_loss(
+        self,
+        F,
+        forecast: Tensor,
+        future_target: Tensor,
+        future_observed_values: Tensor,
+    ) -> Tensor:
         r"""
         .. math::
 
@@ -538,15 +563,24 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         denominator = F.stop_gradient(F.abs(future_target) + F.abs(forecast))
         flag = denominator == 0
 
+        absolute_error = (
+            F.abs(future_target - forecast) * future_observed_values
+        )
+
         smape = (200 / self.prediction_length) * F.mean(
-            (F.abs(future_target - forecast) * (1 - flag))
-            / (denominator + flag),
+            (absolute_error * (1 - flag)) / (denominator + flag),
             axis=1,
         )
 
         return smape
 
-    def mape_loss(self, F, forecast: Tensor, future_target: Tensor) -> Tensor:
+    def mape_loss(
+        self,
+        F,
+        forecast: Tensor,
+        future_target: Tensor,
+        future_observed_values: Tensor,
+    ) -> Tensor:
         r"""
         .. math::
 
@@ -558,9 +592,12 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         denominator = F.abs(future_target)
         flag = denominator == 0
 
+        absolute_error = (
+            F.abs(future_target - forecast) * future_observed_values
+        )
+
         mape = (100 / self.prediction_length) * F.mean(
-            (F.abs(future_target - forecast) * (1 - flag))
-            / (denominator + flag),
+            (absolute_error * (1 - flag)) / (denominator + flag),
             axis=1,
         )
 
@@ -573,6 +610,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         future_target: Tensor,
         past_target: Tensor,
         periodicity: int,
+        future_observed_values: Tensor,
     ) -> Tensor:
         r"""
         .. math::
@@ -594,9 +632,13 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         )
         flag = seasonal_error == 0
 
-        mase = (
-            F.mean(F.abs(future_target - forecast), axis=1) * (1 - flag)
-        ) / (seasonal_error + flag)
+        absolute_error = (
+            F.abs(future_target - forecast) * future_observed_values
+        )
+
+        mase = (F.mean(absolute_error, axis=1) * (1 - flag)) / (
+            seasonal_error + flag
+        )
 
         return mase
 
@@ -622,7 +664,12 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
-        self, F, past_target: Tensor, future_target: Tensor
+        self,
+        F,
+        past_target: Tensor,
+        past_observed_values: Tensor,
+        future_target: Tensor,
+        future_observed_values: Tensor,
     ) -> Tensor:
         """
 
@@ -632,8 +679,14 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
         past_target
             Tensor with past observations.
             Shape: (batch_size, context_length, target_dim).
+        past_observed_values
+            Tensor with past observed values.
+            Shape: (batch_size, context_length, target_dim).
         future_target
             Tensor with future observations.
+            Shape: (batch_size, prediction_length, target_dim).
+        future_observed_values
+            Tensor with future observed values.
             Shape: (batch_size, prediction_length, target_dim).
 
         Returns
@@ -641,18 +694,30 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
         Tensor
             Loss tensor. Shape: (batch_size, ).
         """
-        # future_target never used
         forecast = super().hybrid_forward(
-            F, past_target=past_target, future_target=future_target
+            F,
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            future_target=None,
+            future_observed_values=None,
         )
 
         if self.loss_function == "sMAPE":
-            loss = self.smape_loss(F, forecast, future_target)
+            loss = self.smape_loss(
+                F, forecast, future_target, future_observed_values
+            )
         elif self.loss_function == "MAPE":
-            loss = self.mape_loss(F, forecast, future_target)
+            loss = self.mape_loss(
+                F, forecast, future_target, future_observed_values
+            )
         elif self.loss_function == "MASE":
             loss = self.mase_loss(
-                F, forecast, future_target, past_target, self.periodicity
+                F,
+                forecast,
+                future_target,
+                past_target,
+                self.periodicity,
+                future_observed_values,
             )
         else:
             raise ValueError(
@@ -669,7 +734,12 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
-        self, F, past_target: Tensor, future_target: Tensor = None
+        self,
+        F,
+        past_target: Tensor,
+        past_observed_values: Tensor,
+        future_target: Optional[Tensor] = None,
+        future_observed_values: Optional[Tensor] = None,
     ) -> Tensor:
         """
 
@@ -679,7 +749,12 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
         past_target
             Tensor with past observations.
             Shape: (batch_size, context_length, target_dim).
+        past_observed_values
+            Tensor with past observed values.
+            Shape: (batch_size, context_length, target_dim).
         future_target
+            Not used.
+        future_observed_values
             Not used.
 
         Returns
@@ -687,9 +762,12 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
         Tensor
             Prediction sample. Shape: (batch_size, 1, prediction_length).
         """
-        # future_target never used
         forecasts = super().hybrid_forward(
-            F, past_target=past_target, future_target=past_target
+            F,
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            future_target=None,
+            future_observed_values=None,
         )
 
         # dimension collapsed previously because we only have one sample each:

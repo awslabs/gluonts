@@ -12,21 +12,21 @@
 # permissions and limitations under the License.
 import itertools
 from functools import partial
+from typing import Any, Dict, Iterable
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
-import pandas as pd
 import pytest
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.loader import (
+    DataBatch,
     DataLoader,
-    TrainDataLoader,
     InferenceDataLoader,
+    TrainDataLoader,
 )
-from gluonts.dataset.parallelized_loader import batchify, stack, _pad_arrays
+from gluonts.mx.batchify import _pad_arrays, batchify, stack
+from gluonts.testutil.dummy_datasets import get_dataset
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimeUniformSampler,
@@ -35,37 +35,6 @@ from gluonts.transform import (
 
 @pytest.fixture
 def pp_dataset():
-    def get_dataset():
-
-        data_entry_list = [
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1]),
-                    np.array([0, 1, 2, 0, 1, 2, 2, 2]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.1, 0.2, 0.5, 0.4]),
-                    np.array([0, 1, 2, 1, 1]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.2, 0.1]),
-                    np.array([0, 1, 2, 0, 1, 0, 2]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-        ]
-
-        return ListDataset(data_entry_list, freq="H", one_dim_target=False,)
-
     return get_dataset
 
 
@@ -78,7 +47,7 @@ def loader_factory():
         context_interval_length: float,
         is_train: bool = True,
         override_args: dict = None,
-    ) -> DataLoader:
+    ) -> Iterable[DataBatch]:
 
         if override_args is None:
             override_args = {}
@@ -89,22 +58,22 @@ def loader_factory():
             train_sampler=ContinuousTimeUniformSampler(num_instances=10),
         )
 
-        kwargs = dict(
+        kwargs: Dict[str, Any] = dict(
             dataset=dataset,
             transform=splitter,
             batch_size=10,
-            ctx=mx.cpu(),
-            dtype=np.float32,
-            batchify_fn=partial(batchify, variable_length=True),
+            stack_fn=partial(
+                batchify, ctx=mx.cpu(), dtype=np.float32, variable_length=True
+            ),
         )
         kwargs.update(override_args)
 
         if is_train:
-            return TrainDataLoader(
-                num_batches_per_epoch=22, num_workers=0, **kwargs
+            return itertools.islice(
+                TrainDataLoader(num_workers=None, **kwargs), 22
             )
         else:
-            return InferenceDataLoader(num_workers=0, **kwargs)
+            return InferenceDataLoader(num_workers=None, **kwargs)
 
     return train_loader
 
@@ -228,8 +197,6 @@ def test_variable_length_stack(pp_dataset, array_type, multi_processing):
     assert isinstance(multi_processing, bool)
     stacked = stack(
         arrays,
-        multi_processing=multi_processing,
-        dtype=arrays[0].dtype,
         variable_length=True,
     )
 
@@ -255,8 +222,6 @@ def test_variable_length_stack_zerosize(
     assert isinstance(multi_processing, bool)
     stacked = stack(
         arrays,
-        multi_processing=multi_processing,
-        dtype=arrays[0].dtype,
         variable_length=True,
     )
 
@@ -269,10 +234,10 @@ def test_variable_length_stack_zerosize(
     "array_type, multi_processing, axis",
     itertools.product(["np", "mx"], [True, False], [0, 1]),
 )
-def test_pad_arrays_axis(pp_dataset, array_type, multi_processing, axis: int):
+def test_pad_arrays_axis(array_type, multi_processing, axis: int):
     arrays = [
         d["target"] if array_type == "np" else mx.nd.array(d["target"])
-        for d in list(iter(pp_dataset()))
+        for d in list(iter(get_dataset()))
     ]
     if axis == 0:
         arrays = [x.T for x in arrays]

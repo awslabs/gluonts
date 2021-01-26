@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from ._kernel import Kernel
 from ._kernel_output import KernelOutput, KernelOutputDict
 from ._periodic_kernel import PeriodicKernel, PeriodicKernelOutput

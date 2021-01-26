@@ -11,19 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet.ndarray as nd
 import numpy as np
 import pytest
 
-# First-party imports
-from gluonts.mx.distribution import Uniform
+from gluonts.core.serde import dump_json, load_json
+
+from gluonts.mx.distribution import Uniform, bijection
 from gluonts.mx.distribution.transformed_distribution import (
     TransformedDistribution,
 )
-from gluonts.mx.distribution import bijection
-from gluonts.core.serde import dump_json, load_json
-
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 

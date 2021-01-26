@@ -11,19 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
 import mxnet as mx
 import numpy as np
-
-# Third-party imports
 from mxnet.gluon import nn
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.context import get_mxnet_context
 
 
@@ -96,7 +92,7 @@ class Representation(nn.HybridBlock):
         Returns
         -------
         Tuple[Tensor, Tensor, List[Tensor]]
-            Tuple consisting of the transformed data, the computed scale, 
+            Tuple consisting of the transformed data, the computed scale,
             and additional parameters to be passed to post_transform.
         """
         return data, F.ones_like(data), []
@@ -114,7 +110,7 @@ class Representation(nn.HybridBlock):
         scale
             The scale of the samples.
         rep_params
-            Additional representation-specific parameters used during post 
+            Additional representation-specific parameters used during post
             transformation.
 
         Returns

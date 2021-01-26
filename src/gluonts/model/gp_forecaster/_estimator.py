@@ -11,21 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import DType, validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.model.predictor import Predictor
 from gluonts.mx.kernels import KernelOutput, RBFKernelOutput
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.transform import (
     AddTimeFeatures,
@@ -37,7 +35,6 @@ from gluonts.transform import (
     Transformation,
 )
 
-# Relative imports
 from ._network import (
     GaussianProcessPredictionNetwork,
     GaussianProcessTrainingNetwork,
@@ -92,6 +89,8 @@ class GaussianProcessEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100).
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -110,9 +109,12 @@ class GaussianProcessEstimator(GluonEstimator):
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        batch_size: int = 32,
     ) -> None:
         self.float_type = dtype
-        super().__init__(trainer=trainer, dtype=self.float_type)
+        super().__init__(
+            trainer=trainer, batch_size=batch_size, dtype=self.float_type
+        )
 
         assert (
             prediction_length > 0
@@ -210,7 +212,7 @@ class GaussianProcessEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

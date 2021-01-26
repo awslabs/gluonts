@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from collections import defaultdict
 from typing import Any, List, NamedTuple, Optional, Set
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.field_names import FieldName
@@ -114,6 +111,7 @@ class DatasetStatistics(NamedTuple):
     mean_abs_target: float
     mean_target: float
     mean_target_length: float
+    max_target_length: int
     min_target: float
     feat_static_real: List[Set[float]]
     feat_static_cat: List[Set[int]]
@@ -173,6 +171,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     scale_histogram = ScaleHistogram()
 
     with tqdm(enumerate(ts_dataset, start=1), total=len(ts_dataset)) as it:
+        max_target_length = 0
         for num_time_series, ts in it:
 
             # TARGET
@@ -190,6 +189,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 )
 
                 num_time_observations += num_observations
+                max_target_length = max(num_observations, max_target_length)
                 min_target = float(min(min_target, observed_target.min()))
                 max_target = float(max(max_target, observed_target.max()))
                 num_missing_values += int(np.isnan(target).sum())
@@ -401,6 +401,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
         mean_abs_target=mean_abs_target,
         mean_target=mean_target,
         mean_target_length=mean_target_length,
+        max_target_length=max_target_length,
         min_target=min_target,
         num_missing_values=num_missing_values,
         feat_static_real=observed_feat_static_real

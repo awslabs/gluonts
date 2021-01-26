@@ -11,17 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, List, Tuple
 
-# Third-party imports
 import mxnet as mx
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
-# Relative imports
 from .bijection import Bijection, InverseBijection
 from .bijection_output import BijectionOutput
 from .distribution import getF, softplus

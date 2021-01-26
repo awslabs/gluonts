@@ -15,14 +15,17 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install pip==20.2
         pip install -r requirements/requirements-mxnet.txt
+        pip install -r requirements/requirements-pytorch.txt
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-docs.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
         pip install -r requirements/requirements-rotbaum.txt
+        pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
 
     - name: Build docs
       run: |

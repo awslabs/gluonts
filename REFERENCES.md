@@ -6,6 +6,17 @@ chronographically.
 ## Methods
 A number of the below methods are available in GluonTS.
 
+### Multi-variate forecasting models
+[Normalizing Kalman Filters](https://papers.nips.cc/paper/2020/hash/1f47cef5e38c952f94c5d61726027439-Abstract.html)
+```
+@inproceedings{bezene2020nkf,
+	Author = {Emmanuel de B\'{e}zenac, Syama S. Rangapuram, Konstantinos Benidis, Michael Bohlke-Schneider, Richard Kurle, Lorenzo Stella, Hilaf Hasson, Patrick Gallinari, Tim Januschowski},
+	Booktitle = {Advances in Neural Information Processing Systems},
+	Title = {Normalizing Kalman Filters for Multivariate Time Series Analysis},
+	Year = {2020}
+}
+```
+
 [A multivariate forecasting model](https://arxiv.org/abs/1910.03002)
 ```
 @inproceedings{salinas2019high,
@@ -16,7 +27,19 @@ A number of the below methods are available in GluonTS.
 }
 ```
 
-[Deep Factor models, a global-local forecasting method.](http://proceedings.mlr.press/v97/wang19k.html)
+### Deep Probabilistic forecasting models
+
+[Particle Filters](https://proceedings.neurips.cc/paper/2020/hash/afb0b97df87090596ae7c503f60bb23f-Abstract.html)
+```
+@inproceedings{kurle20,
+	Author = {Richard Kurle, Syama Rangapuram, Emmanuel de Bezenac, Stepuhan Günnemann, Jan Gasthaus},
+	Booktitle = {Advances in Neural Information Processing Systems},
+	Title = {Deep Rao-Blackwellised Particle Filters for Time Series Forecasting},
+	Year = {2019}
+}
+```
+
+[Deep Factor models, a global-local forecasting method](http://proceedings.mlr.press/v97/wang19k.html)
 ```
 @inproceedings{wang2019deep,
 	Author = {Wang, Yuyang and Smola, Alex and Maddix, Danielle and Gasthaus, Jan and Foster, Dean and Januschowski, Tim},
@@ -55,6 +78,39 @@ A number of the below methods are available in GluonTS.
 	Year = {2018}
 }
 ```
+
+[Intermittent Demand Forecasting with Renewal Processes](https://arxiv.org/pdf/2010.01550.pdf)
+```
+@inproceedings{turkmen2020idf,
+	Author = {T\"{u}rkmen, Ali Caner and Januschowski, Tim and Wang, Yuang and Cemgil, Ali Taylan,
+	Booktitle = {arxiv,
+	Title = {Intermittent Demand Forecasting with Renewal Processes},
+	Year = {2020}
+}
+```
+
+[Using categorical distributions in forecasting](https://arxiv.org/abs/2005.10111)
+```
+@inproceedings{rabanser2020discrete,
+	Author = {Rabanser, Stephan and Januschowski, Tim and Salinas, David and Flunkert, Valentin and Gasthaus, Jan,
+	Booktitle = {KDD Workshop on Mining and Learning From Time Series},
+	Title = {The Effectiveness of Discretization in Forecasting: An Empirical Study on Neural Time Series Models},
+	Year = {2020}
+}
+```
+
+### Anomaly detection models
+[Distributional Time Series Models for Anomaly Detection](https://arxiv.org/abs/2007.15541)
+```
+@inproceedings{ayed20anomaly,
+	Author = {Ayed, Fadhel and Stella, Lorenzo and Januschowski, Tim and Gasthaus, Jan,
+	Booktitle = {AIOPs},
+	Title = {Anomaly Detection at Scale: The Case for Deep Distributional Time Series Models},
+	Year = {2020}
+}
+```
+
+### Prior, related work
 [A scalable state space model. Note that code for this model
 is currently not available in GluonTS.](https://papers.nips.cc/paper/6313-bayesian-intermittent-demand-forecasting-for-large-inventories)
 ```
@@ -69,10 +125,25 @@ is currently not available in GluonTS.](https://papers.nips.cc/paper/6313-bayesi
 
 
 
+
+
 ## Tutorials
 Tutorials are available in bibtex and with accompanying material,
  in particular slides, linked from below.
- 
+
+### WWW 2020
+[paper](https://dl.acm.org/doi/10.1145/3366424.3383118)
+[slides](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
+  ```
+ @inproceedings{faloutsos2020forecasting,
+    author = {Faloutsos, Christos and Flunkert, Valentin and Gasthaus, Jan and Januschowski, Tim and Wang, Yuyang},
+    title = {Forecasting Big Time Series: Theory and Practice},
+    year = {2020},
+    booktitle = {Companion Proceedings of the Web Conference 2020},
+    pages = {320–321},
+    series = {WWW '20}
+}
+```
 ### KDD 2019
 [paper](https://dl.acm.org/citation.cfm?id=3332289) 
 [slides](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
@@ -175,6 +246,16 @@ pages = {42-47}
 ```
 
 ## System Aspects
+[Resilient neural forecasting system.](https://dl.acm.org/doi/abs/10.1145/3399579.3399869)
+```
+@article{bohlke2020resilient,
+	Author = {Bohlke-Schneider, Michael and Kapoor, Shubham and Januschowski, Tim},
+	Journal = {DEEM'20: Proeccdings of the Fourth International Workshop on Data Management for End-to-End Machine Learning},
+	Title = {Resilient Neural Forecasting Systems},
+	Year = {2020}
+}
+```
+
 [A large-scale retail forecasting system.](http://www.vldb.org/pvldb/vol10/p1694-schelter.pdf)
 ```
 @article{bose2017probabilistic,

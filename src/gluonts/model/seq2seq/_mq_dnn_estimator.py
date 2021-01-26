@@ -11,28 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
-from typing import List, Optional
 from distutils.util import strtobool
+from typing import List, Optional
 
-# Third-party imports
-import numpy as np
 import mxnet as mx
+import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
-
-from gluonts.mx.distribution import DistributionOutput
-
 from gluonts.mx.block.decoder import ForkingMLPDecoder
 from gluonts.mx.block.encoder import (
     HierarchicalCausalConv1DEncoder,
     RNNEncoder,
 )
 from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.trainer import Trainer
 
 
@@ -107,11 +102,13 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
     trainer
         The GluonTS trainer to use for training. (default: Trainer())
     scaling
-        Whether to automatically scale the target values. (default: False)
+        Whether to automatically scale the target values. (default: False if quantile_output is used, True otherwise)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     num_forking
-        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN
+        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN.
+    max_ts_len
+        Returns the length of the longest time series in the dataset to be used in bounding context_length.
     """
 
     @validated()
@@ -138,9 +135,10 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         quantiles: Optional[List[float]] = None,
         distr_output: Optional[DistributionOutput] = None,
         trainer: Trainer = Trainer(),
-        scaling: bool = False,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
+        max_ts_len: Optional[int] = None,
     ) -> None:
 
         assert (distr_output is None) or (quantiles is None)
@@ -239,6 +237,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
             num_forking=num_forking,
+            max_ts_len=max_ts_len,
         )
 
     @classmethod
@@ -250,6 +249,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             "use_feat_dynamic_real": stats.num_feat_dynamic_real > 0,
             "use_feat_static_cat": bool(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
+            "max_ts_len": stats.max_target_length,
         }
 
     @classmethod
@@ -312,12 +312,13 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         prediction_length: int,
         freq: str,
         context_length: Optional[int] = None,
-        decoder_mlp_dim_seq: List[int] = None,
+        decoder_mlp_dim_seq: Optional[List[int]] = None,
         trainer: Trainer = Trainer(),
         quantiles: Optional[List[float]] = None,
         distr_output: Optional[DistributionOutput] = None,
-        scaling: bool = False,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
+        num_forking: Optional[int] = None,
     ) -> None:
 
         assert (
@@ -373,4 +374,5 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             trainer=trainer,
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
+            num_forking=num_forking,
         )

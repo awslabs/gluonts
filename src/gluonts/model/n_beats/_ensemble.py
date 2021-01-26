@@ -14,20 +14,15 @@
 import copy
 import logging
 import os
-
-# Standard library imports
 from itertools import product
 from pathlib import Path
 from typing import Iterator, List, Optional
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 from pydantic import ValidationError
 
 from gluonts.core import fqname_for
-
-# First-party imports
 from gluonts.core.component import from_hyperparameters, validated
 from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_json, load_json
@@ -36,12 +31,11 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 
 from ._estimator import NBEATSEstimator
-
-# Relative imports
 from ._network import VALID_LOSS_FUNCTIONS
 
 # None is also a valid parameter
@@ -49,7 +43,7 @@ AGGREGATION_METHODS = "median", "mean", "none"
 
 
 class NBEATSEnsemblePredictor(Predictor):
-    """"
+    """ "
     An ensemble predictor for N-BEATS.
     Calling '.predict' will result in::
 
@@ -114,8 +108,19 @@ class NBEATSEnsemblePredictor(Predictor):
 
     @classmethod
     def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
+        cls, path: Path, ctx: Optional[mx.Context] = None, **kwargs
     ) -> "NBEATSEnsemblePredictor":
+        """
+        Load a serialized NBEATSEnsemblePredictor from the given path
+
+        Parameters
+        ----------
+        path
+            Path to the serialized files predictor.
+        ctx
+            Optional mxnet context parameter to be used with the predictor.
+            If nothing is passed will use the GPU if available and CPU otherwise.
+        """
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
             parameters = load_json(fp.read())

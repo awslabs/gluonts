@@ -11,12 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pytest
 import mxnet as mx
 import numpy as np
+import pytest
 
 from gluonts.mx.block import scaler
-
 
 test_cases = [
     (
@@ -183,6 +182,135 @@ test_cases = [
     ),
 ]
 
+test_minmax = [
+    (
+        scaler.MinMax(),
+        mx.nd.array(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [0.0, 0.5, 1.0],
+                [0.0, 0.5, 1.0],
+            ]
+        ),
+    ),
+    (
+        scaler.MinMax(),
+        mx.nd.array(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [0.0, 1.0, 1.0],
+                [1.0, 1.0, 0.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [0.0, 0, 1.0],
+                [0.0, 1.0, 0.0],
+            ]
+        ),
+    ),
+    (
+        scaler.MinMax(),
+        mx.nd.array(
+            [
+                [9.0, 9.0, 9.0],
+                [4.0, 5.0, 6.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [1.0, 1.0, 1.0],
+                [0.0, 0.5, 1.0],
+            ]
+        ),
+    ),
+    (
+        scaler.MinMax(),
+        mx.nd.array(
+            [
+                [9.0, 9.0, 9.0],
+                [4.0, 5.0, 6.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [0.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [0.0, 1.0, 1.0],
+                [0.0, 0.5, 1.0],
+            ]
+        ),
+    ),
+    (
+        scaler.MinMax(),
+        mx.nd.array(
+            [
+                [0.0, 0.0, 0.0],
+                [4.0, 5.0, 6.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [0.0, 0.0, 0.0],
+                [0.0, 0.5, 1.0],
+            ]
+        ),
+    ),
+    (
+        scaler.MinMax(axis=0),
+        mx.nd.array(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0],
+            ]
+        ),
+        mx.nd.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 1.0, 1.0],
+            ]
+        ),
+    ),
+]
+
 
 @pytest.mark.parametrize("s, target, observed, expected_scale", test_cases)
 def test_scaler(s, target, observed, expected_scale):
@@ -211,3 +339,13 @@ def test_nopscaler(target, observed):
 
     assert mx.nd.norm(target - target_scaled) == 0
     assert mx.nd.norm(mx.nd.ones_like(target).mean(axis=s.axis) - scale) == 0
+
+
+@pytest.mark.parametrize("s, target, observed, expected_scale", test_minmax)
+def test_minmaxscaler(s, target, observed, expected_scale):
+
+    target_scaled, scale = s(target, observed)
+
+    assert np.allclose(
+        expected_scale.asnumpy(), scale.asnumpy()
+    ), "mismatch in the scale computation"

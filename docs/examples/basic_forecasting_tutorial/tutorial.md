@@ -14,7 +14,6 @@ GluonTS contains:
 
 
 ```python
-# Third-party imports
 %matplotlib inline
 import mxnet as mx
 from mxnet import gluon
@@ -347,10 +346,11 @@ Earlier, we used the `make_evaluation_predictions` to evaluate our predictor. In
 
 
 ```python
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.core.component import validated
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
 from gluonts.dataset.field_names import FieldName
 from mxnet.gluon import HybridBlock
@@ -365,9 +365,10 @@ class MyEstimator(GluonEstimator):
         freq: str,
         context_length: int,
         prediction_length: int,
-        trainer: Trainer = Trainer()
+        batch_size: int = 32,
+        trainer: Trainer = Trainer(),
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.freq = freq

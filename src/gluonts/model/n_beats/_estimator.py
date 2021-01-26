@@ -11,26 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     Transformation,
+    InstanceSampler,
+    AddObservedValuesIndicator,
 )
 
-# Relative imports
 from ._network import (
     VALID_LOSS_FUNCTIONS,
     VALID_N_BEATS_STACK_TYPES,
@@ -103,6 +102,12 @@ class NBEATSEstimator(GluonEstimator):
         Unlike other models in GluonTS this network does not use a distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".
         The default value is "MAPE".
+    train_sampler
+        Controls the sampling of windows during training.
+    batch_size
+        The size of the batches to be used training and prediction.
+    scale
+        if True scales the input observations by the mean
     kwargs
         Arguments passed to 'GluonEstimator'.
     """
@@ -126,12 +131,15 @@ class NBEATSEstimator(GluonEstimator):
         sharing: Optional[List[bool]] = None,
         stack_types: Optional[List[str]] = None,
         loss_function: Optional[str] = "MAPE",
+        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        batch_size: int = 32,
+        scale: bool = False,
         **kwargs,
     ) -> None:
         """
         Defines an estimator. All parameters should be serializable.
         """
-        super().__init__(trainer=trainer, **kwargs)
+        super().__init__(trainer=trainer, batch_size=batch_size, **kwargs)
 
         assert (
             prediction_length > 0
@@ -147,6 +155,7 @@ class NBEATSEstimator(GluonEstimator):
         ), f"The loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
 
         self.freq = freq
+        self.scale = scale
         self.prediction_length = prediction_length
         self.context_length = (
             context_length
@@ -199,6 +208,7 @@ class NBEATSEstimator(GluonEstimator):
             validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
             invalidation_message=f"Values of 'stack_types' should be one of {VALID_N_BEATS_STACK_TYPES}",
         )
+        self.train_sampler = train_sampler
 
     def _validate_nbeats_argument(
         self,
@@ -239,16 +249,21 @@ class NBEATSEstimator(GluonEstimator):
     def create_transformation(self) -> Transformation:
         return Chain(
             [
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                    dtype=self.dtype,
+                ),
                 InstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=self.train_sampler,
                     past_length=self.context_length,
                     future_length=self.prediction_length,
-                    time_series_fields=[],
-                )
+                    time_series_fields=[FieldName.OBSERVED_VALUES],
+                ),
             ]
         )
 
@@ -268,6 +283,7 @@ class NBEATSEstimator(GluonEstimator):
             stack_types=self.stack_types,
             loss_function=self.loss_function,
             freq=self.freq,
+            scale=self.scale,
         )
 
     # we now define how the prediction happens given that we are provided a
@@ -286,12 +302,13 @@ class NBEATSEstimator(GluonEstimator):
             sharing=self.sharing,
             stack_types=self.stack_types,
             params=trained_network.collect_params(),
+            scale=self.scale,
         )
 
         return RepresentableBlockPredictor(
             input_transform=transformation,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

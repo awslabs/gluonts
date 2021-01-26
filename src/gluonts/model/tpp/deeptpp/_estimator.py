@@ -13,27 +13,25 @@
 from functools import partial
 from typing import Optional
 
-from gluonts.dataset.parallelized_loader import batchify
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.estimator import GluonEstimator, TrainOutput
+from gluonts.mx.model.estimator import GluonEstimator, TrainOutput
 from gluonts.model.predictor import Predictor
 from gluonts.model.tpp import PointProcessGluonPredictor
 from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput
+from gluonts.mx.batchify import batchify
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
-    ContinuousTimeUniformSampler,
     ContinuousTimeInstanceSplitter,
+    ContinuousTimeUniformSampler,
     RenameFields,
     Transformation,
 )
 
-# Relative imports
-from ._network import DeepTPPTrainingNetwork, DeepTPPPredictionNetwork
+from ._network import DeepTPPPredictionNetwork, DeepTPPTrainingNetwork
 
 
 class DeepTPPEstimator(GluonEstimator):
@@ -73,7 +71,7 @@ class DeepTPPEstimator(GluonEstimator):
     embedding_dim
         The dimension of vector embeddings for marks (used as input to the GRU).
     trainer
-        :code:`gluonts.trainer.Trainer` object which will be used to train the
+        :code:`gluonts.mx.trainer.Trainer` object which will be used to train the
         estimator. Note that :code:`Trainer(hybridize=False)` must be set as
         :code:`DeepTPPEstimator` currently does not support hybridization.
     num_hidden_dimensions
@@ -86,6 +84,8 @@ class DeepTPPEstimator(GluonEstimator):
     freq
         Similar to the :code:`freq` of discrete-time models, specifies the time
         unit by which inter-arrival times are given.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -101,12 +101,13 @@ class DeepTPPEstimator(GluonEstimator):
         num_parallel_samples: int = 100,
         num_training_instances: int = 100,
         freq: str = "H",
+        batch_size: int = 32,
     ) -> None:
         assert (
             not trainer.hybridize
         ), "DeepTPP currently only supports the non-hybridized training"
 
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_interval_length > 0
@@ -186,7 +187,7 @@ class DeepTPPEstimator(GluonEstimator):
         return PointProcessGluonPredictor(
             input_names=["target", "valid_length"],
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             prediction_interval_length=self.prediction_interval_length,
             freq=self.freq,
             ctx=self.trainer.ctx,
@@ -208,6 +209,6 @@ class DeepTPPEstimator(GluonEstimator):
             num_workers,
             num_prefetch,
             shuffle_buffer_length,
-            batchify_fn=partial(batchify, variable_length=True),
+            stack_fn=partial(batchify, variable_length=True),
             **kwargs,
         )

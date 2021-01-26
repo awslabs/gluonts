@@ -11,17 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
 from mxnet import nd
 from mxnet.gluon import nn
 from mxnet.gluon.loss import Loss
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 
 class QuantileLoss(Loss):
@@ -29,9 +26,9 @@ class QuantileLoss(Loss):
     def __init__(
         self,
         quantiles: List[float],
-        quantile_weights: List[float] = None,
-        weight=None,
-        batch_axis=0,
+        quantile_weights: Optional[List[float]] = None,
+        weight: Optional[float] = None,
+        batch_axis: int = 0,
         **kwargs,
     ) -> None:
         """
@@ -45,10 +42,10 @@ class QuantileLoss(Loss):
         quantile_weights
             weights of the quantiles.
 
-        weight:
+        weight
             weighting of the loss.
 
-        batch_axis:
+        batch_axis
             indicates axis that represents the batch.
         """
         super().__init__(weight, batch_axis, **kwargs)
@@ -56,7 +53,7 @@ class QuantileLoss(Loss):
         self.quantiles = quantiles
         self.num_quantiles = len(quantiles)
         self.quantile_weights = (
-            nd.ones(self.num_quantiles) / self.num_quantiles
+            [1.0 / self.num_quantiles for i in range(self.num_quantiles)]
             if not quantile_weights
             else quantile_weights
         )
@@ -98,7 +95,7 @@ class QuantileLoss(Loss):
             q = self.quantiles[i]
             weighted_qt = (
                 self.compute_quantile_loss(F, y_true, y_pred_q, q)
-                * self.quantile_weights[i].asscalar()
+                * self.quantile_weights[i]
             )
             qt_loss.append(weighted_qt)
         stacked_qt_losses = F.stack(*qt_loss, axis=-1)

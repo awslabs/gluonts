@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Optional, List
+from typing import List, Optional
 
-# Third-party imports
 from mxnet.gluon.loss import Loss
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 
 class ActivationRegularizationLoss(Loss):
@@ -71,7 +68,7 @@ class ActivationRegularizationLoss(Loss):
         ----------
         states
             the stack outputs from RNN, which consists of output from each time step.
-            
+
         Returns
         --------
         Tensor
@@ -84,7 +81,7 @@ class ActivationRegularizationLoss(Loss):
                     state = F.stack(*state, axis=self._time_axis)
                 means.append(
                     self._alpha
-                    * state.__pow__(2).mean(
+                    * F.power(state, 2).mean(
                         axis=self._batch_axis, exclude=True
                     )
                 )
@@ -141,7 +138,7 @@ class TemporalActivationRegularizationLoss(Loss):
         ----------
         states
             the stack outputs from RNN, which consists of output from each time step.
-            
+
         Returns
         --------
         Tensor
@@ -161,7 +158,7 @@ class TemporalActivationRegularizationLoss(Loss):
                 sub_state_diff = F.elemwise_sub(sub_state_1, sub_state_2)
                 means.append(
                     self._beta
-                    * sub_state_diff.__pow__(2).mean(
+                    * F.power(sub_state_diff, 2).mean(
                         axis=self._batch_axis, exclude=True
                     )
                 )

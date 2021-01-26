@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from ._predictor import Naive2Predictor, naive_2
 
 __all__ = ["naive_2", "Naive2Predictor"]

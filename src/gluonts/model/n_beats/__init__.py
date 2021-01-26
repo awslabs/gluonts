@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 from ._ensemble import NBEATSEnsembleEstimator, NBEATSEnsemblePredictor
-
-# Relative imports
 from ._estimator import NBEATSEstimator
 
 __all__ = [

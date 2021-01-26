@@ -23,6 +23,7 @@ from gluonts.dataset.repository._gp_copula_2019 import (
     generate_gp_copula_dataset,
 )
 from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
+from gluonts.dataset.repository._m3 import generate_m3_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._m5 import generate_m5_dataset
 from gluonts.support.util import get_download_path
@@ -66,6 +67,10 @@ dataset_recipes = OrderedDict(
         "taxi_30min": partial(
             generate_gp_copula_dataset, dataset_name="taxi_30min"
         ),
+        "m3_monthly": partial(generate_m3_dataset, m3_freq="monthly"),
+        "m3_quarterly": partial(generate_m3_dataset, m3_freq="quarterly"),
+        "m3_yearly": partial(generate_m3_dataset, m3_freq="yearly"),
+        "m3_other": partial(generate_m3_dataset, m3_freq="other"),
         "m4_hourly": partial(
             generate_m4_dataset,
             m4_freq="Hourly",
@@ -93,13 +98,13 @@ dataset_recipes = OrderedDict(
         "m4_quarterly": partial(
             generate_m4_dataset,
             m4_freq="Quarterly",
-            pandas_freq="3M",
+            pandas_freq="Q",
             prediction_length=8,
         ),
         "m4_yearly": partial(
             generate_m4_dataset,
             m4_freq="Yearly",
-            pandas_freq="12M",
+            pandas_freq="Y",
             prediction_length=6,
         ),
         "m5": partial(
@@ -193,7 +198,6 @@ def get_dataset(
 
 
 if __name__ == "__main__":
-
     for dataset in dataset_names:
         print(f"generate {dataset}")
         ds = get_dataset(dataset, regenerate=True)

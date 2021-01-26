@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from ._mq_dnn_estimator import MQCNNEstimator, MQRNNEstimator
 from ._seq2seq_estimator import RNN2QRForecaster, Seq2SeqEstimator
 

@@ -11,20 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import pytest
 import numpy as np
 import pandas as pd
 
-# First-party imports
+import pytest
+
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
-from gluonts.model.lstnet import LSTNetEstimator
-from gluonts.mx.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.evaluation import MultivariateEvaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
-
+from gluonts.model.lstnet import LSTNetEstimator
+from gluonts.mx.trainer import Trainer
 
 NUM_SERIES = 10
 NUM_SAMPLES = 5
@@ -98,14 +96,11 @@ def test_lstnet(
             prediction_length,
             NUM_SERIES,
         )
-        assert (
-            fct.start_date
-            == pd.date_range(
-                start=str(test_ds["start"]),
-                periods=test_ds["target"].shape[1],  # number of test periods
-                freq=freq,
-            )[-prediction_length]
-        )
+        assert fct.start_date == pd.date_range(
+            start=str(test_ds["start"]),
+            periods=test_ds["target"].shape[1],  # number of test periods
+            freq=freq,
+        )[-prediction_length]
 
     evaluator = MultivariateEvaluator(
         quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]

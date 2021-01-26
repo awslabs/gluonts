@@ -11,26 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import functools
 import sys
 
-# Third-party imports
 from tqdm import tqdm as _tqdm
+
+from .env import env
 
 # TODO: when we have upgraded this will give notebook progress bars
 # from tqdm.auto import tqdm as _tqdm
 
 
-# we want to be able to disable TQDM, for example when running in sagemaker
-USE_TQDM = True
-
-
 @functools.wraps(_tqdm)
 def tqdm(it, *args, **kwargs):
+    disable = not env.use_tqdm
 
     kwargs = kwargs.copy()
     if not sys.stdout.isatty():
         kwargs.update(mininterval=10.0)
 
-    return _tqdm(it, *args, disable=not USE_TQDM, **kwargs)
+    return _tqdm(it, *args, disable=disable, **kwargs)
