@@ -132,6 +132,8 @@ class DeepAREstimator(GluonEstimator):
         One of the methods from ImputationStrategy
     train_sampler
         Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
     alpha
         The scaling coefficient of the activation regularization
     beta

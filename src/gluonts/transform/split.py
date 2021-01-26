@@ -105,12 +105,6 @@ class InstanceSplitter(FlatMapTransformation):
     time_series_fields
         fields that contains time-series, they are split in the same interval
         as the target (default: None)
-    pick_incomplete
-        whether training examples can be sampled with only a part of
-        past_length time-units
-        present for the time series. This is useful to train models for
-        cold-start. In such case, is_pad_out contains an indicator whether
-        data is padded or not. (default: True)
     dummy_value
         Value to use for padding. (default: 0.0)
     """

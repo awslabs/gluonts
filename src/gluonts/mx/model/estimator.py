@@ -45,7 +45,8 @@ class GluonEstimator(Estimator):
     An `Estimator` type with utilities for creating Gluon-based models.
 
     To extend this class, one needs to implement three methods:
-    `create_transformation`, `create_training_network`, `create_predictor`.
+    `create_transformation`, `create_training_network`, `create_predictor`,
+    `create_training_data_loader`, and `create_validation_data_loader`.
     """
 
     @validated()

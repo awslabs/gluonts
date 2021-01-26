@@ -139,6 +139,8 @@ class WaveNetEstimator(GluonEstimator):
         This is a model optimization that does not affect the accuracy (default: 200)
     train_sampler
         Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
     batch_size
         The size of the batches to be used training and prediction.
     """
@@ -172,34 +174,6 @@ class WaveNetEstimator(GluonEstimator):
         batch_size: int = 32,
         negative_data: bool = False,
     ) -> None:
-        """
-        Model with Wavenet architecture and quantized target.
-
-        :param freq:
-        :param prediction_length:
-        :param trainer:
-        :param num_eval_samples:
-        :param cardinality:
-        :param embedding_dimension:
-        :param num_bins: Number of bins used for quantization of signal
-        :param hybridize_prediction_net:
-        :param n_residue: Number of residual channels in wavenet architecture
-        :param n_skip: Number of skip channels in wavenet architecture
-        :param dilation_depth: number of dilation layers in wavenet architecture.
-          If set to None, dialation_depth is set such that the receptive length is at
-          least as long as 2 * seasonality for the frequency and at least
-          2 * prediction_length.
-        :param n_stacks: Number of dilation stacks in wavenet architecture
-        :param train_window_length: Length of windows used for training. This should be
-          longer than prediction length. Larger values result in more efficient
-          reuse of computations for convolutions.
-        :param temperature: Temparature used for sampling from softmax distribution.
-          For temperature = 1.0 sampling is according to estimated probability.
-        :param act_type: Activation type used after before output layer.
-          Can be any of
-              'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'
-        """
-
         super().__init__(trainer=trainer, batch_size=batch_size)
 
         self.freq = freq

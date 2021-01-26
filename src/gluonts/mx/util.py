@@ -132,8 +132,8 @@ def get_hybrid_forward_input_names(
         f"but found `{param_names[0]}`"
     )
     assert param_names[1] == "F", (
-        f"Expected first argument of hybrid_forward to be `F`, "
-        f"but found `{param_names[2]}`"
+        f"Expected second argument of hybrid_forward to be `F`, "
+        f"but found `{param_names[1]}`"
     )
     return param_names[2:]  # skip: self, F
 

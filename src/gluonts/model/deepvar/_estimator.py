@@ -205,6 +205,10 @@ class DeepVAREstimator(GluonEstimator):
         Set maximum length for conditioning the marginal transformation
     use_marginal_transformation
         Whether marginal (empirical cdf, gaussian ppf) transformation is used.
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
     batch_size
         The size of the batches to be used training and prediction.
     """

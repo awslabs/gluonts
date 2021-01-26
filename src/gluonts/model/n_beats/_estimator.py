@@ -116,6 +116,8 @@ class NBEATSEstimator(GluonEstimator):
         The default value is "MAPE".
     train_sampler
         Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
     batch_size
         The size of the batches to be used training and prediction.
     scale
