@@ -603,6 +603,7 @@ class MultivariateEvaluator(Evaluator):
         eval_dims: List[int] = None,
         target_agg_funcs: Dict[str, Callable] = {},
         custom_eval_fn: Optional[dict] = None,
+        num_workers: Optional[int] = None,
     ) -> None:
         """
 
@@ -624,13 +625,16 @@ class MultivariateEvaluator(Evaluator):
             pass key-value pairs that define aggregation functions over the
             dimension axis. Useful to compute metrics over aggregated target
             and forecast (typically sum or mean).
+        num_workers
+            The number of multiprocessing workers that will be used to process
+            metric for each dimension of the multivariate forecast.
         """
         super().__init__(
             quantiles=quantiles,
             seasonality=seasonality,
             alpha=alpha,
             custom_eval_fn=custom_eval_fn,
-            num_workers=None,
+            num_workers=num_workers,
         )
         self._eval_dims = eval_dims
         self.target_agg_funcs = target_agg_funcs
