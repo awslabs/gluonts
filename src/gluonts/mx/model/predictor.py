@@ -304,7 +304,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         dtype: DType = np.float32,
     ) -> None:
         super().__init__(
-            input_names=get_hybrid_forward_input_names(prediction_net),
+            input_names=get_hybrid_forward_input_names(type(prediction_net)),
             prediction_net=prediction_net,
             batch_size=batch_size,
             prediction_length=prediction_length,

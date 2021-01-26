@@ -23,11 +23,15 @@ from gluonts import transform
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import TrainDataLoader, ValidationDataLoader
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
-from gluonts.mx.batchify import batchify
+from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
@@ -48,6 +52,8 @@ from gluonts.transform import (
     SimpleTransformation,
     VstackFeatures,
     InstanceSampler,
+    ValidationSplitSampler,
+    TestSplitSampler,
 )
 
 
@@ -133,6 +139,8 @@ class WaveNetEstimator(GluonEstimator):
         This is a model optimization that does not affect the accuracy (default: 200)
     train_sampler
         Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
     batch_size
         The size of the batches to be used training and prediction.
     """
@@ -161,37 +169,11 @@ class WaveNetEstimator(GluonEstimator):
         temperature: float = 1.0,
         act_type: str = "elu",
         num_parallel_samples: int = 200,
-        train_sampler: InstanceSampler = ExpectedNumInstanceSampler(1.0),
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
         batch_size: int = 32,
+        negative_data: bool = False,
     ) -> None:
-        """
-        Model with Wavenet architecture and quantized target.
-
-        :param freq:
-        :param prediction_length:
-        :param trainer:
-        :param num_eval_samples:
-        :param cardinality:
-        :param embedding_dimension:
-        :param num_bins: Number of bins used for quantization of signal
-        :param hybridize_prediction_net:
-        :param n_residue: Number of residual channels in wavenet architecture
-        :param n_skip: Number of skip channels in wavenet architecture
-        :param dilation_depth: number of dilation layers in wavenet architecture.
-          If set to None, dialation_depth is set such that the receptive length is at
-          least as long as 2 * seasonality for the frequency and at least
-          2 * prediction_length.
-        :param n_stacks: Number of dilation stacks in wavenet architecture
-        :param train_window_length: Length of windows used for training. This should be
-          longer than prediction length. Larger values result in more efficient
-          reuse of computations for convolutions.
-        :param temperature: Temparature used for sampling from softmax distribution.
-          For temperature = 1.0 sampling is according to estimated probability.
-        :param act_type: Activation type used after before output layer.
-          Can be any of
-              'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'
-        """
-
         super().__init__(trainer=trainer, batch_size=batch_size)
 
         self.freq = freq
@@ -212,7 +194,28 @@ class WaveNetEstimator(GluonEstimator):
         self.temperature = temperature
         self.act_type = act_type
         self.num_parallel_samples = num_parallel_samples
-        self.train_sampler = train_sampler
+        self.train_sampler = (
+            train_sampler
+            if train_sampler is not None
+            else ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=self.train_window_length
+            )
+        )
+        self.validation_sampler = (
+            validation_sampler
+            if validation_sampler is not None
+            else ValidationSplitSampler(min_future=self.train_window_length)
+        )
+        self.negative_data = negative_data
+
+        low = -10.0 if self.negative_data else 0
+        high = 10.0
+        bin_centers = np.linspace(low, high, self.num_bins)
+        bin_edges = np.concatenate(
+            [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
+        )
+        self.bin_centers = bin_centers.tolist()
+        self.bin_edges = bin_edges.tolist()
 
         seasonality = (
             get_seasonality(
@@ -253,81 +256,7 @@ class WaveNetEstimator(GluonEstimator):
             f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
         )
 
-    def train(
-        self,
-        training_data: Dataset,
-        validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-        **kwargs,
-    ) -> Predictor:
-        has_negative_data = any(np.any(d["target"] < 0) for d in training_data)
-        low = -10.0 if has_negative_data else 0
-        high = 10.0
-        bin_centers = np.linspace(low, high, self.num_bins)
-        bin_edges = np.concatenate(
-            [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
-        )
-
-        logging.info(
-            f"using training windows of length = {self.train_window_length}"
-        )
-
-        transformation = self.create_transformation(
-            bin_edges, pred_length=self.train_window_length
-        )
-
-        # ensure that the training network is created within the same MXNet
-        # context as the one that will be used during training
-        with self.trainer.ctx:
-            params = self._get_wavenet_args(bin_centers)
-            params.update(pred_length=self.train_window_length)
-            trained_net = WaveNet(**params)
-
-        input_names = get_hybrid_forward_input_names(trained_net)
-
-        training_data_loader = TrainDataLoader(
-            dataset=training_data,
-            transform=transformation + SelectFields(input_names),
-            batch_size=self.batch_size,
-            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
-            **kwargs,
-        )
-
-        validation_data_loader = None
-        if validation_data is not None:
-            validation_data_loader = ValidationDataLoader(
-                dataset=validation_data,
-                transform=transformation,
-                batch_size=self.batch_size,
-                stack_fn=partial(
-                    batchify, ctx=self.trainer.ctx, dtype=self.dtype
-                ),
-                num_workers=num_workers,
-                num_prefetch=num_prefetch,
-                **kwargs,
-            )
-
-        self.trainer(
-            net=trained_net,
-            train_iter=training_data_loader,
-            validation_iter=validation_data_loader,
-        )
-
-        # ensure that the prediction network is created within the same MXNet
-        # context as the one that was used during training
-        with self.trainer.ctx:
-            return self.create_predictor(
-                transformation, trained_net, bin_centers
-            )
-
-    def create_transformation(
-        self, bin_edges: np.ndarray, pred_length: int
-    ) -> transform.Transformation:
+    def create_transformation(self) -> transform.Transformation:
         return Chain(
             [
                 AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
@@ -355,29 +284,72 @@ class WaveNetEstimator(GluonEstimator):
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
                 ),
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-                InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=self.train_sampler,
-                    past_length=self.context_length,
-                    future_length=pred_length,
-                    output_NTC=False,
-                    time_series_fields=[
-                        FieldName.FEAT_TIME,
-                        FieldName.OBSERVED_VALUES,
-                    ],
-                ),
-                QuantizeScaled(
-                    bin_edges=bin_edges.tolist(),
-                    future_target="future_target",
-                    past_target="past_target",
-                ),
             ]
         )
 
-    def _get_wavenet_args(self, bin_centers):
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        instance_sampler = {
+            "training": self.train_sampler,
+            "validation": self.validation_sampler,
+            "test": TestSplitSampler(),
+        }[mode]
+
+        return InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=instance_sampler,
+            past_length=self.context_length,
+            future_length=self.prediction_length
+            if mode is "test"
+            else self.train_window_length,
+            output_NTC=False,
+            time_series_fields=[
+                FieldName.FEAT_TIME,
+                FieldName.OBSERVED_VALUES,
+            ],
+        ) + QuantizeScaled(
+            bin_edges=self.bin_edges,
+            future_target="future_target",
+            past_target="past_target",
+        )
+
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(WaveNet)
+        instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(WaveNet)
+        instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def _get_wavenet_args(self):
         return dict(
             n_residue=self.n_residue,
             n_skip=self.n_skip,
@@ -386,21 +358,26 @@ class WaveNetEstimator(GluonEstimator):
             act_type=self.act_type,
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
-            bin_values=bin_centers.tolist(),
+            bin_values=self.bin_centers,
             pred_length=self.prediction_length,
         )
+
+    def create_training_network(self) -> WaveNet:
+        params = self._get_wavenet_args()
+        params.update(pred_length=self.train_window_length)
+        return WaveNet(**params)
 
     def create_predictor(
         self,
         transformation: transform.Transformation,
         trained_network: mx.gluon.HybridBlock,
-        bin_values: np.ndarray,
     ) -> Predictor:
+        prediction_splitter = self._create_instance_splitter("test")
 
         prediction_network = WaveNetSampler(
             num_samples=self.num_parallel_samples,
             temperature=self.temperature,
-            **self._get_wavenet_args(bin_values),
+            **self._get_wavenet_args(),
         )
 
         # The lookup layer is specific to the sampling network here
@@ -414,7 +391,7 @@ class WaveNetEstimator(GluonEstimator):
         )
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
             freq=self.freq,
