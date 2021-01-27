@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from functools import partial
 from typing import Callable, List, Optional
 
 import numpy as np
@@ -19,16 +20,23 @@ from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.core.component import validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
+from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.distribution import (
     DistributionOutput,
     LowrankMultivariateGaussianOutput,
 )
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.mx.util import copy_parameters
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.time_feature import TimeFeature
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -45,6 +53,10 @@ from gluonts.transform import (
     Transformation,
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
+    InstanceSampler,
+    TestSplitSampler,
+    SelectFields,
+    ValidationSplitSampler,
 )
 
 from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
@@ -193,6 +205,10 @@ class DeepVAREstimator(GluonEstimator):
         Set maximum length for conditioning the marginal transformation
     use_marginal_transformation
         Whether marginal (empirical cdf, gaussian ppf) transformation is used.
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
     batch_size
         The size of the batches to be used training and prediction.
     """
@@ -220,10 +236,12 @@ class DeepVAREstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 200,
         use_marginal_transformation=False,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
         batch_size: int = 32,
         **kwargs,
     ) -> None:
-        super().__init__(trainer=trainer, **kwargs)
+        super().__init__(trainer=trainer, batch_size=batch_size, **kwargs)
 
         assert (
             prediction_length > 0
@@ -291,25 +309,25 @@ class DeepVAREstimator(GluonEstimator):
         else:
             self.output_transform = None
 
-    def create_transformation(self) -> Transformation:
-        def use_marginal_transformation(
-            marginal_transformation: bool,
-        ) -> Transformation:
-            if marginal_transformation:
-                return CDFtoGaussianTransform(
-                    target_field=FieldName.TARGET,
-                    observed_values_field=FieldName.OBSERVED_VALUES,
-                    max_context_length=self.conditioning_length,
-                    target_dim=self.target_dim,
-                )
-            else:
-                return RenameFields(
-                    {
-                        f"past_{FieldName.TARGET}": f"past_{FieldName.TARGET}_cdf",
-                        f"future_{FieldName.TARGET}": f"future_{FieldName.TARGET}_cdf",
-                    }
-                )
+        self.train_sampler = (
+            train_sampler
+            if train_sampler is not None
+            else ExpectedNumInstanceSampler(
+                num_instances=1.0,
+                min_past=0 if pick_incomplete else self.history_length,
+                min_future=prediction_length,
+            )
+        )
+        self.validation_sampler = (
+            validation_sampler
+            if validation_sampler is not None
+            else ValidationSplitSampler(
+                min_past=0 if pick_incomplete else self.history_length,
+                min_future=prediction_length,
+            )
+        )
 
+    def create_transformation(self) -> Transformation:
         return Chain(
             [
                 AsNumpyArray(
@@ -345,22 +363,76 @@ class DeepVAREstimator(GluonEstimator):
                     target_field=FieldName.TARGET,
                 ),
                 AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-                InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                    past_length=self.history_length,
-                    future_length=self.prediction_length,
-                    time_series_fields=[
-                        FieldName.FEAT_TIME,
-                        FieldName.OBSERVED_VALUES,
-                    ],
-                    pick_incomplete=self.pick_incomplete,
-                ),
-                use_marginal_transformation(self.use_marginal_transformation),
             ]
+        )
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        instance_sampler = {
+            "training": self.train_sampler,
+            "validation": self.validation_sampler,
+            "test": TestSplitSampler(),
+        }[mode]
+
+        return InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=instance_sampler,
+            past_length=self.history_length,
+            future_length=self.prediction_length,
+            time_series_fields=[
+                FieldName.FEAT_TIME,
+                FieldName.OBSERVED_VALUES,
+            ],
+        ) + (
+            CDFtoGaussianTransform(
+                target_field=FieldName.TARGET,
+                observed_values_field=FieldName.OBSERVED_VALUES,
+                max_context_length=self.conditioning_length,
+                target_dim=self.target_dim,
+            )
+            if self.use_marginal_transformation
+            else RenameFields(
+                {
+                    f"past_{FieldName.TARGET}": f"past_{FieldName.TARGET}_cdf",
+                    f"future_{FieldName.TARGET}": f"future_{FieldName.TARGET}_cdf",
+                }
+            )
+        )
+
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(DeepVARTrainingNetwork)
+        instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(DeepVARTrainingNetwork)
+        instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
         )
 
     def create_training_network(self) -> DeepVARTrainingNetwork:
@@ -384,6 +456,8 @@ class DeepVAREstimator(GluonEstimator):
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = self._create_instance_splitter("test")
+
         prediction_network = DeepVARPredictionNetwork(
             target_dim=self.target_dim,
             num_parallel_samples=self.num_parallel_samples,
@@ -405,7 +479,7 @@ class DeepVAREstimator(GluonEstimator):
         copy_parameters(trained_network, prediction_network)
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
             freq=self.freq,

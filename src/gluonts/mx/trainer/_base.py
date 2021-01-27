@@ -259,7 +259,10 @@ class Trainer:
                 first_forward = True
 
                 def loop(
-                    epoch_no, batch_iter, is_training: bool = True
+                    epoch_no,
+                    batch_iter,
+                    num_batches_to_use: Optional[int] = None,
+                    is_training: bool = True,
                 ) -> mx.metric.Loss:
                     nonlocal first_forward
                     tic = time.time()
@@ -272,12 +275,11 @@ class Trainer:
                     ):
                         self.avg_strategy.load_averaged_model(net)
 
-                    with tqdm(
-                        itertools.islice(
-                            batch_iter, self.num_batches_per_epoch
-                        ),
-                        total=self.num_batches_per_epoch,
-                    ) as it:
+                    batch_iter = itertools.islice(
+                        batch_iter, num_batches_to_use
+                    )
+
+                    with tqdm(batch_iter, total=num_batches_to_use) as it:
                         for batch_no, batch in enumerate(it, start=1):
                             # `batch` here is expected to be a dictionary whose fields
                             # should correspond 1-to-1 with the network inputs
@@ -375,7 +377,11 @@ class Trainer:
                         f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
                     )
 
-                    epoch_loss = loop(epoch_no, train_iter)
+                    epoch_loss = loop(
+                        epoch_no,
+                        train_iter,
+                        num_batches_to_use=self.num_batches_per_epoch,
+                    )
                     if is_validation_available:
                         epoch_loss = loop(
                             epoch_no, validation_iter, is_training=False
