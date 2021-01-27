@@ -25,7 +25,7 @@ import json
 
 ## Datasets
 
-### GluonTS datasets
+### Provided datasets
 
 GluonTS comes with a number of publicly available datasets.
 
@@ -154,6 +154,8 @@ After specifying our estimator with all the necessary hyperparameters we can tra
 predictor = estimator.train(dataset.train)
 ```
 
+## Visualize and evaluate forecasts
+
 With a predictor in hand, we can now predict the last window of the `dataset.test` and evaluate our model's performance.
 
 GluonTS comes with the `make_evaluation_predictions` function that automates the process of prediction and model evaluation. Roughly, this function performs the following steps:
@@ -281,193 +283,6 @@ Individual metrics are aggregated only across time-steps.
 
 ```python
 item_metrics.head()
-```
-
-
-```python
-item_metrics.plot(x='MSIS', y='MASE', kind='scatter')
-plt.grid(which="both")
-plt.show()
-```
-
-## Create your own forecast model
-
-For creating your own forecast model you need to:
-
-- Define the training and prediction network
-- Define a new estimator that specifies any data processing and uses the networks
-
-The training and prediction networks can be arbitrarily complex but they should follow some basic rules:
-
-- Both should have a `hybrid_forward` method that defines what should happen when the network is called    
-- The training network's `hybrid_forward` should return a **loss** based on the prediction and the true values
-- The prediction network's `hybrid_forward` should return the predictions 
-
-For example, we can create a simple training network that defines a neural network which takes as an input the past values of the time series and outputs a future predicted window of length `prediction_length`. It uses the L1 loss in the `hybrid_forward` method to evaluate the error among the predictions and the true values of the time series. The corresponding prediction network should be identical to the training network in terms of architecture (we achieve this by inheriting the training network class), and its `hybrid_forward` method outputs directly the predictions.
-
-Note that this simple model does only point forecasts by construction, i.e., we train it to outputs directly the future values of the time series and not any probabilistic view of the future (to achieve this we should train a network to learn a probability distribution and then sample from it to create sample paths).
-
-
-```python
-class MyTrainNetwork(gluon.HybridBlock):
-    def __init__(self, prediction_length, **kwargs):
-        super().__init__(**kwargs)
-        self.prediction_length = prediction_length
-
-        with self.name_scope():
-            # Set up a 3 layer neural network that directly predicts the target values
-            self.nn = mx.gluon.nn.HybridSequential()
-            self.nn.add(mx.gluon.nn.Dense(units=40, activation='relu'))
-            self.nn.add(mx.gluon.nn.Dense(units=40, activation='relu'))
-            self.nn.add(mx.gluon.nn.Dense(units=self.prediction_length, activation='softrelu'))
-
-    def hybrid_forward(self, F, past_target, future_target):
-        prediction = self.nn(past_target)
-        # calculate L1 loss with the future_target to learn the median
-        return (prediction - future_target).abs().mean(axis=-1)
-
-
-class MyPredNetwork(MyTrainNetwork):
-    # The prediction network only receives past_target and returns predictions
-    def hybrid_forward(self, F, past_target):
-        prediction = self.nn(past_target)
-        return prediction.expand_dims(axis=1)
-```
-
-Now, we need to construct the estimator which should also follow some rules:
-
-- It should include a `create_transformation` method that defines all the possible feature transformations and how the data is split during training
-- It should include a `create_training_network` method that returns the training network configured with any necessary hyperparameters
-- It should include a `create_predictor` method that creates the prediction network, and returns a `Predictor` object
-
-A `Predictor` defines the `predict` method of a given predictor. Roughly, this method takes the test dataset, it passes it through the prediction network and yields the predictions. You can think of the `Predictor` object as a wrapper of the prediction network that defines its `predict` method.
-
-Earlier, we used the `make_evaluation_predictions` to evaluate our predictor. Internally, the `make_evaluation_predictions` function invokes the `predict` method of the predictor to get the forecasts.
-
-
-```python
-from gluonts.mx.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-from gluonts.core.component import validated
-from gluonts.mx.util import copy_parameters
-from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
-from gluonts.dataset.field_names import FieldName
-from mxnet.gluon import HybridBlock
-```
-
-
-```python
-class MyEstimator(GluonEstimator):
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        context_length: int,
-        prediction_length: int,
-        batch_size: int = 32,
-        trainer: Trainer = Trainer(),
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
-        self.context_length = context_length
-        self.prediction_length = prediction_length
-        self.freq = freq
-
-
-    def create_transformation(self):
-        # Feature transformation that the model uses for input.
-        # Here we use a transformation that randomly select training samples from all time series.
-        return InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                    past_length=self.context_length,
-                    future_length=self.prediction_length,
-                )
-
-    def create_training_network(self) -> MyTrainNetwork:
-        return MyTrainNetwork(
-            prediction_length=self.prediction_length
-        )
-
-    def create_predictor(
-        self, transformation: Transformation, trained_network: HybridBlock
-    ) -> Predictor:
-        prediction_network = MyPredNetwork(
-            prediction_length=self.prediction_length
-        )
-
-        copy_parameters(trained_network, prediction_network)
-
-        return RepresentableBlockPredictor(
-            input_transform=transformation,
-            prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
-            freq=self.freq,
-            prediction_length=self.prediction_length,
-            ctx=self.trainer.ctx,
-        )
-```
-
-Now, we can repeat the same pipeline as in the case we had a pre-built model: train the predictor, create the forecasts and evaluate the results.
-
-
-```python
-estimator = MyEstimator(
-    prediction_length=dataset.metadata.prediction_length,
-    context_length=100,
-    freq=dataset.metadata.freq,
-    trainer=Trainer(ctx="cpu", 
-                    epochs=5, 
-                    learning_rate=1e-3, 
-                    num_batches_per_epoch=100
-                   )
-)
-```
-
-
-```python
-predictor = estimator.train(dataset.train)
-```
-
-
-```python
-forecast_it, ts_it = make_evaluation_predictions(
-    dataset=dataset.test,
-    predictor=predictor,
-    num_samples=100
-)
-```
-
-
-```python
-forecasts = list(forecast_it)
-tss = list(ts_it)
-```
-
-
-```python
-plot_prob_forecasts(tss[0], forecasts[0])
-```
-
-Observe that we cannot actually see any prediction intervals in the predictions. This is expected since the model that we defined does not do probabilistic forecasting but it just gives point estimates. By requiring 100 sample paths (defined in `make_evaluation_predictions`) in such a network, we get 100 times the same output.
-
-
-```python
-evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-agg_metrics, item_metrics = evaluator(iter(tss), iter(forecasts), num_series=len(dataset.test))
-```
-
-
-```python
-print(json.dumps(agg_metrics, indent=4))
-```
-
-
-```python
-item_metrics.head(10)
 ```
 
 
