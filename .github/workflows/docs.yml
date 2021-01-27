@@ -27,9 +27,13 @@ jobs:
         pip install -r requirements/requirements-extras-anomaly-evaluation.txt
         pip install -r requirements/requirements-extras-autogluon.txt
 
+    - name: Install Pandoc
+      run: |
+        sudo apt-get install pandoc
+
     - name: Build docs
       run: |
-        make -C docs html SPHINXOPTS=-W
+        make docs
     - name: Doctests
       run: |
         pytest --doctest-modules src/gluonts
