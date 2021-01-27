@@ -66,14 +66,14 @@ You can install GluonTS using `pip <https://pip.pypa.io/en/stable/installing/>`_
 
 Tutorials
 ---------
-The best way to get started with GluonTS is by diving in using our :doc:`tutorials <examples/index>`, which you can download as Jupyter notebooks.
+The best way to get started with GluonTS is by diving in using our :doc:`tutorials <tutorials/index>`, which you can download as Jupyter notebooks.
 
 
 .. toctree::
    :hidden:
    :maxdepth: 2
 
-   examples/index
+   tutorials/index
    api/gluonts/gluonts
    community/index
    bibliography

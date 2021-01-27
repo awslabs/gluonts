@@ -1,32 +1,5 @@
 # Extended Forecasting Tutorial 
 
-In the extended forecasting tutorial we cover the following topics.
-
----
-> ## Table of contents
-> 1. ### <span style="color:orange">Datasets</span>
-    1.1 Available datasets on GluonTS  
-    1.2 Create artificial datasets with GluonTS  
-    1.3 Use your time series and features
-> 2. ### <span style="color:orange">Transformation</span>
-    2.1 Define a transformation  
-    2.2 Transform a dataset 
-> 3. ### <span style="color:orange">Training an existing model</span>
-    3.1 Configuring an estimator  
-    3.2 Getting a predictor  
-    3.3 Saving/Loading an existing model  
-> 4. ### <span style="color:orange">Evaluation</span>
-    4.1 Getting the forecasts  
-    4.2 Compute metrics  
-> 5. ### <span style="color:orange">Create your own model</span>
-    5.1 Point forecasts with a simple feedforward network  
-    5.2 Probabilistic forecasting  
-    5.3 Add features and scaling   
-    5.4 From feedforward to RNN
-    
----
-
-
 ```python
 %matplotlib inline
 import mxnet as mx
@@ -46,7 +19,7 @@ mx.random.seed(0)
 np.random.seed(0)
 ```
 
-# 1. Datasets
+## Datasets
 
 The first requirement to use GluonTS is to have an appropriate dataset. GluonTS offers three different options to practitioners that want to experiment with the various modules: 
 
@@ -58,7 +31,7 @@ In general, a dataset should satisfy some minimum format requirements to be comp
 
 The datasets provided by GluonTS come in the appropriate format and they can be used without any post processing. However, a custom dataset needs to be converted. Fortunately this is an easy task.
 
-## 1.1 Available datasets on GluonTS
+### Available datasets in GluonTS
 
 GluonTS comes with a number of available datasets. 
 
@@ -80,7 +53,7 @@ To download one of the built-in datasets, simply call `get_dataset` with one of 
 dataset = get_dataset("m4_hourly", regenerate=True)
 ```
 
-### 1.1.1 What is in a dataset?
+### What is in a dataset?
 
 In general, the datasets provided by GluonTS are objects that consists of three main members:
 
@@ -136,7 +109,7 @@ print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
 print(f"Frequency of the time series: {dataset.metadata.freq}")
 ```
 
-## 1.2 Create artificial datasets
+### Create artificial datasets
 
 We can easily create a complex artificial time series dataset using the `ComplexSeasonalTimeSeries` module.
 
@@ -228,7 +201,7 @@ ax[1].legend(["test series", "end of train series"], loc="upper left")
 plt.show()
 ```
 
-## 1.3 Use your time series and features
+### Use your time series and features
 
 Now, we will see how we can convert any custom dataset with any associated features to an appropriate format for GluonTS.
 
@@ -398,9 +371,9 @@ plt.show()
 
 ```
 
-# 2. Transformation
+## Transformations
 
-## 2.1 Define a transformation
+### Define a transformation
 
 The primary use case for a `Transformation` is for feature processing, e.g., adding a holiday feature and for defining the way the dataset will be split into appropriate windows during training and inference. 
 
@@ -460,7 +433,7 @@ def create_transformation(freq, context_length, prediction_length):
     )
 ```
 
-## 2.2 Transform a dataset
+### Transform a dataset
 
 Now, we can create a transformation object by applying the above transformation to the custom dataset we have created.
 
@@ -551,11 +524,11 @@ All the things we did manually here are done by an internal block called `DataLo
 
 ```
 
-# 3. Training an existing model
+## Training an existing model
 
 GluonTS comes with a number of pre-built models. All the user needs to do is configure some hyperparameters. The existing models focus on (but are not limited to) probabilistic forecasting. Probabilistic forecasts are predictions in the form of a probability distribution, rather than simply a single point estimate. Having estimated the future distribution of each time step in the forecasting horizon, we can draw a sample from the distribution at each time step and thus create a "sample path" that can be seen as a possible realization of the future. In practice we draw multiple samples and create multiple sample paths which can be used for visualization, evaluation of the model, to derive statistics, etc.
 
-## 3.1 Configuring an estimator
+### Configuring an estimator
 
 We will begin with GulonTS's pre-built feedforward neural network estimator, a simple but powerful forecasting model. We will use this model to demonstrate the process of training a model, producing forecasts, and evaluating the results.
 
@@ -587,7 +560,7 @@ estimator = SimpleFeedForwardEstimator(
 )
 ```
 
-## 3.2 Getting a predictor
+### Getting a predictor
 
 After specifying our estimator with all the necessary hyperparameters we can train it using our training dataset `dataset.train` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to construct forecasts.
 
@@ -598,7 +571,7 @@ We should emphasize here that a single model, as the one defined above, is train
 predictor = estimator.train(train_ds)
 ```
 
-## 3.3 Saving/Loading an existing model
+### Saving/Loading an existing model
 
 A fitted model, i.e., a `Predictor`, can be saved and loaded back easily:
 
@@ -616,9 +589,9 @@ from gluonts.model.predictor import Predictor
 predictor_deserialized = Predictor.deserialize(Path("/tmp/"))
 ```
 
-# 4. Evaluation
+## Evaluation
 
-## 4.1 Getting the forecasts
+### Getting the forecasts
 
 With a predictor in hand, we can now predict the last window of the `dataset.test` and evaluate our model's performance.
 
@@ -722,7 +695,7 @@ def plot_prob_forecasts(ts_entry, forecast_entry):
 plot_prob_forecasts(ts_entry, forecast_entry)
 ```
 
-## 4.2 Compute metrics
+### Compute metrics
 
 We can also evaluate the quality of our forecasts numerically. In GluonTS, the `Evaluator` class can compute aggregate performance metrics, as well as metrics per time series (which can be useful for analyzing performance across heterogeneous time series).
 
@@ -763,7 +736,7 @@ plt.show()
 
 ```
 
-# 5. Create your own model
+## Create your own model
 
 For creating our own forecast model we need to:
 
@@ -788,7 +761,7 @@ In this section, we will start simple by creating a feedforward network that is 
 
 We need to emphasize that the way the following models are implemented and all the design choices that are made are neither binding nor necessarily optimal. Their sole purpose is to provide guidelines and hints on how to build a model. 
 
-## 5.1 Point forecasts with a simple feedforward network
+### Point forecasts with a simple feedforward network
 
 We can create a simple training network that defines a neural network that takes as input a window of length `context_length` and predicts the subsequent window of dimension `prediction_length` (thus, the output dimension of the network is `prediction_length`). The `hybrid_forward` method of the training network returns the mean of the L1 loss. 
 
@@ -943,9 +916,9 @@ plot_prob_forecasts(tss[0], forecasts[0])
 
 Observe that we cannot actually see any prediction intervals in the predictions. This is expected since the model that we defined does not do probabilistic forecasting but it just gives point estimates. By requiring 100 sample paths (defined in `make_evaluation_predictions`) in such a network, we get 100 times the same output.
 
-## 5.2 Probabilistic forecasting
+### Probabilistic forecasting
 
-### 5.2.1 How does a model learn a distribution?
+#### How does a model learn a distribution?
 
 Probabilistic forecasting requires that we learn the distribution of the future values of the time series and not the values themselves as in point forecasting. To achieve this, we need to specify the type of distribution that the future values follow. GluonTS comes with a number of different distributions that cover many use cases, such as Gaussian, Student-t and Uniform just to name a few.  
 
@@ -958,7 +931,7 @@ However, it is not straightforward how to connect a model with such a distributi
 
 By including this projection layer, our model effectively learns the parameters of the (chosen) distribution of each time step. Such a model is usually optimized by choosing as a loss function the negative log-likelihood of the chosen distribution. After we optimize our model and learn the parameters we can sample or derive any other useful statistics from the learned distributions.
 
-### 5.2.2 Feedforward network for probabilistic forecasting
+#### Feedforward network for probabilistic forecasting
 
 Let's see what changes we need to make to the previous model to make it probabilistic: 
 
@@ -1154,7 +1127,7 @@ tss = list(ts_it)
 plot_prob_forecasts(tss[0], forecasts[0])
 ```
 
-## 5.3 Add features and scaling
+### Add features and scaling
 
 In the previous networks we used only the target and did not leverage any of the features of the dataset. Here we expand the probabilistic network by including the `feat_dynamic_real` field of the dataset that could enhance the forecasting power of our model. We achieve this by concatenating the target and the features to an enhanced vector that forms the new network input. 
 
@@ -1413,15 +1386,15 @@ tss = list(ts_it)
 plot_prob_forecasts(tss[0], forecasts[0])
 ```
 
-## 5.4 From feedforward to RNN
+### From feedforward to RNN
 
 In all the previous examples we have used a feedforward neural network as the base for our forecasting model. The main idea behind it was to use as an input to the network a window of the time series (of length `context_length`) and train the network to forecast the following window (of length `prediction_length`). 
 
 In this section we will replace the feedforward network with a recurrent neural network (RNN). Due to the different nature of RNNs the structure of the networks will be a bit different. Let's see what are the major changes. 
 
-### 5.4.1 Training
+#### Training
 
-The main idea behind RNN is the same as in the feedforward networks we already constructed: as we unrolll the RNN at each time step we use as an input past values of the time series and forecast the next value. We can enhance the input by using multiple past values (for example specific lags based on seasonality patterns) or available features. However, in this example we will keep things simple and just use the last value of the time series. The output of the network at each time step is the distribution of the value of the next time step, where the state of the RNN is used as the feature vector for the parameter projection of the distribution.
+The main idea behind RNN is the same as in the feedforward networks we already constructed: as we unroll the RNN at each time step we use as an input past values of the time series and forecast the next value. We can enhance the input by using multiple past values (for example specific lags based on seasonality patterns) or available features. However, in this example we will keep things simple and just use the last value of the time series. The output of the network at each time step is the distribution of the value of the next time step, where the state of the RNN is used as the feature vector for the parameter projection of the distribution.
 
 Due to the sequential nature of the RNN, the distinction between `past_` and `future_` in the cut window of the time series is not really necessary. Therefore, we can concatenate `past_target` and `future_target ` and treat it as a concrete `target` window that we wish to forecast. This means that the input to the RNN would be (sequentially) the window `target[-(context_length + prediction_length + 1):-1]` (one time step before the window we want to predict). As a consequence, we need to have `context_length + prediction_length + 1` available values at each window that we cut. We can define this in the `InstanceSplitter`. 
 
@@ -1433,7 +1406,7 @@ Overall, during training the steps are the following:
 
 The above steps are implemented in the `unroll_encoder` method.
 
-### 5.4.2 Inference
+#### Inference
 
 During inference we know the values only of `past_target` therefore we cannot follow exactly the same steps as in training. However the main idea is very similar:
 
@@ -1770,14 +1743,4 @@ tss = list(ts_it)
 
 ```python
 plot_prob_forecasts(tss[0], forecasts[0])
-```
-
-
-```python
-
-```
-
-
-```python
-
 ```
