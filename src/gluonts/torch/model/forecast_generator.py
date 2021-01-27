@@ -11,25 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Any, Callable, Iterator, List, Optional
+from typing import Iterator
 
-import mxnet as mx
+import torch
 
 from gluonts.model.forecast_generator import (
     recursively_zip_arrays,
     make_distribution_forecast,
-    DistributionForecastGenerator,  # this is for backward compatibility
+    DistributionForecastGenerator,  # this is for analogy with gluonts.mx.model.forecast_generator
 )
-from gluonts.mx.distribution import Distribution
-from gluonts.mx.model.forecast import DistributionForecast
+from gluonts.torch.model.forecast import DistributionForecast
 
 
-@recursively_zip_arrays.register(mx.nd.NDArray)
-def _(x: mx.nd.NDArray) -> Iterator[mx.nd.NDArray]:
+@recursively_zip_arrays.register(torch.Tensor)
+def _(x: torch.Tensor) -> Iterator[torch.Tensor]:
     for i in range(x.shape[0]):
         yield x[i]
 
 
-@make_distribution_forecast.register(Distribution)
-def _(distr: Distribution, *args, **kwargs) -> DistributionForecast:
+@make_distribution_forecast.register(torch.distributions.Distribution)
+def _(
+    distr: torch.distributions.Distribution, *args, **kwargs
+) -> DistributionForecast:
     return DistributionForecast(distr, *args, **kwargs)

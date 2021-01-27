@@ -11,16 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from gluonts.shell.sagemaker.nested_params import decode_nested_parameters
 
-import typing
-from pkgutil import extend_path
 
-import mxnet as mx
+def test_nested_params():
+    data = decode_nested_parameters(
+        {
+            "$env.num_workers": "4",
+            "$evaluation.quantiles": [0.1, 0.5, 0.9],
+            "prediction_length": 14,
+        }
+    )
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+    hps = data.pop("")
+    assert hps["prediction_length"] == 14
 
-# Tensor type for HybridBlocks in Gluon
-Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
+    env = data.pop("env")
+    assert env["num_workers"] == "4"
 
-from gluonts.mx.prelude import *
+    evaluation = data.pop("evaluation")
+    assert evaluation["quantiles"] == [0.1, 0.5, 0.9]

@@ -19,6 +19,7 @@ from typing import Optional
 import click
 
 from gluonts.core.exception import GluonTSForecasterNotFoundError
+from gluonts.env import env as gluonts_env
 from gluonts.shell.serve import Settings
 
 from .env import ServeEnv, TrainEnv
@@ -113,6 +114,10 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
 
     try:
         env = TrainEnv(Path(data_path))
+
+        if env.env is not None:
+            gluonts_env._push(**env.env)
+
         if forecaster is None:
             try:
                 forecaster = env.hyperparameters["forecaster_name"]

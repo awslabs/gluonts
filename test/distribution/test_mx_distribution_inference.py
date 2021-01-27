@@ -994,7 +994,6 @@ def test_poisson_likelihood(rate: float, hybridize: bool) -> None:
         num_epochs=PositiveInt(20),
     )
 
-    print("rate:", rate_hat)
     assert (
         np.abs(rate_hat[0] - rate) < TOL * rate
     ), f"mu did not match: rate = {rate}, rate_hat = {rate_hat}"

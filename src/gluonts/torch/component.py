@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import numpy as np
-
 import torch
 
 from gluonts.core.component import equals, tensor_to_numpy

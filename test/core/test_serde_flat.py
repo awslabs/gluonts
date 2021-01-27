@@ -11,16 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from gluonts.core import serde
+from gluonts.core.component import equals
+from gluonts.model.deepar import DeepAREstimator
 
-import typing
-from pkgutil import extend_path
 
-import mxnet as mx
+def test_nested_params():
+    deepar = DeepAREstimator(prediction_length=7, freq="D")
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+    assert equals(deepar, serde.flat.decode(serde.flat.encode(deepar)))
 
-# Tensor type for HybridBlocks in Gluon
-Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
-
-from gluonts.mx.prelude import *
+    deepar2 = serde.flat.clone(deepar, {"trainer.epochs": 999})
+    assert deepar2.trainer.epochs == 999
