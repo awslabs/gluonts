@@ -110,10 +110,8 @@ class TabularEstimator(Estimator):
         self.prediction_length = prediction_length
         default_kwargs = {
             "excluded_model_types": ["KNN", "XT", "RF"],
-            "hyperparameters": "light",
-            "num_bagging_sets": 1,
             "presets": [
-                "best_quality_with_high_quality_refit",
+                "high_quality_fast_inference_only_refit",
                 "optimize_for_deployment",
             ],
             "eval_metric": "mean_absolute_error",
