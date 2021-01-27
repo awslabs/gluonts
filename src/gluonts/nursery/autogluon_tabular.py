@@ -103,21 +103,32 @@ class TabularPredictor(Predictor):
 
 
 class TabularEstimator(Estimator):
-    def __init__(self, freq: str, prediction_length: int) -> None:
+    def __init__(self, freq: str, prediction_length: int, **kwargs) -> None:
         super().__init__()
         self.task = task
         self.freq = freq
         self.prediction_length = prediction_length
+        default_kwargs = {
+            "excluded_model_types": ["KNN", "XT", "RF"],
+            "presets": [
+                "high_quality_fast_inference_only_refit",
+                "optimize_for_deployment",
+            ],
+            "eval_metric": "mean_absolute_error",
+        }
+        self.kwargs = {**default_kwargs, **kwargs}
 
     def train(self, training_data: Dataset) -> TabularPredictor:
-        # every time there is only one time series passed
-        # list(training_data)[0] is essentially getting the only time series
         dfs = [
             get_prediction_dataframe(to_pandas(entry))
             for entry in training_data
         ]
         df = pd.concat(dfs)
-        ag_model = self.task.fit(df, label="target")
+
+        ag_model = self.task.fit(
+            df, label="target", problem_type="regression", **self.kwargs
+        )
+
         return TabularPredictor(ag_model, self.freq, self.prediction_length)
 
 
