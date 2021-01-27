@@ -268,9 +268,6 @@ class MultiHeadAttentionBase(HybridBlock):
 
         return contexts
 
-    def hybrid_forward(self, F, *args, **kwargs):
-        raise NotImplementedError
-
 
 class MultiHeadSelfAttention(MultiHeadAttentionBase):
     r"""
@@ -546,6 +543,7 @@ class TransformerProcessBlock(HybridBlock):
                 data = F.broadcast_add(data, prev)
 
             elif step == "n":
+                assert self.layer_norm is not None
                 data = self.layer_norm(data)
 
             elif step == "d":

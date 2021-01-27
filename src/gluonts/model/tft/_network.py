@@ -342,7 +342,7 @@ class TemporalFusionTransformerNetwork(HybridBlock):
 
         past_covariates = []
         future_covariates = []
-        static_covariates = []
+        static_covariates: List[Tensor] = []
         proj = self.target_proj(past_target)
         past_covariates.append(proj)
         if self.past_feat_dynamic_proj is not None:

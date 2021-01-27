@@ -215,12 +215,24 @@ class GPVAREstimator(GluonEstimator):
             if time_features is not None
             else time_features_from_frequency_str(self.freq)
         )
+
+        self.history_length = self.context_length + max(self.lags_seq)
+        self.pick_incomplete = pick_incomplete
+        self.scaling = scaling
+        self.conditioning_length = conditioning_length
+        self.use_marginal_transformation = use_marginal_transformation
+        self.output_transform = (
+            cdf_to_gaussian_forward_transform
+            if self.use_marginal_transformation
+            else None
+        )
+
         self.train_sampler = (
             train_sampler
             if train_sampler is not None
             else ExpectedNumInstanceSampler(
                 num_instances=1.0,
-                min_past=0 if pick_incomplete else self.context_length,
+                min_past=0 if pick_incomplete else self.history_length,
                 min_future=prediction_length,
             )
         )
@@ -228,20 +240,10 @@ class GPVAREstimator(GluonEstimator):
             validation_sampler
             if validation_sampler is not None
             else ValidationSplitSampler(
-                min_past=0 if pick_incomplete else self.context_length,
+                min_past=0 if pick_incomplete else self.history_length,
                 min_future=prediction_length,
             )
         )
-
-        self.history_length = self.context_length + max(self.lags_seq)
-        self.pick_incomplete = pick_incomplete
-        self.scaling = scaling
-        self.conditioning_length = conditioning_length
-        self.use_marginal_transformation = use_marginal_transformation
-        if self.use_marginal_transformation:
-            self.output_transform = cdf_to_gaussian_forward_transform
-        else:
-            self.output_transform = None
 
     def create_transformation(self) -> Transformation:
         return Chain(

@@ -30,7 +30,11 @@ from gluonts.dataset.loader import (
 )
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.model.wavenet._network import WaveNet, WaveNetSampler
+from gluonts.model.wavenet._network import (
+    WaveNet,
+    WaveNetTraining,
+    WaveNetSampler,
+)
 from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
@@ -322,7 +326,7 @@ class WaveNetEstimator(GluonEstimator):
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        input_names = get_hybrid_forward_input_names(WaveNet)
+        input_names = get_hybrid_forward_input_names(WaveNetTraining)
         instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
@@ -338,7 +342,7 @@ class WaveNetEstimator(GluonEstimator):
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        input_names = get_hybrid_forward_input_names(WaveNet)
+        input_names = get_hybrid_forward_input_names(WaveNetTraining)
         instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
@@ -362,10 +366,10 @@ class WaveNetEstimator(GluonEstimator):
             pred_length=self.prediction_length,
         )
 
-    def create_training_network(self) -> WaveNet:
+    def create_training_network(self) -> WaveNetTraining:
         params = self._get_wavenet_args()
         params.update(pred_length=self.train_window_length)
-        return WaveNet(**params)
+        return WaveNetTraining(**params)
 
     def create_predictor(
         self,

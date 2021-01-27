@@ -348,6 +348,8 @@ class WaveNet(nn.HybridBlock):
         unnormalized_output = y.swapaxes(1, 2)
         return unnormalized_output, queues_next
 
+
+class WaveNetTraining(WaveNet):
     def hybrid_forward(
         self,
         F,
@@ -451,14 +453,6 @@ class WaveNetSampler(WaveNet):
         temperature: float = 1.0,
         **kwargs,
     ):
-        """
-                Same arguments as WaveNet. In addition
-                :param pred_length: prediction length
-                :param num_samples: number of sample paths to generate in parallel in the graph
-                :param temperature: if set to 1.0 (default), sample according to estimated probabilities
-        -         if set to 0.0 most likely sample at each step is chosen.
-                :param post_transform: An optional post transform that will be applied to the samples.
-        """
         super().__init__(bin_values=bin_values, **kwargs)
         self.num_samples = num_samples
         self.temperature = temperature
