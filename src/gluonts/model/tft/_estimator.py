@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from functools import partial
 from itertools import chain
 from typing import Dict, List, Optional
 
@@ -19,19 +20,30 @@ import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import DType, validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
 from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
-from gluonts.mx.util import copy_parameters
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
+    InstanceSampler,
     ExpectedNumInstanceSampler,
+    TestSplitSampler,
+    ValidationSplitSampler,
+    SelectFields,
     SetField,
     Transformation,
     VstackFeatures,
@@ -70,6 +82,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         static_feature_dims: Dict[str, int] = {},
         dynamic_feature_dims: Dict[str, int] = {},
         past_dynamic_features: List[str] = [],
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
         batch_size: int = 32,
     ) -> None:
         super(TemporalFusionTransformerEstimator, self).__init__(
@@ -119,6 +133,19 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     f"Feature name {name} is not provided in feature dicts"
                 )
 
+        self.train_sampler = (
+            train_sampler
+            if train_sampler is not None
+            else ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=prediction_length
+            )
+        )
+        self.validation_sampler = (
+            validation_sampler
+            if validation_sampler is not None
+            else ValidationSplitSampler(min_future=prediction_length)
+        )
+
     def create_transformation(self) -> Transformation:
         transforms = (
             [AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)]
@@ -153,9 +180,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 ),
             ]
         )
-
-        ts_fields = []
-        past_ts_fields = []
 
         if self.static_cardinalities:
             transforms.append(
@@ -223,7 +247,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     ),
                 ]
             )
-        ts_fields.append(FieldName.FEAT_DYNAMIC_CAT)
 
         input_fields = [FieldName.FEAT_TIME]
         if self.dynamic_feature_dims:
@@ -234,7 +257,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 output_field=FieldName.FEAT_DYNAMIC_REAL,
             )
         )
-        ts_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
         if self.past_dynamic_cardinalities:
             transforms.append(
@@ -257,7 +279,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC + "_cat"),
                 ]
             )
-        past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC + "_cat")
 
         if self.past_dynamic_feature_dims:
             transforms.append(
@@ -279,21 +300,67 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC_REAL),
                 ]
             )
-        past_ts_fields.append(FieldName.PAST_FEAT_DYNAMIC_REAL)
-
-        transforms.append(
-            TFTInstanceSplitter(
-                train_sampler=ExpectedNumInstanceSampler(
-                    num_instances=self.num_instance_per_series,
-                ),
-                past_length=self.context_length,
-                future_length=self.prediction_length,
-                time_series_fields=ts_fields,
-                past_time_series_fields=past_ts_fields,
-            )
-        )
 
         return Chain(transforms)
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        instance_sampler = {
+            "training": self.train_sampler,
+            "validation": self.validation_sampler,
+            "test": TestSplitSampler(),
+        }[mode]
+
+        ts_fields = [FieldName.FEAT_DYNAMIC_CAT, FieldName.FEAT_DYNAMIC_REAL]
+        past_ts_fields = [
+            FieldName.PAST_FEAT_DYNAMIC + "_cat",
+            FieldName.PAST_FEAT_DYNAMIC_REAL,
+        ]
+
+        return TFTInstanceSplitter(
+            instance_sampler=instance_sampler,
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+            time_series_fields=ts_fields,
+            past_time_series_fields=past_ts_fields,
+        )
+
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            TemporalFusionTransformerTrainingNetwork
+        )
+        instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            TemporalFusionTransformerTrainingNetwork
+        )
+        instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
 
     def create_training_network(
         self,
@@ -331,6 +398,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> RepresentableBlockPredictor:
+        prediction_splitter = self._create_instance_splitter("test")
         prediction_network = TemporalFusionTransformerPredictionNetwork(
             context_length=self.context_length,
             prediction_length=self.prediction_length,
@@ -361,7 +429,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         )
         copy_parameters(trained_network, prediction_network)
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
             freq=self.freq,

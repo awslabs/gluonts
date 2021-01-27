@@ -11,19 +11,27 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional
+from functools import partial
+from typing import List, Optional, Callable
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import DType, validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.loader import (
+    TrainDataLoader,
+    ValidationDataLoader,
+    DataLoader,
+)
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
+from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.kernels import KernelOutput, RBFKernelOutput
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.mx.util import copy_parameters
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.transform import (
     AddTimeFeatures,
@@ -31,6 +39,7 @@ from gluonts.transform import (
     CanonicalInstanceSplitter,
     Chain,
     SetFieldIfNotPresent,
+    SelectFields,
     TestSplitSampler,
     Transformation,
 )
@@ -146,32 +155,70 @@ class GaussianProcessEstimator(GluonEstimator):
         self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> Transformation:
-        return Chain(
-            [
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
-                AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=self.time_features,
-                    pred_length=self.prediction_length,
-                ),
-                SetFieldIfNotPresent(
-                    field=FieldName.FEAT_STATIC_CAT, value=[0.0]
-                ),
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-                CanonicalInstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    instance_sampler=TestSplitSampler(),
-                    time_series_fields=[FieldName.FEAT_TIME],
-                    instance_length=self.context_length,
-                    use_prediction_features=True,
-                    prediction_length=self.prediction_length,
-                ),
-            ]
+        return (
+            AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)
+            + AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field=FieldName.FEAT_TIME,
+                time_features=self.time_features,
+                pred_length=self.prediction_length,
+            )
+            + SetFieldIfNotPresent(
+                field=FieldName.FEAT_STATIC_CAT, value=[0.0]
+            )
+            + AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1)
+        )
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        return CanonicalInstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=TestSplitSampler(),
+            time_series_fields=[FieldName.FEAT_TIME],
+            instance_length=self.context_length,
+            use_prediction_features=(mode is not "training"),
+            prediction_length=self.prediction_length,
+        )
+
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            GaussianProcessTrainingNetwork
+        )
+        instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            GaussianProcessTrainingNetwork
+        )
+        instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
         )
 
     def create_training_network(self) -> HybridBlock:
@@ -190,6 +237,8 @@ class GaussianProcessEstimator(GluonEstimator):
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = self._create_instance_splitter("test")
+
         prediction_network = GaussianProcessPredictionNetwork(
             prediction_length=self.prediction_length,
             context_length=self.context_length,
@@ -210,7 +259,7 @@ class GaussianProcessEstimator(GluonEstimator):
         )
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
             freq=self.freq,

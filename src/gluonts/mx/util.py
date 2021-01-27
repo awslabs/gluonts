@@ -14,7 +14,7 @@
 import inspect
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, cast
+from typing import List, Optional, Tuple, Union, cast, Type
 
 import mxnet as mx
 import numpy as np
@@ -122,14 +122,20 @@ def copy_parameters(
         )
 
 
-def get_hybrid_forward_input_names(hb: mx.gluon.HybridBlock):
-    params = inspect.signature(hb.hybrid_forward).parameters
+def get_hybrid_forward_input_names(
+    hybrid_block_type: Type[mx.gluon.HybridBlock],
+):
+    params = inspect.signature(hybrid_block_type.hybrid_forward).parameters
     param_names = [k for k, v in params.items() if not str(v).startswith("*")]
-    assert param_names[0] == "F", (
-        f"Expected first argument of HybridBlock to be `F`, "
+    assert param_names[0] == "self", (
+        f"Expected first argument of hybrid_forward to be `self`, "
         f"but found `{param_names[0]}`"
     )
-    return param_names[1:]  # skip: F
+    assert param_names[1] == "F", (
+        f"Expected second argument of hybrid_forward to be `F`, "
+        f"but found `{param_names[1]}`"
+    )
+    return param_names[2:]  # skip: self, F
 
 
 # noinspection PyProtectedMember

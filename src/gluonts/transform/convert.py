@@ -292,7 +292,7 @@ class SampleTargetDim(FlatMapTransformation):
         self.shuffle = shuffle
 
     def flatmap_transform(
-        self, data: DataEntry, is_train: bool, slice_future_target: bool = True
+        self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
         if not is_train:
             yield data

@@ -156,7 +156,7 @@ class SelfAttention(HybridBlock):
         ), f"hidden dim {d_hidden} cannot be split into {n_groups} groups."
         assert (
             n_head % n_groups == 0
-        ), f"num_heads {n_heads} cannot be allocated for {n_groups} groups."
+        ), f"num_heads {n_head} cannot be allocated for {n_groups} groups."
         self.d_hidden = d_hidden
         self.kernel_sizes = kernel_sizes
         self.n_groups = n_groups

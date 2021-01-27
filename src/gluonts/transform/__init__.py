@@ -29,6 +29,7 @@ __all__ = [
     "ContinuousTimeInstanceSplitter",
     "ContinuousTimePointSampler",
     "ContinuousTimeUniformSampler",
+    "ContinuousTimePredictionSampler",
     "ExpandDimArray",
     "ExpectedNumInstanceSampler",
     "FilterTransformation",
@@ -51,6 +52,7 @@ __all__ = [
     "TargetDimIndicator",
     "TransformedDataset",
     "TestSplitSampler",
+    "ValidationSplitSampler",
     "Transformation",
     "UniformSplitSampler",
     "VstackFeatures",
@@ -112,9 +114,11 @@ from .sampler import (
     BucketInstanceSampler,
     ContinuousTimePointSampler,
     ContinuousTimeUniformSampler,
+    ContinuousTimePredictionSampler,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     TestSplitSampler,
+    ValidationSplitSampler,
     UniformSplitSampler,
 )
 from .split import (

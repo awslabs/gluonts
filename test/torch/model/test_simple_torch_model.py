@@ -37,6 +37,7 @@ from gluonts.transform import (
     AddObservedValuesIndicator,
     Chain,
     ExpectedNumInstanceSampler,
+    TestSplitSampler,
     InstanceSplitter,
 )
 
@@ -158,37 +159,48 @@ def test_simple_model():
         scaling=mean_abs_scaling,
     )
 
-    transformation = Chain(
-        [
-            AddObservedValuesIndicator(
-                target_field=FieldName.TARGET,
-                output_field=FieldName.OBSERVED_VALUES,
-            ),
-            InstanceSplitter(
-                target_field=FieldName.TARGET,
-                is_pad_field=FieldName.IS_PAD,
-                start_field=FieldName.START,
-                forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                past_length=context_length,
-                future_length=prediction_length,
-                time_series_fields=[FieldName.OBSERVED_VALUES],
-            ),
-        ]
+    transformation = AddObservedValuesIndicator(
+        target_field=FieldName.TARGET,
+        output_field=FieldName.OBSERVED_VALUES,
+    )
+
+    training_splitter = InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=ExpectedNumInstanceSampler(
+            num_instances=1,
+            min_future=prediction_length,
+        ),
+        past_length=context_length,
+        future_length=prediction_length,
+        time_series_fields=[FieldName.OBSERVED_VALUES],
     )
 
     data_loader = TrainDataLoader(
         training_data,
         batch_size=8,
         stack_fn=batchify,
-        transform=transformation,
+        transform=transformation + training_splitter,
         num_batches_per_epoch=5,
     )
 
     trainer = pl.Trainer(max_epochs=3, callbacks=[], weights_summary=None)
     trainer.fit(net, train_dataloader=data_loader)
 
-    predictor = net.get_predictor(transformation)
+    prediction_splitter = InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=TestSplitSampler(),
+        past_length=context_length,
+        future_length=prediction_length,
+        time_series_fields=[FieldName.OBSERVED_VALUES],
+    )
+
+    predictor = net.get_predictor(transformation + prediction_splitter)
 
     forecast_it, ts_it = make_evaluation_predictions(
         dataset=test_data,

@@ -23,7 +23,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.transform import ExpectedNumInstanceSampler, InstanceSplitter
+from gluonts.transform import TestSplitSampler, InstanceSplitter
 
 
 class RandomNetwork(nn.Module):
@@ -56,7 +56,7 @@ def test_pytorch_predictor_serde():
         is_pad_field=FieldName.IS_PAD,
         start_field=FieldName.START,
         forecast_start_field=FieldName.FORECAST_START,
-        train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+        instance_sampler=TestSplitSampler(),
         past_length=context_length,
         future_length=prediction_length,
     )
