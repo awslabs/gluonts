@@ -33,7 +33,7 @@ class TransformerDecoder(HybridBlock):
         super().__init__(**kwargs)
 
         self.decoder_length = decoder_length
-        self.cache = {}
+        self.cache: Dict[str, Tensor] = {}
 
         with self.name_scope():
             self.enc_input_layer = InputLayer(model_size=config["model_dim"])

@@ -231,9 +231,6 @@ class TransformerNetwork(mx.gluon.HybridBlock):
             mask = mask + F.eye(d, d, k + 1)
         return mask * LARGE_NEGATIVE_VALUE
 
-    def hybrid_forward(self, F, x, *args, **kwargs):
-        raise NotImplementedError
-
 
 class TransformerTrainingNetwork(TransformerNetwork):
     # noinspection PyMethodOverriding,PyPep8Naming
