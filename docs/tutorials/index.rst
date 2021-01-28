@@ -20,6 +20,12 @@ Forecasting
 
       An extended tutorial, covering all features of GluonTS more extensively, and explaining how to write your own model using MXNet Gluon.
 
+   .. card::
+      :title: Write your own GluonTS model with PyTorch
+      :link: forecasting/howto_pytorch_lightning.html
+
+      An example of how one can use PyTorch to write a GluonTS forecasting model, and train it with PyTorch Lightning.
+
 Data manipulation
 -----------------
 
@@ -37,4 +43,5 @@ Data manipulation
 
    forecasting/quick_start_tutorial.ipynb
    forecasting/extended_tutorial.ipynb
+   forecasting/howto_pytorch_lightning.ipynb
    data_manipulation/synthetic_data_generation.ipynb
