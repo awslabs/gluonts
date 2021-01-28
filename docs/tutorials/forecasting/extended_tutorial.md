@@ -783,11 +783,16 @@ The training and prediction networks can be arbitrarily complex but they should 
 - The training network's `hybrid_forward` should return a **loss** based on the prediction and the true values
 - The prediction network's `hybrid_forward` should return the predictions 
 
-The estimator should also follow some rules:
+The estimator should also include the following methods:
 
-- It should include a `create_transformation` method that defines all the possible feature transformations and how the data is split during training
-- It should include a `create_training_network` method that returns the training network configured with any necessary hyperparameters
-- It should include a `create_predictor` method that creates the prediction network, and returns a `Predictor` object 
+- `create_transformation`, defining all the data pre-processing transformations (like adding features)
+- `create_training_data_loader`, constructing the data loader that gives batches to be used in training, out of a given dataset
+- `create_training_network`, returning the training network configured with any necessary hyperparameters
+- `create_predictor`, creting the prediction network, and returning a `Predictor` object 
+
+If a validation dataset is to be accepted, for some validation metric to be computed, then also the following should be defined:
+
+- `create_validation_data_loader`
 
 A `Predictor` defines the `predictor.predict` method of a given predictor. This method takes the test dataset, it passes it through the prediction network to take the predictions, and yields the predictions. You can think of the `Predictor` object as a wrapper of the prediction network that defines its `predict` method. 
 
