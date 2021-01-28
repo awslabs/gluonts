@@ -52,6 +52,7 @@ compile_notebooks:
 		echo $$DIR $$BASENAME ; \
 		cd $$DIR ; \
 		python $(MD2IPYNB) $$BASENAME ; \
+		if [ $? -ne 0 ] ; then echo "the following notebook raised an error:" $$BASENAME ; exit 1 ; fi \\
 		cd - ; \
 	done;
 
