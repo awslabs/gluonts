@@ -105,13 +105,15 @@ from gluonts.dataset.common import ListDataset
 
 ```python
 # train dataset: cut the last window of length "prediction_length", add "target" and "start" fields
-train_ds = ListDataset([{'target': x, 'start': start} 
-                        for x in custom_dataset[:, :-prediction_length]],
-                       freq=freq)
+train_ds = ListDataset(
+    [{'target': x, 'start': start} for x in custom_dataset[:, :-prediction_length]],
+    freq=freq
+)
 # test dataset: use the whole dataset, add "target" and "start" fields
-test_ds = ListDataset([{'target': x, 'start': start} 
-                       for x in custom_dataset],
-                      freq=freq)
+test_ds = ListDataset(
+    [{'target': x, 'start': start} for x in custom_dataset],
+    freq=freq
+)
 ```
 
 ## Training an existing model (`Estimator`)
@@ -139,11 +141,12 @@ estimator = SimpleFeedForwardEstimator(
     prediction_length=dataset.metadata.prediction_length,
     context_length=100,
     freq=dataset.metadata.freq,
-    trainer=Trainer(ctx="cpu", 
-                    epochs=5, 
-                    learning_rate=1e-3, 
-                    num_batches_per_epoch=100
-                   )
+    trainer=Trainer(
+        ctx="cpu", 
+        epochs=5, 
+        learning_rate=1e-3, 
+        num_batches_per_epoch=100
+    )
 )
 ```
 
