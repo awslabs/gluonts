@@ -260,7 +260,7 @@ def create_dataset(num_series, num_steps, period=24, mu=1, sigma=0.3):
     pattern = np.concatenate(
         (
             np.tile(
-                sin_minumPi_Pi.reshape(1, -1), 
+                sin_minusPi_Pi.reshape(1, -1), 
                 (int(np.ceil(num_series / 2)),1)
             ), 
             np.tile(
