@@ -619,11 +619,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
 
         According to paper: https://arxiv.org/abs/1905.10437.
         """
-        factor = 1 / (
-            self.context_length + self.prediction_length - periodicity
-        )
         whole_target = F.concat(past_target, future_target, dim=1)
-        seasonal_error = factor * F.mean(
+        seasonal_error = F.mean(
             F.abs(
                 F.slice_axis(whole_target, axis=1, begin=periodicity, end=None)
                 - F.slice_axis(whole_target, axis=1, begin=0, end=-periodicity)
