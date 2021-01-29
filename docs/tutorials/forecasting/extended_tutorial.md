@@ -254,7 +254,7 @@ def create_dataset(num_series, num_steps, period=24, mu=1, sigma=0.3):
     noise = np.random.normal(mu, sigma, size=(num_series, num_steps))
     
     # pattern - sinusoid with different phase
-    sin_minumPi_Pi = np.sin(np.tile(np.linspace(-np.pi, np.pi, period), int(num_steps / period)))
+    sin_minusPi_Pi = np.sin(np.tile(np.linspace(-np.pi, np.pi, period), int(num_steps / period)))
     sin_Zero_2Pi = np.sin(np.tile(np.linspace(0, 2 * np.pi, 24), int(num_steps / period)))
     
     pattern = np.concatenate(
