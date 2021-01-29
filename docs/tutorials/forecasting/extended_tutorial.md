@@ -160,14 +160,18 @@ In order to use the artificially created datasets (list of dictionaries) we need
 
 
 ```python
-train_ds = ListDataset(artificial_dataset.train, 
-                        freq=artificial_dataset.metadata.freq)
+train_ds = ListDataset(
+    artificial_dataset.train, 
+    freq=artificial_dataset.metadata.freq
+)
 ```
 
 
 ```python
-test_ds = ListDataset(artificial_dataset.test, 
-                       freq=artificial_dataset.metadata.freq)
+test_ds = ListDataset(
+    artificial_dataset.test, 
+    freq=artificial_dataset.metadata.freq
+)
 ```
 
 
@@ -250,32 +254,42 @@ def create_dataset(num_series, num_steps, period=24, mu=1, sigma=0.3):
     noise = np.random.normal(mu, sigma, size=(num_series, num_steps))
     
     # pattern - sinusoid with different phase
-    sin_minumPi_Pi = np.sin(np.tile(np.linspace(-np.pi, np.pi, period), int(num_steps / period)))
+    sin_minusPi_Pi = np.sin(np.tile(np.linspace(-np.pi, np.pi, period), int(num_steps / period)))
     sin_Zero_2Pi = np.sin(np.tile(np.linspace(0, 2 * np.pi, 24), int(num_steps / period)))
     
-    pattern = np.concatenate((np.tile(sin_minumPi_Pi.reshape(1, -1), 
-                                      (int(np.ceil(num_series / 2)),1)), 
-                              np.tile(sin_Zero_2Pi.reshape(1, -1), 
-                                      (int(np.floor(num_series / 2)), 1))
-                             ),
-                             axis=0
-                            )
+    pattern = np.concatenate(
+        (
+            np.tile(
+                sin_minusPi_Pi.reshape(1, -1), 
+                (int(np.ceil(num_series / 2)),1)
+            ), 
+            np.tile(
+                sin_Zero_2Pi.reshape(1, -1), 
+                (int(np.floor(num_series / 2)), 1)
+            )
+        ),
+        axis=0
+    )
     
     target = noise + pattern
     
     # create time features: use target one period earlier, append with zeros
-    feat_dynamic_real = np.concatenate((np.zeros((num_series, period)), 
-                                        target[:, :-period]
-                                       ), 
-                                       axis=1
-                                      )
+    feat_dynamic_real = np.concatenate(
+        (
+            np.zeros((num_series, period)), 
+            target[:, :-period]
+        ), 
+        axis=1
+    )
     
     # create categorical static feats: use the sinusoid type as a categorical feature
-    feat_static_cat = np.concatenate((np.zeros(int(np.ceil(num_series / 2))), 
-                                      np.ones(int(np.floor(num_series / 2)))
-                                     ),
-                                     axis=0
-                                    )
+    feat_static_cat = np.concatenate(
+        (
+            np.zeros(int(np.ceil(num_series / 2))), 
+            np.ones(int(np.floor(num_series / 2)))
+        ),
+        axis=0
+    )
     
     return target, feat_dynamic_real, feat_static_cat
     
@@ -284,21 +298,25 @@ def create_dataset(num_series, num_steps, period=24, mu=1, sigma=0.3):
 
 ```python
 # define the parameters of the dataset
-custom_ds_metadata = {'num_series': 100,
-                      'num_steps': 24 * 7,
-                      'prediction_length': 24,
-                      'freq': '1H',
-                      'start': [pd.Timestamp("01-01-2019", freq='1H') 
-                                for _ in range(100)]
-                     }
+custom_ds_metadata = {
+    'num_series': 100,
+    'num_steps': 24 * 7,
+    'prediction_length': 24,
+    'freq': '1H',
+    'start': [
+        pd.Timestamp("01-01-2019", freq='1H') 
+        for _ in range(100)
+    ]
+}
 ```
 
 
 ```python
-data_out = create_dataset(custom_ds_metadata['num_series'], 
-                          custom_ds_metadata['num_steps'],                                                      
-                          custom_ds_metadata['prediction_length']
-                         )
+data_out = create_dataset(
+    custom_ds_metadata['num_series'], 
+    custom_ds_metadata['num_steps'],                                                      
+    custom_ds_metadata['prediction_length']
+)
 
 target, feat_dynamic_real, feat_static_cat = data_out
 ```
@@ -307,28 +325,43 @@ We can easily create the train and test datasets by simply filling in the correc
 
 
 ```python
-train_ds = ListDataset([{FieldName.TARGET: target, 
-                         FieldName.START: start,
-                         FieldName.FEAT_DYNAMIC_REAL: [fdr],
-                         FieldName.FEAT_STATIC_CAT: [fsc]} 
-                        for (target, start, fdr, fsc) in zip(target[:, :-custom_ds_metadata['prediction_length']], 
-                                                             custom_ds_metadata['start'], 
-                                                             feat_dynamic_real[:, :-custom_ds_metadata['prediction_length']], 
-                                                             feat_static_cat)],
-                      freq=custom_ds_metadata['freq'])
+train_ds = ListDataset(
+    [
+        {
+            FieldName.TARGET: target,
+            FieldName.START: start,
+            FieldName.FEAT_DYNAMIC_REAL: [fdr],
+            FieldName.FEAT_STATIC_CAT: [fsc]
+        }
+        for (target, start, fdr, fsc) in zip(
+            target[:, :-custom_ds_metadata['prediction_length']],
+            custom_ds_metadata['start'],
+            feat_dynamic_real[:, :-custom_ds_metadata['prediction_length']],
+            feat_static_cat
+        )
+    ],
+    freq=custom_ds_metadata['freq']
+)
 ```
 
 
 ```python
-test_ds = ListDataset([{FieldName.TARGET: target, 
-                        FieldName.START: start,
-                        FieldName.FEAT_DYNAMIC_REAL: [fdr],
-                        FieldName.FEAT_STATIC_CAT: [fsc]} 
-                       for (target, start, fdr, fsc) in zip(target, 
-                                                            custom_ds_metadata['start'], 
-                                                            feat_dynamic_real, 
-                                                            feat_static_cat)],
-                     freq=custom_ds_metadata['freq'])
+test_ds = ListDataset(
+    [
+        {
+            FieldName.TARGET: target, 
+            FieldName.START: start,
+            FieldName.FEAT_DYNAMIC_REAL: [fdr],
+            FieldName.FEAT_STATIC_CAT: [fsc]
+        } 
+        for (target, start, fdr, fsc) in zip(
+            target, 
+            custom_ds_metadata['start'], 
+            feat_dynamic_real, 
+            feat_static_cat)
+    ],
+    freq=custom_ds_metadata['freq']
+)
 ```
 
 Now, we can examine each entry of the train and test datasets. We should expect that they have the following fields: `target`, `start`, `feat_dynamic_real` and `feat_static_cat`.
@@ -366,11 +399,6 @@ plt.show()
 
 <span style="color:red">*For the rest of the tutorial we will use the custom dataset*</span>
 
-
-```python
-
-```
-
 ## Transformations
 
 ### Define a transformation
@@ -382,7 +410,7 @@ In general, it gets an iterable collection of entries of a dataset and transform
 - `AddObservedValuesIndicator`: Creates the `observed_values` field in the dataset, i.e., adds a feature that equals to 1 if the value is observed and 0 if the value is missing 
 - `AddAgeFeature`: Creates the `feat_dynamic_age` field in the dataset, i.e., adds a feature that its value is small for distant past timestamps and it monotonically increases the more we approach the current timestamp   
 
-The `Transformation` may not define an additional field in the dataset. However, it **always** needs to define how the datasets are going to be split in example windows during training and testing. This is done with the `InstanceSplitter` that is configured as follows (skipping the obvious fields):
+One more transformation that can be used is the `InstanceSplitter`, which is used to define how the datasets are going to be split in example windows during training, validation, or at prediction time. The `InstanceSplitter` is configured as follows (skipping the obvious fields):
 
 - `is_pad_field`: indicator if the time series is padded (if the length is not enough)
 - `train_sampler`: defines how the training windows are cut/sampled
@@ -420,7 +448,10 @@ def create_transformation(freq, context_length, prediction_length):
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                instance_sampler=ExpectedNumInstanceSampler(
+                    num_instances=1,
+                    min_future=prediction_length,
+                ),
                 past_length=context_length,
                 future_length=prediction_length,
                 time_series_fields=[
@@ -439,9 +470,11 @@ Now, we can create a transformation object by applying the above transformation 
 
 
 ```python
-transformation = create_transformation(custom_ds_metadata['freq'], 
-                                       2 * custom_ds_metadata['prediction_length'], # can be any appropriate value
-                                       custom_ds_metadata['prediction_length'])
+transformation = create_transformation(
+    custom_ds_metadata['freq'], 
+    2 * custom_ds_metadata['prediction_length'], # can be any appropriate value
+    custom_ds_metadata['prediction_length']
+)
 ```
 
 
@@ -454,7 +487,7 @@ train_tf = transformation(iter(train_ds), is_train=True)
 type(train_tf)
 ```
 
-As expected, the output is another iterable object. We can easily examine what is contained in an entry of the transformed dataset. When `is_train=True` in the transformation, the `InstanceSplitter` iterates over the transformed dataset and cuts windows by selecting randomly a time series and a starting point on that time series (this "randomness" is defined by the `train_sampler`). 
+As expected, the output is another iterable object. We can easily examine what is contained in an entry of the transformed dataset. The `InstanceSplitter` iterates over the transformed dataset and cuts windows by selecting randomly a time series and a starting point on that time series (this "randomness" is defined by the `instance_sampler`). 
 
 
 
@@ -551,12 +584,13 @@ estimator = SimpleFeedForwardEstimator(
     prediction_length=custom_ds_metadata['prediction_length'],
     context_length=2*custom_ds_metadata['prediction_length'],
     freq=custom_ds_metadata['freq'],
-    trainer=Trainer(ctx="cpu", 
-                    epochs=5, 
-                    learning_rate=1e-3, 
-                    hybridize=False, 
-                    num_batches_per_epoch=100
-                   )
+    trainer=Trainer(
+        ctx="cpu", 
+        epochs=5, 
+        learning_rate=1e-3, 
+        hybridize=False, 
+        num_batches_per_epoch=100
+    )
 )
 ```
 
@@ -749,11 +783,16 @@ The training and prediction networks can be arbitrarily complex but they should 
 - The training network's `hybrid_forward` should return a **loss** based on the prediction and the true values
 - The prediction network's `hybrid_forward` should return the predictions 
 
-The estimator should also follow some rules:
+The estimator should also include the following methods:
 
-- It should include a `create_transformation` method that defines all the possible feature transformations and how the data is split during training
-- It should include a `create_training_network` method that returns the training network configured with any necessary hyperparameters
-- It should include a `create_predictor` method that creates the prediction network, and returns a `Predictor` object 
+- `create_transformation`, defining all the data pre-processing transformations (like adding features)
+- `create_training_data_loader`, constructing the data loader that gives batches to be used in training, out of a given dataset
+- `create_training_network`, returning the training network configured with any necessary hyperparameters
+- `create_predictor`, creting the prediction network, and returning a `Predictor` object 
+
+If a validation dataset is to be accepted, for some validation metric to be computed, then also the following should be defined:
+
+- `create_validation_data_loader`
 
 A `Predictor` defines the `predictor.predict` method of a given predictor. This method takes the test dataset, it passes it through the prediction network to take the predictions, and yields the predictions. You can think of the `Predictor` object as a wrapper of the prediction network that defines its `predict` method. 
 
@@ -801,14 +840,24 @@ The estimator class is configured by a few hyperparameters and implements the re
 
 
 ```python
-from gluonts.mx.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-from gluonts.core.component import validated
-from gluonts.mx.trainer import Trainer
-from gluonts.mx.util import copy_parameters
-from gluonts.transform import ExpectedNumInstanceSampler, Transformation, InstanceSplitter
+from functools import partial
 from mxnet.gluon import HybridBlock
+from gluonts.core.component import validated
+from gluonts.dataset.loader import TrainDataLoader
+from gluonts.model.predictor import Predictor
+from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.trainer import Trainer
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.transform import (
+    ExpectedNumInstanceSampler,
+    Transformation,
+    InstanceSplitter,
+    TestSplitSampler,
+    SelectFields,
+    Chain
+)
 ```
 
 
@@ -831,17 +880,30 @@ class MyEstimator(GluonEstimator):
         self.num_cells = num_cells
             
     def create_transformation(self):
-        # Feature transformation that the model uses for input
-        # Here we use a transformation that defines only how the train and test windows are cut
-        return InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                    past_length=self.context_length,
-                    future_length=self.prediction_length,
-                )
+        return Chain([])
+    
+    def create_training_data_loader(self, dataset, **kwargs):
+        instance_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=ExpectedNumInstanceSampler(
+                num_instances=1,
+                min_future=self.prediction_length
+            ),
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+        )
+        input_names = get_hybrid_forward_input_names(MyTrainNetwork)
+        return TrainDataLoader(
+            dataset=dataset,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
     
     def create_training_network(self) -> MyTrainNetwork:
         return MyTrainNetwork(
@@ -852,6 +914,16 @@ class MyEstimator(GluonEstimator):
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=TestSplitSampler(),
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+        )
+
         prediction_network = MyPredNetwork(
             prediction_length=self.prediction_length,
             num_cells=self.num_cells
@@ -860,7 +932,7 @@ class MyEstimator(GluonEstimator):
         copy_parameters(trained_network, prediction_network)
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
             freq=self.freq,
@@ -878,12 +950,13 @@ estimator = MyEstimator(
     context_length=2*custom_ds_metadata['prediction_length'],
     freq=custom_ds_metadata['freq'],
     num_cells=40,
-    trainer=Trainer(ctx="cpu", 
-                    epochs=5, 
-                    learning_rate=1e-3, 
-                    hybridize=False, 
-                    num_batches_per_epoch=100
-                   )
+    trainer=Trainer(
+        ctx="cpu",
+        epochs=5, 
+        learning_rate=1e-3, 
+        hybridize=False, 
+        num_batches_per_epoch=100
+    )
 )
 ```
 
@@ -943,19 +1016,19 @@ Note that in all the tensors that we handle there is an initial dimension that r
 
 
 ```python
-from gluonts.distribution.distribution_output import DistributionOutput
-from gluonts.distribution.gaussian import GaussianOutput
+from gluonts.mx.distribution import DistributionOutput, GaussianOutput
 ```
 
 
 ```python
 class MyProbNetwork(gluon.HybridBlock):
-    def __init__(self, 
-                 prediction_length, 
-                 distr_output, 
-                 num_cells, 
-                 num_sample_paths=100, 
-                 **kwargs
+    def __init__(
+        self, 
+        prediction_length, 
+        distr_output, 
+        num_cells, 
+        num_sample_paths=100, 
+        **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.prediction_length = prediction_length
@@ -1026,15 +1099,15 @@ The changes we need to do at the estimator are minor and they mainly reflect the
 class MyProbEstimator(GluonEstimator):
     @validated()
     def __init__(
-            self,
-            prediction_length: int,
-            context_length: int,
-            freq: str,
-            distr_output: DistributionOutput,
-            num_cells: int,
-            num_sample_paths: int = 100,
-            batch_size: int = 32,
-            trainer: Trainer = Trainer()
+        self,
+        prediction_length: int,
+        context_length: int,
+        freq: str,
+        distr_output: DistributionOutput,
+        num_cells: int,
+        num_sample_paths: int = 100,
+        batch_size: int = 32,
+        trainer: Trainer = Trainer()
     ) -> None:
         super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
@@ -1045,14 +1118,29 @@ class MyProbEstimator(GluonEstimator):
         self.num_sample_paths = num_sample_paths
 
     def create_transformation(self):
-        return InstanceSplitter(
+        return Chain([])
+    
+    def create_training_data_loader(self, dataset, **kwargs):
+        instance_splitter = InstanceSplitter(
             target_field=FieldName.TARGET,
             is_pad_field=FieldName.IS_PAD,
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
-            train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+            instance_sampler=ExpectedNumInstanceSampler(
+                num_instances=1,
+                min_future=self.prediction_length
+            ),
             past_length=self.context_length,
             future_length=self.prediction_length,
+        )
+        input_names = get_hybrid_forward_input_names(MyProbTrainNetwork)
+        return TrainDataLoader(
+            dataset=dataset,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
         )
 
     def create_training_network(self) -> MyProbTrainNetwork:
@@ -1064,8 +1152,18 @@ class MyProbEstimator(GluonEstimator):
         )
 
     def create_predictor(
-            self, transformation: Transformation, trained_network: HybridBlock
+        self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=TestSplitSampler(),
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+        )
+
         prediction_network = MyProbPredNetwork(
             prediction_length=self.prediction_length,
             distr_output=self.distr_output,
@@ -1076,7 +1174,7 @@ class MyProbEstimator(GluonEstimator):
         copy_parameters(trained_network, prediction_network)
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
             freq=self.freq,
@@ -1093,12 +1191,13 @@ estimator = MyProbEstimator(
     freq=custom_ds_metadata['freq'],
     distr_output=GaussianOutput(),
     num_cells=40,
-    trainer=Trainer(ctx="cpu", 
-                    epochs=5, 
-                    learning_rate=1e-3, 
-                    hybridize=False, 
-                    num_batches_per_epoch=100
-                   )
+    trainer=Trainer(
+        ctx="cpu", 
+        epochs=5, 
+        learning_rate=1e-3, 
+        hybridize=False, 
+        num_batches_per_epoch=100
+    )
 )
 ```
 
@@ -1143,14 +1242,15 @@ from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
 ```python
 class MyProbNetwork(gluon.HybridBlock):
-    def __init__(self, 
-                 prediction_length, 
-                 context_length, 
-                 distr_output, 
-                 num_cells, 
-                 num_sample_paths=100, 
-                 scaling=True, 
-                 **kwargs
+    def __init__(
+        self, 
+        prediction_length, 
+        context_length, 
+        distr_output, 
+        num_cells, 
+        num_sample_paths=100, 
+        scaling=True, 
+        **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.prediction_length = prediction_length
@@ -1265,16 +1365,16 @@ class MyProbPredNetwork(MyProbTrainNetwork):
 class MyProbEstimator(GluonEstimator):
     @validated()
     def __init__(
-            self,
-            prediction_length: int,
-            context_length: int,
-            freq: str,
-            distr_output: DistributionOutput,
-            num_cells: int,
-            num_sample_paths: int = 100,
-            scaling: bool = True,
-            batch_size: int = 32,
-            trainer: Trainer = Trainer()
+        self,
+        prediction_length: int,
+        context_length: int,
+        freq: str,
+        distr_output: DistributionOutput,
+        num_cells: int,
+        num_sample_paths: int = 100,
+        scaling: bool = True,
+        batch_size: int = 32,
+        trainer: Trainer = Trainer()
     ) -> None:
         super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
@@ -1287,27 +1387,36 @@ class MyProbEstimator(GluonEstimator):
 
     def create_transformation(self):
         # Feature transformation that the model uses for input.
-        return Chain(
-            [
-                AddObservedValuesIndicator(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.OBSERVED_VALUES,
-                ),
-                InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                    past_length=self.context_length,
-                    future_length=self.prediction_length,
-                    time_series_fields=[
-                        FieldName.FEAT_DYNAMIC_REAL,
-                        FieldName.OBSERVED_VALUES,
-                    ],
-                ),
-
-            ]
+        return AddObservedValuesIndicator(
+            target_field=FieldName.TARGET,
+            output_field=FieldName.OBSERVED_VALUES,
+        )
+    
+    def create_training_data_loader(self, dataset, **kwargs):
+        instance_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=ExpectedNumInstanceSampler(
+                num_instances=1,
+                min_future=self.prediction_length
+            ),
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+            time_series_fields=[
+                FieldName.FEAT_DYNAMIC_REAL,
+                FieldName.OBSERVED_VALUES,
+            ],
+        )
+        input_names = get_hybrid_forward_input_names(MyProbTrainNetwork)
+        return TrainDataLoader(
+            dataset=dataset,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
         )
 
     def create_training_network(self) -> MyProbTrainNetwork:
@@ -1321,8 +1430,22 @@ class MyProbEstimator(GluonEstimator):
         )
 
     def create_predictor(
-            self, transformation: Transformation, trained_network: HybridBlock
+        self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=TestSplitSampler(),
+            past_length=self.context_length,
+            future_length=self.prediction_length,
+            time_series_fields=[
+                FieldName.FEAT_DYNAMIC_REAL,
+                FieldName.OBSERVED_VALUES,
+            ],
+        )
+
         prediction_network = MyProbPredNetwork(
             prediction_length=self.prediction_length,
             context_length=self.context_length,
@@ -1335,7 +1458,7 @@ class MyProbEstimator(GluonEstimator):
         copy_parameters(trained_network, prediction_network)
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
             freq=self.freq,
@@ -1352,12 +1475,13 @@ estimator = MyProbEstimator(
     freq=custom_ds_metadata['freq'],
     distr_output=GaussianOutput(),
     num_cells=40,
-    trainer=Trainer(ctx="cpu", 
-                    epochs=5, 
-                    learning_rate=1e-3, 
-                    hybridize=False, 
-                    num_batches_per_epoch=100
-                   )
+    trainer=Trainer(
+        ctx="cpu", 
+        epochs=5, 
+        learning_rate=1e-3, 
+        hybridize=False, 
+        num_batches_per_epoch=100
+    )
 )
 ```
 
@@ -1420,14 +1544,14 @@ The first step is implemented in `unroll_encoder` and the last steps in the `sam
 ```python
 class MyProbRNN(gluon.HybridBlock):
     def __init__(self,
-                 prediction_length,
-                 context_length,
-                 distr_output,
-                 num_cells,
-                 num_layers,
-                 num_sample_paths=100,
-                 scaling=True,
-                 **kwargs
+        prediction_length,
+        context_length,
+        distr_output,
+        num_cells,
+        num_layers,
+        num_sample_paths=100,
+        scaling=True,
+        **kwargs
      ) -> None:
         super().__init__(**kwargs)
         self.prediction_length = prediction_length
@@ -1465,12 +1589,14 @@ class MyProbRNN(gluon.HybridBlock):
 
         return scale
 
-    def unroll_encoder(self, 
-                       F, 
-                       past_target, 
-                       past_observed_values, 
-                       future_target=None, 
-                       future_observed_values=None):
+    def unroll_encoder(
+        self, 
+        F, 
+        past_target, 
+        past_observed_values, 
+        future_target=None, 
+        future_observed_values=None
+    ):
         # overall target field
         # input target from -(context_length + prediction_length + 1) to -1
         if future_target is not None:  # during training
@@ -1520,18 +1646,17 @@ class MyProbRNN(gluon.HybridBlock):
 
 
 class MyProbTrainRNN(MyProbRNN):
-    def hybrid_forward(self,
-                       F,
-                       past_target,
-                       future_target,
-                       past_observed_values,
-                       future_observed_values):
-
-        net_output, _, scale = self.unroll_encoder(F,
-                                                   past_target,
-                                                   past_observed_values,
-                                                   future_target,
-                                                   future_observed_values)
+    def hybrid_forward(
+        self,
+        F,
+        past_target,
+        future_target,
+        past_observed_values,
+        future_observed_values
+    ):
+        net_output, _, scale = self.unroll_encoder(
+            F, past_target, past_observed_values, future_target, future_observed_values
+        )
 
         # output target from -(context_length + prediction_length) to end
         target_out = F.concat(
@@ -1605,9 +1730,9 @@ class MyProbPredRNN(MyProbTrainRNN):
 
     def hybrid_forward(self, F, past_target, past_observed_values):
         # unroll encoder over context_length
-        net_output, states, scale = self.unroll_encoder(F,
-                                                        past_target,
-                                                        past_observed_values)
+        net_output, states, scale = self.unroll_encoder(
+            F, past_target, past_observed_values
+        )
 
         samples = self.sample_decoder(F, past_target, states, scale)
 
@@ -1619,17 +1744,17 @@ class MyProbPredRNN(MyProbTrainRNN):
 class MyProbRNNEstimator(GluonEstimator):
     @validated()
     def __init__(
-            self,
-            prediction_length: int,
-            context_length: int,
-            freq: str,
-            distr_output: DistributionOutput,
-            num_cells: int,
-            num_layers: int,
-            num_sample_paths: int = 100,
-            scaling: bool = True,
-            batch_size: int = 32,
-            trainer: Trainer = Trainer()
+        self,
+        prediction_length: int,
+        context_length: int,
+        freq: str,
+        distr_output: DistributionOutput,
+        num_cells: int,
+        num_layers: int,
+        num_sample_paths: int = 100,
+        scaling: bool = True,
+        batch_size: int = 32,
+        trainer: Trainer = Trainer()
     ) -> None:
         super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
@@ -1643,27 +1768,36 @@ class MyProbRNNEstimator(GluonEstimator):
 
     def create_transformation(self):
         # Feature transformation that the model uses for input.
-        return Chain(
-            [
-                AddObservedValuesIndicator(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.OBSERVED_VALUES,
-                ),
-                InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                    past_length=self.context_length + 1,
-                    future_length=self.prediction_length,
-                    time_series_fields=[
-                        FieldName.FEAT_DYNAMIC_REAL,
-                        FieldName.OBSERVED_VALUES,
-                    ],
-                ),
-
-            ]
+        return AddObservedValuesIndicator(
+            target_field=FieldName.TARGET,
+            output_field=FieldName.OBSERVED_VALUES,
+        )
+    
+    def create_training_data_loader(self, dataset, **kwargs):
+        instance_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=ExpectedNumInstanceSampler(
+                num_instances=1,
+                min_future=self.prediction_length,
+            ),
+            past_length=self.context_length + 1,
+            future_length=self.prediction_length,
+            time_series_fields=[
+                FieldName.FEAT_DYNAMIC_REAL,
+                FieldName.OBSERVED_VALUES,
+            ],
+        )
+        input_names = get_hybrid_forward_input_names(MyProbTrainRNN)
+        return TrainDataLoader(
+            dataset=dataset,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
         )
 
     def create_training_network(self) -> MyProbTrainRNN:
@@ -1678,8 +1812,21 @@ class MyProbRNNEstimator(GluonEstimator):
         )
 
     def create_predictor(
-            self, transformation: Transformation, trained_network: HybridBlock
+        self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=TestSplitSampler(),
+            past_length=self.context_length + 1,
+            future_length=self.prediction_length,
+            time_series_fields=[
+                FieldName.FEAT_DYNAMIC_REAL,
+                FieldName.OBSERVED_VALUES,
+            ],
+        )
         prediction_network = MyProbPredRNN(
             prediction_length=self.prediction_length,
             context_length=self.context_length,
@@ -1693,7 +1840,7 @@ class MyProbRNNEstimator(GluonEstimator):
         copy_parameters(trained_network, prediction_network)
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
             freq=self.freq,
@@ -1705,19 +1852,20 @@ class MyProbRNNEstimator(GluonEstimator):
 
 ```python
 estimator = MyProbRNNEstimator(
-        prediction_length=24,
-        context_length=48,
-        freq="1H",
-        num_cells=40,
-        num_layers=2,
-        distr_output=GaussianOutput(),
-        trainer=Trainer(ctx="cpu",
-                        epochs=5,
-                        learning_rate=1e-3,
-                        hybridize=False,
-                        num_batches_per_epoch=100
-                       )
+    prediction_length=24,
+    context_length=48,
+    freq="1H",
+    num_cells=40,
+    num_layers=2,
+    distr_output=GaussianOutput(),
+    trainer=Trainer(
+        ctx="cpu",
+        epochs=5,
+        learning_rate=1e-3,
+        hybridize=False,
+        num_batches_per_epoch=100
     )
+)
 ```
 
 

@@ -27,7 +27,7 @@ Data manipulation
 
    .. card::
       :title: Synthetic Data Generation
-      :link: data/synthetic_data_generation.html
+      :link: data_manipulation/synthetic_data_generation.html
 
       A tutorial on how to use the synthetic data generation toolbox in GluonTS.
 
@@ -37,4 +37,4 @@ Data manipulation
 
    forecasting/quick_start_tutorial.ipynb
    forecasting/extended_tutorial.ipynb
-   data/synthetic_data_generation.ipynb
+   data_manipulation/synthetic_data_generation.ipynb

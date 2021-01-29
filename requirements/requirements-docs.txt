@@ -1,6 +1,6 @@
 ipython
 ipykernel
-nbconvert
+nbconvert~=5.6.1
 nbsphinx>=0.3.4,<0.4
 notedown
 pytest-runner~=2.11
