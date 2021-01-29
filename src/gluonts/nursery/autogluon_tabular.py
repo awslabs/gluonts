@@ -24,6 +24,9 @@ from gluonts.dataset.util import to_pandas
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import Localizer, Predictor
+from gluonts.time_feature import (
+    get_lags_for_frequency,
+)
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator
@@ -31,7 +34,7 @@ if TYPE_CHECKING:  # avoid circular import
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
-def get_prediction_dataframe(series, prediction_length, use_lag, context_length, future_series=None, train=False):
+def get_prediction_dataframe(series, prediction_length, use_lag, lags, future_series=None, train=False):
     if use_lag and not train:
         series = series.append(future_series)
     hour_of_day = series.index.hour
@@ -56,18 +59,18 @@ def get_prediction_dataframe(series, prediction_length, use_lag, context_length,
             "day_of_week",
             "hour_of_day",
             "holiday",
-            "target",
-        ],
+            "target"
+        ]
     )
     convert_type = {x: "category" for x in df.columns.values[:4]}
     df = df.astype(convert_type)
-
-    cache = [None] * (context_length + prediction_length) + list(series.values)
+    max_lag = max(lags)
+    cache = [None] * (max_lag + prediction_length) + list(series.values)
     col = []
     total = len(df)
-    for i in range(context_length):
-        col.append('lag' + str(i))
-        df['lag' + str(i)] = cache[i:i + total]
+    for lag in lags:
+        col.append('lag' + str(lag))
+        df['lag' + str(lag)] = cache[max_lag + prediction_length - lag: max_lag + prediction_length - lag + total]
     return df if train else df[-prediction_length:]
 
 
@@ -91,7 +94,7 @@ class TabularPredictor(Predictor):
                 "target": np.array([None] * self.prediction_length),
             }
             future_ts = to_pandas(future_entry)
-            df = get_prediction_dataframe(ts, self.prediction_length, self.use_lag, self.context_length, future_ts, train=False)
+            df = get_prediction_dataframe(ts, self.prediction_length, self.use_lag, self.lags, future_ts, train=False)
             if not self.auto_regression:
                 ag_output = self.ag_model.predict(df)
             else:
@@ -125,7 +128,7 @@ class TabularPredictor(Predictor):
 
 
 class TabularEstimator(Estimator):
-    def __init__(self, freq: str, prediction_length: int, use_lag=False, lags=[], **kwargs) -> None:
+    def __init__(self, freq: str, prediction_length:int, use_lag=False, lags=[], **kwargs) -> None:
         super().__init__()
         self.task = task
         self.freq = freq
@@ -151,11 +154,11 @@ class TabularEstimator(Estimator):
             get_prediction_dataframe(series=to_pandas(entry),
                                      prediction_length=self.prediction_length,
                                      use_lag=self.use_lag,
-                                     context_length=len(self.lags), train=True)
+                                     lags=self.lags, train=True)
             for entry in training_data
         ]
         df = pd.concat(dfs)
-        ag_model = self.task.fit(df, label="target", problem_type="regression", output_directory="Eval2/electricity30",
+        ag_model = self.task.fit(df, label="target", problem_type="regression",
                                  **self.kwargs)
         return TabularPredictor(ag_model=ag_model, freq=self.freq, prediction_length=self.prediction_length,
                                 use_lag=self.use_lag, lags=self.lags)
