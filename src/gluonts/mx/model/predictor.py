@@ -164,14 +164,15 @@ class GluonPredictor(Predictor):
             num_prefetch=num_prefetch,
             **kwargs,
         )
-        yield from self.forecast_generator(
-            inference_data_loader=inference_data_loader,
-            prediction_net=self.prediction_net,
-            input_names=self.input_names,
-            freq=self.freq,
-            output_transform=self.output_transform,
-            num_samples=num_samples,
-        )
+        with mx.Context(self.ctx):
+            yield from self.forecast_generator(
+                inference_data_loader=inference_data_loader,
+                prediction_net=self.prediction_net,
+                input_names=self.input_names,
+                freq=self.freq,
+                output_transform=self.output_transform,
+                num_samples=num_samples,
+            )
 
     def __eq__(self, that):
         if type(self) != type(that):
