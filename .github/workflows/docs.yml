@@ -8,6 +8,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+
     - name: Set up Python 3.6
       uses: actions/setup-python@v1
       with:
@@ -31,9 +32,23 @@ jobs:
       run: |
         sudo apt-get install pandoc
 
-    - name: Build docs
-      run: |
-        make docs
     - name: Doctests
       run: |
         pytest --doctest-modules src/gluonts
+
+    - name: Build docs
+      run: |
+        make docs
+
+    - name: Configure AWS Credentials
+      if: ${{ github.event_name == 'push' }}
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.DOCS_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.DOCS_AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Publish docs
+      if: ${{ github.event_name == 'push' }}
+      run: |
+        aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --acl public-read
