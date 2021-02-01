@@ -264,7 +264,7 @@ We can now train the model using the tooling that PyTorch Lightning provides:
 
 
 ```python
-trainer = pl.Trainer(max_epochs=10)
+trainer = pl.Trainer(max_epochs=10, gpus=-1 if torch.cuda.is_available() else None)
 trainer.fit(net, train_dataloader=data_loader)
 ```
 
