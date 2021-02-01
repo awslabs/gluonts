@@ -15,7 +15,6 @@ from typing import Any
 
 import numpy as np
 
-from gluonts.core import fqname_for
 
 from ._base import Kind, encode
 
@@ -28,7 +27,7 @@ def encode_np_dtype(v: np.dtype) -> Any:
     """
     return {
         "__kind__": Kind.Instance,
-        "class": fqname_for(v.__class__),
+        "class": "numpy.dtype",
         "args": encode([v.name]),
     }
 
