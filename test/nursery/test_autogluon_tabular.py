@@ -11,39 +11,109 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import List
 
+import pytest
 import numpy as np
 import pandas as pd
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.util import to_pandas
-from gluonts.nursery.autogluon_tabular import LocalTabularPredictor
+from gluonts.nursery.autogluon_tabular import get_features_dataframe
+from gluonts.nursery.autogluon_tabular import (
+    TabularEstimator,
+    LocalTabularPredictor,
+)
 
 
-def test_autogluon_tabular():
-    # create a dataset
-    dataset = ListDataset(
-        [
-            {
-                "start": pd.Timestamp("1750-01-04 00:00:00", freq="W-SUN"),
-                "target": np.array(
-                    [1089.2, 1078.91, 1099.88, 35790.55, 34096.95, 34906.95],
+@pytest.mark.parametrize(
+    "series, lags, expected_df",
+    [
+        (
+            pd.Series(
+                list(range(5)),
+                index=pd.date_range(
+                    "2020-12-31 22:00:00", freq="H", periods=5
                 ),
-            },
-            {
-                "start": pd.Timestamp("1750-01-04 00:00:00", freq="W-SUN"),
-                "target": np.array(
-                    [1099.2, 1098.91, 1069.88, 35990.55, 34076.95, 34766.95],
+            ),
+            [1, 2, 5],
+            pd.DataFrame(
+                {
+                    "year": [2020, 2020, 2021, 2021, 2021],
+                    "month_of_year": [12, 12, 1, 1, 1],
+                    "day_of_week": [3, 3, 4, 4, 4],
+                    "hour_of_day": [22, 23, 0, 1, 2],
+                    "holiday_indicator": [False, False, True, False, False],
+                    "lag_1": [np.nan, 0, 1, 2, 3],
+                    "lag_2": [np.nan, np.nan, 0, 1, 2],
+                    "lag_5": [np.nan, np.nan, np.nan, np.nan, np.nan],
+                    "target": list(range(5)),
+                },
+                index=pd.date_range(
+                    "2020-12-31 22:00:00", freq="H", periods=5
                 ),
-            },
-        ],
-        freq="W-SUN",
-    )
-    prediction_length = 2
-    freq = "W-SUN"
+            ),
+        )
+    ],
+)
+def test_get_features_dataframe(
+    series: pd.Series, lags: List[int], expected_df: pd.DataFrame
+):
+    assert expected_df.equals(get_features_dataframe(series, lags=lags))
+
+
+@pytest.mark.parametrize(
+    "dataset, freq, prediction_length",
+    [
+        (
+            ListDataset(
+                [
+                    {
+                        "start": pd.Timestamp(
+                            "1750-01-04 00:00:00", freq="W-SUN"
+                        ),
+                        "target": np.array(
+                            [
+                                1089.2,
+                                1078.91,
+                                1099.88,
+                                35790.55,
+                                34096.95,
+                                34906.95,
+                            ],
+                        ),
+                    },
+                    {
+                        "start": pd.Timestamp(
+                            "1750-01-04 00:00:00", freq="W-SUN"
+                        ),
+                        "target": np.array(
+                            [
+                                1099.2,
+                                1098.91,
+                                1069.88,
+                                35990.55,
+                                34076.95,
+                                34766.95,
+                            ],
+                        ),
+                    },
+                ],
+                freq="W-SUN",
+            ),
+            "W-SUN",
+            2,
+        )
+    ],
+)
+@pytest.mark.parametrize("lags", [[], [1, 2, 5]])
+def test_local_tabular_predictor(
+    dataset, freq, prediction_length: int, lags: List[int]
+):
     predictor = LocalTabularPredictor(
         freq=freq,
         prediction_length=prediction_length,
+        lags=lags,
     )
     forecasts_it = predictor.predict(dataset)
     forecasts = list(forecasts_it)
@@ -54,8 +124,68 @@ def test_autogluon_tabular():
         assert forecast.samples.shape[1] == prediction_length
         assert forecast.start_date == start_timestamp
 
-    return forecasts
 
+@pytest.mark.parametrize(
+    "dataset, freq, prediction_length",
+    [
+        (
+            ListDataset(
+                [
+                    {
+                        "start": pd.Timestamp(
+                            "1750-01-04 00:00:00", freq="W-SUN"
+                        ),
+                        "target": np.array(
+                            [
+                                1089.2,
+                                1078.91,
+                                1099.88,
+                                35790.55,
+                                34096.95,
+                                34906.95,
+                            ],
+                        ),
+                    },
+                    {
+                        "start": pd.Timestamp(
+                            "1750-01-04 00:00:00", freq="W-SUN"
+                        ),
+                        "target": np.array(
+                            [
+                                1099.2,
+                                1098.91,
+                                1069.88,
+                                35990.55,
+                                34076.95,
+                                34766.95,
+                            ],
+                        ),
+                    },
+                ],
+                freq="W-SUN",
+            ),
+            "W-SUN",
+            2,
+        )
+    ],
+)
+@pytest.mark.parametrize("lags", [[], [1, 2, 5]])
+def test_tabular_estimator(
+    dataset, freq, prediction_length: int, lags: List[int]
+):
+    estimator = TabularEstimator(
+        freq=freq,
+        prediction_length=prediction_length,
+        lags=lags,
+    )
 
-if __name__ == "__main__":
-    print(test_autogluon_tabular())
+    predictor = estimator.train(dataset)
+
+    forecasts_it = predictor.predict(dataset)
+    forecasts = list(forecasts_it)
+
+    for entry, forecast in zip(dataset, forecasts):
+        ts = to_pandas(entry)
+        start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
+        assert forecast.samples.shape[1] == prediction_length
+        assert forecast.start_date == start_timestamp

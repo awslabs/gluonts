@@ -11,7 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import TYPE_CHECKING, Callable, Dict, Iterable, Iterator
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+)
 
 import numpy as np
 import pandas as pd
@@ -34,84 +42,89 @@ if TYPE_CHECKING:  # avoid circular import
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
-def get_prediction_dataframe(series, prediction_length, use_lag, lags, future_series=None, train=False):
-    if use_lag and not train:
-        series = series.append(future_series)
-    hour_of_day = series.index.hour
-    month_of_year = series.index.month
-    day_of_week = series.index.dayofweek
-    year_idx = series.index.year
-    target = series.values
+def get_features_dataframe(
+    series: pd.Series, lags: List[int] = []
+) -> pd.DataFrame:
+    # TODO allow customizing what features to use
+
     cal = calendar()
     holidays = cal.holidays(start=series.index.min(), end=series.index.max())
-    df = pd.DataFrame(
-        zip(
-            year_idx,
-            month_of_year,
-            day_of_week,
-            hour_of_day,
-            series.index.isin(holidays),
-            target,
-        ),
-        columns=[
-            "year_idx",
-            "month_of_year",
-            "day_of_week",
-            "hour_of_day",
-            "holiday",
-            "target"
-        ]
-    )
-    convert_type = {x: "category" for x in df.columns.values[:4]}
-    df = df.astype(convert_type)
-    max_lag = max(lags)
-    cache = [None] * (max_lag + prediction_length) + list(series.values)
-    col = []
-    total = len(df)
-    for lag in lags:
-        col.append('lag' + str(lag))
-        df['lag' + str(lag)] = cache[max_lag + prediction_length - lag: max_lag + prediction_length - lag + total]
-    return df if train else df[-prediction_length:]
+
+    time_features = {
+        "year": series.index.year,
+        "month_of_year": series.index.month,
+        "day_of_week": series.index.dayofweek,
+        "hour_of_day": series.index.hour,
+        "holiday_indicator": series.index.isin(holidays),
+    }
+
+    lag_values = {f"lag_{idx}": series.shift(idx).values for idx in lags}
+
+    columns = {**time_features, **lag_values, "target": series.values}
+
+    return pd.DataFrame(columns, index=series.index)
 
 
 class TabularPredictor(Predictor):
-    def __init__(self, ag_model, freq: str, prediction_length: int, lags: list, use_lag=False) -> None:
+    def __init__(
+        self,
+        ag_model,
+        freq: str,
+        prediction_length: int,
+        lags: List[int],
+    ) -> None:
+        assert all(l >= 1 for l in lags)
+
         self.ag_model = ag_model
         self.freq = freq
         self.prediction_length = prediction_length
-        self.use_lag = use_lag
         self.lags = lags
-        self.auto_regression = False if ((not self.use_lag) or self.lags[-1] < self.prediction_length) else True
-        self.context_length = len(lags)
+        self.auto_regression = (
+            False if not lags else self.prediction_length > min(self.lags)
+        )
 
     def predict(self, dataset: Iterable[Dict]) -> Iterator[SampleForecast]:
         for entry in dataset:
-            ts = to_pandas(entry)
-            start = ts.index[-1] + pd.tseries.frequencies.to_offset(self.freq)
-            start_timestamp = pd.Timestamp(start, freq=self.freq)
-            future_entry = {
-                "start": start_timestamp,
-                "target": np.array([None] * self.prediction_length),
-            }
-            future_ts = to_pandas(future_entry)
-            df = get_prediction_dataframe(ts, self.prediction_length, self.use_lag, self.lags, future_ts, train=False)
+            series = to_pandas(entry)
+
+            forecast_index = pd.date_range(
+                series.index[-1] + series.index.freq,
+                freq=series.index.freq,
+                periods=self.prediction_length,
+            )
+
+            # TODO refactor below here
+
             if not self.auto_regression:
+                # do all predictions at once
+                forecast_series = pd.Series(
+                    [None] * len(forecast_index),
+                    index=forecast_index,
+                )
+                series = series.append(forecast_series)
+                df = get_features_dataframe(series, self.lags).loc[
+                    forecast_index
+                ]
                 ag_output = self.ag_model.predict(df)
+
             else:
-                train_len = len(ts.values)
+                # do predictions one step at a time
                 ag_output = np.array([])
-                cache = [None] * self.context_length + list(ts.values)
-                idx = df.index[0]
-                context_cols = df.columns[-self.context_length:]
-                for i in range(self.prediction_length):
-                    row_to_predict = df.iloc[[i], :]
-                    context = cache[(train_len + i): (train_len + self.context_length + i)]
-                    df.loc[[i + idx], context_cols] = context
-                    cur_output = self.ag_model.predict(row_to_predict)
-                    ag_output = np.append(ag_output, cur_output)
-                    cache.extend(cur_output)
+                for k in range(len(forecast_index)):
+                    step_index = forecast_index[k : k + 1]
+                    step_series = pd.Series([None], index=step_index)
+                    series = series.append(step_series)
+                    df = get_features_dataframe(series, self.lags).loc[
+                        step_index
+                    ]
+                    step_ag_output = self.ag_model.predict(df)
+                    series[step_index] = step_ag_output
+                    ag_output = np.append(ag_output, step_ag_output)
+
             yield self.to_forecast(
-                ag_output, start_timestamp, entry.get(FieldName.ITEM_ID, None)
+                ag_output,
+                forecast_index[0],
+                item_id=entry.get(FieldName.ITEM_ID, None),
             )
 
     def to_forecast(
@@ -128,7 +141,13 @@ class TabularPredictor(Predictor):
 
 
 class TabularEstimator(Estimator):
-    def __init__(self, freq: str, prediction_length:int, use_lag=False, lags=[], **kwargs) -> None:
+    def __init__(
+        self,
+        freq: str,
+        prediction_length: int,
+        lags: Optional[List[int]] = None,
+        **kwargs,
+    ) -> None:
         super().__init__()
         self.task = task
         self.freq = freq
@@ -137,33 +156,34 @@ class TabularEstimator(Estimator):
             "eval_metric": "mean_absolute_error",
             "excluded_model_types": ["KNN", "XT", "RF"],
             "presets": [
-                "high_quality_fast_inference_only_refit", "optimize_for_deployment"
+                "high_quality_fast_inference_only_refit",
+                "optimize_for_deployment",
             ],
         }
         self.kwargs = {**default_kwargs, **kwargs}
-        self.use_lag = use_lag
-        if not self.use_lag:
-            self.lags = []
-        else:
-            self.lags = sorted(list(set(lags))) if lags else list(get_lags_for_frequency(self.freq))
+        self.lags = (
+            lags if lags is not None else (get_lags_for_frequency(self.freq))
+        )
 
     def train(self, training_data: Dataset) -> TabularPredictor:
-        # every time there is only one time series passed
-        # list(training_data)[0] is essentially getting the only time series
         dfs = [
-            get_prediction_dataframe(series=to_pandas(entry),
-                                     prediction_length=self.prediction_length,
-                                     use_lag=self.use_lag,
-                                     lags=self.lags, train=True)
+            get_features_dataframe(
+                series=to_pandas(entry),
+                lags=self.lags,
+            )
             for entry in training_data
         ]
         df = pd.concat(dfs)
-        ag_model = self.task.fit(df, label="target", problem_type="regression",
-                                 **self.kwargs)
-        return TabularPredictor(ag_model=ag_model, freq=self.freq, prediction_length=self.prediction_length,
-                                use_lag=self.use_lag, lags=self.lags)
+        ag_model = self.task.fit(
+            df, label="target", problem_type="regression", **self.kwargs
+        )
+        return TabularPredictor(
+            ag_model=ag_model,
+            freq=self.freq,
+            prediction_length=self.prediction_length,
+            lags=self.lags,
+        )
 
 
 def LocalTabularPredictor(*args, **kwargs) -> Localizer:
     return Localizer(TabularEstimator(*args, **kwargs))
-
