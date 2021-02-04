@@ -35,6 +35,10 @@ from gluonts.model.forecast import Forecast, Quantile
 from gluonts.time_feature import get_seasonality
 
 
+def nan_if_masked(a):
+    return a if a is not np.ma.masked else np.nan
+
+
 class Evaluator:
     """
     Evaluator class, to compute accuracy metrics by comparing observations
@@ -232,9 +236,7 @@ class Evaluator:
             np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
 
-    def seasonal_error(
-        self, past_data: np.ndarray, forecast: Forecast
-    ) -> float:
+    def seasonal_error(self, past_data: np.ndarray, forecast: Forecast):
         r"""
         .. math::
 
@@ -261,11 +263,11 @@ class Evaluator:
 
         seasonal_mae = np.mean(abs(y_t - y_tm))
 
-        return seasonal_mae if seasonal_mae is not np.ma.masked else np.nan
+        return nan_if_masked(seasonal_mae)
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Dict[str, Union[float, str, None]]:
+    ) -> Dict[str, Any]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
@@ -415,23 +417,22 @@ class Evaluator:
 
     @staticmethod
     def mse(target: np.ndarray, forecast: np.ndarray):
-        return np.mean(np.square(target - forecast))
+        return nan_if_masked(np.mean(np.square(target - forecast)))
 
     @staticmethod
-    def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
-        return np.sum(np.abs(target - forecast))
+    def abs_error(target: np.ndarray, forecast: np.ndarray):
+        return nan_if_masked(np.sum(np.abs(target - forecast)))
 
     @staticmethod
-    def quantile_loss(
-        target: np.ndarray, forecast: np.ndarray, q: float
-    ) -> float:
-        return 2.0 * np.sum(
-            np.abs((forecast - target) * ((target <= forecast) - q))
+    def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float):
+        return nan_if_masked(
+            2
+            * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
         )
 
     @staticmethod
-    def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
-        return np.mean((target < forecast))
+    def coverage(target: np.ndarray, forecast: np.ndarray):
+        return nan_if_masked(np.mean((target < forecast)))
 
     @staticmethod
     def mase(
@@ -439,7 +440,7 @@ class Evaluator:
         forecast: np.ndarray,
         seasonal_error: float,
         exclude_zero_denominator=True,
-    ) -> float:
+    ):
         r"""
         .. math::
 
@@ -450,12 +451,14 @@ class Evaluator:
         if exclude_zero_denominator and np.isclose(seasonal_error, 0.0):
             return np.nan
 
-        return np.mean(np.abs(target - forecast)) / seasonal_error
+        return nan_if_masked(
+            np.mean(np.abs(target - forecast)) / seasonal_error
+        )
 
     @staticmethod
     def mape(
         target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-    ) -> float:
+    ):
         r"""
         .. math::
 
@@ -466,12 +469,12 @@ class Evaluator:
             denominator = np.ma.masked_where(
                 np.isclose(denominator, 0.0), denominator
             )
-        return float(np.mean(np.abs(target - forecast) / denominator))
+        return nan_if_masked(np.mean(np.abs(target - forecast) / denominator))
 
     @staticmethod
     def smape(
         target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-    ) -> float:
+    ):
         r"""
         .. math::
 
@@ -484,7 +487,9 @@ class Evaluator:
             denominator = np.ma.masked_where(
                 np.isclose(denominator, 0.0), denominator
             )
-        return 2 * float(np.mean(np.abs(target - forecast) / denominator))
+        return nan_if_masked(
+            2 * np.mean(np.abs(target - forecast) / denominator)
+        )
 
     @staticmethod
     def owa(
@@ -493,7 +498,7 @@ class Evaluator:
         past_data: np.ndarray,
         seasonal_error: float,
         start_date: pd.Timestamp,
-    ) -> float:
+    ):
         r"""
         .. math::
 
@@ -530,7 +535,7 @@ class Evaluator:
         seasonal_error: float,
         alpha: float,
         exclude_zero_denominator=True,
-    ) -> float:
+    ):
         r"""
         :math:
 
@@ -554,15 +559,15 @@ class Evaluator:
             * (target > upper_quantile)
         )
 
-        return numerator / seasonal_error
+        return nan_if_masked(numerator / seasonal_error)
 
     @staticmethod
     def abs_target_sum(target):
-        return np.sum(np.abs(target))
+        return nan_if_masked(np.sum(np.abs(target)))
 
     @staticmethod
     def abs_target_mean(target):
-        return np.mean(np.abs(target))
+        return nan_if_masked(np.mean(np.abs(target)))
 
 
 class MultivariateEvaluator(Evaluator):
