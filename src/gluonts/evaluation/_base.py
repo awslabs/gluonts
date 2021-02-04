@@ -35,7 +35,7 @@ from gluonts.model.forecast import Forecast, Quantile
 from gluonts.time_feature import get_seasonality
 
 
-def nan_if_masked(a):
+def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
     return a if a is not np.ma.masked else np.nan
 
 
@@ -267,7 +267,7 @@ class Evaluator:
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Union[float, str, None]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         pred_target = np.ma.masked_invalid(pred_target)
 
@@ -281,7 +281,7 @@ class Evaluator:
             mean_fcst = None
         median_fcst = forecast.quantile(0.5)
         seasonal_error = self.seasonal_error(past_data, forecast)
-        metrics = {
+        metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
             "MSE": self.mse(pred_target, mean_fcst)
             if mean_fcst is not None
@@ -416,22 +416,24 @@ class Evaluator:
         return totals, metric_per_ts
 
     @staticmethod
-    def mse(target: np.ndarray, forecast: np.ndarray):
+    def mse(target: np.ndarray, forecast: np.ndarray) -> float:
         return nan_if_masked(np.mean(np.square(target - forecast)))
 
     @staticmethod
-    def abs_error(target: np.ndarray, forecast: np.ndarray):
+    def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
         return nan_if_masked(np.sum(np.abs(target - forecast)))
 
     @staticmethod
-    def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float):
+    def quantile_loss(
+        target: np.ndarray, forecast: np.ndarray, q: float
+    ) -> float:
         return nan_if_masked(
             2
             * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
         )
 
     @staticmethod
-    def coverage(target: np.ndarray, forecast: np.ndarray):
+    def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
         return nan_if_masked(np.mean((target < forecast)))
 
     @staticmethod
@@ -440,7 +442,7 @@ class Evaluator:
         forecast: np.ndarray,
         seasonal_error: float,
         exclude_zero_denominator=True,
-    ):
+    ) -> float:
         r"""
         .. math::
 
@@ -458,7 +460,7 @@ class Evaluator:
     @staticmethod
     def mape(
         target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-    ):
+    ) -> float:
         r"""
         .. math::
 
@@ -474,7 +476,7 @@ class Evaluator:
     @staticmethod
     def smape(
         target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-    ):
+    ) -> float:
         r"""
         .. math::
 
@@ -498,7 +500,7 @@ class Evaluator:
         past_data: np.ndarray,
         seasonal_error: float,
         start_date: pd.Timestamp,
-    ):
+    ) -> float:
         r"""
         .. math::
 
@@ -535,7 +537,7 @@ class Evaluator:
         seasonal_error: float,
         alpha: float,
         exclude_zero_denominator=True,
-    ):
+    ) -> float:
         r"""
         :math:
 
@@ -562,11 +564,11 @@ class Evaluator:
         return nan_if_masked(numerator / seasonal_error)
 
     @staticmethod
-    def abs_target_sum(target):
+    def abs_target_sum(target) -> float:
         return nan_if_masked(np.sum(np.abs(target)))
 
     @staticmethod
-    def abs_target_mean(target):
+    def abs_target_mean(target) -> float:
         return nan_if_masked(np.mean(np.abs(target)))
 
 
