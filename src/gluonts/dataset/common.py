@@ -218,7 +218,7 @@ class FileDataset(Dataset):
 
 class ListDataset(Dataset):
     """
-    Dataset backed directly by an list of dictionaries.
+    Dataset backed directly by a list of dictionaries.
 
     data_iter
         Iterable object yielding all items in the dataset.
