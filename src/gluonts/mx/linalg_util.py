@@ -24,7 +24,6 @@ def batch_diagonal(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx=mx.cpu(),
     float_type=np.float32,
 ) -> Tensor:
     """
@@ -47,9 +46,7 @@ def batch_diagonal(
 
     """
     return F.linalg.gemm2(
-        F.broadcast_mul(
-            F.eye(num_data_points, ctx=ctx, dtype=float_type), matrix
-        ),
+        F.broadcast_mul(F.eye(num_data_points, dtype=float_type), matrix),
         F.ones_like(F.slice_axis(matrix, axis=2, begin=0, end=1)),
     )
 
@@ -87,7 +84,6 @@ def jitter_cholesky_eig(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx: mx.Context = mx.Context("cpu"),
     float_type: DType = np.float64,
     diag_weight: float = 1e-6,
 ) -> Tensor:
@@ -105,8 +101,6 @@ def jitter_cholesky_eig(
         Matrix of shape (batch_size, num_data_points, num_data_points).
     num_data_points
         Number of rows in the kernel_matrix.
-    ctx
-        Determines whether to compute on the cpu or gpu.
     float_type
         Determines whether to use single or double precision.
 
@@ -117,7 +111,7 @@ def jitter_cholesky_eig(
         of shape (batch_size, num_data_points, num_data_points)
     """
     diag = batch_diagonal(
-        F, matrix, num_data_points, ctx, float_type
+        F, matrix, num_data_points, float_type
     )  # shape (batch_size, num_data_points, 1)
     diag_mean = diag.mean(axis=1).expand_dims(
         axis=2
@@ -132,7 +126,7 @@ def jitter_cholesky_eig(
             U,
             F.linalg.gemm2(
                 F.broadcast_mul(
-                    F.eye(num_data_points, ctx=ctx, dtype=float_type),
+                    F.eye(num_data_points, dtype=float_type),
                     F.maximum(jitter, Lambda.expand_dims(axis=2)),
                 ),
                 U,
@@ -147,7 +141,6 @@ def jitter_cholesky(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx: mx.Context = mx.Context("cpu"),
     float_type: DType = np.float64,
     max_iter_jitter: int = 10,
     neg_tol: float = -1e-8,
@@ -165,8 +158,6 @@ def jitter_cholesky(
         Kernel matrix of shape (batch_size, num_data_points, num_data_points).
     num_data_points
         Number of rows in the kernel_matrix.
-    ctx
-        Determines whether to compute on the cpu or gpu.
     float_type
         Determines whether to use single or double precision.
     max_iter_jitter
@@ -187,7 +178,7 @@ def jitter_cholesky(
     """
     num_iter = 0
     diag = batch_diagonal(
-        F, matrix, num_data_points, ctx, float_type
+        F, matrix, num_data_points, float_type
     )  # shape (batch_size, num_data_points, 1)
     diag_mean = diag.mean(axis=1).expand_dims(
         axis=2
@@ -205,7 +196,7 @@ def jitter_cholesky(
                 F.broadcast_add(
                     matrix,
                     F.broadcast_mul(
-                        F.eye(num_data_points, ctx=ctx, dtype=float_type),
+                        F.eye(num_data_points, dtype=float_type),
                         jitter,
                     ),
                 )

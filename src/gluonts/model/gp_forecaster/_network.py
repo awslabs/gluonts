@@ -40,7 +40,6 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         cardinality: int,
         kernel_output: KernelOutputDict,
         params_scaling: bool,
-        ctx: mx.Context,
         float_type: DType,
         max_iter_jitter: int,
         jitter_method: str,
@@ -59,8 +58,6 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
             KernelOutput instance to determine which kernel subclass to be instantiated.
         params_scaling
             Determines whether or not to scale the model parameters.
-        ctx
-            Determines whether to compute on the cpu or gpu.
         float_type
             Determines whether to use single or double precision.
         max_iter_jitter
@@ -78,7 +75,6 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         self.kernel_output = kernel_output
         self.params_scaling = params_scaling
         self.float_type = float_type
-        self.ctx = ctx
         self.max_iter_jitter = max_iter_jitter
         self.jitter_method = jitter_method
 
@@ -205,7 +201,6 @@ class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
             sigma=sigma,
             kernel=kernel,
             context_length=self.context_length,
-            ctx=self.ctx,
             float_type=self.float_type,
             max_iter_jitter=self.max_iter_jitter,
             jitter_method=self.jitter_method,
@@ -271,7 +266,6 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             num_samples=self.num_parallel_samples,
-            ctx=self.ctx,
             float_type=self.float_type,
             max_iter_jitter=self.max_iter_jitter,
             jitter_method=self.jitter_method,
