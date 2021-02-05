@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import List, Optional
 
 import pytest
 import numpy as np
@@ -27,7 +27,7 @@ from gluonts.nursery.autogluon_tabular import (
 
 
 @pytest.mark.parametrize(
-    "series, lags, expected_df",
+    "series, lags, past_data, expected_df",
     [
         (
             pd.Series(
@@ -37,6 +37,7 @@ from gluonts.nursery.autogluon_tabular import (
                 ),
             ),
             [1, 2, 5],
+            None,
             pd.DataFrame(
                 {
                     "year": [2020, 2020, 2021, 2021, 2021],
@@ -53,13 +54,49 @@ from gluonts.nursery.autogluon_tabular import (
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
-        )
+        ),
+        (
+            pd.Series(
+                list(range(5)),
+                index=pd.date_range(
+                    "2020-12-31 22:00:00", freq="H", periods=5
+                ),
+            ),
+            [1, 2, 5],
+            pd.Series(
+                list(range(5)),
+                index=pd.date_range(
+                    "2020-12-31 16:00:00", freq="H", periods=5
+                ),
+            ),
+            pd.DataFrame(
+                {
+                    "year": [2020, 2020, 2021, 2021, 2021],
+                    "month_of_year": [12, 12, 1, 1, 1],
+                    "day_of_week": [3, 3, 4, 4, 4],
+                    "hour_of_day": [22, 23, 0, 1, 2],
+                    "holiday_indicator": [False, False, True, False, False],
+                    "lag_1": [np.nan, 0, 1, 2, 3],
+                    "lag_2": [4, np.nan, 0, 1, 2],
+                    "lag_5": [1, 2, 3, 4, np.nan],
+                    "target": list(range(5)),
+                },
+                index=pd.date_range(
+                    "2020-12-31 22:00:00", freq="H", periods=5
+                ),
+            ),
+        ),
     ],
 )
 def test_get_features_dataframe(
-    series: pd.Series, lags: List[int], expected_df: pd.DataFrame
+    series: pd.Series,
+    lags: List[int],
+    past_data: Optional[pd.Series],
+    expected_df: pd.DataFrame,
 ):
-    assert expected_df.equals(get_features_dataframe(series, lags=lags))
+    assert expected_df.equals(
+        get_features_dataframe(series, lags=lags, past_data=past_data)
+    )
 
 
 @pytest.mark.parametrize(
@@ -114,6 +151,7 @@ def test_local_tabular_predictor(
         freq=freq,
         prediction_length=prediction_length,
         lags=lags,
+        time_limits=10,
     )
     forecasts_it = predictor.predict(dataset)
     forecasts = list(forecasts_it)
@@ -177,15 +215,31 @@ def test_tabular_estimator(
         freq=freq,
         prediction_length=prediction_length,
         lags=lags,
+        time_limits=10,
     )
 
     predictor = estimator.train(dataset)
 
-    forecasts_it = predictor.predict(dataset)
-    forecasts = list(forecasts_it)
+    forecasts_serial = list(predictor._predict_serial(dataset))
+    forecasts_batch = list(predictor._predict_batch(dataset, batch_size=2))
 
-    for entry, forecast in zip(dataset, forecasts):
+    def check_consistency(entry, f1, f2):
         ts = to_pandas(entry)
         start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
-        assert forecast.samples.shape[1] == prediction_length
-        assert forecast.start_date == start_timestamp
+        assert f1.samples.shape == (1, prediction_length)
+        assert f1.start_date == start_timestamp
+        assert f2.samples.shape == (1, prediction_length)
+        assert f2.start_date == start_timestamp
+        assert np.allclose(f1.samples, f2.samples)
+
+    for entry, f1, f2 in zip(dataset, forecasts_serial, forecasts_batch):
+        check_consistency(entry, f1, f2)
+
+    if not predictor.auto_regression:
+        forecasts_batch_autoreg = list(
+            predictor._predict_batch_autoreg(dataset)
+        )
+        for entry, f1, f2 in zip(
+            dataset, forecasts_serial, forecasts_batch_autoreg
+        ):
+            check_consistency(entry, f1, f2)

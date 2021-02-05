@@ -29,6 +29,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import to_pandas
+from gluonts.itertools import batcher
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import Localizer, Predictor
@@ -43,13 +44,39 @@ OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
 def get_features_dataframe(
-    series: pd.Series, lags: List[int] = []
+    series: pd.Series,
+    lags: List[int] = [],
+    past_data: Optional[pd.Series] = None,
 ) -> pd.DataFrame:
+    """Constructs a DataFrame of features for a given Series.
+
+    Features include some date-time features (like hour-of-day, day-of-week, ...) and
+    lagged values from the series itself. Lag indices are specified by `lags`, while
+    previous data can be specified by `past_data`: the latter allows to get lags also
+    for the initial values of the series.
+
+    Parameters
+    ----------
+    series
+        Series on which features should be computed.
+    lags
+        Indices of lagged observations to include as features.
+    past_data
+        Prior data, to be used to compute lagged observations.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the features. This has the same index as `series`.
+    """
     # TODO allow customizing what features to use
+    # TODO optimize
+
+    assert past_data is None or series.index.freq == past_data.index.freq
+    assert past_data is None or series.index[0] > past_data.index[-1]
 
     cal = calendar()
     holidays = cal.holidays(start=series.index.min(), end=series.index.max())
-
     time_features = {
         "year": series.index.year,
         "month_of_year": series.index.month,
@@ -58,7 +85,14 @@ def get_features_dataframe(
         "holiday_indicator": series.index.isin(holidays),
     }
 
-    lag_values = {f"lag_{idx}": series.shift(idx).values for idx in lags}
+    all_data = (
+        series
+        if past_data is None
+        else past_data.append(series).asfreq(series.index.freq)
+    )
+    lag_values = {
+        f"lag_{idx}": all_data.shift(idx)[series.index].values for idx in lags
+    }
 
     columns = {**time_features, **lag_values, "target": series.values}
 
@@ -72,63 +106,26 @@ class TabularPredictor(Predictor):
         freq: str,
         prediction_length: int,
         lags: List[int],
+        dtype=np.float32,
     ) -> None:
+        super().__init__(prediction_length=prediction_length, freq=freq)
         assert all(l >= 1 for l in lags)
 
         self.ag_model = ag_model
-        self.freq = freq
-        self.prediction_length = prediction_length
         self.lags = lags
-        self.auto_regression = (
-            False if not lags else self.prediction_length > min(self.lags)
+        self.dtype = dtype
+
+    @property
+    def auto_regression(self) -> bool:
+        return (
+            False if not self.lags else self.prediction_length > min(self.lags)
         )
 
-    def predict(self, dataset: Iterable[Dict]) -> Iterator[SampleForecast]:
-        for entry in dataset:
-            series = to_pandas(entry)
-
-            forecast_index = pd.date_range(
-                series.index[-1] + series.index.freq,
-                freq=series.index.freq,
-                periods=self.prediction_length,
-            )
-
-            # TODO refactor below here
-
-            if not self.auto_regression:
-                # do all predictions at once
-                forecast_series = pd.Series(
-                    [None] * len(forecast_index),
-                    index=forecast_index,
-                )
-                series = series.append(forecast_series)
-                df = get_features_dataframe(series, self.lags).loc[
-                    forecast_index
-                ]
-                ag_output = self.ag_model.predict(df)
-
-            else:
-                # do predictions one step at a time
-                ag_output = np.array([])
-                for k in range(len(forecast_index)):
-                    step_index = forecast_index[k : k + 1]
-                    step_series = pd.Series([None], index=step_index)
-                    series = series.append(step_series)
-                    df = get_features_dataframe(series, self.lags).loc[
-                        step_index
-                    ]
-                    step_ag_output = self.ag_model.predict(df)
-                    series[step_index] = step_ag_output
-                    ag_output = np.append(ag_output, step_ag_output)
-
-            yield self.to_forecast(
-                ag_output,
-                forecast_index[0],
-                item_id=entry.get(FieldName.ITEM_ID, None),
-            )
-
-    def to_forecast(
-        self, ag_output, start_timestamp, item_id=None
+    def _to_forecast(
+        self,
+        ag_output: np.ndarray,
+        start_timestamp: pd.Timestamp,
+        item_id=None,
     ) -> Iterator[SampleForecast]:
         samples = ag_output.reshape((1, self.prediction_length))
         sample = SampleForecast(
@@ -138,6 +135,170 @@ class TabularPredictor(Predictor):
             samples=samples,
         )
         return sample
+
+    def _predict_serial(
+        self, dataset: Iterable[Dict], **kwargs
+    ) -> Iterator[SampleForecast]:
+        for entry in dataset:
+            series = to_pandas(entry)
+
+            forecast_index = pd.date_range(
+                series.index[-1] + series.index.freq,
+                freq=series.index.freq,
+                periods=self.prediction_length,
+            )
+
+            forecast_series = pd.Series(
+                [None] * len(forecast_index),
+                index=forecast_index,
+            )
+
+            full_series = series.append(forecast_series)
+
+            if not self.auto_regression:  # predict all at once
+                df = get_features_dataframe(
+                    forecast_series, self.lags, past_data=series
+                )
+                full_series[forecast_series.index] = self.ag_model.predict(df)
+
+            else:  # predict step by step
+                for idx in forecast_series.index:
+                    df = get_features_dataframe(
+                        forecast_series[idx:idx],
+                        self.lags,
+                        past_data=full_series[:idx][:-1],
+                    )
+                    full_series[idx] = self.ag_model.predict(df).item()
+
+            yield self._to_forecast(
+                full_series[forecast_index].values.astype(self.dtype),
+                forecast_index[0],
+                item_id=entry.get(FieldName.ITEM_ID, None),
+            )
+
+    def _batch_predict_one_shot(
+        self, dataset: Iterable[Dict], **kwargs
+    ) -> Iterator[SampleForecast]:
+        # TODO clean up
+        # TODO optimize
+        dfs = []
+        forecast_start_timestamps = []
+        item_ids = []
+        for entry in dataset:
+            series = to_pandas(entry)
+            forecast_start = series.index[-1] + series.index.freq
+            forecast_index = pd.date_range(
+                forecast_start,
+                freq=series.index.freq,
+                periods=self.prediction_length,
+            )
+            forecast_series = pd.Series(
+                [None] * self.prediction_length,
+                index=forecast_index,
+            )
+            dfs.append(
+                get_features_dataframe(
+                    forecast_series, self.lags, past_data=series
+                )
+            )
+            forecast_start_timestamps.append(forecast_start)
+            item_ids.append(entry.get(FieldName.ITEM_ID, None))
+
+        df = pd.concat(dfs)
+        output = self.ag_model.predict(df)
+        for arr, forecast_start, item_id in zip(
+            np.split(output, len(dfs)), forecast_start_timestamps, item_ids
+        ):
+            yield self._to_forecast(
+                arr,
+                forecast_start,
+                item_id=item_id,
+            )
+
+    def _predict_batch_autoreg(
+        self, dataset: Iterable[Dict], **kwargs
+    ) -> Iterator[SampleForecast]:
+        # TODO clean up
+        # TODO optimize
+        batch_series = []
+        batch_ids = []
+        for entry in dataset:
+            batch_series.append(to_pandas(entry))
+            batch_ids.append(entry.get(FieldName.ITEM_ID, None))
+        batch_forecast_indices = [
+            pd.date_range(
+                series.index[-1] + series.index.freq,
+                freq=series.index.freq,
+                periods=self.prediction_length,
+            )
+            for series in batch_series
+        ]
+        batch_full_series = [
+            series.append(
+                pd.Series(
+                    [None] * self.prediction_length,
+                    index=forecast_index,
+                )
+            )
+            for series, forecast_index in zip(
+                batch_series, batch_forecast_indices
+            )
+        ]
+
+        output = np.zeros(
+            (len(batch_series), self.prediction_length), dtype=self.dtype
+        )
+
+        for k in range(self.prediction_length):
+            dfs = []
+            for fs, idx in zip(batch_full_series, batch_forecast_indices):
+                idx_k = idx[k]
+                dfs.append(
+                    get_features_dataframe(
+                        fs[idx_k:idx_k],
+                        self.lags,
+                        past_data=fs[:idx_k][:-1],
+                    )
+                )
+            df = pd.concat(dfs)
+            out_k = self.ag_model.predict(df)
+            output[:, k] = out_k
+            for fs, idx, v in zip(
+                batch_full_series, batch_forecast_indices, out_k
+            ):
+                fs.at[idx[k]] = v
+
+        for arr, forecast_index, item_id in zip(
+            output, batch_forecast_indices, batch_ids
+        ):
+            yield self._to_forecast(
+                arr,
+                forecast_index[0],
+                item_id=item_id,
+            )
+
+    def _predict_batch(
+        self, dataset: Iterable[Dict], batch_size: int, **kwargs
+    ) -> Iterator[SampleForecast]:
+        for batch in batcher(dataset, batch_size):
+            yield from (
+                self._batch_predict_one_shot(batch, **kwargs)
+                if not self.auto_regression
+                else self._predict_batch_autoreg(batch, **kwargs)
+            )
+
+    def predict(
+        self,
+        dataset: Iterable[Dict],
+        batch_size: Optional[int] = 32,
+        **kwargs,
+    ) -> Iterator[SampleForecast]:
+        if batch_size is None:
+            return self._predict_serial(dataset, **kwargs)
+        else:
+            return self._predict_batch(
+                dataset, batch_size=batch_size, **kwargs
+            )
 
 
 class TabularEstimator(Estimator):
