@@ -17,7 +17,7 @@ import os
 import tempfile
 import time
 import uuid
-from typing import Any, List, NamedTuple, Optional, Union
+from typing import List, NamedTuple, Optional, Union
 
 # Third-party imports
 import mxnet as mx
@@ -153,11 +153,6 @@ class Trainer:
             if has_gpu_support()
             else mx.Context('cpu')
         )
-        self.halt = False
-
-    def set_halt(self, signum: int, stack_frame: Any) -> None:
-        logging.info("Received signal: {}".format(signum))
-        self.halt = True
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()
@@ -173,7 +168,6 @@ class Trainer:
         input_names: List[str],
         train_iter: TrainDataLoader,
     ) -> None:  # TODO: we may want to return some training information here
-        self.halt = False
 
         with tempfile.TemporaryDirectory(
             prefix='gluonts-trainer-temp-'
@@ -231,11 +225,6 @@ class Trainer:
                 )
 
                 for epoch_no in range(self.epochs):
-                    if self.halt:
-                        logging.info(
-                            f"Epoch[{epoch_no}] Interrupting training"
-                        )
-                        break
 
                     curr_lr = trainer.learning_rate
                     logging.info(
@@ -249,13 +238,14 @@ class Trainer:
 
                     with tqdm(train_iter) as it:
                         for batch_no, data_entry in enumerate(it, start=1):
-                            if self.halt:
-                                break
 
                             inputs = [data_entry[k] for k in input_names]
 
                             with mx.autograd.record():
-                                output = net(*inputs)
+                                # we set the mode explicitly as by default mxnet assumes predict mode and hence
+                                # dropout layers are not used if the mode is not explicitly set to training
+                                with autograd.train_mode():
+                                    output = net(*inputs)
 
                                 # network can returns several outputs, the first being always the loss
                                 # when having multiple outputs, the forward returns a list in the case of hybrid and a
