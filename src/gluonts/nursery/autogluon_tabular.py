@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Dict,
     Iterable,
@@ -33,14 +32,7 @@ from gluonts.itertools import batcher
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import Localizer, Predictor
-from gluonts.time_feature import (
-    get_lags_for_frequency,
-)
-
-if TYPE_CHECKING:  # avoid circular import
-    from gluonts.model.estimator import Estimator
-
-OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
+from gluonts.time_feature import get_lags_for_frequency
 
 
 def get_features_dataframe(
@@ -70,7 +62,7 @@ def get_features_dataframe(
         A DataFrame containing the features. This has the same index as `series`.
     """
     # TODO allow customizing what features to use
-    # TODO optimize
+    # TODO check if anything can be optimized here
 
     assert past_data is None or series.index.freq == past_data.index.freq
     assert past_data is None or series.index[0] > past_data.index[-1]
@@ -106,6 +98,7 @@ class TabularPredictor(Predictor):
         freq: str,
         prediction_length: int,
         lags: List[int],
+        batch_size: int = 32,
         dtype=np.float32,
     ) -> None:
         super().__init__(prediction_length=prediction_length, freq=freq)
@@ -136,6 +129,10 @@ class TabularPredictor(Predictor):
         )
         return sample
 
+    # serial prediction (both auto-regressive and not)
+    # `auto_regression == False`: one call to Autogluon's `predict` per input time series
+    # `auto_regression == True`: `prediction_length` calls to Autogluon's `predict` per input time series
+    # really only useful for debugging, since this is generally slower than the batched versions (see below)
     def _predict_serial(
         self, dataset: Iterable[Dict], **kwargs
     ) -> Iterator[SampleForecast]:
@@ -176,7 +173,9 @@ class TabularPredictor(Predictor):
                 item_id=entry.get(FieldName.ITEM_ID, None),
             )
 
-    def _batch_predict_one_shot(
+    # batch prediction (no auto-regression)
+    # one call to Autogluon's `predict`
+    def _predict_batch_one_shot(
         self, dataset: Iterable[Dict], **kwargs
     ) -> Iterator[SampleForecast]:
         # TODO clean up
@@ -215,6 +214,8 @@ class TabularPredictor(Predictor):
                 item_id=item_id,
             )
 
+    # batch prediction (auto-regressive)
+    # `prediction_length` calls to Autogluon's `predict`
     def _predict_batch_autoreg(
         self, dataset: Iterable[Dict], **kwargs
     ) -> Iterator[SampleForecast]:
@@ -282,7 +283,7 @@ class TabularPredictor(Predictor):
     ) -> Iterator[SampleForecast]:
         for batch in batcher(dataset, batch_size):
             yield from (
-                self._batch_predict_one_shot(batch, **kwargs)
+                self._predict_batch_one_shot(batch, **kwargs)
                 if not self.auto_regression
                 else self._predict_batch_autoreg(batch, **kwargs)
             )
@@ -294,6 +295,8 @@ class TabularPredictor(Predictor):
         **kwargs,
     ) -> Iterator[SampleForecast]:
         if batch_size is None:
+            batch_size = self.batch_size
+        if batch_size is None:
             return self._predict_serial(dataset, **kwargs)
         else:
             return self._predict_batch(
@@ -302,11 +305,32 @@ class TabularPredictor(Predictor):
 
 
 class TabularEstimator(Estimator):
+    """An estimator that trains an Autogluon Tabular model for time series
+    forecasting.
+
+    Additional keyword arguments to the constructor will be passed on to
+    Autogluon Tabular's ``fit`` method used for training the model.
+
+    Parameters
+    ----------
+    freq
+        Frequency of the data to handle
+    prediction_length
+        Prediction length
+    lags
+        List of indices of the lagged observations to use as features. If
+        None, this will be set automatically based on the frequency.
+    batch_size
+        Batch size of the resulting predictor; this is just used at prediction
+        time, and does not affect training in any way.
+    """
+
     def __init__(
         self,
         freq: str,
         prediction_length: int,
         lags: Optional[List[int]] = None,
+        batch_size: Optional[int] = 32,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -325,6 +349,7 @@ class TabularEstimator(Estimator):
         self.lags = (
             lags if lags is not None else (get_lags_for_frequency(self.freq))
         )
+        self.batch_size = batch_size
 
     def train(self, training_data: Dataset) -> TabularPredictor:
         dfs = [
@@ -343,6 +368,7 @@ class TabularEstimator(Estimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             lags=self.lags,
+            batch_size=self.batch_size,
         )
 
 
