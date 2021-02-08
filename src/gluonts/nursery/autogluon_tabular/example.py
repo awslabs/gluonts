@@ -27,7 +27,8 @@ def run_example():
     estimator = TabularEstimator(
         freq="H",
         prediction_length=24,
-        time_limits=2 * 60,  # two minutes
+        time_limits=2 * 60,  # two minutes for training
+        disable_auto_regression=True,  # makes prediction faster, but potentially less accurate
     )
 
     n_train = 5

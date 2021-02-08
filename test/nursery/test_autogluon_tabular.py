@@ -208,17 +208,27 @@ def test_local_tabular_predictor(
     ],
 )
 @pytest.mark.parametrize("lags", [[], [1, 2, 5]])
+@pytest.mark.parametrize("disable_auto_regression", [False, True])
 def test_tabular_estimator(
-    dataset, freq, prediction_length: int, lags: List[int]
+    dataset,
+    freq,
+    prediction_length: int,
+    lags: List[int],
+    disable_auto_regression: bool,
 ):
     estimator = TabularEstimator(
         freq=freq,
         prediction_length=prediction_length,
         lags=lags,
         time_limits=10,
+        disable_auto_regression=disable_auto_regression,
     )
 
     predictor = estimator.train(dataset)
+
+    assert not predictor.auto_regression or any(
+        l < prediction_length for l in predictor.lags
+    )
 
     forecasts_serial = list(predictor._predict_serial(dataset))
     forecasts_batch = list(predictor._predict_batch(dataset, batch_size=2))

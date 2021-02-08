@@ -28,8 +28,9 @@ class TabularEstimator(Estimator):
     """An estimator that trains an Autogluon Tabular model for time series
     forecasting.
 
-    Additional keyword arguments to the constructor will be passed on to
-    Autogluon Tabular's ``fit`` method used for training the model.
+    Additional keyword arguments to the constructor, other than the ones documented
+    below, will be passed on to Autogluon Tabular's ``fit`` method used for training
+    the model.
 
     Parameters
     ----------
@@ -43,6 +44,10 @@ class TabularEstimator(Estimator):
     batch_size
         Batch size of the resulting predictor; this is just used at prediction
         time, and does not affect training in any way.
+    disable_auto_regression
+        Weather to forecefully disable auto-regression in the model. If ``True``,
+        this will remove any lag index which is smaller than ``prediction_length``.
+        This will make predictions more efficient, but may impact their accuracy.
     """
 
     def __init__(
@@ -51,12 +56,23 @@ class TabularEstimator(Estimator):
         prediction_length: int,
         lags: Optional[List[int]] = None,
         batch_size: Optional[int] = 32,
+        disable_auto_regression: bool = False,
         **kwargs,
     ) -> None:
         super().__init__()
+
         self.task = task
         self.freq = freq
         self.prediction_length = prediction_length
+        self.lags = (
+            lags if lags is not None else (get_lags_for_frequency(self.freq))
+        )
+        self.batch_size = batch_size
+        self.disable_auto_regression = disable_auto_regression
+
+        if self.disable_auto_regression:
+            self.lags = [l for l in self.lags if l >= self.prediction_length]
+
         default_kwargs = {
             # TODO use mean absolute percentage error (MAPE) by default
             "eval_metric": "mean_absolute_error",
@@ -67,10 +83,6 @@ class TabularEstimator(Estimator):
             ],
         }
         self.kwargs = {**default_kwargs, **kwargs}
-        self.lags = (
-            lags if lags is not None else (get_lags_for_frequency(self.freq))
-        )
-        self.batch_size = batch_size
 
     def train(self, training_data: Dataset) -> TabularPredictor:
         dfs = [
