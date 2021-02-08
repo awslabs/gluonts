@@ -11,17 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, List
+from typing import Callable, Optional, List, Tuple
 
 import pandas as pd
 from autogluon import TabularPrediction as task
 
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
-from gluonts.time_feature import get_lags_for_frequency
 from gluonts.model.estimator import Estimator
+from gluonts.time_feature import get_lags_for_frequency
 
-from .predictor import TabularPredictor, get_features_dataframe
+from .predictor import (
+    TabularPredictor,
+    mean_abs_scaling,
+    get_features_dataframe,
+)
 
 
 class TabularEstimator(Estimator):
@@ -41,6 +45,10 @@ class TabularEstimator(Estimator):
     lags
         List of indices of the lagged observations to use as features. If
         None, this will be set automatically based on the frequency.
+    scaling
+        Function to be used to scale time series. This should take a pd.Series object
+        as input, and return a scaled pd.Series and the scale (float). By default,
+        this divides a series by the mean of its absolute value.
     batch_size
         Batch size of the resulting predictor; this is just used at prediction
         time, and does not affect training in any way.
@@ -55,6 +63,9 @@ class TabularEstimator(Estimator):
         freq: str,
         prediction_length: int,
         lags: Optional[List[int]] = None,
+        scaling: Callable[
+            [pd.Series], Tuple[pd.Series, float]
+        ] = mean_abs_scaling,
         batch_size: Optional[int] = 32,
         disable_auto_regression: bool = False,
         **kwargs,
@@ -69,12 +80,12 @@ class TabularEstimator(Estimator):
         )
         self.batch_size = batch_size
         self.disable_auto_regression = disable_auto_regression
+        self.scaling = scaling
 
         if self.disable_auto_regression:
             self.lags = [l for l in self.lags if l >= self.prediction_length]
 
         default_kwargs = {
-            # TODO use mean absolute percentage error (MAPE) by default
             "eval_metric": "mean_absolute_error",
             "excluded_model_types": ["KNN", "XT", "RF"],
             "presets": [
@@ -87,7 +98,7 @@ class TabularEstimator(Estimator):
     def train(self, training_data: Dataset) -> TabularPredictor:
         dfs = [
             get_features_dataframe(
-                series=to_pandas(entry),
+                series=self.scaling(to_pandas(entry))[0],
                 lags=self.lags,
             )
             for entry in training_data
@@ -101,5 +112,6 @@ class TabularEstimator(Estimator):
             freq=self.freq,
             prediction_length=self.prediction_length,
             lags=self.lags,
+            scaling=self.scaling,
             batch_size=self.batch_size,
         )

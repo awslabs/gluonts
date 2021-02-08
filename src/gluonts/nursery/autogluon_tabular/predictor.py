@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional, Iterator, Iterable
+from typing import Callable, Dict, List, Optional, Iterator, Iterable, Tuple
 
 import numpy as np
 import pandas as pd
@@ -22,6 +22,18 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import batcher
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import Predictor
+
+
+def no_scaling(series: pd.Series):
+    return series, 1.0
+
+
+def mean_abs_scaling(series: pd.Series, minimum_scale=1e-6):
+    """Scales a Series by the mean of its absolute value. Returns the scaled Series
+    and the scale itself.
+    """
+    scale = max(minimum_scale, series.abs().mean())
+    return series / scale, scale
 
 
 def get_features_dataframe(
@@ -87,6 +99,7 @@ class TabularPredictor(Predictor):
         freq: str,
         prediction_length: int,
         lags: List[int],
+        scaling: Callable[[pd.Series], Tuple[pd.Series, float]],
         batch_size: int = 32,
         dtype=np.float32,
     ) -> None:
@@ -126,7 +139,7 @@ class TabularPredictor(Predictor):
         self, dataset: Iterable[Dict], **kwargs
     ) -> Iterator[SampleForecast]:
         for entry in dataset:
-            series = to_pandas(entry)
+            series, scale = mean_abs_scaling(to_pandas(entry))
 
             forecast_index = pd.date_range(
                 series.index[-1] + series.index.freq,
@@ -157,7 +170,7 @@ class TabularPredictor(Predictor):
                     full_series[idx] = self.ag_model.predict(df).item()
 
             yield self._to_forecast(
-                full_series[forecast_index].values.astype(self.dtype),
+                scale * full_series[forecast_index].values.astype(self.dtype),
                 forecast_index[0],
                 item_id=entry.get(FieldName.ITEM_ID, None),
             )
@@ -169,12 +182,17 @@ class TabularPredictor(Predictor):
     ) -> Iterator[SampleForecast]:
         # TODO clean up
         # TODO optimize
-        dfs = []
-        forecast_start_timestamps = []
         item_ids = []
+        scales = []
+        forecast_start_timestamps = []
+        dfs = []
+
         for entry in dataset:
-            series = to_pandas(entry)
+            item_ids.append(entry.get(FieldName.ITEM_ID, None))
+            series, scale = mean_abs_scaling(to_pandas(entry))
+            scales.append(scale)
             forecast_start = series.index[-1] + series.index.freq
+            forecast_start_timestamps.append(forecast_start)
             forecast_index = pd.date_range(
                 forecast_start,
                 freq=series.index.freq,
@@ -189,16 +207,18 @@ class TabularPredictor(Predictor):
                     forecast_series, self.lags, past_data=series
                 )
             )
-            forecast_start_timestamps.append(forecast_start)
-            item_ids.append(entry.get(FieldName.ITEM_ID, None))
 
         df = pd.concat(dfs)
         output = self.ag_model.predict(df)
-        for arr, forecast_start, item_id in zip(
-            np.split(output, len(dfs)), forecast_start_timestamps, item_ids
+
+        for arr, scale, forecast_start, item_id in zip(
+            np.split(output, len(dfs)),
+            scales,
+            forecast_start_timestamps,
+            item_ids,
         ):
             yield self._to_forecast(
-                arr,
+                scale * arr,
                 forecast_start,
                 item_id=item_id,
             )
@@ -210,11 +230,16 @@ class TabularPredictor(Predictor):
     ) -> Iterator[SampleForecast]:
         # TODO clean up
         # TODO optimize
-        batch_series = []
         batch_ids = []
+        batch_scales = []
+        batch_series = []
+
         for entry in dataset:
-            batch_series.append(to_pandas(entry))
             batch_ids.append(entry.get(FieldName.ITEM_ID, None))
+            series, scale = mean_abs_scaling(to_pandas(entry))
+            batch_scales.append(scale)
+            batch_series.append(series)
+
         batch_forecast_indices = [
             pd.date_range(
                 series.index[-1] + series.index.freq,
@@ -223,6 +248,7 @@ class TabularPredictor(Predictor):
             )
             for series in batch_series
         ]
+
         batch_full_series = [
             series.append(
                 pd.Series(
@@ -258,11 +284,11 @@ class TabularPredictor(Predictor):
             ):
                 fs.at[idx[k]] = v
 
-        for arr, forecast_index, item_id in zip(
-            output, batch_forecast_indices, batch_ids
+        for arr, scale, forecast_index, item_id in zip(
+            output, batch_scales, batch_forecast_indices, batch_ids
         ):
             yield self._to_forecast(
-                arr,
+                scale * arr,
                 forecast_index[0],
                 item_id=item_id,
             )
