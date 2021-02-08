@@ -19,7 +19,7 @@ import pandas as pd
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.util import to_pandas
-from gluonts.nursery.autogluon_tabular import get_features_dataframe
+from gluonts.nursery.autogluon_tabular.predictor import get_features_dataframe
 from gluonts.nursery.autogluon_tabular import (
     TabularEstimator,
     LocalTabularPredictor,

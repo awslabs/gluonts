@@ -11,28 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import (
-    Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-)
+from typing import Dict, List, Optional, Iterator, Iterable
 
 import numpy as np
 import pandas as pd
-from autogluon import TabularPrediction as task
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 
-from gluonts.dataset.common import DataEntry, Dataset
-from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import to_pandas
+from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import batcher
-from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import SampleForecast
-from gluonts.model.predictor import Localizer, Predictor
-from gluonts.time_feature import get_lags_for_frequency
+from gluonts.model.predictor import Predictor
 
 
 def get_features_dataframe(
@@ -302,75 +291,3 @@ class TabularPredictor(Predictor):
             return self._predict_batch(
                 dataset, batch_size=batch_size, **kwargs
             )
-
-
-class TabularEstimator(Estimator):
-    """An estimator that trains an Autogluon Tabular model for time series
-    forecasting.
-
-    Additional keyword arguments to the constructor will be passed on to
-    Autogluon Tabular's ``fit`` method used for training the model.
-
-    Parameters
-    ----------
-    freq
-        Frequency of the data to handle
-    prediction_length
-        Prediction length
-    lags
-        List of indices of the lagged observations to use as features. If
-        None, this will be set automatically based on the frequency.
-    batch_size
-        Batch size of the resulting predictor; this is just used at prediction
-        time, and does not affect training in any way.
-    """
-
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        lags: Optional[List[int]] = None,
-        batch_size: Optional[int] = 32,
-        **kwargs,
-    ) -> None:
-        super().__init__()
-        self.task = task
-        self.freq = freq
-        self.prediction_length = prediction_length
-        default_kwargs = {
-            "eval_metric": "mean_absolute_error",
-            "excluded_model_types": ["KNN", "XT", "RF"],
-            "presets": [
-                "high_quality_fast_inference_only_refit",
-                "optimize_for_deployment",
-            ],
-        }
-        self.kwargs = {**default_kwargs, **kwargs}
-        self.lags = (
-            lags if lags is not None else (get_lags_for_frequency(self.freq))
-        )
-        self.batch_size = batch_size
-
-    def train(self, training_data: Dataset) -> TabularPredictor:
-        dfs = [
-            get_features_dataframe(
-                series=to_pandas(entry),
-                lags=self.lags,
-            )
-            for entry in training_data
-        ]
-        df = pd.concat(dfs)
-        ag_model = self.task.fit(
-            df, label="target", problem_type="regression", **self.kwargs
-        )
-        return TabularPredictor(
-            ag_model=ag_model,
-            freq=self.freq,
-            prediction_length=self.prediction_length,
-            lags=self.lags,
-            batch_size=self.batch_size,
-        )
-
-
-def LocalTabularPredictor(*args, **kwargs) -> Localizer:
-    return Localizer(TabularEstimator(*args, **kwargs))
