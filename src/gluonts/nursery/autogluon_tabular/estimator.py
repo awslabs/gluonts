@@ -19,7 +19,11 @@ from autogluon import TabularPrediction as task
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
 from gluonts.model.estimator import Estimator
-from gluonts.time_feature import get_lags_for_frequency
+from gluonts.time_feature import (
+    TimeFeature,
+    get_lags_for_frequency,
+    time_features_from_frequency_str,
+)
 
 from .predictor import (
     TabularPredictor,
@@ -42,9 +46,12 @@ class TabularEstimator(Estimator):
         Frequency of the data to handle
     prediction_length
         Prediction length
-    lags
+    lag_indices
         List of indices of the lagged observations to use as features. If
         None, this will be set automatically based on the frequency.
+    time_features
+        List of time features to be used. If None, this will be set automatically
+        based on the frequency.
     scaling
         Function to be used to scale time series. This should take a pd.Series object
         as input, and return a scaled pd.Series and the scale (float). By default,
@@ -62,7 +69,8 @@ class TabularEstimator(Estimator):
         self,
         freq: str,
         prediction_length: int,
-        lags: Optional[List[int]] = None,
+        lag_indices: Optional[List[int]] = None,
+        time_features: Optional[List[TimeFeature]] = None,
         scaling: Callable[
             [pd.Series], Tuple[pd.Series, float]
         ] = mean_abs_scaling,
@@ -75,15 +83,24 @@ class TabularEstimator(Estimator):
         self.task = task
         self.freq = freq
         self.prediction_length = prediction_length
-        self.lags = (
-            lags if lags is not None else (get_lags_for_frequency(self.freq))
+        self.lag_indices = (
+            lag_indices
+            if lag_indices is not None
+            else get_lags_for_frequency(self.freq)
+        )
+        self.time_features = (
+            time_features
+            if time_features is not None
+            else time_features_from_frequency_str(self.freq)
         )
         self.batch_size = batch_size
         self.disable_auto_regression = disable_auto_regression
         self.scaling = scaling
 
         if self.disable_auto_regression:
-            self.lags = [l for l in self.lags if l >= self.prediction_length]
+            self.lag_indices = [
+                l for l in self.lag_indices if l >= self.prediction_length
+            ]
 
         default_kwargs = {
             "eval_metric": "mean_absolute_error",
@@ -99,7 +116,8 @@ class TabularEstimator(Estimator):
         dfs = [
             get_features_dataframe(
                 series=self.scaling(to_pandas(entry))[0],
-                lags=self.lags,
+                time_features=self.time_features,
+                lag_indices=self.lag_indices,
             )
             for entry in training_data
         ]
@@ -111,7 +129,8 @@ class TabularEstimator(Estimator):
             ag_model=ag_model,
             freq=self.freq,
             prediction_length=self.prediction_length,
-            lags=self.lags,
+            time_features=self.time_features,
+            lag_indices=self.lag_indices,
             scaling=self.scaling,
             batch_size=self.batch_size,
         )

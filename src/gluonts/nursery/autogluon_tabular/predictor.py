@@ -22,6 +22,7 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import batcher
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import Predictor
+from gluonts.time_feature import TimeFeature
 
 
 def no_scaling(series: pd.Series):
@@ -38,7 +39,8 @@ def mean_abs_scaling(series: pd.Series, minimum_scale=1e-6):
 
 def get_features_dataframe(
     series: pd.Series,
-    lags: List[int] = [],
+    time_features: List[TimeFeature],
+    lag_indices: List[int],
     past_data: Optional[pd.Series] = None,
 ) -> pd.DataFrame:
     """Constructs a DataFrame of features for a given Series.
@@ -52,8 +54,10 @@ def get_features_dataframe(
     ----------
     series
         Series on which features should be computed.
-    lags
-        Indices of lagged observations to include as features.
+    time_features
+        List of time features to be included in the data frame.
+    lag_indices
+        List of indices of lagged observations to be included as features.
     past_data
         Prior data, to be used to compute lagged observations.
 
@@ -62,7 +66,6 @@ def get_features_dataframe(
     pd.DataFrame
         A DataFrame containing the features. This has the same index as `series`.
     """
-    # TODO allow customizing what features to use
     # TODO check if anything can be optimized here
 
     assert past_data is None or series.index.freq == past_data.index.freq
@@ -70,12 +73,9 @@ def get_features_dataframe(
 
     cal = calendar()
     holidays = cal.holidays(start=series.index.min(), end=series.index.max())
-    time_features = {
-        "year": series.index.year,
-        "month_of_year": series.index.month,
-        "day_of_week": series.index.dayofweek,
-        "hour_of_day": series.index.hour,
-        "holiday_indicator": series.index.isin(holidays),
+    time_feature_columns = {
+        feature.__class__.__name__: feature(series.index)
+        for feature in time_features
     }
 
     all_data = (
@@ -83,11 +83,12 @@ def get_features_dataframe(
         if past_data is None
         else past_data.append(series).asfreq(series.index.freq)
     )
-    lag_values = {
-        f"lag_{idx}": all_data.shift(idx)[series.index].values for idx in lags
+    lag_columns = {
+        f"lag_{idx}": all_data.shift(idx)[series.index].values
+        for idx in lag_indices
     }
 
-    columns = {**time_features, **lag_values, "target": series.values}
+    columns = {**time_feature_columns, **lag_columns, "target": series.values}
 
     return pd.DataFrame(columns, index=series.index)
 
@@ -98,22 +99,28 @@ class TabularPredictor(Predictor):
         ag_model,
         freq: str,
         prediction_length: int,
-        lags: List[int],
+        time_features: List[TimeFeature],
+        lag_indices: List[int],
         scaling: Callable[[pd.Series], Tuple[pd.Series, float]],
-        batch_size: int = 32,
+        batch_size: Optional[int] = 32,
         dtype=np.float32,
     ) -> None:
         super().__init__(prediction_length=prediction_length, freq=freq)
-        assert all(l >= 1 for l in lags)
+        assert all(l >= 1 for l in lag_indices)
 
         self.ag_model = ag_model
-        self.lags = lags
+        self.time_features = time_features
+        self.lag_indices = lag_indices
+        self.scaling = scaling
+        self.batch_size = batch_size
         self.dtype = dtype
 
     @property
     def auto_regression(self) -> bool:
         return (
-            False if not self.lags else self.prediction_length > min(self.lags)
+            False
+            if not self.lag_indices
+            else self.prediction_length > min(self.lag_indices)
         )
 
     def _to_forecast(
@@ -139,7 +146,7 @@ class TabularPredictor(Predictor):
         self, dataset: Iterable[Dict], **kwargs
     ) -> Iterator[SampleForecast]:
         for entry in dataset:
-            series, scale = mean_abs_scaling(to_pandas(entry))
+            series, scale = self.scaling(to_pandas(entry))
 
             forecast_index = pd.date_range(
                 series.index[-1] + series.index.freq,
@@ -156,7 +163,10 @@ class TabularPredictor(Predictor):
 
             if not self.auto_regression:  # predict all at once
                 df = get_features_dataframe(
-                    forecast_series, self.lags, past_data=series
+                    forecast_series,
+                    time_features=self.time_features,
+                    lag_indices=self.lag_indices,
+                    past_data=series,
                 )
                 full_series[forecast_series.index] = self.ag_model.predict(df)
 
@@ -164,7 +174,8 @@ class TabularPredictor(Predictor):
                 for idx in forecast_series.index:
                     df = get_features_dataframe(
                         forecast_series[idx:idx],
-                        self.lags,
+                        time_features=self.time_features,
+                        lag_indices=self.lag_indices,
                         past_data=full_series[:idx][:-1],
                     )
                     full_series[idx] = self.ag_model.predict(df).item()
@@ -189,7 +200,7 @@ class TabularPredictor(Predictor):
 
         for entry in dataset:
             item_ids.append(entry.get(FieldName.ITEM_ID, None))
-            series, scale = mean_abs_scaling(to_pandas(entry))
+            series, scale = self.scaling(to_pandas(entry))
             scales.append(scale)
             forecast_start = series.index[-1] + series.index.freq
             forecast_start_timestamps.append(forecast_start)
@@ -204,7 +215,10 @@ class TabularPredictor(Predictor):
             )
             dfs.append(
                 get_features_dataframe(
-                    forecast_series, self.lags, past_data=series
+                    forecast_series,
+                    time_features=self.time_features,
+                    lag_indices=self.lag_indices,
+                    past_data=series,
                 )
             )
 
@@ -236,7 +250,7 @@ class TabularPredictor(Predictor):
 
         for entry in dataset:
             batch_ids.append(entry.get(FieldName.ITEM_ID, None))
-            series, scale = mean_abs_scaling(to_pandas(entry))
+            series, scale = self.scaling(to_pandas(entry))
             batch_scales.append(scale)
             batch_series.append(series)
 
@@ -272,7 +286,8 @@ class TabularPredictor(Predictor):
                 dfs.append(
                     get_features_dataframe(
                         fs[idx_k:idx_k],
-                        self.lags,
+                        time_features=self.time_features,
+                        lag_indices=self.lag_indices,
                         past_data=fs[:idx_k][:-1],
                     )
                 )
@@ -298,20 +313,21 @@ class TabularPredictor(Predictor):
     ) -> Iterator[SampleForecast]:
         for batch in batcher(dataset, batch_size):
             yield from (
-                self._predict_batch_one_shot(batch, **kwargs)
-                if not self.auto_regression
-                else self._predict_batch_autoreg(batch, **kwargs)
+                self._predict_batch_autoreg(batch, **kwargs)
+                if self.auto_regression
+                else self._predict_batch_one_shot(batch, **kwargs)
             )
 
     def predict(
         self,
         dataset: Iterable[Dict],
-        batch_size: Optional[int] = 32,
+        batch_size: Optional[int] = None,
         **kwargs,
     ) -> Iterator[SampleForecast]:
         if batch_size is None:
             batch_size = self.batch_size
-        if batch_size is None:
+        assert batch_size > 0
+        if batch_size is None or batch_size == 1:
             return self._predict_serial(dataset, **kwargs)
         else:
             return self._predict_batch(

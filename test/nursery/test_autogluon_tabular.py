@@ -24,10 +24,11 @@ from gluonts.nursery.autogluon_tabular import (
     TabularEstimator,
     LocalTabularPredictor,
 )
+from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
 
 
 @pytest.mark.parametrize(
-    "series, lags, past_data, expected_df",
+    "series, time_features, lag_indices, past_data, expected_df",
     [
         (
             pd.Series(
@@ -36,15 +37,26 @@ from gluonts.nursery.autogluon_tabular import (
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
+            [MonthOfYear(), DayOfWeek(), HourOfDay()],
             [1, 2, 5],
             None,
             pd.DataFrame(
                 {
-                    "year": [2020, 2020, 2021, 2021, 2021],
-                    "month_of_year": [12, 12, 1, 1, 1],
-                    "day_of_week": [3, 3, 4, 4, 4],
-                    "hour_of_day": [22, 23, 0, 1, 2],
-                    "holiday_indicator": [False, False, True, False, False],
+                    "MonthOfYear": [0.5, 0.5, -0.5, -0.5, -0.5],
+                    "DayOfWeek": [
+                        0.0,
+                        0.0,
+                        4.0 / 6 - 0.5,
+                        4.0 / 6 - 0.5,
+                        4.0 / 6 - 0.5,
+                    ],
+                    "HourOfDay": [
+                        22.0 / 23 - 0.5,
+                        0.5,
+                        -0.5,
+                        1.0 / 23 - 0.5,
+                        2.0 / 23 - 0.5,
+                    ],
                     "lag_1": [np.nan, 0, 1, 2, 3],
                     "lag_2": [np.nan, np.nan, 0, 1, 2],
                     "lag_5": [np.nan, np.nan, np.nan, np.nan, np.nan],
@@ -62,6 +74,7 @@ from gluonts.nursery.autogluon_tabular import (
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
+            [MonthOfYear(), DayOfWeek(), HourOfDay()],
             [1, 2, 5],
             pd.Series(
                 list(range(5)),
@@ -71,11 +84,21 @@ from gluonts.nursery.autogluon_tabular import (
             ),
             pd.DataFrame(
                 {
-                    "year": [2020, 2020, 2021, 2021, 2021],
-                    "month_of_year": [12, 12, 1, 1, 1],
-                    "day_of_week": [3, 3, 4, 4, 4],
-                    "hour_of_day": [22, 23, 0, 1, 2],
-                    "holiday_indicator": [False, False, True, False, False],
+                    "MonthOfYear": [0.5, 0.5, -0.5, -0.5, -0.5],
+                    "DayOfWeek": [
+                        0.0,
+                        0.0,
+                        4.0 / 6 - 0.5,
+                        4.0 / 6 - 0.5,
+                        4.0 / 6 - 0.5,
+                    ],
+                    "HourOfDay": [
+                        22.0 / 23 - 0.5,
+                        0.5,
+                        -0.5,
+                        1.0 / 23 - 0.5,
+                        2.0 / 23 - 0.5,
+                    ],
                     "lag_1": [np.nan, 0, 1, 2, 3],
                     "lag_2": [4, np.nan, 0, 1, 2],
                     "lag_5": [1, 2, 3, 4, np.nan],
@@ -90,13 +113,18 @@ from gluonts.nursery.autogluon_tabular import (
 )
 def test_get_features_dataframe(
     series: pd.Series,
-    lags: List[int],
+    time_features: List[TimeFeature],
+    lag_indices: List[int],
     past_data: Optional[pd.Series],
     expected_df: pd.DataFrame,
 ):
-    assert expected_df.equals(
-        get_features_dataframe(series, lags=lags, past_data=past_data)
+    got_df = get_features_dataframe(
+        series,
+        time_features=time_features,
+        lag_indices=lag_indices,
+        past_data=past_data,
     )
+    pd.testing.assert_frame_equal(expected_df, got_df)
 
 
 @pytest.mark.parametrize(
@@ -143,83 +171,19 @@ def test_get_features_dataframe(
         )
     ],
 )
-@pytest.mark.parametrize("lags", [[], [1, 2, 5]])
-def test_local_tabular_predictor(
-    dataset, freq, prediction_length: int, lags: List[int]
-):
-    predictor = LocalTabularPredictor(
-        freq=freq,
-        prediction_length=prediction_length,
-        lags=lags,
-        time_limits=10,
-    )
-    forecasts_it = predictor.predict(dataset)
-    forecasts = list(forecasts_it)
-
-    for entry, forecast in zip(dataset, forecasts):
-        ts = to_pandas(entry)
-        start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
-        assert forecast.samples.shape[1] == prediction_length
-        assert forecast.start_date == start_timestamp
-
-
-@pytest.mark.parametrize(
-    "dataset, freq, prediction_length",
-    [
-        (
-            ListDataset(
-                [
-                    {
-                        "start": pd.Timestamp(
-                            "1750-01-04 00:00:00", freq="W-SUN"
-                        ),
-                        "target": np.array(
-                            [
-                                1089.2,
-                                1078.91,
-                                1099.88,
-                                35790.55,
-                                34096.95,
-                                34906.95,
-                            ],
-                        ),
-                    },
-                    {
-                        "start": pd.Timestamp(
-                            "1750-01-04 00:00:00", freq="W-SUN"
-                        ),
-                        "target": np.array(
-                            [
-                                1099.2,
-                                1098.91,
-                                1069.88,
-                                35990.55,
-                                34076.95,
-                                34766.95,
-                            ],
-                        ),
-                    },
-                ],
-                freq="W-SUN",
-            ),
-            "W-SUN",
-            2,
-        )
-    ],
-)
-@pytest.mark.parametrize("lags", [[], [1, 2, 5]])
+@pytest.mark.parametrize("lag_indices", [[], [1, 2, 5]])
 @pytest.mark.parametrize("disable_auto_regression", [False, True])
 def test_tabular_estimator(
     dataset,
     freq,
     prediction_length: int,
-    lags: List[int],
+    lag_indices: List[int],
     disable_auto_regression: bool,
 ):
     estimator = TabularEstimator(
         freq=freq,
         prediction_length=prediction_length,
-        lags=lags,
+        lag_indices=lag_indices,
         time_limits=10,
         disable_auto_regression=disable_auto_regression,
     )
@@ -227,11 +191,13 @@ def test_tabular_estimator(
     predictor = estimator.train(dataset)
 
     assert not predictor.auto_regression or any(
-        l < prediction_length for l in predictor.lags
+        l < prediction_length for l in predictor.lag_indices
     )
 
+    assert predictor.batch_size > 1
+
     forecasts_serial = list(predictor._predict_serial(dataset))
-    forecasts_batch = list(predictor._predict_batch(dataset, batch_size=2))
+    forecasts_batch = list(predictor.predict(dataset))
 
     def check_consistency(entry, f1, f2):
         ts = to_pandas(entry)
