@@ -153,6 +153,13 @@ def get_transformation_counts(dataset):
     return transformation_counts
 
 
+class ExactlyOneSampler(InstanceSampler):
+    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+        window_size = b - a + 1
+        assert window_size > 0
+        return np.array([a])
+
+
 # The idea is to test that the validation data loader yields equivalent results
 def test_validation_loader_equivalence() -> None:
     (
@@ -203,7 +210,15 @@ def test_validation_loader_equivalence() -> None:
 @flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     "num_workers",
-    [i for i in [None, 1, 2,] if i is None or i <= mp.cpu_count()],
+    [
+        i
+        for i in [
+            None,
+            1,
+            2,
+        ]
+        if i is None or i <= mp.cpu_count()
+    ],
     # TODO: using more than 2 is a problem for our tests, if some of the cores are busy and fall behind
     # TODO: using multiple input queues in the loader would make this pass no matter how busy each core is
     # [i for i in [None, 1, 2, 3, 4] if i is None or i <= mp.cpu_count()],
@@ -227,12 +242,6 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
     num_epochs = X * num_passes
 
     def test_dataset(dataset):
-        class ExactlyOneSampler(InstanceSampler):
-            def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-                window_size = b - a + 1
-                assert window_size > 0
-                return np.array([a])
-
         transformation = InstanceSplitter(
             target_field=FieldName.TARGET,
             is_pad_field=FieldName.IS_PAD,
