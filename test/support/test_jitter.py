@@ -34,22 +34,25 @@ from gluonts.mx.linalg_util import jitter_cholesky, jitter_cholesky_eig
     sys.platform == "linux",
     reason=f"skipping since potrf crashes on mxnet 1.6.0 on linux when matrix is not spd",
 )
-@pytest.mark.parametrize("ctx", [mx.Context("gpu"), mx.Context("cpu")])
+@pytest.mark.parametrize("ctx", ["cpu", "gpu"])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
 def test_jitter_unit(jitter_method, float_type, ctx) -> None:
     # TODO: Enable GPU tests on Jenkins
-    if ctx == mx.Context("gpu") and not check_gpu_support():
+    if ctx == "gpu" and not check_gpu_support():
         return
-    matrix = nd.array(
-        [[[1, 2], [3, 4]], [[10, 100], [-21.5, 41]]], ctx=ctx, dtype=float_type
-    )
-    F = mx.nd
-    num_data_points = matrix.shape[1]
-    if jitter_method == "eig":
-        L = jitter_cholesky_eig(F, matrix, num_data_points, ctx, float_type)
-    elif jitter_method == "iter":
-        L = jitter_cholesky(F, matrix, num_data_points, ctx, float_type)
+
+    with mx.Context(ctx):
+        matrix = nd.array(
+            [[[1, 2], [3, 4]], [[10, 100], [-21.5, 41]]], dtype=float_type
+        )
+        F = mx.nd
+        num_data_points = matrix.shape[1]
+        if jitter_method == "eig":
+            L = jitter_cholesky_eig(F, matrix, num_data_points, float_type)
+        elif jitter_method == "iter":
+            L = jitter_cholesky(F, matrix, num_data_points, float_type)
+
     assert np.sum(np.isnan(L.asnumpy())) == 0, "NaNs in Cholesky factor!"
 
 
@@ -61,12 +64,12 @@ def test_jitter_unit(jitter_method, float_type, ctx) -> None:
     sys.platform == "linux",
     reason=f"skipping since potrf crashes on mxnet 1.6.0 on linux when matrix is not spd",
 )
-@pytest.mark.parametrize("ctx", [mx.Context("gpu"), mx.Context("cpu")])
+@pytest.mark.parametrize("ctx", ["cpu", "gpu"])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
 def test_jitter_synthetic_gp(jitter_method, float_type, ctx) -> None:
     # TODO: Enable GPU tests on Jenkins
-    if ctx == mx.Context("gpu") and not check_gpu_support():
+    if ctx == "gpu" and not check_gpu_support():
         return
     # Initialize problem parameters
     batch_size = 1
@@ -74,47 +77,45 @@ def test_jitter_synthetic_gp(jitter_method, float_type, ctx) -> None:
     context_length = 5
     num_samples = 3
 
-    # Initialize test data to generate Gaussian Process from
-    lb = -5
-    ub = 5
-    dx = (ub - lb) / (prediction_length - 1)
-    x_test = nd.arange(lb, ub + dx, dx, ctx=ctx, dtype=float_type).reshape(
-        -1, 1
-    )
-    x_test = nd.tile(x_test, reps=(batch_size, 1, 1))
+    with mx.Context(ctx):
+        # Initialize test data to generate Gaussian Process from
+        lb = -5
+        ub = 5
+        dx = (ub - lb) / (prediction_length - 1)
+        x_test = nd.arange(lb, ub + dx, dx, dtype=float_type).reshape(-1, 1)
+        x_test = nd.tile(x_test, reps=(batch_size, 1, 1))
 
-    # Define the GP hyper parameters
-    amplitude = nd.ones((batch_size, 1, 1), ctx=ctx, dtype=float_type)
-    length_scale = math.sqrt(0.4) * nd.ones_like(amplitude)
-    sigma = math.sqrt(1e-5) * nd.ones_like(amplitude)
+        # Define the GP hyper parameters
+        amplitude = nd.ones((batch_size, 1, 1), dtype=float_type)
+        length_scale = math.sqrt(0.4) * nd.ones_like(amplitude)
+        sigma = math.sqrt(1e-5) * nd.ones_like(amplitude)
 
-    # Instantiate desired kernel object and compute kernel matrix
-    rbf_kernel = RBFKernel(amplitude, length_scale)
+        # Instantiate desired kernel object and compute kernel matrix
+        rbf_kernel = RBFKernel(amplitude, length_scale)
 
-    # Generate samples from 0 mean Gaussian process with RBF Kernel and plot it
-    gp = GaussianProcess(
-        sigma=sigma,
-        kernel=rbf_kernel,
-        prediction_length=prediction_length,
-        context_length=context_length,
-        num_samples=num_samples,
-        ctx=ctx,
-        float_type=float_type,
-        jitter_method=jitter_method,
-        sample_noise=False,  # Returns sample without noise
-    )
+        # Generate samples from 0 mean Gaussian process with RBF Kernel and plot it
+        gp = GaussianProcess(
+            sigma=sigma,
+            kernel=rbf_kernel,
+            prediction_length=prediction_length,
+            context_length=context_length,
+            num_samples=num_samples,
+            float_type=float_type,
+            jitter_method=jitter_method,
+            sample_noise=False,  # Returns sample without noise
+        )
 
-    # Generate training set on subset of interval using the sine function
-    x_train = nd.array([-4, -3, -2, -1, 1], ctx=ctx, dtype=float_type).reshape(
-        context_length, 1
-    )
-    x_train = nd.tile(x_train, reps=(batch_size, 1, 1))
-    y_train = nd.sin(x_train.squeeze(axis=2))
+        # Generate training set on subset of interval using the sine function
+        x_train = nd.array([-4, -3, -2, -1, 1], dtype=float_type).reshape(
+            context_length, 1
+        )
+        x_train = nd.tile(x_train, reps=(batch_size, 1, 1))
+        y_train = nd.sin(x_train.squeeze(axis=2))
 
-    # Predict exact GP using the GP predictive mean and covariance using the same fixed hyper-parameters
-    samples, predictive_mean, predictive_std = gp.exact_inference(
-        x_train, y_train, x_test
-    )
+        # Predict exact GP using the GP predictive mean and covariance using the same fixed hyper-parameters
+        samples, predictive_mean, predictive_std = gp.exact_inference(
+            x_train, y_train, x_test
+        )
 
     assert (
         np.sum(np.isnan(samples.asnumpy())) == 0
