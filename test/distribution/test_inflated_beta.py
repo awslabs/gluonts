@@ -37,7 +37,9 @@ def test_symbol_and_array(hybridize: bool):
     ]
     dataset = common.ListDataset(data, freq="W-MON", one_dim_target=True)
 
-    trainer = Trainer(epochs=1, num_batches_per_epoch=2, hybridize=hybridize)
+    trainer = Trainer(
+        epochs=1, batch_size=1, num_batches_per_epoch=2, hybridize=hybridize
+    )
 
     estimator = deepar.DeepAREstimator(
         freq="W",
@@ -45,7 +47,6 @@ def test_symbol_and_array(hybridize: bool):
         trainer=trainer,
         distr_output=ZeroAndOneInflatedBetaOutput(),
         context_length=2,
-        batch_size=1,
         scaling=False,
     )
 
