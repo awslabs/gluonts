@@ -72,6 +72,11 @@ def parse_name_constant(v: ast.NameConstant):
     return v.value
 
 
+@parse_expr.register(ast.Constant)
+def parse_name_constant(v: ast.Constant):
+    return v.value
+
+
 @parse_expr.register(ast.Attribute)
 def parse_attribute(v: ast.Attribute, path=()):
     if isinstance(v.value, ast.Name):
