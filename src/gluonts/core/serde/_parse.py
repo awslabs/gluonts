@@ -73,7 +73,7 @@ def parse_name_constant(v: ast.NameConstant):
 
 
 @parse_expr.register(ast.Constant)
-def parse_name_constant(v: ast.Constant):
+def parse_constant(v: ast.Constant):
     return v.value
 
 
