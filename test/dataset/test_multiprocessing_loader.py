@@ -144,6 +144,14 @@ def get_transformation_counts(dataset):
     return transformation_counts
 
 
+class ExactlyOneSampler(InstanceSampler):
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+        window_size = b - a + 1
+        assert window_size > 0
+        return np.array([a])
+
+
 # The idea is to test that the validation data loader yields equivalent results
 def test_validation_loader_equivalence() -> None:
     (
@@ -225,13 +233,6 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
     ]
 
     def test_dataset(dataset):
-        class ExactlyOneSampler(InstanceSampler):
-            def __call__(self, ts: np.ndarray) -> np.ndarray:
-                a, b = self._get_bounds(ts)
-                window_size = b - a + 1
-                assert window_size > 0
-                return np.array([a])
-
         transformation = InstanceSplitter(
             target_field=FieldName.TARGET,
             is_pad_field=FieldName.IS_PAD,

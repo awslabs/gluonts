@@ -14,6 +14,7 @@
 import logging
 import multiprocessing
 import sys
+from functools import partial
 from itertools import chain, tee
 from typing import (
     Any,
@@ -37,6 +38,11 @@ from gluonts.time_feature import get_seasonality
 
 def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
     return a if a is not np.ma.masked else np.nan
+
+
+def worker_function(evaluator: "Evaluator", inp: tuple):
+    ts, forecast = inp
+    return evaluator.get_metrics_per_ts(ts, forecast)
 
 
 class Evaluator:
@@ -142,10 +148,10 @@ class Evaluator:
         ) as it, np.errstate(invalid="ignore"):
             if self.num_workers and not sys.platform == "win32":
                 mp_pool = multiprocessing.Pool(
-                    initializer=_worker_init(self), processes=self.num_workers
+                    initializer=None, processes=self.num_workers
                 )
                 rows = mp_pool.map(
-                    func=_worker_fun,
+                    func=partial(worker_function, self),
                     iterable=iter(it),
                     chunksize=self.chunk_size,
                 )
@@ -815,21 +821,3 @@ class MultivariateEvaluator(Evaluator):
                     all_agg_metrics[prefix + metric] = value
 
         return all_agg_metrics, all_metrics_per_ts
-
-
-# This is required for the multiprocessing to work.
-_worker_evaluator: Optional[Evaluator] = None
-
-
-def _worker_init(evaluator: Evaluator):
-    global _worker_evaluator
-    _worker_evaluator = evaluator
-
-
-def _worker_fun(inp: tuple):
-    ts, forecast = inp
-    global _worker_evaluator
-    assert isinstance(
-        _worker_evaluator, Evaluator
-    ), "Something went wrong with the worker initialization."
-    return _worker_evaluator.get_metrics_per_ts(ts, forecast)
