@@ -3,6 +3,20 @@ We encourage you to also check out work by the group behind
 GluonTS. They are grouped according to topic and ordered 
 chronographically.
 
+## GluonTS Overview
+[GluonTS: Probabilistic and Neural Time Series Modeling in Python](https://www.jmlr.org/papers/v21/19-820.html)
+```
+@article{maddix2019,
+	Author = {Alexander Alexandrov, Konstantinos Benidis, Michael Bohlke-Schneider, Valentin Flunkert, Jan Gasthaus, Tim Januschowski, Danielle C. Maddix,  Syama Rangapuram, Davis Salinas, Jasper Schulz, Lorenzo Stella, Ali Caner T\" urkmen, Yuyang Wang},
+	Journal = {Journal of Machine Learning Research},
+	Title = {GluonTS: Probabilistic and Neural Time Series Modeling in Python},
+	Year = {2020},
+	Volume = {21},
+	Number = {116},
+	Pages = {1-6}
+}
+```
+
 ## Methods
 A number of the below methods are available in GluonTS.
 
