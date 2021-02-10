@@ -96,8 +96,8 @@ A number of the below methods are available in GluonTS.
 [Intermittent Demand Forecasting with Renewal Processes](https://arxiv.org/pdf/2010.01550.pdf)
 ```
 @inproceedings{turkmen2020idf,
-	Author = {T\"{u}rkmen, Ali Caner and Januschowski, Tim and Wang, Yuang and Cemgil, Ali Taylan,
-	Booktitle = {arxiv,
+	Author = {T\"{u}rkmen, Ali Caner and Januschowski, Tim and Wang, Yuyang and Cemgil, Ali Taylan},
+	Booktitle = {arxiv},
 	Title = {Intermittent Demand Forecasting with Renewal Processes},
 	Year = {2020}
 }
@@ -106,7 +106,7 @@ A number of the below methods are available in GluonTS.
 [Using categorical distributions in forecasting](https://arxiv.org/abs/2005.10111)
 ```
 @inproceedings{rabanser2020discrete,
-	Author = {Rabanser, Stephan and Januschowski, Tim and Salinas, David and Flunkert, Valentin and Gasthaus, Jan,
+	Author = {Rabanser, Stephan and Januschowski, Tim and Salinas, David and Flunkert, Valentin and Gasthaus, Jan},
 	Booktitle = {KDD Workshop on Mining and Learning From Time Series},
 	Title = {The Effectiveness of Discretization in Forecasting: An Empirical Study on Neural Time Series Models},
 	Year = {2020}
@@ -117,9 +117,20 @@ A number of the below methods are available in GluonTS.
 [Distributional Time Series Models for Anomaly Detection](https://arxiv.org/abs/2007.15541)
 ```
 @inproceedings{ayed20anomaly,
-	Author = {Ayed, Fadhel and Stella, Lorenzo and Januschowski, Tim and Gasthaus, Jan,
+	Author = {Ayed, Fadhel and Stella, Lorenzo and Januschowski, Tim and Gasthaus, Jan},
 	Booktitle = {AIOPs},
 	Title = {Anomaly Detection at Scale: The Case for Deep Distributional Time Series Models},
+	Year = {2020}
+}
+```
+
+### AutoODE
+[Physics-Based Time Series Models for Learning Dynamical Systems with Distribution Shifts](https://arxiv.org/pdf/2011.10616.pdf)
+```
+@inproceedings{wang2020,
+	Author = {Wang, Rui and Maddix, Danielle and Faloutsos, Christos and Wang, Yuyang and Yu, Rose},
+	Booktitle = {NeurIPS 2020 Machine Learning in Public Health (MLPH) Workshop},
+	Title = {Bridging Physics-based and Data-driven modeling for Learning Dynamical Systems},
 	Year = {2020}
 }
 ```
