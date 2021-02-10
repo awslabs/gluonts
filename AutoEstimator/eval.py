@@ -81,9 +81,17 @@ def get_metrics_per_ts(
     pred_target = np.array(extract_pred_target(time_series, forecast))
     pred_target = np.ma.masked_invalid(pred_target)
     mean_fcst = forecast.mean
+    q = 0.5
     if metric == 'MAPE':
-        MAPE =  mape(pred_target, mean_fcst)
-    return np.average(MAPE)
+        result =  mape(pred_target, mean_fcst)
+    if metric == 'MSE':
+        result = mse(pred_target,mean_fcst)
+    if metric == 'ABS_ERROR':
+        result = abs_error(pred_target,mean_fcst)
+    if metric == 'QUANTILE_LOSS':
+        result = quantile_loss(pred_target,mean_fcst,q)
+
+    return np.average(result)
 
 def extract_pred_target(
         time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
@@ -110,9 +118,14 @@ def extract_pred_target(
         np.squeeze(time_series.loc[forecast.index].transpose())
     )
 
+def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
+    return a if a is not np.ma.masked else np.nan
+
+@staticmethod
 def mse(target, forecast):
     return np.mean(np.square(target - forecast))
 
+@staticmethod
 def mape(target, forecast):
 
     denominator = np.abs(target)
@@ -123,7 +136,17 @@ def mape(target, forecast):
         )
     return mape
 
+@staticmethod
+def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
+    return nan_if_masked(np.sum(np.abs(target - forecast)))
 
+@staticmethod
+def quantile_loss(
+        target: np.ndarray, forecast: np.ndarray, q: float
+    ) -> float:
+    return nan_if_masked(
+            2 * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
+        )
 
 def evaluation(estimator,transformation,net,dataset_test,metric):
     pre = estimator.create_predictor(transformation, net)
