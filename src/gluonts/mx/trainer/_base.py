@@ -161,12 +161,7 @@ class Trainer:
         self.hybridize = hybridize
         self.avg_strategy = avg_strategy
         self.ctx = ctx if ctx is not None else get_mxnet_context()
-        self.halt = False
         self.post_initialize_cb = post_initialize_cb
-
-    def set_halt(self, signum: int, stack_frame: Any) -> None:
-        logger.info("Received signal: {}".format(signum))
-        self.halt = True
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()
@@ -184,7 +179,6 @@ class Trainer:
         validation_iter: Optional[ValidationDataLoader] = None,
     ) -> None:  # TODO: we may want to return some training information here
         is_validation_available = validation_iter is not None
-        self.halt = False
 
         with tempfile.TemporaryDirectory(
             prefix="gluonts-trainer-temp-"
@@ -252,9 +246,6 @@ class Trainer:
 
                     with tqdm(batch_iter) as it:
                         for batch_no, data_entry in enumerate(it, start=1):
-                            if self.halt:
-                                break
-
                             inputs = [data_entry[k] for k in input_names]
 
                             if first_forward:
@@ -264,7 +255,15 @@ class Trainer:
                                     self.post_initialize_cb(net)
 
                             with mx.autograd.record():
-                                output = net(*inputs)
+                                # we set the mode explicitly as by default mxnet assumes predict mode and hence
+                                # dropout layers are not used if the mode is not explicitly set to training
+                                mode = (
+                                    autograd.train_mode
+                                    if is_training
+                                    else autograd.predict_mode
+                                )
+                                with mode():
+                                    output = net(*inputs)
 
                                 # network can returns several outputs, the first being always the loss
                                 # when having multiple outputs, the forward returns a list in the case of hybrid and a
@@ -277,7 +276,9 @@ class Trainer:
 
                             if not np.isfinite(ndarray.sum(loss).asscalar()):
                                 logger.warning(
-                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored", batch_no, epoch_no
+                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored",
+                                    batch_no,
+                                    epoch_no,
                                 )
                             else:
                                 if is_training:
@@ -333,9 +334,6 @@ class Trainer:
                     return epoch_loss
 
                 for epoch_no in range(self.epochs):
-                    if self.halt:
-                        logger.info(f"Epoch[{epoch_no}] Interrupting training")
-                        break
 
                     curr_lr = trainer.learning_rate
                     logger.info(

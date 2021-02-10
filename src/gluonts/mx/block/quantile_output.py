@@ -56,7 +56,7 @@ class QuantileLoss(Loss):
         self.quantiles = quantiles
         self.num_quantiles = len(quantiles)
         self.quantile_weights = (
-            nd.ones(self.num_quantiles) / self.num_quantiles
+            [1.0 / self.num_quantiles for i in range(self.num_quantiles)]
             if not quantile_weights
             else quantile_weights
         )
@@ -98,7 +98,7 @@ class QuantileLoss(Loss):
             q = self.quantiles[i]
             weighted_qt = (
                 self.compute_quantile_loss(F, y_true, y_pred_q, q)
-                * self.quantile_weights[i].asscalar()
+                * self.quantile_weights[i]
             )
             qt_loss.append(weighted_qt)
         stacked_qt_losses = F.stack(*qt_loss, axis=-1)
