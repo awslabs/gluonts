@@ -19,8 +19,10 @@ import pytest
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
-from gluonts.evaluation import MultivariateEvaluator
-from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.evaluation import (
+    make_evaluation_predictions,
+    MultivariateEvaluator,
+)
 from gluonts.model.lstnet import LSTNetEstimator
 from gluonts.mx.trainer import Trainer
 

@@ -34,13 +34,16 @@ from gluonts.transform import TransformedDataset
 
 
 def make_evaluation_predictions(
-    dataset: Dataset, predictor: Predictor, num_samples: int
+    dataset: Dataset,
+    predictor: Predictor,
+    num_samples: Optional[int] = 100,
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
-    Return predictions on the last portion of predict_length time units of the
-    target. Such portion is cut before making predictions, such a function can
-    be used in evaluations where accuracy is evaluated on the last portion of
-    the target.
+    Returns predictions for the trailing prediction_length observations of the given
+    time series, using the given predictor.
+
+    The predictor will take as input the given time series without the trailing
+    prediction_length observations.
 
     Parameters
     ----------
@@ -54,6 +57,9 @@ def make_evaluation_predictions(
 
     Returns
     -------
+    Tuple[Iterator[Forecast], Iterator[pd.Series]]
+        A pair of iterators, the first one yielding the forecasts, and the second
+        one yielding the corresponding ground truth series.
     """
 
     prediction_length = predictor.prediction_length
@@ -118,9 +124,9 @@ def backtest_metrics(
     evaluator=Evaluator(
         quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
     ),
-    num_samples: int = 100,
+    num_samples: Optional[int] = 100,
     logging_file: Optional[str] = None,
-):
+) -> Tuple[dict, pd.DataFrame]:
     """
     Parameters
     ----------
@@ -137,7 +143,7 @@ def backtest_metrics(
 
     Returns
     -------
-    tuple
+    Tuple[dict, pd.DataFrame]
         A tuple of aggregate metrics and per-time-series metrics obtained by
         training `forecaster` on `train_dataset` and evaluating the resulting
         `evaluator` provided on the `test_dataset`.

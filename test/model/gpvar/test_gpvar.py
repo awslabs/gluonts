@@ -19,8 +19,7 @@ from flaky import flaky
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
-from gluonts.evaluation import MultivariateEvaluator
-from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.evaluation import backtest_metrics, MultivariateEvaluator
 from gluonts.model.gpvar import GPVAREstimator
 from gluonts.mx.distribution import LowrankMultivariateGaussian
 from gluonts.mx.distribution.lowrank_gp import GPArgProj, LowrankGPOutput

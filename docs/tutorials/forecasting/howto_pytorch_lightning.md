@@ -295,8 +295,7 @@ For example, we can do backtesting on the test dataset: in what follows, `make_e
 
 
 ```python
-from gluonts.evaluation.backtest import make_evaluation_predictions
-from gluonts.evaluation import Evaluator
+from gluonts.evaluation import make_evaluation_predictions, Evaluator
 ```
 
 
