@@ -93,13 +93,17 @@ class _Config:
 
 class Settings:
     _cls_types: dict = {}
+    _cls_deps: dict = {}
 
     def __init_subclass__(cls):
         cls._cls_types = {}
 
         for name, ty in cls.__annotations__.items():
-            default = getattr(cls, name, ...)
-            cls._cls_types[name] = ty, default
+            if ty == Dependency:
+                cls._cls_deps[name] = getattr(cls, name)
+            else:
+                default = getattr(cls, name, ...)
+                cls._cls_types[name] = ty, default
 
     def __init__(self, *args, **kwargs):
         # mapping of key to type, see `_declare` for more info on how this
@@ -120,6 +124,10 @@ class Settings:
         # execute.
         for key, (ty, default) in self._cls_types.items():
             self._declare(key, ty, default=default)
+
+        # Same thing for dependencies.
+        for name, fn in self._cls_deps.items():
+            self._dependency(name, fn)
 
     def _reduce(self):
         """"""
