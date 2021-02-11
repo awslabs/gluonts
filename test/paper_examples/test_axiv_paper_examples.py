@@ -25,8 +25,7 @@ def test_listing_1():
     Listing 1
     """
     from gluonts.dataset.repository.datasets import get_dataset
-    from gluonts.evaluation import Evaluator
-    from gluonts.evaluation.backtest import backtest_metrics
+    from gluonts.evaluation import backtest_metrics, Evaluator
     from gluonts.model.deepar import DeepAREstimator
     from gluonts.mx.trainer import Trainer
 
@@ -163,8 +162,7 @@ def test_appendix_c():
                 future_length=self.prediction_length,
             )
 
-    from gluonts.evaluation import Evaluator
-    from gluonts.evaluation.backtest import backtest_metrics
+    from gluonts.evaluation import backtest_metrics, Evaluator
     from gluonts.mx.trainer import Trainer
 
     dataset_info, train_ds, test_ds = constant_dataset()

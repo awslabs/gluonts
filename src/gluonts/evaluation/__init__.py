@@ -12,8 +12,14 @@
 # permissions and limitations under the License.
 
 from ._base import Evaluator, MultivariateEvaluator
+from .backtest import make_evaluation_predictions, backtest_metrics
 
-__all__ = ["Evaluator", "MultivariateEvaluator"]
+__all__ = [
+    "Evaluator",
+    "MultivariateEvaluator",
+    "make_evaluation_predictions",
+    "backtest_metrics",
+]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:
