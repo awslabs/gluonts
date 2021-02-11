@@ -36,7 +36,7 @@ from gluonts.transform import TransformedDataset
 def make_evaluation_predictions(
     dataset: Dataset,
     predictor: Predictor,
-    num_samples: Optional[int] = 100,
+    num_samples: int = 100,
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
     Returns predictions for the trailing prediction_length observations of the given
@@ -53,7 +53,8 @@ def make_evaluation_predictions(
     predictor
         Model used to draw predictions.
     num_samples
-        Number of samples to draw on the model when evaluating.
+        Number of samples to draw on the model when evaluating. Only sampling-based
+        models will use this.
 
     Returns
     -------
@@ -124,7 +125,7 @@ def backtest_metrics(
     evaluator=Evaluator(
         quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
     ),
-    num_samples: Optional[int] = 100,
+    num_samples: int = 100,
     logging_file: Optional[str] = None,
 ) -> Tuple[dict, pd.DataFrame]:
     """
@@ -137,7 +138,8 @@ def backtest_metrics(
     evaluator
         Evaluator to use.
     num_samples
-        Number of samples to use when generating sample-based forecasts.
+        Number of samples to use when generating sample-based forecasts. Only
+        sampling-based models will use this.
     logging_file
         If specified, information of the backtest is redirected to this file.
 
