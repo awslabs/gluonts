@@ -135,7 +135,7 @@ def test_get_features_dataframe(
                 [
                     {
                         "start": pd.Timestamp(
-                            "1750-01-04 00:00:00", freq="W-SUN"
+                            "1750-01-07 00:00:00", freq="W-TUE"
                         ),
                         "target": np.array(
                             [
@@ -164,9 +164,9 @@ def test_get_features_dataframe(
                         ),
                     },
                 ],
-                freq="W",
+                freq="W-TUE",
             ),
-            "W",
+            "W-TUE",
             2,
         )
     ],
