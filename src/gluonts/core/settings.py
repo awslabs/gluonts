@@ -77,6 +77,16 @@ from typing import Any
 import pydantic
 
 
+class Dependency:
+    def __init__(self, fn, dependencies):
+        self.fn = fn
+        self.dependencies = dependencies
+
+    def resolve(self, env):
+        kwargs = {key: env[key] for key in self.dependencies}
+        return self.fn(**kwargs)
+
+
 class _Config:
     arbitrary_types_allowed = True
 
@@ -96,6 +106,7 @@ class Settings:
         # works
         self._types = {}
         self._default = {}
+        self._dependencies = {}
         self._context_count = 0
 
         # We essentially implement our own chainmap, managed by a list. New
@@ -121,9 +132,12 @@ class Settings:
 
         self._chain = [self._default, compact]
 
-    def _declare(self, key, type=Any, *, default=..., force=False):
-        assert (
-            force or key not in self._types
+    def _already_declared(self, key):
+        return key in self._types or key in self._dependencies
+
+    def _declare(self, key, type=Any, *, default=...):
+        assert not self._already_declared(
+            key
         ), f"Attempt of overwriting already declared value {key}"
 
         # This is kinda hacky. For each key, we create a new pydantic model,
@@ -148,6 +162,15 @@ class Settings:
         if default != ...:
             self._set_(self._default, key, default)
 
+    def _dependency(self, name, fn):
+        dependencies = list(inspect.signature(fn).parameters)
+        for dependency in dependencies:
+            assert self._already_declared(
+                dependency
+            ), f"`{name}` depends on `{dependency}`, which has not been declared yet."
+
+        self._dependencies[name] = Dependency(fn, dependencies)
+
     def _get(self, key, default=None):
         """Like `dict.get`."""
         try:
@@ -158,6 +181,10 @@ class Settings:
     def __getitem__(self, key):
         # Iterate all dicts, last to first, and return value as soon as one is
         # found.
+
+        if key in self._dependencies:
+            return self._dependencies[key].resolve(self)
+
         for dct in reversed(self._chain):
             try:
                 return dct[key]
@@ -178,6 +205,8 @@ class Settings:
 
         Uses `_types` to type-check the value, before assigning.
         """
+
+        assert key not in self._dependencies, "Can't override dependency."
 
         # If we have type-information, we apply the pydantic-model to the value
         model = self._types.get(key)
