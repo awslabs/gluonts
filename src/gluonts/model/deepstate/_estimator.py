@@ -64,7 +64,7 @@ SEASON_INDICATORS_FIELD = "seasonal_indicators"
 # that do not do data augmentation and uses a single training example per time series in the dataset.
 FREQ_LONGEST_PERIOD_DICT = {
     "M": 12,  # yearly seasonality
-    "W-SUN": 52,  # yearly seasonality
+    "W": 52,  # yearly seasonality
     "D": 31,  # monthly seasonality
     "B": 22,  # monthly seasonality
     "H": 168,  # weekly seasonality

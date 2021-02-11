@@ -312,7 +312,7 @@ class CompositeISSM(ISSM):
 
         if offset.name == "M":
             seasonal_issms = [MonthOfYearSeasonalISSM()]
-        elif offset.name == "W-SUN":
+        elif offset.name[0] == "W":
             seasonal_issms = [WeekOfYearSeasonalISSM()]
         elif offset.name == "D":
             seasonal_issms = [DayOfWeekSeasonalISSM()]
