@@ -202,9 +202,7 @@ def test_simple_model():
     predictor = net.get_predictor(transformation + prediction_splitter)
 
     forecast_it, ts_it = make_evaluation_predictions(
-        dataset=test_data,
-        predictor=predictor,
-        num_samples=100,
+        dataset=test_data, predictor=predictor
     )
 
     evaluator = Evaluator(quantiles=[0.5, 0.9], num_workers=None)

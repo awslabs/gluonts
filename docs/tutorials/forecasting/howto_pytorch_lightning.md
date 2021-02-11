@@ -301,12 +301,10 @@ from gluonts.evaluation import make_evaluation_predictions, Evaluator
 
 ```python
 forecast_it, ts_it = make_evaluation_predictions(
-    dataset=dataset.test,
-    predictor=predictor_pytorch,
-    num_samples=1000,
+    dataset=dataset.test, predictor=predictor_pytorch,
 )
 
-forecasts_pytorch = list(f.to_sample_forecast() for f in forecast_it)
+forecasts_pytorch = list(forecast_it)
 tss_pytorch = list(ts_it)
 ```
 
