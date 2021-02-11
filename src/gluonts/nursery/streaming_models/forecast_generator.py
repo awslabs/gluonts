@@ -20,11 +20,17 @@ import numpy as np
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataLoader, InferenceDataLoader
-from gluonts.model.forecast_generator import ForecastGenerator, OutputTransform
+from gluonts.model.forecast_generator import (
+    ForecastGenerator,
+    OutputTransform,
+    recursively_zip_arrays,
+)
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.model.forecast import DistributionForecast
 
 from .predictor import NETWORK_STATE_KEY, PREDICTOR_STATE_KEY
+
+logger = logging.getLogger(__name__)
 
 
 def to_numpy(x: Any) -> Any:
@@ -59,9 +65,9 @@ class StatefulDistributionForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[DistributionForecast]:
         if output_transform is not None:
-            logging.info("The `output_transform` argument will be ignored.")
+            logger.info("The `output_transform` argument will be ignored.")
         if num_samples is not None:
-            logging.info(
+            logger.info(
                 "Forecast is not sample based. Ignoring parameter `num_samples`."
             )
         for batch in inference_data_loader:
@@ -70,18 +76,18 @@ class StatefulDistributionForecastGenerator(ForecastGenerator):
                 k: b for k, b in batch.items() if k.startswith("s:")
             }
             outputs = prediction_net(*inputs)
-            distr_args_scale = outputs[:-1]
+            distr_args_scale_loc = outputs[:-1]
             network_state_batch = outputs[-1]
 
-            assert len(distr_args_scale) == 2
+            assert len(distr_args_scale_loc) == 3
 
             distributions = [
-                self.distr_output.distribution(distr_args, scale=scale)
-                for distr_args, scale in _extract_instances(distr_args_scale)
+                self.distr_output.distribution(*u)
+                for u in recursively_zip_arrays(distr_args_scale_loc)
             ]
 
             network_states = [
-                s for s in _extract_instances(network_state_batch)
+                s for s in recursively_zip_arrays(network_state_batch)
             ]
 
             idx = -1
@@ -107,35 +113,3 @@ class StatefulDistributionForecastGenerator(ForecastGenerator):
                     },
                 )
             assert idx + 1 == len(batch["forecast_start"])
-
-
-# This handles the case where batch elements are dictionaries (two-lines change)
-# This should be added to gluonts `_extract_instances`
-def _extract_instances(x: Any) -> Any:
-    """
-    Helper function to extract individual instances from batched
-    mxnet results.
-
-    For a tensor `a`
-      _extract_instances(a) -> [a[0], a[1], ...]
-
-    For (nested) tuples of tensors `(a, (b, c))`
-      _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b[1], c[1])), ...]
-    """
-    if isinstance(x, (np.ndarray, mx.nd.NDArray)):
-        for i in range(x.shape[0]):
-            # yield x[i: i + 1]
-            yield x[i]
-    elif isinstance(x, tuple):
-        for m in zip(*[_extract_instances(y) for y in x]):
-            yield tuple([r for r in m])
-    elif isinstance(x, list):
-        for m in zip(*[_extract_instances(y) for y in x]):
-            yield [r for r in m]
-    elif isinstance(x, dict):
-        yield x
-    elif x is None:
-        while True:
-            yield None
-    else:
-        assert False

@@ -66,7 +66,7 @@ def ema(
     minimum_value: float,
     initial_scale: float,
     state: Optional[np.ndarray] = None,
-) -> Tuple[np.ndarray, Tuple[float, float]]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Tuple[float, float]]:
     """
     Exponential weighted moving average used for calculating a scale on a stream of data.
 
@@ -92,7 +92,7 @@ def ema(
         Value of initial scale to use until the first "valid" data point.
     state
         State used to continue calculation.
-        The state is a numpy array of length 2.
+        The state is a numpy array of length 4.
 
     Returns
     =======
@@ -104,9 +104,9 @@ def ema(
     x = np.asarray(x)
     if state is not None:
         assert isinstance(state, np.ndarray)
-        assert state.shape == (2,)
+        assert state.shape == (4,)
     else:
-        state = np.zeros(2, dtype=x.dtype)
+        state = np.zeros(4, dtype=x.dtype)
     assert x.dtype.kind == "f"
     assert len(x.shape) == 1
     return _ema(

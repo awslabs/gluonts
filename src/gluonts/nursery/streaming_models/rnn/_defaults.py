@@ -24,6 +24,32 @@ bin_centers = mx.nd.array(
     np.concatenate([np.linspace(0, 2, 1001), np.linspace(2.02, 10, 501)])
 )
 
+NoneType = type(None)
+
+SINGLE_PRECISION = 4
+DOUBLE_PRECISION = 8
+
+CACHE_MEMORY = 1 * 1024 ** 3  # 1GB
+PRECISION = SINGLE_PRECISION
+
+SUPPORTED_FREQS = ["1min", "5min", "10min", "1H", "1D"]
+
+DEFAULT_LAGS_UB = {
+    "1min": 1 * 7 * 24 * 60 + 3 * 60,  # one week + 3 hours,
+    "5min": 2 * 7 * 24 * 12 + 3 * 12,  # two weeks + 3 hours
+    "10min": 2 * 7 * 24 * 6 + 3 * 6,  # two weeks + 3 hours
+    "1H": 4 * 7 * 24 + 3,  # four weeks + 3 hours
+    "1D": 2 * 365,  # two year
+}
+
+DEFAULT_SMALL_LAGS = {
+    "1min": list(range(1, 61)),
+    "5min": list(range(1, 37)),
+    "10min": list(range(1, 25)),
+    "1H": list(range(1, 25)),
+    "1D": list(range(1, 22)),
+}
+
 
 class RnnDefaults:
     FREQ: str = "1min"
@@ -34,8 +60,8 @@ class RnnDefaults:
     NUM_LAYERS: int = 2
     DISTR_OUTPUT: DistributionOutput = BinnedOutput(bin_centers=bin_centers)
     USE_FEAT_STATIC_CAT: bool = False
-    CARDINALITY: Optional[List[int]] = None
-    EMBEDDING_DIMENSION: Optional[List[int]] = None
+    CARDINALITY: Union[NoneType, Optional[List[int]]] = None
+    EMBEDDING_DIMENSION: Union[NoneType, Optional[List[int]]] = None
     LAGS: Optional[List[Tuple[str, List[int], str]]] = None
     DROPOUT_TYPE: str = "normal"
     DROPOUT_RATE: float = 0.1
@@ -51,5 +77,7 @@ class RnnDefaults:
     IMPUTATION: Optional[
         Union[str, MissingValueImputation]
     ] = DummyValueImputation()
-    RANSAC_THRESH: Optional[List[float]] = None
+    RANSAC_THRESH: Union[NoneType, List[float]] = None
     HYBRIDIZE_PRED_NET: bool = True
+    CACHE_DATA: bool = True
+    CACHE_BYTES_LIMIT: int = CACHE_MEMORY

@@ -12,17 +12,18 @@
 # permissions and limitations under the License.
 
 import itertools
+import logging
 import pickle
+from collections import OrderedDict
 from functools import partial
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast
 
-import mxnet as mx
 import numpy as np
 import pandas as pd
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import DType, validated
-from gluonts.dataset.common import DataEntry, Dataset, ListDataset
+from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     InferenceDataLoader,
@@ -33,7 +34,7 @@ from gluonts.dataset.util import to_pandas
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import batchify
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.model.estimator import TrainOutput
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -45,18 +46,14 @@ from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.time_feature import get_lags_for_frequency
 from gluonts.transform import (
     AddObservedValuesIndicator,
-    AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    DummyValueImputation,
     ExpectedNumInstanceSampler,
-    MapTransformation,
     MissingValueImputation,
     RemoveFields,
     RenameFields,
     SelectFields,
     SetField,
-    SimpleTransformation,
     SwapAxes,
     Transformation,
     TransformedDataset,
@@ -65,242 +62,29 @@ from gluonts.transform import (
 
 from ..forecast_generator import StatefulDistributionForecastGenerator
 from ..masking import SimpleMaskingStrategy
-from ..native import ema
 from ..predictor import NETWORK_STATE_KEY
 from ..transform import (
     AddShiftedTimestamp,
-    AnomalyScoringSplitter,
+    AddStreamAggregateLags,
+    AddStreamScale,
+    CopyField,
     LeadtimeShifter,
+    StreamingInstanceSplitter,
 )
-from ._defaults import RnnDefaults
+from ._defaults import (
+    DEFAULT_LAGS_UB,
+    DEFAULT_SMALL_LAGS,
+    PRECISION,
+    SUPPORTED_FREQS,
+    RnnDefaults,
+)
 from ._network import StreamingRnnPredictNetwork, StreamingRnnTrainNetwork
+
+logger = logging.getLogger(__name__)
 
 LAGS_STATE_KEY = "s:lag"
 SCALE_STATE_KEY = "s:scale"
 FSC_STATE_KEY = "s:feat_static_cat"
-
-SUPPORTED_FREQS = ["1min", "5min", "10min", "1H", "1D"]
-
-DEFAULT_LAGS_UB = {
-    "1min": 1 * 7 * 24 * 60 + 3 * 60,  # one week + 3 hours,
-    "5min": 2 * 7 * 24 * 12 + 3 * 12,  # two weeks + 3 hours
-    "10min": 2 * 7 * 24 * 6 + 3 * 6,  # two weeks + 3 hours
-    "1H": 4 * 7 * 24 + 3,  # four weeks + 3 hours
-    "1D": 2 * 365,  # two year
-}
-
-DEFAULT_SMALL_LAGS = {
-    "1min": list(range(1, 61)),
-    "5min": list(range(1, 37)),
-    "10min": list(range(1, 25)),
-    "1H": list(range(1, 25)),
-    "1D": list(range(1, 22)),
-}
-
-
-class AddStreamScale(SimpleTransformation):
-    @validated()
-    def __init__(
-        self,
-        target_field: str,
-        scale_field: str,
-        state_field: str,
-        minimum_value: float,
-        initial_scale: float,
-        alpha: float,
-    ) -> None:
-        self.target_field = target_field
-        self.scale_field = scale_field
-        self.state_field = state_field
-        self.minimum_value = minimum_value
-        self.initial_scale = initial_scale
-        self.alpha = alpha
-
-    def transform(self, data: DataEntry) -> DataEntry:
-        target = data[self.target_field]
-        scale_state = data.get(self.state_field)
-
-        scale, new_scale_state = ema(
-            target,
-            alpha=self.alpha,
-            minimum_value=self.minimum_value,
-            initial_scale=self.initial_scale,
-            state=scale_state,
-        )
-
-        data[self.scale_field] = scale
-        data[self.state_field] = np.array(new_scale_state)
-        return data
-
-
-class AddLags(SimpleTransformation):
-    @validated()
-    def __init__(
-        self,
-        lag_seq: List[int],
-        lag_field: str,
-        target_field: str,
-        lag_state_field: str,
-    ) -> None:
-        self.lag_seq = sorted(lag_seq)
-        self.lag_field = lag_field
-        self.target_field = target_field
-        self.lag_state_field = lag_state_field
-        self.max_lag = self.lag_seq[-1]
-
-    def transform(self, data: DataEntry) -> DataEntry:
-        target = data[self.target_field]
-        buffer = data.get(self.lag_state_field)
-        if buffer is None:
-            t = np.concatenate([np.zeros(self.max_lag), target])
-        else:
-            t = np.concatenate([buffer, target])
-        lags = np.vstack(
-            [t[self.max_lag - l : len(t) - l] for l in self.lag_seq]
-        )
-        data[self.lag_field] = np.nan_to_num(lags)
-        data[self.lag_state_field] = t[-self.max_lag :]
-        return data
-
-
-class AddStreamAggregateLags(SimpleTransformation):
-    @validated()
-    def __init__(
-        self,
-        target_field: str,
-        output_field: str,
-        lag_state_field: str,
-        lead_time: int,
-        base_freq: str,
-        agg_freq: str,
-        agg_lags: List[int],
-        agg_fun: str = "mean",
-        dtype: DType = np.float32,
-    ) -> None:
-
-        self.target_field = target_field
-        self.feature_name = output_field
-        self.lead_time = lead_time
-        self.base_freq = base_freq
-        self.agg_freq = agg_freq
-        self.agg_lags = agg_lags
-        self.agg_fun = agg_fun
-        self.lag_state_field = lag_state_field
-        self.dtype = dtype
-
-        self.ratio = pd.Timedelta(self.agg_freq) / pd.Timedelta(self.base_freq)
-        assert (
-            self.ratio.is_integer() and self.ratio >= 1
-        ), "The aggregate frequency should be a multiple of the base frequency."
-        self.ratio = int(self.ratio)
-
-        # convert lags to original freq and adjust based on lead time
-        adj_lags = [
-            lag * self.ratio - (self.lead_time - 1) for lag in self.agg_lags
-        ]
-
-        self.half_window = (self.ratio - 1) // 2
-        valid_adj_lags = [x for x in adj_lags if x - self.half_window > 0]
-        self.valid_lags = [
-            int(np.ceil(x / self.ratio)) for x in valid_adj_lags
-        ]
-        self.offset = (self.lead_time - 1) % self.ratio
-
-        assert len(self.valid_lags) > 0
-
-        if len(self.agg_lags) - len(self.valid_lags) > 0:
-            print(
-                f"The aggregate lags {set(self.agg_lags[:- len(self.valid_lags)])} "
-                f"of frequency {self.agg_freq} are ignored."
-            )
-
-        self.max_state_lag = max(self.valid_lags)
-
-    def transform(self, data: DataEntry) -> DataEntry:
-        assert self.base_freq == data["start"].freq
-
-        buffer = data.get(self.lag_state_field)
-        if buffer is None:
-            t = data[self.target_field]
-            t_agg = (pd.Series(t).rolling(self.ratio).agg(self.agg_fun))[
-                self.ratio - 1 :
-            ]
-        else:
-            t = np.concatenate(
-                [buffer["base_target"], data[self.target_field]]
-            )
-            new_agg_lags = (
-                pd.Series(t).rolling(self.ratio).agg(self.agg_fun)
-            )[self.ratio - 1 :]
-            t_agg = pd.Series(
-                np.concatenate([buffer["agg_lags"], new_agg_lags.values])
-            )
-
-        # compute the aggregate lags for each time point of the time series
-        agg_vals = np.concatenate(
-            [
-                np.zeros(
-                    (max(self.valid_lags) * self.ratio + self.half_window,)
-                ),
-                t_agg.values,
-            ],
-            axis=0,
-        )
-        lags = np.vstack(
-            [
-                agg_vals[
-                    -(
-                        l * self.ratio
-                        - self.offset
-                        - self.half_window
-                        + len(data[self.target_field])
-                        - 1
-                    ) : -(l * self.ratio - self.offset - self.half_window - 1)
-                    if -(l * self.ratio - self.offset - self.half_window - 1)
-                    is not 0
-                    else None
-                ]
-                for l in self.valid_lags
-            ]
-        )
-
-        # update the data entry
-        data[self.feature_name] = np.nan_to_num(lags)
-        data[self.lag_state_field] = {
-            "agg_lags": t_agg.values[-self.max_state_lag * self.ratio + 1 :],
-            "base_target": t[-self.ratio + 1 :] if self.ratio > 1 else [],
-        }
-
-        assert data[self.feature_name].shape == (
-            len(self.valid_lags),
-            len(data[self.target_field]),
-        )
-
-        return data
-
-
-class CopyField(SimpleTransformation):
-    """
-    Copies the value of input_field into output_field and does nothing
-    if input_field is not present or None.
-    """
-
-    @validated()
-    def __init__(
-        self,
-        output_field: str,
-        input_field: str,
-    ) -> None:
-        self.output_field = output_field
-        self.input_field = input_field
-
-    def transform(self, data: DataEntry) -> DataEntry:
-
-        field = data.get(self.input_field)
-        if field is not None:
-            data[self.output_field] = data[self.input_field].copy()
-
-        return data
 
 
 class StateInitializer:
@@ -344,11 +128,13 @@ class StreamingRnnEstimator(Estimator):
         beta: float = RnnDefaults.BETA,
         ransac_thresh: Optional[List[float]] = RnnDefaults.RANSAC_THRESH,
         hybridize_prediction_net: bool = RnnDefaults.HYBRIDIZE_PRED_NET,
+        cache_data: bool = RnnDefaults.CACHE_DATA,
+        cache_bytes_limit: int = RnnDefaults.CACHE_BYTES_LIMIT,
+        normalization: str = "centeredscale",
         batch_size: int = RnnDefaults.BATCH_SIZE,
-        cache_data: bool = False,
         dtype: DType = np.float32,
     ) -> None:
-        super().__init__(lead_time=lead_time)
+        super().__init__(trainer=trainer)
 
         assert lead_time > 0
         assert train_window_length > 0
@@ -357,11 +143,15 @@ class StreamingRnnEstimator(Estimator):
         assert num_layers > 0
         assert alpha >= 0
         assert beta >= 0
-        assert batch_size > 0
+
+        if cache_data:
+            assert cache_bytes_limit > 0
+        self.cache_data = cache_data
+        self.cache_bytes_limit = cache_bytes_limit
 
         self.hybridize_prediction_net = hybridize_prediction_net
-        self.cache_data = cache_data
         self.freq = freq
+        self.lead_time = lead_time
         self.train_window_length = train_window_length
         self.skip_initial_window = min(
             int(train_window_length * skip_initial_window_pct),
@@ -376,6 +166,7 @@ class StreamingRnnEstimator(Estimator):
         self.imputation = imputation
         self.alpha = alpha
         self.beta = beta
+        self.normalization = normalization
         self.batch_size = batch_size
         self.dtype = dtype
 
@@ -477,10 +268,12 @@ class StreamingRnnEstimator(Estimator):
             AddStreamScale(
                 target_field="target",
                 scale_field="scale",
+                mean_field="mean",
                 state_field=SCALE_STATE_KEY,
                 minimum_value=1.0e-10,
                 initial_scale=1.0e-10,
                 alpha=0.002,
+                normalization=self.normalization,
             ),
             AddObservedValuesIndicator(
                 target_field=FieldName.TARGET,
@@ -505,6 +298,7 @@ class StreamingRnnEstimator(Estimator):
 
     def _training_batch_maker(self) -> List:
         return [
+            # In LeadtimeShifter the time_series_fields are aligned with label_target
             LeadtimeShifter(
                 lead_time=self.lead_time,
                 target_field=FieldName.TARGET,
@@ -513,21 +307,25 @@ class StreamingRnnEstimator(Estimator):
                     FieldName.OBSERVED_VALUES,
                 ],
             ),
-            AnomalyScoringSplitter(
+            StreamingInstanceSplitter(
                 target_field="label_target",
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                instance_sampler=ExpectedNumInstanceSampler(
+                    num_instances=1.0,
+                    min_past=self.train_window_length,
+                    min_future=self.lead_time + 1,
+                ),
                 train_window_length=self.train_window_length,
                 output_NTC=True,
-                pick_incomplete=False,
                 time_series_fields=[
                     "input_target",
                     FieldName.FEAT_TIME,
                     FieldName.OBSERVED_VALUES,
                     "lags",
                     "scale",
+                    "mean",
                 ],
             ),
         ]
@@ -543,14 +341,11 @@ class StreamingRnnEstimator(Estimator):
             ),
         ]
 
-    def create_transformation(self) -> Chain:
+    def create_transformation(self) -> Transformation:
         return Chain(
             self._data_transformation_steps() + self._training_batch_maker()
         )
 
-    # defines the network, we get to see one batch to initialize it.
-    # the network should return at least one tensor that is used as a loss to minimize in the training loop.
-    # several tensors can be returned for instance for analysis, see DeepARTrainingNetwork for an example.
     def create_training_network(self) -> HybridBlock:
         return StreamingRnnTrainNetwork(
             hidden_size=self.hidden_size,
@@ -565,8 +360,6 @@ class StreamingRnnEstimator(Estimator):
             beta=self.beta,
         )
 
-    # we now define how the prediction happens given that we are provided a
-    # training network.
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> RepresentableBlockPredictor:
@@ -607,8 +400,20 @@ class StreamingRnnEstimator(Estimator):
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
         num_workers: Optional[int] = None,
+        num_prefetch: Optional[int] = None,
+        **kwargs,
     ) -> Predictor:
         assert isinstance(training_data, ListDataset)
+
+        # subsample the datasets if needed when caching is used
+        # needs to be done before ransac
+        if self.cache_data:
+            assert validation_data is None or isinstance(
+                validation_data, ListDataset
+            )
+            training_data, validation_data = self._data_subsampling(
+                training_data, validation_data
+            )
 
         train_output = self._ransac(
             training_data, validation_data, num_workers
@@ -625,16 +430,189 @@ class StreamingRnnEstimator(Estimator):
             one_sample.update(**state_init())
             inf_loader = InferenceDataLoader(
                 dataset=[one_sample],
+                transform=predictor.input_transform,
+                batch_size=predictor.batch_size,
                 stack_fn=partial(
                     batchify, ctx=self.trainer.ctx, dtype=self.dtype
                 ),
-                batch_size=predictor.batch_size,
-                transform=predictor.input_transform,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                **kwargs,
             )
+
             d = list(inf_loader)[0]
             return predictor.as_symbol_block_predictor(d)
         else:
             return predictor
+
+    def _data_subsampling(
+        self,
+        training_data: ListDataset,
+        validation_data: Optional[ListDataset],
+    ) -> Tuple[ListDataset, Optional[ListDataset]]:
+        def _calculate_memory_and_stats(training_data):
+            total_bytes = 0
+            cat_feat_dict: dict = OrderedDict()
+            num_lags = sum(
+                [len(l.valid_lags) for l in self.lags]
+            )  # number of lags
+            for i, d in enumerate(training_data):
+                ts_len = len(d["target"])
+
+                # expected size of each time series entry after transformation
+                # overheads: 96 Bytes for 1D arrays and 112 for 2D arrays
+                ts_size_bytes = (
+                    (
+                        (ts_len - self.lead_time) * PRECISION + 96
+                    )  # input_target
+                    + (
+                        (ts_len - self.lead_time) * PRECISION + 96
+                    )  # label_target
+                    + (
+                        (ts_len - self.lead_time) * PRECISION + 96
+                    )  # observed_values
+                    + ((ts_len - self.lead_time) * PRECISION + 96)  # time_feat
+                    + (ts_len * PRECISION + 96)  # scale
+                    + (num_lags * ts_len * PRECISION + 112)  # lags
+                    + (
+                        len(self.cardinality) * PRECISION + 96
+                    )  # feat_static_cat
+                    + 500  # approximately start field and dictionary object
+                )
+
+                total_bytes += ts_size_bytes
+
+                # the cat_feat_dict is used for subsampling if needed
+                # if the dataset has categorical features use them else create a common dummy one
+                dict_key = (
+                    tuple(d[FieldName.FEAT_STATIC_CAT])
+                    if FieldName.FEAT_STATIC_CAT in d
+                    else "0"
+                )
+                if dict_key not in cat_feat_dict:
+                    cat_feat_dict[dict_key] = {
+                        "ts_idx": [i],
+                        "memory": [ts_size_bytes],
+                    }
+                else:
+                    cat_feat_dict[dict_key]["ts_idx"].append(i)
+                    cat_feat_dict[dict_key]["memory"].append(ts_size_bytes)
+
+            return total_bytes, cat_feat_dict
+
+        def _ts_selection(cat_feat_dict, memory_alloc_per_cat):
+            selected_ts_indexes: List[int] = []
+            total_selected_memory = 0
+            for i, v in enumerate(cat_feat_dict.values()):
+                # remove entries that are above the memory limit
+                idx = [
+                    val
+                    for j, val in enumerate(v["ts_idx"])
+                    if v["memory"][j] <= memory_alloc_per_cat[i]
+                ]
+                memory = [
+                    val
+                    for j, val in enumerate(v["memory"])
+                    if v["memory"][j] <= memory_alloc_per_cat[i]
+                ]
+
+                # select time series from category
+                # instead of cumsum a more optimal approach is knapsack but its complexity is prohibitive
+                num_selected_ts = sum(
+                    np.cumsum(memory) <= memory_alloc_per_cat[i]
+                )
+                selected_ts_indexes.extend(idx[:num_selected_ts])
+                total_selected_memory += sum(memory[:num_selected_ts])
+
+            return selected_ts_indexes, total_selected_memory
+
+        def _squash_ts_categories(cat_feat_dict):
+            ts_idx = []
+            memory = []
+            for c in cat_feat_dict.values():
+                ts_idx.extend(c["ts_idx"])
+                memory.extend(c["memory"])
+            cat_feat_dict = {"0": {"ts_idx": ts_idx, "memory": memory}}
+
+            return cat_feat_dict
+
+        if validation_data is not None:
+            assert len(training_data) == len(validation_data)
+
+        total_bytes, cat_feat_dict = _calculate_memory_and_stats(training_data)
+        if total_bytes < self.cache_bytes_limit:
+            logger.info(
+                "Transformed dataset fits into memory. No subsampling applied."
+            )
+            return training_data, validation_data
+
+        # 1) the following subsampling method selects time series from each category proportional
+        # to the memory (which is proportional to the timestamps) that each category consumes
+        # 2) it ensures that the selected time series do not exceed the allocated memory
+        # per category after the subsampling
+        # 3) the selection based on categorical features is done regardless of
+        # the use of the feat_static_cat field in the actual model
+        alpha = self.cache_bytes_limit / total_bytes  # shrinkage pct
+        logger.info(
+            f"Transformed dataset does not fit into memory. Reducing it by {round((1- alpha) * 100, 2)}%."
+        )
+
+        # if there are too many categories, e.g., one per time series, we cannot subsample
+        # from each category - in this case treat all time series as once category
+        if (
+            len(cat_feat_dict) > len(training_data) // 2
+        ):  # at least two time series per category on average
+            cat_feat_dict = _squash_ts_categories(cat_feat_dict)
+            # if we do not see all categories during training inference will fail
+            # do not use categorical features at all in this case
+            self.use_feat_static_cat = False
+
+        # memory limit per category
+        memory_alloc_per_cat = alpha * np.array(
+            [sum(cat_feat_dict[k]["memory"]) for k in cat_feat_dict.keys()]
+        )
+
+        selected_ts_indexes, total_selected_memory = _ts_selection(
+            cat_feat_dict, memory_alloc_per_cat
+        )
+
+        # there is always a possibility of a big memory gap between the selected time series
+        # and the memory limit that can be caused by the memory limits per category
+        # in this case again treat all categories as one and resample
+        # this partially addresses the issue of an empty subset of time series if it is caused by category limits
+        if total_selected_memory / sum(memory_alloc_per_cat) < 0.5:
+            if len(cat_feat_dict) > 1:
+                cat_feat_dict = _squash_ts_categories(cat_feat_dict)
+                self.use_feat_static_cat = False
+
+                memory = alpha * np.array([sum(cat_feat_dict["0"]["memory"])])
+                selected_ts_indexes, total_selected_memory = _ts_selection(
+                    cat_feat_dict, memory
+                )
+
+        assert selected_ts_indexes, "No single time series fits into memory."
+        logger.info(f"Subsampled {len(selected_ts_indexes)} time series.")
+
+        # subsample the datasets using the selected time series indexes
+        selected_training_entries = []
+        for i, d in enumerate(training_data):
+            if i in selected_ts_indexes:
+                selected_training_entries.append(d)
+        subsampled_training_data = ListDataset(
+            selected_training_entries, freq=self.freq
+        )
+
+        selected_validation_entries = None
+        if validation_data is not None:
+            selected_validation_entries = []
+            for i, d in enumerate(validation_data):
+                if i in selected_ts_indexes:
+                    selected_validation_entries.append(d)
+            subsampled_validation_data = ListDataset(
+                selected_validation_entries, freq=self.freq
+            )
+
+        return subsampled_training_data, subsampled_validation_data
 
     def _ransac(
         self,
@@ -647,23 +625,24 @@ class StreamingRnnEstimator(Estimator):
         train_model = True
         while cur_ransac_pass < num_ransac_passes:
             if train_model:
-                print("RANSAC: Model training.")
+                logger.info("RANSAC: Model training.")
                 train_output = self.train_model(
                     training_data, validation_data, num_workers=num_workers
                 )
                 train_model = False
             else:
-                print("RANSAC: Skip model training.")
+                logger.info("RANSAC: Skip model training.")
 
-            print(
+            logger.info(
                 f"RANSAC: Removing anomalies from training dataset. "
                 f"Score threshold {self.ransac_thresh[cur_ransac_pass]}."
             )
 
             masking_strategy = SimpleMaskingStrategy(
                 score_threshold=self.ransac_thresh[cur_ransac_pass],
-                anomaly_history_size=10,
-                num_points_to_accept=14,
+                anomaly_history_size=50,
+                num_points_to_accept=100,
+                mask_missing_values=False,
             )
             masking_state: Dict[str, Any] = {}
             with self.trainer.ctx:
@@ -680,6 +659,11 @@ class StreamingRnnEstimator(Estimator):
                     # initialize predictor state
                     state = self.get_state_initializer()()
 
+                    # check if static_feature exists in data
+                    if FieldName.FEAT_STATIC_CAT in d:
+                        state[FSC_STATE_KEY] = np.array(
+                            d[FieldName.FEAT_STATIC_CAT]
+                        )
                     chunk_cnt = 0
                     while len(data_series) > 0:
                         assert len(delayed_data) == self.lead_time
@@ -690,7 +674,6 @@ class StreamingRnnEstimator(Estimator):
 
                         # remove the chunk from data
                         data_series = data_series[len(chunk) :]
-
                         # forecasts
                         data_entry = {
                             "start": delayed_data.start,
@@ -708,11 +691,14 @@ class StreamingRnnEstimator(Estimator):
                             maybe_masked,
                             is_masked,
                         ) = masking_strategy.mask(
-                            masking_state, forecast, chunk
+                            masking_state,
+                            forecast,
+                            chunk,
+                            state[SCALE_STATE_KEY][2],
                         )
 
                         # update the delayed data buffer with the masked target
-                        delayed_data = delayed_data.append(maybe_masked)
+                        delayed_data += maybe_masked
                         delayed_data = delayed_data[len(chunk) :]
 
                         # update the dataset with the masked target if there was a change
@@ -729,7 +715,7 @@ class StreamingRnnEstimator(Estimator):
                 # check if there are lower thresholds than the current that can catch anomalies
                 # else end ransac
                 if not train_model:
-                    print(
+                    logger.info(
                         f"RANSAC: No anomalies found in the dataset with "
                         f"score threshold {self.ransac_thresh[cur_ransac_pass]}."
                     )
@@ -738,7 +724,7 @@ class StreamingRnnEstimator(Estimator):
                     cur_ransac_pass += 1
                     while cur_ransac_pass < num_ransac_passes:
                         if prev_thresh <= self.ransac_thresh[cur_ransac_pass]:
-                            print(
+                            logger.info(
                                 f"RANSAC: Skip score threshold {self.ransac_thresh[cur_ransac_pass]}."
                             )
                             prev_thresh = self.ransac_thresh[cur_ransac_pass]
@@ -774,60 +760,61 @@ class StreamingRnnEstimator(Estimator):
     ) -> TrainOutput:
 
         transformation = self.create_transformation()
+        assert isinstance(transformation, Chain)
 
-        # ensure that the training network is created within the same MXNet
-        # context as the one that will be used during training
-        with self.trainer.ctx:
-            trained_net = self.create_training_network()
+        input_names = get_hybrid_forward_input_names(StreamingRnnTrainNetwork)
 
-        input_names = get_hybrid_forward_input_names(trained_net)
-        data_preprocessing_transform = Chain(
-            transformation.transformations[:-1]
-        )
-        assert isinstance(
-            transformation.transformations[-1], AnomalyScoringSplitter
-        )
-        split_and_select = Chain(
-            [transformation.transformations[-1], SelectFields(input_names)]
-        )
+        pre_split_tfs = Chain(transformation.transformations[:-1])
+        splitter = transformation.transformations[-1]
+        assert isinstance(splitter, StreamingInstanceSplitter)
 
-        transformed_dataset = TransformedDataset(
-            training_data, data_preprocessing_transform
-        )
+        transformed_dataset = TransformedDataset(training_data, pre_split_tfs)
 
         training_data_loader = TrainDataLoader(
             dataset=Cached(transformed_dataset)
             if self.cache_data
             else transformed_dataset,
-            transform=split_and_select,
+            transform=splitter + SelectFields(input_names),
             batch_size=self.batch_size,
-            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            stack_fn=partial(
+                batchify,
+                ctx=self.trainer.ctx,
+                dtype=self.dtype,
+            ),
             num_workers=num_workers,
             num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
         validation_data_loader = None
-
         if validation_data is not None:
             transformed_dataset = TransformedDataset(
-                validation_data, data_preprocessing_transform
+                validation_data, pre_split_tfs
             )
 
             validation_data_loader = ValidationDataLoader(
                 dataset=Cached(transformed_dataset)
                 if self.cache_data
                 else transformed_dataset,
-                transform=split_and_select,
+                transform=splitter + SelectFields(input_names),
                 batch_size=self.batch_size,
                 stack_fn=partial(
-                    batchify, ctx=self.trainer.ctx, dtype=self.dtype
+                    batchify,
+                    ctx=self.trainer.ctx,
+                    dtype=self.dtype,
                 ),
                 num_workers=num_workers,
                 num_prefetch=num_prefetch,
+                decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
                 **kwargs,
             )
+
+        # ensure that the training network is created within the same MXNet
+        # context as the one that will be used during training
+        with self.trainer.ctx:
+            trained_net = self.create_training_network()
 
         self.trainer(
             net=trained_net,

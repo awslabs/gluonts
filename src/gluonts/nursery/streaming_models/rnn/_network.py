@@ -27,7 +27,7 @@ from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.util import weighted_average
 
-# Relative imports
+from ._normalization import get_normalization
 from ._parameter import apply_weight_drop
 
 rnn_type_map = {"lstm": mx.gluon.rnn.LSTM, "gru": mx.gluon.rnn.GRU}
@@ -46,6 +46,7 @@ class StreamingRnnNetworkBase(mx.gluon.HybridBlock):
         dropout_rate: float = 0.1,
         skip_initial_window: int = 0,
         dtype: DType = np.float32,
+        normalization: str = "centeredscale",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -59,6 +60,7 @@ class StreamingRnnNetworkBase(mx.gluon.HybridBlock):
         self.embedding_dimension = embedding_dimension
         self.skip_initial_window = skip_initial_window
         self.dtype = dtype
+        self.normalization = get_normalization(normalization)
 
         with self.name_scope():
             self.distr_args_proj = self.distr_output.get_args_proj()
@@ -90,20 +92,23 @@ class StreamingRnnNetworkBase(mx.gluon.HybridBlock):
                 dtype=self.dtype,
             )
 
-    def _normalize(self, F, t: Tensor, scale: Tensor) -> Tensor:
-        return F.broadcast_div(t, scale).clip(0, 10.0)
-
     def get_distr_args_and_state(
         self,
         lags: Tensor,  # (batch_size, time)
         scale: Tensor,
+        mean: Tensor,
         feat_static_cat: Tensor,
         rnn_state: Optional[List[Tensor]] = None,
         F=None,
     ) -> Tuple[Tuple[Tensor, ...], Optional[List[Tensor]], Tensor]:
         F = getF(lags) if F is None else F
 
-        lags = self._normalize(F, lags, scale=scale.expand_dims(axis=-1)) - 1.0
+        lags = self.normalization(
+            F,
+            lags,
+            scale=scale.expand_dims(axis=-1),
+            mean=mean.expand_dims(axis=-1),
+        )
 
         embedded_cat = self.embedder(feat_static_cat)
         input_tensor = F.concat(
@@ -135,6 +140,7 @@ class StreamingRnnNetworkBase(mx.gluon.HybridBlock):
         self,
         lags: Tensor,
         scale: Tensor,
+        mean: Tensor,
         feat_static_cat: Tensor = None,
         rnn_state: Optional[List[Tensor]] = None,
         F=None,
@@ -150,6 +156,7 @@ class StreamingRnnNetworkBase(mx.gluon.HybridBlock):
         distr_args, _, rnn_outputs = self.get_distr_args_and_state(
             lags,
             scale,
+            mean,
             feat_static_cat,
             rnn_state=rnn_state,
             F=F,
@@ -183,17 +190,21 @@ class StreamingRnnTrainNetwork(StreamingRnnNetworkBase):
         lags: Tensor,
         label_target: Tensor,
         scale: Tensor,
+        mean: Tensor,
         observed_values: Tensor,
         feat_static_cat: Tensor,
     ) -> Tensor:
 
-        distr, rnn_outputs = self.get_distr(lags, scale, feat_static_cat, F=F)
+        distr, rnn_outputs = self.get_distr(
+            lags, scale, mean, feat_static_cat, F=F
+        )
         if self.alpha or self.beta:
             # rnn_outputs is already merged into a single tensor
             assert not isinstance(rnn_outputs, list)
 
-        label_target = self._normalize(F, label_target, scale=scale)
-
+        label_target = self.normalization(
+            F, label_target, scale=scale, mean=mean
+        )
         loss = distr.loss(label_target)
 
         weighted_loss = weighted_average(
@@ -232,16 +243,18 @@ class StreamingRnnPredictNetwork(StreamingRnnNetworkBase):
         F,
         lags: Tensor,
         scale: Tensor,
+        mean: Tensor,
         feat_static_cat: Tensor,
         network_state: List[Tensor],
-    ) -> Tuple[Tuple[Tensor, ...], Tensor, List[Tensor]]:
+    ) -> Tuple[Tuple[Tensor, ...], Tensor, Tensor, List[Tensor]]:
         rnn_state = network_state
         rnn_state_t = [t.swapaxes(0, 1) for t in rnn_state]
 
         distr_args, new_t_state, _ = self.get_distr_args_and_state(
-            lags, scale, feat_static_cat, rnn_state=rnn_state_t, F=F
+            lags, scale, mean, feat_static_cat, rnn_state=rnn_state_t, F=F
         )
         assert new_t_state is not None
 
         new_state = [t.swapaxes(0, 1) for t in new_t_state]
-        return distr_args, scale, new_state
+        scale, loc = self.normalization.scale_loc(F, scale, mean)
+        return distr_args, loc, scale, new_state
