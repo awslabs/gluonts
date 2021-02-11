@@ -21,8 +21,7 @@ from gluonts.dataset.artificial import default_synthetic
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.torch.batchify import batchify
 from gluonts.torch.model.forecast_generator import (
     DistributionForecastGenerator,
@@ -203,9 +202,7 @@ def test_simple_model():
     predictor = net.get_predictor(transformation + prediction_splitter)
 
     forecast_it, ts_it = make_evaluation_predictions(
-        dataset=test_data,
-        predictor=predictor,
-        num_samples=100,
+        dataset=test_data, predictor=predictor
     )
 
     evaluator = Evaluator(quantiles=[0.5, 0.9], num_workers=None)

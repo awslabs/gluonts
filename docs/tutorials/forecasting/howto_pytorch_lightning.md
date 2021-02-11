@@ -295,16 +295,13 @@ For example, we can do backtesting on the test dataset: in what follows, `make_e
 
 
 ```python
-from gluonts.evaluation.backtest import make_evaluation_predictions
-from gluonts.evaluation import Evaluator
+from gluonts.evaluation import make_evaluation_predictions, Evaluator
 ```
 
 
 ```python
 forecast_it, ts_it = make_evaluation_predictions(
-    dataset=dataset.test,
-    predictor=predictor_pytorch,
-    num_samples=1000,
+    dataset=dataset.test, predictor=predictor_pytorch
 )
 
 forecasts_pytorch = list(f.to_sample_forecast() for f in forecast_it)
