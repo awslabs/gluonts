@@ -74,7 +74,7 @@ FREQ_LONGEST_PERIOD_DICT = {
 
 def longest_period_from_frequency_str(freq_str: str) -> int:
     offset = to_offset(freq_str)
-    return FREQ_LONGEST_PERIOD_DICT[offset.name] // offset.n
+    return FREQ_LONGEST_PERIOD_DICT[offset.name[0]] // offset.n
 
 
 class DeepStateEstimator(GluonEstimator):
