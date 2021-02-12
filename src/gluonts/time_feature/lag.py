@@ -86,12 +86,14 @@ def get_lags_for_frequency(
     offset = to_offset(freq_str)
 
     if (
-        norm_freq_str(offset.name) == "A"
-    ):  # normalized string for YearEnd aka Y
+        norm_freq_str(offset.name)
+        == "A"  # normalized string for YearEnd aka A
+    ):
         lags = []
     elif (
-        norm_freq_str(offset.name) == "Q"
-    ):  # normalized string for QuarterEnd aka Q
+        norm_freq_str(offset.name)
+        == "Q"  # normalized string for QuarterEnd aka Q
+    ):
         assert (
             offset.n == 1
         ), "Only multiple 1 is supported for quarterly. Use x month instead."
@@ -99,8 +101,9 @@ def get_lags_for_frequency(
     elif offset.name == "M":
         lags = _make_lags_for_month(offset.n)
     elif (
-        norm_freq_str(offset.name) == "W"
-    ):  # normalized string for WeekEnd aka W
+        norm_freq_str(offset.name)
+        == "W"  # normalized string for WeekEnd aka W
+    ):
         lags = _make_lags_for_week(offset.n)
     elif offset.name == "D":
         lags = _make_lags_for_day(offset.n) + _make_lags_for_week(
