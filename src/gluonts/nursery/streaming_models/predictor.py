@@ -122,7 +122,6 @@ class StateAwarePredictorWrapper(StreamPredictor):
         super().serialize(path)
         with (path / "wrapper_parameters.json").open("w") as fp:
             parameters = dict(
-                lead_time=self.lead_time,
                 state_initializer=self.state_initializer,
             )
             print(dump_json(parameters), file=fp)
@@ -137,7 +136,7 @@ class StateAwarePredictorWrapper(StreamPredictor):
     ) -> "StateAwarePredictorWrapper":
         ctx = ctx if ctx is not None else get_mxnet_context()
         with mx.Context(ctx):
-            predictor = Predictor.deserialize(path / "predictor", ctx)  # type: ignore
+            predictor = Predictor.deserialize(path / "predictor")  # type: ignore
             with (path / "wrapper_parameters.json").open("r") as fp:
                 parameters = load_json(fp.read())
             return StateAwarePredictorWrapper(

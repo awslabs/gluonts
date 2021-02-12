@@ -11,6 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import tempfile
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -19,6 +22,7 @@ from gluonts.dataset.common import ListDataset
 from gluonts.mx.model.forecast import DistributionForecast
 from gluonts.mx.trainer import Trainer
 from gluonts.nursery.streaming_models.predictor import (
+    StreamPredictor,
     StateAwarePredictorWrapper,
 )
 from gluonts.nursery.streaming_models.rnn import StreamingRnnEstimator
@@ -52,10 +56,14 @@ from gluonts.nursery.streaming_models.rnn import StreamingRnnEstimator
 def test_StateAwarePredictorWrapper(estimator, training_data):
     predictor = estimator.train(training_data)
 
-    stream_predictor = StateAwarePredictorWrapper(
+    stream_predictor_orig = StateAwarePredictorWrapper(
         predictor=predictor,
         state_initializer=estimator.get_state_initializer(),
     )
+
+    with tempfile.TemporaryDirectory() as directory:
+        stream_predictor_orig.serialize(Path(directory))
+        stream_predictor = StreamPredictor.deserialize(Path(directory))
 
     test_idx = pd.date_range(
         start="2020-06-01 00:00:00", freq="1min", periods=500
