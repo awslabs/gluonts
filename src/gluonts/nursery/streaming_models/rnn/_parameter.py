@@ -113,8 +113,8 @@ def apply_weight_drop(
     weight_dropout_mode: str = "training",
 ) -> None:
     """Apply weight drop to the parameter of a block.
-     The code is from
-      https://github.com/dmlc/gluon-nlp/blob/v0.10.x/src/gluonnlp/model/utils.py
+
+    The code is from https://github.com/dmlc/gluon-nlp/blob/v0.10.x/src/gluonnlp/model/utils.py
 
     Parameters
     ----------
@@ -129,39 +129,6 @@ def apply_weight_drop(
     weight_drop_mode : {'training', 'always'}, default 'training'
         Whether the weight dropout should be applied only at training time,
          or always be applied.
-
-    Examples
-    --------
-    >>> net = gluon.rnn.LSTM(10, num_layers=2, bidirectional=True)
-    >>> gluonnlp.model.apply_weight_drop(net, r'.*h2h_weight', 0.5)
-    >>> net.collect_params()
-    lstm0_ (
-      Parameter lstm0_l0_i2h_weight (shape=(40, 0), dtype=float32)
-      WeightDropParameter lstm0_l0_h2h_weight (shape=(40, 10), dtype=float32, \
-rate=0.5, mode=training)
-      Parameter lstm0_l0_i2h_bias (shape=(40,), dtype=float32)
-      Parameter lstm0_l0_h2h_bias (shape=(40,), dtype=float32)
-      Parameter lstm0_r0_i2h_weight (shape=(40, 0), dtype=float32)
-      WeightDropParameter lstm0_r0_h2h_weight (shape=(40, 10), dtype=float32, \
-rate=0.5, mode=training)
-      Parameter lstm0_r0_i2h_bias (shape=(40,), dtype=float32)
-      Parameter lstm0_r0_h2h_bias (shape=(40,), dtype=float32)
-      Parameter lstm0_l1_i2h_weight (shape=(40, 20), dtype=float32)
-      WeightDropParameter lstm0_l1_h2h_weight (shape=(40, 10), dtype=float32, \
-rate=0.5, mode=training)
-      Parameter lstm0_l1_i2h_bias (shape=(40,), dtype=float32)
-      Parameter lstm0_l1_h2h_bias (shape=(40,), dtype=float32)
-      Parameter lstm0_r1_i2h_weight (shape=(40, 20), dtype=float32)
-      WeightDropParameter lstm0_r1_h2h_weight (shape=(40, 10), dtype=float32, \
-rate=0.5, mode=training)
-      Parameter lstm0_r1_i2h_bias (shape=(40,), dtype=float32)
-      Parameter lstm0_r1_h2h_bias (shape=(40,), dtype=float32)
-    )
-    >>> ones = mx.nd.ones((3, 4, 5))
-    >>> net.initialize()
-    >>> with mx.autograd.train_mode():
-    ...     net(ones).max().asscalar() != net(ones).max().asscalar()
-    True
     """
     if not rate:
         return
