@@ -84,42 +84,35 @@ def get_lags_for_frequency(
 
     # multiple, granularity = get_granularity(freq_str)
     offset = to_offset(freq_str)
+    # normalize offset name, so that both `W` and `W-SUN` refer to `W`
+    offset_name = norm_freq_str(offset.name)
 
-    if (
-        norm_freq_str(offset.name)
-        == "A"  # normalized string for YearEnd aka A
-    ):
+    if offset_name == "A":
         lags = []
-    elif (
-        norm_freq_str(offset.name)
-        == "Q"  # normalized string for QuarterEnd aka Q
-    ):
+    elif offset_name == "Q":
         assert (
             offset.n == 1
         ), "Only multiple 1 is supported for quarterly. Use x month instead."
         lags = _make_lags_for_month(offset.n * 3.0)
-    elif offset.name == "M":
+    elif offset_name == "M":
         lags = _make_lags_for_month(offset.n)
-    elif (
-        norm_freq_str(offset.name)
-        == "W"  # normalized string for WeekEnd aka W
-    ):
+    elif offset_name == "W":
         lags = _make_lags_for_week(offset.n)
-    elif offset.name == "D":
+    elif offset_name == "D":
         lags = _make_lags_for_day(offset.n) + _make_lags_for_week(
             offset.n / 7.0
         )
-    elif offset.name == "B":
+    elif offset_name == "B":
         # todo find good lags for business day
         lags = []
-    elif offset.name == "H":
+    elif offset_name == "H":
         lags = (
             _make_lags_for_hour(offset.n)
             + _make_lags_for_day(offset.n / 24.0)
             + _make_lags_for_week(offset.n / (24.0 * 7))
         )
     # minutes
-    elif offset.name == "T":
+    elif offset_name == "T":
         lags = (
             _make_lags_for_minute(offset.n)
             + _make_lags_for_hour(offset.n / 60.0)
