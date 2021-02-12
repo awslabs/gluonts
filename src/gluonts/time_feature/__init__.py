@@ -28,6 +28,7 @@ from ._base import (
     MonthOfYearIndex,
     WeekOfYearIndex,
     time_features_from_frequency_str,
+    norm_freq_str,
 )
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
 from .lag import get_lags_for_frequency

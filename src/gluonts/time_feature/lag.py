@@ -16,6 +16,7 @@ from typing import List, Optional
 import numpy as np
 from pandas.tseries.frequencies import to_offset
 
+from gluonts.time_feature import norm_freq_str
 
 def _make_lags(middle: int, delta: int) -> np.ndarray:
     """
@@ -83,16 +84,16 @@ def get_lags_for_frequency(
     # multiple, granularity = get_granularity(freq_str)
     offset = to_offset(freq_str)
 
-    if offset.name == "A-DEC":  # normalized string for YearEnd aka Y
+    if norm_freq_str(offset.name) == "A":  # normalized string for YearEnd aka Y
         lags = []
-    elif offset.name == "Q-DEC":  # normalized string for QuarterEnd aka Q
+    elif norm_freq_str(offset.name) == "Q":  # normalized string for QuarterEnd aka Q
         assert (
             offset.n == 1
         ), "Only multiple 1 is supported for quarterly. Use x month instead."
         lags = _make_lags_for_month(offset.n * 3.0)
     elif offset.name == "M":
         lags = _make_lags_for_month(offset.n)
-    elif offset.name[0] == "W":  # normalized string for WeekEnd aka W
+    elif norm_freq_str(offset.name) == "W":  # normalized string for WeekEnd aka W
         lags = _make_lags_for_week(offset.n)
     elif offset.name == "D":
         lags = _make_lags_for_day(offset.n) + _make_lags_for_week(
