@@ -49,8 +49,9 @@ class PyTorchPredictor(Predictor):
         input_transform: Transformation,
         forecast_generator: SampleForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
+        lead_time: int = 0,
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(prediction_length, freq=freq, lead_time=lead_time)
         self.input_names = input_names
         self.prediction_net = prediction_net
         self.batch_size = batch_size
@@ -116,6 +117,7 @@ class PyTorchPredictor(Predictor):
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
                 freq=self.freq,
+                lead_time=self.lead_time,
                 forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )

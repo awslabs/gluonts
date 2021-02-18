@@ -182,6 +182,13 @@ class GluonPredictor(Predictor):
         if type(self) != type(that):
             return False
 
+        if not equals(self.freq, that.freq):
+            return False
+        if not equals(self.prediction_length, that.prediction_length):
+            return False
+        if not equals(self.lead_time, that.lead_time):
+            return False
+
         # TODO: also consider equality of the pipelines
         # if not equals(self.input_transform, that.input_transform):
         #    return False
@@ -211,6 +218,7 @@ class GluonPredictor(Predictor):
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
                 freq=self.freq,
+                lead_time=self.lead_time,
                 ctx=self.ctx,
                 dtype=self.dtype,
                 forecast_generator=self.forecast_generator,
