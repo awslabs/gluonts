@@ -10,7 +10,6 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-import re
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -259,17 +258,18 @@ class ArrowDataset(Dataset):
         freq: str,
         chunk_size: int = 100,
     ):
-        paths = util.resolve_paths(paths) if paths is not None else None
-        files = util.find_files(paths, lambda p: str(p).endswith(".arrow"))
+        paths = util.resolve_paths(paths)
+        files = util.find_files(paths, lambda p: p.suffix == ".arrow")
         assert (
             len(files) > 0
         ), f"Could not find any arrow files in paths: {paths}"
         return MemmapArrowDataset(files, freq, chunk_size)
 
     def __iter__(self) -> Iterator[DataEntry]:
-        row_number = 0
         bounds = get_bounds_for_mp_data_loading(len(self))
-        for rec in self.reader.iter_slice(bounds.lower, bounds.upper):
+        for row_number, rec in enumerate(
+            self.reader.iter_slice(bounds.lower, bounds.upper)
+        ):
             if self._SOURCE_COL_NAME in rec:
                 rec["source"] = SourceContext(
                     source=rec[self._SOURCE_COL_NAME],
@@ -283,7 +283,6 @@ class ArrowDataset(Dataset):
                 )
             rec = self._process(rec)
             yield rec
-            row_number += 1
 
     def __len__(self):
         return len(self.table)
@@ -300,13 +299,13 @@ class ArrowDataset(Dataset):
         """
         file_path = Path(file_path)
         msg = f"Converting to arrow dataset: {file_path}"
-        l: Optional[int] = None
+        length: Optional[int] = None
         try:
-            l = len(it)  # type: ignore
+            length = len(it)  # type: ignore
         except:
-            l = None
+            length = None
         with ArrowWriter(file_path, chunk_size=chunk_size) as writer:
-            for rec in tqdm(it, total=l, desc=msg):
+            for rec in tqdm(it, total=length, desc=msg):
                 rec = rec.copy()
                 float_np_fields = [
                     "target",
@@ -328,10 +327,10 @@ class ArrowDataset(Dataset):
 
 
 class MemmapArrowDataset(ArrowDataset):
+    """
+    Arrow dataset using memory mapped files that closes the files when the object is deleted.
+    """
     def __init__(self, files: List[Path], freq: str, chunk_size: int):
-        """
-        Arrow dataset using memory mapped files that closes the files when the object is deleted.
-        """
         self.files = files
         self.mmaps = [pa.memory_map(str(p)) for p in files]
         tables = []
@@ -615,7 +614,7 @@ def load_datasets(
     files = util._list_files(util.resolve_paths(train))
     has_arrow_files = any(str(fname).endswith(".arrow") for fname in files)
     if use_arrow and has_arrow_files:
-        print(f"loading arrow files from {train}, {test}")
+        logging.info(f"loading arrow files from {train}, {test}")
         train_ds = ArrowDataset.load_files(
             paths=train, freq=meta.freq, chunk_size=200
         )
