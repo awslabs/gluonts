@@ -328,6 +328,7 @@ class MemmapArrowDataset(ArrowDataset):
     """
     Arrow dataset using memory mapped files that closes the files when the object is deleted.
     """
+
     def __init__(self, files: List[Path], freq: str, chunk_size: int):
         self.files = files
         self.mmaps = [pa.memory_map(str(p)) for p in files]
@@ -346,6 +347,9 @@ class MemmapArrowDataset(ArrowDataset):
         super().__init__(table, freq=freq, chunk_size=chunk_size)
 
     def __del__(self):
+        self.close()
+
+    def close(self):
         for mm in self.mmaps:
             mm.close()
 
