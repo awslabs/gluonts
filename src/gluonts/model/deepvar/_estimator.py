@@ -37,7 +37,7 @@ from gluonts.mx.distribution import (
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.time_feature import TimeFeature
+from gluonts.time_feature import TimeFeature, norm_freq_str
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
@@ -91,7 +91,7 @@ class FourierDateFeatures(TimeFeature):
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     offset = to_offset(freq_str)
-    multiple, granularity = offset.n, offset.name
+    granularity = norm_freq_str(offset.name)
 
     features = {
         "M": ["weekofyear"],
