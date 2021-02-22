@@ -88,7 +88,7 @@ def _split(it: List[T], fn: Callable[[T], bool]) -> Tuple[List[T], List[T]]:
 
 
 def _list_files(paths: List[Path]) -> List[Path]:
-    return list(concat(p.rglob("*") for p in paths))
+    return list(concat(path.rglob("*") for path in paths))
 
 
 def true_predicate(*args) -> bool:

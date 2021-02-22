@@ -260,9 +260,7 @@ class ArrowDataset(Dataset):
     ):
         paths = util.resolve_paths(paths)
         files = util.find_files(paths, lambda p: p.suffix == ".arrow")
-        assert (
-            len(files) > 0
-        ), f"Could not find any arrow files in paths: {paths}"
+        assert files, f"Could not find any arrow files in paths: {paths}"
         return MemmapArrowDataset(files, freq, chunk_size)
 
     def __iter__(self) -> Iterator[DataEntry]:
@@ -624,7 +622,7 @@ def load_datasets(
             else None
         )
     else:
-        print(f"loading json files from {train}, {test}")
+        logging.info(f"loading json files from {train}, {test}")
         train_ds = FileDataset(path=train, freq=meta.freq)
         test_ds = FileDataset(path=test, freq=meta.freq) if test else None
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
