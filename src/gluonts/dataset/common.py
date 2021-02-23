@@ -267,7 +267,8 @@ class ArrowDataset(Dataset):
     def __iter__(self) -> Iterator[DataEntry]:
         bounds = get_bounds_for_mp_data_loading(len(self))
         for row_number, rec in enumerate(
-            self.reader.iter_slice(bounds.lower, bounds.upper)
+            self.reader.iter_slice(bounds.lower, bounds.upper),
+            start=bounds.lower,
         ):
             if self._SOURCE_COL_NAME in rec:
                 rec["source"] = SourceContext(
