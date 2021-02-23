@@ -1,6 +1,6 @@
 holidays>=0.9
 matplotlib~=3.0
-numpy~=1.16
+numpy~=1.16,<1.20.0
 pandas~=1.0
 pydantic~=1.1
 tqdm~=4.23

@@ -42,7 +42,7 @@ class ArrowWriter:
         complicated for this use case.
         """
         self.path: Path = Path(path)
-        if not self.path.suffix == ".arrow":
+        if not str(path).endswith(".arrow"):
             raise RuntimeError("file should end with '.arrow'")
         self.chunk_size = chunk_size
         self.int_dtype = int_dtype
@@ -140,7 +140,10 @@ class ArrowReader:
         self.chunk_size = chunk_size
         self._np_shape_cols: Optional[List[Tuple[str, str]]] = None
 
-    def iter_slice(self, start: int = 0, length: Optional[int] = None):
+    def iter_slice(
+        self, start: Optional[int] = None, length: Optional[int] = None
+    ):
+        start = start if start is not None else 0
         length = length if length is not None else len(self.table) - start
         if start > 0 or length < len(self.table):
             table = self.table.slice(start, length)

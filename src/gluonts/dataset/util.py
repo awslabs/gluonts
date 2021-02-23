@@ -29,7 +29,6 @@ from typing import (
 )
 
 import pandas as pd
-from toolz import concat
 
 T = TypeVar("T")
 
@@ -88,9 +87,15 @@ def _split(it: List[T], fn: Callable[[T], bool]) -> Tuple[List[T], List[T]]:
 
 
 def _list_files(paths: List[Path]) -> List[Path]:
-    return list(
-        concat([path] if path.is_file() else path.rglob("*") for path in paths)
-    )
+    files = []
+    for p in paths:
+        if p.exists() and p.is_file():
+            files.append(p)
+            continue
+        for dirname, _, filenames in os.walk(p):
+            for filename in filenames:
+                files.append(Path(dirname, filename))
+    return files
 
 
 def true_predicate(*args) -> bool:
