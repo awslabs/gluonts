@@ -51,7 +51,8 @@ class AutoEstimator:
         #model configuraiton
         default_config['context_length'] = 100
         default_config['freq'] = None
-        default_config['prediction_length'] = None
+        default_config['
+                       iction_length'] = None
 
         #Non-essential Hyperparameter for learning_rate scheduler
 
@@ -228,7 +229,7 @@ class AutoEstimator:
         return self.final_estimator
         '''
 
-    def get_best_predictor(self):
+    def get_best_predictor(self,dataset):
         from gluonts.evaluation.backtest import make_evaluation_predictions
         from gluonts.evaluation import Evaluator
         #create best predictor through re-training
