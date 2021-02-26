@@ -121,11 +121,11 @@ def extract_pred_target(
 def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
     return a if a is not np.ma.masked else np.nan
 
-@staticmethod
+
 def mse(target, forecast):
     return np.mean(np.square(target - forecast))
 
-@staticmethod
+
 def mape(target, forecast):
 
     denominator = np.abs(target)
@@ -136,11 +136,11 @@ def mape(target, forecast):
         )
     return mape
 
-@staticmethod
+
 def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
     return nan_if_masked(np.sum(np.abs(target - forecast)))
 
-@staticmethod
+
 def quantile_loss(
         target: np.ndarray, forecast: np.ndarray, q: float
     ) -> float:
