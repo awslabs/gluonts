@@ -83,7 +83,7 @@ We also specify some minimal training options.
 
 ```python
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.mx.trainer import Trainer
+from gluonts.trainer import Trainer
 
 estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
 predictor = estimator.train(training_data=training_data)
