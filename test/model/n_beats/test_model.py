@@ -19,10 +19,7 @@ from gluonts.model.n_beats import NBEATSEnsembleEstimator, NBEATSEstimator
 @pytest.fixture()
 def args(dsinfo):
     common_hp = dict(
-        ctx="cpu",
-        epochs=1,
-        hybridize=True,
-        num_batches_per_epoch=1,
+        ctx="cpu", epochs=1, hybridize=True, num_batches_per_epoch=1,
     )
     return {
         "generic": {

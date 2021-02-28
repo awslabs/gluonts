@@ -35,9 +35,7 @@ def run_example():
 
     training_data = list(islice(dataset.train, n_train))
 
-    predictor = estimator.train(
-        training_data=training_data,
-    )
+    predictor = estimator.train(training_data=training_data,)
 
     forecasts = list(predictor.predict(training_data))
 

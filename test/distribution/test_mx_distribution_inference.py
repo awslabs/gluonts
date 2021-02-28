@@ -1156,9 +1156,7 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
 @pytest.mark.parametrize("hybridize", [False, True])
 def test_inflated_poisson_likelihood(
-    rate: float,
-    hybridize: bool,
-    zero_probability: float,
+    rate: float, hybridize: bool, zero_probability: float,
 ) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
@@ -1205,10 +1203,7 @@ def test_inflated_poisson_likelihood(
 @pytest.mark.parametrize("zero_probability", [0.3])
 @pytest.mark.parametrize("hybridize", [False, True])
 def test_inflated_neg_binomial_likelihood(
-    mu: float,
-    alpha: float,
-    zero_probability: float,
-    hybridize: bool,
+    mu: float, alpha: float, zero_probability: float, hybridize: bool,
 ) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters

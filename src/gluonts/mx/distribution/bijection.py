@@ -241,10 +241,7 @@ class ComposedBijectionHybridBlock(BijectionHybridBlock, ComposedBijection):
 
     @validated()
     def __init__(
-        self,
-        bij_blocks: Optional[List[Bijection]] = None,
-        *args,
-        **kwargs,
+        self, bij_blocks: Optional[List[Bijection]] = None, *args, **kwargs,
     ) -> None:
         HybridBlock.__init__(self, *args, **kwargs)
         ComposedBijection.__init__(self, bij_blocks)

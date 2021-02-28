@@ -13,10 +13,7 @@
 
 from gluonts.model.npts import NPTSEstimator
 
-hyperparameters = dict(
-    kernel_type="uniform",
-    use_default_features=True,
-)
+hyperparameters = dict(kernel_type="uniform", use_default_features=True,)
 
 
 def test_accuracy(accuracy_test):

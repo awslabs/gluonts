@@ -21,9 +21,7 @@ from gluonts.dataset.common import FileDataset
 
 N = 3
 
-data = [
-    '{"start": "2014-09-07", "target": [1, 2, 3]}',
-] * N
+data = ['{"start": "2014-09-07", "target": [1, 2, 3]}',] * N
 
 
 def test_jsonl():

@@ -66,10 +66,7 @@ class RepresentationChain(Representation):
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         for representation in self.chain:
             data, scale, rep_params = representation(
-                data,
-                observed_indicator,
-                scale,
-                rep_params,
+                data, observed_indicator, scale, rep_params,
             )
         return data, scale, rep_params
 
@@ -78,9 +75,6 @@ class RepresentationChain(Representation):
     ) -> Tensor:
         for representation in self.chain[::-1]:
             samples = representation.post_transform(
-                F,
-                samples,
-                scale,
-                rep_params,
+                F, samples, scale, rep_params,
             )
         return samples

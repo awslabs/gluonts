@@ -129,9 +129,7 @@ class FeatureProjector(HybridBlock):
         if self.__num_features > 1:
             # we slice the last dimension, giving an array of length self.__num_features with shape (N,T) or (N)
             real_feature_slices = F.split_v2(
-                features,
-                tuple(np.cumsum(self.feature_dims)[:-1]),
-                axis=-1,
+                features, tuple(np.cumsum(self.feature_dims)[:-1]), axis=-1,
             )
         else:
             # F.split will iterate over the second-to-last axis if the last axis is one
@@ -275,22 +273,16 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                 dropout=dropout,
             )
             self.selection = GatedResidualNetwork(
-                d_hidden=self.d_var,
-                dropout=dropout,
+                d_hidden=self.d_var, dropout=dropout,
             )
             self.enrichment = GatedResidualNetwork(
-                d_hidden=self.d_var,
-                dropout=dropout,
+                d_hidden=self.d_var, dropout=dropout,
             )
             self.state_h = GatedResidualNetwork(
-                d_hidden=self.d_var,
-                d_output=self.d_hidden,
-                dropout=dropout,
+                d_hidden=self.d_var, d_output=self.d_hidden, dropout=dropout,
             )
             self.state_c = GatedResidualNetwork(
-                d_hidden=self.d_var,
-                d_output=self.d_hidden,
-                dropout=dropout,
+                d_hidden=self.d_var, d_output=self.d_hidden, dropout=dropout,
             )
             self.temporal_encoder = TemporalFusionEncoder(
                 context_length=self.context_length,
@@ -325,18 +317,15 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         obs = F.broadcast_mul(past_target, past_observed_values)
         count = F.sum(past_observed_values, axis=1, keepdims=True)
         offset = F.broadcast_div(
-            F.sum(obs, axis=1, keepdims=True),
-            count + self.normalize_eps,
+            F.sum(obs, axis=1, keepdims=True), count + self.normalize_eps,
         )
         scale = F.broadcast_div(
-            F.sum(obs ** 2, axis=1, keepdims=True),
-            count + self.normalize_eps,
+            F.sum(obs ** 2, axis=1, keepdims=True), count + self.normalize_eps,
         )
         scale = F.broadcast_sub(scale, offset ** 2)
         scale = F.sqrt(scale)
         past_target = F.broadcast_div(
-            F.broadcast_sub(past_target, offset),
-            scale + self.normalize_eps,
+            F.broadcast_sub(past_target, offset), scale + self.normalize_eps,
         )
         past_target = F.expand_dims(past_target, axis=-1)
 
@@ -390,17 +379,12 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         )
 
     def _postprocess(
-        self,
-        F,
-        preds: Tensor,
-        offset: Tensor,
-        scale: Tensor,
+        self, F, preds: Tensor, offset: Tensor, scale: Tensor,
     ) -> Tensor:
         offset = F.expand_dims(offset, axis=-1)
         scale = F.expand_dims(scale, axis=-1)
         preds = F.broadcast_add(
-            F.broadcast_mul(preds, (scale + self.normalize_eps)),
-            offset,
+            F.broadcast_mul(preds, (scale + self.normalize_eps)), offset,
         )
         return preds
 

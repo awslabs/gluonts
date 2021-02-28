@@ -53,10 +53,7 @@ def initialize_model() -> nn.HybridBlock:
         context_length=T,
         freq=freq,
         trainer=Trainer(
-            ctx="cpu",
-            epochs=1,
-            learning_rate=1e-3,
-            num_batches_per_epoch=1,
+            ctx="cpu", epochs=1, learning_rate=1e-3, num_batches_per_epoch=1,
         ),
     )
 

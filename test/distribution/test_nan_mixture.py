@@ -305,11 +305,7 @@ cat_samples = np.where(
 
 @pytest.mark.parametrize(
     "distribution_output",
-    [
-        GaussianOutput(),
-        StudentTOutput(),
-        CategoricalOutput(num_cats=2),
-    ],
+    [GaussianOutput(), StudentTOutput(), CategoricalOutput(num_cats=2),],
 )
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_nanmixture_output(distribution_output, serialize_fn) -> None:

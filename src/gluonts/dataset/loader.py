@@ -90,8 +90,7 @@ class MultiProcessBatcher(Iterator):
         exhausted_event,
     ):
         MPWorkerInfo.set_worker_info(
-            num_workers=num_workers,
-            worker_id=worker_id,
+            num_workers=num_workers, worker_id=worker_id,
         )
 
         for batch in batcher(dataset, batch_size):

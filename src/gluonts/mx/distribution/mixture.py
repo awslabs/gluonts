@@ -110,10 +110,7 @@ class MixtureDistribution(Distribution):
         # reshape it to (1, k)
         if len(mp.shape) == 1:
             mp = mp.reshape(1, -1)
-        return MixtureDistribution(
-            mp,
-            [c[item] for c in self.components],
-        )
+        return MixtureDistribution(mp, [c[item] for c in self.components],)
 
     @property
     def batch_shape(self) -> Tuple:

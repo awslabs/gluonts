@@ -202,14 +202,11 @@ def test_fkpwl_distr_output_same_as_pl():
     pl_output = PiecewiseLinearOutput(num_pieces=3)
     pl_dist = pl_output.distribution([gamma, slopes, knot_spacings])
 
-    fkpl = FixedKnotsPiecewiseLinearOutput(
-        [0.1, 0.6],
-    ).distribution([gamma, slopes, knot_spacings])
-
-    assert np.allclose(
-        pl_dist.crps(x).asnumpy(),
-        fkpl.crps(x).asnumpy(),
+    fkpl = FixedKnotsPiecewiseLinearOutput([0.1, 0.6],).distribution(
+        [gamma, slopes, knot_spacings]
     )
+
+    assert np.allclose(pl_dist.crps(x).asnumpy(), fkpl.crps(x).asnumpy(),)
 
 
 def test_fkpwl_distr_args_correct():
@@ -219,9 +216,7 @@ def test_fkpwl_distr_args_correct():
         [[0.1, 0.5, 0.4], [0.1, 0.5, 0.4], [0.1, 0.5, 0.4]]
     )
 
-    fkpl_proj = FixedKnotsPiecewiseLinearOutput(
-        [0.1, 0.6],
-    ).get_args_proj()
+    fkpl_proj = FixedKnotsPiecewiseLinearOutput([0.1, 0.6],).get_args_proj()
 
     fkpl_proj.initialize()
     _, _, ks = fkpl_proj(x)

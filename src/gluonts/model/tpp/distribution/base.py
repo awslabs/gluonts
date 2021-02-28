@@ -192,10 +192,7 @@ class TPPDistributionOutput(DistributionOutput):
     distr_cls: type
 
     def distribution(
-        self,
-        distr_args,
-        loc=None,
-        scale: Optional[Tensor] = None,
+        self, distr_args, loc=None, scale: Optional[Tensor] = None,
     ) -> Union[TPPDistribution, TPPTransformedDistribution]:
         r"""
         Construct the associated distribution, given the collection of

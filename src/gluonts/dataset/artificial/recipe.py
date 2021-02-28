@@ -902,9 +902,7 @@ class Ref(Lifted):
         if not _LEGACY_WARNING_WAS_SHOWN:
             import warnings
 
-            warnings.warn(
-                "Ref is deprecated. Please use the functional api.",
-            )
+            warnings.warn("Ref is deprecated. Please use the functional api.",)
             _LEGACY_WARNING_WAS_SHOWN = True
         self.field_name = field_name
 
@@ -1056,12 +1054,7 @@ class ARp(Lifted):
             ), f"len(noise) should be be length={length}"
 
         v = ar_p(
-            phi=phi,
-            sigma=sigma,
-            length=length,
-            xhist=xhist,
-            c=c,
-            noise=noise,
+            phi=phi, sigma=sigma, length=length, xhist=xhist, c=c, noise=noise,
         )
         return v
 

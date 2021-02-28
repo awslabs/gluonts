@@ -39,11 +39,7 @@ def test_cyclic(data: Iterable, n: int, expected: List) -> None:
 
 
 @pytest.mark.parametrize(
-    "data",
-    [
-        range(20),
-        constant_dataset()[1],
-    ],
+    "data", [range(20), constant_dataset()[1],],
 )
 def test_pseudo_shuffled(data: Iterable) -> None:
     list_data = list(data)

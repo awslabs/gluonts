@@ -56,10 +56,7 @@ cases = [
             ]
         ),
     ),
-    (
-        mx.nd.random.normal(shape=(5, 30)),
-        mx.nd.zeros(shape=(5, 30)),
-    ),
+    (mx.nd.random.normal(shape=(5, 30)), mx.nd.zeros(shape=(5, 30)),),
 ]
 
 

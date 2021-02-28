@@ -153,10 +153,7 @@ class GenPareto(Distribution):
             return sample_X
 
         samples = _sample_multiple(
-            s,
-            xi=self.xi,
-            beta=self.beta,
-            num_samples=num_samples,
+            s, xi=self.xi, beta=self.beta, num_samples=num_samples,
         )
         return self.F.clip(
             data=samples, a_min=np.finfo(dtype).eps, a_max=np.finfo(dtype).max

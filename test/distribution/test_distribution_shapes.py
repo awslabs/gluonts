@@ -222,17 +222,13 @@ from gluonts.mx.util import make_nd_diag
         ),
         (
             Loglogistic(
-                mx.nd.zeros(shape=(3, 4, 5)),
-                mx.nd.ones(shape=(3, 4, 5)),
+                mx.nd.zeros(shape=(3, 4, 5)), mx.nd.ones(shape=(3, 4, 5)),
             ),
             (3, 4, 5),
             (),
         ),
         (
-            Weibull(
-                mx.nd.ones(shape=(3, 4, 5)),
-                mx.nd.ones(shape=(3, 4, 5)),
-            ),
+            Weibull(mx.nd.ones(shape=(3, 4, 5)), mx.nd.ones(shape=(3, 4, 5)),),
             (3, 4, 5),
             (),
         ),

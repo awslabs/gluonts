@@ -53,17 +53,12 @@ def checked(fn):
         extra = "ignore" if has_var_args else "forbid"
 
     fn_fields = {
-        param.name: (
-            get_param_type(param),
-            get_param_default(param),
-        )
+        param.name: (get_param_type(param), get_param_default(param),)
         for param in fn_params.values()
     }
 
     Model = pydantic.create_model(
-        f"{fn.__name__}Model",
-        __config__=Config,
-        **fn_fields,
+        f"{fn.__name__}Model", __config__=Config, **fn_fields,
     )
 
     def checked_args(*args, **kwargs):

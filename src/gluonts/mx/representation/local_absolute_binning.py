@@ -118,14 +118,10 @@ class LocalAbsoluteBinning(Representation):
             bin_edges_hyb = rep_params[1].asnumpy()
 
             bin_edges_hyb = np.repeat(
-                bin_edges_hyb,
-                len(data_np) / len(bin_edges_hyb),
-                axis=0,
+                bin_edges_hyb, len(data_np) / len(bin_edges_hyb), axis=0,
             )
             bin_centers_hyb = np.repeat(
-                bin_centers_hyb,
-                len(data_np) / len(bin_centers_hyb),
-                axis=0,
+                bin_centers_hyb, len(data_np) / len(bin_centers_hyb), axis=0,
             )
 
             for i in range(len(data_np)):

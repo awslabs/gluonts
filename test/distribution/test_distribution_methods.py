@@ -223,20 +223,8 @@ test_output = {
 }
 
 test_cases_quantile = [
-    (
-        Gaussian,
-        {
-            "mu": mx.nd.array([0.0]),
-            "sigma": mx.nd.array([1.0]),
-        },
-    ),
-    (
-        GenPareto,
-        {
-            "xi": mx.nd.array([1 / 3.0]),
-            "beta": mx.nd.array([1.0]),
-        },
-    ),
+    (Gaussian, {"mu": mx.nd.array([0.0]), "sigma": mx.nd.array([1.0]),},),
+    (GenPareto, {"xi": mx.nd.array([1 / 3.0]), "beta": mx.nd.array([1.0]),},),
 ]
 
 test_output_quantile = {
