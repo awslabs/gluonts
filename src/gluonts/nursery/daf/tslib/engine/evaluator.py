@@ -16,18 +16,19 @@ if TYPE_CHECKING:
     from .trainer import Trainer
 
 
-
 class Evaluator(object):
-    def __init__(self,
-            dataset: MetaDataset,
-            model: nn.Module,
-            metrics: MeterDict,
-            log_dir: Path,
-            batch_size: int,
-            n_loader_workers: int = 0,
-            cuda_device: int = 0,
-            debug: bool = False,
-            model_tag: str = 'best'):
+    def __init__(
+        self,
+        dataset: MetaDataset,
+        model: nn.Module,
+        metrics: MeterDict,
+        log_dir: Path,
+        batch_size: int,
+        n_loader_workers: int = 0,
+        cuda_device: int = 0,
+        debug: bool = False,
+        model_tag: str = "best",
+    ):
         self.dataset = dataset
         self.metrics = metrics
         self.log_dir = log_dir
@@ -45,16 +46,21 @@ class Evaluator(object):
 
     def load(self, tag: str):
         try:
-            path = self.log_dir.joinpath(f'{tag}.pt.tar')
-            state = pt.load(path, map_location=f'cuda:{self.cuda_device}' if self.cuda_device>=0 else 'cpu')
-            print(f'Load checkpoint from {path}')
+            path = self.log_dir.joinpath(f"{tag}.pt.tar")
+            state = pt.load(
+                path,
+                map_location=f"cuda:{self.cuda_device}"
+                if self.cuda_device >= 0
+                else "cpu",
+            )
+            print(f"Load checkpoint from {path}")
         except FileNotFoundError:
-            raise ValueError(f'invalid tag {tag}')
-        module_state = state.get('model')
+            raise ValueError(f"invalid tag {tag}")
+        module_state = state.get("model")
         if module_state is None:
-            raise KeyError('the checkpoint does not have model data.')
+            raise KeyError("the checkpoint does not have model data.")
         self.model.load_state_dict(module_state)
-    
+
     @property
     def test_loader(self) -> Iterator:
         return self.dataset.test_loader(
@@ -64,11 +70,11 @@ class Evaluator(object):
         )
 
     def evaluate(self) -> None:
-        device = 'cpu' if self.cuda_device < 0 else f'cuda:{self.cuda_device}'
+        device = "cpu" if self.cuda_device < 0 else f"cuda:{self.cuda_device}"
         prog_bar = tqdm(
             desc=f"({device}) test",
             total=int(math.ceil(self.dataset.test_size / self.batch_size)),
-            unit='batch',
+            unit="batch",
         )
         _ = self.model.eval()
         for batch, data in enumerate(self.test_loader):
@@ -81,7 +87,7 @@ class Evaluator(object):
 
     def _test(self, *data) -> None:
         raise NotImplementedError
-    
+
     def predict(self, dataset: Optional[Dataset] = None) -> np.ndarray:
         if dataset is None:
             loader = self.test_loader
@@ -97,11 +103,11 @@ class Evaluator(object):
                 n_batches=None,
             )
             data_size = len(dataset)
-        device = 'cpu' if self.cuda_device < 0 else f'cuda:{self.cuda_device}'
+        device = "cpu" if self.cuda_device < 0 else f"cuda:{self.cuda_device}"
         prog_bar = tqdm(
             desc=f"({device}) test",
             total=int(math.ceil(data_size / self.batch_size)),
-            unit='batch',
+            unit="batch",
         )
         _ = self.model.eval()
         preds = []
@@ -115,14 +121,12 @@ class Evaluator(object):
         prog_bar.close()
         preds = np.concatenate(preds, axis=0)
         return preds
-        
+
     def _predict(self, *data) -> np.ndarray:
         raise NotImplementedError
 
     @classmethod
-    def from_trainer(cls, 
-            trainer: Trainer,
-            model_tag: str):
+    def from_trainer(cls, trainer: Trainer, model_tag: str):
         return cls(
             dataset=trainer.dataset,
             model=trainer.get_model_core(),
@@ -136,9 +140,11 @@ class Evaluator(object):
         )
 
     @classmethod
-    def from_dump(cls,
-                  dataset: MetaDataset,
-                  dump_dir: Union[str, Path],
-                  cuda_device: int,
-                  model_tag: str):
+    def from_dump(
+        cls,
+        dataset: MetaDataset,
+        dump_dir: Union[str, Path],
+        cuda_device: int,
+        model_tag: str,
+    ):
         raise NotImplementedError

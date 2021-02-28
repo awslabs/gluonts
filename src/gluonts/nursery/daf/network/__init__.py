@@ -9,6 +9,4 @@ from .block import (
     AttentionBlock,
     AdversarialBlock,
 )
-from .disc import (
-    SimpleDiscriminator,
-)
+from .disc import SimpleDiscriminator

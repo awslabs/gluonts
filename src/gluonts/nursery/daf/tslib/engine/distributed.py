@@ -6,7 +6,6 @@ from torch import Tensor
 from torch import distributed as dist
 
 
-
 def is_distributed():
     return dist.is_available() and dist.is_initialized()
 
@@ -33,9 +32,7 @@ def synchronize():
     dist.barrier()
 
 
-def reduce_value(value: Tensor,
-                 dst: Optional[int] = 0,
-                 average: bool = True):
+def reduce_value(value: Tensor, dst: Optional[int] = 0, average: bool = True):
     world_size = get_world_size()
     if world_size < 2:
         return value
@@ -47,16 +44,18 @@ def reduce_value(value: Tensor,
         dist.reduce(value, dst)
         if (get_rank() == dst) and average:
             value = value / world_size
-    return value 
+    return value
 
-    
-def init_distributed(cuda: bool,
-                     local_rank: int,
-                     node_rank: int = 0,
-                     n_nodes: int = 1,
-                     n_procs: int = 0,
-                     master_addr: str = 'localhost',
-                     master_port: int = 60066):
+
+def init_distributed(
+    cuda: bool,
+    local_rank: int,
+    node_rank: int = 0,
+    n_nodes: int = 1,
+    n_procs: int = 0,
+    master_addr: str = "localhost",
+    master_port: int = 60066,
+):
     if not dist.is_available():
         return
     cuda = pt.cuda.is_available() and cuda
@@ -64,20 +63,28 @@ def init_distributed(cuda: bool,
         if n_procs <= 0:
             n_procs = pt.cuda.device_count()
         else:
-            assert n_procs <= pt.cuda.device_count(), f'# processes per node exceeds # available GPUs'
+            assert (
+                n_procs <= pt.cuda.device_count()
+            ), f"# processes per node exceeds # available GPUs"
     else:
         if n_procs <= 0:
             n_procs = os.cpu_count()
         else:
-            assert n_procs <= os.cpu_count(), f'# processes per node exceeds # available CPUs'
-    assert 0 <= node_rank < n_nodes, f'rank {node_rank} is not one of [0,...,{n_nodes-1}]'
-    assert 0 <= local_rank < n_procs, f'local_rank {local_rank} is not one of [0, ..., {n_procs-1}]'
-    
+            assert (
+                n_procs <= os.cpu_count()
+            ), f"# processes per node exceeds # available CPUs"
+    assert (
+        0 <= node_rank < n_nodes
+    ), f"rank {node_rank} is not one of [0,...,{n_nodes-1}]"
+    assert (
+        0 <= local_rank < n_procs
+    ), f"local_rank {local_rank} is not one of [0, ..., {n_procs-1}]"
+
     world_size = n_nodes * n_procs
     if world_size == 1:
         return
-    os.environ['MASTER_ADDR'] = master_addr
-    os.environ['MASTER_PORT'] = str(master_port)
-    os.environ['WORLD_SIZE'] = str(world_size)
+    os.environ["MASTER_ADDR"] = master_addr
+    os.environ["MASTER_PORT"] = str(master_port)
+    os.environ["WORLD_SIZE"] = str(world_size)
     rank = node_rank * n_procs + local_rank
-    dist.init_process_group('nccl' if cuda else 'gloo', rank=rank)
+    dist.init_process_group("nccl" if cuda else "gloo", rank=rank)

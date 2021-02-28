@@ -14,20 +14,26 @@ import numpy as np
 import pandas as pd
 
 from .distributed import is_main_process, synchronize
+
 if TYPE_CHECKING:
     from ..dataset import MetaDataset
 
+
 class HyperOptManager(object):
-    def __init__(self,
-            dataset: MetaDataset,
-            work_dir: Path,
-            fixed_params: Dict,
-            cuda_device: int,
-            key_factor: str = 'loss',
-            min_mode: bool = True,
-            resume: bool = False):
+    def __init__(
+        self,
+        dataset: MetaDataset,
+        work_dir: Path,
+        fixed_params: Dict,
+        cuda_device: int,
+        key_factor: str = "loss",
+        min_mode: bool = True,
+        resume: bool = False,
+    ):
         self.dataset = dataset
-        self.param_names, self.varied_params = zip(*sorted(dataset.hyperparam_space.items(), key=lambda x:x[0]))
+        self.param_names, self.varied_params = zip(
+            *sorted(dataset.hyperparam_space.items(), key=lambda x: x[0])
+        )
         self.fixed_params = fixed_params
         self.work_dir = work_dir
         self.work_dir.mkdir(parents=True, exist_ok=True)
@@ -39,7 +45,6 @@ class HyperOptManager(object):
         self.records = OrderedDict()
         if resume:
             self.load_records()
-
 
     def __getitem__(self, key: Union[Tuple, int]) -> Union[int, Tuple]:
         if isinstance(key, tuple):
@@ -57,14 +62,16 @@ class HyperOptManager(object):
             return tuple(params)
 
     def __len__(self):
-        return reduce(lambda p, vp: p*len(vp), self.varied_params, 1)
-            
+        return reduce(lambda p, vp: p * len(vp), self.varied_params, 1)
+
     def hyperparameters(self, n_iter: int):
         n_choices_per_param = [len(vp) for vp in self.varied_params]
-        n_choices = reduce(lambda p, x: p*x, n_choices_per_param, 1)
+        n_choices = reduce(lambda p, x: p * x, n_choices_per_param, 1)
         n_covered = len(self.records)
         if n_iter > n_choices - n_covered:
-            raise ValueError(f'# iterations {n_iter} exceeds the remaining grids {n_choices-n_covered}')
+            raise ValueError(
+                f"# iterations {n_iter} exceeds the remaining grids {n_choices-n_covered}"
+            )
         samples = list(np.random.choice(n_choices, n_iter + n_covered))
         for params in self.records:
             index = self[params]
@@ -80,10 +87,10 @@ class HyperOptManager(object):
         log_dir = self.work_dir.joinpath(exp_id)
         log_dir.mkdir(parents=True, exist_ok=True)
         return log_dir
-        
+
     def get_optimal_model(self) -> Path:
         if len(self.records) == 0:
-            raise ValueError('No model has been trained!')
+            raise ValueError("No model has been trained!")
         selector = np.nanargmin if self.min_mode else np.nanargmax
         models = list(self.records.keys())
         values = [r[self.key_factor] for r in self.records.values()]
@@ -103,34 +110,40 @@ class HyperOptManager(object):
             data.append(values)
             index.append(self.exp_ids[params])
         df = pd.DataFrame(data, index=index, columns=columns)
-        df.to_csv(self.work_dir.joinpath('records.csv'))
+        df.to_csv(self.work_dir.joinpath("records.csv"))
 
     def load_records(self):
-        print(f'Loading records from {self.work_dir}')
-        record_path = self.work_dir.joinpath('records.csv')
+        print(f"Loading records from {self.work_dir}")
+        record_path = self.work_dir.joinpath("records.csv")
         if record_path.exists():
             df = pd.read_csv(record_path, index_col=0)
             for exp_id, record in df.iterrows():
-                params = record.loc[list(self.param_names)].values.flatten().tolist()
-                params = tuple(eval(x) if isinstance(x, str) else x for x in params)
+                params = (
+                    record.loc[list(self.param_names)]
+                    .values.flatten()
+                    .tolist()
+                )
+                params = tuple(
+                    eval(x) if isinstance(x, str) else x for x in params
+                )
                 self.exp_ids[params] = exp_id
-                self.records[params] = record.iloc[len(self.param_names):].to_dict()
+                self.records[params] = record.iloc[
+                    len(self.param_names) :
+                ].to_dict()
             return
-        raise RuntimeError('Cannot load previous checkpoint in random search.')
-                
-    def update_record(self, 
-            params: Tuple, 
-            **record):
+        raise RuntimeError("Cannot load previous checkpoint in random search.")
+
+    def update_record(self, params: Tuple, **record):
         if self.key_factor not in record:
-            raise ValueError(f'key factor {self.key_factor} is not provided.')
+            raise ValueError(f"key factor {self.key_factor} is not provided.")
         self.records[params] = record
         self.dump_records()
-        
+
     @staticmethod
     def print_params(params: Dict):
-        print('Current Hyperparams:')
+        print("Current Hyperparams:")
         for k, v in params.items():
-            print(f'\t{k:>16}{str(v):>16}')
+            print(f"\t{k:>16}{str(v):>16}")
 
     def run_training(self, params: Dict) -> Dict:
         raise NotImplementedError
@@ -145,14 +158,16 @@ class HyperOptManager(object):
             configs.update(self.fixed_params)
             log_dir = self.get_log_dir(params)
             if is_main_process():
-                with log_dir.joinpath('configs.json').open('w') as f:
+                with log_dir.joinpath("configs.json").open("w") as f:
                     json.dump(configs, f, indent=4)
-            configs['cuda_device'] = self.cuda_device
-            configs['log_dir'] = log_dir
+            configs["cuda_device"] = self.cuda_device
+            configs["log_dir"] = log_dir
             try:
                 exp_info = self.run_training(configs)
             except Exception as e:
-                print(f"Current config has problem:\n{textwrap.indent(traceback.format_exc(), ' '*4)}skipped.")
+                print(
+                    f"Current config has problem:\n{textwrap.indent(traceback.format_exc(), ' '*4)}skipped."
+                )
                 continue
             self.update_record(params, **exp_info)
         if is_main_process():
@@ -169,17 +184,18 @@ class HyperOptManager(object):
         log_dir.mkdir(parents=True, exist_ok=True)
         configs = self.dataset.fixed_hyperparams
         configs.update(self.fixed_params)
-        
+
         if is_main_process():
-            with log_dir.joinpath('configs.json').open('w') as f:
+            with log_dir.joinpath("configs.json").open("w") as f:
                 json.dump(configs, f, indent=4)
-        configs['cuda_device'] = self.cuda_device
-        configs['log_dir'] = log_dir
+        configs["cuda_device"] = self.cuda_device
+        configs["log_dir"] = log_dir
         try:
             _ = self.run_training(configs)
         except Exception as e:
-            print(f"Current config has problem:\n{textwrap.indent(traceback.format_exc(), ' '*4)}skipped.")
+            print(
+                f"Current config has problem:\n{textwrap.indent(traceback.format_exc(), ' '*4)}skipped."
+            )
             return
         test_info = self.run_test(log_dir)
         return test_info
-        

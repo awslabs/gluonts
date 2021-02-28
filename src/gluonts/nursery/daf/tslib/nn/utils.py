@@ -9,9 +9,8 @@ from torch.distributions import Distribution
 from torch.distributions import Normal as Gaussian
 
 
-
 class ResidualBlock(nn.Module):
-    '''
+    """
     Network module wrapped by residual connection
     
     Args
@@ -20,10 +19,13 @@ class ResidualBlock(nn.Module):
         the main module to be wrapped
     skip_network: nn.Module, optional
         the auxiliary module to guarantee valid addition
-    '''
-    def __init__(self,
-            residual_network: nn.Module,
-            skip_network: Optional[nn.Module] = None):
+    """
+
+    def __init__(
+        self,
+        residual_network: nn.Module,
+        skip_network: Optional[nn.Module] = None,
+    ):
         super(ResidualBlock, self).__init__()
         self.residual_network = residual_network
         if skip_network is None:
@@ -37,7 +39,6 @@ class ResidualBlock(nn.Module):
         return skip + x
 
 
-
 class Concatenate(nn.Module):
     def __init__(self, dim: int):
         super(Concatenate, self).__init__()
@@ -45,7 +46,6 @@ class Concatenate(nn.Module):
 
     def forward(self, inputs: List[Tensor]) -> Tensor:
         return pt.cat(inputs, dim=self.dim)
-
 
 
 class LockedDropout(nn.Module):
@@ -58,7 +58,9 @@ class LockedDropout(nn.Module):
         if self.lock_dim is None:
             return self.dropout(x)
         else:
-            mask = self.dropout(pt.ones_like(x).narrow(self.lock_dim, 0, 1)).expand_as(x)
+            mask = self.dropout(
+                pt.ones_like(x).narrow(self.lock_dim, 0, 1)
+            ).expand_as(x)
             return mask * x
 
 
@@ -66,7 +68,7 @@ class DilatedQueue(nn.Module):
     def __init__(self, maxlen):
         super(DilatedQueue, self).__init__()
         self.maxlen = maxlen
-        self.register_buffer('data', None)
+        self.register_buffer("data", None)
 
     def _reset(self):
         self.data = None
@@ -74,11 +76,11 @@ class DilatedQueue(nn.Module):
     def initialize(self, x):
         self._reset()
         if x.size(2) < self.maxlen:
-            x = nn.functional.pad(x, (self.maxlen-x.size(2),0))
+            x = nn.functional.pad(x, (self.maxlen - x.size(2), 0))
         else:
-            x = x.narrow(2, x.size(2)-self.maxlen, self.maxlen)
+            x = x.narrow(2, x.size(2) - self.maxlen, self.maxlen)
         self.data = x
 
     def append(self, x):
         data = pt.cat([self.data, x], dim=2)
-        self.data = data.narrow(2, data.size(2)-self.maxlen, self.maxlen)
+        self.data = data.narrow(2, data.size(2) - self.maxlen, self.maxlen)

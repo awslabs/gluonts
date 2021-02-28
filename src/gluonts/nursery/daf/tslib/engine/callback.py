@@ -41,16 +41,15 @@ class Callback(object):
 
     def on_valid_begin(self, epoch, **kwargs):
         pass
-    
+
     def on_valid_end(self, epoch, **kwargs):
         pass
 
     def on_valid_batch_begin(self, batch, **kwargs):
         pass
-    
+
     def on_valid_batch_end(self, batch, **kwargs):
         pass
-
 
 
 class CallbackList(Callback):
@@ -65,9 +64,9 @@ class CallbackList(Callback):
 
     def append(self, callback: Callback):
         if not isinstance(callback, Callback):
-            raise ValueError('The given object is not a callback.')
+            raise ValueError("The given object is not a callback.")
         if isinstance(callback, CallbackList):
-            raise ValueError('Cannot add a callback list to a callback list')
+            raise ValueError("Cannot add a callback list to a callback list")
         callback.set_trainer(self.trainer)
         self.callbacks.append(callback)
 
@@ -100,7 +99,7 @@ class CallbackList(Callback):
     def on_batch_end(self, batch, **kwargs):
         for callback in self.callbacks:
             callback.on_batch_end(batch, **kwargs)
-            
+
     def on_valid_begin(self, epoch, **kwargs):
         for callback in self.callbacks:
             callback.on_valid_begin(epoch, **kwargs)
@@ -108,25 +107,28 @@ class CallbackList(Callback):
     def on_valid_end(self, epoch, **kwargs):
         for callback in self.callbacks:
             callback.on_valid_end(epoch, **kwargs)
-    
+
     def on_valid_batch_begin(self, batch, **kwargs):
         for callback in self.callbacks:
             callback.on_valid_batch_begin(batch, **kwargs)
-    
+
     def on_valid_batch_end(self, batch, **kwargs):
         for callback in self.callbacks:
             callback.on_valid_batch_end(batch, **kwargs)
 
 
-
 class Optimization(Callback):
-    def __init__(self, 
-            grad_cum_step: int = 1,
-            max_grad_norm: Optional[float] = None,
-            lr_decay_freq: str = 'batch'):
+    def __init__(
+        self,
+        grad_cum_step: int = 1,
+        max_grad_norm: Optional[float] = None,
+        lr_decay_freq: str = "batch",
+    ):
         super(Optimization, self).__init__()
-        if lr_decay_freq not in ['batch', 'epoch']:
-            raise ValueError(f'learning rate decay frequency must be either "batch" or "epoch"')
+        if lr_decay_freq not in ["batch", "epoch"]:
+            raise ValueError(
+                f'learning rate decay frequency must be either "batch" or "epoch"'
+            )
         self.grad_cum_step = grad_cum_step
         self.lr_decay_freq = lr_decay_freq
         self.max_grad_norm = max_grad_norm
@@ -139,12 +141,17 @@ class Optimization(Callback):
         self.grad_cum_counter -= 1
         if self.grad_cum_counter == 0:
             if self.max_grad_norm is not None:
-                grad_norm = clip_grad_norm_(self.trainer.model.parameters(), self.max_grad_norm)
-                if 'grad_norm' in self.trainer.metrics.train:
+                grad_norm = clip_grad_norm_(
+                    self.trainer.model.parameters(), self.max_grad_norm
+                )
+                if "grad_norm" in self.trainer.metrics.train:
                     self.trainer.metrics.train.grad_norm.update(grad_norm)
             self.trainer.optimizer.step()
             self.trainer.global_step += 1
-            if self.lr_decay_freq == 'batch' and self.trainer.scheduler is not None:
+            if (
+                self.lr_decay_freq == "batch"
+                and self.trainer.scheduler is not None
+            ):
                 self.trainer.scheduler.step()
             self.trainer.optimizer.zero_grad()
             self.grad_cum_counter = self.grad_cum_step
@@ -152,31 +159,31 @@ class Optimization(Callback):
             pass
 
     def on_epoch_end(self, epoch, **kwargs):
-        if self.lr_decay_freq == 'epoch' and self.trainer.scheduler is not None:
+        if (
+            self.lr_decay_freq == "epoch"
+            and self.trainer.scheduler is not None
+        ):
             self.trainer.scheduler.step()
 
 
-
 class DebugStopper(Callback):
-    def __init__(self,
-            debug_stop_batch: int = 1,
-            debug_stop_epoch: int = 1):
+    def __init__(self, debug_stop_batch: int = 1, debug_stop_epoch: int = 1):
         super(DebugStopper, self).__init__()
         self.debug_stop_batch = debug_stop_batch
         self.debug_stop_epoch = debug_stop_epoch
-        
+
     def on_train_begin(self, **kwargs):
         self.trainer._signal_exit = False
         self.trainer._signal_break = False
         self.trainer._signal_valid_break = False
-        
+
     def on_batch_end(self, batch, **kwargs):
         if self.trainer.debug:
             if batch >= self.debug_stop_batch - 1:
                 self.trainer._signal_break = True
         else:
             self.trainer._signal_break = False
-            
+
     def on_epoch_end(self, epoch, **kwargs):
         if self.trainer.debug:
             if epoch >= self.debug_stop_epoch - 1:
@@ -192,13 +199,14 @@ class DebugStopper(Callback):
             self.trainer._signal_valid_break = False
 
 
-
 class EarlyStopping(Callback):
-    def __init__(self,
-            patience: int,
-            monitor: str = 'valid/loss',
-            minimize: bool = True,
-            threshold: float = 0.0):
+    def __init__(
+        self,
+        patience: int,
+        monitor: str = "valid/loss",
+        minimize: bool = True,
+        threshold: float = 0.0,
+    ):
         super(EarlyStopping, self).__init__()
         self.patience = patience
         self.monitor = monitor
@@ -208,14 +216,18 @@ class EarlyStopping(Callback):
     def on_train_begin(self, **kwargs):
         self.wait = 0
         self._stopped_epoch = 0
-        self.best = float('inf')
+        self.best = float("inf")
         if not self.minimize:
             self.best = -self.best
-        
+
     def on_epoch_end(self, epoch, **kwargs):
         current_value = self.trainer.metrics[self.monitor].value
         diff = current_value - self.best
-        better = (diff < -self.threshold) if self.minimize else (diff > self.threshold)
+        better = (
+            (diff < -self.threshold)
+            if self.minimize
+            else (diff > self.threshold)
+        )
         if better:
             self.best = current_value
             self.wait = 0
@@ -223,20 +235,21 @@ class EarlyStopping(Callback):
             self.wait += 1
             if self.wait == self.patience:
                 self.trainer._signal_exit = True
-                self._stopped_epoch = epoch+1
-            
+                self._stopped_epoch = epoch + 1
+
     def on_train_end(self, **kwargs):
         if self._stopped_epoch > 0:
-            print(f'Early stopping at epoch {self._stopped_epoch:02d}')
-
+            print(f"Early stopping at epoch {self._stopped_epoch:02d}")
 
 
 class Checkpoint(Callback):
-    def __init__(self,
-            monitor: str = 'valid/loss',
-            minimize: bool = True,
-            threshold: float = 0.0,
-            keep_epoch_dump: bool = True):
+    def __init__(
+        self,
+        monitor: str = "valid/loss",
+        minimize: bool = True,
+        threshold: float = 0.0,
+        keep_epoch_dump: bool = True,
+    ):
         super(Checkpoint, self).__init__()
         self.monitor = monitor
         self.minimize = minimize
@@ -244,38 +257,51 @@ class Checkpoint(Callback):
         self.keep_epoch_dump = keep_epoch_dump
 
     def on_train_begin(self, **kwargs):
-        self.best = float('inf') if self.minimize else float('-inf')
+        self.best = float("inf") if self.minimize else float("-inf")
 
     def on_epoch_end(self, epoch, **kwargs):
         current_value = self.trainer.metrics[self.monitor].value
         diff = current_value - self.best
-        better = (diff < -self.threshold) if self.minimize else (diff > self.threshold)
-        if better: 
+        better = (
+            (diff < -self.threshold)
+            if self.minimize
+            else (diff > self.threshold)
+        )
+        if better:
             self.best = current_value
-            self.trainer.dump(tag='best')
+            self.trainer.dump(tag="best")
         if self.keep_epoch_dump:
-            self.trainer.dump(tag=f'epoch{epoch+1:02d}')
-
+            self.trainer.dump(tag=f"epoch{epoch+1:02d}")
 
 
 class ProgressBar(Callback):
-    def __init__(self, 
-            batch_monitors: Optional[List[str]] = None,
-            epoch_monitors: Optional[List[str]] = None):
+    def __init__(
+        self,
+        batch_monitors: Optional[List[str]] = None,
+        epoch_monitors: Optional[List[str]] = None,
+    ):
         super(ProgressBar, self).__init__()
         self.batch_monitors = batch_monitors or []
         self.epoch_monitors = epoch_monitors or []
 
     def on_epoch_begin(self, epoch: int, **kwargs):
         if self.trainer.nb_epoch is None:
-            n_batch = int(math.ceil(self.trainer.dataset.train_size / self.trainer.batch_size))
+            n_batch = int(
+                math.ceil(
+                    self.trainer.dataset.train_size / self.trainer.batch_size
+                )
+            )
         else:
             n_batch = self.trainer.nb_epoch
-        device = 'cpu' if self.trainer.cuda_device < 0 else f'cuda:{self.trainer.cuda_device}'
+        device = (
+            "cpu"
+            if self.trainer.cuda_device < 0
+            else f"cuda:{self.trainer.cuda_device}"
+        )
         self.prog_bar = tqdm(
-            desc=f"({device}) {epoch+1}/{self.trainer.n_epochs}", 
+            desc=f"({device}) {epoch+1}/{self.trainer.n_epochs}",
             total=n_batch,
-            unit='batch',
+            unit="batch",
         )
 
     def on_batch_end(self, batch, **kwargs):
@@ -291,12 +317,20 @@ class ProgressBar(Callback):
         self.prog_bar.set_postfix(postfix)
 
     def on_valid_begin(self, epoch, **kwargs):
-        n_batch = int(math.ceil(self.trainer.dataset.valid_size / self.trainer.eval_batch_size))
-        device = 'cpu' if self.trainer.cuda_device < 0 else f'cuda:{self.trainer.cuda_device}'
+        n_batch = int(
+            math.ceil(
+                self.trainer.dataset.valid_size / self.trainer.eval_batch_size
+            )
+        )
+        device = (
+            "cpu"
+            if self.trainer.cuda_device < 0
+            else f"cuda:{self.trainer.cuda_device}"
+        )
         self.sub_prog_bar = tqdm(
             desc=f"    ({device}) validating epoch {epoch+1}",
             total=n_batch,
-            unit='batch',
+            unit="batch",
             position=1,
             leave=False,
         )
@@ -320,14 +354,15 @@ class ProgressBar(Callback):
         self.prog_bar.close()
 
 
-
 class Tensorboard(Callback):
-    def __init__(self, 
-            batch_monitors: Optional[List[str]] = None,
-            epoch_monitors: Optional[List[str]] = None,
-            hparams: Optional[Dict] = None,
-            metrics: Optional[List[str]] = None,
-            comment: str = ''):
+    def __init__(
+        self,
+        batch_monitors: Optional[List[str]] = None,
+        epoch_monitors: Optional[List[str]] = None,
+        hparams: Optional[Dict] = None,
+        metrics: Optional[List[str]] = None,
+        comment: str = "",
+    ):
         super(Tensorboard, self).__init__()
         self.comment = comment
         self.batch_monitors = batch_monitors or []
@@ -351,18 +386,24 @@ class Tensorboard(Callback):
             if v is None:
                 v = self.trainer.metrics[k].value
             self.writer.add_scalar(k, v, global_step=self.trainer.global_step)
-        weights = kwargs.get('weights', {})
+        weights = kwargs.get("weights", {})
         for k, v in weights.items():
-            self.writer.add_histogram(f'weights/{k}', v, global_step=self.trainer.global_step)
-        grads = kwargs.get('grads', {})
+            self.writer.add_histogram(
+                f"weights/{k}", v, global_step=self.trainer.global_step
+            )
+        grads = kwargs.get("grads", {})
         for k, v in grads.items():
-            self.writer.add_histogram(f'grads/{k}', v, global_step=self.trainer.global_step)
-        
+            self.writer.add_histogram(
+                f"grads/{k}", v, global_step=self.trainer.global_step
+            )
+
     def on_train_end(self, **kwargs):
         if self.hparams is not None:
             if self.metrics is None:
                 metrics = self.metrics.valid.best
             else:
-                metrics = {k:self.trainer.metrics[k].best for k in self.metrics}
+                metrics = {
+                    k: self.trainer.metrics[k].best for k in self.metrics
+                }
             self.writer.add_hparams(self.hparams, metrics)
         self.writer.close()

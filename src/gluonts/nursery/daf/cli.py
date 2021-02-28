@@ -8,6 +8,7 @@ __all__ = [
     "NestedArgumentParser",
 ]
 
+
 class NestedNamespace(argparse.Namespace):
     DELIMITER = "."
 
@@ -15,7 +16,7 @@ class NestedNamespace(argparse.Namespace):
         if self.DELIMITER in name:
             parent, name = name.split(self.DELIMITER, maxsplit=1)
             if len(parent) == 0 or len(name) == 0:
-                raise ValueError(f'Invalid attribute name {name}')
+                raise ValueError(f"Invalid attribute name {name}")
             if not hasattr(self, parent):
                 super().__setattr__(parent, NestedNamespace())
             setattr(getattr(self, parent), name, value)
@@ -35,22 +36,23 @@ class NestedArgumentGroup(argparse._ArgumentGroup):
     def add_argument(self, *args, **kwargs):
         group = self.title
         if group:
-            dest = kwargs.pop('dest', None)
+            dest = kwargs.pop("dest", None)
             if dest:
-                kwargs['dest'] = f"{group}.{dest}"
+                kwargs["dest"] = f"{group}.{dest}"
             elif args:
                 args = list(args)
                 for i, arg in enumerate(args):
-                    if arg.startswith(self.prefix_chars*2):
-                        kwargs['dest'] = f"{group}.{arg.lstrip(self.prefix_chars)}"
+                    if arg.startswith(self.prefix_chars * 2):
+                        kwargs[
+                            "dest"
+                        ] = f"{group}.{arg.lstrip(self.prefix_chars)}"
                         break
                     elif not arg.startswith(self.prefix_chars):
                         args[i] = f"{group}.{arg}"
                         break
         super().add_argument(*args, **kwargs)
-     
 
-            
+
 class NestedArgumentParser(argparse.ArgumentParser):
     def parse_known_args(self, args=None, namespace=None) -> NestedNamespace:
         if namespace is None:

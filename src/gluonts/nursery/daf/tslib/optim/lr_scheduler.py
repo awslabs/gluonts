@@ -18,13 +18,18 @@ class InverseSquareRootScheduler(lr_scheduler._LRScheduler):
       decay_factor = args.lr * sqrt(args.warmup_updates)
       lr = decay_factor / sqrt(update_num)
     """
-    def __init__(self, 
-            optimizer: optim.Optimizer,
-            warmup_steps: int,
-            init_lr: float = 1e-7,
-            last_epoch: int = -1):
+
+    def __init__(
+        self,
+        optimizer: optim.Optimizer,
+        warmup_steps: int,
+        init_lr: float = 1e-7,
+        last_epoch: int = -1,
+    ):
         if warmup_steps < 0:
-            raise ValueError(f'warmup steps should be nonnegative, but is set as {warmup_steps}')
+            raise ValueError(
+                f"warmup steps should be nonnegative, but is set as {warmup_steps}"
+            )
         self.warmup_steps = float(warmup_steps)
         self.init_lr = init_lr
         self.decay_factor = max(1, self.warmup_steps ** 0.5)
@@ -32,9 +37,14 @@ class InverseSquareRootScheduler(lr_scheduler._LRScheduler):
 
     def get_lr(self):
         if self.last_epoch < self.warmup_steps:
-            return [max(self.init_lr, base_lr*self.last_epoch/self.warmup_steps) for base_lr in self.base_lrs]
+            return [
+                max(
+                    self.init_lr, base_lr * self.last_epoch / self.warmup_steps
+                )
+                for base_lr in self.base_lrs
+            ]
         else:
-            lr_factor = self.decay_factor * (self.last_epoch+1)**-0.5
+            lr_factor = self.decay_factor * (self.last_epoch + 1) ** -0.5
             return [base_lr * lr_factor for base_lr in self.base_lrs]
 
 
@@ -50,21 +60,30 @@ class ExponentialWithWarmupScheduler(lr_scheduler.ExponentialLR):
         last_epoch (int): The index of last epoch. Default: -1.
     """
 
-    def __init__(self, 
-            optimizer: optim.Optimizer,
-            gamma: float,
-            warmup_steps: int, 
-            init_lr: float = 1e-7,
-            last_epoch: int = -1):
+    def __init__(
+        self,
+        optimizer: optim.Optimizer,
+        gamma: float,
+        warmup_steps: int,
+        init_lr: float = 1e-7,
+        last_epoch: int = -1,
+    ):
         if warmup_steps < 0:
-            raise ValueError(f'warmup steps should be nonnegative, but is set as {warmup_steps}')
+            raise ValueError(
+                f"warmup steps should be nonnegative, but is set as {warmup_steps}"
+            )
         self.init_lr = init_lr
         self.warmup_steps = warmup_steps
         super().__init__(optimizer, gamma, last_epoch)
 
     def get_lr(self):
         if self.last_epoch < self.warmup_steps:
-            return [max(self.init_lr, base_lr*self.last_epoch/self.warmup_steps) for base_lr in self.base_lrs]
+            return [
+                max(
+                    self.init_lr, base_lr * self.last_epoch / self.warmup_steps
+                )
+                for base_lr in self.base_lrs
+            ]
         else:
             lr_factor = self.gamma ** (self.last_epoch - self.warmup_steps)
             return [base_lr * lr_factor for base_lr in self.base_lrs]

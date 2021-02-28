@@ -6,10 +6,13 @@ from collections import OrderedDict
 
 from .meters import Meter
 
+
 class MeterDict(object):
-    def __init__(self, 
-            meters: Optional[Dict[str, Meter]] = None,
-            meterdicts: Optional[Dict[str, MeterDict]] = None) -> None:
+    def __init__(
+        self,
+        meters: Optional[Dict[str, Meter]] = None,
+        meterdicts: Optional[Dict[str, MeterDict]] = None,
+    ) -> None:
         self._meters = OrderedDict()
         self._meterdicts = OrderedDict()
         if meters is not None:
@@ -20,22 +23,26 @@ class MeterDict(object):
                 self.register_meterdict(name, meterdict)
 
     def register_meter(self, name: str, meter: Meter) -> None:
-        if '_meters' not in self.__dict__:
-            raise AttributeError("cannot assign meter before MeterDict.__init__() call")
-        elif '/' in name:
+        if "_meters" not in self.__dict__:
+            raise AttributeError(
+                "cannot assign meter before MeterDict.__init__() call"
+            )
+        elif "/" in name:
             raise KeyError("meter name cannot contain '/'")
-        elif name == '':
+        elif name == "":
             raise KeyError("meter name cannot be empty")
         elif hasattr(self, name) and name not in self._meters:
             raise KeyError(f"attribute {name} already exists")
         self._meters[name] = meter
 
     def register_meterdict(self, name: str, meterdict: MeterDict) -> None:
-        if '_meterdicts' not in self.__dict__:
-            raise AttributeError("cannot assign meterdict before MeterDict.__init__() call")
-        elif '/' in name:
+        if "_meterdicts" not in self.__dict__:
+            raise AttributeError(
+                "cannot assign meterdict before MeterDict.__init__() call"
+            )
+        elif "/" in name:
             raise KeyError("meterdict name cannot contain '/'")
-        elif name == '':
+        elif name == "":
             raise KeyError("meterdict name cannot be empty")
         elif hasattr(self, name) and name not in self._meters:
             raise KeyError(f"attribute {name} already exists")
@@ -58,12 +65,12 @@ class MeterDict(object):
             super(MeterDict, self).__setattr__(name, value)
 
     def __getattr__(self, name: str):
-        if '_meters' in self.__dict__:
-            _meters = self.__dict__['_meters']
+        if "_meters" in self.__dict__:
+            _meters = self.__dict__["_meters"]
             if name in _meters:
                 return _meters[name]
-        if '_meterdicts' in self.__dict__:
-            _meterdicts = self.__dict__['_meterdicts']
+        if "_meterdicts" in self.__dict__:
+            _meterdicts = self.__dict__["_meterdicts"]
             if name in _meterdicts:
                 return _meterdicts[name]
         raise AttributeError(f"{type(self).__name__} has no attribute {name}")
@@ -77,7 +84,7 @@ class MeterDict(object):
             object.__delattr__(name)
 
     def __setitem__(self, name: str, value):
-        names = name.split('/', 1)
+        names = name.split("/", 1)
         if len(names) > 1:
             member = getattr(self, names[0])
             member[names[1]] = value
@@ -85,7 +92,7 @@ class MeterDict(object):
             setattr(self, names[0], value)
 
     def __getitem__(self, name: str):
-        names = name.split('/', 1)
+        names = name.split("/", 1)
         item = getattr(self, names[0])
         if len(names) > 1:
             return item[names[1]]
@@ -93,7 +100,7 @@ class MeterDict(object):
             return item
 
     def __contains__(self, name: str):
-        names = name.split('/', 1)
+        names = name.split("/", 1)
         if hasattr(self, names[0]):
             if len(names) > 1:
                 return names[1] in getattr(self, names[0])
@@ -101,33 +108,35 @@ class MeterDict(object):
                 return True
         else:
             return False
-            
 
-    def get(self, name: str, default = None):
+    def get(self, name: str, default=None):
         if name in self:
             return self[name]
         else:
             return default
-        
-    def _named_dicts(self, memo: Optional[set] = None, prefix: str = ''):
+
+    def _named_dicts(self, memo: Optional[set] = None, prefix: str = ""):
         if memo is None:
             memo = set()
         if self not in memo:
             memo.add(self)
             yield prefix, self
-            if len(prefix) > 0: prefix += '/'
+            if len(prefix) > 0:
+                prefix += "/"
             for name, meterdict in self._meterdicts.items():
-                for m in meterdict._named_dicts(memo, prefix+name):
+                for m in meterdict._named_dicts(memo, prefix + name):
                     yield m
 
-    def _named_meters(self, prefix: str = ''):
+    def _named_meters(self, prefix: str = ""):
         memo = set()
         for name_prefix, meterdict in self._named_dicts(prefix=prefix):
             for name, meter in meterdict._meters.items():
                 if meter in memo:
                     continue
                 memo.add(meter)
-                name = name_prefix + ('/' if len(name_prefix)>0 else '') + name
+                name = (
+                    name_prefix + ("/" if len(name_prefix) > 0 else "") + name
+                )
                 yield name, meter
 
     def restart(self):
@@ -143,7 +152,9 @@ class MeterDict(object):
         return {name: meter.best for name, meter in self._named_meters()}
 
     def state_dict(self) -> Dict:
-        return {name: meter.state_dict() for name, meter in self._named_meters()}
+        return {
+            name: meter.state_dict() for name, meter in self._named_meters()
+        }
 
     def load_state_dict(self, state_dict: Dict) -> None:
         missing_keys = []
@@ -155,15 +166,25 @@ class MeterDict(object):
                 missing_keys.append(name)
         unexpected_keys = list(state_dict.keys())
         if len(missing_keys) > 0:
-            warnings.warn(f'missing keys in state_dict: {missing_keys}')
+            warnings.warn(f"missing keys in state_dict: {missing_keys}")
         if len(unexpected_keys) > 0:
-            warnings.warn(f'unexpected keys in state_dict: {unexpected_keys}')            
-            
+            warnings.warn(f"unexpected keys in state_dict: {unexpected_keys}")
+
     def __repr__(self) -> str:
         def _add_spaces(str_, n_spaces=4):
-            return '\n'.join([(' '*n_spaces)+line for line in str_.split('\n')])
-        main_str = '\n'.join([f"{name}: {repr(meter)}" for name, meter in self._meters.items()])
-        child_str = '\n'.join([f"{name}:\n{_add_spaces(repr(meterdict))}" for name, meterdict in self._meterdicts.items()])
+            return "\n".join(
+                [(" " * n_spaces) + line for line in str_.split("\n")]
+            )
+
+        main_str = "\n".join(
+            [f"{name}: {repr(meter)}" for name, meter in self._meters.items()]
+        )
+        child_str = "\n".join(
+            [
+                f"{name}:\n{_add_spaces(repr(meterdict))}"
+                for name, meterdict in self._meterdicts.items()
+            ]
+        )
         if child_str:
-            main_str = '\n'.join([main_str, child_str])
+            main_str = "\n".join([main_str, child_str])
         return main_str

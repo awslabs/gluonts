@@ -17,11 +17,10 @@ from tslib.engine.callback import *
 from tslib.metrics import (
     NumericalAverageMeter,
     BatchAverageMeter,
-    MeanDeviationMeter, 
-    MeterDict, 
+    MeanDeviationMeter,
+    MeterDict,
 )
 from ..estimator import AttentionEstimator
-
 
 
 class AttentionTrainer(Trainer):
@@ -29,12 +28,10 @@ class AttentionTrainer(Trainer):
         for batch, data in enumerate(self.train_loader):
             self.callbacks.on_batch_begin(batch)
             self._train(*data)
-            self.callbacks.on_batch_end(
-                batch,
-            )
+            self.callbacks.on_batch_end(batch,)
             if self._signal_break:
                 break
-    
+
     def _train(self, *data):
         loss = self.model(*data)
         loss.mean().backward()
@@ -42,78 +39,108 @@ class AttentionTrainer(Trainer):
         self.metrics.train.loss.update(loss)
         self.metrics.train.bc_loss.update(self.model.bc_loss)
         self.metrics.train.fc_loss.update(self.model.fc_loss)
-        
+
     def _validate(self, *data):
         _ = self.model(*data)
         self.metrics.valid.bc_loss.update(self.model.bc_loss)
         self.metrics.valid.fc_loss.update(self.model.fc_loss)
-        self.metrics.valid.fc_ND.update(self.model.fc_loss, self.model.denominator)
+        self.metrics.valid.fc_ND.update(
+            self.model.fc_loss, self.model.denominator
+        )
 
     @classmethod
-    def from_configs(cls,
-                     dataset: MetaDataset,
-                     model: AttentionEstimator,
-                     log_dir: Union[Path, str],
-                     cuda_device: int,
-                     n_epochs: int,
-                     nb_epoch: Optional[int] = None,
-                     batch_size: Union[int, Tuple[int,int]] = 100,
-                     max_grad_norm: float = 1e0,
-                     lr: float = 1e-3,
-                     betas: Tuple[float, float] = (0.9, 0.999),
-                     weight_decay: float = 0.0,
-                     amsgrad: bool = False,
-                     debug: bool = False,
-                     **kwargs,
+    def from_configs(
+        cls,
+        dataset: MetaDataset,
+        model: AttentionEstimator,
+        log_dir: Union[Path, str],
+        cuda_device: int,
+        n_epochs: int,
+        nb_epoch: Optional[int] = None,
+        batch_size: Union[int, Tuple[int, int]] = 100,
+        max_grad_norm: float = 1e0,
+        lr: float = 1e-3,
+        betas: Tuple[float, float] = (0.9, 0.999),
+        weight_decay: float = 0.0,
+        amsgrad: bool = False,
+        debug: bool = False,
+        **kwargs,
     ):
         optimizer = partial(
-            AdamW, 
+            AdamW,
             lr=lr,
             betas=betas,
             weight_decay=weight_decay,
             amsgrad=amsgrad,
         )
-        
-        meters = MeterDict(meterdicts={
-            'train': MeterDict(meters=dict(
-                loss=BatchAverageMeter(),
-                grad_norm=NumericalAverageMeter(),
-                fc_loss=BatchAverageMeter(),
-                bc_loss=BatchAverageMeter(),
-            )),
-            'valid': MeterDict(meters=dict(
-                fc_loss=BatchAverageMeter(),
-                bc_loss=BatchAverageMeter(),
-                fc_ND=MeanDeviationMeter(),
-            )),
-            'test': MeterDict(meters=dict(
-                fc_loss=BatchAverageMeter(),
-                bc_loss=BatchAverageMeter(),
-                fc_ND=MeanDeviationMeter(),
-            )),
-        })
-        
+
+        meters = MeterDict(
+            meterdicts={
+                "train": MeterDict(
+                    meters=dict(
+                        loss=BatchAverageMeter(),
+                        grad_norm=NumericalAverageMeter(),
+                        fc_loss=BatchAverageMeter(),
+                        bc_loss=BatchAverageMeter(),
+                    )
+                ),
+                "valid": MeterDict(
+                    meters=dict(
+                        fc_loss=BatchAverageMeter(),
+                        bc_loss=BatchAverageMeter(),
+                        fc_ND=MeanDeviationMeter(),
+                    )
+                ),
+                "test": MeterDict(
+                    meters=dict(
+                        fc_loss=BatchAverageMeter(),
+                        bc_loss=BatchAverageMeter(),
+                        fc_ND=MeanDeviationMeter(),
+                    )
+                ),
+            }
+        )
+
         callbacks = [
             Optimization(max_grad_norm=max_grad_norm),
             ProgressBar(
-                batch_monitors=['train/loss', 'train/grad_norm'],
-                epoch_monitors=['train/fc_loss', 'valid/fc_loss', 'valid/fc_ND'],
+                batch_monitors=["train/loss", "train/grad_norm"],
+                epoch_monitors=[
+                    "train/fc_loss",
+                    "valid/fc_loss",
+                    "valid/fc_ND",
+                ],
             ),
-            Checkpoint(monitor='valid/fc_loss'),
+            Checkpoint(monitor="valid/fc_loss"),
             Tensorboard(
-                batch_monitors=['train/loss', 'train/bc_loss', 'train/fc_loss'],
-                epoch_monitors=['valid/bc_loss', 'valid/fc_loss', 'valid/fc_ND'],
-            )
+                batch_monitors=[
+                    "train/loss",
+                    "train/bc_loss",
+                    "train/fc_loss",
+                ],
+                epoch_monitors=[
+                    "valid/bc_loss",
+                    "valid/fc_loss",
+                    "valid/fc_ND",
+                ],
+            ),
         ]
-        
+
         return cls(
-            dataset, model, optimizer, None,
-            metrics=meters, callbacks=callbacks,
-            log_dir=log_dir, n_epochs=n_epochs, nb_epoch=nb_epoch,
-            batch_size=batch_size, cuda_device=cuda_device, debug=debug,
+            dataset,
+            model,
+            optimizer,
+            None,
+            metrics=meters,
+            callbacks=callbacks,
+            log_dir=log_dir,
+            n_epochs=n_epochs,
+            nb_epoch=nb_epoch,
+            batch_size=batch_size,
+            cuda_device=cuda_device,
+            debug=debug,
         )
 
-        
 
 class AttentionEvaluator(Evaluator):
     def _test(self, *data):
@@ -122,20 +149,21 @@ class AttentionEvaluator(Evaluator):
         fc_loss = self.model.fc_loss
         self.metrics.test.bc_loss.update(self.model.bc_loss)
         self.metrics.test.fc_loss.update(self.model.fc_loss)
-        self.metrics.test.fc_ND.update(self.model.fc_loss, self.model.denominator)
-    
+        self.metrics.test.fc_ND.update(
+            self.model.fc_loss, self.model.denominator
+        )
+
     def _predict(self, *data) -> np.ndarray:
         _ = self.model(*data)
         truth = data[0].cpu().numpy()
-        preds = self.model.forecast[...,0].cpu().numpy()
-        dummy = np.zeros(truth.shape[:-1]+preds.shape[-1:]) + np.nan
-        preds = np.concatenate([dummy[:,:-preds.shape[1]], preds], axis=1)
+        preds = self.model.forecast[..., 0].cpu().numpy()
+        dummy = np.zeros(truth.shape[:-1] + preds.shape[-1:]) + np.nan
+        preds = np.concatenate([dummy[:, : -preds.shape[1]], preds], axis=1)
         curve = np.concatenate([truth, preds], axis=-1)
         return curve
-    
+
     @classmethod
-    def from_trainer(cls,
-                     trainer: AttentionTrainer,
-                     model_tag: str = 'best',
+    def from_trainer(
+        cls, trainer: AttentionTrainer, model_tag: str = "best",
     ):
         return super(AttentionEvaluator, cls).from_trainer(trainer, model_tag)
