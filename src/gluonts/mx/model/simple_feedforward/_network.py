@@ -115,8 +115,7 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             An array containing the scale of the distribution.
         """
         scaled_target, target_scale = self.scaler(
-            past_target,
-            F.ones_like(past_target),
+            past_target, F.ones_like(past_target),
         )
         mlp_outputs = self.mlp(scaled_target)
         distr_args = self.distr_args_proj(mlp_outputs)

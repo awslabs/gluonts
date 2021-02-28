@@ -36,20 +36,14 @@ def allclose(x, y, rtol=RTOL, atol=ATOL):
     [
         (
             partial(
-                iresnet,
-                num_blocks=3,
-                use_caching=True,
-                num_hidden_layers=3,
+                iresnet, num_blocks=3, use_caching=True, num_hidden_layers=3,
             ),
             (3,),
             (3,),
         ),
         (
             partial(
-                iresnet,
-                num_blocks=2,
-                use_caching=False,
-                num_hidden_layers=2,
+                iresnet, num_blocks=2, use_caching=False, num_hidden_layers=2,
             ),
             (4,),
             (5,),
@@ -57,9 +51,7 @@ def allclose(x, y, rtol=RTOL, atol=ATOL):
     ],
 )
 def test_flow_invertibility(
-    bijection_func,
-    batch_shape,
-    event_shape,
+    bijection_func, batch_shape, event_shape,
 ):
     input_shape = batch_shape + event_shape
     bijection = bijection_func(event_shape=event_shape)
@@ -80,20 +72,14 @@ def test_flow_invertibility(
     [
         (
             partial(
-                iresnet,
-                num_blocks=3,
-                use_caching=True,
-                num_hidden_layers=3,
+                iresnet, num_blocks=3, use_caching=True, num_hidden_layers=3,
             ),
             (3,),
             (3,),
         ),
         (
             partial(
-                iresnet,
-                num_blocks=2,
-                use_caching=False,
-                num_hidden_layers=2,
+                iresnet, num_blocks=2, use_caching=False, num_hidden_layers=2,
             ),
             (4,),
             (5,),
@@ -101,9 +87,7 @@ def test_flow_invertibility(
     ],
 )
 def test_flow_shapes(
-    bijection_func,
-    batch_shape,
-    event_shape,
+    bijection_func, batch_shape, event_shape,
 ):
     bijection = bijection_func(event_shape=event_shape)
     bijection.initialize()
@@ -130,20 +114,14 @@ def jacobian_autograd(x, y):
     [
         (
             partial(
-                iresnet,
-                num_blocks=3,
-                use_caching=True,
-                num_hidden_layers=3,
+                iresnet, num_blocks=3, use_caching=True, num_hidden_layers=3,
             ),
             (300,),
             (3,),
         ),
         (
             partial(
-                iresnet,
-                num_blocks=2,
-                use_caching=True,
-                num_hidden_layers=2,
+                iresnet, num_blocks=2, use_caching=True, num_hidden_layers=2,
             ),
             (4,),
             (5,),

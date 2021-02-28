@@ -197,8 +197,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             transforms.extend(
                 [
                     SetField(
-                        output_field=FieldName.FEAT_STATIC_CAT,
-                        value=[0.0],
+                        output_field=FieldName.FEAT_STATIC_CAT, value=[0.0],
                     ),
                     AsNumpyArray(
                         field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
@@ -218,8 +217,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             transforms.extend(
                 [
                     SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL,
-                        value=[0.0],
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0],
                     ),
                     AsNumpyArray(
                         field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
@@ -238,12 +236,10 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             transforms.extend(
                 [
                     SetField(
-                        output_field=FieldName.FEAT_DYNAMIC_CAT,
-                        value=[[0.0]],
+                        output_field=FieldName.FEAT_DYNAMIC_CAT, value=[[0.0]],
                     ),
                     AsNumpyArray(
-                        field=FieldName.FEAT_DYNAMIC_CAT,
-                        expected_ndim=2,
+                        field=FieldName.FEAT_DYNAMIC_CAT, expected_ndim=2,
                     ),
                     BroadcastTo(
                         field=FieldName.FEAT_DYNAMIC_CAT,
@@ -331,9 +327,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         )
 
     def create_training_data_loader(
-        self,
-        data: Dataset,
-        **kwargs,
+        self, data: Dataset, **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(
             TemporalFusionTransformerTrainingNetwork
@@ -348,9 +342,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         )
 
     def create_validation_data_loader(
-        self,
-        data: Dataset,
-        **kwargs,
+        self, data: Dataset, **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(
             TemporalFusionTransformerTrainingNetwork

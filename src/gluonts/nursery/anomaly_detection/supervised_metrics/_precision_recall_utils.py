@@ -28,8 +28,7 @@ class PrecisionRecallAndWeights(NamedTuple):
 
 
 def singleton_precision_recall(
-    true_labels,
-    pred_labels,
+    true_labels, pred_labels,
 ) -> Tuple[float, float]:
     """
 

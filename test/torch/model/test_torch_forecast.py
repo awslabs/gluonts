@@ -88,8 +88,7 @@ def test_DistributionForecast():
         (
             DistributionForecast(
                 Uniform(
-                    low=torch.zeros(size=(5, 2)),
-                    high=torch.ones(size=(5, 2)),
+                    low=torch.zeros(size=(5, 2)), high=torch.ones(size=(5, 2)),
                 ),
                 start_date=pd.Period("2020-01-01 00:00:00", "W"),
             ),

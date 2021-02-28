@@ -57,6 +57,10 @@ def _orjson():
         if nl:
             fp.write(b"\n")
 
+    return (
+        "orjson",
+        {"loads": orjson.loads, "load": load, "dumps": dumps, "dump": dump,},
+    )
     return {
         "variant": "orjson",
         "load": load,
