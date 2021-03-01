@@ -2,7 +2,7 @@ from gluonts.model.simple_feedforward._estimator import  SimpleFeedForwardEstima
 from gluonts.model.seq2seq._mq_dnn_estimator import MQCNNEstimator
 import autogluon as ag
 from dataset import dataset
-from gluonts.model.AutoEstimator.automodel import AutoEstimator
+from gluonts.model.AutoEstimator._estimator import AutoEstimator
 
 from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 
