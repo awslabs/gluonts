@@ -17,7 +17,7 @@ from gluonts.model.simple_feedforward._estimator import  SimpleFeedForwardEstima
 from gluonts.mx.trainer import Trainer
 
 
-from eval import evaluation
+from .eval import evaluation
 
 from functools import partial
 from gluonts.mx.batchify import batchify, as_in_context
