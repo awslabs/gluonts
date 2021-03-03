@@ -11,29 +11,32 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 
-# First-party imports
+from gluonts.core.serde import dump_json, load_json
+
 from gluonts.mx.distribution import (
-    Uniform,
-    StudentT,
-    NegativeBinomial,
-    Laplace,
-    Gaussian,
-    Gamma,
     Beta,
+    Binned,
+    Categorical,
+    Gamma,
+    Gaussian,
+    GenPareto,
+    Laplace,
     MultivariateGaussian,
+    NegativeBinomial,
+    OneInflatedBeta,
     PiecewiseLinear,
     Poisson,
-    Binned,
+    StudentT,
     TransformedDistribution,
-    Categorical,
+    Uniform,
+    ZeroAndOneInflatedBeta,
+    ZeroInflatedBeta,
+    ZeroInflatedPoissonOutput,
 )
-
-from gluonts.core.serde import load_json, dump_json
 
 test_cases = [
     (
@@ -46,6 +49,13 @@ test_cases = [
     (
         Gamma,
         {"alpha": mx.nd.array([2.5, 7.0]), "beta": mx.nd.array([1.5, 2.1])},
+    ),
+    (
+        GenPareto,
+        {
+            "xi": mx.nd.array([1 / 3.0, 1 / 4.0]),
+            "beta": mx.nd.array([1.0, 2.0]),
+        },
     ),
     (
         Beta,
@@ -112,6 +122,31 @@ test_cases = [
         },
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 1.0])}),
+    (
+        ZeroInflatedBeta,
+        {
+            "alpha": mx.nd.array([0.175]),
+            "beta": mx.nd.array([0.6]),
+            "zero_probability": mx.nd.array([0.3]),
+        },
+    ),
+    (
+        OneInflatedBeta,
+        {
+            "alpha": mx.nd.array([0.175]),
+            "beta": mx.nd.array([0.6]),
+            "one_probability": mx.nd.array([0.3]),
+        },
+    ),
+    (
+        ZeroAndOneInflatedBeta,
+        {
+            "alpha": mx.nd.array([0.175]),
+            "beta": mx.nd.array([0.6]),
+            "zero_probability": mx.nd.array([0.3]),
+            "one_probability": mx.nd.array([0.3]),
+        },
+    ),
 ]
 
 test_output = {
@@ -129,6 +164,11 @@ test_output = {
         "mean": mx.nd.array([1.6666666, 3.3333333]),
         "stddev": mx.nd.array([1.05409255, 1.25988158]),
         "variance": mx.nd.array([1.1111111, 1.58730159]),
+    },
+    "GenPareto": {
+        "mean": mx.nd.array([1.5, 2.666666666666666]),
+        "stddev": mx.nd.array([2.5980762, 3.7712361663282534]),
+        "variance": mx.nd.array([6.75, 14.222222222222221]),
     },
     "Laplace": {
         "mean": mx.nd.array([1000.0, -1000.0]),
@@ -165,6 +205,53 @@ test_output = {
         "stddev": mx.nd.array([31.622776, 1.0]),
         "variance": mx.nd.array([1000.0, 1.0]),
     },
+    "ZeroInflatedBeta": {
+        "mean": mx.nd.array([0.15806451612903227]),
+        "stddev": mx.nd.array([0.2822230782496945]),
+        "variance": mx.nd.array([0.07964986589673317]),
+    },
+    "OneInflatedBeta": {
+        "mean": mx.nd.array([0.45806451612903226]),
+        "stddev": mx.nd.array([0.44137416804715]),
+        "variance": mx.nd.array([0.19481115621931383]),
+    },
+    "ZeroAndOneInflatedBeta": {
+        "mean": mx.nd.array([0.3903225806451613]),
+        "stddev": mx.nd.array([0.45545503304667967]),
+        "variance": mx.nd.array([0.20743928712755205]),
+    },
+}
+
+test_cases_quantile = [
+    (
+        Gaussian,
+        {
+            "mu": mx.nd.array([0.0]),
+            "sigma": mx.nd.array([1.0]),
+        },
+    ),
+    (
+        GenPareto,
+        {
+            "xi": mx.nd.array([1 / 3.0]),
+            "beta": mx.nd.array([1.0]),
+        },
+    ),
+]
+
+test_output_quantile = {
+    "Gaussian": {
+        "x": mx.nd.array([3.0902362]),
+        "cdf": mx.nd.array([0.999]),
+        "level": mx.nd.array([0.999]),
+        "quantile": mx.nd.array([[3.0902362]]),
+    },
+    "GenPareto": {
+        "x": mx.nd.array([26.99999999999998]),
+        "cdf": mx.nd.array([0.999]),
+        "level": mx.nd.array([0.999]),
+        "quantile": mx.nd.array([[26.99999999999998]]),
+    },
 }
 
 # TODO: implement stddev methods for MultivariateGaussian and LowrankMultivariateGaussian
@@ -177,6 +264,9 @@ DISTRIBUTIONS = [
     Uniform,
     Binned,
     Poisson,
+    ZeroInflatedBeta,
+    OneInflatedBeta,
+    ZeroAndOneInflatedBeta,
 ]
 
 
@@ -223,5 +313,33 @@ def test_variances(distr_class, params, serialize_fn) -> None:
     assert np.allclose(
         variances.asnumpy(),
         test_output[distr_name]["variance"].asnumpy(),
+        atol=1e-11,
+    )
+
+
+@pytest.mark.parametrize("distr_class, params", test_cases_quantile)
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_quantile(distr_class, params, serialize_fn) -> None:
+    distr = distr_class(**params)
+    distr = serialize_fn(distr)
+    distr_name = distr.__class__.__name__
+    quantile = distr.quantile(test_output_quantile[distr_name]["level"])
+    assert np.allclose(
+        quantile.asnumpy(),
+        test_output_quantile[distr_name]["quantile"].asnumpy(),
+        atol=1e-11,
+    )
+
+
+@pytest.mark.parametrize("distr_class, params", test_cases_quantile)
+@pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+def test_cdf(distr_class, params, serialize_fn) -> None:
+    distr = distr_class(**params)
+    distr = serialize_fn(distr)
+    distr_name = distr.__class__.__name__
+    cdf = distr.cdf(test_output_quantile[distr_name]["x"])
+    assert np.allclose(
+        cdf.asnumpy(),
+        test_output_quantile[distr_name]["cdf"].asnumpy(),
         atol=1e-11,
     )

@@ -11,57 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# First-party imports
-from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.common import ListDataset
+
+from gluonts.dataset.field_names import FieldName
 from gluonts.transform import AddAggregateLags
-
-
-expected_lags_calendar = {
-    "prediction_length_2": {
-        "train": np.array(
-            [
-                [0, 0, 0, 0, 0, 1, 1, 2, 2, 3],
-                [0, 0, 0, 0, 0, 0, 0, 1, 1, 2],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            ]
-        ),
-        "test": np.array(
-            [
-                [0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4.5],
-                [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            ]
-        ),
-    },
-    "prediction_length_1": {
-        "train": np.array(
-            [
-                [0, 0, 0, 1, 1, 2, 2, 3, 3, 4.5],
-                [0, 0, 0, 0, 0, 1, 1, 2, 2, 3],
-                [0, 0, 0, 0, 0, 0, 0, 1, 1, 2],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            ]
-        ),
-        "test": np.array(
-            [
-                [0, 0, 0, 1, 1, 2, 2, 3, 3, 4.5, 4.5],
-                [0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3],
-                [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            ]
-        ),
-    },
-}
 
 expected_lags_rolling = {
     "prediction_length_2": {
@@ -106,10 +63,6 @@ expected_lags_rolling = {
     },
 }
 
-valid_lags_calendar = {
-    "prediction_length_2": [2, 3, 4, 6],
-    "prediction_length_1": [1, 2, 3, 4, 6],
-}
 
 valid_lags_rolling = {
     "prediction_length_2": [1, 2, 3, 4, 6],
@@ -118,8 +71,7 @@ valid_lags_rolling = {
 
 
 @pytest.mark.parametrize("pred_length", [2, 1])
-@pytest.mark.parametrize("rolling_lags", [True, False])
-def test_agg_lags(pred_length, rolling_lags):
+def test_agg_lags(pred_length):
     # create dummy dataset
     target = np.array([1, 1, 1, 2, 2, 3, 3, 4, 5, 6])
     start = pd.Timestamp("01-01-2019 01:00:00", freq="1H")
@@ -138,7 +90,6 @@ def test_agg_lags(pred_length, rolling_lags):
         base_freq=freq,
         agg_freq="2H",
         agg_lags=lags_2H,
-        rolling_agg=rolling_lags,
     )
 
     assert add_agg_lags.ratio == 2
@@ -146,35 +97,17 @@ def test_agg_lags(pred_length, rolling_lags):
     train_entry = next(add_agg_lags(iter(ds), is_train=True))
     test_entry = next(add_agg_lags(iter(ds), is_train=False))
 
-    if rolling_lags:
-        assert (
-            add_agg_lags.valid_lags
-            == valid_lags_rolling[f"prediction_length_{pred_length}"]
-        )
+    assert (
+        add_agg_lags.valid_lags
+        == valid_lags_rolling[f"prediction_length_{pred_length}"]
+    )
 
-        assert np.allclose(
-            train_entry["lags_2H"],
-            expected_lags_rolling[f"prediction_length_{pred_length}"]["train"],
-        )
+    assert np.allclose(
+        train_entry["lags_2H"],
+        expected_lags_rolling[f"prediction_length_{pred_length}"]["train"],
+    )
 
-        assert np.allclose(
-            test_entry["lags_2H"],
-            expected_lags_rolling[f"prediction_length_{pred_length}"]["test"],
-        )
-    else:
-        assert (
-            add_agg_lags.valid_lags
-            == valid_lags_calendar[f"prediction_length_{pred_length}"]
-        )
-
-        assert np.allclose(
-            train_entry["lags_2H"],
-            expected_lags_calendar[f"prediction_length_{pred_length}"][
-                "train"
-            ],
-        )
-
-        assert np.allclose(
-            test_entry["lags_2H"],
-            expected_lags_calendar[f"prediction_length_{pred_length}"]["test"],
-        )
+    assert np.allclose(
+        test_entry["lags_2H"],
+        expected_lags_rolling[f"prediction_length_{pred_length}"]["test"],
+    )

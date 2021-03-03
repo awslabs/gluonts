@@ -11,15 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple, Union
 
-# Third-party imports
 from mxnet import gluon
 from mxnet.gluon import nn
 
-# First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
+
+
+def _get_int(a: Union[int, List[int], Tuple[int]]) -> int:
+    if isinstance(a, (list, tuple)):
+        assert len(a) == 1
+        return a[0]
+    return a
 
 
 class CausalConv1D(gluon.HybridBlock):
@@ -56,20 +60,20 @@ class CausalConv1D(gluon.HybridBlock):
     def __init__(
         self,
         channels: int,
-        kernel_size: int,
-        dilation: int = 1,
+        kernel_size: Union[int, Tuple[int], List[int]],
+        dilation: Union[int, Tuple[int], List[int]] = 1,
         activation: Optional[str] = None,
         **kwargs,
     ):
         super(CausalConv1D, self).__init__(**kwargs)
 
-        self.dilation = dilation
-        self.kernel_size = kernel_size
-        self.padding = dilation * (kernel_size - 1)
+        self.dilation = _get_int(dilation)
+        self.kernel_size = _get_int(kernel_size)
+        self.padding = self.dilation * (self.kernel_size - 1)
         self.conv1d = nn.Conv1D(
             channels=channels,
-            kernel_size=kernel_size,
-            dilation=dilation,
+            kernel_size=self.kernel_size,
+            dilation=self.dilation,
             padding=self.padding,
             activation=activation,
             **kwargs,

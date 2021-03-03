@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import unittest
 from typing import cast
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import (
@@ -48,6 +45,7 @@ def make_time_series(
     feat_static_real=fsr,
     num_feat_dynamic_cat=1,
     num_feat_dynamic_real=1,
+    num_past_feat_dynamic_real=1,
 ) -> DataEntry:
     feat_dynamic_cat = (
         make_dummy_dynamic_feat(target, num_feat_dynamic_cat).astype("int64")
@@ -59,6 +57,13 @@ def make_time_series(
         if num_feat_dynamic_real > 0
         else None
     )
+    past_feat_dynamic_real = (
+        make_dummy_dynamic_feat(target, num_past_feat_dynamic_real).astype(
+            "float"
+        )
+        if num_past_feat_dynamic_real > 0
+        else None
+    )
     data = {
         "start": start,
         "target": target,
@@ -66,6 +71,7 @@ def make_time_series(
         "feat_static_real": feat_static_real,
         "feat_dynamic_cat": feat_dynamic_cat,
         "feat_dynamic_real": feat_dynamic_real,
+        "past_feat_dynamic_real": past_feat_dynamic_real,
     }
     return data
 
@@ -93,33 +99,43 @@ def ts(
 class DatasetStatisticsTest(unittest.TestCase):
     def test_dataset_statistics(self) -> None:
 
-        n = 2
-        T = 10
+        num_time_series = 3
+        num_time_observations = 10
+        num_feat_dynamic_real = 2
+        num_past_feat_dynamic_real = 3
+        num_feat_dynamic_cat = 2
+        num_missing_values = 0
 
         # use integers to avoid float conversion that can fail comparison
         np.random.seed(0)
-        targets = np.random.randint(0, 10, (n, T))
+        targets = np.random.randint(
+            0, 10, (num_time_series - 1, num_time_observations)
+        )
 
         scale_histogram = ScaleHistogram()
-        for i in range(n):
+        for i in range(num_time_series - 1):
             scale_histogram.add(targets[i, :])
 
         scale_histogram.add([])
 
         expected = DatasetStatistics(
             integer_dataset=True,
-            num_time_series=n + 1,
+            num_time_series=num_time_series,  # includes empty array
             num_time_observations=targets.size,
-            mean_target_length=T * 2 / 3,
+            mean_target_length=num_time_observations
+            * (num_time_series - 1)
+            / num_time_series,
+            max_target_length=num_time_observations,
             min_target=targets.min(),
             mean_target=targets.mean(),
             mean_abs_target=targets.mean(),
             max_target=targets.max(),
             feat_static_real=[{0.1}, {0.2, 0.3}],
             feat_static_cat=[{1}, {2, 3}],
-            num_feat_dynamic_real=2,
-            num_feat_dynamic_cat=2,
-            num_missing_values=0,
+            num_feat_dynamic_real=num_feat_dynamic_real,
+            num_past_feat_dynamic_real=num_past_feat_dynamic_real,
+            num_feat_dynamic_cat=num_feat_dynamic_cat,
+            num_missing_values=num_missing_values,
             scale_histogram=scale_histogram,
         )
 
@@ -131,22 +147,25 @@ class DatasetStatisticsTest(unittest.TestCase):
                     target=targets[0, :],
                     feat_static_cat=[1, 2],
                     feat_static_real=[0.1, 0.2],
-                    num_feat_dynamic_cat=2,
-                    num_feat_dynamic_real=2,
+                    num_feat_dynamic_cat=num_feat_dynamic_cat,
+                    num_feat_dynamic_real=num_feat_dynamic_real,
+                    num_past_feat_dynamic_real=num_past_feat_dynamic_real,
                 ),
                 make_time_series(
                     target=targets[1, :],
                     feat_static_cat=[1, 3],
                     feat_static_real=[0.1, 0.3],
-                    num_feat_dynamic_cat=2,
-                    num_feat_dynamic_real=2,
+                    num_feat_dynamic_cat=num_feat_dynamic_cat,
+                    num_feat_dynamic_real=num_feat_dynamic_real,
+                    num_past_feat_dynamic_real=num_past_feat_dynamic_real,
                 ),
                 make_time_series(
                     target=np.array([]),
                     feat_static_cat=[1, 3],
                     feat_static_real=[0.1, 0.3],
-                    num_feat_dynamic_cat=2,
-                    num_feat_dynamic_real=2,
+                    num_feat_dynamic_cat=num_feat_dynamic_cat,
+                    num_feat_dynamic_real=num_feat_dynamic_real,
+                    num_past_feat_dynamic_real=num_past_feat_dynamic_real,
                 ),
             ],
         )

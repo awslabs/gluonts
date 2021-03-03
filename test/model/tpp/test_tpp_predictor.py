@@ -13,25 +13,23 @@
 
 from typing import Tuple
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pandas as pd
 import pytest
 from mxnet import nd
 
-# First-party imports
-from gluonts.model.common import Tensor
 from gluonts.model.tpp import (
     PointProcessGluonPredictor,
     PointProcessSampleForecast,
 )
+
+from gluonts.mx import Tensor
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
-    ContinuousTimeUniformSampler,
+    ContinuousTimePredictionSampler,
 )
 
-# Relative imports
 from .common import point_process_dataset, point_process_dataset_2
 
 
@@ -63,7 +61,7 @@ class MockTPPPredictionNet(mx.gluon.HybridBlock):
         batch_size = past_target.shape[0]
         assert past_valid_length.shape[0] == batch_size
 
-        target_shape = (batch_size, self.num_parallel_samples, 25)
+        target_shape = (self.num_parallel_samples, batch_size, 25)
         pred_target = nd.stack(
             nd.random.uniform(shape=target_shape),
             nd.random.randint(0, 10, shape=target_shape).astype(np.float32),
@@ -89,7 +87,11 @@ def predictor_factory():
             freq="H",
             ctx=mx.cpu(),
             input_transform=ContinuousTimeInstanceSplitter(
-                1, 5, ContinuousTimeUniformSampler(num_instances=5)
+                1,
+                5,
+                ContinuousTimePredictionSampler(
+                    allow_empty_interval=False, min_past=1
+                ),
             ),
         )
 
@@ -104,7 +106,6 @@ def predictor_factory():
     "dataset_tuple", [(point_process_dataset, 1), (point_process_dataset_2, 3)]
 )
 def test_tpp_pred_dataset_2_shapes_ok(dataset_tuple, predictor_factory):
-
     dataset, ds_length = dataset_tuple
 
     predictor = predictor_factory()

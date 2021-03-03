@@ -41,3 +41,29 @@ mlp <- function(ts, params) {
     model <- nnfor::mlp(ts, hd.auto.type="valid")
     handleForecast(model, params)
 }
+
+handleForecastTheta <- function(forecasts, params) {
+    outputs = list()
+    output_types = params$output_types
+    if ("samples" %in% output_types) {
+        outputs$samples <- lapply(1:params$num_samples, function(n) {forecasts$mean} )
+    }
+    if("quantiles" %in% output_types) {
+        f_matrix <- forecasts$upper
+        outputs$quantiles <- split(f_matrix, col(f_matrix))
+    }
+    if("mean" %in% output_types) {
+        outputs$mean <- forecasts$mean
+    }
+    outputs
+}
+
+thetaf <- function(ts, params) {
+  if("quantiles" %in% params$output_types) {
+        forecasts <- forecast::thetaf(y=ts, h=params$prediction_length, level=unlist(params$levels))
+  } else {
+        forecasts <- forecast::thetaf(y=ts, h=params$prediction_length)
+
+  }
+    handleForecastTheta(forecasts, params)
+}

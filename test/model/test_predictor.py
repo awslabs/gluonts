@@ -11,13 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
-from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.model.predictor import ParallelizedPredictor, Localizer
+from gluonts.evaluation import backtest_metrics
+from gluonts.model.predictor import Localizer, ParallelizedPredictor
 from gluonts.model.trivial.identity import IdentityPredictor
 from gluonts.model.trivial.mean import MeanEstimator
 
@@ -66,5 +64,5 @@ def test_localizer():
 
     local_pred = Localizer(estimator=estimator)
     agg_metrics, _ = backtest_metrics(
-        train_dataset=None, test_dataset=dataset, forecaster=local_pred
+        test_dataset=dataset, predictor=local_pred
     )

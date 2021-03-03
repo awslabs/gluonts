@@ -11,20 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
-# Relative imports
-from .distribution import Distribution, _index_tensor, _sample_multiple, getF
+from .distribution import MAX_SUPPORT_VAL, Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 
@@ -69,6 +65,22 @@ class Binned(Distribution):
     @property
     def F(self):
         return getF(self.bin_log_probs)
+
+    @property
+    def support_min_max(self) -> Tuple[Tensor, Tensor]:
+        F = self.F
+        return (
+            F.broadcast_minimum(
+                F.zeros(self.batch_shape),
+                F.sign(F.min(self.bin_centers, axis=-1)),
+            )
+            * MAX_SUPPORT_VAL,
+            F.broadcast_maximum(
+                F.zeros(self.batch_shape),
+                F.sign(F.max(self.bin_centers, axis=-1)),
+            )
+            * MAX_SUPPORT_VAL,
+        )
 
     @staticmethod
     def _compute_edges(F, bin_centers: Tensor) -> Tensor:

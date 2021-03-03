@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from . import bijection
 from .beta import Beta, BetaOutput
 from .binned import Binned, BinnedOutput
@@ -20,6 +19,7 @@ from .box_cox_transform import (
     InverseBoxCoxTransformOutput,
 )
 from .categorical import Categorical, CategoricalOutput
+from .deterministic import Deterministic, DeterministicOutput
 from .dirichlet import Dirichlet, DirichletOutput
 from .dirichlet_multinomial import (
     DirichletMultinomial,
@@ -29,6 +29,15 @@ from .distribution import Distribution
 from .distribution_output import DistributionOutput
 from .gamma import Gamma, GammaOutput
 from .gaussian import Gaussian, GaussianOutput
+from .genpareto import GenPareto, GenParetoOutput
+from .inflated_beta import (
+    OneInflatedBeta,
+    OneInflatedBetaOutput,
+    ZeroAndOneInflatedBeta,
+    ZeroAndOneInflatedBetaOutput,
+    ZeroInflatedBeta,
+    ZeroInflatedBetaOutput,
+)
 from .laplace import Laplace, LaplaceOutput
 from .logit_normal import LogitNormal, LogitNormalOutput
 from .lowrank_multivariate_gaussian import (
@@ -40,13 +49,19 @@ from .multivariate_gaussian import (
     MultivariateGaussian,
     MultivariateGaussianOutput,
 )
-from .neg_binomial import NegativeBinomial, NegativeBinomialOutput
+from .nan_mixture import NanMixture, NanMixtureOutput
+from .neg_binomial import (
+    NegativeBinomial,
+    NegativeBinomialOutput,
+    ZeroInflatedNegativeBinomialOutput,
+)
 from .piecewise_linear import (
+    FixedKnotsPiecewiseLinearOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
     TransformedPiecewiseLinear,
 )
-from .poisson import Poisson, PoissonOutput
+from .poisson import Poisson, PoissonOutput, ZeroInflatedPoissonOutput
 from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
@@ -61,6 +76,14 @@ __all__ = [
     "Gamma",
     "BetaOutput",
     "Beta",
+    "ZeroAndOneInflatedBeta",
+    "ZeroAndOneInflatedBetaOutput",
+    "ZeroInflatedBeta",
+    "ZeroInflatedBetaOutput",
+    "OneInflatedBeta",
+    "OneInflatedBetaOutput",
+    "GenParetoOutput",
+    "GenPareto",
     "GaussianOutput",
     "Gaussian",
     "LaplaceOutput",
@@ -71,7 +94,10 @@ __all__ = [
     "LowrankMultivariateGaussianOutput",
     "MixtureDistributionOutput",
     "MixtureDistribution",
+    "NanMixture",
+    "NanMixtureOutput",
     "NegativeBinomialOutput",
+    "ZeroInflatedNegativeBinomialOutput",
     "NegativeBinomial",
     "UniformOutput",
     "Uniform",
@@ -81,6 +107,7 @@ __all__ = [
     "PiecewiseLinearOutput",
     "Poisson",
     "PoissonOutput",
+    "ZeroInflatedPoissonOutput",
     "TransformedPiecewiseLinear",
     "TransformedDistribution",
     "TransformedDistributionOutput",
@@ -95,6 +122,8 @@ __all__ = [
     "CategoricalOutput",
     "LogitNormal",
     "LogitNormalOutput",
+    "Deterministic",
+    "DeterministicOutput",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

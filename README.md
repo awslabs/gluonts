@@ -26,8 +26,12 @@ GluonTS requires Python 3.6, and the easiest
 way to install it is via `pip`:
 
 ```bash
-pip install --upgrade mxnet==1.6 gluonts
+pip install --upgrade mxnet~=1.7 gluonts
 ```
+
+## Dockerfiles
+
+Dockerfiles compatible with Amazon Sagemaker can be found in the [examples/dockerfiles](https://github.com/awslabs/gluon-ts/tree/master/examples/dockerfiles) folder.
 
 ## Quick start guide
 
@@ -79,7 +83,7 @@ We also specify some minimal training options.
 
 ```python
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
 predictor = estimator.train(training_data=training_data)
@@ -117,8 +121,8 @@ centered around the median (dark green line).
 The following are good entry-points to understand how to use
 many features of GluonTS:
 
-* [Quick Start Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/basic_forecasting_tutorial/tutorial.md): a quick start guide.
-* [Extended Forecasting Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/extended_forecasting_tutorial/extended_tutorial.md): a detailed tutorial on forecasting.
+* [Quick Start Tutorial](https://gluon-ts.mxnet.io/examples/basic_forecasting_tutorial/tutorial.html#Quick-Start-Tutorial): a quick start guide.
+* [Extended Forecasting Tutorial](https://gluon-ts.mxnet.io/examples/extended_forecasting_tutorial/extended_tutorial.html): a detailed tutorial on forecasting using GluonTS.
 * [evaluate_model.py](https://github.com/awslabs/gluon-ts/tree/master/examples/evaluate_model.py): how to train a model and compute evaluation metrics.
 * [benchmark_m4.py](https://github.com/awslabs/gluon-ts/tree/master/examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
 
@@ -137,7 +141,7 @@ If you wish to contribute to the project, please refer to our
 If you use GluonTS in a scientific publication, we encourage you to add
 the following references to the related papers:
 
-```
+```bibtex
 @article{gluonts_jmlr,
   author  = {Alexander Alexandrov and Konstantinos Benidis and Michael Bohlke-Schneider
     and Valentin Flunkert and Jan Gasthaus and Tim Januschowski and Danielle C. Maddix
@@ -153,7 +157,7 @@ the following references to the related papers:
 }
 ```
 
-```
+```bibtex
 @article{gluonts_arxiv,
   author  = {Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
     Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
@@ -165,9 +169,18 @@ the following references to the related papers:
 }
 ```
 
+## Video
+* [Neural Time Series with GluonTS](https://youtu.be/beEJMIt9xJ8)
+
 ## Further Reading 
 
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
+
+### Overview tutorials
+* [Tutorial at WWW 20202 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)
 * [Tutorial at KDD 2019](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
 * [Tutorial at VLDB 2018](https://lovvge.github.io/Forecasting-Tutorial-VLDB-2018/)
+
+### Introductory material
+* [International Symposium of Forecasting: Deep Learning for Forecasting workshop](https://lostella.github.io/ISF-2020-Deep-Learning-Workshop/)

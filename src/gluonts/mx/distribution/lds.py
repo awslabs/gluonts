@@ -11,19 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import NamedTuple, Optional, Tuple
+from typing import Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
 from gluonts.core.component import validated
-
-# First-party imports
-from gluonts.model.common import Tensor
-from gluonts.support.linalg_util import jitter_cholesky
-from gluonts.support.util import _broadcast_param, make_nd_diag
+from gluonts.mx import Tensor
+from gluonts.mx.linalg_util import jitter_cholesky
+from gluonts.mx.util import _broadcast_param, make_nd_diag
 
 from . import Distribution, Gaussian, MultivariateGaussian
 from .distribution import getF
@@ -37,6 +33,41 @@ class ParameterBounds:
         ), "lower bound should be smaller or equal to upper bound"
         self.lower = lower
         self.upper = upper
+
+
+def _safe_split(x, num_outputs, axis, squeeze_axis, *args, **kwargs):
+    """
+    A type-stable wrapper around mx.nd.split.
+
+    Currently mx.nd.split behaves weirdly if num_outputs=1:
+
+        a = mx.nd.ones(shape=(1, 1, 2))
+        l = a.split(axis=1, num_outputs=1, squeeze_axis=False)
+        type(l)  # mx.NDArray
+        l.shape  # (1, 1, 2)
+
+    Compare that with the case num_outputs=2:
+
+        a = mx.nd.ones(shape=(1, 2, 2))
+        l = a.split(axis=1, num_outputs=2, squeeze_axis=False)
+        type(l)  # list
+        len(l)  # 2
+        l[0].shape  # (1, 1, 2)
+
+    This wrapper makes the behavior consistent by always returning a list
+    of length num_outputs, whose elements will have one less axis than x
+    in case x.shape[axis]==num_outputs and squeeze_axis==True, and the same
+    number of axes as x otherwise.
+    """
+    if num_outputs > 1:
+        return x.split(
+            axis=axis,
+            num_outputs=num_outputs,
+            squeeze_axis=squeeze_axis,
+            *args,
+            **kwargs
+        )
+    return [x.squeeze(axis=axis)] if squeeze_axis else [x]
 
 
 class LDS(Distribution):
@@ -111,28 +142,37 @@ class LDS(Distribution):
 
         # Split coefficients along time axis for easy access
         # emission_coef[t]: (batch_size, obs_dim, latent_dim)
-        self.emission_coeff = emission_coeff.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        self.emission_coeff = _safe_split(
+            emission_coeff,
+            axis=1,
+            num_outputs=self.seq_length,
+            squeeze_axis=True,
         )
 
         # innovation_coef[t]: (batch_size, latent_dim)
-        self.innovation_coeff = innovation_coeff.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=False
+        self.innovation_coeff = _safe_split(
+            innovation_coeff,
+            axis=1,
+            num_outputs=self.seq_length,
+            squeeze_axis=False,
         )
 
         # transition_coeff: (batch_size, latent_dim, latent_dim)
-        self.transition_coeff = transition_coeff.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        self.transition_coeff = _safe_split(
+            transition_coeff,
+            axis=1,
+            num_outputs=self.seq_length,
+            squeeze_axis=True,
         )
 
         # noise_std[t]: (batch_size, obs_dim)
-        self.noise_std = noise_std.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        self.noise_std = _safe_split(
+            noise_std, axis=1, num_outputs=self.seq_length, squeeze_axis=True
         )
 
         # residuals[t]: (batch_size, obs_dim)
-        self.residuals = residuals.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        self.residuals = _safe_split(
+            residuals, axis=1, num_outputs=self.seq_length, squeeze_axis=True
         )
 
         self.prior_mean = prior_mean
@@ -189,6 +229,13 @@ class LDS(Distribution):
         # TODO: Based on form of the prior decide to do either filtering
         #   or residual-sum-of-squares
         log_p, final_mean, final_cov = self.kalman_filter(x, observed)
+        if scale is not None:
+            F = self.F
+            # log_abs_det_jac: sum over all output dimensions.
+            ladj = -F.sum(F.log(F.abs(scale)), axis=-1, keepdims=True)
+
+            # Sum `ladj` over all time steps.
+            log_p = F.broadcast_add(log_p, ladj)
         return log_p, final_mean, final_cov
 
     def kalman_filter(
@@ -219,8 +266,8 @@ class LDS(Distribution):
         """
         F = self.F
         # targets[t]: (batch_size, obs_dim)
-        targets = targets.split(
-            axis=1, num_outputs=self.seq_length, squeeze_axis=True
+        targets = _safe_split(
+            targets, axis=1, num_outputs=self.seq_length, squeeze_axis=True
         )
 
         log_p_seq = []
@@ -229,8 +276,11 @@ class LDS(Distribution):
         cov = self.prior_cov
 
         observed = (
-            observed.split(
-                axis=1, num_outputs=self.seq_length, squeeze_axis=True
+            _safe_split(
+                observed,
+                axis=1,
+                num_outputs=self.seq_length,
+                squeeze_axis=True,
             )
             if observed is not None
             else None
@@ -319,18 +369,22 @@ class LDS(Distribution):
         noise_std = F.stack(*self.noise_std, axis=1).expand_dims(axis=-1)
 
         # samples_eps_obs[t]: (num_samples, batch_size, obs_dim, 1)
-        samples_eps_obs = (
-            Gaussian(noise_std.zeros_like(), noise_std)
-            .sample(num_samples)
-            .split(axis=-3, num_outputs=self.seq_length, squeeze_axis=True)
+        samples_eps_obs = _safe_split(
+            Gaussian(noise_std.zeros_like(), noise_std).sample(num_samples),
+            axis=-3,
+            num_outputs=self.seq_length,
+            squeeze_axis=True,
         )
 
         # Sample standard normal for all time steps
         # samples_eps_std_normal[t]: (num_samples, batch_size, obs_dim, 1)
-        samples_std_normal = (
-            Gaussian(noise_std.zeros_like(), noise_std.ones_like())
-            .sample(num_samples)
-            .split(axis=-3, num_outputs=self.seq_length, squeeze_axis=True)
+        samples_std_normal = _safe_split(
+            Gaussian(noise_std.zeros_like(), noise_std.ones_like()).sample(
+                num_samples
+            ),
+            axis=-3,
+            num_outputs=self.seq_length,
+            squeeze_axis=True,
         )
 
         # Sample the prior state.

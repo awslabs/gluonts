@@ -11,25 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import tempfile
 from pathlib import Path
 
-# Third-party imports
+import numpy as np
+import pandas as pd
+
 import pytest
 from flaky import flaky
-import pandas as pd
-import numpy as np
 from pydantic import PositiveInt
 
-# First-party imports
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.evaluation import Evaluator
-from gluonts.model.predictor import Predictor
-from gluonts.model.naive_2 import Naive2Predictor
-from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.dataset.common import Dataset
+from gluonts.evaluation import backtest_metrics, Evaluator
+from gluonts.model.naive_2 import Naive2Predictor
+from gluonts.model.predictor import Predictor
+from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.support.pandas import forecast_start
 
 
@@ -125,9 +122,8 @@ def naive_2_predictor():
 def test_accuracy(predictor_cls, parameters, accuracy):
     predictor = predictor_cls(freq=CONSTANT_DATASET_FREQ, **parameters)
     agg_metrics, item_metrics = backtest_metrics(
-        train_dataset=constant_train_ds,
         test_dataset=constant_test_ds,
-        forecaster=predictor,
+        predictor=predictor,
         evaluator=Evaluator(calculate_owa=True),
     )
 

@@ -11,12 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from . import learning_rate_scheduler as lrs
-from . import model_averaging
+from . import model_averaging, model_iteration_averaging
 from ._base import Trainer
 
-__all__ = ["lrs", "Trainer", "model_averaging"]
+__all__ = ["lrs", "Trainer", "model_averaging", "model_iteration_averaging"]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:

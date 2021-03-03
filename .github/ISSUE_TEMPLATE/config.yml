@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and Discussions
+    url: https://github.com/awslabs/gluon-ts/discussions
+    about: Use GitHub Discussions to ask and answer questions, exchange ideas, and share learning.

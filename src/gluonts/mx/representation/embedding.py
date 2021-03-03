@@ -11,17 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
-import mxnet as mx
-import numpy as np
 from mxnet.gluon import nn
 
-# First-party imports
-from gluonts.core.component import get_mxnet_context, validated
-from gluonts.dataset.common import Dataset
-from gluonts.model.common import Tensor
+from gluonts.core.component import validated
+from gluonts.mx import Tensor
 
 from .representation import Representation
 
@@ -30,7 +25,7 @@ class Embedding(Representation):
     """
     A class representing an embedding operation on top of a given binning.
     Note that this representation is intended to applied on top of categorical/binned data.
-    
+
     Parameters
     ----------
     num_bins

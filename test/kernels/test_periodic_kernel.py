@@ -11,14 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-# Standard library imports
 import math
 
 import pytest
 from mxnet import nd
 
-# First-party imports
 from gluonts.mx.kernels import PeriodicKernel
 
 test_cases = [

@@ -11,25 +11,34 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional
+from functools import partial
+from typing import List, Optional, Callable
 
-# Standard library imports
 import numpy as np
-
-# Third-party imports
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
 
-# First-party imports
 from gluonts.core.component import validated
+from gluonts.dataset.common import Dataset
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
-from gluonts.model.estimator import GluonEstimator
-from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
+from gluonts.model.predictor import Predictor
+from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.distribution.lds import ParameterBounds
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
-from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.time_feature import (
+    TimeFeature,
+    time_features_from_frequency_str,
+    norm_freq_str,
+)
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
@@ -39,13 +48,13 @@ from gluonts.transform import (
     Chain,
     ExpandDimArray,
     RemoveFields,
+    SelectFields,
     SetField,
     TestSplitSampler,
     Transformation,
     VstackFeatures,
 )
 
-# Relative imports
 from ._network import DeepStatePredictionNetwork, DeepStateTrainingNetwork
 
 SEASON_INDICATORS_FIELD = "seasonal_indicators"
@@ -59,7 +68,7 @@ SEASON_INDICATORS_FIELD = "seasonal_indicators"
 # that do not do data augmentation and uses a single training example per time series in the dataset.
 FREQ_LONGEST_PERIOD_DICT = {
     "M": 12,  # yearly seasonality
-    "W-SUN": 52,  # yearly seasonality
+    "W": 52,  # yearly seasonality
     "D": 31,  # monthly seasonality
     "B": 22,  # monthly seasonality
     "H": 168,  # weekly seasonality
@@ -69,7 +78,7 @@ FREQ_LONGEST_PERIOD_DICT = {
 
 def longest_period_from_frequency_str(freq_str: str) -> int:
     offset = to_offset(freq_str)
-    return FREQ_LONGEST_PERIOD_DICT[offset.name] // offset.n
+    return FREQ_LONGEST_PERIOD_DICT[norm_freq_str(offset.name)] // offset.n
 
 
 class DeepStateEstimator(GluonEstimator):
@@ -94,18 +103,18 @@ class DeepStateEstimator(GluonEstimator):
         state space model
     past_length
         This is the length of the training time series;
-        i.e., number of steps to unroll the RNN for before computing 
+        i.e., number of steps to unroll the RNN for before computing
         predictions.
-        Set this to (at most) the length of the shortest time series in the 
+        Set this to (at most) the length of the shortest time series in the
         dataset.
-        (default: None, in which case the training length is set such that 
+        (default: None, in which case the training length is set such that
         at least
         `num_seasons_to_train` seasons are included in the training.
         See `num_seasons_to_train`)
     num_periods_to_train
         (Used only when `past_length` is not set)
         Number of periods to include in the training time series. (default: 4)
-        Here period corresponds to the longest cycle one can expect given 
+        Here period corresponds to the longest cycle one can expect given
         the granularity of the time series.
         See: https://stats.stackexchange.com/questions/120806/frequency
         -value-for-seconds-minutes-intervals-data-in-r
@@ -119,7 +128,7 @@ class DeepStateEstimator(GluonEstimator):
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism 
+        Number of evaluation samples per time series to increase parallelism
         during inference.
         This is a model optimization that does not affect the accuracy (
         default: 100).
@@ -145,8 +154,10 @@ class DeepStateEstimator(GluonEstimator):
     prior_cov_bounds
         Lower and upper bounds for the diagonal of the prior covariance matrix
     innovation_bounds
-        Lower and upper bounds for the standard deviation of the observation 
+        Lower and upper bounds for the standard deviation of the observation
         noise
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -175,8 +186,9 @@ class DeepStateEstimator(GluonEstimator):
         noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         innovation_bounds: ParameterBounds = ParameterBounds(1e-6, 0.01),
+        batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_length > 0
@@ -270,7 +282,7 @@ class DeepStateEstimator(GluonEstimator):
                 ),
                 # Unnormalized seasonal features
                 AddTimeFeatures(
-                    time_features=CompositeISSM.seasonal_features(self.freq),
+                    time_features=self.issm.time_features(),
                     pred_length=self.prediction_length,
                     start_field=FieldName.START,
                     target_field=FieldName.TARGET,
@@ -298,23 +310,59 @@ class DeepStateEstimator(GluonEstimator):
                         else []
                     ),
                 ),
-                CanonicalInstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    instance_sampler=TestSplitSampler(),
-                    time_series_fields=[
-                        FieldName.FEAT_TIME,
-                        SEASON_INDICATORS_FIELD,
-                        FieldName.OBSERVED_VALUES,
-                    ],
-                    allow_target_padding=True,
-                    instance_length=self.past_length,
-                    use_prediction_features=True,
-                    prediction_length=self.prediction_length,
-                ),
             ]
+        )
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        return CanonicalInstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=TestSplitSampler(),
+            time_series_fields=[
+                FieldName.FEAT_TIME,
+                SEASON_INDICATORS_FIELD,
+                FieldName.OBSERVED_VALUES,
+            ],
+            allow_target_padding=True,
+            instance_length=self.past_length,
+            use_prediction_features=(mode is not "training"),
+            prediction_length=self.prediction_length,
+        )
+
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
+        instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
+        instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
         )
 
     def create_training_network(self) -> DeepStateTrainingNetwork:
@@ -337,6 +385,8 @@ class DeepStateEstimator(GluonEstimator):
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = self._create_instance_splitter("test")
+
         prediction_network = DeepStatePredictionNetwork(
             num_layers=self.num_layers,
             num_cells=self.num_cells,
@@ -358,9 +408,9 @@ class DeepStateEstimator(GluonEstimator):
         copy_parameters(trained_network, prediction_network)
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

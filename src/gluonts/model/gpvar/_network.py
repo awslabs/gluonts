@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
 from gluonts.model.deepvar._network import DeepVARNetwork
-
-# First-party imports
+from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF
+from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
 
 
 class GPVARNetwork(DeepVARNetwork):
@@ -30,6 +27,8 @@ class GPVARNetwork(DeepVARNetwork):
     def __init__(self, target_dim_sample: int, **kwargs) -> None:
         super().__init__(embedding_dimension=1, cardinality=[1], **kwargs)
         self.target_dim_sample = target_dim_sample
+
+        assert isinstance(self.distr_output, LowrankGPOutput)
 
         with self.name_scope():
             self.embed = mx.gluon.nn.Embedding(
@@ -189,6 +188,7 @@ class GPVARNetwork(DeepVARNetwork):
         distr_args = self.proj_dist_args(distr_input)
 
         # compute likelihood of target given the predicted parameters
+        assert isinstance(self.distr_output, LowrankGPOutput)
         distr = self.distr_output.distribution(
             distr_args, scale=scale, dim=self.target_dim_sample
         )

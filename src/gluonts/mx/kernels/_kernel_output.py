@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, Tuple
 
 import numpy as np
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution_output import ArgProj
 
-# Relative imports
 from . import Kernel
 
 
@@ -103,7 +100,7 @@ class KernelOutputDict(KernelOutput):
     # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> tuple:
         raise NotImplementedError()
 
     # noinspection PyMethodOverriding,PyPep8Naming

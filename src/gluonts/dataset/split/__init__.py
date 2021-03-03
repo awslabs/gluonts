@@ -13,7 +13,6 @@
 
 __all__ = ["DateSplitter", "OffsetSplitter"]
 
-# Relative imports
 from .splitter import DateSplitter, OffsetSplitter
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

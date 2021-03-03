@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from pathlib import Path
 from typing import List, NamedTuple
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pandas as pd
 import pytest
 from pydantic import BaseModel
 
-# First-party imports
 from gluonts.core import serde
 
 # Example Types
@@ -122,11 +119,6 @@ container_types = [list_container, dict_container, set_container]
 examples = simple_types + complex_types + container_types  # type: ignore
 
 
-@pytest.mark.parametrize("e", examples)
-def test_binary_serialization(e) -> None:
-    assert equals(e, serde.load_binary(serde.dump_binary(e)))
-
-
 def check_equality(expected, actual) -> bool:
     if isinstance(expected, set):
         # Sets are serialized as lists — we check if they have the same elements
@@ -171,7 +163,6 @@ def test_code_serialization(e) -> None:
     "serialize_fn",
     [
         lambda x: serde.load_json(serde.dump_json(x)),
-        lambda x: serde.load_binary(serde.dump_binary(x)),
         lambda x: serde.load_code(serde.dump_code(x)),
     ],
 )
@@ -192,7 +183,6 @@ def test_timestamp_encode_decode() -> None:
     "serialize_fn",
     [
         lambda x: serde.load_json(serde.dump_json(x)),
-        lambda x: serde.load_binary(serde.dump_binary(x)),
         lambda x: serde.load_code(serde.dump_code(x)),
     ],
 )

@@ -11,34 +11,35 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 from flaky import flaky
 
-# First-party imports
+from gluonts.core.serde import dump_code, dump_json, load_code, load_json
+from gluonts.model.tpp.distribution import Loglogistic, Weibull
+
 from gluonts.mx.distribution import (
-    Uniform,
-    StudentT,
-    NegativeBinomial,
-    Laplace,
-    Gaussian,
-    Gamma,
     Beta,
-    MultivariateGaussian,
-    Poisson,
-    PiecewiseLinear,
     Binned,
-    TransformedDistribution,
+    Categorical,
     Dirichlet,
     DirichletMultinomial,
-    Categorical,
+    Gamma,
+    Gaussian,
+    GenPareto,
+    Laplace,
+    MultivariateGaussian,
+    NegativeBinomial,
+    PiecewiseLinear,
+    Poisson,
+    StudentT,
+    TransformedDistribution,
+    Uniform,
+    ZeroAndOneInflatedBeta,
+    ZeroInflatedPoissonOutput,
 )
-from gluonts.core.serde import dump_json, load_json, dump_code, load_code
-
 from gluonts.testutil import empirical_cdf
-
 
 test_cases = [
     (
@@ -64,8 +65,8 @@ test_cases = [
         StudentT,
         {
             "mu": mx.nd.array([1000.0, -1000.0]),
-            "sigma": mx.nd.array([1.0, 2.0]),
-            "nu": mx.nd.array([4.2, 3.0]),
+            "sigma": mx.nd.array([1.0, 1.5]),
+            "nu": mx.nd.array([4.2, 5.0]),
         },
     ),
     (
@@ -115,18 +116,42 @@ test_cases = [
         },
     ),
     (Poisson, {"rate": mx.nd.array([1000.0, 0])}),
+    (
+        Loglogistic,
+        {"mu": mx.nd.array([-1.0, 0.75]), "sigma": mx.nd.array([0.1, 0.3])},
+    ),
+    (
+        Weibull,
+        {"rate": mx.nd.array([0.5, 2.0]), "shape": mx.nd.array([1.5, 5.0])},
+    ),
+    (
+        GenPareto,
+        {
+            "xi": mx.nd.array([1 / 3.0, 1 / 4.0]),
+            "beta": mx.nd.array([1.0, 1 / 2.0]),
+        },
+    ),
 ]
 
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
-DISTRIBUTIONS_WITH_CDF = [Gaussian, Uniform, Laplace, Binned]
+DISTRIBUTIONS_WITH_CDF = [
+    Gaussian,
+    Uniform,
+    Laplace,
+    Binned,
+    Loglogistic,
+    Weibull,
+]
 DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = [Gaussian, Uniform, Laplace, Binned]
+DISTRIBUTIONS_WITHOUT_STDDEV = [Loglogistic, Weibull]
 
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
+@flaky
 def test_sampling(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
     distr = serialize_fn(distr)
@@ -146,8 +171,11 @@ def test_sampling(distr_class, params, serialize_fn) -> None:
         np_samples.mean(axis=0), distr.mean.asnumpy(), atol=1e-2, rtol=1e-2
     )
 
-    emp_std = np_samples.std(axis=0)
-    assert np.allclose(emp_std, distr.stddev.asnumpy(), atol=1e-1, rtol=1e-1)
+    if distr_class not in DISTRIBUTIONS_WITHOUT_STDDEV:
+        emp_std = np_samples.std(axis=0)
+        assert np.allclose(
+            emp_std, distr.stddev.asnumpy(), atol=1e-1, rtol=1e-1
+        )
 
     if distr_class in DISTRIBUTIONS_WITH_CDF:
         emp_cdf, edges = empirical_cdf(np_samples)
@@ -233,3 +261,39 @@ def test_piecewise_linear_sampling(distr, params, serialize_fn):
     num_samples = 100_000
     samples = distr.sample(num_samples)
     assert samples.shape == (num_samples, 2)
+
+
+@pytest.mark.parametrize("alpha, beta", [(0.3, 0.9), (1.5, 1.7)])
+@pytest.mark.parametrize("zero_probability, one_probability", [(0.1, 0.2)])
+def test_inflated_beta_sampling(
+    alpha: float, beta: float, zero_probability: float, one_probability: float
+):
+    distr = ZeroAndOneInflatedBeta(
+        alpha=mx.nd.array([alpha]),
+        beta=mx.nd.array([beta]),
+        zero_probability=mx.nd.array([zero_probability]),
+        one_probability=mx.nd.array([one_probability]),
+    )
+    samples = distr.sample()
+    assert samples.shape == (1,)
+    num_samples = 100_000
+    samples = distr.sample(num_samples)
+    assert samples.shape == (num_samples, 1)
+
+    category = np.random.choice(
+        [0, 1, 2],
+        p=[
+            zero_probability,
+            one_probability,
+            1 - zero_probability - one_probability,
+        ],
+        size=num_samples,
+    )
+    samples_numpy = np.random.beta(a=alpha, b=beta, size=num_samples)
+    samples_numpy[category == 0] = 0
+    samples_numpy[category == 1] = 1
+    assert np.allclose(
+        np.histogram(samples_numpy)[0],
+        np.histogram(samples.asnumpy())[0],
+        rtol=0.08,
+    )
