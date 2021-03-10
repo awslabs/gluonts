@@ -109,12 +109,10 @@ class TFTInstanceSplitter(InstanceSplitter):
                 if i >= self.past_length:
                     past_piece = d[field][..., i - self.past_length : i]
                 else:
-                    pad_block = (
-                        np.ones(
-                            d[field].shape[:-1] + (pad_length,),
-                            dtype=d[field].dtype,
-                        )
-                        * self.dummy_value
+                    pad_block = np.full(
+                        shape=d[field].shape[:-1] + (pad_length,),
+                        fill_value=self.dummy_value,
+                        dtype=d[field].dtype,
                     )
                     past_piece = np.concatenate(
                         [pad_block, d[field][..., :i]], axis=-1
