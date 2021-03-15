@@ -100,7 +100,11 @@ class DeepTPPNetworkBase(mx.gluon.HybridBlock):
 
 class DeepTPPTrainingNetwork(DeepTPPNetworkBase):
     def hybrid_forward(
-        self, F, target: Tensor, valid_length: Tensor, **kwargs,
+        self,
+        F,
+        target: Tensor,
+        valid_length: Tensor,
+        **kwargs,
     ) -> Tensor:
         """
         Computes the negative log likelihood loss for the given sequences.
@@ -219,7 +223,10 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
         self.prediction_interval_length = prediction_interval_length
 
     def hybrid_forward(
-        self, F, past_target: Tensor, past_valid_length: Tensor,
+        self,
+        F,
+        past_target: Tensor,
+        past_valid_length: Tensor,
     ) -> Tuple[Tensor, Tensor]:
         """
         Draw forward samples from the model. At each step, we sample an inter-
@@ -313,7 +320,8 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
             # Sample the next inter-arrival time
             time_distr_args = self.time_distr_args_proj(history_emb)
             time_distr = self.time_distr_output.distribution(
-                time_distr_args, scale=self.output_scale,
+                time_distr_args,
+                scale=self.output_scale,
             )
             if first_step:
                 # Time from the last event until the next event

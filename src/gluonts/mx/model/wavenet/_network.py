@@ -273,7 +273,10 @@ class WaveNet(nn.HybridBlock):
         return full_features
 
     def target_feature_embedding(
-        self, F, target, features,
+        self,
+        F,
+        target,
+        features,
     ):
         """
         Provides a joint embedding for the target and features.
@@ -582,7 +585,9 @@ class WaveNetSampler(WaveNet):
                 axis=-1,
             )
             embedding = self.target_feature_embedding(
-                F, target=current_target, features=blow_up(current_features),
+                F,
+                target=current_target,
+                features=blow_up(current_features),
             )
 
             # (batch_size, 1, num_bins) where 1 corresponds to the time axis.

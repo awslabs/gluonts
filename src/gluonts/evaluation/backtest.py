@@ -42,7 +42,9 @@ def _to_dataframe(input_label: Tuple[DataEntry, DataEntry]) -> pd.DataFrame:
 
 
 def make_evaluation_predictions(
-    dataset: Dataset, predictor: Predictor, num_samples: int = 100,
+    dataset: Dataset,
+    predictor: Predictor,
+    num_samples: int = 100,
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
     Returns predictions for the trailing prediction_length observations of the

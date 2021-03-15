@@ -168,14 +168,38 @@ def test_segment_precision_recall(test_case: Dict):
 
 
 TEST_CASES_LABELS_TO_RANGES = [
-    {"labels": [0], "ranges": [],},
-    {"labels": [1], "ranges": [range(0, 1)],},
-    {"labels": [0] * 10, "ranges": [],},
-    {"labels": [1] * 10, "ranges": [range(0, 10)],},
-    {"labels": [1, 0], "ranges": [range(0, 1)],},
-    {"labels": [1, 0, 1, 1], "ranges": [range(0, 1), range(2, 4)],},
-    {"labels": [1, 0, 1, 1, 0], "ranges": [range(0, 1), range(2, 4)],},
-    {"labels": [0, 1, 1, 0], "ranges": [range(1, 3)],},
+    {
+        "labels": [0],
+        "ranges": [],
+    },
+    {
+        "labels": [1],
+        "ranges": [range(0, 1)],
+    },
+    {
+        "labels": [0] * 10,
+        "ranges": [],
+    },
+    {
+        "labels": [1] * 10,
+        "ranges": [range(0, 10)],
+    },
+    {
+        "labels": [1, 0],
+        "ranges": [range(0, 1)],
+    },
+    {
+        "labels": [1, 0, 1, 1],
+        "ranges": [range(0, 1), range(2, 4)],
+    },
+    {
+        "labels": [1, 0, 1, 1, 0],
+        "ranges": [range(0, 1), range(2, 4)],
+    },
+    {
+        "labels": [0, 1, 1, 0],
+        "ranges": [range(1, 3)],
+    },
     {
         "labels": [0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1],
         "ranges": [range(2, 4), range(6, 7), range(8, 11), range(12, 13)],

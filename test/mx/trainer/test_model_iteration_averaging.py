@@ -51,7 +51,10 @@ def initialize_model() -> nn.HybridBlock:
         prediction_length=prediction_length,
         context_length=T,
         trainer=Trainer(
-            ctx="cpu", epochs=1, learning_rate=1e-3, num_batches_per_epoch=1,
+            ctx="cpu",
+            epochs=1,
+            learning_rate=1e-3,
+            num_batches_per_epoch=1,
         ),
     )
 

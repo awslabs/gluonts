@@ -26,7 +26,11 @@ from gluonts.transform import InstanceSplitter, TestSplitSampler
 
 class RandomNetwork(nn.Module):
     @validated()
-    def __init__(self, prediction_length: int, context_length: int,) -> None:
+    def __init__(
+        self,
+        prediction_length: int,
+        context_length: int,
+    ) -> None:
         super().__init__()
         assert prediction_length > 0
         assert context_length > 0
