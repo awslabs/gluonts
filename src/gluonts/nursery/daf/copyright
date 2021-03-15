@@ -12,6 +12,3 @@
 # permissions and limitations under the License.
 
 
-from .base import Attention
-from .selfattn import *
-from .interattn import *
