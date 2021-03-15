@@ -26,7 +26,12 @@ def _orjson():
 
     return (
         "orjson",
-        {"loads": orjson.loads, "load": load, "dumps": dumps, "dump": dump,},
+        {
+            "loads": orjson.loads,
+            "load": load,
+            "dumps": dumps,
+            "dump": dump,
+        },
     )
 
 

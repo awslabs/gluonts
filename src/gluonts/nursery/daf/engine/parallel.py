@@ -262,7 +262,9 @@ class DomAdaptEvaluator(Evaluator):
 
     @classmethod
     def from_trainer(
-        cls, trainer: DomAdaptTrainer, model_tag: str = "best",
+        cls,
+        trainer: DomAdaptTrainer,
+        model_tag: str = "best",
     ):
         return super(DomAdaptEvaluator, cls).from_trainer(trainer, model_tag)
 
@@ -277,7 +279,11 @@ class AdversarialDomAdaptTrainer(DomAdaptTrainer):
         **kwargs,
     ) -> None:
         super(AdversarialDomAdaptTrainer, self).__init__(
-            dataset, model, optimizer, scheduler, **kwargs,
+            dataset,
+            model,
+            optimizer,
+            scheduler,
+            **kwargs,
         )
         del self.optimizer
         self.optimizer = optimizer(
@@ -468,7 +474,9 @@ class AdversarialDomAdaptTrainer(DomAdaptTrainer):
 class AdversarialDomAdaptEvaluator(DomAdaptEvaluator):
     @classmethod
     def from_trainer(
-        cls, trainer: AdversarialDomAdaptTrainer, model_tag: str = "best",
+        cls,
+        trainer: AdversarialDomAdaptTrainer,
+        model_tag: str = "best",
     ):
         return super(AdversarialDomAdaptEvaluator, cls).from_trainer(
             trainer, model_tag

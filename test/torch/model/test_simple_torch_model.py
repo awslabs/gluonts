@@ -159,7 +159,8 @@ def test_simple_model():
     )
 
     transformation = AddObservedValuesIndicator(
-        target_field=FieldName.TARGET, output_field=FieldName.OBSERVED_VALUES,
+        target_field=FieldName.TARGET,
+        output_field=FieldName.OBSERVED_VALUES,
     )
 
     training_splitter = InstanceSplitter(
@@ -168,7 +169,8 @@ def test_simple_model():
         start_field=FieldName.START,
         forecast_start_field=FieldName.FORECAST_START,
         instance_sampler=ExpectedNumInstanceSampler(
-            num_instances=1, min_future=prediction_length,
+            num_instances=1,
+            min_future=prediction_length,
         ),
         past_length=context_length,
         future_length=prediction_length,

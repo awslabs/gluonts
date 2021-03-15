@@ -11,7 +11,9 @@ from .timeseries import TimeSeries, TimeSeriesCorpus
 
 class WindowsDataset(TorchDataset):
     def __init__(
-        self, corpus: TimeSeriesCorpus, windows: List[Tuple[int, int, int]],
+        self,
+        corpus: TimeSeriesCorpus,
+        windows: List[Tuple[int, int, int]],
     ) -> None:
         super(WindowsDataset, self).__init__()
         self.corpus = corpus
@@ -46,7 +48,9 @@ class WindowsDataset(TorchDataset):
         windows = []
         np.random.seed(seed)
         for scope_id, series in tqdm(
-            enumerate(corpus), desc="Building dataset", total=len(corpus),
+            enumerate(corpus),
+            desc="Building dataset",
+            total=len(corpus),
         ):
             stop = len(series) - min_window_size
             index = np.arange(stop, 0, -window_shift)
@@ -76,7 +80,9 @@ class WindowsDataset(TorchDataset):
         windows = []
         np.random.seed(seed)
         for scope_id, series in tqdm(
-            enumerate(corpus), desc="Building dataset", total=len(corpus),
+            enumerate(corpus),
+            desc="Building dataset",
+            total=len(corpus),
         ):
             stop = len(series) - min_window_size
             index = np.arange(stop, 0, -window_shift)
@@ -88,7 +94,9 @@ class WindowsDataset(TorchDataset):
                 zip(repeat(scope_id, len(index)), index, window_length)
             )
         window_idx = np.random.choice(
-            len(windows), size=n_windows, replace=len(windows) < n_windows,
+            len(windows),
+            size=n_windows,
+            replace=len(windows) < n_windows,
         )
         windows = [windows[i] for i in window_idx]
         return cls(corpus, windows)

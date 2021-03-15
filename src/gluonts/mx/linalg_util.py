@@ -196,7 +196,8 @@ def jitter_cholesky(
                 F.broadcast_add(
                     matrix,
                     F.broadcast_mul(
-                        F.eye(num_data_points, dtype=float_type), jitter,
+                        F.eye(num_data_points, dtype=float_type),
+                        jitter,
                     ),
                 )
             )

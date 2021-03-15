@@ -124,7 +124,9 @@ class MultivariateGaussian(Distribution):
         def s(mu: Tensor, L: Tensor) -> Tensor:
             F = self.F
             samples_std_normal = F.sample_normal(
-                mu=F.zeros_like(mu), sigma=F.ones_like(mu), dtype=dtype,
+                mu=F.zeros_like(mu),
+                sigma=F.ones_like(mu),
+                dtype=dtype,
             ).expand_dims(axis=-1)
             samples = (
                 F.linalg_gemm2(L, samples_std_normal).squeeze(axis=-1) + mu

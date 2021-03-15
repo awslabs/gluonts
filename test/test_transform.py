@@ -314,7 +314,10 @@ def test_CanonicalInstanceSplitter(
         start_field=FieldName.START,
         forecast_start_field=FieldName.FORECAST_START,
         instance_sampler=(
-            transform.UniformSplitSampler(p=1.0, min_past=train_length,)
+            transform.UniformSplitSampler(
+                p=1.0,
+                min_past=train_length,
+            )
             if is_train
             else (
                 transform.ValidationSplitSampler()
@@ -801,7 +804,9 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
         past_interval_length=2,
         future_interval_length=1,
         instance_sampler=transform.ContinuousTimeUniformSampler(
-            num_instances=10, min_past=2, min_future=1,
+            num_instances=10,
+            min_past=2,
+            min_future=1,
         ),
     )
 
@@ -819,7 +824,8 @@ def test_ctsplitter_no_train_last_point(point_process_dataset):
         past_interval_length=2,
         future_interval_length=1,
         instance_sampler=transform.ContinuousTimePredictionSampler(
-            allow_empty_interval=False, min_past=2,
+            allow_empty_interval=False,
+            min_past=2,
         ),
     )
 
@@ -899,7 +905,9 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
         past_interval_length=1.25,
         future_interval_length=1.25,
         instance_sampler=transform.ContinuousTimeUniformSampler(
-            num_instances=20, min_past=1.25, min_future=1.25,
+            num_instances=20,
+            min_past=1.25,
+            min_future=1.25,
         ),
     )
 

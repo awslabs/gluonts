@@ -155,7 +155,8 @@ class TabularPredictor(Predictor):
             )
 
             forecast_series = pd.Series(
-                [None] * len(forecast_index), index=forecast_index,
+                [None] * len(forecast_index),
+                index=forecast_index,
             )
 
             full_series = series.append(forecast_series)
@@ -209,7 +210,8 @@ class TabularPredictor(Predictor):
                 periods=self.prediction_length,
             )
             forecast_series = pd.Series(
-                [None] * self.prediction_length, index=forecast_index,
+                [None] * self.prediction_length,
+                index=forecast_index,
             )
             dfs.append(
                 get_features_dataframe(
@@ -230,7 +232,9 @@ class TabularPredictor(Predictor):
             item_ids,
         ):
             yield self._to_forecast(
-                scale * arr, forecast_start, item_id=item_id,
+                scale * arr,
+                forecast_start,
+                item_id=item_id,
             )
 
     # batch prediction (auto-regressive)
@@ -262,7 +266,8 @@ class TabularPredictor(Predictor):
         batch_full_series = [
             series.append(
                 pd.Series(
-                    [None] * self.prediction_length, index=forecast_index,
+                    [None] * self.prediction_length,
+                    index=forecast_index,
                 )
             )
             for series, forecast_index in zip(
@@ -298,7 +303,9 @@ class TabularPredictor(Predictor):
             output, batch_scales, batch_forecast_indices, batch_ids
         ):
             yield self._to_forecast(
-                scale * arr, forecast_index[0], item_id=item_id,
+                scale * arr,
+                forecast_index[0],
+                item_id=item_id,
             )
 
     def _predict_batch(

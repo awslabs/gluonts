@@ -87,22 +87,22 @@ def copy_to_gpu(data, cuda_device: int, non_blocking: bool):
 
 class MetaDataset(NamedTuple):
     """
-        Dataset Split Manager. Possess train/valid/test datasets and provide data loaders
-        
-        Parameters:
-        --------------
-        train_set: torch.utils.data.Dataset
-            training dataset
-        valid_set: torch.utils.data.Dataset or None
-            validation dataset if provided
-        test_set: torch.utils.data.Dataset
-            test dataset
-        collate_fn: callable
-            function that accepts a batch of inputs and 
-            returns a stacked version for each data field
-        always_validation: bool
-            if True, use test data at request of validation loader;
-            otherwise return None
+    Dataset Split Manager. Possess train/valid/test datasets and provide data loaders
+
+    Parameters:
+    --------------
+    train_set: torch.utils.data.Dataset
+        training dataset
+    valid_set: torch.utils.data.Dataset or None
+        validation dataset if provided
+    test_set: torch.utils.data.Dataset
+        test dataset
+    collate_fn: callable
+        function that accepts a batch of inputs and
+        returns a stacked version for each data field
+    always_validation: bool
+        if True, use test data at request of validation loader;
+        otherwise return None
     """
 
     train_set: Dataset
@@ -186,7 +186,10 @@ class MetaDataset(NamedTuple):
         )
 
     def valid_loader(
-        self, batch_size: int, cuda_device: int, n_workers: int = 0,
+        self,
+        batch_size: int,
+        cuda_device: int,
+        n_workers: int = 0,
     ) -> Iterator:
         if self.valid_set is None:
             if self.always_validation:
@@ -196,11 +199,20 @@ class MetaDataset(NamedTuple):
         else:
             dataset = self.valid_set
         return self._data_loader(
-            dataset, batch_size, False, cuda_device, False, n_workers, None,
+            dataset,
+            batch_size,
+            False,
+            cuda_device,
+            False,
+            n_workers,
+            None,
         )
 
     def test_loader(
-        self, batch_size: int, cuda_device: int, n_workers: int = 0,
+        self,
+        batch_size: int,
+        cuda_device: int,
+        n_workers: int = 0,
     ) -> Iterator:
         return self._data_loader(
             self.test_set,

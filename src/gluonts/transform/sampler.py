@@ -98,7 +98,10 @@ def TestSplitSampler(
     axis: int = -1, min_past: int = 0
 ) -> PredictionSplitSampler:
     return PredictionSplitSampler(
-        allow_empty_interval=False, axis=axis, min_past=min_past, min_future=0,
+        allow_empty_interval=False,
+        axis=axis,
+        min_past=min_past,
+        min_future=0,
     )
 
 

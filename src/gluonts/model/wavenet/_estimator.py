@@ -322,7 +322,9 @@ class WaveNetEstimator(GluonEstimator):
         )
 
     def create_training_data_loader(
-        self, data: Dataset, **kwargs,
+        self,
+        data: Dataset,
+        **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(WaveNetTraining)
         instance_splitter = self._create_instance_splitter("training")
@@ -336,7 +338,9 @@ class WaveNetEstimator(GluonEstimator):
         )
 
     def create_validation_data_loader(
-        self, data: Dataset, **kwargs,
+        self,
+        data: Dataset,
+        **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(WaveNetTraining)
         instance_splitter = self._create_instance_splitter("validation")

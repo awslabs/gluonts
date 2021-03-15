@@ -105,7 +105,9 @@ class NanMixture(MixtureDistribution):
 
 class NanMixtureArgs(gluon.HybridBlock):
     def __init__(
-        self, distr_output: DistributionOutput, prefix: Optional[str] = None,
+        self,
+        distr_output: DistributionOutput,
+        prefix: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.component_projection: gluon.HybridBlock

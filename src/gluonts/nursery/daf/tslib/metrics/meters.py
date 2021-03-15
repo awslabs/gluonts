@@ -11,8 +11,8 @@ from ..engine.distributed import reduce_value
 class Meter(ABC):
     """
     Abstract class for meters used in metric stats.
-    Every subclass has cached values for some metric 
-    
+    Every subclass has cached values for some metric
+
     Parameters
     ----------
     min_mode: bool or None
@@ -59,7 +59,7 @@ class Meter(ABC):
     def is_optimal(self) -> bool:
         """
         indicates whether the current metric reaches optimality
-        
+
         Raises
         ------
         TypeError
@@ -122,7 +122,7 @@ class NumericalAverageMeter(Meter):
     def update(self, value: Union[Tensor, float]) -> None:
         """
         add the current value to be further averaged
-        
+
         Parameters
         ----------
         value : float or scalar Tensor
@@ -140,7 +140,7 @@ class NumericalAverageMeter(Meter):
     def value(self) -> float:
         """
         average of all values added since instantiation or last restart call
-        
+
         Returns
         -------
         float
@@ -157,7 +157,7 @@ class BatchAverageMeter(NumericalAverageMeter):
     """
     Maintains running average for a stream of batched data, in which the outer dimension is
     assumed to be batches
-    
+
     Call .restart() to clear added values and to start a new round of averaging
     """
 
@@ -170,11 +170,11 @@ class BatchAverageMeter(NumericalAverageMeter):
     def update(self, values: Tensor) -> None:
         """
         add a batch of values to be further averaged
-        
+
         Parameters
         ----------
         values : Tensor
-        
+
         Raises
         ------
         ValueError
@@ -211,12 +211,12 @@ class MeanDeviationMeter(Meter):
     def update(self, deviation: Tensor, base: Tensor) -> None:
         """
         add new deviation and base values
-        
+
         Parameters
         ----------
         deviation : Tensor
         base : Tensor
-        
+
         Raises
         ------
         ValueError
@@ -251,12 +251,12 @@ class RootMeanSquareDeviationMeter(MeanDeviationMeter):
     def update(self, deviation: Tensor, base: Tensor) -> None:
         """
         add new deviation and base values
-        
+
         Parameters
         ----------
         deviation : Tensor
         base : Tensor
-        
+
         Raises
         ------
         ValueError

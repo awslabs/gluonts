@@ -46,8 +46,16 @@ def test_model_averaging(strategy, num_models):
     # combine models
     all_arg_params = [param_1, param_2]
     dummy_checkpoints = [
-        {"params_path": "dummy_path", "epoch_no": 0, "score": loss_1,},
-        {"params_path": "dummy_path", "epoch_no": 0, "score": loss_2,},
+        {
+            "params_path": "dummy_path",
+            "epoch_no": 0,
+            "score": loss_1,
+        },
+        {
+            "params_path": "dummy_path",
+            "epoch_no": 0,
+            "score": loss_2,
+        },
     ]
 
     # compute expected weights

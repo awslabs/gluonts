@@ -568,7 +568,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         )
 
         smape = (200 / self.prediction_length) * F.mean(
-            (absolute_error * (1 - flag)) / (denominator + flag), axis=1,
+            (absolute_error * (1 - flag)) / (denominator + flag),
+            axis=1,
         )
 
         return smape
@@ -596,7 +597,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         )
 
         mape = (100 / self.prediction_length) * F.mean(
-            (absolute_error * (1 - flag)) / (denominator + flag), axis=1,
+            (absolute_error * (1 - flag)) / (denominator + flag),
+            axis=1,
         )
 
         return mape

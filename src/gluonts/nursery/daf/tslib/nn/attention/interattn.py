@@ -29,13 +29,13 @@ class InterAttention(Attention):
         if True, apply linear projection to kv tensor and d_hidden = d_query,
             attention is performed in query feature space;
         if False, no linear porjection is applied and d_hidden = d_kv,
-            attention is performed in key-value feature space; 
+            attention is performed in key-value feature space;
             note that if n_head=1 in this case, it reduces to Luong's dot attention;
         by default True
     apply_rel_dist : Optional[str], optional
-        add relative distance embeddings to dot-product attention, can be 
+        add relative distance embeddings to dot-product attention, can be
             'add' (linearly combine key and dist),
-            'dot' (dot product between key and dist), 
+            'dot' (dot product between key and dist),
             or None (disabled),
         by default None
     share_values : bool, optional

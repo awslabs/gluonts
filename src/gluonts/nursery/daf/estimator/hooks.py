@@ -6,7 +6,11 @@ from torch.nn import functional as F
 
 
 class ZScoreNormalizer(object):
-    def __init__(self, eps: float = 1e-5, rescale_loss: bool = True,) -> None:
+    def __init__(
+        self,
+        eps: float = 1e-5,
+        rescale_loss: bool = True,
+    ) -> None:
         self._buffers = {
             "offset": None,
             "scale": None,

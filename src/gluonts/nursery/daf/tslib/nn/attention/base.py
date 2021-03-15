@@ -48,11 +48,11 @@ class Attention(nn.Module):
     def _split_head(self, x: Tensor) -> Tensor:
         """
         Split hidden state into multi-heads
-        
+
         Args
         ----------
             x : Tensor [batch, length, d_hidden]
-        
+
         Returns
         -------
             Tensor [batch, n_head, length, d_head]
@@ -64,11 +64,11 @@ class Attention(nn.Module):
     def _merge_head(self, x: Tensor) -> Tensor:
         """
         Merge multi-heads into one hidden state
-        
+
         Args
         ----------
             x : Tensor [batch, n_head, length, d_head]
-        
+
         Returns
         -------
             Tensor [batch, length, d_hidden]

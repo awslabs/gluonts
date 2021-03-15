@@ -92,7 +92,8 @@ class PyTorchPredictor(Predictor):
         #    return False
 
         return equals(
-            self.prediction_net.state_dict(), that.prediction_net.state_dict(),
+            self.prediction_net.state_dict(),
+            that.prediction_net.state_dict(),
         )
 
     def serialize(self, path: Path) -> None:

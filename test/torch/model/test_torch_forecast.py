@@ -89,13 +89,16 @@ def test_DistributionForecast():
         (
             DistributionForecast(
                 Uniform(
-                    low=torch.zeros(size=(5, 2)), high=torch.ones(size=(5, 2)),
+                    low=torch.zeros(size=(5, 2)),
+                    high=torch.ones(size=(5, 2)),
                 ),
                 start_date=pd.Timestamp("2020-01-01 00:00:00"),
                 freq="W",
             ),
             pd.date_range(
-                start=pd.Timestamp("2020-01-01 00:00:00"), freq="W", periods=5,
+                start=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="W",
+                periods=5,
             ),
         ),
     ],

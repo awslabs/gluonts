@@ -196,7 +196,10 @@ class TransformerDecoderBlock(nn.Module):
         )
         self.inter_attn_layer_norm = nn.LayerNorm(d_query)
         self.ffn = PositionwiseFFN(
-            d_model=d_query, d_hidden=d_ffn, dropout=dropout, pre_ln=pre_ln,
+            d_model=d_query,
+            d_hidden=d_ffn,
+            dropout=dropout,
+            pre_ln=pre_ln,
         )
         self.dropout = nn.Dropout(dropout)
 

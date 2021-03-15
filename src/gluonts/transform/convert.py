@@ -469,10 +469,13 @@ class CDFtoGaussianTransform(MapTransformation):
         sorted_target = data[self.sort_target_field]
         sorted_target_length, target_dim = sorted_target.shape
 
-        quantiles = np.stack(
-            [np.arange(sorted_target_length) for _ in range(target_dim)],
-            axis=1,
-        ) / float(sorted_target_length)
+        quantiles = (
+            np.stack(
+                [np.arange(sorted_target_length) for _ in range(target_dim)],
+                axis=1,
+            )
+            / float(sorted_target_length)
+        )
 
         x_diff = np.diff(sorted_target, axis=0)
         y_diff = np.diff(quantiles, axis=0)

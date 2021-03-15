@@ -7,8 +7,8 @@ from torch import Tensor, nn
 
 class GeLU(nn.Module):
     """
-        Gaussian error Linear Unit
-        y = 1/2 * x * (1 + tanh(\sqrt{2/pi} * (x + 0.044715*x^3)))
+    Gaussian error Linear Unit
+    y = 1/2 * x * (1 + tanh(\sqrt{2/pi} * (x + 0.044715*x^3)))
     """
 
     def forward(self, x: Tensor) -> Tensor:
@@ -37,7 +37,7 @@ class Swish(nn.Sigmoid):
 class PositiveSoftplus(nn.Softplus):
     """
     Softplus function that ensures a strictly positive activation
-    
+
     Parameters
     ----------
     margin : float
@@ -65,7 +65,7 @@ class PositiveSoftplus(nn.Softplus):
 class GatedLinearUnit(nn.Module):
     """
     Gated Linear Unit activation proposed by https://arxiv.org/pdf/1612.08083.pdf
-    
+
     Parameters
     ----------
     dim : int

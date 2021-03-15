@@ -206,7 +206,10 @@ def test_variable_length_stack(pp_dataset, array_type, multi_processing):
     ]
 
     assert isinstance(multi_processing, bool)
-    stacked = stack(arrays, variable_length=True,)
+    stacked = stack(
+        arrays,
+        variable_length=True,
+    )
 
     assert stacked.shape[0] == 3
     assert stacked.shape[1] > 0
@@ -228,7 +231,10 @@ def test_variable_length_stack_zerosize(
     ]
 
     assert isinstance(multi_processing, bool)
-    stacked = stack(arrays, variable_length=True,)
+    stacked = stack(
+        arrays,
+        variable_length=True,
+    )
 
     assert stacked.shape[0] == 5
     assert stacked.shape[1] == 1

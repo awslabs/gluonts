@@ -12,10 +12,10 @@ from torch.distributions import Normal as Gaussian
 class ResidualBlock(nn.Module):
     """
     Network module wrapped by residual connection
-    
+
     Args
     ----------
-    residual_network: nn.Module 
+    residual_network: nn.Module
         the main module to be wrapped
     skip_network: nn.Module, optional
         the auxiliary module to guarantee valid addition

@@ -69,7 +69,12 @@ class EncoderModule(nn.Module):
             # left_pad + right_pad = window_size - 1
             left_pad = wsize // 2
             right_pad = wsize // 2 - (1 - wsize % 2)
-            x = F.pad(s, [left_pad, right_pad], mode="constant", value=0.0,)
+            x = F.pad(
+                s,
+                [left_pad, right_pad],
+                mode="constant",
+                value=0.0,
+            )
             x = F.conv1d(x, self._shape_weights[i], self._shape_biases[i])
             shape.append(x)
         shape = pt.cat(shape, dim=1)
@@ -86,7 +91,9 @@ class EncoderModule(nn.Module):
         return inter_value, extra_value
 
     def forward(
-        self, data: Tensor, feats: Optional[Tensor],
+        self,
+        data: Tensor,
+        feats: Optional[Tensor],
     ):
         if feats is None:
             assert self.d_feats == 0
@@ -99,7 +106,11 @@ class EncoderModule(nn.Module):
 
 
 class DecoderModule(nn.Module):
-    def __init__(self, d_data: int, d_hidden: int,) -> None:
+    def __init__(
+        self,
+        d_data: int,
+        d_hidden: int,
+    ) -> None:
         super(DecoderModule, self).__init__()
         self.d_data = d_data
         self.d_hidden = d_hidden

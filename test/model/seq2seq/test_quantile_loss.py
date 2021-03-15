@@ -19,7 +19,10 @@ from gluonts.mx.block.quantile_output import QuantileLoss
 
 @pytest.mark.parametrize(
     "quantile_weights, correct_qt_loss",
-    [(None, [1.0, 1.8]), ([0.5, 0.5], 1.4),],
+    [
+        (None, [1.0, 1.8]),
+        ([0.5, 0.5], 1.4),
+    ],
 )
 def test_compute_quantile_loss(quantile_weights, correct_qt_loss) -> None:
     y_true = nd.ones(shape=(10, 10, 10))

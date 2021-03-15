@@ -107,14 +107,11 @@ def test_lstnet(
             prediction_length,
             NUM_SERIES,
         )
-        assert (
-            fct.start_date
-            == pd.date_range(
-                start=str(test_ds["start"]),
-                periods=test_ds["target"].shape[1],  # number of test periods
-                freq=freq,
-            )[-prediction_length]
-        )
+        assert fct.start_date == pd.date_range(
+            start=str(test_ds["start"]),
+            periods=test_ds["target"].shape[1],  # number of test periods
+            freq=freq,
+        )[-prediction_length]
 
     evaluator = MultivariateEvaluator(
         quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]

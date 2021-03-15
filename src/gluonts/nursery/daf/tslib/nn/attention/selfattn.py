@@ -26,9 +26,9 @@ class SelfAttention(Attention):
     bidirectional : bool, optional
         if False, add a mask to avoid backward attention, by default False
     apply_rel_dist : Optional[str], optional
-        add relative distance embeddings to dot-product attention, can be 
+        add relative distance embeddings to dot-product attention, can be
             'add' (linearly combine key and dist),
-            'dot' (dot product between key and dist), 
+            'dot' (dot product between key and dist),
             or None (disabled),
         by default None
     share_values : bool, optional
@@ -216,7 +216,7 @@ class GroupSelfAttention(SelfAttention):
     """
     Self-attention module with q,k from the same input tensor.
     The input tensor is the concatenation of `n_groups` of slightly different feature maps.
-    Thus the projections are 1x1 group convolutions. 
+    Thus the projections are 1x1 group convolutions.
     *NOTE*: d_qk, d_hidden, n_head must be divisible by n_groups
     """
 

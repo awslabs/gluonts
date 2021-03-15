@@ -21,7 +21,11 @@ from gluonts.model.rotbaum import TreeEstimator
 
 @pytest.fixture()
 def hyperparameters(dsinfo):
-    return dict(context_length=2, quantiles=[0.1, 0.5, 0.9], num_workers=0,)
+    return dict(
+        context_length=2,
+        quantiles=[0.1, 0.5, 0.9],
+        num_workers=0,
+    )
 
 
 @pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])

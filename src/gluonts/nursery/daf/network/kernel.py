@@ -21,9 +21,9 @@ class InstanceNorm1d(nn.InstanceNorm1d):
 class AttentionKernel(Attention):
     """
     Multi-Head Self-Attention Module.
-    
+
     A kernel function of queries and keys, which is projection of sequence encodings
-    
+
     Parameters
     ----------------
     d_hidden: int
@@ -40,7 +40,7 @@ class AttentionKernel(Attention):
         dropout rate of normalized attention weights
     temperature: float, by default 1.0
         softmax temperature for attention weight normalization
-        
+
     Args
     ------------------
     shape: Tensor [N, *, d_hidden]
@@ -181,7 +181,11 @@ class AttentionKernel(Attention):
             if self.bias:
                 init.zeros_(self.distance_bias)
 
-    def _kernel(self, q: Tensor, k: Tensor,) -> Tensor:
+    def _kernel(
+        self,
+        q: Tensor,
+        k: Tensor,
+    ) -> Tensor:
         raise NotImplementedError
 
     def _compute_attn_score(
@@ -282,7 +286,10 @@ class AttentionKernel(Attention):
         return inter_score, extra_score, inter_dist_comp, extra_dist_comp
 
     def _compute_attn_output(
-        self, score: Tensor, value: Tensor, dist_comp: Tensor,
+        self,
+        score: Tensor,
+        value: Tensor,
+        dist_comp: Tensor,
     ) -> Tuple[Tensor, Tensor]:
         if self.share_values:
             assert value.size(2) == self.d_head
@@ -333,12 +340,20 @@ class AttentionKernel(Attention):
 
 
 class ExpKernel(AttentionKernel):
-    def _kernel(self, q: Tensor, k: Tensor,) -> Tensor:
+    def _kernel(
+        self,
+        q: Tensor,
+        k: Tensor,
+    ) -> Tensor:
         return pt.matmul(q, k.transpose(-1, -2)) / self.bandwidth
 
 
 class RBFKernel(AttentionKernel):
-    def _kernel(self, q: Tensor, k: Tensor,) -> Tensor:
+    def _kernel(
+        self,
+        q: Tensor,
+        k: Tensor,
+    ) -> Tensor:
         q = q.unsqueeze(dim=-2)
         k = k.unsqueeze(dim=-3)
         score = -pt.sum(pt.pow(q - k, 2), dim=-1) / self.bandwidth

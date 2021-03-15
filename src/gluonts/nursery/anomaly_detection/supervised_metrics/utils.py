@@ -17,7 +17,10 @@ import numpy as np
 from numba import jit
 
 
-def range_overlap(left_range: range, right_range: range,) -> bool:
+def range_overlap(
+    left_range: range,
+    right_range: range,
+) -> bool:
     """
     Checks if two ranges have an overlap.
     Here each range is assumed to be consecutive, i.e., `step` field of `range` is always 1.
@@ -99,7 +102,9 @@ def labels_to_ranges(labels: List[bool]) -> List[range]:
     return [range(pair[0], pair[1]) for pair in ls_pairs]
 
 
-def ranges_to_singletons(ranges: List[range],) -> List[range]:
+def ranges_to_singletons(
+    ranges: List[range],
+) -> List[range]:
     """
     Convenient function to convert list of consecutive ranges to list of singleton ranges.
 

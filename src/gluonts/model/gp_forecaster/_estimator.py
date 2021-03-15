@@ -186,7 +186,9 @@ class GaussianProcessEstimator(GluonEstimator):
         )
 
     def create_training_data_loader(
-        self, data: Dataset, **kwargs,
+        self,
+        data: Dataset,
+        **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(
             GaussianProcessTrainingNetwork
@@ -202,7 +204,9 @@ class GaussianProcessEstimator(GluonEstimator):
         )
 
     def create_validation_data_loader(
-        self, data: Dataset, **kwargs,
+        self,
+        data: Dataset,
+        **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(
             GaussianProcessTrainingNetwork

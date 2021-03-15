@@ -37,12 +37,18 @@ QUANTILES = [str(q / 10.0) for q in range(1, 10)]
         (
             np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([0.1, 0.01, 0.001, 0.0001, 0.00001]),
-            {Evaluator.mape: np.nan, Evaluator.smape: 2.0,},
+            {
+                Evaluator.mape: np.nan,
+                Evaluator.smape: 2.0,
+            },
         ),
         (
             np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
-            {Evaluator.mape: np.nan, Evaluator.smape: np.nan,},
+            {
+                Evaluator.mape: np.nan,
+                Evaluator.smape: np.nan,
+            },
         ),
     ],
 )

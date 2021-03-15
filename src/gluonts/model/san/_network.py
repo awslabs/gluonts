@@ -71,7 +71,12 @@ class SelfAttentionBlock(HybridBlock):
                 prefix="ffn_",
             )
 
-    def hybrid_forward(self, F, x: Tensor, mask: Tensor,) -> Tensor:
+    def hybrid_forward(
+        self,
+        F,
+        x: Tensor,
+        mask: Tensor,
+    ) -> Tensor:
         skip = x
         if self.pre_ln:
             x = self.lnorm(x)
@@ -265,7 +270,8 @@ class SelfAttentionNetwork(HybridBlock):
             is_past=False,
         )
         past_observed_values = F.broadcast_logical_and(
-            past_observed_values, F.logical_not(past_is_pad),
+            past_observed_values,
+            F.logical_not(past_is_pad),
         )
 
         return (

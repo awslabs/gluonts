@@ -4,7 +4,12 @@ from torch.nn import init, functional as F
 
 
 class SimpleDiscriminator(nn.Module):
-    def __init__(self, d_model: int, n_layer: int, n_hidden: int = 1,) -> None:
+    def __init__(
+        self,
+        d_model: int,
+        n_layer: int,
+        n_hidden: int = 1,
+    ) -> None:
         super(SimpleDiscriminator, self).__init__()
         self.d_model = d_model
         self.d_hidden = d_model * n_hidden

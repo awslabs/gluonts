@@ -164,7 +164,9 @@ class LevelISSM(ISSM):
 
         # get the right shape: (batch_size, time_length, obs_dim, latent_dim)
         zeros = _broadcast_param(
-            feature.squeeze(axis=2), axes=[2, 3], sizes=[1, self.latent_dim()],
+            feature.squeeze(axis=2),
+            axes=[2, 3],
+            sizes=[1, self.latent_dim()],
         )
 
         return _emission_coeff.broadcast_like(zeros)

@@ -18,7 +18,8 @@ class ForecastingDataset(WindowsDataset):
         gap: int = 0,
     ) -> None:
         super(ForecastingDataset, self).__init__(
-            corpus=corpus, windows=windows,
+            corpus=corpus,
+            windows=windows,
         )
         self.horizon = horizon
         self.context = context
@@ -51,7 +52,9 @@ class ForecastingDataset(WindowsDataset):
         shift = shift or horizon
         windows = []
         for scope_id, series in tqdm(
-            enumerate(corpus), desc="Building dataset", total=len(corpus),
+            enumerate(corpus),
+            desc="Building dataset",
+            total=len(corpus),
         ):
             stop = len(series) - horizon
             start = gap
@@ -61,7 +64,11 @@ class ForecastingDataset(WindowsDataset):
                 [(scope_id, index) for index in np.arange(stop, start, -shift)]
             )
         return cls(
-            corpus, windows=windows, horizon=horizon, context=context, gap=gap,
+            corpus,
+            windows=windows,
+            horizon=horizon,
+            context=context,
+            gap=gap,
         )
 
     @classmethod
@@ -79,7 +86,9 @@ class ForecastingDataset(WindowsDataset):
         all_windows = []
         weights = []
         for scope_id, series in tqdm(
-            enumerate(corpus), desc="Building dataset", total=len(corpus),
+            enumerate(corpus),
+            desc="Building dataset",
+            total=len(corpus),
         ):
             stop = len(series) - horizon
             start = gap
@@ -105,5 +114,9 @@ class ForecastingDataset(WindowsDataset):
         )
         windows = [all_windows[i] for i in windows_idx]
         return cls(
-            corpus, windows=windows, horizon=horizon, context=context, gap=gap,
+            corpus,
+            windows=windows,
+            horizon=horizon,
+            context=context,
+            gap=gap,
         )

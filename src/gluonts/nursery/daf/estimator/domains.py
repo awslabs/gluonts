@@ -63,7 +63,10 @@ class AdversarialDomAdaptEstimator(DomAdaptEstimator):
         disc_lambda: float = 1.0,
     ) -> None:
         super(AdversarialDomAdaptEstimator, self).__init__(
-            src_module, tgt_module, balance_loss, forecast_target,
+            src_module,
+            tgt_module,
+            balance_loss,
+            forecast_target,
         )
         self.disc_lambda = disc_lambda
         self._generative = True

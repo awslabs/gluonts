@@ -71,7 +71,9 @@ def extend_ranges(
 
 
 def buffered_precision_recall(
-    real_ranges: List[range], pred_ranges: List[range], buffer_length: int = 5,
+    real_ranges: List[range],
+    pred_ranges: List[range],
+    buffer_length: int = 5,
 ) -> Tuple[float, float]:
     """
     Implements a new range-based precision recall metric, that measures how well anomalies

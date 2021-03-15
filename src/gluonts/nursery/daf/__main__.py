@@ -50,7 +50,8 @@ _horizons = {
 
 
 def update_configs(
-    configs: NestedNamespace, defaults: dict,
+    configs: NestedNamespace,
+    defaults: dict,
 ) -> NestedNamespace:
     for key, value in defaults.items():
         if isinstance(value, dict):
@@ -176,7 +177,9 @@ S1 = AttentionEstimator.from_configs(
 )
 args.train.log_dir = f"dumps/{exp_name}/src"
 S1_trainer = AttentionTrainer.from_configs(
-    src_dataset, S1, **vars(args.train),
+    src_dataset,
+    S1,
+    **vars(args.train),
 )
 pt.cuda.manual_seed_all(seed)
 S1_trainer.fit()
@@ -193,7 +196,9 @@ T0 = AttentionEstimator.from_configs(
 )
 args.train.log_dir = f"dumps/{exp_name}/tgt"
 T0_trainer = AttentionTrainer.from_configs(
-    tgt_dataset, T0, **vars(args.train),
+    tgt_dataset,
+    T0,
+    **vars(args.train),
 )
 pt.cuda.manual_seed_all(seed)
 T0_trainer.fit()
@@ -210,7 +215,11 @@ T1 = S1.create_twin_estimator(
 )
 DA = DomAdaptEstimator(S1, T1)
 args.train.log_dir = f"dumps/{exp_name}/da"
-DA_trainer = DomAdaptTrainer.from_configs(DA_dataset, DA, **vars(args.train),)
+DA_trainer = DomAdaptTrainer.from_configs(
+    DA_dataset,
+    DA,
+    **vars(args.train),
+)
 DA_trainer.fit()
 DA_evaluator = DomAdaptEvaluator.from_trainer(DA_trainer, "best")
 DA_evaluator.evaluate()
@@ -226,7 +235,9 @@ T2 = S2.create_twin_estimator(
 ADV = AdversarialDomAdaptEstimator(S2, T2)
 args.train.log_dir = f"dumps/{exp_name}/adv"
 ADV_trainer = AdversarialDomAdaptTrainer.from_configs(
-    DA_dataset, ADV, **vars(args.train),
+    DA_dataset,
+    ADV,
+    **vars(args.train),
 )
 ADV_trainer.fit()
 ADV_evaluator = AdversarialDomAdaptEvaluator.from_trainer(ADV_trainer, "best")

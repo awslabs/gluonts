@@ -260,7 +260,11 @@ class AttentionEstimator(nn.Module):
                         dim=1,
                         index=selected_index.unsqueeze(dim=2).expand_as(feats),
                     )
-                mask = pt.gather(mask, dim=1, index=selected_index,)
+                mask = pt.gather(
+                    mask,
+                    dim=1,
+                    index=selected_index,
+                )
 
             # split condition and target
             cond_length = full_length - max_horizon
@@ -343,7 +347,10 @@ class AttentionEstimator(nn.Module):
         )
 
     def create_twin_estimator(
-        self, d_data: int, d_feats: int, **distinct_configs,
+        self,
+        d_data: int,
+        d_feats: int,
+        **distinct_configs,
     ):
         kernels = [block.kernel for block in self.blocks]
         d_value = (
@@ -382,7 +389,10 @@ class AttentionEstimator(nn.Module):
             *window_size,
             tie_casts=tie_casts,
         )
-        decoder = DecoderModule(d_data, d_hidden,)
+        decoder = DecoderModule(
+            d_data,
+            d_hidden,
+        )
         if self.tie_layers:
             encoders = [encoder] * self.n_layer
             decoders = [decoder] * self.n_layer
@@ -492,7 +502,10 @@ class AdversarialEstimator(AttentionEstimator):
             norm=norm,
             add_dist=add_dist,
         )
-        disc = SimpleDiscriminator(d_model=d_hidden, n_layer=n_disc_layer,)
+        disc = SimpleDiscriminator(
+            d_model=d_hidden,
+            n_layer=n_disc_layer,
+        )
         encoder = EncoderModule(
             d_data,
             d_feats,
@@ -501,7 +514,10 @@ class AdversarialEstimator(AttentionEstimator):
             *window_size,
             tie_casts=tie_casts,
         )
-        decoder = DecoderModule(d_data, d_hidden,)
+        decoder = DecoderModule(
+            d_data,
+            d_hidden,
+        )
         if tie_layers:
             encoders = [encoder] * n_layer
             decoders = [decoder] * n_layer
@@ -526,7 +542,9 @@ class AdversarialEstimator(AttentionEstimator):
 
     @classmethod
     def from_base(
-        cls, base: AttentionEstimator, n_disc_layer: int = 2,
+        cls,
+        base: AttentionEstimator,
+        n_disc_layer: int = 2,
     ):
         kernels = [deepcopy(block.kernel) for block in base.blocks]
         encoders = [deepcopy(block.encoder) for block in base.blocks]
@@ -553,7 +571,10 @@ class AdversarialEstimator(AttentionEstimator):
         )
 
     def create_twin_estimator(
-        self, d_data: int, d_feats: int, **distinct_configs,
+        self,
+        d_data: int,
+        d_feats: int,
+        **distinct_configs,
     ):
         kernels = [block.kernel for block in self.blocks]
         discs = [block.disc for block in self.blocks]
@@ -593,7 +614,10 @@ class AdversarialEstimator(AttentionEstimator):
             *window_size,
             tie_casts=tie_casts,
         )
-        decoder = DecoderModule(d_data, d_hidden,)
+        decoder = DecoderModule(
+            d_data,
+            d_hidden,
+        )
         if self.tie_layers:
             encoders = [encoder] * self.n_layer
             decoders = [decoder] * self.n_layer

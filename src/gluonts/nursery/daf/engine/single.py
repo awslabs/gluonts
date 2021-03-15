@@ -28,7 +28,9 @@ class AttentionTrainer(Trainer):
         for batch, data in enumerate(self.train_loader):
             self.callbacks.on_batch_begin(batch)
             self._train(*data)
-            self.callbacks.on_batch_end(batch,)
+            self.callbacks.on_batch_end(
+                batch,
+            )
             if self._signal_break:
                 break
 
@@ -164,6 +166,8 @@ class AttentionEvaluator(Evaluator):
 
     @classmethod
     def from_trainer(
-        cls, trainer: AttentionTrainer, model_tag: str = "best",
+        cls,
+        trainer: AttentionTrainer,
+        model_tag: str = "best",
     ):
         return super(AttentionEvaluator, cls).from_trainer(trainer, model_tag)
