@@ -213,6 +213,7 @@ class TreePredictor(RepresentablePredictor):
                 executor.submit(
                     model.fit, feature_data, np.array(target_data)[:, n_step]
                 )
+        return self
 
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None

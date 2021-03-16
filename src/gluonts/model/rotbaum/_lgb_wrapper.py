@@ -15,13 +15,14 @@ import pandas as pd
 
 from lightgbm import LGBMRegressor
 
+from gluonts.core.component import validated
 
 class lgb_wrapper:
     """
     A wrapped of lightgbm that can be fed into the model parameters in QRX
     and TreePredictor.
     """
-
+    @validated()
     def __init__(self, **lgb_params):
         self.model = LGBMRegressor(**lgb_params)
 
