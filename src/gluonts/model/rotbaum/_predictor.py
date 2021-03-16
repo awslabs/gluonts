@@ -12,21 +12,15 @@
 # permissions and limitations under the License.
 
 import concurrent.futures
-import json
 import logging
 from itertools import chain
-from pathlib import Path
 from typing import Iterator, List, Optional
 
 import numpy as np
 import pandas as pd
 
-import gluonts
-from gluonts.core import fqname_for
-from gluonts.core.component import equals, validated
-from gluonts.core.serde import dump_json, load_json
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import DataBatch
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once
 from gluonts.model.predictor import RepresentablePredictor
@@ -123,6 +117,7 @@ class TreePredictor(RepresentablePredictor):
         max_workers: Optional[int] = None,
         method: str = "QRX",
         quantiles=None,  # Used only for "QuantileRegression" method.
+        model=None,
     ) -> None:
         assert method in [
             "QRX",
@@ -168,6 +163,7 @@ class TreePredictor(RepresentablePredictor):
         self.max_workers = max_workers
         self.clump_size = clump_size
         self.quantiles = quantiles
+        self.model = model
         self.model_list = None
 
         logger.info(
@@ -202,6 +198,7 @@ class TreePredictor(RepresentablePredictor):
                 QRX(
                     xgboost_params=self.model_params,
                     clump_size=self.clump_size,
+                    model=self.model,
                 )
                 for _ in range(n_models)
             ]
@@ -216,8 +213,6 @@ class TreePredictor(RepresentablePredictor):
                 executor.submit(
                     model.fit, feature_data, np.array(target_data)[:, n_step]
                 )
-
-        return self
 
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None

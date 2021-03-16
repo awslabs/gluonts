@@ -13,6 +13,7 @@
 
 from typing import Dict, List, Optional
 
+import copy
 import numpy as np
 import pandas as pd
 import xgboost
@@ -99,7 +100,7 @@ class QRX:
             true values associated with each prediction.
         """
         if model:
-            self.model = model
+            self.model = copy.deepcopy(model)
         else:
             self.model = self._create_xgboost_model(xgboost_params)
         self.clump_size = clump_size
