@@ -28,8 +28,10 @@ class lgb_wrapper:
     def __init__(self, **lgb_params):
         self.model = LGBMRegressor(**lgb_params)
 
-    def fit(self, train_data, train_target):
-        self.model.fit(pd.DataFrame(train_data), train_target)
+    def fit(self, train_data, train_target, eval_set=None):
+        self.model.fit(
+            pd.DataFrame(train_data), train_target, eval_set=eval_set
+        )
 
     def predict(self, data):
         return self.model.predict(pd.DataFrame(data))
