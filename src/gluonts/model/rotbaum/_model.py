@@ -124,7 +124,15 @@ class QRX:
             }
         return xgboost.sklearn.XGBModel(**model_params)
 
-    def fit(self, x_train, y_train, max_sample_size=None, seed=1, **kwargs):
+    def fit(
+        self,
+        x_train,
+        y_train,
+        max_sample_size=None,
+        seed=1,
+        x_train_is_dataframe=False,
+        **kwargs
+    ):
         """
         Fits self.model and partitions R^n into cells. More accurately,
         it creates a dictionary taking predictions on train to lists of
@@ -132,9 +140,9 @@ class QRX:
 
         Parameters
         ----------
-        x_train: list
-            list of lists
-        y_train: list
+        x_train: pd.DataFrame (if x_train_is_dataframe) or list (else)
+            list of lists or pd.DataFrame
+        y_train: pd.Series (if x_train_is_dataframe) or list (else)
         eval_set: list of tuples of train (list of lists) and labels
             Optional. Main use case is if using lightgbm.
         max_sample_size: int
@@ -142,13 +150,24 @@ class QRX:
             min(max_sample_size, len(x_train)) many datapoints to train on.
         seed: int
             seed for sampling purposes
+        x_train_is_dataframe: bool
+            This should be False for XGBoost, but True if one uses lightgbm
         """
         self.quantile_dicts = {}
-        x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
+        if not x_train_is_dataframe:
+            x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
         # doens't like lists
-        if max_sample_size:
+        sample_size = min(max_sample_size, len(x_train))
+        if max_sample_size and x_train_is_dataframe:
             assert max_sample_size > 0
-            sample_size = min(max_sample_size, len(x_train))
+            x_train = x_train.sample(
+                n=min(sample_size, len(x_train)),
+                replace=False,
+                random_state=seed,
+            )
+            y_train = y_train[x_train.index]
+        elif max_sample_size:
+            assert max_sample_size > 0
             np.random.seed(seed)
             idx = np.random.choice(
                 np.arange(len(x_train)), sample_size, replace=False
