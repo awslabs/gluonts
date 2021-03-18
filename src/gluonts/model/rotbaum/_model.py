@@ -150,8 +150,9 @@ class QRX:
             assert max_sample_size > 0
             sample_size = min(max_sample_size, len(x_train))
             np.random.seed(seed)
-            idx = np.random.choice(np.arange(len(x_train)), sample_size,
-                                   replace=False)
+            idx = np.random.choice(
+                np.arange(len(x_train)), sample_size, replace=False
+            )
             x_train = x_train[idx]
             y_train = y_train[idx]
         self.model.fit(x_train, y_train, **kwargs)
