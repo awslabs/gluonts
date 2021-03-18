@@ -124,7 +124,7 @@ class QRX:
             }
         return xgboost.sklearn.XGBModel(**model_params)
 
-    def fit(self, x_train, y_train, eval_set=None):
+    def fit(self, x_train, y_train, **kwargs):
         """
         Fits self.model and partitions R^n into cells. More accurately,
         it creates a dictionary taking predictions on train to lists of
@@ -141,12 +141,7 @@ class QRX:
         self.quantile_dicts = {}
         x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
         # doens't like lists
-        if eval_set:
-            self.model.fit(
-                np.array(x_train), np.array(y_train), eval_set=eval_set
-            )
-        else:
-            self.model.fit(np.array(x_train), np.array(y_train))
+        self.model.fit(np.array(x_train), np.array(y_train), **kwargs)
         y_train_pred = self.model.predict(x_train)
         self.df = pd.DataFrame(
             {"x": list(x_train), "y_true": y_train, "y_pred": y_train_pred}
