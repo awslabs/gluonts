@@ -154,12 +154,12 @@ class QRX:
             This should be False for XGBoost, but True if one uses lightgbm
         """
         self.quantile_dicts = {}
-        if not x_train_is_dataframe:
+        if x_train_is_dataframe == False:
             x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
         # doens't like lists
-        sample_size = min(max_sample_size, len(x_train))
         if max_sample_size and x_train_is_dataframe:
             assert max_sample_size > 0
+            sample_size = min(max_sample_size, len(x_train))
             x_train = x_train.sample(
                 n=min(sample_size, len(x_train)),
                 replace=False,
@@ -168,6 +168,7 @@ class QRX:
             y_train = y_train[x_train.index]
         elif max_sample_size:
             assert max_sample_size > 0
+            sample_size = min(max_sample_size, len(x_train))
             np.random.seed(seed)
             idx = np.random.choice(
                 np.arange(len(x_train)), sample_size, replace=False
