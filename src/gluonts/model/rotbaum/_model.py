@@ -178,8 +178,12 @@ class QRX:
         self.model.fit(x_train, y_train, **kwargs)
         y_train_pred = self.model.predict(x_train)
         self.df = pd.DataFrame(
-            {"x": np.array(x_train), "y_true": y_train, "y_pred": y_train_pred}
-        )
+            {
+                "x": list(np.array(x_train)),
+                "y_true": y_train,
+                "y_pred": y_train_pred,
+            }
+        ).reset_index(drop=True)
         self.cell_values_dict = self.preprocess_df(
             self.df, clump_size=self.clump_size
         )
