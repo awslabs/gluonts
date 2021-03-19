@@ -179,7 +179,7 @@ class QRX:
         y_train_pred = self.model.predict(x_train)
         self.df = pd.DataFrame(
             {
-                "x": list(np.array(x_train)), #this uniformly deals with
+                "x": list(np.array(x_train)),  # this uniformly deals with
                 # both the x_train_is_dataframe is True and False cases
                 "y_true": y_train,
                 "y_pred": y_train_pred,
