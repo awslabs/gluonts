@@ -1,12 +1,11 @@
 # Source code of paper "Attention-based Domain Adaptation for Time Series Forecasting"
 
 ## Filetree
-* data: dataset files and data readers
 * tslib: time series analysis infrastructure
-* nbeats: N-BEATS and MetaF baseline
-* convtrans: ConvTrans baseline
-* doad: DAF and its variants
-* dumps: model checkpoints and logs
+* network: basic neural network structures
+* estimator: high-level nerual architectures
+* engine: trainer and evaluators
+* dataset.py: dataset objects for training
 
 
 ## Reproducibility
