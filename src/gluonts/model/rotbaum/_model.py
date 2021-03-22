@@ -156,7 +156,7 @@ class QRX:
         """
         self.x_train_is_dataframe = x_train_is_dataframe
         self.quantile_dicts = {}
-        if x_train_is_dataframe == False:
+        if not x_train_is_dataframe:
             x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
         # doens't like lists
         if max_sample_size and x_train_is_dataframe:
