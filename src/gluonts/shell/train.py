@@ -13,6 +13,7 @@
 
 import json
 import logging
+import multiprocessing
 from typing import Any, Optional, Type, Union
 
 import gluonts
@@ -90,6 +91,8 @@ def run_train(
         if "num_workers" in hyperparameters.keys()
         else None
     )
+    if num_workers:
+        multiprocessing.set_start_method("spawn", force=True)
     shuffle_buffer_length = (
         int(hyperparameters["shuffle_buffer_length"])
         if "shuffle_buffer_length" in hyperparameters.keys()
