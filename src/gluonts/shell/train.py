@@ -32,6 +32,7 @@ from gluonts.transform import FilterTransformation, TransformedDataset
 
 from .env import TrainEnv
 
+multiprocessing.set_start_method("spawn", force=True)
 logger = logging.getLogger(__name__)
 
 
@@ -91,8 +92,6 @@ def run_train(
         if "num_workers" in hyperparameters.keys()
         else None
     )
-    if num_workers:
-        multiprocessing.set_start_method("spawn", force=True)
     shuffle_buffer_length = (
         int(hyperparameters["shuffle_buffer_length"])
         if "shuffle_buffer_length" in hyperparameters.keys()
