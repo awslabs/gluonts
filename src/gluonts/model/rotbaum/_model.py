@@ -108,6 +108,7 @@ class QRX:
         self.processed_df = None
         self.cell_values = None
         self.cell_values_dict = None
+        self.x_train_is_dataframe = None
         self.quantile_dicts = {}
 
     @staticmethod
@@ -124,7 +125,15 @@ class QRX:
             }
         return xgboost.sklearn.XGBModel(**model_params)
 
-    def fit(self, x_train, y_train, max_sample_size=None, seed=1, **kwargs):
+    def fit(
+        self,
+        x_train,
+        y_train,
+        max_sample_size=None,
+        seed=1,
+        x_train_is_dataframe=False,
+        **kwargs
+    ):
         """
         Fits self.model and partitions R^n into cells. More accurately,
         it creates a dictionary taking predictions on train to lists of
@@ -132,9 +141,9 @@ class QRX:
 
         Parameters
         ----------
-        x_train: list
-            list of lists
-        y_train: list
+        x_train: pd.DataFrame (if x_train_is_dataframe) or list (else)
+            list of lists or pd.DataFrame
+        y_train: pd.Series (if x_train_is_dataframe) or list (else)
         eval_set: list of tuples of train (list of lists) and labels
             Optional. Main use case is if using lightgbm.
         max_sample_size: int
@@ -142,11 +151,24 @@ class QRX:
             min(max_sample_size, len(x_train)) many datapoints to train on.
         seed: int
             seed for sampling purposes
+        x_train_is_dataframe: bool
+            This should be False for XGBoost, but True if one uses lightgbm
         """
+        self.x_train_is_dataframe = x_train_is_dataframe
         self.quantile_dicts = {}
-        x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
+        if not x_train_is_dataframe:
+            x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
         # doens't like lists
-        if max_sample_size:
+        if max_sample_size and x_train_is_dataframe:
+            assert max_sample_size > 0
+            sample_size = min(max_sample_size, len(x_train))
+            x_train = x_train.sample(
+                n=min(sample_size, len(x_train)),
+                replace=False,
+                random_state=seed,
+            )
+            y_train = y_train[x_train.index]
+        elif max_sample_size:
             assert max_sample_size > 0
             sample_size = min(max_sample_size, len(x_train))
             np.random.seed(seed)
@@ -158,8 +180,11 @@ class QRX:
         self.model.fit(x_train, y_train, **kwargs)
         y_train_pred = self.model.predict(x_train)
         self.df = pd.DataFrame(
-            {"x": list(x_train), "y_true": y_train, "y_pred": y_train_pred}
-        )
+            {
+                "y_true": y_train,
+                "y_pred": y_train_pred,
+            }
+        ).reset_index(drop=True)
         self.cell_values_dict = self.preprocess_df(
             self.df, clump_size=self.clump_size
         )
@@ -304,15 +329,15 @@ class QRX:
 
         Parameters
         ----------
-        x_test: list of lists
-        quantile
+        x_test: pd.DataFrame if self.x_train_is_dataframe, else list of
+        lists
+        quantile: float
 
         Returns
         -------
         list
             list of floats
         """
-        predicted_values = []
         if quantile in self.quantile_dicts:
             quantile_dic = self.quantile_dicts[quantile]
         else:
@@ -321,13 +346,20 @@ class QRX:
             )
             self.quantile_dicts[quantile] = quantile_dic
         # Remember dic per quantile and use if already done
-        for pt in x_test:
-            pred = self.model.predict(np.array([pt]))[
-                0
-            ]  # xgboost doesn't like
-            # lists
-            closest_pred = self.get_closest_pt(self.cell_values, pred)
-            predicted_values.append(quantile_dic[closest_pred])
+        if self.x_train_is_dataframe:
+            preds = self.model.predict(x_test)
+            predicted_values = [
+                quantile_dic[self.get_closest_pt(self.cell_values, pred)]
+                for pred in preds
+            ]
+        else:
+            predicted_values = []
+            for pt in x_test:
+                pred = self.model.predict(np.array([pt]))[
+                    0
+                ]  # xgboost doesn't like lists
+                closest_pred = self.get_closest_pt(self.cell_values, pred)
+                predicted_values.append(quantile_dic[closest_pred])
         return predicted_values
 
     def estimate_dist(self, x_test: List[List[float]]) -> List:
