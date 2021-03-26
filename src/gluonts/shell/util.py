@@ -12,12 +12,11 @@
 # permissions and limitations under the License.
 
 import pydoc
-from typing import Optional, Type, Union, cast
+from typing import Type, Union, cast
 
 import pkg_resources
 
 from gluonts.core.exception import GluonTSForecasterNotFoundError
-
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 

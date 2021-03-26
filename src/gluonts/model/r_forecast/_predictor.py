@@ -11,16 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import os
 from pathlib import Path
 from typing import Dict, Iterator, Optional
 
-# Third-party imports
 import numpy as np
-import pandas as pd
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import SampleForecast
@@ -57,7 +53,7 @@ class RForecastPredictor(RepresentablePredictor):
         Number of time points to be predicted.
     method
         The method from rforecast to be used one of
-        "ets", "arima", "tbats", "croston", "mlp".
+        "ets", "arima", "tbats", "croston", "mlp", "thetaf".
     period
         The period to be used (this is called `frequency` in the R forecast
         package), result to a tentative reasonable default if not specified
@@ -83,8 +79,8 @@ class RForecastPredictor(RepresentablePredictor):
         super().__init__(freq=freq, prediction_length=prediction_length)
 
         try:
-            from rpy2 import robjects, rinterface
             import rpy2.robjects.packages as rpackages
+            from rpy2 import rinterface, robjects
             from rpy2.rinterface import RRuntimeError
         except ImportError as e:
             raise ImportError(str(e) + USAGE_MESSAGE) from e
@@ -107,7 +103,14 @@ class RForecastPredictor(RepresentablePredictor):
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
-        supported_methods = ["ets", "arima", "tbats", "croston", "mlp"]
+        supported_methods = [
+            "ets",
+            "arima",
+            "tbats",
+            "croston",
+            "mlp",
+            "thetaf",
+        ]
         assert (
             method_name in supported_methods
         ), f"method {method_name} is not supported please use one of {supported_methods}"

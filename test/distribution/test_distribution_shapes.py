@@ -12,16 +12,18 @@
 # permissions and limitations under the License.
 
 from typing import Tuple
-import pytest
 
 import mxnet as mx
+import pytest
 
-from gluonts.support.util import make_nd_diag
+from gluonts.model.tpp.distribution import Loglogistic, Weibull
 from gluonts.mx.distribution import (
-    Distribution,
-    Gaussian,
-    Gamma,
     Beta,
+    Dirichlet,
+    DirichletMultinomial,
+    Distribution,
+    Gamma,
+    Gaussian,
     Laplace,
     MixtureDistribution,
     MultivariateGaussian,
@@ -29,14 +31,12 @@ from gluonts.mx.distribution import (
     PiecewiseLinear,
     Poisson,
     StudentT,
-    Uniform,
     TransformedDistribution,
-    Dirichlet,
-    DirichletMultinomial,
+    Uniform,
 )
 from gluonts.mx.distribution.bijection import AffineTransformation
 from gluonts.mx.distribution.box_cox_transform import BoxCoxTransform
-from gluonts.model.tpp.distribution import Loglogistic, Weibull
+from gluonts.mx.util import make_nd_diag
 
 
 @pytest.mark.parametrize(
@@ -222,13 +222,17 @@ from gluonts.model.tpp.distribution import Loglogistic, Weibull
         ),
         (
             Loglogistic(
-                mx.nd.zeros(shape=(3, 4, 5)), mx.nd.ones(shape=(3, 4, 5)),
+                mx.nd.zeros(shape=(3, 4, 5)),
+                mx.nd.ones(shape=(3, 4, 5)),
             ),
             (3, 4, 5),
             (),
         ),
         (
-            Weibull(mx.nd.ones(shape=(3, 4, 5)), mx.nd.ones(shape=(3, 4, 5)),),
+            Weibull(
+                mx.nd.ones(shape=(3, 4, 5)),
+                mx.nd.ones(shape=(3, 4, 5)),
+            ),
             (3, 4, 5),
             (),
         ),

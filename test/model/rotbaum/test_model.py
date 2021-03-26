@@ -11,18 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import numpy as np
 from itertools import chain
+
+import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.model.rotbaum import TreeEstimator
 
 
 @pytest.fixture()
 def hyperparameters(dsinfo):
-    return dict(context_length=2, quantiles=[0.1, 0.5, 0.9], num_workers=0,)
+    return dict(
+        context_length=2,
+        quantiles=[0.1, 0.5, 0.9],
+        num_workers=0,
+    )
 
 
 @pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])

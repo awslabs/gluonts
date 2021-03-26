@@ -11,44 +11,40 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
 import json
+import multiprocessing as mp
 import random
 import tempfile
 import time
-import multiprocessing as mp
-
-# Third-party imports
 from collections import defaultdict
+from functools import partial
+from itertools import islice
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from mxnet.context import current_context
-from flaky import flaky
 import pytest
+from flaky import flaky
+from mxnet.context import current_context
 
-# First-party imports
+from gluonts.dataset.artificial import ConstantDataset, constant_dataset
+from gluonts.dataset.common import FileDataset, ListDataset
+
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
+    InferenceDataLoader,
     TrainDataLoader,
     ValidationDataLoader,
-    InferenceDataLoader,
 )
-from gluonts.dataset.common import ListDataset, FileDataset
-from gluonts.transform import (
-    Chain,
-    UniformSplitSampler,
-    InstanceSplitter,
-    InstanceSampler,
-)
-from gluonts.dataset.artificial import ConstantDataset
-
+from gluonts.evaluation import backtest_metrics, Evaluator
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.trainer import Trainer
-from gluonts.dataset.artificial import constant_dataset
-from gluonts.evaluation import Evaluator
+from gluonts.transform import (
+    InstanceSampler,
+    InstanceSplitter,
+    UniformSplitSampler,
+)
 
 # CONSTANTS:
 
@@ -57,7 +53,6 @@ NUM_WORKERS_MP = (
     5  # 5 is specific and intentional, see train set soft constraint test
 )
 CONTEXT_LEN = 7
-SPLITTING_SAMPLE_PROBABILITY = 1  # crucial for the ValidationDataLoader test
 CD_NUM_STEPS = 14
 CD_NUM_TIME_SERIES = 47  # too small and batch test might fail
 CD_MAX_LEN_MULTIPLICATION_FACTOR = 3
@@ -99,21 +94,18 @@ def get_dataset_and_transformation():
     list_dataset_pred_length = dataset.prediction_length
 
     # use every possible time point to split the time series
-    transformation = Chain(
-        [
-            InstanceSplitter(
-                target_field=FieldName.TARGET,
-                is_pad_field=FieldName.IS_PAD,
-                start_field=FieldName.START,
-                forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=UniformSplitSampler(
-                    p=SPLITTING_SAMPLE_PROBABILITY  # THIS IS IMPORTANT FOR THE TEST
-                ),
-                past_length=CONTEXT_LEN,
-                future_length=list_dataset_pred_length,
-                dummy_value=1.0,
-            ),
-        ]
+    transformation = InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=UniformSplitSampler(
+            p=1.0,
+            min_future=list_dataset_pred_length,
+        ),
+        past_length=CONTEXT_LEN,
+        future_length=list_dataset_pred_length,
+        dummy_value=1.0,
     )
 
     # original no multiprocessing processed validation dataset
@@ -122,8 +114,9 @@ def get_dataset_and_transformation():
             dataset=list_dataset,
             transform=transformation,
             batch_size=BATCH_SIZE,
-            num_workers=0,  # This is the crucial difference
-            ctx=current_context(),
+            stack_fn=partial(batchify, ctx=current_context()),
+            decode_fn=partial(as_in_context, ctx=current_context()),
+            num_workers=None,  # This is the crucial difference
         )
     )
 
@@ -150,6 +143,14 @@ def get_transformation_counts(dataset):
     return transformation_counts
 
 
+class ExactlyOneSampler(InstanceSampler):
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+        window_size = b - a + 1
+        assert window_size > 0
+        return np.array([a])
+
+
 # The idea is to test that the validation data loader yields equivalent results
 def test_validation_loader_equivalence() -> None:
     (
@@ -158,14 +159,14 @@ def test_validation_loader_equivalence() -> None:
         list_dataset_pred_length,
         train_data_transformed_original,
     ) = get_dataset_and_transformation()
-    current_desired_context = current_context()
 
     validation_dataset_loader = ValidationDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_desired_context,
     )
 
     # multi-processed validation dataset
@@ -194,14 +195,22 @@ def test_validation_loader_equivalence() -> None:
 
     assert (
         mp_val_data_loader_result_02[0]["past_target"].context
-        == current_desired_context
+        == current_context()
     ), "Batches in incorrect context"
 
 
 @flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     "num_workers",
-    [i for i in [None, 1, 2,] if i is None or i <= mp.cpu_count()],
+    [
+        i
+        for i in [
+            None,
+            1,
+            2,
+        ]
+        if i is None or i <= mp.cpu_count()
+    ],
     # TODO: using more than 2 is a problem for our tests, if some of the cores are busy and fall behind
     # TODO: using multiple input queues in the loader would make this pass no matter how busy each core is
     # [i for i in [None, 1, 2, 3, 4] if i is None or i <= mp.cpu_count()],
@@ -209,8 +218,9 @@ def test_validation_loader_equivalence() -> None:
 def test_train_loader_goes_over_all_data(num_workers) -> None:
     batch_size = 4
     num_batches_per_epoch = 4
-
-    X = 3
+    num_time_series = batch_size * num_batches_per_epoch * 3
+    num_passes = 5
+    num_epochs = num_passes * 3
 
     simple_data = [
         {
@@ -218,25 +228,16 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             "target": np.random.uniform(size=40).astype(float).tolist(),
             "item_id": i,
         }
-        for i in range(batch_size * num_batches_per_epoch * X)
+        for i in range(num_time_series)
     ]
 
-    num_passes = 5
-    num_epochs = X * num_passes
-
     def test_dataset(dataset):
-        class ExactlyOneSampler(InstanceSampler):
-            def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-                window_size = b - a + 1
-                assert window_size > 0
-                return np.array([a])
-
         transformation = InstanceSplitter(
             target_field=FieldName.TARGET,
             is_pad_field=FieldName.IS_PAD,
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
-            train_sampler=ExactlyOneSampler(),
+            instance_sampler=ExactlyOneSampler(),
             past_length=10,
             future_length=5,
             dummy_value=1.0,
@@ -246,15 +247,15 @@ def test_train_loader_goes_over_all_data(num_workers) -> None:
             dataset=dataset,
             transform=transformation,
             batch_size=batch_size,
+            stack_fn=partial(batchify, ctx=current_context()),
+            decode_fn=partial(as_in_context, ctx=current_context()),
             num_workers=num_workers,
-            num_batches_per_epoch=num_batches_per_epoch,
-            ctx=current_context(),
         )
 
         item_ids = defaultdict(int)
 
         for epoch in range(num_epochs):
-            for batch in dl:
+            for batch in islice(dl, num_batches_per_epoch):
                 for item_id in batch["item_id"]:
                     item_ids[item_id] += 1
 
@@ -281,7 +282,6 @@ def test_inference_loader_equivalence() -> None:
         list_dataset_pred_length,
         train_data_transformed_original,
     ) = get_dataset_and_transformation()
-    current_desired_context = current_context()
 
     # original no multiprocessing processed validation dataset
     inference_loader_data_transformed_original = list(
@@ -289,8 +289,8 @@ def test_inference_loader_equivalence() -> None:
             dataset=list_dataset,
             transform=transformation,
             batch_size=BATCH_SIZE,
-            num_workers=0,  # This is the crucial difference
-            ctx=current_context(),
+            stack_fn=partial(batchify, ctx=current_context()),
+            num_workers=None,  # This is the crucial difference
         )
     )
 
@@ -298,8 +298,8 @@ def test_inference_loader_equivalence() -> None:
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
     )
 
     # multi-processed validation dataset
@@ -324,7 +324,7 @@ def test_inference_loader_equivalence() -> None:
 
     assert (
         mp_inf_data_loader_result_02[0]["past_target"].context
-        == current_desired_context
+        == current_context()
     ), "Batches in incorrect context"
 
 
@@ -339,43 +339,34 @@ def test_training_loader_batch_size_hard_constraint() -> None:
         train_data_transformed_original,
     ) = get_dataset_and_transformation()
 
-    train_dataset_loader_01 = TrainDataLoader(
+    train_dataset_loader_1 = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
-        num_batches_per_epoch=30,
     )
 
-    train_dataset_loader_02 = TrainDataLoader(
+    train_dataset_loader_2 = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
-        num_batches_per_epoch=30,
         shuffle_buffer_length=3 * BATCH_SIZE,
     )
 
-    # multi-processed training dataset
-    mp_training_data_loader_result_01 = list(train_dataset_loader_01)
-
-    # multi-processed training dataset
-    mp_training_data_loader_result_02 = list(train_dataset_loader_02)
+    batches_1 = list(islice(train_dataset_loader_1, 30))
+    batches_2 = list(islice(train_dataset_loader_2, 30))
 
     assert all(
-        [
-            len(batch["item_id"]) == BATCH_SIZE
-            for batch in mp_training_data_loader_result_01
-        ]
+        [len(batch["item_id"]) == BATCH_SIZE for batch in batches_1]
     ), "Not every batch from training loader is right size."
 
     assert all(
-        [
-            len(batch["item_id"]) == BATCH_SIZE
-            for batch in mp_training_data_loader_result_02
-        ]
+        [len(batch["item_id"]) == BATCH_SIZE for batch in batches_2]
     ), "Not every batch from training loader is right size, with shuffling on."
 
 
@@ -400,28 +391,20 @@ def test_training_loader_soft_constraint_01() -> None:
 
     # CASE 01: EVERY TS VISITED AT LEAST ONCE
 
-    train_dataset_loader_01 = TrainDataLoader(
+    train_dataset_loader = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
-        num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
-    # give all the workers a little time to get ready, so they can start at the same time
-    time.sleep(1.5)
-
-    # multi-processed training dataset
-    mp_training_data_loader_result_01 = list(train_dataset_loader_01)
-
-    # should contain an entry for every time series id
-    transformation_counts_01 = get_transformation_counts(
-        mp_training_data_loader_result_01
-    )
+    batches = list(islice(train_dataset_loader, int(3 * exp_num_batches)))
+    transformation_counts = get_transformation_counts(batches)
 
     assert all(
-        [k in transformation_counts_01 for k in range(CD_NUM_TIME_SERIES)]
+        [k in transformation_counts for k in range(CD_NUM_TIME_SERIES)]
     ), "Not every time series processed at least once."
 
 
@@ -441,25 +424,20 @@ def test_training_loader_soft_constraint_02() -> None:
 
     # CASE 02: NOT EVERY TS VISITED ONCE
 
-    train_dataset_loader_02 = TrainDataLoader(
+    train_dataset_loader = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=NUM_WORKERS_MP,  # This is the crucial difference
-        ctx=current_context(),
-        num_batches_per_epoch=int(0.5 * exp_num_batches),
     )
 
-    # multi-processed training dataset
-    mp_training_data_loader_result_02 = list(train_dataset_loader_02)
-
-    # should contain an entry for every time series id
-    transformation_counts_02 = get_transformation_counts(
-        mp_training_data_loader_result_02
-    )
+    batches = list(islice(train_dataset_loader, int(0.5 * exp_num_batches)))
+    transformation_counts = get_transformation_counts(batches)
 
     assert not all(
-        [k in transformation_counts_02 for k in range(CD_NUM_TIME_SERIES)]
+        [k in transformation_counts for k in range(CD_NUM_TIME_SERIES)]
     ), "It should not have been possible to process every time series once. "
 
 
@@ -477,25 +455,20 @@ def test_training_loader_soft_constraint_03() -> None:
 
     # CASE 03: ONE WORKER TRAVERSES ALL
 
-    train_dataset_loader_03 = TrainDataLoader(
+    train_dataset_loader = TrainDataLoader(
         dataset=list_dataset,
         transform=transformation,
         batch_size=BATCH_SIZE,
+        stack_fn=partial(batchify, ctx=current_context()),
+        decode_fn=partial(as_in_context, ctx=current_context()),
         num_workers=1,  # This is the crucial difference
-        ctx=current_context(),
-        num_batches_per_epoch=int(3 * exp_num_batches),
     )
 
-    # multi-processed training dataset
-    mp_training_data_loader_result_03 = list(train_dataset_loader_03)
-
-    # should contain an entry for every time series id
-    transformation_counts_03 = get_transformation_counts(
-        mp_training_data_loader_result_03
-    )
+    batches = list(islice(train_dataset_loader, int(3 * exp_num_batches)))
+    transformation_counts = get_transformation_counts(batches)
 
     assert all(
-        k in transformation_counts_03 for k in range(CD_NUM_TIME_SERIES)
+        k in transformation_counts for k in range(CD_NUM_TIME_SERIES)
     ), "One worker should be able to traverse all in one sweep, and should not deplete its iterator."
 
 
@@ -505,8 +478,7 @@ def test_general_functionality() -> None:
     freq = ds_info.metadata.freq
     prediction_length = ds_info.prediction_length
 
-    ctx = "cpu"
-    trainer = Trainer(ctx=ctx, epochs=3, num_batches_per_epoch=5)
+    trainer = Trainer(epochs=3, num_batches_per_epoch=5)
 
     estimator = DeepAREstimator(
         prediction_length=prediction_length, freq=freq, trainer=trainer

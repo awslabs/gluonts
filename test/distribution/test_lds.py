@@ -11,17 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-import pytest
-import json
 import gzip
+import json
 import os
 
-# Third-party imports
-import numpy as np
 import mxnet as mx
 
-# First-party imports
+import numpy as np
+
+import pytest
+
 from gluonts.mx.distribution.lds import LDS
 
 

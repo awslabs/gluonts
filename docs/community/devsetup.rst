@@ -43,7 +43,6 @@ You can also run the code quality checks manually using ``setup.py``::
 
     python setup.py type_check   # for Mypy type checks
     python setup.py style_check  # for Black code style checks
-    python setup.py flake8       # for Flake8 code style checks
 
 Note that the above commands are executed automatically as part of the
 ``build`` command. Developers that want to merge their code changes in the

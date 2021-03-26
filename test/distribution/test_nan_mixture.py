@@ -11,19 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 
-# First-party imports
-from gluonts.gluonts_tqdm import tqdm
-from gluonts.model.common import Tensor, NPArrayLike
-from gluonts.mx.distribution.distribution import Distribution
+from gluonts.core.serde import dump_json, load_json
 
+from gluonts.gluonts_tqdm import tqdm
+from gluonts.model.common import NPArrayLike
+from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
     Categorical,
     CategoricalOutput,
@@ -33,7 +31,7 @@ from gluonts.mx.distribution import (
     NanMixtureOutput,
     StudentTOutput,
 )
-from gluonts.core.serde import dump_json, load_json
+from gluonts.mx.distribution.distribution import Distribution
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
@@ -307,7 +305,11 @@ cat_samples = np.where(
 
 @pytest.mark.parametrize(
     "distribution_output",
-    [GaussianOutput(), StudentTOutput(), CategoricalOutput(num_cats=2),],
+    [
+        GaussianOutput(),
+        StudentTOutput(),
+        CategoricalOutput(num_cats=2),
+    ],
 )
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_nanmixture_output(distribution_output, serialize_fn) -> None:

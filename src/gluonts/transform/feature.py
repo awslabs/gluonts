@@ -87,7 +87,7 @@ class MeanValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        if len(values) == 1:
+        if len(values) == 1 or np.isnan(values).all():
             return DummyValueImputation()(values)
         nan_indices = np.where(np.isnan(values))
         values[nan_indices] = np.nanmean(values)
@@ -101,7 +101,7 @@ class LastValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        if len(values) == 1:
+        if len(values) == 1 or np.isnan(values).all():
             return DummyValueImputation()(values)
         values = np.expand_dims(values, axis=0)
 
@@ -127,7 +127,7 @@ class CausalMeanValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        if len(values) == 1:
+        if len(values) == 1 or np.isnan(values).all():
             return DummyValueImputation()(values)
         mask = np.isnan(values)
 
@@ -165,7 +165,7 @@ class RollingMeanValueImputation(MissingValueImputation):
         self.window_size = 1 if window_size < 1 else window_size
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        if len(values) == 1:
+        if len(values) == 1 or np.isnan(values).all():
             return DummyValueImputation()(values)
         mask = np.isnan(values)
 
@@ -233,7 +233,9 @@ class AddObservedValuesIndicator(SimpleTransformation):
         nan_entries = np.isnan(value)
 
         if self.imputation_method is not None:
-            data[self.target_field] = self.imputation_method(value)
+            if nan_entries.any():
+                value = value.copy()
+                data[self.target_field] = self.imputation_method(value)
 
         data[self.output_field] = np.invert(
             nan_entries, out=nan_entries
@@ -319,6 +321,7 @@ class AddTimeFeatures(MapTransformation):
         output_field: str,
         time_features: List[TimeFeature],
         pred_length: int,
+        dtype: DType = np.float32,
     ) -> None:
         self.date_features = time_features
         self.pred_length = pred_length
@@ -329,6 +332,7 @@ class AddTimeFeatures(MapTransformation):
         self._max_time_point: pd.Timestamp = None
         self._full_range_date_features: np.ndarray = None
         self._date_index: pd.DatetimeIndex = None
+        self.dtype = dtype
 
     def _update_cache(self, start: pd.Timestamp, length: int) -> None:
         end = shift_timestamp(start, length)
@@ -350,7 +354,7 @@ class AddTimeFeatures(MapTransformation):
         self._full_range_date_features = (
             np.vstack(
                 [feat(self.full_date_range) for feat in self.date_features]
-            )
+            ).astype(self.dtype)
             if self.date_features
             else None
         )
@@ -460,9 +464,6 @@ class AddAggregateLags(MapTransformation):
         they are ignored.
     agg_fun
         Aggregation function. Default is 'mean'.
-    rolling_agg:
-        Boolean indicating if the aggregation should be done in a centered rolling
-        window fashion (default) or by calendar dates.
     """
 
     @validated()
@@ -475,7 +476,6 @@ class AddAggregateLags(MapTransformation):
         agg_freq: str,
         agg_lags: List[int],
         agg_fun: str = "mean",
-        rolling_agg: bool = True,
         dtype: DType = np.float32,
     ) -> None:
         self.pred_length = pred_length
@@ -485,7 +485,6 @@ class AddAggregateLags(MapTransformation):
         self.agg_freq = agg_freq
         self.agg_lags = agg_lags
         self.agg_fun = agg_fun
-        self.rolling_agg = rolling_agg
         self.dtype = dtype
 
         self.ratio = pd.Timedelta(self.agg_freq) / pd.Timedelta(self.base_freq)
@@ -494,19 +493,13 @@ class AddAggregateLags(MapTransformation):
         ), "The aggregate frequency should be a multiple of the base frequency."
         self.ratio = int(self.ratio)
 
-        if rolling_agg:
-            self.half_window = (self.ratio - 1) // 2
-            self.valid_lags = [
-                x
-                for x in self.agg_lags
-                if x > (self.pred_length - 1 + self.half_window) / self.ratio
-            ]
-        else:
-            self.valid_lags = [
-                x
-                for x in self.agg_lags
-                if x > np.ceil((self.pred_length - 1) / self.ratio)
-            ]
+        self.half_window = (self.ratio - 1) // 2
+        self.valid_lags = [
+            x
+            for x in self.agg_lags
+            if x > (self.pred_length - 1 + self.half_window) / self.ratio
+        ]
+
         if set(self.agg_lags) - set(self.valid_lags):
             print(
                 f"The aggregate lags {set(self.agg_lags) - set(self.valid_lags)} "
@@ -518,108 +511,47 @@ class AddAggregateLags(MapTransformation):
 
         # convert to pandas Series for easier indexing and aggregation
         if is_train:
-            pd_ts = pd.Series(
-                data[self.target_field],
-                index=pd.date_range(
-                    data["start"],
-                    periods=len(data[self.target_field]),
-                    freq=self.base_freq,
-                ),
-            )
+            t = data[self.target_field]
         else:
-            pd_ts = pd.Series(
-                np.concatenate(
-                    [
-                        data[self.target_field],
-                        np.zeros(shape=(self.pred_length,)),
-                    ],
-                    axis=0,
-                ),
-                index=pd.date_range(
-                    data["start"],
-                    periods=len(data[self.target_field]) + self.pred_length,
-                    freq=self.base_freq,
-                ),
+            t = np.concatenate(
+                [data[self.target_field], np.zeros(shape=(self.pred_length,))],
+                axis=0,
             )
 
-        if not self.rolling_agg:
-            # compute how many time stamps are in the last (potentially not full) aggregation window
-            last_base_timestamp = pd_ts.index[-1]
-            offset = (
-                last_base_timestamp - last_base_timestamp.floor(self.agg_freq)
-            ) / self.base_freq + 1
-            assert offset.is_integer
+        # convert to pandas Series for easier rolling window aggregation
+        t_agg = (pd.Series(t).rolling(self.ratio).agg(self.agg_fun))[
+            self.ratio - 1 :
+        ]
 
-            # compute the length of the first aggregation window, the number of the full length windows
-            # and the length of the last aggregation window
-            first_win_len = int((len(pd_ts.values) - offset) % self.ratio)
-            complete_wins = int((len(pd_ts.values) - offset) // self.ratio)
-            last_win_len = int(offset)  # always > 0
-
-            # aggregation lag indexes
-            first_idx = (
-                np.array(
-                    [
-                        [x + complete_wins + 1] * first_win_len
-                        for x in self.valid_lags
-                    ]
-                ).reshape(len(self.valid_lags), first_win_len)
-                if first_win_len > 0
-                else np.empty(shape=(len(self.valid_lags), 0))
-            )
-            mid_idx = (
-                np.array(
-                    [
-                        [x + complete_wins - k] * self.ratio
-                        for x in self.valid_lags
-                        for k in range(complete_wins)
-                    ]
-                ).reshape(len(self.valid_lags), complete_wins * self.ratio)
-                if complete_wins > 0
-                else np.empty(shape=(len(self.valid_lags), 0))
-            )
-            last_idx = np.array(
-                [[x] * last_win_len for x in self.valid_lags]
-            ).reshape(len(self.valid_lags), last_win_len)
-
-            indexes = np.concatenate(
-                [first_idx, mid_idx, last_idx], axis=1
-            ).astype("int")
-
-            # compute the aggregated values - remove non-complete windows
-            pd_ts_re = (
-                pd_ts[first_win_len:-last_win_len]
-                .resample(self.agg_freq)
-                .agg(self.agg_fun)
-            )
-
-        else:
-            indexes = np.fliplr(
-                np.array(
-                    [
-                        [
-                            x * self.ratio + 1 - self.half_window + k
-                            for k in range(len(pd_ts))
-                        ]
-                        for x in self.valid_lags
-                    ]
-                )
-            )
-
-            pd_ts_re = (pd_ts.rolling(self.agg_freq).agg(self.agg_fun))[
-                self.ratio - 1 :
-            ]
-
-        # pad with zeros the missing lags
-        pad_len = int(np.max(indexes) - len(pd_ts_re.values))
+        # compute the aggregate lags for each time point of the time series
         agg_vals = np.concatenate(
-            [np.zeros((pad_len,)), pd_ts_re.values], axis=0
+            [
+                np.zeros(
+                    (max(self.valid_lags) * self.ratio + self.half_window + 1,)
+                ),
+                t_agg.values,
+            ],
+            axis=0,
+        )
+        lags = np.vstack(
+            [
+                agg_vals[
+                    -(l * self.ratio - self.half_window + len(t)) : -(
+                        l * self.ratio - self.half_window
+                    )
+                    if -(l * self.ratio - self.half_window) is not 0
+                    else None
+                ]
+                for l in self.valid_lags
+            ]
         )
 
-        # select the aggregated lags based on the computed lag indexes
-        data[self.feature_name] = agg_vals[-indexes]
+        # update the data entry
+        data[self.feature_name] = np.nan_to_num(lags)
+
         assert data[self.feature_name].shape == (
             len(self.valid_lags),
             len(data[self.target_field]) + self.pred_length * (not is_train),
         )
+
         return data

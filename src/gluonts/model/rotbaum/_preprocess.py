@@ -11,16 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-
-from typing import List, Tuple, Dict
-
-# Third-party imports
-import numpy as np
 import logging
+from enum import Enum
+from itertools import chain, starmap
+from typing import Dict, List, Tuple, Union
 
-# First-party imports
+import numpy as np
+
 from gluonts.core.component import validated
+
+
+class CardinalityLabel(str, Enum):
+    auto = "auto"
+    ignore = "ignore"
+
+
+Cardinality = Union[List[int], CardinalityLabel]
 
 
 class PreprocessGeneric:
@@ -132,14 +138,16 @@ class PreprocessGeneric:
             + 1
         )
         if max_num_context_windows < 1:
-            if not self.use_feat_static_real and not self.use_feat_static_cat:
+            if not self.use_feat_static_real and not self.cardinality:
                 return [], []
             else:
-                return self.make_features(
-                    altered_time_series,
-                    len(
-                        altered_time_series["target"]
-                    ),  # will return featurized data containing no target
+                # will return featurized data containing no target
+                return (
+                    self.make_features(
+                        altered_time_series,
+                        len(altered_time_series["target"]),
+                    ),
+                    [],
                 )
 
         if self.num_samples > 0:
@@ -205,6 +213,14 @@ class PreprocessGeneric:
         """
         feature_data, target_data = [], []
         self.num_samples = self.get_num_samples(ts_list)
+
+        if isinstance(self.cardinality, str):
+            self.cardinality = (
+                self.infer_cardinalities(ts_list)
+                if self.cardinality == "auto"
+                else []
+            )
+
         for time_series in ts_list:
             ts_feature_data, ts_target_data = self.preprocess_from_single_ts(
                 time_series=time_series
@@ -247,6 +263,9 @@ class PreprocessGeneric:
             n_windows_per_time_series = -1
         return n_windows_per_time_series
 
+    def infer_cardinalities(self):
+        raise NotImplementedError
+
 
 class PreprocessOnlyLagFeatures(PreprocessGeneric):
     def __init__(
@@ -257,11 +276,19 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         n_ignore_last=0,
         num_samples=-1,
         use_feat_static_real=False,
-        use_feat_static_cat=False,
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
+        cardinality: Cardinality = CardinalityLabel.auto,
+        one_hot_encode: bool = True,  # Should improve accuracy but will slow down model
         **kwargs
     ):
+
+        if one_hot_encode:
+            assert cardinality != "ignore" or (
+                isinstance(cardinality, List)
+                and all(c > 0 for c in cardinality)
+            ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored: {}"
+
         super().__init__(
             context_window_size=context_window_size,
             forecast_horizon=forecast_horizon,
@@ -270,10 +297,12 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             num_samples=num_samples,
             **kwargs
         )
+
         self.use_feat_static_real = use_feat_static_real
-        self.use_feat_static_cat = use_feat_static_cat
+        self.cardinality = cardinality
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
+        self.one_hot_encode = one_hot_encode
 
     @classmethod
     def _pre_transform(cls, time_series_window) -> Tuple:
@@ -306,6 +335,30 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             },
         )
 
+    def encode_one_hot(self, feat: int, cardinality: int) -> List[int]:
+        result = [0] * cardinality
+        result[feat] = 1
+        return result
+
+    def encode_one_hot_all(self, feat_list: List):
+        # asserts that the categorical features are label encoded
+        np_feat_list = np.array(feat_list)
+        assert all(np.floor(np_feat_list) == np_feat_list)
+
+        encoded = starmap(
+            self.encode_one_hot, zip(feat_list, self.cardinality)
+        )
+        encoded_chain = chain.from_iterable(encoded)
+        return list(encoded_chain)
+
+    def infer_cardinalities(self, time_series):
+        if "feat_static_cat" not in time_series[0]:
+            return []
+        mat = np.array(
+            [elem["feat_static_cat"] for elem in time_series], dtype=int
+        )
+        return [len(set(xs)) for xs in mat.T]
+
     def make_features(self, time_series: Dict, starting_index: int) -> List:
         """
         Makes features for the context window starting at starting_index.
@@ -336,11 +389,15 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             if self.use_feat_static_real
             else []
         )
-        feat_static_cat = (
-            list(time_series["feat_static_cat"])
-            if self.use_feat_static_cat
-            else []
-        )
+        if self.cardinality:
+            feat_static_cat = (
+                self.encode_one_hot_all(time_series["feat_static_cat"])
+                if self.one_hot_encode
+                else list(time_series["feat_static_cat"])
+            )
+        else:
+            feat_static_cat = []
+
         feat_dynamic_real = (
             [elem for ent in time_series["feat_dynamic_real"] for elem in ent]
             if self.use_feat_dynamic_real
@@ -352,13 +409,16 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             else []
         )
 
+        # these two assertions check that the categorical features are encoded
+        np_feat_static_cat = np.array(feat_static_cat)
         assert (not feat_static_cat) or all(
-            [(np.floor(elem) == elem) for elem in feat_static_cat]
-        )  # asserts that the categorical features are encoded
+            np.floor(np_feat_static_cat) == np_feat_static_cat
+        )
 
-        assert (not feat_static_cat) or all(
-            [(np.floor(elem) == elem) for elem in feat_dynamic_cat]
-        )  # asserts that the categorical features are encoded
+        np_feat_dynamic_cat = np.array(feat_dynamic_cat)
+        assert (not feat_dynamic_cat) or all(
+            np.floor(np_feat_dynamic_cat) == np_feat_dynamic_cat
+        )
 
         feat_dynamics = feat_dynamic_real + feat_dynamic_cat
         feat_statics = feat_static_real + feat_static_cat

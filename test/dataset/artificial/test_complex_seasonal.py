@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pytest
-import numpy as np
 from contextlib import suppress as do_not_raise
 
-from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
+import numpy as np
+import pytest
 
+from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 
 _eps = 1e-6
 

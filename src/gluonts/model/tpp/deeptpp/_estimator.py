@@ -11,29 +11,36 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 from functools import partial
-from typing import Optional
+from typing import Optional, Callable
 
-from gluonts.dataset.parallelized_loader import batchify
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.estimator import GluonEstimator, TrainOutput
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
+from gluonts.mx.model.estimator import GluonEstimator, TrainOutput
 from gluonts.model.predictor import Predictor
 from gluonts.model.tpp import PointProcessGluonPredictor
 from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput
+from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import (
     Chain,
-    ContinuousTimeUniformSampler,
     ContinuousTimeInstanceSplitter,
+    ContinuousTimePointSampler,
+    ContinuousTimeUniformSampler,
+    ContinuousTimePredictionSampler,
+    SelectFields,
     RenameFields,
     Transformation,
 )
 
-# Relative imports
-from ._network import DeepTPPTrainingNetwork, DeepTPPPredictionNetwork
+from ._network import DeepTPPPredictionNetwork, DeepTPPTrainingNetwork
 
 
 class DeepTPPEstimator(GluonEstimator):
@@ -73,7 +80,7 @@ class DeepTPPEstimator(GluonEstimator):
     embedding_dim
         The dimension of vector embeddings for marks (used as input to the GRU).
     trainer
-        :code:`gluonts.trainer.Trainer` object which will be used to train the
+        :code:`gluonts.mx.trainer.Trainer` object which will be used to train the
         estimator. Note that :code:`Trainer(hybridize=False)` must be set as
         :code:`DeepTPPEstimator` currently does not support hybridization.
     num_hidden_dimensions
@@ -86,6 +93,8 @@ class DeepTPPEstimator(GluonEstimator):
     freq
         Similar to the :code:`freq` of discrete-time models, specifies the time
         unit by which inter-arrival times are given.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -101,12 +110,13 @@ class DeepTPPEstimator(GluonEstimator):
         num_parallel_samples: int = 100,
         num_training_instances: int = 100,
         freq: str = "H",
+        batch_size: int = 32,
     ) -> None:
         assert (
             not trainer.hybridize
         ), "DeepTPP currently only supports the non-hybridized training"
 
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (
             prediction_interval_length > 0
@@ -139,24 +149,37 @@ class DeepTPPEstimator(GluonEstimator):
         self.num_training_instances = num_training_instances
         self.freq = freq
 
-    def create_training_network(self) -> HybridBlock:
-        return DeepTPPTrainingNetwork(
-            num_marks=self.num_marks,
-            time_distr_output=self.time_distr_output,
-            interval_length=self.prediction_interval_length,
-            embedding_dim=self.embedding_dim,
-            num_hidden_dimensions=self.num_hidden_dimensions,
-        )
-
     def create_transformation(self) -> Transformation:
+        return Chain([])  # identity transformation
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        instance_sampler = {
+            "training": ContinuousTimeUniformSampler(
+                num_instances=self.num_training_instances,
+                min_past=self.context_interval_length,
+                min_future=self.prediction_interval_length,
+            ),
+            "validation": ContinuousTimePredictionSampler(
+                allow_empty_interval=True,
+                min_past=self.context_interval_length,
+                min_future=self.prediction_interval_length,
+            ),
+            "test": ContinuousTimePredictionSampler(
+                min_past=self.context_interval_length,
+                allow_empty_interval=False,
+            ),
+        }[mode]
+
+        assert isinstance(instance_sampler, ContinuousTimePointSampler)
+
         return Chain(
             [
                 ContinuousTimeInstanceSplitter(
                     past_interval_length=self.context_interval_length,
                     future_interval_length=self.prediction_interval_length,
-                    train_sampler=ContinuousTimeUniformSampler(
-                        num_instances=self.num_training_instances
-                    ),
+                    instance_sampler=instance_sampler,
                 ),
                 RenameFields(
                     {
@@ -167,11 +190,54 @@ class DeepTPPEstimator(GluonEstimator):
             ]
         )
 
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(DeepTPPTrainingNetwork)
+        instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(DeepTPPTrainingNetwork)
+        instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_training_network(self) -> HybridBlock:
+        return DeepTPPTrainingNetwork(
+            num_marks=self.num_marks,
+            time_distr_output=self.time_distr_output,
+            interval_length=self.prediction_interval_length,
+            embedding_dim=self.embedding_dim,
+            num_hidden_dimensions=self.num_hidden_dimensions,
+        )
+
     def create_predictor(
         self,
         transformation: Transformation,
         trained_network: DeepTPPTrainingNetwork,
     ) -> Predictor:
+        prediction_splitter = self._create_instance_splitter("test")
+
         prediction_network = DeepTPPPredictionNetwork(
             num_marks=self.num_marks,
             prediction_interval_length=self.prediction_interval_length,
@@ -186,28 +252,9 @@ class DeepTPPEstimator(GluonEstimator):
         return PointProcessGluonPredictor(
             input_names=["target", "valid_length"],
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             prediction_interval_length=self.prediction_interval_length,
             freq=self.freq,
             ctx=self.trainer.ctx,
-            input_transform=transformation,
-        )
-
-    def train_model(
-        self,
-        training_data: Dataset,
-        validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-        **kwargs,
-    ) -> TrainOutput:
-        return super().train_model(
-            training_data,
-            validation_data,
-            num_workers,
-            num_prefetch,
-            shuffle_buffer_length,
-            batchify_fn=partial(batchify, variable_length=True),
-            **kwargs,
+            input_transform=transformation + prediction_splitter,
         )

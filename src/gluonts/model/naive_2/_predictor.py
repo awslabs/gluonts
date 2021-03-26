@@ -11,16 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Iterator, Optional
+from typing import Optional
 
-# Third-party imports
 import numpy as np
-
-# Third-party imports
 import statsmodels.api as sm
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.model.forecast import Forecast, SampleForecast
@@ -154,6 +149,7 @@ class Naive2Predictor(RepresentablePredictor):
 
     def predict_item(self, item: DataEntry) -> Forecast:
         past_ts_data = item["target"]
+        item_id = item.get("item_id", None)
         forecast_start_time = forecast_start(item)
 
         assert (
@@ -164,4 +160,9 @@ class Naive2Predictor(RepresentablePredictor):
 
         samples = np.array([prediction])
 
-        return SampleForecast(samples, forecast_start_time, self.freq)
+        return SampleForecast(
+            samples=samples,
+            start_date=forecast_start_time,
+            freq=self.freq,
+            item_id=item_id,
+        )

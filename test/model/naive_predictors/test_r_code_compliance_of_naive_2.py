@@ -11,15 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
-import numpy as np
-import pandas as pd
 import os
 from pathlib import Path
 
-# First-party imports
-from gluonts.model.naive_2 import naive_2
+import numpy as np
+import pandas as pd
 
+from gluonts.model.naive_2 import naive_2
 
 # DISCLAIMER:
 # this script is only to test whether the R implementation

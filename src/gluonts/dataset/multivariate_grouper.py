@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 from typing import Callable, Optional
 
@@ -19,8 +18,6 @@ import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
-
-# First-party imports
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
 

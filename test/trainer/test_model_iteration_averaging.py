@@ -11,22 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
+import math
+
 import mxnet as mx
 import mxnet.gluon.nn as nn
 import numpy as np
-import pytest
 import pandas as pd
-import math
+import pytest
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.trainer.model_iteration_averaging import (
-    IterationAveragingStrategy,
     NTA,
     Alpha_Suffix,
+    IterationAveragingStrategy,
 )
 
 
@@ -54,7 +53,10 @@ def initialize_model() -> nn.HybridBlock:
         context_length=T,
         freq=freq,
         trainer=Trainer(
-            ctx="cpu", epochs=1, learning_rate=1e-3, num_batches_per_epoch=1,
+            ctx="cpu",
+            epochs=1,
+            learning_rate=1e-3,
+            num_batches_per_epoch=1,
         ),
     )
 

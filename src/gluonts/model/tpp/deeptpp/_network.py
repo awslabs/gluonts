@@ -11,22 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
-from mxnet import nd
 import numpy as np
+from mxnet import nd
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
-from gluonts.mx.distribution import CategoricalOutput
-
-# Relative imports
-from gluonts.model.tpp.distribution.base import TPPDistributionOutput
 from gluonts.model.tpp import distribution
+from gluonts.model.tpp.distribution.base import TPPDistributionOutput
+from gluonts.mx import Tensor
+from gluonts.mx.distribution import CategoricalOutput
 
 
 # noinspection PyAbstractClass
@@ -108,7 +103,11 @@ class DeepTPPTrainingNetwork(DeepTPPNetworkBase):
 
     # noinspection PyMethodOverriding,PyPep8Naming,PyIncorrectDocstring
     def hybrid_forward(
-        self, F, target: Tensor, valid_length: Tensor, **kwargs,
+        self,
+        F,
+        target: Tensor,
+        valid_length: Tensor,
+        **kwargs,
     ) -> Tensor:
         """
         Computes the negative log likelihood loss for the given sequences.
@@ -228,7 +227,10 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
 
     # noinspection PyMethodOverriding,PyPep8Naming,PyIncorrectDocstring
     def hybrid_forward(
-        self, F, past_target: Tensor, past_valid_length: Tensor,
+        self,
+        F,
+        past_target: Tensor,
+        past_valid_length: Tensor,
     ) -> Tuple[Tensor, Tensor]:
         """
         Draw forward samples from the model. At each step, we sample an
@@ -309,7 +311,7 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
         arrival_times = F.zeros([num_total_samples])
 
         # Time from the last observed event until the past interval end
-        past_time_elapsed = past_ia_times.squeeze(-1).sum(-1)
+        past_time_elapsed = past_ia_times.squeeze(axis=-1).sum(-1)
         past_time_remaining = self.interval_length - past_time_elapsed  # (N)
         past_time_remaining_repeat = (
             past_time_remaining.expand_dims(0)
@@ -322,7 +324,8 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
             # Sample the next inter-arrival time
             time_distr_args = self.time_distr_args_proj(history_emb)
             time_distr = self.time_distr_output.distribution(
-                time_distr_args, scale=self.output_scale,
+                time_distr_args,
+                scale=self.output_scale,
             )
             if first_step:
                 # Time from the last event until the next event
@@ -362,7 +365,7 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
                 dim=-1,
             ).expand_dims(1)
 
-            history_emb = self.rnn(rnn_input).squeeze(1)  # (S * N, C)
+            history_emb = self.rnn(rnn_input).squeeze(axis=1)  # (S * N, C)
 
         sampled_ia_times = F.stack(*sampled_ia_times_list, axis=-1)
         sampled_marks = F.stack(*sampled_marks_list, axis=-1).astype("float32")

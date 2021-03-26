@@ -11,17 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
 import mxnet as mx
-
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 from .binning_helpers import (
     bin_edges_from_bin_centers,
@@ -122,10 +118,14 @@ class LocalAbsoluteBinning(Representation):
             bin_edges_hyb = rep_params[1].asnumpy()
 
             bin_edges_hyb = np.repeat(
-                bin_edges_hyb, len(data_np) / len(bin_edges_hyb), axis=0,
+                bin_edges_hyb,
+                len(data_np) / len(bin_edges_hyb),
+                axis=0,
             )
             bin_centers_hyb = np.repeat(
-                bin_centers_hyb, len(data_np) / len(bin_centers_hyb), axis=0,
+                bin_centers_hyb,
+                len(data_np) / len(bin_centers_hyb),
+                axis=0,
             )
 
             for i in range(len(data_np)):

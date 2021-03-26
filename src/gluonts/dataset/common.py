@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -28,13 +27,11 @@ from typing import (
     cast,
 )
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 import pydantic
 from pandas.tseries.offsets import Tick
 
-# First-party imports
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
 
@@ -112,7 +109,7 @@ class TrainDatasets(NamedTuple):
             Whether to delete previous version in this folder.
         """
         import shutil
-        import ujson as json
+        from gluonts import json
 
         path = Path(path_str)
 
@@ -169,7 +166,7 @@ class FileDataset(Dataset):
         self.cache = cache
         self.path = path
         self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
-        self._len = None
+        self._len_per_file = None
 
         if not self.files():
             raise OSError(f"no valid file found in {path}")
@@ -189,13 +186,17 @@ class FileDataset(Dataset):
                 )
                 yield data
 
+    # Returns array of the sizes for each subdataset per file
+    def len_per_file(self):
+        if self._len_per_file is None:
+            len_per_file = [
+                len(json_line_file) for json_line_file in self._json_line_files
+            ]
+            self._len_per_file = len_per_file
+        return self._len_per_file
+
     def __len__(self):
-        if self._len is None:
-            len_sum = sum(
-                [len(jsonl.JsonLinesFile(path=path)) for path in self.files()]
-            )
-            self._len = len_sum
-        return self._len
+        return sum(self.len_per_file())
 
     def files(self) -> List[Path]:
         """
@@ -217,7 +218,7 @@ class FileDataset(Dataset):
 
 class ListDataset(Dataset):
     """
-    Dataset backed directly by an list of dictionaries.
+    Dataset backed directly by a list of dictionaries.
 
     data_iter
         Iterable object yielding all items in the dataset.
@@ -311,8 +312,7 @@ class ProcessStartField(pydantic.BaseModel):
     @staticmethod
     @lru_cache(maxsize=10000)
     def process(string: str, freq: str) -> pd.Timestamp:
-        """Create timestamp and align it according to frequency.
-        """
+        """Create timestamp and align it according to frequency."""
 
         timestamp = pd.Timestamp(string, freq=freq)
 
@@ -416,7 +416,19 @@ class ProcessDataEntry:
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
+                    "dynamic_feat",  # backwards compatible
+                    is_required=False,
+                    is_cat=False,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
                     "feat_dynamic_real",
+                    is_required=False,
+                    is_cat=False,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
+                    "past_feat_dynamic_real",
                     is_required=False,
                     is_cat=False,
                     is_static=False,
@@ -493,6 +505,8 @@ def serialize_data_entry(data):
             field = field.astype(np.object_)
             field[nan_ix] = "NaN"
             return field.tolist()
+        if isinstance(field, (int, float)):
+            return field
         return str(field)
 
     return {k: serialize_field(v) for k, v in data.items() if v is not None}

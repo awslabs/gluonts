@@ -11,12 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import pytest
 
-# First-party imports
-from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 from gluonts.model.rotbaum import TreeEstimator
+
+from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 # TODO: Add support for categorical and dynamic features.
 

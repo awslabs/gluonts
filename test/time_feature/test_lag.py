@@ -15,7 +15,6 @@
 Test the lags computed for different frequencies
 """
 
-# First-party imports
 import gluonts.time_feature.lag as date_feature_set
 
 # These are the expected lags for common frequencies and corner cases.

@@ -11,29 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-import math
-from functools import partial
 from typing import Dict, List, Optional, Tuple
 
-# Third-party imports
-import numpy as np
 import mxnet as mx
+import numpy as np
 
-# First-party imports
-from gluonts.model.common import Tensor
 from gluonts.core.component import DType, validated
-from gluonts.support.util import erf, erfinv
+from gluonts.mx import Tensor
 
-# Relative imports
-from .distribution import Distribution, _sample_multiple, getF, softplus
+from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 
 class Deterministic(Distribution):
     r"""
     Deterministic/Degenerate distribution.
-
     Parameters
     ----------
     value
@@ -46,7 +38,10 @@ class Deterministic(Distribution):
     @validated()
     def __init__(self, value: Tensor) -> None:
         self.value = value
-        self.F = getF(value)
+
+    @property
+    def F(self):
+        return getF(self.value)
 
     @property
     def batch_shape(self) -> Tuple:

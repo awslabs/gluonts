@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Callable, List, Optional  # noqa: F401
 
-# Third-party imports
 import mxnet.gluon.nn as nn
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType, validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 
 class FeatureEmbedder(nn.HybridBlock):
@@ -93,7 +90,7 @@ class FeatureEmbedder(nn.HybridBlock):
         Returns
         -------
         concatenated_tensor: Tensor
-            Concatenated tensor of embeddings whth shape: (N,T,C) or (N,C),
+            Concatenated tensor of embeddings with shape: (N,T,C) or (N,C),
             where C is the sum of the embedding dimensions for each categorical
             feature, i.e. C = sum(self.config.embedding_dims).
         """

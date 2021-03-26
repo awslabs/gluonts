@@ -14,14 +14,11 @@
 from typing import List, Optional, Tuple
 
 import mxnet as mx
-
-# Standard library imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.context import get_mxnet_context
 
 from .representation import Representation
@@ -69,7 +66,10 @@ class RepresentationChain(Representation):
     ) -> Tuple[Tensor, Tensor, List[Tensor]]:
         for representation in self.chain:
             data, scale, rep_params = representation(
-                data, observed_indicator, scale, rep_params,
+                data,
+                observed_indicator,
+                scale,
+                rep_params,
             )
         return data, scale, rep_params
 
@@ -78,6 +78,9 @@ class RepresentationChain(Representation):
     ) -> Tensor:
         for representation in self.chain[::-1]:
             samples = representation.post_transform(
-                F, samples, scale, rep_params,
+                F,
+                samples,
+                scale,
+                rep_params,
             )
         return samples

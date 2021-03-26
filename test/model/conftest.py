@@ -88,8 +88,7 @@ def from_hyperparameters(Estimator, hyperparameters, dsinfo):
 
 @pytest.fixture()
 def accuracy_test(dsinfo):
-    from gluonts.evaluation import Evaluator
-    from gluonts.evaluation.backtest import backtest_metrics
+    from gluonts.evaluation import backtest_metrics, Evaluator
 
     def test_accuracy(Estimator, hyperparameters, accuracy):
         estimator = from_hyperparameters(Estimator, hyperparameters, dsinfo)

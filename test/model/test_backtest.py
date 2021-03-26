@@ -11,24 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import math
-import pytest
 from pathlib import Path
 
-# First-party imports
+import pytest
+
 import gluonts
 from gluonts.core.component import equals
-from gluonts.core.serde import load_code, dump_code
+from gluonts.core.serde import dump_code, load_code
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.dataset.stat import (  # noqa
+from gluonts.dataset.stat import ScaleHistogram  # noqa
+from gluonts.dataset.stat import (
     DatasetStatistics,
-    ScaleHistogram,
     calculate_dataset_statistics,
 )
-from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import BacktestInformation, backtest_metrics
+from gluonts.evaluation import backtest_metrics, Evaluator
+from gluonts.evaluation.backtest import BacktestInformation
 from gluonts.model.trivial.mean import MeanEstimator
 
 root = logging.getLogger()

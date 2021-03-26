@@ -11,29 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Dict, List, Tuple, Optional
+from typing import Optional, Tuple
 
-import numpy as np
-
-# Third-party imports
 from mxnet import gluon
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
-# Relative imports
-from .distribution import (
-    Distribution,
-    _expand_param,
-    _index_tensor,
-    getF,
-    nans_like,
-)
+from .deterministic import Deterministic
+from .distribution import Distribution, getF, nans_like
 from .distribution_output import DistributionOutput
-from .mixture import MixtureDistribution, MixtureDistributionOutput
-from .deterministic import Deterministic, DeterministicOutput
+from .mixture import MixtureDistribution
 
 
 class NanMixture(MixtureDistribution):
@@ -117,7 +105,9 @@ class NanMixture(MixtureDistribution):
 
 class NanMixtureArgs(gluon.HybridBlock):
     def __init__(
-        self, distr_output: DistributionOutput, prefix: Optional[str] = None,
+        self,
+        distr_output: DistributionOutput,
+        prefix: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.component_projection: gluon.HybridBlock

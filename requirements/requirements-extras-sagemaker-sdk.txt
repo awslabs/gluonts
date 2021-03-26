@@ -1,2 +1,2 @@
-sagemaker~=1.55
+sagemaker~=2.0
 s3fs~=0.4
