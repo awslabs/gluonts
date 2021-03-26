@@ -150,7 +150,7 @@ class DeepAREstimator(GluonEstimator):
         Whether to impute the missing values during training by using the
         current model parameters. Recommended if the dataset contains many
         missing values. However, this is a lot slower than the default mode.
-    imputation_samples
+    num_imputation_samples
         How many samples to use to impute values when
         impute_missing_values=True
     """
@@ -187,7 +187,7 @@ class DeepAREstimator(GluonEstimator):
         default_scale: Optional[float] = None,
         minimum_scale: float = 1e-10,
         impute_missing_values: bool = False,
-        imputation_samples: int = 1,
+        num_imputation_samples: int = 1,
     ) -> None:
         super().__init__(trainer=trainer, batch_size=batch_size, dtype=dtype)
 
@@ -284,7 +284,7 @@ class DeepAREstimator(GluonEstimator):
 
         self.alpha = alpha
         self.beta = beta
-        self.imputation_samples = imputation_samples
+        self.num_imputation_samples = num_imputation_samples
         self.default_scale = default_scale
         self.minimum_scale = minimum_scale
         self.impute_missing_values = impute_missing_values
@@ -445,7 +445,7 @@ class DeepAREstimator(GluonEstimator):
             dtype=self.dtype,
             alpha=self.alpha,
             beta=self.beta,
-            imputation_samples=self.imputation_samples,
+            num_imputation_samples=self.num_imputation_samples,
             default_scale=self.default_scale,
             minimum_scale=self.minimum_scale,
             impute_missing_values=self.impute_missing_values,
@@ -472,7 +472,7 @@ class DeepAREstimator(GluonEstimator):
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             dtype=self.dtype,
-            imputation_samples=self.imputation_samples,
+            num_imputation_samples=self.num_imputation_samples,
             default_scale=self.default_scale,
             minimum_scale=self.minimum_scale,
             impute_missing_values=self.impute_missing_values,

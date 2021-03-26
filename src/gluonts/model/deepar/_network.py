@@ -96,7 +96,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         dropoutcell_type: str = "ZoneoutCell",
         scaling: bool = True,
         dtype: DType = np.float32,
-        imputation_samples: int = 1,
+        num_imputation_samples: int = 1,
         minimum_scale: float = 1e-10,
         impute_missing_values: bool = False,
         default_scale: Optional[float] = None,
@@ -183,7 +183,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             else:
                 self.scaler = NOPScaler(keepdims=True)
 
-            self.imputation_samples = imputation_samples
+            self.num_imputation_samples = num_imputation_samples
 
             # Switch between vanilla mode and imputing the missing values
             # with the model during training/prediction
@@ -461,7 +461,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
 
         with autograd.pause():
             sample = distr.sample(
-                num_samples=self.imputation_samples, dtype=self.dtype
+                num_samples=self.num_imputation_samples, dtype=self.dtype
             ).mean(axis=0)
 
         target_value = mx_switch(
