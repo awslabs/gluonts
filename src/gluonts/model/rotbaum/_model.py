@@ -13,6 +13,7 @@
 
 from typing import Dict, List, Optional
 
+import copy
 import numpy as np
 import pandas as pd
 import xgboost
@@ -99,7 +100,7 @@ class QRX:
             true values associated with each prediction.
         """
         if model:
-            self.model = model
+            self.model = copy.deepcopy(model)
         else:
             self.model = self._create_xgboost_model(xgboost_params)
         self.clump_size = clump_size
@@ -123,7 +124,7 @@ class QRX:
             }
         return xgboost.sklearn.XGBModel(**model_params)
 
-    def fit(self, x_train, y_train):
+    def fit(self, x_train, y_train, max_sample_size=None, seed=1, **kwargs):
         """
         Fits self.model and partitions R^n into cells. More accurately,
         it creates a dictionary taking predictions on train to lists of
@@ -134,11 +135,27 @@ class QRX:
         x_train: list
             list of lists
         y_train: list
+        eval_set: list of tuples of train (list of lists) and labels
+            Optional. Main use case is if using lightgbm.
+        max_sample_size: int
+            If not None, choose without replacement
+            min(max_sample_size, len(x_train)) many datapoints to train on.
+        seed: int
+            seed for sampling purposes
         """
         self.quantile_dicts = {}
         x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
         # doens't like lists
-        self.model.fit(np.array(x_train), np.array(y_train))
+        if max_sample_size:
+            assert max_sample_size > 0
+            sample_size = min(max_sample_size, len(x_train))
+            np.random.seed(seed)
+            idx = np.random.choice(
+                np.arange(len(x_train)), sample_size, replace=False
+            )
+            x_train = x_train[idx]
+            y_train = y_train[idx]
+        self.model.fit(x_train, y_train, **kwargs)
         y_train_pred = self.model.predict(x_train)
         self.df = pd.DataFrame(
             {"x": list(x_train), "y_true": y_train, "y_pred": y_train_pred}
