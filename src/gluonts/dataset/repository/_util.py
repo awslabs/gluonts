@@ -56,7 +56,7 @@ def save_to_file(path: Path, data: List[Dict]):
         for d in tqdm(data, desc=f"saving time-series into {path}"):
             fp.write(json.dumps(d).encode("utf-8"))
             fp.write("\n".encode("utf-8"))
-    arrow_path = Path(str(path).replace(".json", ".arrow"))
+    arrow_path = path.with_suffix(".arrow")
     ArrowDataset.write_table_from_records(data, arrow_path)
 
 
