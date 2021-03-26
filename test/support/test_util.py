@@ -214,10 +214,13 @@ def test_weighted_average(x, weights) -> None:
     assert weighted_average(
         F=mx.nd, x=x, weights=weights, axis=0
     ) == mx.nd.array([2.0])
-    assert weighted_average(
-        F=mx.nd,
-        x=x,
-        weights=weights,
-        axis=0,
-        include_zeros_in_denominator=True,
-    ) == mx.nd.array([1.0])
+    assert (
+        weighted_average(
+            F=mx.nd,
+            x=x,
+            weights=weights,
+            axis=0,
+            include_zeros_in_denominator=True,
+        )
+        == mx.nd.array([1.0])
+    )
