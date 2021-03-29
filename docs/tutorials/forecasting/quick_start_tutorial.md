@@ -169,7 +169,7 @@ GluonTS comes with the `make_evaluation_predictions` function that automates the
 
 
 ```python
-from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.evaluation import make_evaluation_predictions
 ```
 
 

@@ -17,8 +17,7 @@ import pandas as pd
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
-from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.dataset.rolling_dataset import (
     StepStrategy,
     generate_rolling_dataset,

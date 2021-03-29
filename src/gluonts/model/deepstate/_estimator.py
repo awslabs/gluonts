@@ -34,7 +34,11 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
+from gluonts.time_feature import (
+    TimeFeature,
+    time_features_from_frequency_str,
+    norm_freq_str,
+)
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
@@ -64,7 +68,7 @@ SEASON_INDICATORS_FIELD = "seasonal_indicators"
 # that do not do data augmentation and uses a single training example per time series in the dataset.
 FREQ_LONGEST_PERIOD_DICT = {
     "M": 12,  # yearly seasonality
-    "W-SUN": 52,  # yearly seasonality
+    "W": 52,  # yearly seasonality
     "D": 31,  # monthly seasonality
     "B": 22,  # monthly seasonality
     "H": 168,  # weekly seasonality
@@ -74,7 +78,7 @@ FREQ_LONGEST_PERIOD_DICT = {
 
 def longest_period_from_frequency_str(freq_str: str) -> int:
     offset = to_offset(freq_str)
-    return FREQ_LONGEST_PERIOD_DICT[offset.name] // offset.n
+    return FREQ_LONGEST_PERIOD_DICT[norm_freq_str(offset.name)] // offset.n
 
 
 class DeepStateEstimator(GluonEstimator):

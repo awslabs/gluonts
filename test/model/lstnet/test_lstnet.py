@@ -11,17 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import tempfile
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
-from gluonts.evaluation import MultivariateEvaluator
-from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.evaluation import (
+    make_evaluation_predictions,
+    MultivariateEvaluator,
+)
 from gluonts.model.lstnet import LSTNetEstimator
+from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 
 NUM_SERIES = 10
@@ -82,6 +87,12 @@ def test_lstnet(
     )
 
     predictor = estimator.train(dataset.train)
+
+    with tempfile.TemporaryDirectory() as directory:
+        predictor.serialize(Path(directory))
+        predictor_copy = Predictor.deserialize(Path(directory))
+        assert predictor == predictor_copy
+
     forecast_it, ts_it = make_evaluation_predictions(
         dataset=dataset.test, predictor=predictor, num_samples=NUM_SAMPLES
     )

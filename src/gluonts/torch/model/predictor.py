@@ -118,6 +118,7 @@ class PyTorchPredictor(Predictor):
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
                 freq=self.freq,
+                lead_time=self.lead_time,
                 forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )

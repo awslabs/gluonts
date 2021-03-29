@@ -11,17 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._base import Evaluator, MultivariateEvaluator
-from .backtest import make_evaluation_predictions, backtest_metrics
+import pandas as pd
 
-__all__ = [
-    "Evaluator",
-    "MultivariateEvaluator",
-    "make_evaluation_predictions",
-    "backtest_metrics",
-]
+from lightgbm import LGBMRegressor
 
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+from gluonts.core.component import validated
+
+
+class lgb_wrapper:
+    """
+    A wrapped of lightgbm that can be fed into the model parameters in QRX
+    and TreePredictor.
+    """
+
+    @validated()
+    def __init__(self, **lgb_params):
+        self.model = LGBMRegressor(**lgb_params)
+
+    def fit(self, train_data, train_target, **kwargs):
+        self.model.fit(pd.DataFrame(train_data), train_target, **kwargs)
+
+    def predict(self, data):
+        return self.model.predict(pd.DataFrame(data))

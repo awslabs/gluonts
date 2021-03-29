@@ -36,8 +36,7 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import backtest_metrics
+from gluonts.evaluation import backtest_metrics, Evaluator
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.trainer import Trainer

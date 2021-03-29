@@ -28,6 +28,7 @@ from gluonts.time_feature import (
     MonthOfYearIndex,
     TimeFeature,
     WeekOfYearIndex,
+    norm_freq_str,
 )
 
 
@@ -107,7 +108,7 @@ class ISSM:
     The structure of ISSM is given by
 
         * dimension of the latent state
-        * transition and innovation coefficents of the transition model
+        * transition and innovation coefficients of the transition model
         * emission coefficient of the observation model
 
     """
@@ -312,7 +313,7 @@ class CompositeISSM(ISSM):
 
         if offset.name == "M":
             seasonal_issms = [MonthOfYearSeasonalISSM()]
-        elif offset.name == "W-SUN":
+        elif norm_freq_str(offset.name) == "W":
             seasonal_issms = [WeekOfYearSeasonalISSM()]
         elif offset.name == "D":
             seasonal_issms = [DayOfWeekSeasonalISSM()]
