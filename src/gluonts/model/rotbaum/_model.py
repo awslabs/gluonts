@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import copy
 import numpy as np
@@ -127,32 +127,22 @@ class QRX:
 
     def fit(
         self,
-        x_train,
-        y_train,
-        max_sample_size=None,
-        seed=1,
-        x_train_is_dataframe=False,
+        x_train: Union[pd.DataFrame, List],
+        y_train: Union[pd.Series, List],
+        max_sample_size: Optional[
+            int
+        ] = None,  # If not None, choose without replacement
+        # replacement min(max_sample_size, len(x_train)) many datapoints
+        # to train on.
+        seed: int = 1,
+        x_train_is_dataframe: bool = False,  # This should be False for
+        # XGBoost, but True if one uses lightgbm.
         **kwargs
     ):
         """
         Fits self.model and partitions R^n into cells. More accurately,
         it creates a dictionary taking predictions on train to lists of
         associated true values, and puts it in self.cell_values.
-
-        Parameters
-        ----------
-        x_train: pd.DataFrame (if x_train_is_dataframe) or list (else)
-            list of lists or pd.DataFrame
-        y_train: pd.Series (if x_train_is_dataframe) or list (else)
-        eval_set: list of tuples of train (list of lists) and labels
-            Optional. Main use case is if using lightgbm.
-        max_sample_size: int
-            If not None, choose without replacement
-            min(max_sample_size, len(x_train)) many datapoints to train on.
-        seed: int
-            seed for sampling purposes
-        x_train_is_dataframe: bool
-            This should be False for XGBoost, but True if one uses lightgbm
         """
         self.x_train_is_dataframe = x_train_is_dataframe
         self.quantile_dicts = {}
