@@ -250,7 +250,7 @@ setup_kwargs: dict = dict(
             "MovingAverage=gluonts.model.trivial.mean:MovingAveragePredictor",
             "WaveNet=gluonts.model.wavenet:WaveNetEstimator",
             "r=gluonts.model.r_forecast:RForecastPredictor [R]",
-            "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
+            # "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
         ]
     ),
     cmdclass={
