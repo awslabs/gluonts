@@ -13,18 +13,16 @@
 
 import json
 import multiprocessing
-from multiprocessing.context import ForkContext
 import socket
 import tempfile
 import time
+import typing
 from contextlib import closing, contextmanager
-from multiprocessing import Process, get_context
+from multiprocessing.context import ForkContext
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
-import typing
 
 import requests
-
 from gluonts.dataset.common import DataEntry, serialize_data_entry
 from gluonts.dataset.repository.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor
