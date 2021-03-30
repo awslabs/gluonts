@@ -12,13 +12,16 @@
 # permissions and limitations under the License.
 
 import json
+import multiprocessing
+from multiprocessing.context import ForkContext
 import socket
 import tempfile
 import time
 from contextlib import closing, contextmanager
-from multiprocessing import Process
+from multiprocessing import Process, get_context
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
+import typing
 
 import requests
 
@@ -134,9 +137,11 @@ def temporary_server(
         A context manager that yields the `InferenceServer` instance
         wrapping the spawned inference server.
     """
+    context = multiprocessing.get_context("fork")
+    context = typing.cast(ForkContext, context)  # cast to make mypi pass
 
     gunicorn_app = make_gunicorn_app(env, forecaster_type, settings)
-    process = Process(target=gunicorn_app.run)
+    process = context.Process(target=gunicorn_app.run)
     process.start()
 
     endpoint = ServerFacade(
