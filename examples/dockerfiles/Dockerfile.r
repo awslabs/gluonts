@@ -2,7 +2,7 @@ FROM rpy2/rpy2:2.9.x
 
 ADD . /gluonts
 
-RUN pip install -r /gluonts/requirements/requirements-mxnet.txt
+RUN pip install mxnet>=1.6.0
 RUN pip install /gluonts[shell]
 
 RUN R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
