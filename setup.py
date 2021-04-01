@@ -218,6 +218,7 @@ setup_kwargs: dict = dict(
         "R": find_requirements("requirements-extras-r.txt"),
         "Prophet": find_requirements("requirements-extras-prophet.txt"),
         "shell": shell_require,
+        "arrow": find_requirements("requirements-arrow.txt")
     },
     entry_points=dict(
         gluonts_forecasters=[
