@@ -66,7 +66,7 @@ class TabularEstimator(Estimator):
         This will make predictions more efficient, but may impact their accuracy.
     """
 
-    ag_path = Path('ag_tabular_models')
+    ag_path = Path("ag_tabular_models")
 
     @validated()
     def __init__(
@@ -133,9 +133,12 @@ class TabularEstimator(Estimator):
         else:
             self.path = self.ag_path
 
-        ag_model = self.task(path=self.path, label="target", problem_type="regression", eval_metric="mean_absolute_error").fit(
-            df, **self.kwargs
-        )
+        ag_model = self.task(
+            path=self.path,
+            label="target",
+            problem_type="regression",
+            eval_metric="mean_absolute_error",
+        ).fit(df, **self.kwargs)
         return GluonTSTabularPredictor(
             ag_model=ag_model,
             freq=self.freq,
@@ -144,6 +147,5 @@ class TabularEstimator(Estimator):
             lag_indices=self.lag_indices,
             scaling=self.scaling,
             batch_size=self.batch_size,
-            ag_path=self.path
+            ag_path=self.path,
         )
-

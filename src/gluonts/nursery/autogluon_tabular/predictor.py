@@ -97,7 +97,6 @@ def get_features_dataframe(
 
 
 class GluonTSTabularPredictor(Predictor):
-
     def __init__(
         self,
         ag_model,
@@ -358,19 +357,21 @@ class GluonTSTabularPredictor(Predictor):
                 dtype=self.dtype,
                 time_features=self.time_features,
                 lag_indices=self.lag_indices,
-                ag_path=self.ag_path
+                ag_path=self.ag_path,
             )
             print(dump_json(parameters), file=fp)
 
     @classmethod
-    def deserialize(cls,
-                    path: Path,
-                    scaling: Callable[
-                        [pd.Series], Tuple[pd.Series, float]
-                    ] = mean_abs_scaling,
-                    # ctx: Optional[mx.Context] = None
-                    ag_path: Optional[Path] = None,
-                    **kwargs) -> "Predictor":
+    def deserialize(
+        cls,
+        path: Path,
+        scaling: Callable[
+            [pd.Series], Tuple[pd.Series, float]
+        ] = mean_abs_scaling,
+        # ctx: Optional[mx.Context] = None
+        ag_path: Optional[Path] = None,
+        **kwargs,
+    ) -> "Predictor":
         # with mx.Context(ctx):
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
@@ -383,12 +384,12 @@ class GluonTSTabularPredictor(Predictor):
                 loaded_ag_path = ag_path
         else:
             if ag_path is not None:
-                raise Warning("Path for TabularPredictor is inferred, no need to manually specify it.")
+                raise Warning(
+                    "Path for TabularPredictor is inferred, no need to manually specify it."
+                )
         # load tabular model
         ag_model = TabularPredictor.load(loaded_ag_path)
 
         return GluonTSTabularPredictor(
-            ag_model=ag_model,
-            scaling=scaling,
-            **parameters
+            ag_model=ag_model, scaling=scaling, **parameters
         )
