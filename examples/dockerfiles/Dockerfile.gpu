@@ -16,5 +16,6 @@ ADD . /gluonts
 
 RUN pip3.7 install mxnet-cu92>=1.6.0
 RUN pip3.7 install /gluonts[shell]
+ENV MXNET_USE_FUSION=0
 
 ENTRYPOINT ["python3.7", "-m", "gluonts.shell"]
