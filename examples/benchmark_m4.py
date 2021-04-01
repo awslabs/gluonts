@@ -40,7 +40,10 @@ num_batches_per_epoch = 50
 estimators = [
     MQCNNEstimator,
     DeepAREstimator,
-    partial(DeepAREstimator, distr_output=PiecewiseLinearOutput(8),),
+    partial(
+        DeepAREstimator,
+        distr_output=PiecewiseLinearOutput(8),
+    ),
 ]
 
 
@@ -55,7 +58,8 @@ def evaluate(dataset_name, estimator):
             for feat_static_cat in dataset.metadata.feat_static_cat
         ],
         trainer=Trainer(
-            epochs=epochs, num_batches_per_epoch=num_batches_per_epoch,
+            epochs=epochs,
+            num_batches_per_epoch=num_batches_per_epoch,
         ),
     )
 
