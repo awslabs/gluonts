@@ -16,7 +16,10 @@ from typing import Callable, Dict, List, Optional, Iterator, Iterable, Tuple
 import numpy as np
 import pandas as pd
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
+from pathlib import Path
+from autogluon.tabular import TabularPredictor
 
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import batcher
@@ -93,7 +96,8 @@ def get_features_dataframe(
     return pd.DataFrame(columns, index=series.index)
 
 
-class TabularPredictor(Predictor):
+class GluonTSTabularPredictor(Predictor):
+
     def __init__(
         self,
         ag_model,
@@ -104,6 +108,7 @@ class TabularPredictor(Predictor):
         scaling: Callable[[pd.Series], Tuple[pd.Series, float]],
         batch_size: Optional[int] = 32,
         dtype=np.float32,
+        ag_path: Optional[Path] = None,
     ) -> None:
         super().__init__(prediction_length=prediction_length, freq=freq)
         assert all(l >= 1 for l in lag_indices)
@@ -114,6 +119,7 @@ class TabularPredictor(Predictor):
         self.scaling = scaling
         self.batch_size = batch_size
         self.dtype = dtype
+        self.ag_path = ag_path
 
     @property
     def auto_regression(self) -> bool:
@@ -232,7 +238,7 @@ class TabularPredictor(Predictor):
             item_ids,
         ):
             yield self._to_forecast(
-                scale * arr,
+                scale * arr.values,
                 forecast_start,
                 item_id=item_id,
             )
@@ -333,3 +339,56 @@ class TabularPredictor(Predictor):
             return self._predict_batch(
                 dataset, batch_size=batch_size, **kwargs
             )
+
+    def serialize(self, path: Path) -> None:
+        # call Predictor.serialize() in order to serialize the class name
+
+        super().serialize(path)
+
+        # serialize self.ag_model
+        # auto gluon predictor should be saved automatically?
+        # self.ag_model.save()
+
+        # serialize all remaining constructor parameters
+        with (path / "parameters.json").open("w") as fp:
+            parameters = dict(
+                batch_size=self.batch_size,
+                prediction_length=self.prediction_length,
+                freq=self.freq,
+                dtype=self.dtype,
+                time_features=self.time_features,
+                lag_indices=self.lag_indices,
+                ag_path=self.ag_path
+            )
+            print(dump_json(parameters), file=fp)
+
+    @classmethod
+    def deserialize(cls,
+                    path: Path,
+                    scaling: Callable[
+                        [pd.Series], Tuple[pd.Series, float]
+                    ] = mean_abs_scaling,
+                    # ctx: Optional[mx.Context] = None
+                    ag_path: Optional[Path] = None,
+                    **kwargs) -> "Predictor":
+        # with mx.Context(ctx):
+        # deserialize constructor parameters
+        with (path / "parameters.json").open("r") as fp:
+            parameters = load_json(fp.read())
+        loaded_ag_path = parameters["ag_path"]
+        if loaded_ag_path is None:
+            if ag_path is None:
+                raise ValueError("Unable to infer path for TabularPredictor.")
+            else:
+                loaded_ag_path = ag_path
+        else:
+            if ag_path is not None:
+                raise Warning("Path for TabularPredictor is inferred, no need to manually specify it.")
+        # load tabular model
+        ag_model = TabularPredictor.load(loaded_ag_path)
+
+        return GluonTSTabularPredictor(
+            ag_model=ag_model,
+            scaling=scaling,
+            **parameters
+        )

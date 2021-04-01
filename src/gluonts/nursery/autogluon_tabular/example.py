@@ -13,21 +13,25 @@
 
 
 from itertools import islice
-
+from pathlib import Path
 import matplotlib.pyplot as plt
+import os
+
 
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.nursery.autogluon_tabular import TabularEstimator
+from gluonts.nursery.autogluon_tabular.predictor import GluonTSTabularPredictor
 
 
 def run_example():
     dataset = get_dataset("electricity")
-
+    predictor_path = "GluonTSTabularPredictor"
     estimator = TabularEstimator(
         freq="H",
+        path=predictor_path,
         prediction_length=24,
-        time_limits=2 * 60,  # two minutes for training
+        time_limit=10,  # two minutes for training
         disable_auto_regression=True,  # makes prediction faster, but potentially less accurate
     )
 
@@ -39,6 +43,10 @@ def run_example():
         training_data=training_data,
     )
 
+    os.makedirs(predictor_path, exist_ok=True)
+    predictor.serialize(Path(predictor_path))
+    predictor = None
+    predictor = GluonTSTabularPredictor.deserialize(path=Path(predictor_path))
     forecasts = list(predictor.predict(training_data))
 
     for entry, forecast in zip(training_data, forecasts):

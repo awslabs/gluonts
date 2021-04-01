@@ -12,10 +12,11 @@
 # permissions and limitations under the License.
 
 from typing import Callable, Optional, List, Tuple
-
+from pathlib import Path
 import pandas as pd
-from autogluon import TabularPrediction as task
+from autogluon.tabular import TabularPredictor
 
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
 from gluonts.model.estimator import Estimator
@@ -26,7 +27,7 @@ from gluonts.time_feature import (
 )
 
 from .predictor import (
-    TabularPredictor,
+    GluonTSTabularPredictor,
     mean_abs_scaling,
     get_features_dataframe,
 )
@@ -65,10 +66,14 @@ class TabularEstimator(Estimator):
         This will make predictions more efficient, but may impact their accuracy.
     """
 
+    ag_path = Path('ag_tabular_models')
+
+    @validated()
     def __init__(
         self,
         freq: str,
         prediction_length: int,
+        path: Optional[Path] = None,
         lag_indices: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         scaling: Callable[
@@ -80,9 +85,10 @@ class TabularEstimator(Estimator):
     ) -> None:
         super().__init__()
 
-        self.task = task
+        self.task = TabularPredictor
         self.freq = freq
         self.prediction_length = prediction_length
+        self.path = path
         self.lag_indices = (
             lag_indices
             if lag_indices is not None
@@ -103,7 +109,7 @@ class TabularEstimator(Estimator):
             ]
 
         default_kwargs = {
-            "eval_metric": "mean_absolute_error",
+            "time_limit": 10,
             "excluded_model_types": ["KNN", "XT", "RF"],
             "presets": [
                 "high_quality_fast_inference_only_refit",
@@ -112,7 +118,7 @@ class TabularEstimator(Estimator):
         }
         self.kwargs = {**default_kwargs, **kwargs}
 
-    def train(self, training_data: Dataset) -> TabularPredictor:
+    def train(self, training_data: Dataset) -> GluonTSTabularPredictor:
         dfs = [
             get_features_dataframe(
                 series=self.scaling(to_pandas(entry))[0],
@@ -122,10 +128,15 @@ class TabularEstimator(Estimator):
             for entry in training_data
         ]
         df = pd.concat(dfs)
-        ag_model = self.task.fit(
-            df, label="target", problem_type="regression", **self.kwargs
+        if self.path is not None:
+            self.path = self.path / self.ag_path
+        else:
+            self.path = self.ag_path
+
+        ag_model = self.task(path=self.path, label="target", problem_type="regression", eval_metric="mean_absolute_error").fit(
+            df, **self.kwargs
         )
-        return TabularPredictor(
+        return GluonTSTabularPredictor(
             ag_model=ag_model,
             freq=self.freq,
             prediction_length=self.prediction_length,
@@ -133,4 +144,6 @@ class TabularEstimator(Estimator):
             lag_indices=self.lag_indices,
             scaling=self.scaling,
             batch_size=self.batch_size,
+            ag_path=self.path
         )
+
