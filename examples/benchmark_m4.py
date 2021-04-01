@@ -24,7 +24,6 @@ from gluonts.mx.distribution.piecewise_linear import PiecewiseLinearOutput
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.model.seq2seq import MQCNNEstimator
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 
 datasets = [
@@ -41,10 +40,7 @@ num_batches_per_epoch = 50
 estimators = [
     MQCNNEstimator,
     DeepAREstimator,
-    partial(
-        DeepAREstimator,
-        distr_output=PiecewiseLinearOutput(8),
-    ),
+    partial(DeepAREstimator, distr_output=PiecewiseLinearOutput(8),),
 ]
 
 
@@ -59,8 +55,7 @@ def evaluate(dataset_name, estimator):
             for feat_static_cat in dataset.metadata.feat_static_cat
         ],
         trainer=Trainer(
-            epochs=epochs,
-            num_batches_per_epoch=num_batches_per_epoch,
+            epochs=epochs, num_batches_per_epoch=num_batches_per_epoch,
         ),
     )
 
