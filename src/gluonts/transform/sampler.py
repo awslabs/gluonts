@@ -11,10 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple, Optional
+from typing import Tuple
 
 import numpy as np
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 
 from gluonts.core.component import validated
 from gluonts.dataset.stat import ScaleHistogram
@@ -157,22 +157,12 @@ class BucketInstanceSampler(InstanceSampler):
     """
 
     scale_histogram: ScaleHistogram
-    lookup: Optional[np.ndarray] = None
 
-    @validator("lookup", allow_reuse=True)
-    def lookup_set_default(cls, v):
-        if not (v is None or isinstance(v, np.ndarray)):
-            raise ValueError("must provide a numpy array")
-        return v or np.arange(2 ** 13)
-
-    def __call__(self, ts: np.ndarray) -> None:
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
         a, b = self._get_bounds(ts)
-        while ts.shape[-1] >= len(self.lookup):
-            self.lookup = np.arange(2 * len(self.lookup))
         p = 1.0 / self.scale_histogram.count(ts)
-        mask = np.random.uniform(low=0.0, high=1.0, size=b - a + 1) < p
-        indices = self.lookup[a : a + len(mask)][mask]
-        return indices
+        (indices,) = np.where(np.random.random_sample(b - a + 1) < p)
+        return indices + a
 
 
 class ContinuousTimePointSampler(BaseModel):
