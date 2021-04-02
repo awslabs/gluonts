@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 from pydantic import BaseModel, validator
@@ -157,13 +157,13 @@ class BucketInstanceSampler(InstanceSampler):
     """
 
     scale_histogram: ScaleHistogram
-    lookup: np.ndarray = np.arange(2 ** 13)
+    lookup = None
 
-    @validator('lookup', allow_reuse=True)
-    def lookup_must_be_np_ndarray(cls, v):
+    @validator('lookup')
+    def lookup_set_default(cls, v):
         if not isinstance(v, np.ndarray):
             raise ValueError("must provide a numpy array")
-        return v
+        return v or np.arange(2 ** 13)
 
     def __call__(self, ts: np.ndarray) -> None:
         a, b = self._get_bounds(ts)
