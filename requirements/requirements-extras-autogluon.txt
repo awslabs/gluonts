@@ -1,1 +1,2 @@
 autogluon==0.1.0
+pydantic~=1.1,<1.7
