@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple, List
+from typing import Tuple, Optional
 
 import numpy as np
 from pydantic import BaseModel, validator
@@ -157,7 +157,7 @@ class BucketInstanceSampler(InstanceSampler):
     """
 
     scale_histogram: ScaleHistogram
-    lookup = None
+    lookup: Optional[np.ndarray] = None
 
     @validator('lookup', allow_reuse=True)
     def lookup_set_default(cls, v):
