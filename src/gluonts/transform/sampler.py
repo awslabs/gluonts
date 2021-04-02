@@ -161,7 +161,7 @@ class BucketInstanceSampler(InstanceSampler):
 
     @validator('lookup')
     def lookup_must_be_np_ndarray(cls, v):
-        if not isinstance(v, np.ndarray)
+        if not isinstance(v, np.ndarray):
             raise ValueError("must provide a numpy array")
         return v
 
