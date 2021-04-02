@@ -16,14 +16,16 @@ from typing import List, Optional
 import pytest
 import numpy as np
 import pandas as pd
+import os
+from pathlib import Path
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.util import to_pandas
 from gluonts.nursery.autogluon_tabular.predictor import get_features_dataframe
 from gluonts.nursery.autogluon_tabular import (
     TabularEstimator,
-    LocalTabularPredictor,
 )
+from gluonts.model.predictor import Predictor
 from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
 
 
@@ -173,9 +175,13 @@ def test_get_features_dataframe(
 )
 @pytest.mark.parametrize("lag_indices", [[], [1, 2, 5]])
 @pytest.mark.parametrize("disable_auto_regression", [False, True])
+@pytest.mark.parametrize("path", [Path("test_autogluon_dir")])
+@pytest.mark.parametrize("ag_path_prefix", [None, Path("test_autogluon_dir")])
 def test_tabular_estimator(
     dataset,
     freq,
+    path,
+    ag_path_prefix,
     prediction_length: int,
     lag_indices: List[int],
     disable_auto_regression: bool,
@@ -183,13 +189,17 @@ def test_tabular_estimator(
     estimator = TabularEstimator(
         freq=freq,
         prediction_length=prediction_length,
+        ag_path_prefix=ag_path_prefix,
         lag_indices=lag_indices,
-        time_limits=10,
+        time_limit=10,
         disable_auto_regression=disable_auto_regression,
     )
 
+    os.makedirs(path, exist_ok=True)
     predictor = estimator.train(dataset)
-
+    predictor.serialize(path)
+    predictor = None
+    predictor = Predictor.deserialize(path)
     assert not predictor.auto_regression or any(
         l < prediction_length for l in predictor.lag_indices
     )

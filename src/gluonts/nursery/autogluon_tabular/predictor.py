@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 from pathlib import Path
-from autogluon.tabular import TabularPredictor
+from autogluon import tabular
 
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.util import to_pandas
@@ -96,7 +96,7 @@ def get_features_dataframe(
     return pd.DataFrame(columns, index=series.index)
 
 
-class GluonTSTabularPredictor(Predictor):
+class TabularPredictor(Predictor):
     def __init__(
         self,
         ag_model,
@@ -369,7 +369,6 @@ class GluonTSTabularPredictor(Predictor):
             [pd.Series], Tuple[pd.Series, float]
         ] = mean_abs_scaling,
         # ctx: Optional[mx.Context] = None
-        ag_path: Optional[Path] = None,
         **kwargs,
     ) -> "Predictor":
         # with mx.Context(ctx):
@@ -377,19 +376,10 @@ class GluonTSTabularPredictor(Predictor):
         with (path / "parameters.json").open("r") as fp:
             parameters = load_json(fp.read())
         loaded_ag_path = parameters["ag_path"]
-        if loaded_ag_path is None:
-            if ag_path is None:
-                raise ValueError("Unable to infer path for TabularPredictor.")
-            else:
-                loaded_ag_path = ag_path
-        else:
-            if ag_path is not None:
-                raise Warning(
-                    "Path for TabularPredictor is inferred, no need to manually specify it."
-                )
-        # load tabular model
-        ag_model = TabularPredictor.load(loaded_ag_path)
 
-        return GluonTSTabularPredictor(
+        # load tabular model
+        ag_model = tabular.TabularPredictor.load(loaded_ag_path)
+
+        return TabularPredictor(
             ag_model=ag_model, scaling=scaling, **parameters
         )

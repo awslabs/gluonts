@@ -21,15 +21,15 @@ import os
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.nursery.autogluon_tabular import TabularEstimator
-from gluonts.nursery.autogluon_tabular.predictor import GluonTSTabularPredictor
+from gluonts.model.predictor import Predictor
 
 
 def run_example():
     dataset = get_dataset("electricity")
-    predictor_path = "GluonTSTabularPredictor"
+    predictor_dir = Path("GluonTSTabularPredictor")
     estimator = TabularEstimator(
         freq="H",
-        path=predictor_path,
+        ag_path_prefix=predictor_dir,
         prediction_length=24,
         time_limit=10,  # two minutes for training
         disable_auto_regression=True,  # makes prediction faster, but potentially less accurate
@@ -43,10 +43,10 @@ def run_example():
         training_data=training_data,
     )
 
-    os.makedirs(predictor_path, exist_ok=True)
-    predictor.serialize(Path(predictor_path))
+    os.makedirs(predictor_dir, exist_ok=True)
+    predictor.serialize(predictor_dir)
     predictor = None
-    predictor = GluonTSTabularPredictor.deserialize(path=Path(predictor_path))
+    predictor = Predictor.deserialize(path=predictor_dir)
     forecasts = list(predictor.predict(training_data))
 
     for entry, forecast in zip(training_data, forecasts):
