@@ -159,7 +159,7 @@ class BucketInstanceSampler(InstanceSampler):
     scale_histogram: ScaleHistogram
     lookup: Optional[np.ndarray] = None
 
-    @validator('lookup', allow_reuse=True)
+    @validator("lookup", allow_reuse=True)
     def lookup_set_default(cls, v):
         if not (v is None or isinstance(v, np.ndarray)):
             raise ValueError("must provide a numpy array")
