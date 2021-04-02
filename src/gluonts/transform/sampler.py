@@ -14,7 +14,7 @@
 from typing import Tuple
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from gluonts.core.component import validated
 from gluonts.dataset.stat import ScaleHistogram
@@ -158,6 +158,12 @@ class BucketInstanceSampler(InstanceSampler):
 
     scale_histogram: ScaleHistogram
     lookup: np.ndarray = np.arange(2 ** 13)
+
+    @validator('lookup')
+    def lookup_must_be_np_ndarray(cls, v):
+        if not isinstance(v, np.ndarray)
+            raise ValueError("must provide a numpy array")
+        return v
 
     def __call__(self, ts: np.ndarray) -> None:
         a, b = self._get_bounds(ts)
