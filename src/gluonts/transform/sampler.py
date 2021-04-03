@@ -157,16 +157,12 @@ class BucketInstanceSampler(InstanceSampler):
     """
 
     scale_histogram: ScaleHistogram
-    lookup: np.ndarray = np.arange(2 ** 13)
 
-    def __call__(self, ts: np.ndarray) -> None:
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
         a, b = self._get_bounds(ts)
-        while ts.shape[-1] >= len(self.lookup):
-            self.lookup = np.arange(2 * len(self.lookup))
         p = 1.0 / self.scale_histogram.count(ts)
-        mask = np.random.uniform(low=0.0, high=1.0, size=b - a + 1) < p
-        indices = self.lookup[a : a + len(mask)][mask]
-        return indices
+        (indices,) = np.where(np.random.random_sample(b - a + 1) < p)
+        return indices + a
 
 
 class ContinuousTimePointSampler(BaseModel):
