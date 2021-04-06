@@ -479,25 +479,29 @@ def _broadcast_param(param, axes, sizes):
 
 def mx_switch(F, *args, **kwargs) -> Tensor:
     """
-    A switch statement for mxnet
+    A switch statement for mxnet.
 
-    mx_switch(
-      (A, x),
-      (B, y),
-      z
-    )
+    mx_switch((A, x), (B, y), z)
 
     corresponds to
 
-    if A:
-      x
-    elif B:
-      y
-    else:
-      z
+    if A -> x
+    elif B -> y
+    else -> z
 
-    kwargs:
-      scope - mxnet scope, default mx.sym
+    Parameters
+    ----------
+    F
+        The function space to use.
+    args
+        Arguments.
+    kwargs
+        Keyword arguments
+
+    Returns
+    -------
+    Tensor
+        A tensor with the respective switch entries.
     """
 
     assert set(kwargs.keys()).issubset({"scope"})
