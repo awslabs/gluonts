@@ -29,7 +29,7 @@ from gluonts.mx.block.regularization import (
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
-from gluonts.mx.util import weighted_average
+from gluonts.mx.util import weighted_average, mx_switch
 from mxnet import autograd
 
 
@@ -38,44 +38,6 @@ def prod(xs):
     for x in xs:
         p *= x
     return p
-
-
-def mx_switch(F, *args, **kwargs):
-    """
-    A switch statement for mxnet
-
-    mx_switch(
-      (A, x),
-      (B, y),
-      z
-    )
-
-    corresponds to
-
-    if A:
-      x
-    elif B:
-      y
-    else:
-      z
-
-    kwargs:
-      scope - mxnet scope, default mx.sym
-    """
-
-    assert set(kwargs.keys()).issubset({"scope"})
-    assert len(args) >= 3
-    else_stmt = args[-1]
-    assert not isinstance(
-        else_stmt, (tuple, list)
-    ), "Last element should be the else clause"
-
-    rev_when_stmts = args[:-1][::-1]
-
-    cur_else = else_stmt
-    for cond, then_stmt in rev_when_stmts:
-        cur_else = F.where(cond, then_stmt, cur_else)
-    return cur_else
 
 
 class DeepARNetwork(mx.gluon.HybridBlock):

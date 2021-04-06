@@ -26,6 +26,7 @@ from gluonts.mx.util import (
     hybrid_block_to_symbol_block,
     import_symb_block,
     weighted_average,
+    mx_switch,
 )
 from gluonts.support.util import erf, erfinv
 
@@ -223,4 +224,15 @@ def test_weighted_average(x, weights) -> None:
             include_zeros_in_denominator=True,
         )
         == mx.nd.array([1.0])
+    )
+
+
+def test_mx_switch() -> None:
+    a = (mx.nd.array([[1, 1, 0, 0]]), mx.nd.array([[1, 1, 1, 1]]))
+    b = (mx.nd.array([[1, 0, 1, 0]]), mx.nd.array([[2, 2, 2, 2]]))
+    c = mx.nd.array([[3, 3, 3, 3]])
+    assert (
+        (mx_switch(mx.nd, a, b, c) == mx.nd.array([1.0, 1.0, 2.0, 3.0]))
+        .asnumpy()
+        .all()
     )
