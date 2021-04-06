@@ -16,10 +16,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install pip==20.2
+        python -m pip install pip==20.3
         pip install -r requirements/requirements-mxnet.txt
         pip install -r requirements/requirements-pytorch.txt
-        pip install -e ".[shell]"
+        pip install -e ".[arrow,shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-docs.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
