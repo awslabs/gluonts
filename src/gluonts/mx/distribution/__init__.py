@@ -38,7 +38,7 @@ from .inflated_beta import (
     ZeroInflatedBeta,
     ZeroInflatedBetaOutput,
 )
-from .laplace import Laplace, LaplaceOutput
+from .laplace import Laplace, LaplaceOutput, LaplaceFixedVarianceOutput
 from .logit_normal import LogitNormal, LogitNormalOutput
 from .lowrank_multivariate_gaussian import (
     LowrankMultivariateGaussian,
@@ -87,6 +87,7 @@ __all__ = [
     "GaussianOutput",
     "Gaussian",
     "LaplaceOutput",
+    "LaplaceFixedVarianceOutput",
     "Laplace",
     "MultivariateGaussian",
     "MultivariateGaussianOutput",

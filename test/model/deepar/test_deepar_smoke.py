@@ -107,8 +107,11 @@ common_estimator_hps = dict(
     ],
 )
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-def test_deepar_smoke(estimator, datasets, dtype):
-    estimator = estimator(dtype=dtype)
+@pytest.mark.parametrize("impute_missing_values", [False, True])
+def test_deepar_smoke(estimator, datasets, dtype, impute_missing_values):
+    estimator = estimator(
+        dtype=dtype, impute_missing_values=impute_missing_values
+    )
     dataset_train, dataset_test = datasets
     predictor = estimator.train(dataset_train)
     forecasts = list(predictor.predict(dataset_test))

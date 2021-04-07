@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple
+from typing import Tuple, Optional
 
 import mxnet.ndarray as nd
 from mxnet.gluon import nn
@@ -116,9 +116,16 @@ class MeanScaler(Scaler):
     """
 
     @validated()
-    def __init__(self, minimum_scale: float = 1e-10, *args, **kwargs):
+    def __init__(
+        self,
+        minimum_scale: float = 1e-10,
+        default_scale: Optional[float] = None,
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.minimum_scale = minimum_scale
+        self.default_scale = default_scale
 
     def compute_scale(
         self,
@@ -155,7 +162,11 @@ class MeanScaler(Scaler):
         # first compute a global scale per-dimension
         total_observed = num_observed.sum(axis=0)
         denominator = F.maximum(total_observed, 1.0)
-        default_scale = sum_observed.sum(axis=0) / denominator  # shape (C, )
+        if self.default_scale is not None:
+            default_scale = self.default_scale * F.ones_like(num_observed)
+        else:
+            # shape (C, )
+            default_scale = sum_observed.sum(axis=0) / denominator
 
         # then compute a per-item, per-dimension scale
         denominator = F.maximum(num_observed, 1.0)
