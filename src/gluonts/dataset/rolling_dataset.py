@@ -100,8 +100,8 @@ class NumSplitsStrategy(BaseModel):
             yield window[: int(round(slice_idx))]
 
 
-def truncate_features(timeseries: dict, max_len):
-    # truncate dynamic features to match target length
+def truncate_features(timeseries: dict, max_len: int) -> dict:
+    """truncate dynamic features to match `max_len` length"""
     for key in (
         FieldName.FEAT_DYNAMIC_CAT,
         FieldName.FEAT_DYNAMIC_REAL,
@@ -226,8 +226,12 @@ def generate_rolling_dataset(
 
         for window in strategy.get_windows(prediction_window):
             new_item = item.copy()
-            new_item["target"] = np.concatenate([base, window.to_numpy()])
-            new_item = truncate_features(new_item, len(new_item["target"]))
+            new_item[FieldName.TARGET] = np.concatenate(
+                [base, window.to_numpy()]
+            )
+            new_item = truncate_features(
+                new_item, len(new_item[FieldName.TARGET])
+            )
             ds.append(new_item)
 
     return ds
