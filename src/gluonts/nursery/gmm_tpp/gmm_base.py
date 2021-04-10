@@ -143,7 +143,7 @@ def infer_lambda(model, horizon):
     x = np.linspace(0, horizon).reshape((-1, 1))
     y = np.ravel(model(mx.nd.array(x))[0].asnumpy())
     slope, intercept = np.polyfit(np.ravel(x), np.ravel(y), 1)
-    return -slope, intercept
+    return -slope
 
 
 def elapsed(collection):
