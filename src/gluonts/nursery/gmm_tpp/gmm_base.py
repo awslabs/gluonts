@@ -14,6 +14,7 @@
 import numpy as np
 import scipy as sp
 import pylab as pl
+import time
 import mxnet as mx
 from mxnet import gluon
 
@@ -135,3 +136,18 @@ class GMMTrainer:
         self.add(x)
         self.update()
         self.zero_stats()
+
+
+def infer_lambda(model, horizon):
+    """ infer lambda and intercept based on linear fitting at the base points """
+    x = np.linspace(0, horizon).reshape((-1, 1))
+    y = np.ravel(model(mx.nd.array(x))[0].asnumpy())
+    slope, intercept = np.polyfit(np.ravel(x), np.ravel(y), 1)
+    return -slope, intercept
+
+
+def elapsed(collection):
+    """ similar to enumerate but prepend elapsed time since loop starts """
+    tic = time.time()
+    for x in collection:
+        yield time.time() - tic, x
