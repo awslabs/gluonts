@@ -17,6 +17,7 @@ import pytest
 import numpy as np
 import pandas as pd
 import os
+import tempfile
 from pathlib import Path
 
 from gluonts.dataset.common import ListDataset
@@ -175,13 +176,9 @@ def test_get_features_dataframe(
 )
 @pytest.mark.parametrize("lag_indices", [[], [1, 2, 5]])
 @pytest.mark.parametrize("disable_auto_regression", [False, True])
-@pytest.mark.parametrize("path", [Path("test_autogluon_dir")])
-@pytest.mark.parametrize("ag_path_prefix", [None, Path("test_autogluon_dir")])
 def test_tabular_estimator(
     dataset,
     freq,
-    path,
-    ag_path_prefix,
     prediction_length: int,
     lag_indices: List[int],
     disable_auto_regression: bool,
@@ -189,43 +186,42 @@ def test_tabular_estimator(
     estimator = TabularEstimator(
         freq=freq,
         prediction_length=prediction_length,
-        ag_path_prefix=ag_path_prefix,
         lag_indices=lag_indices,
         time_limit=10,
         disable_auto_regression=disable_auto_regression,
     )
 
-    os.makedirs(path, exist_ok=True)
-    predictor = estimator.train(dataset)
-    predictor.serialize(path)
-    predictor = None
-    predictor = Predictor.deserialize(path)
-    assert not predictor.auto_regression or any(
-        l < prediction_length for l in predictor.lag_indices
-    )
-
-    assert predictor.batch_size > 1
-
-    forecasts_serial = list(predictor._predict_serial(dataset))
-    forecasts_batch = list(predictor.predict(dataset))
-
-    def check_consistency(entry, f1, f2):
-        ts = to_pandas(entry)
-        start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
-        assert f1.samples.shape == (1, prediction_length)
-        assert f1.start_date == start_timestamp
-        assert f2.samples.shape == (1, prediction_length)
-        assert f2.start_date == start_timestamp
-        assert np.allclose(f1.samples, f2.samples)
-
-    for entry, f1, f2 in zip(dataset, forecasts_serial, forecasts_batch):
-        check_consistency(entry, f1, f2)
-
-    if not predictor.auto_regression:
-        forecasts_batch_autoreg = list(
-            predictor._predict_batch_autoreg(dataset)
+    with tempfile.TemporaryDirectory() as path:
+        predictor = estimator.train(dataset)
+        predictor.serialize(Path(path))
+        predictor = None
+        predictor = Predictor.deserialize(Path(path))
+        assert not predictor.auto_regression or any(
+            l < prediction_length for l in predictor.lag_indices
         )
-        for entry, f1, f2 in zip(
-            dataset, forecasts_serial, forecasts_batch_autoreg
-        ):
+
+        assert predictor.batch_size > 1
+
+        forecasts_serial = list(predictor._predict_serial(dataset))
+        forecasts_batch = list(predictor.predict(dataset))
+
+        def check_consistency(entry, f1, f2):
+            ts = to_pandas(entry)
+            start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
+            assert f1.samples.shape == (1, prediction_length)
+            assert f1.start_date == start_timestamp
+            assert f2.samples.shape == (1, prediction_length)
+            assert f2.start_date == start_timestamp
+            assert np.allclose(f1.samples, f2.samples)
+
+        for entry, f1, f2 in zip(dataset, forecasts_serial, forecasts_batch):
             check_consistency(entry, f1, f2)
+
+        if not predictor.auto_regression:
+            forecasts_batch_autoreg = list(
+                predictor._predict_batch_autoreg(dataset)
+            )
+            for entry, f1, f2 in zip(
+                dataset, forecasts_serial, forecasts_batch_autoreg
+            ):
+                check_consistency(entry, f1, f2)

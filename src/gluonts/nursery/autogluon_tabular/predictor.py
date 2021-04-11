@@ -15,6 +15,7 @@ from typing import Callable, Dict, List, Optional, Iterator, Iterable, Tuple
 
 import numpy as np
 import pandas as pd
+import shutil
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 from pathlib import Path
 from autogluon import tabular
@@ -107,7 +108,6 @@ class TabularPredictor(Predictor):
         scaling: Callable[[pd.Series], Tuple[pd.Series, float]],
         batch_size: Optional[int] = 32,
         dtype=np.float32,
-        ag_path: Optional[Path] = None,
     ) -> None:
         super().__init__(prediction_length=prediction_length, freq=freq)
         assert all(l >= 1 for l in lag_indices)
@@ -118,7 +118,6 @@ class TabularPredictor(Predictor):
         self.scaling = scaling
         self.batch_size = batch_size
         self.dtype = dtype
-        self.ag_path = ag_path
 
     @property
     def auto_regression(self) -> bool:
@@ -345,7 +344,9 @@ class TabularPredictor(Predictor):
         super().serialize(path)
 
         # serialize self.ag_model
-        # auto gluon predictor should be saved automatically?
+        # move autogluon model to where we want to do the serialization
+        ag_path = self.ag_model.path
+        shutil.move(ag_path, path)
         # self.ag_model.save()
 
         # serialize all remaining constructor parameters
@@ -357,7 +358,7 @@ class TabularPredictor(Predictor):
                 dtype=self.dtype,
                 time_features=self.time_features,
                 lag_indices=self.lag_indices,
-                ag_path=self.ag_path,
+                ag_path=path / self.ag_model.path.split("/")[-2]
             )
             print(dump_json(parameters), file=fp)
 
@@ -365,18 +366,17 @@ class TabularPredictor(Predictor):
     def deserialize(
         cls,
         path: Path,
+        # TODO this is temporary, we should make the callable object serializable in the first place
         scaling: Callable[
             [pd.Series], Tuple[pd.Series, float]
         ] = mean_abs_scaling,
-        # ctx: Optional[mx.Context] = None
         **kwargs,
     ) -> "Predictor":
-        # with mx.Context(ctx):
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
             parameters = load_json(fp.read())
         loaded_ag_path = parameters["ag_path"]
-
+        del parameters["ag_path"]
         # load tabular model
         ag_model = tabular.TabularPredictor.load(loaded_ag_path)
 

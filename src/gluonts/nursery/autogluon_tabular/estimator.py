@@ -14,7 +14,7 @@
 from typing import Callable, Optional, List, Tuple
 from pathlib import Path
 import pandas as pd
-from autogluon import tabular
+from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
@@ -69,14 +69,11 @@ class TabularEstimator(Estimator):
         This will make predictions more efficient, but may impact their accuracy.
     """
 
-    ag_path = Path("ag_tabular_models")
-
     @validated()
     def __init__(
         self,
         freq: str,
         prediction_length: int,
-        ag_path_prefix: Optional[Path] = None,
         lag_indices: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         scaling: Callable[
@@ -88,13 +85,9 @@ class TabularEstimator(Estimator):
     ) -> None:
         super().__init__()
 
-        self.task = tabular.TabularPredictor
+        self.ag_predictor = AutogluonTabularPredictor
         self.freq = freq
         self.prediction_length = prediction_length
-        if ag_path_prefix is not None:
-            self.path = ag_path_prefix / self.ag_path
-        else:
-            self.path = self.ag_path
         self.lag_indices = (
             lag_indices
             if lag_indices is not None
@@ -139,8 +132,7 @@ class TabularEstimator(Estimator):
         ]
         df = pd.concat(dfs)
 
-        ag_model = self.task(
-            path=self.path,
+        ag_model = self.ag_predictor(
             label="target",
             problem_type="regression",
             eval_metric=eval_metric,
@@ -153,5 +145,4 @@ class TabularEstimator(Estimator):
             lag_indices=self.lag_indices,
             scaling=self.scaling,
             batch_size=self.batch_size,
-            ag_path=self.path,
         )
