@@ -358,7 +358,7 @@ class TabularPredictor(Predictor):
                 dtype=self.dtype,
                 time_features=self.time_features,
                 lag_indices=self.lag_indices,
-                ag_path=path / self.ag_model.path.split("/")[-2]
+                ag_path=path / self.ag_model.path.split("/")[-2],
             )
             print(dump_json(parameters), file=fp)
 
