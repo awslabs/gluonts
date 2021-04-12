@@ -31,9 +31,22 @@ from typing import (
 import numpy as np
 import pandas as pd
 
+from gluonts.evaluation.metrics import (
+    abs_error,
+    abs_target_mean,
+    abs_target_sum,
+    calculate_seasonal_error,
+    coverage,
+    mape,
+    mase,
+    mse,
+    msis,
+    owa,
+    quantile_loss,
+    smape,
+)
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.forecast import Forecast, Quantile
-from gluonts.time_feature import get_seasonality
 
 
 def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
@@ -242,35 +255,6 @@ class Evaluator:
             np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
 
-    def seasonal_error(self, past_data: np.ndarray, forecast: Forecast):
-        r"""
-        .. math::
-
-            seasonal_error = mean(|Y[t] - Y[t-m]|)
-
-        where m is the seasonal frequency
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-        # Check if the length of the time series is larger than the seasonal frequency
-        seasonality = (
-            self.seasonality
-            if self.seasonality
-            else get_seasonality(forecast.freq)
-        )
-        if seasonality < len(past_data):
-            forecast_freq = seasonality
-        else:
-            # edge case: the seasonal freq is larger than the length of ts
-            # revert to freq=1
-            # logging.info('The seasonal frequency is larger than the length of the time series. Reverting to freq=1.')
-            forecast_freq = 1
-        y_t = past_data[:-forecast_freq]
-        y_tm = past_data[forecast_freq:]
-
-        seasonal_mae = np.mean(abs(y_t - y_tm))
-
-        return nan_if_masked(seasonal_mae)
-
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Dict[str, Union[float, str, None]]:
@@ -285,20 +269,23 @@ class Evaluator:
             mean_fcst = forecast.mean
         except:
             mean_fcst = None
+
         median_fcst = forecast.quantile(0.5)
-        seasonal_error = self.seasonal_error(past_data, forecast)
+        seasonal_error = calculate_seasonal_error(
+            past_data, forecast, self.seasonality
+        )
         metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
-            "MSE": self.mse(pred_target, mean_fcst)
+            "MSE": mse(pred_target, mean_fcst)
             if mean_fcst is not None
             else None,
-            "abs_error": self.abs_error(pred_target, median_fcst),
-            "abs_target_sum": self.abs_target_sum(pred_target),
-            "abs_target_mean": self.abs_target_mean(pred_target),
+            "abs_error": abs_error(pred_target, median_fcst),
+            "abs_target_sum": abs_target_sum(pred_target),
+            "abs_target_mean": abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
-            "MASE": self.mase(pred_target, median_fcst, seasonal_error),
-            "MAPE": self.mape(pred_target, median_fcst),
-            "sMAPE": self.smape(pred_target, median_fcst),
+            "MASE": mase(pred_target, median_fcst, seasonal_error),
+            "MAPE": mape(pred_target, median_fcst),
+            "sMAPE": smape(pred_target, median_fcst),
             "OWA": np.nan,  # by default not calculated
         }
 
@@ -328,7 +315,7 @@ class Evaluator:
                 metrics.update(val)
 
         try:
-            metrics["MSIS"] = self.msis(
+            metrics["MSIS"] = msis(
                 pred_target,
                 forecast.quantile(self.alpha / 2),
                 forecast.quantile(1.0 - self.alpha / 2),
@@ -340,7 +327,7 @@ class Evaluator:
             metrics["MSIS"] = np.nan
 
         if self.calculate_owa:
-            metrics["OWA"] = self.owa(
+            metrics["OWA"] = owa(
                 pred_target,
                 median_fcst,
                 past_data,
@@ -351,10 +338,10 @@ class Evaluator:
         for quantile in self.quantiles:
             forecast_quantile = forecast.quantile(quantile.value)
 
-            metrics[quantile.loss_name] = self.quantile_loss(
+            metrics[quantile.loss_name] = quantile_loss(
                 pred_target, forecast_quantile, quantile.value
             )
-            metrics[quantile.coverage_name] = self.coverage(
+            metrics[quantile.coverage_name] = coverage(
                 pred_target, forecast_quantile
             )
 
@@ -420,162 +407,6 @@ class Evaluator:
             ]
         )
         return totals, metric_per_ts
-
-    @staticmethod
-    def mse(target: np.ndarray, forecast: np.ndarray) -> float:
-        return nan_if_masked(np.mean(np.square(target - forecast)))
-
-    @staticmethod
-    def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
-        return nan_if_masked(np.sum(np.abs(target - forecast)))
-
-    @staticmethod
-    def quantile_loss(
-        target: np.ndarray, forecast: np.ndarray, q: float
-    ) -> float:
-        return nan_if_masked(
-            2
-            * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
-        )
-
-    @staticmethod
-    def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
-        return nan_if_masked(np.mean((target < forecast)))
-
-    @staticmethod
-    def mase(
-        target: np.ndarray,
-        forecast: np.ndarray,
-        seasonal_error: float,
-        exclude_zero_denominator=True,
-    ) -> float:
-        r"""
-        .. math::
-
-            mase = mean(|Y - Y_hat|) / seasonal_error
-
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-        if exclude_zero_denominator and np.isclose(seasonal_error, 0.0):
-            return np.nan
-
-        return nan_if_masked(
-            np.mean(np.abs(target - forecast)) / seasonal_error
-        )
-
-    @staticmethod
-    def mape(
-        target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-    ) -> float:
-        r"""
-        .. math::
-
-            mape = mean(|Y - Y_hat| / |Y|))
-        """
-        denominator = np.abs(target)
-        if exclude_zero_denominator:
-            denominator = np.ma.masked_where(
-                np.isclose(denominator, 0.0), denominator
-            )
-        return nan_if_masked(np.mean(np.abs(target - forecast) / denominator))
-
-    @staticmethod
-    def smape(
-        target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-    ) -> float:
-        r"""
-        .. math::
-
-            smape = 2 * mean(|Y - Y_hat| / (|Y| + |Y_hat|))
-
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-        denominator = np.abs(target) + np.abs(forecast)
-        if exclude_zero_denominator:
-            denominator = np.ma.masked_where(
-                np.isclose(denominator, 0.0), denominator
-            )
-        return nan_if_masked(
-            2 * np.mean(np.abs(target - forecast) / denominator)
-        )
-
-    @staticmethod
-    def owa(
-        target: np.ndarray,
-        forecast: np.ndarray,
-        past_data: np.ndarray,
-        seasonal_error: float,
-        start_date: pd.Timestamp,
-    ) -> float:
-        r"""
-        .. math::
-
-            owa = 0.5*(smape/smape_naive + mase/mase_naive)
-
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-        # avoid import error due to circular dependency
-        from gluonts.model.naive_2 import naive_2
-
-        # calculate the forecast of the seasonal naive predictor
-        naive_median_fcst = naive_2(
-            past_data, len(target), freq=start_date.freqstr
-        )
-
-        owa = 0.5 * (
-            (
-                Evaluator.smape(target, forecast)
-                / Evaluator.smape(target, naive_median_fcst)
-            )
-            + (
-                Evaluator.mase(target, forecast, seasonal_error)
-                / Evaluator.mase(target, naive_median_fcst, seasonal_error)
-            )
-        )
-
-        return owa
-
-    @staticmethod
-    def msis(
-        target: np.ndarray,
-        lower_quantile: np.ndarray,
-        upper_quantile: np.ndarray,
-        seasonal_error: float,
-        alpha: float,
-        exclude_zero_denominator=True,
-    ) -> float:
-        r"""
-        :math:
-
-            msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) / seasonal_error
-
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-        if exclude_zero_denominator and np.isclose(seasonal_error, 0.0):
-            return np.nan
-
-        numerator = np.mean(
-            upper_quantile
-            - lower_quantile
-            + 2.0
-            / alpha
-            * (lower_quantile - target)
-            * (target < lower_quantile)
-            + 2.0
-            / alpha
-            * (target - upper_quantile)
-            * (target > upper_quantile)
-        )
-
-        return nan_if_masked(numerator / seasonal_error)
-
-    @staticmethod
-    def abs_target_sum(target) -> float:
-        return nan_if_masked(np.sum(np.abs(target)))
-
-    @staticmethod
-    def abs_target_mean(target) -> float:
-        return nan_if_masked(np.mean(np.abs(target)))
 
 
 class MultivariateEvaluator(Evaluator):
