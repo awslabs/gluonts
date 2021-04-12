@@ -22,10 +22,15 @@ import pytest
 # first party imports
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import ListDataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.rolling_dataset import (
     StepStrategy,
     generate_rolling_dataset,
 )
+from gluonts.evaluation import Evaluator
+from gluonts.evaluation.backtest import make_evaluation_predictions
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx.trainer import Trainer
 
 
 def generate_dataset(name):
@@ -260,3 +265,105 @@ def test_step_strategy(
         i += 1
 
     assert len(ds_expected) == i
+
+
+def create_dynamic_dataset(
+    start: str, length: int, num_dynamic: int
+) -> ListDataset:
+    """Create a ListDataset with dynamic values equal to the target."""
+    return ListDataset(
+        [
+            {
+                FieldName.TARGET: list(range(length)),
+                FieldName.START: pd.Timestamp(start),
+                FieldName.FEAT_DYNAMIC_REAL: [list(range(length))]
+                * num_dynamic,
+                FieldName.FEAT_DYNAMIC_CAT: [list(range(length))]
+                * num_dynamic,
+            }
+        ],
+        freq="D",
+    )
+
+
+@pytest.mark.parametrize(
+    "test_length, prediction_length, target_start, rolling_start, num_dynamic_feat",
+    [
+        (15, 2, "01-01-2019", "01-13-2019", 1),
+        (15, 2, "01-01-2019", "01-13-2019", 2),
+        (15, 1, "01-01-2019", "01-10-2019", 1),
+        (15, 1, "01-01-2019", "01-10-2019", 2),
+    ],
+)
+def test_dynamic_features(
+    test_length: int,
+    prediction_length: int,
+    target_start: str,
+    rolling_start: str,
+    num_dynamic_feat: int,
+):
+    # generate datasets with dynamic values equal to the target values
+    rolled_ds = generate_rolling_dataset(
+        dataset=create_dynamic_dataset(
+            target_start, test_length, num_dynamic_feat
+        ),
+        strategy=StepStrategy(prediction_length=prediction_length),
+        start_time=pd.Timestamp(rolling_start),
+    )
+
+    for timeseries in rolled_ds:
+        for feature_name in (
+            FieldName.FEAT_DYNAMIC_REAL,
+            FieldName.FEAT_DYNAMIC_CAT,
+        ):
+            assert len(timeseries[feature_name]) == num_dynamic_feat
+            for feature in timeseries[feature_name]:
+                # since target and dynamic features has the same values
+                # in the dataset we can ensure ordering and length of
+                # the features by comparing them with the target value
+                assert (timeseries[FieldName.TARGET] == feature).all()
+
+
+@pytest.mark.parametrize(
+    "train_length, test_length, prediction_length, target_start, rolling_start, num_dynamic_feat",
+    [
+        (10, 15, 2, "01-01-2019", "01-13-2019", 1),
+        (10, 15, 2, "01-01-2019", "01-11-2019", 2),
+    ],
+)
+def test_dynamic_integration(
+    train_length: int,
+    test_length: int,
+    prediction_length: int,
+    target_start: str,
+    rolling_start: str,
+    num_dynamic_feat: int,
+):
+    """
+    Trains an estimator on a rolled dataset with dynamic features.
+    Tests https://github.com/awslabs/gluon-ts/issues/1390
+    """
+    train_ds = create_dynamic_dataset(
+        target_start, train_length, num_dynamic_feat
+    )
+    rolled_ds = generate_rolling_dataset(
+        dataset=create_dynamic_dataset(
+            target_start, test_length, num_dynamic_feat
+        ),
+        strategy=StepStrategy(prediction_length=prediction_length),
+        start_time=pd.Timestamp(rolling_start),
+    )
+    estimator = DeepAREstimator(
+        freq="D",
+        prediction_length=prediction_length,
+        context_length=2 * prediction_length,
+        use_feat_dynamic_real=True,
+        trainer=Trainer(epochs=1),
+    )
+    predictor = estimator.train(training_data=train_ds)
+    forecast_it, ts_it = make_evaluation_predictions(
+        rolled_ds, predictor=predictor, num_samples=100
+    )
+    training_agg_metrics, _ = Evaluator(num_workers=0)(ts_it, forecast_it)
+    # it should have failed by this point if the dynamic features were wrong
+    assert training_agg_metrics
