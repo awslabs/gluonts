@@ -296,7 +296,7 @@ class Evaluator:
                         target_fcst = mean_fcst
                     else:
                         logging.warning(
-                            "mean_fcst is None, therfore median_fcst is used."
+                            "mean_fcst is None, therefore median_fcst is used."
                         )
                         target_fcst = median_fcst
                 else:
