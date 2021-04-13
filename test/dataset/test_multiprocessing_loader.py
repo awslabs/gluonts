@@ -199,6 +199,7 @@ def test_validation_loader_equivalence() -> None:
     ), "Batches in incorrect context"
 
 
+@pytest.mark.skip  # TODO decide if test should be deleted
 @flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     "num_workers",
