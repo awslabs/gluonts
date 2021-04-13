@@ -138,9 +138,9 @@ class GMMTrainer:
         self.zero_stats()
 
 
-def infer_lambda(model, horizon):
+def infer_lambda(model, *_, xmin, xmax):
     """ infer lambda and intercept based on linear fitting at the base points """
-    x = np.linspace(0, horizon).reshape((-1, 1))
+    x = np.linspace(xmin, xmax).reshape((-1, 1))
     y = np.ravel(model(mx.nd.array(x))[0].asnumpy())
     slope, intercept = np.polyfit(np.ravel(x), np.ravel(y), 1)
     return -slope

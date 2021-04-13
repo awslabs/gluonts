@@ -15,10 +15,10 @@ Examples
    + Fit GMM to match pdf(x)
    + Infer lambda=0.397
 
- * time-varying exponential (TODO)
-   + Generate independent x from exp(lambda(t)=t**-0.5)
+ * time-varying exponential
+   + Generate independent x from exp(lambda(t)=2^{-t/2})
    + Fit GMM to match pdf(x)
-   + Infer lambda(0) and lambda(2) separately
+   + Infer lambda(0)=0.999 and lambda(2)=0.618
 
  * Hawkes process (TODO)
    + Generate sequential x from Hawkes with some decaying kernel
