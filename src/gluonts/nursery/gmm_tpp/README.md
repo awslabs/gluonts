@@ -13,12 +13,12 @@ Examples
  * exponential-1d
    + Generate independent x from exp(lambda=0.5)
    + Fit GMM to match pdf(x)
-   + Infer lambda=0.397
+   + Infer lambda=0.425
 
  * time-varying exponential
    + Generate independent x from exp(lambda(t)=2^{-t/2})
    + Fit GMM to match pdf(x)
-   + Infer lambda(0)=0.999 and lambda(2)=0.618
+   + Infer lambda(0)=0.956 and lambda(2)=0.498
 
  * Hawkes process (TODO)
    + Generate sequential x from Hawkes with some decaying kernel
