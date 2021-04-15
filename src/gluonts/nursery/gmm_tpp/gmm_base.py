@@ -91,7 +91,7 @@ class GMMModel(gluon.HybridBlock):
         """ @Return (batch_size, num_clusters, input_dim) """
         kR_expand_0 = F.broadcast_like(
             kR_.expand_dims(0), dx_, lhs_axes=(0,), rhs_axes=(0,)
-        )
+        )  # (batch_size, num_clusters, input_dim, input_dim)
 
         Rx_ = F.batch_dot(kR_expand_0, dx_.expand_dims(-1)).squeeze(axis=-1)
         return Rx_
@@ -107,12 +107,14 @@ class GMMModel(gluon.HybridBlock):
             + F.linalg.slogdet(kR_)[1]
         )  # (batch, num_clusters)
 
-        log_joint = F.broadcast_add(log_conditional, log_prior_.log_softmax())
-        log_marginal = F.log(F.exp(log_joint).sum(axis=1))
+        log_complete = F.broadcast_add(
+            log_conditional, log_prior_.log_softmax()
+        )
+        log_incomplete = F.log(F.exp(log_complete).sum(axis=1))
 
-        qz = log_joint.softmax(axis=1)
+        qz = log_complete.softmax(axis=1)
 
-        return log_marginal, qz
+        return log_incomplete, qz
 
     @staticmethod
     def m_step(x, qz):
@@ -147,11 +149,12 @@ class GMMTrainer:
         )
 
     def add(self, x):
-        _, qz = self.model(mx.nd.array(x))
+        log_incomplete, qz = self.model(mx.nd.array(x))
         nz, sum_x, sum_x2 = self.model.m_step(x, qz.asnumpy())
         self.nz = self.nz + nz
         self.sum_x = self.sum_x + sum_x
         self.sum_x2 = self.sum_x2 + sum_x2
+        return log_incomplete
 
     def update(self):
         mu_ = self.sum_x / self.nz[:, None]
@@ -163,10 +166,11 @@ class GMMTrainer:
         self.model.mu_.set_data(mu_)
         self.model.kR_.set_data(kR_)
 
+        self.zero_stats()
+
     def __call__(self, x):
         self.add(x)
         self.update()
-        self.zero_stats()
 
 
 def infer_lambda(model, *_, xmin, xmax):

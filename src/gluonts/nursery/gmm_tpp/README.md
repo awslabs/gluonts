@@ -16,11 +16,11 @@ Examples
    + Infer lambda=0.425
 
  * time-varying exponential
-   + Generate independent x from exp(lambda(t)=2^{-t/2})
+   + Generate independent x from exp(lambda(t)=0.1 + 2**-t)
    + Fit GMM to match pdf(x)
-   + Infer lambda(0)=0.956 and lambda(2)=0.498
+   + Infer lambda(0)=1.366 and lambda(2)=0.908
 
- * Hawkes process (TODO)
+ * Hawkes process (WIP)
    + Generate sequential x from Hawkes with some decaying kernel
    + Fit GMM to match pdf(x1, ..., xk)
    + Infer lambda(T|x1, ..., xk) for different sequences
