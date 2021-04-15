@@ -31,7 +31,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 
-from gluonts.evaluation.metrics import (
+from .metrics import (
     abs_error,
     abs_target_mean,
     abs_target_sum,
