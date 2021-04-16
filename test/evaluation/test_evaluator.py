@@ -17,6 +17,7 @@ import pytest
 
 from gluonts.evaluation import Evaluator, MultivariateEvaluator
 from gluonts.model.forecast import QuantileForecast, SampleForecast
+from gluonts.evaluation.metrics import mape, smape
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
 
@@ -28,8 +29,8 @@ QUANTILES = [str(q / 10.0) for q in range(1, 10)]
             np.array([1.0, 2.0, 3.0, 0.0, 0.0]),
             np.array([2.0, 3.0, 4.0, 1.0, 0.0]),
             {
-                Evaluator.mape: (1 / 1 + 1 / 2 + 1 / 3) / 3,
-                Evaluator.smape: 2
+                mape: (1 / 1 + 1 / 2 + 1 / 3) / 3,
+                smape: 2
                 * (1 / (1 + 2) + 1 / (2 + 3) + 1 / (3 + 4) + 1 / 1)
                 / 4,
             },
@@ -37,18 +38,12 @@ QUANTILES = [str(q / 10.0) for q in range(1, 10)]
         (
             np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([0.1, 0.01, 0.001, 0.0001, 0.00001]),
-            {
-                Evaluator.mape: np.nan,
-                Evaluator.smape: 2.0,
-            },
+            {mape: np.nan, smape: 2.0},
         ),
         (
             np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
             np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
-            {
-                Evaluator.mape: np.nan,
-                Evaluator.smape: np.nan,
-            },
+            {mape: np.nan, smape: np.nan},
         ),
     ],
 )
