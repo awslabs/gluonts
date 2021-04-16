@@ -193,7 +193,6 @@ dev_require = (
 
 setup_kwargs: dict = dict(
     name="gluonts",
-    use_scm_version={"fallback_version": "0.0.0"},
     description=(
         "GluonTS is a Python toolkit for probabilistic time series modeling, "
         "built around MXNet."

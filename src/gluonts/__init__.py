@@ -15,11 +15,30 @@
 
 from pkgutil import extend_path
 
-from pkg_resources import DistributionNotFound, get_distribution
+
+from functools import partial
+from subprocess import check_output, CalledProcessError, PIPE
+
+
+def _get_version():
+    def run(command):
+        return check_output(
+            command.split(), stderr=PIPE, encoding="utf-8"
+        ).strip()
+
+    try:
+        # if HEAD is tagged, we use that as the version
+        return run("git describe --exact-match --tags")
+    except CalledProcessError:
+        pass
+
+    try:
+        commit_id = run("git rev-parse --short HEAD")
+        branch = run("git rev-parse --abbrev-ref HEAD")
+        return f"dev.{branch}+g{commit_id}"
+    except CalledProcessError:
+        return "0.0.0-unknown"
+
 
 __path__ = extend_path(__path__, __name__)  # type: ignore
-
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    __version__ = "0.0.0-unknown"
+__version__ = _get_version()
