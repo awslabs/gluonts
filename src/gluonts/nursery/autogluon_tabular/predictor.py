@@ -18,7 +18,7 @@ import pandas as pd
 import shutil
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 from pathlib import Path
-from autogluon import tabular
+from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
 
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.util import to_pandas
@@ -346,9 +346,10 @@ class TabularPredictor(Predictor):
         # serialize self.ag_model
         # move autogluon model to where we want to do the serialization
         ag_path = self.ag_model.path
+        print(f"Autogluon files moved from {ag_path} to {path}.")
         shutil.move(ag_path, path)
-        # self.ag_model.save()
-
+        # reset the path stored in tabular model.
+        AutogluonTabularPredictor.load(path / Path(ag_path.split("/")[-2]))
         # serialize all remaining constructor parameters
         with (path / "parameters.json").open("w") as fp:
             parameters = dict(
@@ -378,7 +379,7 @@ class TabularPredictor(Predictor):
         loaded_ag_path = parameters["ag_path"]
         del parameters["ag_path"]
         # load tabular model
-        ag_model = tabular.TabularPredictor.load(loaded_ag_path)
+        ag_model = AutogluonTabularPredictor.load(loaded_ag_path)
 
         return TabularPredictor(
             ag_model=ag_model, scaling=scaling, **parameters

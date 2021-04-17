@@ -16,7 +16,6 @@ from typing import List, Optional
 import pytest
 import numpy as np
 import pandas as pd
-import os
 import tempfile
 from pathlib import Path
 

@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 from typing import Callable, Optional, List, Tuple
-from pathlib import Path
 import pandas as pd
 from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
 
@@ -85,7 +84,6 @@ class TabularEstimator(Estimator):
     ) -> None:
         super().__init__()
 
-        self.ag_predictor = AutogluonTabularPredictor
         self.freq = freq
         self.prediction_length = prediction_length
         self.lag_indices = (
@@ -132,7 +130,7 @@ class TabularEstimator(Estimator):
         ]
         df = pd.concat(dfs)
 
-        ag_model = self.ag_predictor(
+        ag_model = AutogluonTabularPredictor(
             label="target",
             problem_type="regression",
             eval_metric=eval_metric,
