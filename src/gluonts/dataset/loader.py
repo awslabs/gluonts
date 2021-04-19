@@ -347,6 +347,9 @@ def ValidationDataLoader(
         data_iterable=TransformedDataset(dataset, transform, is_train=True),
         batch_size=batch_size,
         stack_fn=stack_fn,
+        num_workers=num_workers,
+        num_prefetch=num_prefetch,
+        decode_fn=decode_fn,
     )
 
 
@@ -365,7 +368,7 @@ def InferenceDataLoader(
         Data to iterate over.
     transform
         Transformation to be lazily applied as data is being iterated.
-        The transformation is applied in "training mode" (`is_train=True).
+        The transformation is applied in "inference mode" (`is_train=False).
     batch_size
         Number of entries to include in a batch.
     stack_fn

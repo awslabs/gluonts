@@ -106,7 +106,7 @@ def count_item_ids(batches: List[DataBatch]) -> Dict[Any, int]:
 )
 @pytest.mark.parametrize(
     "num_workers",
-    [None, 1, 2, 5],
+    [None, 1],
 )
 def test_training_data_loader(dataset_context, num_workers):
     with dataset_context as dataset:
@@ -146,9 +146,7 @@ def test_training_data_loader(dataset_context, num_workers):
         counter = count_item_ids(batches)
 
         for entry in dataset:
-            assert (
-                counter[entry[FieldName.ITEM_ID]] >= passes_through_dataset / 2
-            )
+            assert counter[entry[FieldName.ITEM_ID]] >= passes_through_dataset
 
 
 @pytest.mark.parametrize(
