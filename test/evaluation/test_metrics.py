@@ -15,6 +15,7 @@ from pydantic.decorator import Callable
 from gluonts.evaluation.metrics import (
     abs_target_mean,
     abs_target_sum,
+    calculate_seasonal_error,
     mase,
     mape,
     msis,
@@ -252,6 +253,28 @@ def test_msis(
             seasonal_error=seasonal_error,
             alpha=alpha,
             exclude_zero_denominator=False,  # TODO remove when refactoring msis
+        ),
+        expected,
+    )
+
+
+@pytest.mark.parametrize(
+    "past_data, seasonality, expected",
+    [
+        (LINEAR, 1, 0.1),
+        (LINEAR, 2, 0.2),
+        (LINEAR, 3, 0.3),
+        (LINEAR, 4, 0.4),
+        (LINEAR, len(LINEAR), 0.1),
+        (CONSTANT, 2, 0.0),
+        (ZEROES, 1, 0.0),
+        (EXPONENTIAL, 3, 0.054945),
+    ],
+)
+def test_seasonal_error(past_data, seasonality, expected):
+    np.testing.assert_almost_equal(
+        calculate_seasonal_error(
+            past_data=past_data, forecast=None, seasonality=seasonality
         ),
         expected,
     )
