@@ -18,10 +18,6 @@ from gluonts.model.forecast import Forecast
 from gluonts.time_feature import get_seasonality
 
 
-def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
-    return a if a is not np.ma.masked else np.nan
-
-
 def calculate_seasonal_error(
     past_data: np.ndarray,
     forecast: Forecast,
@@ -50,34 +46,30 @@ def calculate_seasonal_error(
     y_t = past_data[:-forecast_freq]
     y_tm = past_data[forecast_freq:]
 
-    seasonal_mae = np.mean(abs(y_t - y_tm))
-
-    return nan_if_masked(seasonal_mae)
+    return np.mean(abs(y_t - y_tm))
 
 
 def mse(target: np.ndarray, forecast: np.ndarray) -> float:
-    return nan_if_masked(np.mean(np.square(target - forecast)))
+    return np.mean(np.square(target - forecast))
 
 
 def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
-    return nan_if_masked(np.sum(np.abs(target - forecast)))
+    return np.sum(np.abs(target - forecast))
 
 
 def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
-    return nan_if_masked(
-        2 * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
-    )
+    return 2 * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
 
 
 def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
-    return nan_if_masked(np.mean((target < forecast)))
+    return np.mean((target < forecast))
 
 
 def mase(
     target: np.ndarray,
     forecast: np.ndarray,
     seasonal_error: float,
-    exclude_zero_denominator=True,
+    exclude_zero_denominator=False,
 ) -> float:
     r"""
     .. math::
@@ -89,11 +81,11 @@ def mase(
     if exclude_zero_denominator and np.isclose(seasonal_error, 0.0):
         return np.nan
 
-    return nan_if_masked(np.mean(np.abs(target - forecast)) / seasonal_error)
+    return np.mean(np.abs(target - forecast)) / seasonal_error
 
 
 def mape(
-    target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
+    target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=False
 ) -> float:
     r"""
     .. math::
@@ -105,7 +97,7 @@ def mape(
         denominator = np.ma.masked_where(
             np.isclose(denominator, 0.0), denominator
         )
-    return nan_if_masked(np.mean(np.abs(target - forecast) / denominator))
+    return np.mean(np.abs(target - forecast) / denominator)
 
 
 def smape(
@@ -123,7 +115,7 @@ def smape(
         denominator = np.ma.masked_where(
             np.isclose(denominator, 0.0), denominator
         )
-    return nan_if_masked(2 * np.mean(np.abs(target - forecast) / denominator))
+    return 2 * np.mean(np.abs(target - forecast) / denominator)
 
 
 def owa(
@@ -165,7 +157,7 @@ def msis(
     upper_quantile: np.ndarray,
     seasonal_error: float,
     alpha: float,
-    exclude_zero_denominator=True,
+    exclude_zero_denominator=False,
 ) -> float:
     r"""
     :math:
@@ -184,12 +176,12 @@ def msis(
         + 2.0 / alpha * (target - upper_quantile) * (target > upper_quantile)
     )
 
-    return nan_if_masked(numerator / seasonal_error)
+    return numerator / seasonal_error
 
 
 def abs_target_sum(target) -> float:
-    return nan_if_masked(np.sum(np.abs(target)))
+    return np.sum(np.abs(target))
 
 
 def abs_target_mean(target) -> float:
-    return nan_if_masked(np.mean(np.abs(target)))
+    return np.mean(np.abs(target))
