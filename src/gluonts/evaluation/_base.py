@@ -30,6 +30,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+import toolz
 
 from .metrics import (
     abs_error,
@@ -114,6 +115,8 @@ class Evaluator:
         custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = multiprocessing.cpu_count(),
         chunk_size: int = 32,
+        mask_invalid_ts: Optional[bool] = True,
+        nan_if_masked_ts: Optional[bool] = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -122,6 +125,8 @@ class Evaluator:
         self.custom_eval_fn = custom_eval_fn
         self.num_workers = num_workers
         self.chunk_size = chunk_size
+        self.mask_invalid_ts = mask_invalid_ts
+        self.nan_if_masked_ts = nan_if_masked_ts
 
     def __call__(
         self,
@@ -259,15 +264,17 @@ class Evaluator:
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Dict[str, Union[float, str, None]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
-        pred_target = np.ma.masked_invalid(pred_target)
 
         # required for seasonal_error and owa calculation
         past_data = np.array(self.extract_past_data(time_series, forecast))
-        past_data = np.ma.masked_invalid(past_data)
+
+        if self.mask_invalid_ts:
+            past_data = np.ma.masked_invalid(past_data)
+            pred_target = np.ma.masked_invalid(pred_target)
 
         try:
             mean_fcst = forecast.mean
-        except:
+        except Exception:
             mean_fcst = None
 
         median_fcst = forecast.quantile(0.5)
@@ -344,6 +351,9 @@ class Evaluator:
             metrics[quantile.coverage_name] = coverage(
                 pred_target, forecast_quantile
             )
+
+        if self.nan_if_masked_ts:
+            metrics = toolz.valmap(nan_if_masked, metrics)
 
         return metrics
 
