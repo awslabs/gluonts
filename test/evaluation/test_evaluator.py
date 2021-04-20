@@ -17,43 +17,8 @@ import pytest
 
 from gluonts.evaluation import Evaluator, MultivariateEvaluator
 from gluonts.model.forecast import QuantileForecast, SampleForecast
-from gluonts.evaluation.metrics import mape, smape
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
-
-
-@pytest.mark.parametrize(
-    "target, forecast, expected_metric_values",
-    [
-        (
-            np.array([1.0, 2.0, 3.0, 0.0, 0.0]),
-            np.array([2.0, 3.0, 4.0, 1.0, 0.0]),
-            {
-                mape: (1 / 1 + 1 / 2 + 1 / 3) / 3,
-                smape: 2
-                * (1 / (1 + 2) + 1 / (2 + 3) + 1 / (3 + 4) + 1 / 1)
-                / 4,
-            },
-        ),
-        (
-            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
-            np.array([0.1, 0.01, 0.001, 0.0001, 0.00001]),
-            {mape: np.nan, smape: 2.0},
-        ),
-        (
-            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
-            {mape: np.nan, smape: np.nan},
-        ),
-    ],
-)
-def test_metric_values(
-    target: np.ndarray, forecast: np.ndarray, expected_metric_values: dict
-):
-    for metric, expected_value in expected_metric_values.items():
-        assert np.isclose(
-            metric(target, forecast), expected_value, equal_nan=True
-        )
 
 
 def data_iterator(ts):
