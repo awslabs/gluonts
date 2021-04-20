@@ -19,6 +19,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from contextlib import AbstractContextManager
 import sys
+import time
 
 from mxnet.context import current_context
 import numpy as np
@@ -37,6 +38,7 @@ from gluonts.transform import (
     InstanceSampler,
     InstanceSplitter,
     MapTransformation,
+    SimpleTransformation,
 )
 
 
@@ -44,6 +46,15 @@ class WriteIsTrain(MapTransformation):
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         data["is_train"] = is_train
         return data
+
+
+class Pause(SimpleTransformation):
+    def __init__(self, t):
+        self.t = t
+
+    def transform(self, data_entry):
+        time.sleep(self.t)
+        return data_entry
 
 
 class ExactlyOneSampler(InstanceSampler):
@@ -78,15 +89,19 @@ class DefaultFileDataset(AbstractContextManager):
 
 
 def default_transformation():
-    return WriteIsTrain() + InstanceSplitter(
-        target_field=FieldName.TARGET,
-        is_pad_field=FieldName.IS_PAD,
-        start_field=FieldName.START,
-        forecast_start_field=FieldName.FORECAST_START,
-        instance_sampler=ExactlyOneSampler(),
-        past_length=10,
-        future_length=5,
-        dummy_value=1.0,
+    return (
+        Pause(0.005)
+        + WriteIsTrain()
+        + InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=ExactlyOneSampler(),
+            past_length=10,
+            future_length=5,
+            dummy_value=1.0,
+        )
     )
 
 
@@ -111,7 +126,7 @@ def count_item_ids(batches: List[DataBatch]) -> Dict[Any, int]:
 )
 @pytest.mark.parametrize(
     "num_workers",
-    [None, 1],
+    [None, 1, 2, 5],
 )
 def test_training_data_loader(dataset_context, num_workers):
     with dataset_context as dataset:
@@ -151,7 +166,11 @@ def test_training_data_loader(dataset_context, num_workers):
         counter = count_item_ids(batches)
 
         for entry in dataset:
-            assert counter[entry[FieldName.ITEM_ID]] >= passes_through_dataset
+            assert counter[entry[FieldName.ITEM_ID]] >= (
+                passes_through_dataset
+                if (num_workers is None or num_workers == 1)
+                else passes_through_dataset / 2
+            )
 
 
 @pytest.mark.parametrize(
