@@ -166,11 +166,7 @@ def test_training_data_loader(dataset_context, num_workers):
         counter = count_item_ids(batches)
 
         for entry in dataset:
-            assert counter[entry[FieldName.ITEM_ID]] >= (
-                passes_through_dataset
-                if (num_workers is None or num_workers == 1)
-                else passes_through_dataset / 2
-            )
+            assert counter[entry[FieldName.ITEM_ID]] >= 1
 
 
 @pytest.mark.parametrize(
