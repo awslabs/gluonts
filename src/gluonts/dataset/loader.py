@@ -193,6 +193,9 @@ class DataLoader(Iterable[DataBatch]):
         num_prefetch: Optional[int] = None,
         decode_fn: Callable = lambda x: x,
     ) -> None:
+        assert num_workers is None or num_workers > 0
+        assert num_prefetch is None or num_prefetch > 0
+
         self.data_iterable = data_iterable
         self.batch_size = batch_size
         self.stack_fn = stack_fn
@@ -203,7 +206,7 @@ class DataLoader(Iterable[DataBatch]):
     def __iter__(self):
         batch_iterator = (
             map(self.stack_fn, batcher(self.data_iterable, self.batch_size))
-            if not self.num_workers
+            if self.num_workers is None
             else MultiProcessBatcher(
                 self.data_iterable,
                 batch_size=self.batch_size,
@@ -253,7 +256,7 @@ def TrainDataLoader(
         Data to iterate over.
     transform
         Transformation to be lazily applied as data is being iterated.
-        The transformation is applied in "training mode" (`is_train=True).
+        The transformation is applied in "training mode" (``is_train=True``).
     batch_size
         Number of entries to include in a batch.
     stack_fn
@@ -322,7 +325,7 @@ def ValidationDataLoader(
         Data to iterate over.
     transform
         Transformation to be lazily applied as data is being iterated.
-        The transformation is applied in "training mode" (`is_train=True).
+        The transformation is applied in "training mode" (``is_train=True``).
     batch_size
         Number of entries to include in a batch.
     stack_fn
@@ -368,7 +371,7 @@ def InferenceDataLoader(
         Data to iterate over.
     transform
         Transformation to be lazily applied as data is being iterated.
-        The transformation is applied in "inference mode" (`is_train=False).
+        The transformation is applied in "inference mode" (``is_train=False``).
     batch_size
         Number of entries to include in a batch.
     stack_fn
