@@ -48,15 +48,6 @@ class WriteIsTrain(MapTransformation):
         return data
 
 
-class Pause(SimpleTransformation):
-    def __init__(self, t):
-        self.t = t
-
-    def transform(self, data_entry):
-        time.sleep(self.t)
-        return data_entry
-
-
 class ExactlyOneSampler(InstanceSampler):
     def __call__(self, ts: np.ndarray) -> np.ndarray:
         a, b = self._get_bounds(ts)
@@ -89,19 +80,15 @@ class DefaultFileDataset(AbstractContextManager):
 
 
 def default_transformation():
-    return (
-        Pause(0.005)
-        + WriteIsTrain()
-        + InstanceSplitter(
-            target_field=FieldName.TARGET,
-            is_pad_field=FieldName.IS_PAD,
-            start_field=FieldName.START,
-            forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=ExactlyOneSampler(),
-            past_length=10,
-            future_length=5,
-            dummy_value=1.0,
-        )
+    return WriteIsTrain() + InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=ExactlyOneSampler(),
+        past_length=10,
+        future_length=5,
+        dummy_value=1.0,
     )
 
 
@@ -165,8 +152,9 @@ def test_training_data_loader(dataset_context, num_workers):
 
         counter = count_item_ids(batches)
 
-        for entry in dataset:
-            assert counter[entry[FieldName.ITEM_ID]] >= 1
+        if num_workers is None or num_workers == 1:
+            for entry in dataset:
+                assert counter[entry[FieldName.ITEM_ID]] >= 1
 
 
 @pytest.mark.parametrize(
