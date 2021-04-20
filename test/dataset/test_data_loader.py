@@ -18,6 +18,7 @@ from typing import Dict, Any, List
 from tempfile import TemporaryDirectory
 from pathlib import Path
 from contextlib import AbstractContextManager
+import sys
 
 from mxnet.context import current_context
 import numpy as np
@@ -99,10 +100,14 @@ def count_item_ids(batches: List[DataBatch]) -> Dict[Any, int]:
 
 @pytest.mark.parametrize(
     "dataset_context",
-    [
-        DefaultListDataset(),
-        DefaultFileDataset(),
-    ],
+    (
+        [
+            DefaultListDataset(),
+            DefaultFileDataset(),
+        ]
+        if not sys.platform.startswith("win")
+        else [DefaultListDataset()]
+    ),
 )
 @pytest.mark.parametrize(
     "num_workers",
