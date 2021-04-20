@@ -69,7 +69,6 @@ def mase(
     target: np.ndarray,
     forecast: np.ndarray,
     seasonal_error: float,
-    exclude_zero_denominator=False,
 ) -> float:
     r"""
     .. math::
@@ -78,9 +77,6 @@ def mase(
 
     https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     """
-    if exclude_zero_denominator and np.isclose(seasonal_error, 0.0):
-        return np.nan
-
     return np.mean(np.abs(target - forecast)) / seasonal_error
 
 
@@ -92,17 +88,10 @@ def mape(
 
         mape = mean(|Y - Y_hat| / |Y|))
     """
-    denominator = np.abs(target)
-    if exclude_zero_denominator:
-        denominator = np.ma.masked_where(
-            np.isclose(denominator, 0.0), denominator
-        )
-    return np.mean(np.abs(target - forecast) / denominator)
+    return np.mean(np.abs(target - forecast) / np.abs(target))
 
 
-def smape(
-    target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-) -> float:
+def smape(target: np.ndarray, forecast: np.ndarray) -> float:
     r"""
     .. math::
 
@@ -110,12 +99,9 @@ def smape(
 
     https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     """
-    denominator = np.abs(target) + np.abs(forecast)
-    if exclude_zero_denominator:
-        denominator = np.ma.masked_where(
-            np.isclose(denominator, 0.0), denominator
-        )
-    return 2 * np.mean(np.abs(target - forecast) / denominator)
+    return 2 * np.mean(
+        np.abs(target - forecast) / (np.abs(target) + np.abs(forecast))
+    )
 
 
 def owa(
@@ -140,15 +126,13 @@ def owa(
         past_data, len(target), freq=start_date.freqstr
     )
 
-    owa = 0.5 * (
+    return 0.5 * (
         (smape(target, forecast) / smape(target, naive_median_fcst))
         + (
             mase(target, forecast, seasonal_error)
             / mase(target, naive_median_fcst, seasonal_error)
         )
     )
-
-    return owa
 
 
 def msis(
@@ -157,7 +141,6 @@ def msis(
     upper_quantile: np.ndarray,
     seasonal_error: float,
     alpha: float,
-    exclude_zero_denominator=False,
 ) -> float:
     r"""
     :math:
@@ -166,9 +149,6 @@ def msis(
 
     https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     """
-    if exclude_zero_denominator and np.isclose(seasonal_error, 0.0):
-        return np.nan
-
     numerator = np.mean(
         upper_quantile
         - lower_quantile

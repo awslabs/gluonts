@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from pydantic.decorator import Callable
 from gluonts.evaluation.metrics import (
     abs_target_mean,
     abs_target_sum,
@@ -44,53 +43,51 @@ CONSTANT = np.array([0.4] * 5)
             ZEROES,
             ZEROES,
             [
-                (
-                    mase,
-                    np.nan,
-                    {"seasonal_error": 0.0, "exclude_zero_denominator": False},
-                ),
-                (
-                    mase,
-                    0.0,
-                    {"seasonal_error": 1.0, "exclude_zero_denominator": False},
-                ),
+                (mase, np.nan, {"seasonal_error": 0.0}),
+                (mase, 0.0, {"seasonal_error": 1.0}),
                 (mse, 0.0, {}),
                 (abs_error, 0.0, {}),
                 (quantile_loss, 0.0, {"q": 0.5}),
                 (coverage, 0.0, {}),
-                (mape, np.nan, {"exclude_zero_denominator": False}),
-                (smape, np.nan, {"exclude_zero_denominator": False}),
-                # TODO add OWA when exclude_zero_denominator is removed
+                (mape, np.nan, {}),
+                (smape, np.nan, {}),
+                (
+                    owa,
+                    np.nan,
+                    {
+                        "past_data": ZEROES,
+                        "seasonal_error": 0.0,
+                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
+                    },
+                ),
+                (
+                    owa,
+                    np.nan,
+                    {
+                        "past_data": ZEROES,
+                        "seasonal_error": 1.0,
+                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
+                    },
+                ),
             ],
         ),
         (
             LINEAR,
             ZEROES,
             [
-                (
-                    mase,
-                    0.2 / 10e-10,
-                    {
-                        "seasonal_error": 10e-10,
-                        "exclude_zero_denominator": False,
-                    },
-                ),
-                (
-                    mase,
-                    np.inf,
-                    {"seasonal_error": 0.0, "exclude_zero_denominator": False},
-                ),
+                (mase, 0.2 / 10e-10, {"seasonal_error": 10e-10}),
+                (mase, np.inf, {"seasonal_error": 0.0}),
                 (mse, 0.06, {}),
                 (abs_error, 1.0, {}),
                 (quantile_loss, 0.2, {"q": 0.1}),
                 (quantile_loss, 1.0, {"q": 0.5}),
                 (quantile_loss, 1.8, {"q": 0.9}),
                 (coverage, 0.0, {}),
-                (mape, np.nan, {"exclude_zero_denominator": False}),
-                (smape, np.nan, {"exclude_zero_denominator": False}),
+                (mape, np.nan, {}),
+                (smape, np.nan, {}),
                 (
                     owa,
-                    1.7041284403669723,
+                    np.nan,
                     {
                         "past_data": LINEAR,
                         "seasonal_error": 0.5,
@@ -103,22 +100,23 @@ CONSTANT = np.array([0.4] * 5)
             LINEAR,
             CONSTANT,
             [
-                (
-                    mase,
-                    0.2,
-                    {"exclude_zero_denominator": False, "seasonal_error": 1},
-                ),
+                (mase, 0.2, {"seasonal_error": 1}),
                 (mse, 0.06, {}),
                 (abs_error, 1.0, {}),
                 (quantile_loss, 1.8, {"q": 0.1}),
                 (quantile_loss, 1.0, {"q": 0.5}),
                 (quantile_loss, 0.2, {"q": 0.9}),
                 (coverage, 0.8, {}),
-                (mape, np.inf, {"exclude_zero_denominator": False}),
+                (mape, np.inf, {}),
+                (smape, 0.8304761904761906, {}),
                 (
-                    smape,
-                    0.8304761904761906,
-                    {"exclude_zero_denominator": False},
+                    owa,
+                    np.nan,
+                    {
+                        "past_data": LINEAR,
+                        "seasonal_error": 0.0,
+                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
+                    },
                 ),
                 (
                     owa,
@@ -135,22 +133,24 @@ CONSTANT = np.array([0.4] * 5)
             ZEROES,
             EXPONENTIAL,
             [
-                (
-                    mase,
-                    0.022222,
-                    {"exclude_zero_denominator": False, "seasonal_error": 1},
-                ),
+                (mase, 0.022222, {"seasonal_error": 1}),
                 (mse, 0.00202020202, {}),
                 (abs_error, 0.11111, {}),
                 (quantile_loss, 0.199998, {"q": 0.1}),
                 (quantile_loss, 0.11111, {"q": 0.5}),
                 (quantile_loss, 0.0222219, {"q": 0.9}),
                 (coverage, 1.0, {}),
-                (mape, np.nan, {}),
-                (mape, np.inf, {"exclude_zero_denominator": False}),
+                (mape, np.inf, {}),
                 (smape, 2.0, {}),
-                (smape, 2.0, {"exclude_zero_denominator": False}),
-                # TODO add OWA when exclude_zero_denominator is removed
+                (
+                    owa,
+                    0.61111,
+                    {
+                        "past_data": 10000 * EXPONENTIAL,
+                        "seasonal_error": 0.5,
+                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
+                    },
+                ),
             ],
         ),
         (
@@ -160,7 +160,7 @@ CONSTANT = np.array([0.4] * 5)
                 (
                     mase,
                     0.8,
-                    {"exclude_zero_denominator": False, "seasonal_error": 1},
+                    {"seasonal_error": 1},
                 ),
                 (mse, 0.8, {}),
                 (abs_error, 4.0, {}),
@@ -168,13 +168,11 @@ CONSTANT = np.array([0.4] * 5)
                 (quantile_loss, 4.0, {"q": 0.5}),
                 (quantile_loss, 0.7999999, {"q": 0.9}),
                 (coverage, 0.8, {}),
-                (mape, 0.6111111, {}),
-                (mape, np.nan, {"exclude_zero_denominator": False}),
-                (smape, 0.8380952, {}),
-                (smape, np.nan, {"exclude_zero_denominator": False}),
+                (mape, np.nan, {}),
+                (smape, np.nan, {}),
                 (
                     owa,
-                    0.6285506945884303,
+                    np.nan,
                     {
                         "past_data": CONSTANT,
                         "seasonal_error": 0.5,
@@ -190,7 +188,7 @@ CONSTANT = np.array([0.4] * 5)
                 (
                     mase,
                     0.377778,
-                    {"exclude_zero_denominator": False, "seasonal_error": 1},
+                    {"seasonal_error": 1},
                 ),
                 (mse, 0.14424260202, {}),
                 (abs_error, 1.88889, {}),
@@ -198,8 +196,8 @@ CONSTANT = np.array([0.4] * 5)
                 (quantile_loss, 1.88889, {"q": 0.5}),
                 (quantile_loss, 3.400002, {"q": 0.9}),
                 (coverage, 0.0, {}),
-                (mape, 0.944445, {"exclude_zero_denominator": False}),
-                (smape, 1.8182728, {"exclude_zero_denominator": False}),
+                (mape, 0.944445, {}),
+                (smape, 1.8182728, {}),
                 (
                     owa,
                     np.inf,
@@ -252,7 +250,6 @@ def test_msis(
             upper_quantile=upper_quantile,
             seasonal_error=seasonal_error,
             alpha=alpha,
-            exclude_zero_denominator=False,  # TODO remove when refactoring msis
         ),
         expected,
     )
