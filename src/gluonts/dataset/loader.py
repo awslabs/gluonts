@@ -313,9 +313,6 @@ def ValidationDataLoader(
     transform: Transformation,
     batch_size: int,
     stack_fn: Callable,
-    num_workers: Optional[int] = None,
-    num_prefetch: Optional[int] = None,
-    decode_fn: Callable = lambda x: x,
 ):
     """Construct an iterator of batches for validation purposes.
 
@@ -332,14 +329,6 @@ def ValidationDataLoader(
         Function to use to stack data entries into batches.
         This can be used to set a specific array type or computing device
         the arrays should end up onto (CPU, GPU).
-    num_workers
-        Number of worker processes to use. Default: None.
-    num_prefetch
-        Sets the length of the queue of batches being produced by worker processes.
-        (Only meaningful when ``num_workers is not None``).
-    decode_fn
-        A function called on each batch after it's been taken out of the queue.
-        (Only meaningful when ``num_workers is not None``).
 
     Returns
     -------
@@ -350,9 +339,6 @@ def ValidationDataLoader(
         data_iterable=TransformedDataset(dataset, transform, is_train=True),
         batch_size=batch_size,
         stack_fn=stack_fn,
-        num_workers=num_workers,
-        num_prefetch=num_prefetch,
-        decode_fn=decode_fn,
     )
 
 

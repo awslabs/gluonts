@@ -156,11 +156,7 @@ def test_training_data_loader(dataset_context, num_workers):
         DefaultFileDataset(),
     ],
 )
-@pytest.mark.parametrize(
-    "num_workers",
-    [None, 1, 2, 5],
-)
-def test_validation_data_loader(dataset_context, num_workers):
+def test_validation_data_loader(dataset_context):
     with dataset_context as dataset:
         dataset_length = len(list(dataset))
         counter = defaultdict(lambda: 0)
@@ -170,8 +166,6 @@ def test_validation_data_loader(dataset_context, num_workers):
             transform=default_transformation(),
             batch_size=4,
             stack_fn=partial(batchify, ctx=current_context()),
-            decode_fn=partial(as_in_context, ctx=current_context()),
-            num_workers=num_workers,
         )
 
         batches = list(dl)
