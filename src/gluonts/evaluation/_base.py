@@ -102,9 +102,9 @@ class Evaluator:
     chunk_size
         Controls the approximate chunk size each workers handles at a time.
         Default is 32.
-    mask_invalid_ts
+    mask_invalid_timeseries
         Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
-    nan_if_masked_ts
+    nan_if_masked_timeseries
         If True, set metrics to nan if they result in a
         `np.ma.core.MaskedConstant`.
     """
@@ -120,8 +120,8 @@ class Evaluator:
         custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = multiprocessing.cpu_count(),
         chunk_size: int = 32,
-        mask_invalid_ts: Optional[bool] = True,
-        nan_if_masked_ts: Optional[bool] = True,
+        mask_invalid_timeseries: Optional[bool] = True,
+        nan_if_masked_timeseries: Optional[bool] = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -130,8 +130,8 @@ class Evaluator:
         self.custom_eval_fn = custom_eval_fn
         self.num_workers = num_workers
         self.chunk_size = chunk_size
-        self.mask_invalid_ts = mask_invalid_ts
-        self.nan_if_masked_ts = nan_if_masked_ts
+        self.mask_invalid_timeseries = mask_invalid_timeseries
+        self.nan_if_masked_timeseries = nan_if_masked_timeseries
 
     def __call__(
         self,
@@ -271,7 +271,7 @@ class Evaluator:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         past_data = np.array(self.extract_past_data(time_series, forecast))
 
-        if self.mask_invalid_ts:
+        if self.mask_invalid_timeseries:
             past_data = np.ma.masked_invalid(past_data)
             pred_target = np.ma.masked_invalid(pred_target)
 
@@ -355,7 +355,7 @@ class Evaluator:
                 pred_target, forecast_quantile
             )
 
-        if self.nan_if_masked_ts:
+        if self.nan_if_masked_timeseries:
             metrics = toolz.valmap(nan_if_masked, metrics)
 
         return metrics
