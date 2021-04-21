@@ -158,7 +158,7 @@ def win32_guard(num_workers: Optional[int]) -> Optional[int]:
 
 
 class DataLoader(Iterable[DataBatch]):
-    """Iterates a datasets and puts its entries into batches of a given size.
+    """Iterate a datasets and stack its entries into batches of a given size.
 
     The object can be configured to use multiple processes to iterate the entries,
     which increases throughput in case the data entries are lazily transformed.
