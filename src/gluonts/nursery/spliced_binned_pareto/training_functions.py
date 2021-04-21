@@ -29,7 +29,10 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import torch.nn as nn
 
-from distr_tcn import DistributionalTCN
+try:
+    from .distr_tcn import DistributionalTCN
+except:
+    from distr_tcn import DistributionalTCN
 
 
 def train_step_from_batch(

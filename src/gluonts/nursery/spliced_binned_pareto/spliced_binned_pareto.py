@@ -23,8 +23,11 @@ from typing import List, Union, Optional
 
 import numpy as np
 
-from genpareto import GenPareto
-
+try:
+    from .genpareto import GenPareto
+except:
+    from genpareto import GenPareto
+    
 from torch.distributions import constraints
 from torch.distributions.distribution import Distribution
 

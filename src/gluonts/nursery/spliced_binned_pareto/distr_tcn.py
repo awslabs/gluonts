@@ -70,8 +70,10 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import torch.nn as nn
 
-
-from tcn import TCNBlock
+try:
+    from .tcn import TCNBlock
+except:
+    from tcn import TCNBlock
 
 from torch.distributions.normal import Normal
 
