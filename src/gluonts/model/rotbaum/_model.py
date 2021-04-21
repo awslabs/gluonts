@@ -197,7 +197,9 @@ class QRX:
         gc.collect()
 
     @staticmethod
-    def clump(dic: Dict, min_num: int, sorted_keys: Optional[List]) -> Dict:
+    def clump(
+        dic: Dict, min_num: int, sorted_keys: Optional[List] = None
+    ) -> Dict:
         """
         Returns a new dictionary whose keys are the same as dic's keys.
         Runs over dic's keys, from smallest to largest, and every time that
