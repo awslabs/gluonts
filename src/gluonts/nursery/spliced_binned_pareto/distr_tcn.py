@@ -12,7 +12,6 @@ from torch.autograd import Variable
 import torch.nn as nn
 
 
-
 from tcn import TCNBlock
 
 from torch.distributions.normal import Normal
@@ -39,24 +38,26 @@ class DistributionalTCN(torch.nn.Module):
                 if False, the relation from future to past (backward).
         output_distr: Distribution whose parameters will be specified by the network output
     """
-    def __init__(self,
-        in_channels:int,
-        out_channels:int,
-        kernel_size:int,
-        channels:int,
-        layers:int,
-        bias:bool=True,
-        fwd_time:bool=True,
-        output_distr=Normal(torch.tensor([0.]), torch.tensor([1.])),
-        ): 
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        channels: int,
+        layers: int,
+        bias: bool = True,
+        fwd_time: bool = True,
+        output_distr=Normal(torch.tensor([0.0]), torch.tensor([1.0])),
+    ):
 
         super(DistributionalTCN, self).__init__()
 
         self.out_channels = out_channels
-        
+
         # Temporal Convolution Network
         layers = int(layers)
-        
+
         net_layers = []  # List of sequential TCN blocks
         dilation_size = 1  # Initial dilation size
 
@@ -64,13 +65,13 @@ class DistributionalTCN(torch.nn.Module):
             in_channels_block = in_channels if i == 0 else channels
             net_layers.append(
                 TCNBlock(
-                in_channels=in_channels_block,
-                out_channels=channels,
-                kernel_size=kernel_size,
-                dilation=dilation_size,
-                bias=bias,
-                fwd_time=fwd_time,
-                final=False
+                    in_channels=in_channels_block,
+                    out_channels=channels,
+                    kernel_size=kernel_size,
+                    dilation=dilation_size,
+                    bias=bias,
+                    fwd_time=fwd_time,
+                    final=False,
                 )
             )
             dilation_size *= 2  # Doubles the dilation size at each step
@@ -84,20 +85,17 @@ class DistributionalTCN(torch.nn.Module):
                 dilation=dilation_size,
                 bias=bias,
                 fwd_time=fwd_time,
-                final=True
+                final=True,
             )
         )
 
-        self.network = torch.nn.Sequential( *net_layers )
+        self.network = torch.nn.Sequential(*net_layers)
         self.output_distr = output_distr
-        
-        
+
     def forward(self, x):
-        
+
         net_out = self.network(x)
         net_out_final = net_out[..., -1].squeeze()
         self.output_distr(net_out_final)
-    
+
         return self.output_distr
-        
-        

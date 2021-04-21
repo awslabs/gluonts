@@ -1,4 +1,3 @@
-
 # Implementation taken and modified from
 # https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries, which was created
 # with the following license.
@@ -64,17 +63,18 @@ class Chomp1d(torch.nn.Module):
         last : If True, removes the last elements in the time dimension,
             If False, removes the fist elements.
     """
-    def __init__(self, chomp_size:int, last:bool=True):
+
+    def __init__(self, chomp_size: int, last: bool = True):
         super(Chomp1d, self).__init__()
         self.chomp_size = chomp_size
         self.last = last
 
     def forward(self, x):
         if self.last:
-            x_chomped = x[:, :, :-self.chomp_size]
+            x_chomped = x[:, :, : -self.chomp_size]
         else:
-            x_chomped = x[:, :, self.chomp_size:]
-        
+            x_chomped = x[:, :, self.chomp_size :]
+
         return x_chomped
 
 
@@ -98,43 +98,54 @@ class TCNBlock(torch.nn.Module):
             if False, the relation is from future to past (backward).
         final : If True, the last activation function is disabled.
     """
-    def __init__( self,
-        in_channels:int,
-        out_channels:int,
-        kernel_size:int,
-        dilation:int,
-        bias:bool=True,
-        fwd_time:bool=True,
-        final:bool=False ):
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        dilation: int,
+        bias: bool = True,
+        fwd_time: bool = True,
+        final: bool = False,
+    ):
 
         super(TCNBlock, self).__init__()
 
         in_channels = int(in_channels)
-        kernel_size=int(kernel_size)
-        out_channels=int(out_channels)
-        dilation=int(dilation)
+        kernel_size = int(kernel_size)
+        out_channels = int(out_channels)
+        dilation = int(dilation)
 
         # Computes left padding so that the applied convolutions are causal
-        padding = int( (kernel_size - 1) * dilation )
+        padding = int((kernel_size - 1) * dilation)
 
         # First causal convolution
         conv1_pre = torch.nn.Conv1d(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-            padding=padding, dilation=dilation, bias=bias
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            dilation=dilation,
+            bias=bias,
         )
-        conv1 = torch.nn.utils.weight_norm( conv1_pre )
-        
+        conv1 = torch.nn.utils.weight_norm(conv1_pre)
+
         # The truncation makes the convolution causal
-        chomp1 = Chomp1d( chomp_size=padding, last=fwd_time )
+        chomp1 = Chomp1d(chomp_size=padding, last=fwd_time)
 
         relu1 = torch.nn.LeakyReLU()
 
         # Second causal convolution
         conv2_pre = torch.nn.Conv1d(
-            in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-            padding=padding, dilation=dilation, bias=bias
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            dilation=dilation,
+            bias=bias,
         )
-        conv2 = torch.nn.utils.weight_norm( conv2_pre )
+        conv2 = torch.nn.utils.weight_norm(conv2_pre)
         chomp2 = Chomp1d(padding)
         relu2 = torch.nn.LeakyReLU()
 
@@ -144,9 +155,15 @@ class TCNBlock(torch.nn.Module):
         )
 
         # Residual connection
-        self.upordownsample = torch.nn.Conv1d(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=1
-        ) if in_channels != out_channels else None
+        self.upordownsample = (
+            torch.nn.Conv1d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=1,
+            )
+            if in_channels != out_channels
+            else None
+        )
 
         # Final activation function
         self.activation = torch.nn.LeakyReLU() if final else None
@@ -180,19 +197,22 @@ class TCN(torch.nn.Module):
         fwd_time : If True the network is the relation relation if from past to future (forward),
             if False, the relation from future to past (backward).
     """
-    def __init__(self,
-        in_channels:int,
-        out_channels:int,
-        kernel_size:int,
-        channels:int,
-        layers:int,
-        bias:bool=True,
-        fwd_time:bool=True ):
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        channels: int,
+        layers: int,
+        bias: bool = True,
+        fwd_time: bool = True,
+    ):
 
         super(TCN, self).__init__()
 
         layers = int(layers)
-        
+
         net_layers = []  # List of sequential TCN blocks
         dilation_size = 1  # Initial dilation size
 
@@ -200,13 +220,13 @@ class TCN(torch.nn.Module):
             in_channels_block = in_channels if i == 0 else channels
             net_layers.append(
                 TCNBlock(
-                in_channels=in_channels_block,
-                out_channels=channels,
-                kernel_size=kernel_size,
-                dilation=dilation_size,
-                bias=bias,
-                fwd_time=fwd_time,
-                final=False
+                    in_channels=in_channels_block,
+                    out_channels=channels,
+                    kernel_size=kernel_size,
+                    dilation=dilation_size,
+                    bias=bias,
+                    fwd_time=fwd_time,
+                    final=False,
                 )
             )
             dilation_size *= 2  # Doubles the dilation size at each step
@@ -220,11 +240,11 @@ class TCN(torch.nn.Module):
                 dilation=dilation_size,
                 bias=bias,
                 fwd_time=fwd_time,
-                final=True
+                final=True,
             )
         )
 
-        self.network = torch.nn.Sequential( *net_layers )
+        self.network = torch.nn.Sequential(*net_layers)
 
     def forward(self, x):
         return self.network(x)
