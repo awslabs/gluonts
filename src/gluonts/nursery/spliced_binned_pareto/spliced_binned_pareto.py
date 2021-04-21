@@ -27,7 +27,7 @@ try:
     from .genpareto import GenPareto
 except:
     from genpareto import GenPareto
-    
+
 from torch.distributions import constraints
 from torch.distributions.distribution import Distribution
 
