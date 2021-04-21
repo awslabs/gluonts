@@ -102,6 +102,11 @@ class Evaluator:
     chunk_size
         Controls the approximate chunk size each workers handles at a time.
         Default is 32.
+    mask_invalid_ts
+        Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
+    nan_if_masked_ts
+        If True, set metrics to nan if they result in a
+        `np.ma.core.MaskedConstant`.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -264,8 +269,6 @@ class Evaluator:
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Dict[str, Union[float, str, None]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
-
-        # required for seasonal_error and owa calculation
         past_data = np.array(self.extract_past_data(time_series, forecast))
 
         if self.mask_invalid_ts:
