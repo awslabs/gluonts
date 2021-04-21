@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional
 import numpy as np
 import pandas as pd
 from gluonts.model.forecast import Forecast
@@ -80,9 +80,7 @@ def mase(
     return np.mean(np.abs(target - forecast)) / seasonal_error
 
 
-def mape(
-    target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=False
-) -> float:
+def mape(target: np.ndarray, forecast: np.ndarray) -> float:
     r"""
     .. math::
 
