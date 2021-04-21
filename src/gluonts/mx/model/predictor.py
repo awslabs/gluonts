@@ -160,9 +160,6 @@ class GluonPredictor(Predictor):
             transform=self.input_transform,
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.ctx, dtype=self.dtype),
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            **kwargs,
         )
         with mx.Context(self.ctx):
             yield from self.forecast_generator(
