@@ -43,7 +43,7 @@ def train_step_from_batch(
     ----------
     ts_chunks: Mini-batch chunked from the time series
     targets: Corresponding chunk of target values
-    distr_tcn: DistributionalTCN 
+    distr_tcn: DistributionalTCN
     otimizer: Optimizer containing parameters, learning rate, etc
     """
     distr_outputs = distr_tcn(ts_chunks.float())

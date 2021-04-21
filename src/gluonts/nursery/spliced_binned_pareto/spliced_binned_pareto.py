@@ -35,7 +35,7 @@ class Binned(torch.nn.Module):
 
     Arguments
     ----------
-    bins_lower_bound: The lower bound of the bin edges 
+    bins_lower_bound: The lower bound of the bin edges
     bins_upper_bound: The upper bound of the bin edges
     nbins: The number of equidistance bins to allocate between `bins_lower_bound` and `bins_upper_bound`. Default value is 100.
     smoothing_indicator: The method of smoothing to perform on the bin probabilities
@@ -317,7 +317,7 @@ class SplicedBinnedPareto(Binned):
 
     Arguments
     ----------
-    bins_lower_bound: The lower bound of the bin edges 
+    bins_lower_bound: The lower bound of the bin edges
     bins_upper_bound: The upper bound of the bin edges
     nbins: The number of equidistance bins to allocate between `bins_lower_bound` and `bins_upper_bound`. Default value is 100.
     percentile_gen_pareto: The percentile of the distribution that is each tail. Default value is 0.05. NB: This symmetric percentile can still represent asymmetric upper and lower tails.
@@ -463,10 +463,10 @@ class SplicedBinnedPareto(Binned):
         else:
             adjusted_xx = xx - upper_percentile
             cum_density = (
-                (1.0 - self.percentile_gen_pareto)
-                + self.upper_gen_pareto.cdf(adjusted_xx)
-                * self.percentile_gen_pareto
-            )
+                1.0 - self.percentile_gen_pareto
+            ) + self.upper_gen_pareto.cdf(
+                adjusted_xx
+            ) * self.percentile_gen_pareto
         return idx, cum_density, bin_cdf_relative
 
     def inverse_cdf(self, value):

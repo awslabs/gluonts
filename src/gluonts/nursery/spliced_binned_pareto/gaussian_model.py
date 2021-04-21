@@ -15,7 +15,7 @@ class GaussianModel(nn.Module):
 
     Arguments
     ----------
-    mu: Mean of the Gaussian distribution 
+    mu: Mean of the Gaussian distribution
     sigma: Standard deviation of the Gaussian distribution
     device: The torch.device to use, typically cpu or gpu id
     """

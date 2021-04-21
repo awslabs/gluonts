@@ -21,7 +21,7 @@ import torch
 def add_spikes(ts: torch.Tensor, only_upper_spikes: bool = False):
     """
     Adds spikes to 15% of the time series in the form of heavy-tailed (Generalized Pareto) realizations
-    
+
     Arguments:
         ts: time series
         only_upper_spikes: boolean to indicate upper-tailed or two-tailed spikes
@@ -46,10 +46,10 @@ def create_ds(
     magnitude_sin: float = 1,
 ):
     """
-    Creates noisy sinusoid. 
+    Creates noisy sinusoid.
     (Noise distributed as student t with degrees of freedom = t_dof.)
     Returns tensor of shape (1, 1, num_points).
-    
+
     Arguments:
       num_points: int, number of points in the dataset.
       t_dof: int, degrees of freedom for student t distribution.
@@ -66,9 +66,9 @@ def create_ds(
 
 
 def create_ds_iid(num_points: int, noise_mult: float = 0.25):
-    """Creates heavy-tailed gaussian iid. 
+    """Creates heavy-tailed gaussian iid.
     Returns tensor of shape (1, 1, num_points).
-    
+
     Arguments:
       num_points: int, number of points in the dataset.
       noise_mult: float, standard deviation
@@ -83,7 +83,7 @@ def add_spikes_asymmetric(
 ):
     """
     Adds spikes to 15% of the time series in the form of heavy-tailed (Generalized Pareto) realizations
-    
+
     Arguments:
         ts: time series
         xi: [float, float], GenPareto heaviness parameter for [lower, upper] noise respectively
@@ -123,10 +123,10 @@ def create_ds_asymmetric(
     magnitude_sin: float = 1,
 ):
     """
-    Creates noisy sinusoid. 
+    Creates noisy sinusoid.
     (Noise distributed as student t with degrees of freedom = t_dof.)
     Returns tensor of shape (1, 1, num_points).
-    
+
     Arguments:
       num_points: int, number of points in the dataset.
       t_dof: [int, int], degrees of freedom for Students'-t distribution for [lower, upper] noise respectively.

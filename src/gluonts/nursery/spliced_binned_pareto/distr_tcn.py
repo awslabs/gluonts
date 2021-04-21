@@ -18,7 +18,7 @@ from torch.distributions.normal import Normal
 
 
 class DistributionalTCN(torch.nn.Module):
-    """ Distributional Temporal Convolutional Network: a TCN to learn a time-varying distribution.
+    """Distributional Temporal Convolutional Network: a TCN to learn a time-varying distribution.
 
     Composed of a sequence of causal convolution blocks.
 
@@ -27,10 +27,10 @@ class DistributionalTCN(torch.nn.Module):
     the input. Outputs a three-dimensional tensor (`B`, `C_out`, `L`).
 
     Args:
-        in_channels : Number of input channels, typically the dimensionality of the time series 
+        in_channels : Number of input channels, typically the dimensionality of the time series
         out_channels : Number of output channels, typically the number of parameters in the time series distribution
         kernel_size : Kernel size of the applied non-residual convolutions.
-        channels : Number of channels processed in the network and of output channels, 
+        channels : Number of channels processed in the network and of output channels,
                 typically equal to out_channels for simplicity, expand for better performance.
         layers : Depth of the network.
         bias : If True, adds a learnable bias to the convolutions.
