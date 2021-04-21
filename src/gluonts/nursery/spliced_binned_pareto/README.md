@@ -1,7 +1,7 @@
 ## Spliced Binned-Pareto distribution
 
 
-Spliced Binned-Pareto distribution which both handles extreme observations and allows accurate capture of the full distribution, to robustly and accurately model time series with heavy-tailed noise, in non-stationary scenarios. In many practical application time series have heavy-tailed noise that significantly impacts the performance of classical forecasting models; in particular, accurately modeling a distribution over extreme events is crucial to performing accurate time series anomaly detection. The Spliced Binned-Pareto allows the capture of time dependencies in the higher order moments of the dis- tribution such as the tail heaviness.
+Spliced Binned-Pareto distribution which both handles extreme observations and allows accurate capture of the full distribution, to robustly and accurately model time series with heavy-tailed noise, in non-stationary scenarios. In many practical application time series have heavy-tailed noise that significantly impacts the performance of classical forecasting models; in particular, accurately modeling a distribution over extreme events is crucial to performing accurate time series anomaly detection. The Spliced Binned-Pareto allows the capture of time dependencies in the higher order moments of the distribution such as the tail heaviness.
 
 ![png](figures/illustration.png)
 
