@@ -302,37 +302,6 @@ class QRX:
             else:
                 return sorted_list[halfway_indx + 1]
 
-    @staticmethod
-    def _get_quantiles_from_dic_with_list_values(
-        dic: Dict, quantile: float
-    ) -> Dict:
-        """
-        Given a dictionary of float to lists, returns a
-        dictionary that takes num to np.percentile(dic[num], 100 * quantile).
-
-        The function is meant to be efficient under the assumption that
-        dic's values have list objects that repeat many times over.
-
-        Parameters
-        ----------
-        dic: dict
-            float to list objects, with potentially many repetitions
-        quantile: float
-
-        Returns
-        -------
-        dict
-            float to float
-        """
-        df = pd.DataFrame(dic.items(), columns=["keys", "values"])
-        df["id"] = df["values"].apply(id)
-        df_by_id = df.groupby("id")["values"].first().reset_index()
-        df_by_id["quantiles"] = df_by_id["values"].apply(
-            lambda l: np.percentile(l, quantile * 100)
-        )
-        df_by_id = df_by_id[["id", "quantiles"]].merge(df, on="id")
-        return dict(zip(df_by_id["keys"], df_by_id["quantiles"]))
-
     def _get_and_cache_quantile_computation(
         self, feature_vector_in_train: List, quantile: float
     ):
