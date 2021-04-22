@@ -19,7 +19,8 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.dataset.common import ArrowWriter, FileDataset, ArrowDataset
+from gluonts.dataset.arrow import ArrowWriter, ArrowDataset
+from gluonts.dataset.common import FileDataset
 
 
 def to_dict(

@@ -18,7 +18,8 @@ import platform
 import numpy as np
 import pytest
 
-from gluonts.dataset.common import ArrowDataset, ArrowWriter, ListDataset
+from gluonts.dataset.common import ListDataset
+from gluonts.dataset.arrow import ArrowDataset, ArrowWriter
 
 
 def rand_start():

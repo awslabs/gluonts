@@ -24,7 +24,7 @@ from gluonts.dataset.artificial._base import (
     ComplexSeasonalTimeSeries,
     ConstantDataset,
 )
-from gluonts.dataset.common import ArrowWriter
+from gluonts.dataset.arrow import ArrowWriter
 from gluonts.dataset.field_names import FieldName
 
 

@@ -168,7 +168,7 @@ def get_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
-    use_arrow: bool = True,
+    use_arrow: bool = False,
 ) -> TrainDatasets:
     """
     Get a repository dataset.
