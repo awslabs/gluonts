@@ -16,6 +16,7 @@ import multiprocessing
 import sys
 from functools import partial
 from itertools import chain, tee
+from toolz import valmap
 from typing import (
     Any,
     Callable,
@@ -30,7 +31,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-import toolz
+
 
 from .metrics import (
     abs_error,
@@ -102,9 +103,9 @@ class Evaluator:
     chunk_size
         Controls the approximate chunk size each workers handles at a time.
         Default is 32.
-    mask_invalid_timeseries
+    mask_invalid_values
         Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
-    nan_if_masked_timeseries
+    nan_if_masked_metric
         If True, set metrics to nan if they result in a
         `np.ma.core.MaskedConstant`.
     """
@@ -120,8 +121,8 @@ class Evaluator:
         custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = multiprocessing.cpu_count(),
         chunk_size: int = 32,
-        mask_invalid_timeseries: Optional[bool] = True,
-        nan_if_masked_timeseries: Optional[bool] = True,
+        mask_invalid_values: bool = True,
+        nan_if_masked_metric: bool = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -130,8 +131,8 @@ class Evaluator:
         self.custom_eval_fn = custom_eval_fn
         self.num_workers = num_workers
         self.chunk_size = chunk_size
-        self.mask_invalid_timeseries = mask_invalid_timeseries
-        self.nan_if_masked_timeseries = nan_if_masked_timeseries
+        self.mask_invalid_values = mask_invalid_values
+        self.nan_if_masked_metric = nan_if_masked_metric
 
     def __call__(
         self,
@@ -271,19 +272,16 @@ class Evaluator:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         past_data = np.array(self.extract_past_data(time_series, forecast))
 
-        if self.mask_invalid_timeseries:
+        if self.mask_invalid_values:
             past_data = np.ma.masked_invalid(past_data)
             pred_target = np.ma.masked_invalid(pred_target)
 
-        try:
-            mean_fcst = forecast.mean
-        except Exception:
-            mean_fcst = None
-
+        mean_fcst = getattr(forecast, "mean", None)
         median_fcst = forecast.quantile(0.5)
         seasonal_error = calculate_seasonal_error(
             past_data, forecast, self.seasonality
         )
+
         metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
             "MSE": mse(pred_target, mean_fcst)
@@ -355,8 +353,8 @@ class Evaluator:
                 pred_target, forecast_quantile
             )
 
-        if self.nan_if_masked_timeseries:
-            metrics = toolz.valmap(nan_if_masked, metrics)
+        if self.nan_if_masked_metric:
+            metrics = valmap(nan_if_masked, metrics)
 
         return metrics
 

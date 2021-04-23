@@ -62,7 +62,7 @@ def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
 
 
 def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
-    return np.mean((target < forecast))
+    return np.mean(target < forecast)
 
 
 def mase(
