@@ -277,7 +277,7 @@ class Evaluator:
             pred_target = np.ma.masked_invalid(pred_target)
 
         try:
-            mean_fcst = forecast.mean
+            mean_fcst = getattr(forecast, "mean", None)
         except NotImplementedError:
             mean_fcst = None
 
