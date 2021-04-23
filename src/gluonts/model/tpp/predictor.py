@@ -176,9 +176,6 @@ class PointProcessGluonPredictor(GluonPredictor):
             stack_fn=partial(
                 batchify, ctx=self.ctx, dtype=self.dtype, variable_length=True
             ),
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            **kwargs,
         )
         yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,
