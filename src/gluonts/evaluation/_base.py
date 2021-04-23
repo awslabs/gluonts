@@ -276,7 +276,11 @@ class Evaluator:
             past_data = np.ma.masked_invalid(past_data)
             pred_target = np.ma.masked_invalid(pred_target)
 
-        mean_fcst = getattr(forecast, "mean", None)
+        try:
+            mean_fcst = forecast.mean
+        except NotImplementedError:
+            mean_fcst = None
+
         median_fcst = forecast.quantile(0.5)
         seasonal_error = calculate_seasonal_error(
             past_data, forecast, self.seasonality
