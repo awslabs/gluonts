@@ -49,10 +49,6 @@ from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.forecast import Forecast, Quantile
 
 
-def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
-    return a if a is not np.ma.masked else np.nan
-
-
 def worker_function(evaluator: "Evaluator", inp: tuple):
     ts, forecast = inp
     return evaluator.get_metrics_per_ts(ts, forecast)
@@ -101,6 +97,8 @@ class Evaluator:
     chunk_size
         Controls the approximate chunk size each workers handles at a time.
         Default is 32.
+    ignore_invalid_values
+        Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -114,6 +112,7 @@ class Evaluator:
         custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = multiprocessing.cpu_count(),
         chunk_size: int = 32,
+        ignore_invalid_values: bool = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -122,6 +121,7 @@ class Evaluator:
         self.custom_eval_fn = custom_eval_fn
         self.num_workers = num_workers
         self.chunk_size = chunk_size
+        self.ignore_invalid_values = ignore_invalid_values
 
     def __call__(
         self,
@@ -257,23 +257,24 @@ class Evaluator:
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Dict[str, Union[float, str, None]]:
+    ) -> Dict[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
-        pred_target = np.ma.masked_invalid(pred_target)
-
-        # required for seasonal_error and owa calculation
         past_data = np.array(self.extract_past_data(time_series, forecast))
-        past_data = np.ma.masked_invalid(past_data)
+
+        if self.ignore_invalid_values:
+            past_data = np.ma.masked_invalid(past_data)
+            pred_target = np.ma.masked_invalid(pred_target)
 
         try:
-            mean_fcst = forecast.mean
-        except:
+            mean_fcst = getattr(forecast, "mean", None)
+        except NotImplementedError:
             mean_fcst = None
 
         median_fcst = forecast.quantile(0.5)
         seasonal_error = calculate_seasonal_error(
             past_data, forecast, self.seasonality
         )
+
         metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
             "MSE": mse(pred_target, mean_fcst)
