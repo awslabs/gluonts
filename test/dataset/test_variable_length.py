@@ -84,7 +84,7 @@ def loader_factory():
                 TrainDataLoader(num_workers=None, **kwargs), 22
             )
         else:
-            return InferenceDataLoader(num_workers=None, **kwargs)
+            return InferenceDataLoader(**kwargs)
 
     return train_loader
 
