@@ -101,18 +101,16 @@ class Evaluator:
         Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
     aggregation_strategy:
         Selects how invalid values in per-timeseries metrics should be filtered
-        when calculating the aggregate metric.
-        "all"
-            Both `nan` and `inf` possible in aggregate metrics, no filtering
-            will be applied.
-        "valid"
-            Filters all `nan` or `inf` values in the per-timeseries metrics.
-            No `nan` or `inf` possible in the aggregate metric unless all
-            per-timeseries metrics are `inf` or `nan`.
-        "inf_only"
-            Filter out all `nan` values but keep any `inf` values.
-            `nan` only possible if all timeseries for a metric resulted in `nan`.
-            `inf` values are possible in the aggregate metric.
+        when calculating the aggregate metric. Available options are:
+        `"all" | "valid" | "inf_only"`.
+        Setting it to "all" makes Both `nan` and `inf` possible in aggregate
+        metrics, no filtering will be applied.
+        Setting it to "valid" filters all `nan` or `inf` values from the
+        per-timeseries metrics. Thus no `nan` or `inf` are possible in the
+        aggregate metric unless all per-timeseries metrics are `inf` or `nan`.
+        Setting it to "inf_only" filters out all `nan` but keeps `inf`.
+        Thus `nan` is only possible in the aggregate metric if all timeseries
+        for a metric resulted in `nan`.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
