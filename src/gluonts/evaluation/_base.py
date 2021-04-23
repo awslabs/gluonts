@@ -16,6 +16,8 @@ import multiprocessing
 import sys
 from functools import partial
 from itertools import chain, tee
+from numpy.ma import masked_invalid
+from toolz import valmap
 from typing import (
     Any,
     Callable,
@@ -30,7 +32,6 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-import toolz
 
 from .metrics import (
     abs_error,
@@ -107,6 +108,20 @@ class Evaluator:
     nan_if_masked_timeseries
         If True, set metrics to nan if they result in a
         `np.ma.core.MaskedConstant`.
+    aggregation_strategy:
+        Selects how invalid values in per-timeseries metrics should be filtered
+        when calculating the aggregate metric.
+        "all"
+            Both `nan` and `inf` possible in aggregate metrics, no filtering
+            will be applied.
+        "valid"
+            Filters all `nan` or `inf` values in the per-timeseries metrics.
+            No `nan` or `inf` possible in the aggregate metric unless all
+            per-timeseries metrics are `inf` or `nan`.
+        "inf_only"
+            Filter out all `nan` values but keep any `inf` values.
+            `nan` only possible if all timeseries for a metric resulted in `nan`.
+            `inf` values are possible in the aggregate metric.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -120,8 +135,9 @@ class Evaluator:
         custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = multiprocessing.cpu_count(),
         chunk_size: int = 32,
-        mask_invalid_timeseries: Optional[bool] = True,
-        nan_if_masked_timeseries: Optional[bool] = True,
+        mask_invalid_timeseries: bool = True,
+        nan_if_masked_timeseries: bool = True,
+        aggregation_strategy: Optional[str] = "default",
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -132,6 +148,24 @@ class Evaluator:
         self.chunk_size = chunk_size
         self.mask_invalid_timeseries = mask_invalid_timeseries
         self.nan_if_masked_timeseries = nan_if_masked_timeseries
+        self.aggregation_strategy = aggregation_strategy
+
+        self.agg_funs = {
+            "MSE": "mean",
+            "abs_error": "sum",
+            "abs_target_sum": "sum",
+            "abs_target_mean": "mean",
+            "seasonal_error": "mean",
+            "MASE": "mean",
+            "MAPE": "mean",
+            "sMAPE": "mean",
+            "OWA": "mean",
+            "MSIS": "mean",
+        }
+
+        for quantile in self.quantiles:
+            self.agg_funs[quantile.loss_name] = "sum"
+            self.agg_funs[quantile.coverage_name] = "mean"
 
     def __call__(
         self,
@@ -356,40 +390,30 @@ class Evaluator:
             )
 
         if self.nan_if_masked_timeseries:
-            metrics = toolz.valmap(nan_if_masked, metrics)
+            metrics = valmap(nan_if_masked, metrics)
 
         return metrics
 
     def get_aggregate_metrics(
         self, metric_per_ts: pd.DataFrame
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
-        agg_funs = {
-            "MSE": "mean",
-            "abs_error": "sum",
-            "abs_target_sum": "sum",
-            "abs_target_mean": "mean",
-            "seasonal_error": "mean",
-            "MASE": "mean",
-            "MAPE": "mean",
-            "sMAPE": "mean",
-            "OWA": "mean",
-            "MSIS": "mean",
-        }
-
         if self.custom_eval_fn is not None:
             for k, (_, agg_type, _) in self.custom_eval_fn.items():
-                agg_funs.update({k: agg_type})
-
-        for quantile in self.quantiles:
-            agg_funs[quantile.loss_name] = "sum"
-            agg_funs[quantile.coverage_name] = "mean"
+                self.agg_funs.update({k: agg_type})
 
         assert (
-            set(metric_per_ts.columns) >= agg_funs.keys()
+            set(metric_per_ts.columns) >= self.agg_funs.keys()
         ), "Some of the requested item metrics are missing."
 
+        agg_kwargs = {}
+        if self.aggregation_strategy == "all":
+            agg_kwargs = {"skipna": False}
+        elif self.aggregation_strategy == "valid":
+            metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
+
         totals = {
-            key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()
+            key: metric_per_ts[key].agg(agg, **agg_kwargs)
+            for key, agg in self.agg_funs.items()
         }
 
         # derived metrics based on previous aggregate metrics
