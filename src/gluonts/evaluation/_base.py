@@ -126,7 +126,7 @@ class Evaluator:
         custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = multiprocessing.cpu_count(),
         chunk_size: int = 32,
-        aggregation_strategy: Optional[str] = "default",
+        aggregation_strategy: Optional[str] = "inf_only",
         ignore_invalid_values: bool = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
@@ -394,7 +394,9 @@ class Evaluator:
         ), "Some of the requested item metrics are missing."
 
         agg_kwargs = {}
-        if self.aggregation_strategy == "all":
+        if self.aggregation_strategy == "inf_only":
+            pass
+        elif self.aggregation_strategy == "all":
             agg_kwargs = {"skipna": False}
         elif self.aggregation_strategy == "valid":
             metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
