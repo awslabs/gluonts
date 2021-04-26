@@ -26,7 +26,6 @@ from gluonts.model.predictor import Predictor
 
 def run_example():
     dataset = get_dataset("electricity")
-    # ag_path = Path("GluonTSTabularPredictor")
     serialize_path = Path("GluonTSTabularPredictor")
     estimator = TabularEstimator(
         freq="H",

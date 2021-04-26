@@ -46,9 +46,6 @@ class TabularEstimator(Estimator):
         Frequency of the data to handle
     prediction_length
         Prediction length
-    ag_path_prefix
-        path prefix set to where the ag_model will be saved. If None, ag_model will be saved to
-        default directory 'ag_tabular_models/'
     lag_indices
         List of indices of the lagged observations to use as features. If
         None, this will be set automatically based on the frequency.
