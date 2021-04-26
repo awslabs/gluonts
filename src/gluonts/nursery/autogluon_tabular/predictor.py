@@ -15,8 +15,12 @@ from typing import Callable, Dict, List, Optional, Iterator, Iterable, Tuple
 
 import numpy as np
 import pandas as pd
+import shutil
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
+from pathlib import Path
+from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
 
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import batcher
@@ -232,7 +236,7 @@ class TabularPredictor(Predictor):
             item_ids,
         ):
             yield self._to_forecast(
-                scale * arr,
+                scale * arr.values,
                 forecast_start,
                 item_id=item_id,
             )
@@ -333,3 +337,51 @@ class TabularPredictor(Predictor):
             return self._predict_batch(
                 dataset, batch_size=batch_size, **kwargs
             )
+
+    def serialize(self, path: Path) -> None:
+        # call Predictor.serialize() in order to serialize the class name
+
+        super().serialize(path)
+
+        # serialize self.ag_model
+        # move autogluon model to where we want to do the serialization
+        ag_path = self.ag_model.path
+        shutil.move(ag_path, path)
+        ag_path = Path(ag_path)
+        print(f"Autogluon files moved from {ag_path} to {path}.")
+        # reset the path stored in tabular model.
+        AutogluonTabularPredictor.load(path / Path(ag_path.name))
+        # serialize all remaining constructor parameters
+        with (path / "parameters.json").open("w") as fp:
+            parameters = dict(
+                batch_size=self.batch_size,
+                prediction_length=self.prediction_length,
+                freq=self.freq,
+                dtype=self.dtype,
+                time_features=self.time_features,
+                lag_indices=self.lag_indices,
+                ag_path=path / Path(ag_path.name),
+            )
+            print(dump_json(parameters), file=fp)
+
+    @classmethod
+    def deserialize(
+        cls,
+        path: Path,
+        # TODO this is temporary, we should make the callable object serializable in the first place
+        scaling: Callable[
+            [pd.Series], Tuple[pd.Series, float]
+        ] = mean_abs_scaling,
+        **kwargs,
+    ) -> "Predictor":
+        # deserialize constructor parameters
+        with (path / "parameters.json").open("r") as fp:
+            parameters = load_json(fp.read())
+        loaded_ag_path = parameters["ag_path"]
+        del parameters["ag_path"]
+        # load tabular model
+        ag_model = AutogluonTabularPredictor.load(loaded_ag_path)
+
+        return TabularPredictor(
+            ag_model=ag_model, scaling=scaling, **parameters
+        )

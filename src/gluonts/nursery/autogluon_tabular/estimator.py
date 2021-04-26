@@ -12,10 +12,10 @@
 # permissions and limitations under the License.
 
 from typing import Callable, Optional, List, Tuple
-
 import pandas as pd
-from autogluon import TabularPrediction as task
+from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
 
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
 from gluonts.model.estimator import Estimator
@@ -65,6 +65,7 @@ class TabularEstimator(Estimator):
         This will make predictions more efficient, but may impact their accuracy.
     """
 
+    @validated()
     def __init__(
         self,
         freq: str,
@@ -80,7 +81,6 @@ class TabularEstimator(Estimator):
     ) -> None:
         super().__init__()
 
-        self.task = task
         self.freq = freq
         self.prediction_length = prediction_length
         self.lag_indices = (
@@ -103,7 +103,7 @@ class TabularEstimator(Estimator):
             ]
 
         default_kwargs = {
-            "eval_metric": "mean_absolute_error",
+            "time_limit": 60,
             "excluded_model_types": ["KNN", "XT", "RF"],
             "presets": [
                 "high_quality_fast_inference_only_refit",
@@ -112,7 +112,11 @@ class TabularEstimator(Estimator):
         }
         self.kwargs = {**default_kwargs, **kwargs}
 
-    def train(self, training_data: Dataset) -> TabularPredictor:
+    def train(
+        self,
+        training_data: Dataset,
+        eval_metric="mean_absolute_error",
+    ) -> TabularPredictor:
         dfs = [
             get_features_dataframe(
                 series=self.scaling(to_pandas(entry))[0],
@@ -122,9 +126,12 @@ class TabularEstimator(Estimator):
             for entry in training_data
         ]
         df = pd.concat(dfs)
-        ag_model = self.task.fit(
-            df, label="target", problem_type="regression", **self.kwargs
-        )
+
+        ag_model = AutogluonTabularPredictor(
+            label="target",
+            problem_type="regression",
+            eval_metric=eval_metric,
+        ).fit(df, **self.kwargs)
         return TabularPredictor(
             ag_model=ag_model,
             freq=self.freq,

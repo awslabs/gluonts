@@ -270,6 +270,7 @@ def test_poisson(rate: float) -> None:
 
 # The following parameters match the Gluon-based test, adjusted for the different parametrization
 @pytest.mark.parametrize("total_count, logit", [(1 / 0.7, np.log(2.5 * 0.7))])
+@pytest.mark.flaky(max_runs=5, min_passes=1)
 def test_neg_binomial(total_count: float, logit: float) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters

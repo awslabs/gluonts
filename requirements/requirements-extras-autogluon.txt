@@ -1,1 +1,1 @@
-autogluon==0.0.15
+autogluon==0.1.0
