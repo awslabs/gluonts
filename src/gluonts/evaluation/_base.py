@@ -54,6 +54,51 @@ def worker_function(evaluator: "Evaluator", inp: tuple):
     return evaluator.get_metrics_per_ts(ts, forecast)
 
 
+def aggregate_all(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, float]:
+    """
+    No filtering applied.
+
+    Both `nan` and `inf` possible in aggregate metrics.
+    """
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=False)
+        for key, agg in agg_funs.items()
+    }
+
+
+def aggregate_no_nan(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, float]:
+    """
+    Filter all `nan` but keep `inf`.
+
+    `nan` is only possible in the aggregate metric if all timeseries
+    for a metric resulted in `nan`.
+    """
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=True)
+        for key, agg in agg_funs.items()
+    }
+
+
+def aggregate_valid(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, Union[float, np.ma.core.MaskedConstant]]:
+    """
+    Filter all `nan` & `inf` values from `metric_per_ts`.
+
+    If all metrics in a column of `metric_per_ts` are `nan` or `inf` the
+    result will be `np.ma.masked` for that column.
+    """
+    metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=True)
+        for key, agg in agg_funs.items()
+    }
+
+
 class Evaluator:
     """
     Evaluator class, to compute accuracy metrics by comparing observations
@@ -100,17 +145,10 @@ class Evaluator:
     ignore_invalid_values
         Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
     aggregation_strategy:
-        Selects how invalid values in per-timeseries metrics should be filtered
-        when calculating the aggregate metric. Available options are:
-        `"all" | "valid" | "inf_only"`.
-        Setting it to "all" makes Both `nan` and `inf` possible in aggregate
-        metrics, no filtering will be applied.
-        Setting it to "valid" filters all `nan` or `inf` values from the
-        per-timeseries metrics. Thus no `nan` or `inf` are possible in the
-        aggregate metric unless all per-timeseries metrics are `inf` or `nan`.
-        Setting it to "inf_only" filters out all `nan` but keeps `inf`.
-        Thus `nan` is only possible in the aggregate metric if all timeseries
-        for a metric resulted in `nan`.
+        Function for aggregating per timeseries metrics.
+        Available options are:
+        aggregate_valid | aggregate_all | aggregate_no_nan
+        The default function is aggregate_no_nan.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -124,7 +162,7 @@ class Evaluator:
         custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = multiprocessing.cpu_count(),
         chunk_size: int = 32,
-        aggregation_strategy: Optional[str] = "inf_only",
+        aggregation_strategy: Callable = aggregate_no_nan,
         ignore_invalid_values: bool = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
@@ -391,18 +429,9 @@ class Evaluator:
             set(metric_per_ts.columns) >= agg_funs.keys()
         ), "Some of the requested item metrics are missing."
 
-        agg_kwargs = {}
-        if self.aggregation_strategy == "inf_only":
-            pass
-        elif self.aggregation_strategy == "all":
-            agg_kwargs = {"skipna": False}
-        elif self.aggregation_strategy == "valid":
-            metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
-
-        totals = {
-            key: metric_per_ts[key].agg(agg, **agg_kwargs)
-            for key, agg in agg_funs.items()
-        }
+        totals = self.aggregation_strategy(
+            metric_per_ts=metric_per_ts, agg_funs=agg_funs
+        )
 
         # derived metrics based on previous aggregate metrics
         totals["RMSE"] = np.sqrt(totals["MSE"])
