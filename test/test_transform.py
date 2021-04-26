@@ -36,6 +36,8 @@ from gluonts.transform import (
     MissingValueImputation,
     RollingMeanValueImputation,
 )
+from gluonts.transform.convert import SparseToDense
+from gluonts.transform.feature import AddTrailingZeros
 
 FREQ = "1D"
 
@@ -1091,3 +1093,105 @@ def assert_padded_array(
         f"Sampled and reference arrays do not match. '"
         f"Got {sampled_no_padding} but should be {reference_no_padding}."
     )
+
+
+@pytest.mark.parametrize(
+    "target, expected",
+    [
+        ([0, 0, 1, 1, 2, 0, 0], 2),
+        ([0, 0, 1, 1, 2, 0, 0, 0, 0], 4),
+        ([0, 0, 1, 1, 2], 0),
+        ([0, 0], 2),
+        ([], 0),
+    ],
+)
+@pytest.mark.parametrize("convert_to_np", [True, False])
+@pytest.mark.parametrize("is_train", [True, False])
+def test_add_trailing_zeros(target, expected, convert_to_np, is_train):
+    if convert_to_np:
+        target = np.array(target)
+
+    data_set = ListDataset(
+        [{"target": target, "start": "2010-01-01"}], freq="1m"
+    )
+    transform = AddTrailingZeros(new_field="time_remaining")
+
+    transformed = next(transform(data_set, is_train=is_train))
+
+    if len(target) == 0:
+        assert "time_remaining" not in transformed
+        return
+
+    assert "time_remaining" in transformed
+    assert transformed["time_remaining"] == expected
+
+
+@pytest.mark.parametrize(
+    "transform, target, expected",
+    [
+        (
+            SparseToDense(target_field="target"),
+            [0, 0, 1, 0, 3, 2, 0, 4],
+            [[3, 2, 1, 2], [1, 3, 2, 4]],
+        ),
+        (
+            SparseToDense(target_field="target", discard_first=True),
+            [0, 0, 1, 0, 3, 2, 0, 4],
+            [[2, 1, 2], [3, 2, 4]],
+        ),
+        (
+            SparseToDense(target_field="target", discard_first=True),
+            [0, 0, 0, 0, 0, 0],
+            [[], []],
+        ),
+        (
+            SparseToDense(target_field="target", discard_first=False),
+            [0, 0, 0, 0, 0, 0],
+            [[], []],
+        ),
+        (
+            SparseToDense(target_field="target", discard_first=True),
+            [0, 0, 1, 0],
+            [[], []],
+        ),
+        (
+            SparseToDense(
+                target_field="target", discard_first=True, drop_empty=True
+            ),
+            [0, 0, 0, 0, 0, 0],
+            [[], []],
+        ),
+        (
+            SparseToDense(
+                target_field="target", discard_first=False, drop_empty=True
+            ),
+            [0, 0, 0, 0, 0, 0],
+            [[], []],
+        ),
+        (
+            SparseToDense(
+                target_field="target", discard_first=True, drop_empty=True
+            ),
+            [0, 0, 1, 0],
+            [[], []],
+        ),
+    ],
+)
+@pytest.mark.parametrize("convert_to_np", [True, False])
+@pytest.mark.parametrize("is_train", [True, False])
+def test_sparse_to_dense(transform, target, expected, convert_to_np, is_train):
+    if convert_to_np:
+        target = np.array(target)
+
+    data_set = ListDataset(
+        [{"target": target, "start": "2010-01-01"}], freq="1m"
+    )
+
+    if transform.drop_empty:
+        try:
+            next(transform(data_set, is_train=is_train))
+        except StopIteration:
+            return
+
+    transformed = next(transform(data_set, is_train=is_train))
+    assert np.allclose(transformed["target"], expected)
