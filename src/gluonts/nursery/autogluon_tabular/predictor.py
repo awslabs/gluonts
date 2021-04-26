@@ -346,10 +346,11 @@ class TabularPredictor(Predictor):
         # serialize self.ag_model
         # move autogluon model to where we want to do the serialization
         ag_path = self.ag_model.path
-        print(f"Autogluon files moved from {ag_path} to {path}.")
         shutil.move(ag_path, path)
+        ag_path = Path(ag_path)
+        print(f"Autogluon files moved from {ag_path} to {path}.")
         # reset the path stored in tabular model.
-        AutogluonTabularPredictor.load(path / Path(ag_path.split("/")[-2]))
+        AutogluonTabularPredictor.load(path / Path(ag_path.name))
         # serialize all remaining constructor parameters
         with (path / "parameters.json").open("w") as fp:
             parameters = dict(
@@ -359,7 +360,7 @@ class TabularPredictor(Predictor):
                 dtype=self.dtype,
                 time_features=self.time_features,
                 lag_indices=self.lag_indices,
-                ag_path=path / self.ag_model.path.split("/")[-2],
+                ag_path=path / Path(ag_path.name),
             )
             print(dump_json(parameters), file=fp)
 
