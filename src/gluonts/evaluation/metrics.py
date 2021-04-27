@@ -52,7 +52,7 @@ def mse(target: np.ndarray, forecast: np.ndarray) -> float:
     """
     .. math::
 
-        mse = mean(square(Y - Y_hat))
+        mse = mean((Y - Y_hat)^2)
     """
     return np.mean(np.square(target - forecast))
 
