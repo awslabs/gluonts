@@ -29,7 +29,6 @@ def calculate_seasonal_error(
         seasonal_error = mean(|Y[t] - Y[t-m]|)
 
     where m is the seasonal frequency
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     """
     # Check if the length of the time series is larger than the seasonal frequency
     if not seasonality:
@@ -50,18 +49,38 @@ def calculate_seasonal_error(
 
 
 def mse(target: np.ndarray, forecast: np.ndarray) -> float:
+    """
+    .. math::
+
+        mse = mean(square(Y - Y_hat))
+    """
     return np.mean(np.square(target - forecast))
 
 
 def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
+    """
+    .. math::
+
+        abs_error = sum(|Y - Y_hat|)
+    """
     return np.sum(np.abs(target - forecast))
 
 
 def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
+    """
+    .. math::
+
+        quantile_loss = 2 * sum(|(Y - Y_hat) * (Y <= Y_hat) - q|)
+    """
     return 2 * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
 
 
 def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
+    """
+    .. math::
+
+        coverage = mean(Y < Y_hat)
+    """
     return np.mean(target < forecast)
 
 
@@ -74,8 +93,6 @@ def mase(
     .. math::
 
         mase = mean(|Y - Y_hat|) / seasonal_error
-
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     """
     return np.mean(np.abs(target - forecast)) / seasonal_error
 
@@ -94,8 +111,6 @@ def smape(target: np.ndarray, forecast: np.ndarray) -> float:
     .. math::
 
         smape = 2 * mean(|Y - Y_hat| / (|Y| + |Y_hat|))
-
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     """
     return 2 * np.mean(
         np.abs(target - forecast) / (np.abs(target) + np.abs(forecast))
@@ -113,8 +128,6 @@ def owa(
     .. math::
 
         owa = 0.5*(smape/smape_naive + mase/mase_naive)
-
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     """
     # avoid import error due to circular dependency
     from gluonts.model.naive_2 import naive_2
@@ -144,8 +157,6 @@ def msis(
     :math:
 
         msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) / seasonal_error
-
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     """
     numerator = np.mean(
         upper_quantile
@@ -158,8 +169,18 @@ def msis(
 
 
 def abs_target_sum(target) -> float:
+    """
+    ..math::
+
+        abs_target_sum = sum(|Y|)
+    """
     return np.sum(np.abs(target))
 
 
 def abs_target_mean(target) -> float:
+    """
+    .. math::
+
+        abs_target_mean = mean(|Y|)
+    """
     return np.mean(np.abs(target))
