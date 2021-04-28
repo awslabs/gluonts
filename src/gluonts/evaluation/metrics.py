@@ -26,9 +26,9 @@ def calculate_seasonal_error(
     r"""
     .. math::
 
-        seasonal_error = mean(|Y[t] - Y[t-m]|)
+        seasonal\_error = mean(|Y[t] - Y[t-m]|)
 
-    where m is the seasonal frequency
+    where m is the seasonal frequency. See [HA21]_ for more details.
     """
     # Check if the length of the time series is larger than the seasonal frequency
     if not seasonality:
@@ -52,7 +52,9 @@ def mse(target: np.ndarray, forecast: np.ndarray) -> float:
     """
     .. math::
 
-        mse = mean((Y - Y_hat)^2)
+        mse = mean((Y - \hat{Y})^2)
+
+    See [HA21]_ for more details
     """
     return np.mean(np.square(target - forecast))
 
@@ -61,7 +63,7 @@ def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
     """
     .. math::
 
-        abs_error = sum(|Y - Y_hat|)
+        abs\_error = sum(|Y - \hat{Y}|)
     """
     return np.sum(np.abs(target - forecast))
 
@@ -70,7 +72,7 @@ def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
     """
     .. math::
 
-        quantile_loss = 2 * sum(|(Y - Y_hat) * (Y <= Y_hat) - q|)
+        quantile\_loss = 2 * sum(|(Y - \hat{Y}) * (Y <= \hat{Y}) - q|)
     """
     return 2 * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
 
@@ -79,7 +81,7 @@ def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
     """
     .. math::
 
-        coverage = mean(Y < Y_hat)
+        coverage = mean(Y < \hat{Y})
     """
     return np.mean(target < forecast)
 
@@ -92,7 +94,9 @@ def mase(
     r"""
     .. math::
 
-        mase = mean(|Y - Y_hat|) / seasonal_error
+        mase = mean(|Y - \hat{Y}|) / seasonal\_error
+
+    See [HA21]_ for more details.
     """
     return np.mean(np.abs(target - forecast)) / seasonal_error
 
@@ -101,7 +105,9 @@ def mape(target: np.ndarray, forecast: np.ndarray) -> float:
     r"""
     .. math::
 
-        mape = mean(|Y - Y_hat| / |Y|))
+        mape = mean(|Y - \hat{Y}| / |Y|))
+
+    See [HA21]_ for more details.
     """
     return np.mean(np.abs(target - forecast) / np.abs(target))
 
@@ -110,7 +116,9 @@ def smape(target: np.ndarray, forecast: np.ndarray) -> float:
     r"""
     .. math::
 
-        smape = 2 * mean(|Y - Y_hat| / (|Y| + |Y_hat|))
+        smape = 2 * mean(|Y - \hat{Y}| / (|Y| + |\hat{Y}|))
+
+    See [HA21]_ for more details.
     """
     return 2 * np.mean(
         np.abs(target - forecast) / (np.abs(target) + np.abs(forecast))
@@ -127,7 +135,9 @@ def owa(
     r"""
     .. math::
 
-        owa = 0.5*(smape/smape_naive + mase/mase_naive)
+        owa = 0.5*(smape / smape\_naive + mase / mase\_naive)
+
+    See [SSA20]_ for more details.
     """
     # avoid import error due to circular dependency
     from gluonts.model.naive_2 import naive_2
@@ -154,9 +164,11 @@ def msis(
     alpha: float,
 ) -> float:
     r"""
-    :math:
+    .. math::
 
-        msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) / seasonal_error
+        msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) / seasonal\_error
+
+    See [SSA20]_ for more details.
     """
     numerator = np.mean(
         upper_quantile
@@ -170,9 +182,9 @@ def msis(
 
 def abs_target_sum(target) -> float:
     """
-    ..math::
+    .. math::
 
-        abs_target_sum = sum(|Y|)
+        abs\_target\_sum = sum(|Y|)
     """
     return np.sum(np.abs(target))
 
@@ -181,6 +193,6 @@ def abs_target_mean(target) -> float:
     """
     .. math::
 
-        abs_target_mean = mean(|Y|)
+        abs\_target\_mean = mean(|Y|)
     """
     return np.mean(np.abs(target))
