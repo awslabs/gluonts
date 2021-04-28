@@ -759,3 +759,68 @@ def cdf_to_gaussian_forward_transform(
             tensor_to_numpy(input_batch["intercepts"]),
         )
     return outputs
+
+
+class ToIntervalSizeFormat(FlatMapTransformation):
+    """
+    Convert a sparse univariate time series to the `interval-size` format,
+    i.e., a two dimensional time series where the first dimension corresponds
+    to the time since last positive value (1-indexed), and the second dimension
+    corresponds to the size of the demand. This format is used often in the
+    intermittent demand literature, where predictions are performed on this
+    "dense" time series, e.g., as in Croston's method.
+
+    As an example, the time series `[0, 0, 1, 0, 3, 2, 0, 4]` is converted into
+    the 2-dimensional time series `[[3, 2, 1, 2], [1, 3, 2, 4]]`, with a
+    shape (2, M) where M denotes the number of non-zero items in the time series.
+
+    Parameters
+    ----------
+    target_field
+        The target field to be converted, containing a univariate and sparse
+        time series
+    drop_empty
+        If True, all-zero time series will be dropped.
+    discard_first
+        If True, the first element in the converted dense series will be dropped,
+        replacing the target with a (2, M-1) tet instead. This can be used
+        when the first 'inter-demand' time is not well-defined. e.g., when the true
+        starting index of the time-series is not known.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        target_field: str,
+        drop_empty: bool = False,
+        discard_first: bool = False,
+    ) -> None:
+
+        self.target_field = target_field
+        self.drop_empty = drop_empty
+        self.discard_first = discard_first
+
+    def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
+        a = np.array(a)
+        (non_zero_index,) = np.nonzero(a)
+
+        if len(non_zero_index) == 0:
+            return [], []
+
+        times = np.diff(non_zero_index, prepend=-1.0).tolist()
+        sizes = a[non_zero_index].tolist()
+
+        if self.discard_first:
+            return times[1:], sizes[1:]
+        return times, sizes
+
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool
+    ) -> Iterator[DataEntry]:
+        target = data[self.target_field]
+
+        times, sizes = self._process_sparse_time_sample(target)
+
+        if len(times) > 0 or not self.drop_empty:
+            data[self.target_field] = [times, sizes]
+            yield data
