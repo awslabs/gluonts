@@ -761,7 +761,7 @@ def cdf_to_gaussian_forward_transform(
     return outputs
 
 
-class SparseToDense(FlatMapTransformation):
+class ToIntervalSizeFormat(FlatMapTransformation):
     """
     Convert a sparse univariate time series to the `interval-size` format,
     i.e., a two dimensional time series where the first dimension corresponds
@@ -802,15 +802,17 @@ class SparseToDense(FlatMapTransformation):
 
     def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
         a = np.array(a)
-        nz = np.nonzero(a)[0]
+        (non_zero_index,) = np.nonzero(a)
 
-        if len(nz) == 0:
+        if len(non_zero_index) == 0:
             return [], []
 
-        times = np.diff(np.r_[-1, np.nonzero(a)[0]]).astype(np.float).tolist()
-        sizes = a[np.nonzero(a)].tolist()
+        times = np.diff(non_zero_index, prepend=-1.0).tolist()
+        sizes = a[non_zero_index].tolist()
 
-        return (times[1:], sizes[1:]) if self.discard_first else (times, sizes)
+        if self.discard_first:
+            return times[1:], sizes[1:]
+        return times, sizes
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
@@ -820,6 +822,5 @@ class SparseToDense(FlatMapTransformation):
         times, sizes = self._process_sparse_time_sample(target)
 
         if len(times) > 0 or not self.drop_empty:
-            new_data = data.copy()
-            new_data[self.target_field] = [times, sizes]
-            yield new_data
+            data[self.target_field] = [times, sizes]
+            yield data

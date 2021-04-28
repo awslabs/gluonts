@@ -557,7 +557,7 @@ class AddAggregateLags(MapTransformation):
         return data
 
 
-class AddTrailingZeros(SimpleTransformation):
+class CountTrailingZeros(SimpleTransformation):
     """
     Add the number of 'trailing' zeros in each univariate time series as a feature, to be
     used when dealing with sparse (intermittent) time series. For
@@ -581,13 +581,9 @@ class AddTrailingZeros(SimpleTransformation):
         self.target_field = target_field
         self.new_field = new_field
 
-    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        return self.transform(data)
-
     def transform(self, data: DataEntry) -> DataEntry:
         target = data[self.target_field]
         if len(target) == 0:
             return data
-        nz = np.nonzero(target[::-1])[0]
-        data[self.new_field] = min(nz) if len(nz) > 0 else len(target)
+        data[self.new_field] = len(target) - len(np.trim_zeros(target, "b"))
         return data
