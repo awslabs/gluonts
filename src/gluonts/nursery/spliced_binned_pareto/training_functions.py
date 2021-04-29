@@ -23,16 +23,12 @@ from scipy import stats
 from tqdm import tqdm
 
 import torch
-from torch.nn import functional as F
 from torch import optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 import torch.nn as nn
 
-try:
-    from .distr_tcn import DistributionalTCN
-except:
-    from distr_tcn import DistributionalTCN
+from .distr_tcn import DistributionalTCN
 
 
 def train_step_from_batch(

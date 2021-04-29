@@ -13,7 +13,6 @@
 
 
 import torch
-from torch.nn import functional as F
 from torch import optim
 import torch.nn.functional as F
 from torch.autograd import Variable
@@ -23,10 +22,7 @@ from typing import List, Union, Optional
 
 import numpy as np
 
-try:
-    from .genpareto import GenPareto
-except:
-    from genpareto import GenPareto
+from .genpareto import GenPareto
 
 from torch.distributions import constraints
 from torch.distributions.distribution import Distribution

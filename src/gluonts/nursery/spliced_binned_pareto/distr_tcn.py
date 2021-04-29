@@ -64,16 +64,12 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
-from torch.nn import functional as F
 from torch import optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 import torch.nn as nn
 
-try:
-    from .tcn import TCNBlock
-except:
-    from tcn import TCNBlock
+from .tcn import TCNBlock
 
 from torch.distributions.normal import Normal
 
