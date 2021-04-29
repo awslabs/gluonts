@@ -40,7 +40,6 @@ from gluonts.mx.trainer.callback import (
 from gluonts.mx.util import HybridContext
 from mxnet.metric import ndarray
 
-# Relative imports
 from .model_averaging import (
     SelectNBestMean,
     save_epoch_info,
