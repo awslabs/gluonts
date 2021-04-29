@@ -356,7 +356,12 @@ class Evaluator:
                     target_fcst = median_fcst
 
                 try:
-                    val = {k: eval_fn(pred_target, target_fcst,)}
+                    val = {
+                        k: eval_fn(
+                            pred_target,
+                            target_fcst,
+                        )
+                    }
                 except:
                     val = {k: np.nan}
 
