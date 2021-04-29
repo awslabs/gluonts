@@ -54,7 +54,7 @@ def mse(target: np.ndarray, forecast: np.ndarray) -> float:
 
         mse = mean((Y - \hat{Y})^2)
 
-    See [HA21]_ for more details
+    See [HA21]_ for more details.
     """
     return np.mean(np.square(target - forecast))
 
