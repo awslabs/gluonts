@@ -73,17 +73,15 @@ class Trainer:
     A trainer specifies how a network is going to be trained.
 
     A trainer is mainly defined by two sets of parameters. The first one determines the number of examples
-    that the network will be trained on (`epochs`, `num_batches_per_epoch` and `batch_size`), while the
-    second one specifies how the gradient updates are performed (`learning_rate`, `learning_rate_decay_factor`,
-    `patience`, `minimum_learning_rate`, `clip_gradient` and `weight_decay`).
+    that the network will be trained on (`epochs`, `num_batches_per_epoch`), while the second one specifies
+    how the gradient updates are performed (`learning_rate`, `learning_rate_decay_factor`, `patience`,
+    `minimum_learning_rate`, `clip_gradient` and `weight_decay`).
 
     Parameters
     ----------
     ctx
     epochs
         Number of epochs that the network will train (default: 100).
-    batch_size
-        Number of examples in each batch (default: 32).
     num_batches_per_epoch
         Number of batches at each epoch (default: 50).
     learning_rate
@@ -265,8 +263,6 @@ class Trainer:
                     "{}_{}".format(STATE_ARTIFACT_FILE_NAME, uuid.uuid4()),
                 )
 
-            batch_size = train_iter.batch_size
-
             best_epoch_info = {
                 "params_path": "%s-%s.params" % (base_path(), "init"),
                 "epoch_no": -1,
@@ -305,12 +301,10 @@ class Trainer:
                         training_network=net
                     )
 
-                batch_iter = itertools.islice(
-                    batch_iter, num_batches_to_use
-                )
+                batch_iter = itertools.islice(batch_iter, num_batches_to_use)
 
                 with tqdm(batch_iter, total=num_batches_to_use) as it:
-                    for batch_no, data_entry in enumerate(it, start=1):
+                    for batch_no, batch in enumerate(it, start=1):
                         # `batch` here is expected to be a dictionary whose fields
                         # should correspond 1-to-1 with the network inputs
                         # see below how `batch.values()` is fed into the network

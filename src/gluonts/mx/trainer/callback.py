@@ -29,7 +29,7 @@ from mxnet import gluon
 # First-party imports
 from gluonts.core.component import validated, logger
 from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
 
 
 class Callback:
@@ -125,12 +125,12 @@ class CallbackList(Callback):
         self, new_callbacks: Union["CallbackList", List[Callback]]
     ) -> None:
         """
-            Include callbacks of a CallbackList or a list of callbacks in self.callbacks.
-            If two Callbacks are the same type, self.callbacks are prioritized and the new clalback will not be added.
-            Parameters
-            ----------
-            callbacks
-                A gluonts.mx.trainer.callback.CallbackList.
+        Include callbacks of a CallbackList or a list of callbacks in self.callbacks.
+        If two Callbacks are the same type, self.callbacks are prioritized and the new clalback will not be added.
+        Parameters
+        ----------
+        callbacks
+            A gluonts.mx.trainer.callback.CallbackList.
         """
 
         if not isinstance(new_callbacks, list):
@@ -307,37 +307,37 @@ class WarmStart(Callback):
 
 class LearningRateReduction(MetricAttentiveScheduler, Callback):
     r"""
-        This Callback decreases the learning rate based on the value of some
-        validation metric to be optimized (maximized or minimized). The value
-        of such metric is provided by calling the `step` method on the scheduler.
-        A `patience` parameter must be provided, and the scheduler will reduce
-        the learning rate if no improvement in the metric is done before
-        `patience` observations of the metric.
+    This Callback decreases the learning rate based on the value of some
+    validation metric to be optimized (maximized or minimized). The value
+    of such metric is provided by calling the `step` method on the scheduler.
+    A `patience` parameter must be provided, and the scheduler will reduce
+    the learning rate if no improvement in the metric is done before
+    `patience` observations of the metric.
 
-        Examples:
+    Examples:
 
-            `patience = 0`: learning rate will decrease at every call to
-            `step`, regardless of the metric value
+        `patience = 0`: learning rate will decrease at every call to
+        `step`, regardless of the metric value
 
-            `patience = 1`: learning rate is reduced as soon `step` is called
-            with a metric value which does not improve over the best encountered
+        `patience = 1`: learning rate is reduced as soon `step` is called
+        with a metric value which does not improve over the best encountered
 
-            `patience = 10`: learning rate is reduced if no improvement in the
-            metric is recorded in 10 successive calls to `step`
+        `patience = 10`: learning rate is reduced if no improvement in the
+        metric is recorded in 10 successive calls to `step`
 
-        Parameters
-        ----------
-        objective
-            String, can either be `"min"` or `"max"`
-        patience
-            The patience to observe before reducing the learning rate, nonnegative integer.
-        base_lr
-            Initial learning rate to be used.
-        decay_factor
-            Factor (between 0 and 1) by which to decrease the learning rate.
-        min_lr
-            Lower bound for the learning rate, learning rate will never go below `min_lr`
-        """
+    Parameters
+    ----------
+    objective
+        String, can either be `"min"` or `"max"`
+    patience
+        The patience to observe before reducing the learning rate, nonnegative integer.
+    base_lr
+        Initial learning rate to be used.
+    decay_factor
+        Factor (between 0 and 1) by which to decrease the learning rate.
+    min_lr
+        Lower bound for the learning rate, learning rate will never go below `min_lr`
+    """
 
     @validated()
     def __init__(
