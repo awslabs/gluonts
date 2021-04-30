@@ -110,10 +110,10 @@ class Trainer:
         >>> [
         ...     ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
         ...     LearningRateReduction(
-        ...         base_lr=learning_rate,
-        ...         decay_factor=learning_rate_decay_factor,
-        ...         patience=patience,
-        ...         min_lr=minimum_learning_rate,
+        ...         base_lr=1e-3, # learning_rate
+        ...         decay_factor=0.5, # learning_rate_decay_factor
+        ...         patience=10, # patience
+        ...         min_lr=5e-5, # minimum_learning_rate
         ...         objective="min",
         ...     )
         ... ]
