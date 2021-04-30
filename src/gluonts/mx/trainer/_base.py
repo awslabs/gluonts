@@ -71,10 +71,11 @@ class Trainer:
     r"""
     A trainer specifies how a network is going to be trained.
 
-    A trainer is mainly defined by two sets of parameters. The first one determines the number of examples
-    that the network will be trained on (`epochs`, `num_batches_per_epoch`), while the second one specifies
-    how the gradient updates are performed (`learning_rate`, `learning_rate_decay_factor`, `patience`,
-    `minimum_learning_rate`, `clip_gradient` and `weight_decay`).
+    A trainer is mainly defined by two sets of parameters. The first one determines the number of
+    examples that the network will be trained on (`epochs`, `num_batches_per_epoch`), while the
+    second one specifies how the gradient updates are performed (`learning_rate`,
+    `learning_rate_decay_factor`, `patience`, `minimum_learning_rate`, `clip_gradient` and
+    `weight_decay`).
 
     Parameters
     ----------
@@ -88,14 +89,15 @@ class Trainer:
     learning_rate_decay_factor
         Factor (between 0 and 1) by which to decrease the learning rate (default: 0.5).
     patience
-        The patience to observe before reducing the learning rate, nonnegative integer (default: 10).
+        The patience to observe before reducing the learning rate, nonnegative integer
+        (default: 10).
     minimum_learning_rate
         Lower bound for the learning rate (default: :math:`5\cdot 10^{-5}`).
     clip_gradient
         Maximum value of gradient. The gradient is clipped if it is too large (default: 10).
     weight_decay
-        The weight decay (or L2 regularization) coefficient. Modifies objective by adding a penalty for having
-        large weights (default :math:`10^{-8}`).
+        The weight decay (or L2 regularization) coefficient. Modifies objective by adding a
+        penalty for having large weights (default :math:`10^{-8}`).
     init
         Initializer of the weights of the network (default: "xavier").
     hybridize
@@ -105,13 +107,16 @@ class Trainer:
     add_default_callbacks
         bool, True by default. If True LearningRateReduction and ModelAveragingCallbacks are used in addition to the callbacks specified in the callbacks argument.
         default callbacks:
-        >>>[ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
-        ...LearningRateReduction(
-        ...base_lr=learning_rate,
-        ...decay_factor=learning_rate_decay_factor,
-        ...patience=patience,
-        ...min_lr=minimum_learning_rate,
-        ...objective="min")]
+        >>> [
+        ...     ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
+        ...     LearningRateReduction(
+        ...         base_lr=learning_rate,
+        ...         decay_factor=learning_rate_decay_factor,
+        ...         patience=patience,
+        ...         min_lr=minimum_learning_rate,
+        ...         objective="min",
+        ...     )
+        ... ]
     """
 
     @validated()
