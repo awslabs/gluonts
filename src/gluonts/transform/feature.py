@@ -555,3 +555,35 @@ class AddAggregateLags(MapTransformation):
         )
 
         return data
+
+
+class CountTrailingZeros(SimpleTransformation):
+    """
+    Add the number of 'trailing' zeros in each univariate time series as a feature, to be
+    used when dealing with sparse (intermittent) time series. For
+    example, for a time series `[0, 0, 2, 3, 0]`, the number of trailing
+    zeros will be 1.
+
+    Parameters
+    ----------
+    new_field
+        Name of the new field to be created, which will contain the number of trailing
+        zeros.
+    target_field
+        Field with target values (array) of time series
+    """
+
+    def __init__(
+        self,
+        new_field: str = "trailing_zeros",
+        target_field: str = "target",
+    ) -> None:
+        self.target_field = target_field
+        self.new_field = new_field
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        target = data[self.target_field]
+        if len(target) == 0:
+            return data
+        data[self.new_field] = len(target) - len(np.trim_zeros(target, "b"))
+        return data
