@@ -329,7 +329,7 @@ class Trainer:
                         )
 
                         # Call the batch start callback as the model was not compiled before
-                        self.callbacks.on_train_batch_start(
+                        self.callbacks.on_train_epoch_start(
                             training_network=net
                         )
 
