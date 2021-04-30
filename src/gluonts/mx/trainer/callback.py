@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
 import logging
 
 # Third-party imports
@@ -36,34 +36,83 @@ class Callback:
     """
     Abstract Callback base class.
     Callbacks control the training of the GluonTS trainer.
-    To write a custom Callback you can subclass Callback and overwrite one or more of the hook methods.
-    Hook methods with boolean return value stop the training if False is returned.
+    To write a custom Callback, you can subclass Callback and overwrite one or more of the hook
+    methods. Hook methods with boolean return value stop the training if False is returned.
     """
 
     @validated()
     def __init__(self, **kwargs):
         pass
 
+    def on_train_start(self, max_epochs: int) -> None:
+        """
+        Hook that is called prior to training. This is the very first hook to be called.
+
+        Parameters
+        ----------
+        max_epochs
+            The maximum number of epochs that training is running. The actual number of epochs may
+            be fewer if another callback hook stops training early.
+        """
+
     def on_network_initializing_end(
         self, training_network: nn.HybridBlock
     ) -> None:
-        pass
+        """
+        Hook that is called prior to training, after the training network has been initialized.
+        This is the first hook where the network is passed.
 
-    def on_train_batch_start(self, training_network: nn.HybridBlock) -> None:
-        pass
+        Parameters
+        ----------
+        training_network
+            The network that is being trained.
+        """
 
-    def on_validation_batch_start(
+    def on_train_epoch_start(self, training_network: nn.HybridBlock) -> None:
+        """
+        Hook that is called prior to each training epoch.
+
+        Parameters
+        ----------
+        training_network
+            The network that is being trained.
+        """
+
+    def on_validation_epoch_start(
         self, training_network: nn.HybridBlock
     ) -> None:
-        pass
+        """
+        Hook that is called prior to each validation epoch. This hook is never called if no
+        validation data is available during training.
+
+        Parameters
+        ----------
+        training_network
+            The network that is being trained.
+        """
 
     def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
-        pass
+        """
+        Hook that is called after each training batch.
+
+        Parameters
+        ----------
+        training_network
+            The network that is being trained.
+        """
 
     def on_validation_batch_end(
         self, training_network: nn.HybridBlock
     ) -> None:
-        pass
+        """
+        Hook that is called after each validation batch. This hook is never called if no validation
+        data is available during training.
+
+        Parameters
+        ----------
+        training_network
+            The network that is being trained.
+        """
 
     def on_train_epoch_end(
         self,
@@ -72,6 +121,26 @@ class Callback:
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
     ) -> bool:
+        """
+        Hook that is called after each training epoch. This method returns a boolean whether
+        training should continue.
+
+        Parameters
+        ----------
+        epoch_no
+            The current epoch (the first epoch has `epoch_no = 0`).
+        epoch_loss
+            The loss that was recorded in the last epoch.
+        training_network
+            The network that is being trained.
+        trainer
+            The trainer which is running the training.
+
+        Returns
+        -------
+        bool
+            A boolean whether the training should continue. Defaults to `True`.
+        """
         return True
 
     def on_validation_epoch_end(
@@ -81,6 +150,28 @@ class Callback:
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
     ) -> bool:
+        """
+        Hook that is called after each validation epoch. Similar to `on_train_epoch_end`, this
+        method returns a boolean whether training should continue. Note that it is always called
+        after `on_train_epoch_end` within a single epoch. If `on_train_epoch_end` returned `False`,
+        this method will not be called.
+
+        Parameters
+        ----------
+        epoch_no
+            The current epoch (the first epoch has `epoch_no = 0`).
+        epoch_loss
+            The validation loss that was recorded in the last epoch.
+        training_network
+            The network that is being trained.
+        trainer
+            The trainer which is running the training.
+
+        Returns
+        -------
+        bool
+            A boolean whether the training should continue. Defaults to `True`.
+        """
         return True
 
     def on_epoch_end(
@@ -89,18 +180,58 @@ class Callback:
         epoch_loss: float,
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
-        best_epoch_info: dict,
+        best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
+        """
+        Hook that is called after every epoch. As `on_train_epoch_end` and
+        `on_validation_epoch_end`, it returns a boolean whether training should continue. This
+        hook is always called after `on_train_epoch_end` and `on_validation_epoch_end`. It is
+        called regardless of these hooks' return values.
+
+        Parameters
+        ----------
+        epoch_no
+            The current epoch (the first epoch has `epoch_no = 0`).
+        epoch_loss
+            The validation loss that was recorded in the last epoch if validation data was
+            provided. The training loss otherwise.
+        training_network
+            The network that is being trained.
+        trainer
+            The trainer which is running the training.
+        best_epoch_info
+            Aggregate information about the best epoch. Contains keys `params_path`, `epoch_no` and
+            `score`. The score is the best validation loss if validation data is provided or the
+            best training loss otherwise.
+        ctx
+            The MXNet context used.
+
+        Returns
+        -------
+        bool
+            A boolean whether the training should continue. Defaults to `True`.
+        """
         return True
 
     def on_train_end(
         self,
         training_network: nn.HybridBlock,
-        temporary_file: str,
-        ctx: Optional[mx.context.Context] = None,
+        temporary_dir: str,
+        ctx: mx.context.Context = None,
     ) -> None:
-        pass
+        """
+        Hook that is called after training is finished. This is the last hook to be called.
+
+        Parameters
+        ----------
+        training_network
+            The network that was trained.
+        temporary_dir
+            The directory where model parameters are logged throughout training.
+        ctx
+            An MXNet context used.
+        """
 
 
 class CallbackList(Callback):
@@ -144,6 +275,10 @@ class CallbackList(Callback):
             else:
                 self.callbacks.append(callback)
 
+    def on_train_start(self, max_epochs: int) -> None:
+        for callback in self.callbacks:
+            callback.on_train_start(max_epochs=max_epochs)
+
     def on_network_initializing_end(
         self, training_network: nn.HybridBlock
     ) -> None:
@@ -152,15 +287,15 @@ class CallbackList(Callback):
                 training_network=training_network
             )
 
-    def on_train_batch_start(self, training_network: nn.HybridBlock) -> None:
+    def on_train_epoch_start(self, training_network: nn.HybridBlock) -> None:
         for callback in self.callbacks:
-            callback.on_train_batch_start(training_network=training_network)
+            callback.on_train_epoch_start(training_network=training_network)
 
-    def on_validation_batch_start(
+    def on_validation_epoch_start(
         self, training_network: nn.HybridBlock
     ) -> None:
         for callback in self.callbacks:
-            callback.on_validation_batch_start(
+            callback.on_validation_epoch_start(
                 training_network=training_network
             )
 
@@ -218,7 +353,7 @@ class CallbackList(Callback):
         epoch_loss: float,
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
-        best_epoch_info: dict,
+        best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
         return np.all(
@@ -238,13 +373,13 @@ class CallbackList(Callback):
     def on_train_end(
         self,
         training_network: nn.HybridBlock,
-        temporary_file: str,
-        ctx: Optional[mx.context.Context] = None,
+        temporary_dir: str,
+        ctx: mx.context.Context = None,
     ) -> None:
         for callback in self.callbacks:
             callback.on_train_end(
                 training_network=training_network,
-                temporary_file=temporary_file,
+                temporary_dir=temporary_dir,
                 ctx=ctx,
             )
 
@@ -371,7 +506,7 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
         epoch_loss: float,
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
-        best_epoch_info: dict,
+        best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
         should_continue = self.step(metric_value=epoch_loss)
@@ -414,7 +549,7 @@ class ModelIterationAveraging(Callback):
     def __init__(self, avg_strategy: IterationAveragingStrategy):
         self.avg_strategy = avg_strategy
 
-    def on_validation_batch_start(
+    def on_validation_epoch_start(
         self, training_network: nn.HybridBlock
     ) -> None:
         # use averaged model for validation
@@ -440,7 +575,7 @@ class ModelIterationAveraging(Callback):
         epoch_loss: float,
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
-        best_epoch_info: dict,
+        best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
 
@@ -454,8 +589,8 @@ class ModelIterationAveraging(Callback):
     def on_train_end(
         self,
         training_network: nn.HybridBlock,
-        temporary_file: str,
-        ctx: Optional[mx.context.Context] = None,
+        temporary_dir: str,
+        ctx: mx.context.Context = None,
     ) -> None:
 
         logging.info("Loading averaged parameters.")
@@ -481,11 +616,11 @@ class ModelAveraging(Callback):
     def on_train_end(
         self,
         training_network: nn.HybridBlock,
-        temporary_file: str,
-        ctx: Optional[mx.context.Context] = None,
+        temporary_dir: str,
+        ctx: mx.context.Context = None,
     ) -> None:
         logging.info("Computing averaged parameters.")
-        averaged_params_path = self.avg_strategy.apply(temporary_file)
+        averaged_params_path = self.avg_strategy.apply(temporary_dir)
 
         logging.info("Loading averaged parameters.")
         training_network.load_parameters(averaged_params_path, ctx)

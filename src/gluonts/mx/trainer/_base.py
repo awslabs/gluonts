@@ -294,9 +294,14 @@ class Trainer:
                 epoch_loss = mx.metric.Loss()
 
                 if is_training:
-                    self.callbacks.on_train_batch_start(training_network=net)
+                    # We should not call this method if we haven't compiled the network yet.
+                    # Instead, this callback is called after network initialization.
+                    if not first_forward:
+                        self.callbacks.on_train_epoch_start(
+                            training_network=net
+                        )
                 else:
-                    self.callbacks.on_validation_batch_start(
+                    self.callbacks.on_validation_epoch_start(
                         training_network=net
                     )
 
@@ -315,6 +320,11 @@ class Trainer:
                             _ = net(*batch.values())
 
                             self.callbacks.on_network_initializing_end(
+                                training_network=net
+                            )
+
+                            # Call the batch start callback as the model was not compiled before
+                            self.callbacks.on_train_batch_start(
                                 training_network=net
                             )
 
@@ -394,6 +404,8 @@ class Trainer:
 
                 return epoch_loss
 
+            self.callbacks.on_train_start(max_epochs=self.epochs)
+
             for epoch_no in range(self.epochs):
                 if self.halt:
                     logger.info(f"Epoch[{epoch_no}] Interrupting training")
@@ -452,7 +464,7 @@ class Trainer:
                     should_continue
                     and self.callbacks.on_epoch_end(
                         epoch_no=epoch_no,
-                        epoch_loss=loss_value(epoch_loss),
+                        epoch_loss=epoch_loss,
                         training_network=net,
                         trainer=trainer,
                         best_epoch_info=best_epoch_info,
@@ -466,7 +478,7 @@ class Trainer:
 
             self.callbacks.on_train_end(
                 training_network=net,
-                temporary_file=gluonts_temp,
+                temporary_dir=gluonts_temp,
                 ctx=self.ctx,
             )
 
