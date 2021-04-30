@@ -471,7 +471,7 @@ class Trainer:
                     should_continue
                     and self.callbacks.on_epoch_end(
                         epoch_no=epoch_no,
-                        epoch_loss=epoch_loss,
+                        epoch_loss=loss_value(epoch_loss),
                         training_network=net,
                         trainer=trainer,
                         best_epoch_info=best_epoch_info,
