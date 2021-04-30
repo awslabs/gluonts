@@ -258,6 +258,7 @@ class CallbackList(Callback):
         """
         Include callbacks of a CallbackList or a list of callbacks in self.callbacks.
         If two Callbacks are the same type, self.callbacks are prioritized and the new clalback will not be added.
+
         Parameters
         ----------
         callbacks
@@ -540,9 +541,9 @@ class ModelIterationAveraging(Callback):
     Callback to implement iteration based model averaging strategies.
 
     Parameters
-        ----------
-        avg_strategy
-            IterationAveragingStrategy, one of NTA or Alpha_Suffix from gluonts.mx.trainer.model_iteration_averaging
+    ----------
+    avg_strategy
+        IterationAveragingStrategy, one of NTA or Alpha_Suffix from gluonts.mx.trainer.model_iteration_averaging
     """
 
     @validated()
@@ -604,9 +605,9 @@ class ModelAveraging(Callback):
 
 
     Parameters
-        ----------
-        avg_strategy
-            AveragingStrategy, one of SelectNBestSoftmax or SelectNBestMean from gluonts.mx.trainer.model_averaging
+    ----------
+    avg_strategy
+        AveragingStrategy, one of SelectNBestSoftmax or SelectNBestMean from gluonts.mx.trainer.model_averaging
     """
 
     @validated()
