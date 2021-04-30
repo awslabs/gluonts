@@ -107,7 +107,7 @@ class Trainer:
     add_default_callbacks
         bool, True by default. If True LearningRateReduction and ModelAveragingCallbacks are used in addition to the callbacks specified in the callbacks argument.
         default callbacks:
-        >>> [
+        >>> callbacks = [
         ...     ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
         ...     LearningRateReduction(
         ...         base_lr=1e-3, # learning_rate
