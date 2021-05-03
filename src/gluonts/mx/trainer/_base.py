@@ -134,7 +134,7 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        callbacks: List[Callback] = None,
+        callbacks: Optional[List[Callback]] = None,
         add_default_callbacks: bool = True,
     ) -> None:
 
