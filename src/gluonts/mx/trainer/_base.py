@@ -103,7 +103,7 @@ class Trainer:
     hybridize
         If set to True the network will be hybridized before training
     callbacks
-        A list of gluonts.mx.trainer.callback.Callback's or a CallbackList to control the training.
+        A list of `gluonts.mx.trainer.callback.Callback` to control the training.
     add_default_callbacks
         bool, True by default. If True LearningRateReduction and ModelAveragingCallbacks are used in addition to the callbacks specified in the callbacks argument.
         default callbacks:
@@ -134,7 +134,7 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        callbacks: Union[Callback, List[Callback]] = CallbackList([]),
+        callbacks: List[Callback] = None,
         add_default_callbacks: bool = True,
     ) -> None:
 
@@ -150,7 +150,8 @@ class Trainer:
         assert isinstance(batch_size, int)
 
         # TODO param disable_default_callbacks to get backwards compatibility
-        # deprecation warnings, in the future, the following callbacks should be controlled by altering callbacks:
+        # deprecation warnings, in the future, the following callbacks should be controlled by
+        # altering callbacks:
         if learning_rate_decay_factor is not None:
             warnings.warn(
                 'Trainer argument "learning_rate_decay_factor" is deprecated. Use callbacks instead.',
@@ -196,11 +197,7 @@ class Trainer:
         self.halt = False
 
         # initialize callbacks as a CallbackList
-        self.callbacks = (
-            callbacks
-            if isinstance(callbacks, CallbackList)
-            else CallbackList(callbacks)
-        )
+        self.callbacks = CallbackList(callbacks or [])
 
         # TODO the following is done for backwards compatibility. For future versions, add the default callbacks as default arg
         if add_default_callbacks:

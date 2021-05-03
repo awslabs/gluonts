@@ -14,6 +14,7 @@
 # Standard library imports
 from typing import List, Optional, Union, Dict, Any
 import logging
+import math
 
 # Third-party imports
 import numpy as np
@@ -39,10 +40,6 @@ class Callback:
     To write a custom Callback, you can subclass Callback and overwrite one or more of the hook
     methods. Hook methods with boolean return value stop the training if False is returned.
     """
-
-    @validated()
-    def __init__(self, **kwargs):
-        pass
 
     def on_train_start(self, max_epochs: int) -> None:
         """
@@ -420,9 +417,8 @@ class TerminateOnNaN(Callback):
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
     ) -> bool:
-        is_nan = epoch_loss != epoch_loss
-        if is_nan:
-            print(
+        if math.isnan(epoch_loss):
+            logging.warning(
                 f"TerminateOnNaN Callback initiated stop of training at epoch {epoch_no}."
             )
             return False

@@ -48,18 +48,12 @@ def log_version(forecaster_type):
     logger.info(f"Using forecaster {name} v{version}")
 
 
-def run_train_and_test(
-    env: TrainEnv, forecaster_type: Type[Union[Estimator, Predictor]]
-) -> None:
+def run_train_and_test(env: TrainEnv, forecaster_type: Type[Union[Estimator, Predictor]]) -> None:
     log_version(forecaster_type)
 
-    logger.info(
-        "Using the following data channels: %s", ", ".join(env.datasets)
-    )
+    logger.info("Using the following data channels: %s", ", ".join(env.datasets))
 
-    forecaster = forecaster_type.from_inputs(
-        env.datasets["train"], **env.hyperparameters
-    )
+    forecaster = forecaster_type.from_inputs(env.datasets["train"], **env.hyperparameters)
     logger.info(
         f"The forecaster can be reconstructed with the following expression: "
         f"{dump_code(forecaster)}"
@@ -88,9 +82,7 @@ def run_train(
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
     num_workers = (
-        int(hyperparameters["num_workers"])
-        if "num_workers" in hyperparameters.keys()
-        else None
+        int(hyperparameters["num_workers"]) if "num_workers" in hyperparameters.keys() else None
     )
     shuffle_buffer_length = (
         int(hyperparameters["shuffle_buffer_length"])
@@ -98,9 +90,7 @@ def run_train(
         else None
     )
     num_prefetch = (
-        int(hyperparameters["num_prefetch"])
-        if "num_prefetch" in hyperparameters.keys()
-        else None
+        int(hyperparameters["num_prefetch"]) if "num_prefetch" in hyperparameters.keys() else None
     )
     if isinstance(forecaster, GluonEstimator):
         return forecaster.train(
@@ -111,9 +101,7 @@ def run_train(
             shuffle_buffer_length=shuffle_buffer_length,
         )
     else:
-        return forecaster.train(
-            training_data=train_dataset, validation_data=validation_dataset
-        )
+        return forecaster.train(training_data=train_dataset, validation_data=validation_dataset)
 
 
 def run_test(
@@ -126,9 +114,7 @@ def run_test(
 
     test_dataset = TransformedDataset(
         test_dataset,
-        FilterTransformation(
-            lambda x: x["target"].shape[-1] > predictor.prediction_length
-        ),
+        FilterTransformation(lambda x: x["target"].shape[-1] > predictor.prediction_length),
     )
 
     len_filtered = len(test_dataset)
@@ -146,10 +132,7 @@ def run_test(
     )
 
     test_quantiles = (
-        [
-            Quantile.parse(quantile).name
-            for quantile in hyperparameters["test_quantiles"]
-        ]
+        [Quantile.parse(quantile).name for quantile in hyperparameters["test_quantiles"]]
         if "test_quantiles" in hyperparameters.keys()
         else None
     )
