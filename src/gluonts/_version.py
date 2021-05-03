@@ -81,7 +81,9 @@ def get_version_from_git():
         return
     if p.wait() != 0:
         return
-    if not os.path.samefile(p.communicate()[0].decode().rstrip("\n"), distr_root):
+    if not os.path.samefile(
+        p.communicate()[0].decode().rstrip("\n"), distr_root
+    ):
         # The top-level directory of the current Git repository is not the same
         # as the root directory of the distribution: do not extract the
         # version from Git.
@@ -191,7 +193,9 @@ def _write_version(fname):
 class _build_py(build_py_orig):
     def run(self):
         super().run()
-        _write_version(os.path.join(self.build_lib, package_name, STATIC_VERSION_FILE))
+        _write_version(
+            os.path.join(self.build_lib, package_name, STATIC_VERSION_FILE)
+        )
 
 
 class _sdist(sdist_orig):
