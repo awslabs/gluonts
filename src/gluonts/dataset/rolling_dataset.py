@@ -15,10 +15,10 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel
-
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import to_pandas
+from pydantic import BaseModel
 
 
 class StepStrategy(BaseModel):
@@ -98,6 +98,19 @@ class NumSplitsStrategy(BaseModel):
         ):
 
             yield window[: int(round(slice_idx))]
+
+
+def truncate_features(timeseries: dict, max_len: int) -> dict:
+    """truncate dynamic features to match `max_len` length"""
+    for key in (
+        FieldName.FEAT_DYNAMIC_CAT,
+        FieldName.FEAT_DYNAMIC_REAL,
+    ):
+        if not key in timeseries:
+            continue
+        timeseries[key] = [feature[:max_len] for feature in timeseries[key]]
+
+    return timeseries
 
 
 # TODO Add parameter allowing for rolling of other arrays
@@ -213,7 +226,12 @@ def generate_rolling_dataset(
 
         for window in strategy.get_windows(prediction_window):
             new_item = item.copy()
-            new_item["target"] = np.concatenate([base, window.to_numpy()])
+            new_item[FieldName.TARGET] = np.concatenate(
+                [base, window.to_numpy()]
+            )
+            new_item = truncate_features(
+                new_item, len(new_item[FieldName.TARGET])
+            )
             ds.append(new_item)
 
     return ds

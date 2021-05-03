@@ -197,8 +197,6 @@ class Seq2SeqEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def create_training_network(self) -> mx.gluon.HybridBlock:

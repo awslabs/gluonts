@@ -11,25 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pandas as pd
-
-from lightgbm import LGBMRegressor
-
-from gluonts.core.component import validated
+import pkg_resources
 
 
-class lgb_wrapper:
-    """
-    A wrapped of lightgbm that can be fed into the model parameters in QRX
-    and TreePredictor.
-    """
-
-    @validated()
-    def __init__(self, **lgb_params):
-        self.model = LGBMRegressor(**lgb_params)
-
-    def fit(self, train_data, train_target, **kwargs):
-        self.model.fit(pd.DataFrame(train_data), train_target, **kwargs)
-
-    def predict(self, data):
-        return self.model.predict(pd.DataFrame(data))
+def test_forecaster_entrypoints():
+    for entry_point in pkg_resources.iter_entry_points("gluonts_forecasters"):
+        entry_point.load()

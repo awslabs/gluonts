@@ -11,12 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import copy
 import numpy as np
 import pandas as pd
 import xgboost
+import gc
+from collections import defaultdict
 
 from gluonts.core.component import validated
 
@@ -104,11 +106,11 @@ class QRX:
         else:
             self.model = self._create_xgboost_model(xgboost_params)
         self.clump_size = clump_size
-        self.df = None
-        self.processed_df = None
-        self.cell_values = None
-        self.cell_values_dict = None
-        self.quantile_dicts = {}
+        self.sorted_train_preds = None
+        self.x_train_is_dataframe = None
+        self.id_to_bins = None
+        self.preds_to_id = None
+        self.quantile_dicts = defaultdict(dict)
 
     @staticmethod
     def _create_xgboost_model(model_params: Optional[dict] = None):
@@ -124,29 +126,42 @@ class QRX:
             }
         return xgboost.sklearn.XGBModel(**model_params)
 
-    def fit(self, x_train, y_train, max_sample_size=None, seed=1, **kwargs):
+    def fit(
+        self,
+        x_train: Union[pd.DataFrame, List],
+        y_train: Union[pd.Series, List],
+        max_sample_size: Optional[
+            int
+        ] = None,  # If not None, choose without replacement
+        # replacement min(max_sample_size, len(x_train)) many datapoints
+        # to train on.
+        seed: int = 1,
+        x_train_is_dataframe: bool = False,  # This should be False for
+        # XGBoost, but True if one uses lightgbm.
+        **kwargs
+    ):
         """
         Fits self.model and partitions R^n into cells. More accurately,
-        it creates a dictionary taking predictions on train to lists of
-        associated true values, and puts it in self.cell_values.
-
-        Parameters
-        ----------
-        x_train: list
-            list of lists
-        y_train: list
-        eval_set: list of tuples of train (list of lists) and labels
-            Optional. Main use case is if using lightgbm.
-        max_sample_size: int
-            If not None, choose without replacement
-            min(max_sample_size, len(x_train)) many datapoints to train on.
-        seed: int
-            seed for sampling purposes
+        it creates two dictionaries: self.preds_to_ids whose keys are the
+        predictions of the training dataset and whose values are the ids of
+        their associated bins, and self.ids_to_bins whose keys are the ids
+        of the bins and whose values are associated lists of true values.
         """
-        self.quantile_dicts = {}
-        x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
+        self.x_train_is_dataframe = x_train_is_dataframe
+        self.quantile_dicts = defaultdict(dict)
+        if not x_train_is_dataframe:
+            x_train, y_train = np.array(x_train), np.array(y_train)  # xgboost
         # doens't like lists
-        if max_sample_size:
+        if max_sample_size and x_train_is_dataframe:
+            assert max_sample_size > 0
+            sample_size = min(max_sample_size, len(x_train))
+            x_train = x_train.sample(
+                n=min(sample_size, len(x_train)),
+                replace=False,
+                random_state=seed,
+            )
+            y_train = y_train[x_train.index]
+        elif max_sample_size:
             assert max_sample_size > 0
             sample_size = min(max_sample_size, len(x_train))
             np.random.seed(seed)
@@ -157,16 +172,34 @@ class QRX:
             y_train = y_train[idx]
         self.model.fit(x_train, y_train, **kwargs)
         y_train_pred = self.model.predict(x_train)
-        self.df = pd.DataFrame(
-            {"x": list(x_train), "y_true": y_train, "y_pred": y_train_pred}
+        df = pd.DataFrame(
+            {
+                "y_true": y_train,
+                "y_pred": y_train_pred,
+            }
+        ).reset_index(drop=True)
+        self.sorted_train_preds = sorted(df["y_pred"].unique())
+        cell_values_dict = self.preprocess_df(df, clump_size=self.clump_size)
+        del df
+        gc.collect()
+        cell_values_dict_df = pd.DataFrame(
+            cell_values_dict.items(), columns=["keys", "values"]
         )
-        self.cell_values_dict = self.preprocess_df(
-            self.df, clump_size=self.clump_size
+        cell_values_dict_df["id"] = cell_values_dict_df["values"].apply(id)
+        self.id_to_bins = (
+            cell_values_dict_df.groupby("id")["values"].first().to_dict()
         )
-        self.cell_values = sorted(self.cell_values_dict.keys())
+        self.preds_to_id = (
+            cell_values_dict_df.groupby("keys")["id"].first().to_dict()
+        )
+        del cell_values_dict_df
+        del cell_values_dict
+        gc.collect()
 
     @staticmethod
-    def clump(dic: Dict, min_num: int) -> Dict:
+    def clump(
+        dic: Dict, min_num: int, sorted_keys: Optional[List] = None
+    ) -> Dict:
         """
         Returns a new dictionary whose keys are the same as dic's keys.
         Runs over dic's keys, from smallest to largest, and every time that
@@ -195,6 +228,8 @@ class QRX:
             float to list
         min_num: int
             minimal number of clump size.
+        sorted_keys: list
+            sorted(dic.keys()) or None
 
         Returns
         -------
@@ -202,7 +237,8 @@ class QRX:
             float to list; with the values often having the same list object
             appear multiple times
         """
-        sorted_keys = sorted(dic)
+        if sorted_keys is None:
+            sorted_keys = sorted(dic)
         new_dic = {}
         iter_length = 0
         iter_list = []
@@ -219,8 +255,7 @@ class QRX:
                 # list object.
         return new_dic
 
-    @classmethod
-    def preprocess_df(cls, df: pd.DataFrame, clump_size: int = 100) -> Dict:
+    def preprocess_df(self, df: pd.DataFrame, clump_size: int = 100) -> Dict:
         """
         Associates true values to each prediction that appears in train. For
         the nature of this association, see details in .clump.
@@ -242,7 +277,7 @@ class QRX:
             of each being at least clump_size.
         """
         dic = dict(df.groupby("y_pred")["y_true"].apply(list))
-        dic = cls.clump(dic, clump_size)
+        dic = self.clump(dic, clump_size, self.sorted_train_preds)
         return dic
 
     @classmethod
@@ -267,67 +302,72 @@ class QRX:
             else:
                 return sorted_list[halfway_indx + 1]
 
-    @staticmethod
-    def _get_quantiles_from_dic_with_list_values(
-        dic: Dict, quantile: float
-    ) -> Dict:
+    def _get_and_cache_quantile_computation(
+        self, feature_vector_in_train: List, quantile: float
+    ):
         """
-        Given a dictionary of float to lists, returns a
-        dictionary that takes num to np.percentile(dic[num], 100 * quantile).
-
-        The function is meant to be efficient under the assumption that
-        dic's values have list objects that repeat many times over.
+        Updates self.quantile_dicts[quantile][feature_vector_in_train] to be the quantile of the associated true value bin.
 
         Parameters
         ----------
-        dic: dict
-            float to list objects, with potentially many repetitions
+        feature_vector_in_train: list
+             Feature vector that appears in the training data.
         quantile: float
 
         Returns
         -------
-        dict
-            float to float
+        float
+            The quantile of the associated true value bin.
         """
-        df = pd.DataFrame(dic.items(), columns=["keys", "values"])
-        df["id"] = df["values"].apply(id)
-        df_by_id = df.groupby("id")["values"].first().reset_index()
-        df_by_id["quantiles"] = df_by_id["values"].apply(
-            lambda l: np.percentile(l, quantile * 100)
-        )
-        df_by_id = df_by_id[["id", "quantiles"]].merge(df, on="id")
-        return dict(zip(df_by_id["keys"], df_by_id["quantiles"]))
+        if feature_vector_in_train not in self.quantile_dicts[quantile]:
+            self.quantile_dicts[quantile][
+                feature_vector_in_train
+            ] = np.percentile(
+                self.id_to_bins[self.preds_to_id[feature_vector_in_train]],
+                quantile * 100,
+            )
+        return self.quantile_dicts[quantile][feature_vector_in_train]
 
-    def predict(self, x_test, quantile: float) -> List:
+    def predict(
+        self, x_test: Union[pd.DataFrame, List], quantile: float
+    ) -> List:
         """
         Quantile prediction.
 
         Parameters
         ----------
-        x_test: list of lists
-        quantile
+        x_test: pd.DataFrame if self.x_train_is_dataframe, else list of
+        lists
+        quantile: float
 
         Returns
         -------
         list
             list of floats
         """
-        predicted_values = []
-        if quantile in self.quantile_dicts:
-            quantile_dic = self.quantile_dicts[quantile]
+        if self.x_train_is_dataframe:
+            preds = self.model.predict(x_test)
+            predicted_values = [
+                self._get_and_cache_quantile_computation(
+                    self.get_closest_pt(self.sorted_train_preds, pred),
+                    quantile,
+                )
+                for pred in preds
+            ]
         else:
-            quantile_dic = self._get_quantiles_from_dic_with_list_values(
-                self.cell_values_dict, quantile
-            )
-            self.quantile_dicts[quantile] = quantile_dic
-        # Remember dic per quantile and use if already done
-        for pt in x_test:
-            pred = self.model.predict(np.array([pt]))[
-                0
-            ]  # xgboost doesn't like
-            # lists
-            closest_pred = self.get_closest_pt(self.cell_values, pred)
-            predicted_values.append(quantile_dic[closest_pred])
+            predicted_values = []
+            for pt in x_test:
+                pred = self.model.predict(np.array([pt]))[
+                    0
+                ]  # xgboost doesn't like lists
+                closest_pred = self.get_closest_pt(
+                    self.sorted_train_preds, pred
+                )
+                predicted_values.append(
+                    self._get_and_cache_quantile_computation(
+                        closest_pred, quantile
+                    )
+                )
         return predicted_values
 
     def estimate_dist(self, x_test: List[List[float]]) -> List:
@@ -346,6 +386,8 @@ class QRX:
         predicted_samples = []
         for pt in x_test:
             pred = self.model.predict(np.array([pt]))[0]
-            closest_pred = self.get_closest_pt(self.cell_values, pred)
-            predicted_samples.append(self.cell_values_dict[closest_pred])
+            closest_pred = self.get_closest_pt(self.sorted_train_preds, pred)
+            predicted_samples.append(
+                self.id_to_bins[self.preds_to_id[closest_pred]]
+            )
         return predicted_samples

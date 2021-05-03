@@ -118,3 +118,10 @@ class LaplaceOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return ()
+
+
+class LaplaceFixedVarianceOutput(LaplaceOutput):
+    @classmethod
+    def domain_map(cls, F, mu, b):
+        b = 0.01 * F.ones_like(b)
+        return mu.squeeze(axis=-1), b.squeeze(axis=-1)
