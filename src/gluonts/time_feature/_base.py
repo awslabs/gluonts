@@ -125,14 +125,22 @@ class WeekOfYear(TimeFeature):
     """Week of year encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.week - 1) / 52.0 - 0.5
+        try:
+            return (index.isocalendar().week - 1) / 52.0 - 0.5
+        except AttributeError:
+            # compatibility for pandas < 1.1
+            return (index.week - 1) / 52.0 - 0.5
 
 
 class WeekOfYearIndex(TimeFeature):
     """Week of year encoded as zero-based index, between 0 and 52"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.week - 1).map(float)
+        try:
+            return (index.isocalendar().week - 1).map(float)
+        except AttributeError:
+            # compatibility for pandas < 1.1
+            return (index.week - 1).map(float)
 
 
 def norm_freq_str(freq_str: str) -> str:
