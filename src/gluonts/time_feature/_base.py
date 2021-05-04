@@ -112,15 +112,37 @@ class MonthOfYear(TimeFeature):
 
 
 class WeekOfYear(TimeFeature):
-    """
-    Week of year encoded as value between [-0.5, 0.5]
-    """
+    """Week of year encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        if self.normalized:
-            return index.weekofyear / 51.0 - 0.5
-        else:
-            return index.weekofyear.map(float)
+        # TODO:
+        # * pandas >= 1.1 does not support `.week`
+        # * pandas == 1.0 does not support `.isocalendar()`
+        # as soon as we drop support for `pandas == 1.0`, we should remove this
+        try:
+            week = index.isocalendar().week
+        except AttributeError:
+            week = index.week
+        return (week - 1) / 52.0 - 0.5
+
+
+class WeekOfYearIndex(TimeFeature):
+    """Week of year encoded as zero-based index, between 0 and 52"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        # TODO:
+        # * pandas >= 1.1 does not support `.week`
+        # * pandas == 1.0 does not support `.isocalendar()`
+        # as soon as we drop support for `pandas == 1.0`, we should remove this
+        try:
+            week = index.isocalendar().week
+        except AttributeError:
+            week = index.week
+        return (week - 1).map(float)
+
+
+def norm_freq_str(freq_str: str) -> str:
+    return freq_str.split("-")[0]
 
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
