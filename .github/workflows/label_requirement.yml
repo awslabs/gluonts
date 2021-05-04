@@ -1,0 +1,12 @@
+name: Pull Request Labels
+on: pull_request
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Schmedu/verify-pr-label-action@657d111bbbe13e22bbd55870f1813c699bde1401
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          valid-labels: 'BREAKING, new feature, bug fix, other change or improvement'
+          pull-request-number: '${{ github.event.pull_request.number }}'
+          disable-reviews: true
