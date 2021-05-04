@@ -197,9 +197,7 @@ def test_inference_loader_short_intervals(loader_factory, pp_dataset):
 
 @pytest.mark.parametrize("is_right_pad", [True, False])
 def test_variable_length_stack(pp_dataset, is_right_pad):
-    arrays = [
-        d["target"].T for d in list(iter(pp_dataset()))
-    ]
+    arrays = [d["target"].T for d in list(iter(pp_dataset()))]
 
     stacked = stack(
         arrays,
@@ -214,10 +212,7 @@ def test_variable_length_stack(pp_dataset, is_right_pad):
 
 @pytest.mark.parametrize("is_right_pad", [True, False])
 def test_variable_length_stack_zerosize(pp_dataset, is_right_pad):
-    arrays = [
-        np.zeros(shape=(0, 2))
-        for _ in range(5)
-    ]
+    arrays = [np.zeros(shape=(0, 2)) for _ in range(5)]
 
     stacked = stack(
         arrays,
@@ -233,9 +228,7 @@ def test_variable_length_stack_zerosize(pp_dataset, is_right_pad):
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("is_right_pad", [True, False])
 def test_pad_arrays_axis(axis: int, is_right_pad: bool):
-    arrays = [
-        d["target"] for d in list(iter(get_dataset()))
-    ]
+    arrays = [d["target"] for d in list(iter(get_dataset()))]
     if axis == 0:
         arrays = [x.T for x in arrays]
 
@@ -246,9 +239,7 @@ def test_pad_arrays_axis(axis: int, is_right_pad: bool):
 
 
 def test_pad_arrays_pad_left():
-    arrays = [
-        d["target"] for d in list(iter(get_dataset()))
-    ]
+    arrays = [d["target"] for d in list(iter(get_dataset()))]
     padded_arrays = _pad_arrays(arrays, 1, is_right_pad=False)
 
     for padded_array in padded_arrays[1:]:
