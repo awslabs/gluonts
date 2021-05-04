@@ -73,8 +73,13 @@ def initialize_model() -> nn.HybridBlock:
 def test_NTA_V1(n: int, last_n_trigger: bool):
     model = initialize_model()
     params = model.collect_params()
-    avg_strategy = NTA(n=n, last_n_trigger=last_n_trigger)
     loss_list = [5, 4, 3, 2, 3, 3, 3, 3, 3, 3, 3]
+    avg_strategy = NTA(
+        epochs=len(loss_list),
+        n=n,
+        last_n_trigger=last_n_trigger,
+        fallback_alpha=0.0,
+    )
     for i, loss in enumerate(loss_list):
         for k, v in params.items():
             for arr in v.list_data():
