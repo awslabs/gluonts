@@ -276,7 +276,7 @@ setup_kwargs: dict = dict(
     cmdclass={
         "type_check": TypeCheckCommand,
         "style_check": StyleCheckCommand,
-        "version": version_cmdclass,
+        **version_cmdclass,
     },
 )
 
