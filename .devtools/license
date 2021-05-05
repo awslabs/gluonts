@@ -42,6 +42,11 @@ license = dedent(
 ).strip()
 
 
+miniver = (
+    "# This file is part of 'miniver': https://github.com/jbweston/miniver"
+)
+
+
 def check_file(path: Path) -> bool:
     """Check whether `path` is complicit.
     The license header needs to start on the 3rd line latest. This allows
@@ -53,7 +58,7 @@ def check_file(path: Path) -> bool:
         lines = list(in_file)[:num_lines]
 
     head = "".join(lines)
-    return license in head
+    return license in head or miniver in head
 
 
 def iter_paths(roots: List[str]) -> Iterator[Path]:
