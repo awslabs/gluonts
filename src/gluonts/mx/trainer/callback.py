@@ -260,6 +260,14 @@ class CallbackList(Callback):
         """
         self.callbacks.extend(callbacks)
 
+    def _exec(
+        self, function_name: str, *args: Any, **kwargs: Any
+    ) -> Union[List[bool], List[None]]:
+        return [
+            getattr(callback, function_name)(*args, **kwargs)
+            for callback in self.callbacks
+        ]
+
     def on_train_start(self, *args: Any, **kwargs: Any) -> None:
         self._exec("on_train_start", *args, **kwargs)
 
@@ -289,14 +297,6 @@ class CallbackList(Callback):
 
     def on_train_end(self, *args: Any, **kwargs: Any) -> None:
         self._exec("on_train_end", *args, **kwargs)
-
-    def _exec(
-        self, function_name: str, *args: Any, **kwargs: Any
-    ) -> Union[List[bool], List[None]]:
-        return [
-            getattr(callback, function_name)(*args, **kwargs)
-            for callback in self.callbacks
-        ]
 
 
 class TrainingHistory(Callback):
