@@ -1,8 +1,7 @@
 name: Pull Request Labels
 on:
   pull_request:
-    types: [ opened, labeled, unlabeled ]
-
+    types: [opened, labeled, unlabeled, synchronize]
 jobs:
   label:
     runs-on: ubuntu-latest
@@ -10,6 +9,6 @@ jobs:
       - uses: Schmedu/verify-pr-label-action@657d111bbbe13e22bbd55870f1813c699bde1401
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
-          valid-labels: 'BREAKING, new feature, bug fix, other change or improvement'
+          valid-labels: 'BREAKING, new feature, bug fix, other change or improvement, dev setup'
           pull-request-number: '${{ github.event.pull_request.number }}'
           disable-reviews: true
