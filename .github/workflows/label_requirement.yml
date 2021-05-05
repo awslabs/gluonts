@@ -1,5 +1,8 @@
 name: Pull Request Labels
-on: pull_request
+on:
+  pull_request:
+    types: [ opened, labeled, unlabeled ]
+
 jobs:
   label:
     runs-on: ubuntu-latest
