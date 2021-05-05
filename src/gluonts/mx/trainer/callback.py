@@ -12,20 +12,19 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Union, Dict, Any
 import logging
 import math
 
 # Third-party imports
-import numpy as np
 import mxnet.gluon.nn as nn
 import mxnet as mx
+from mxnet import gluon
 from gluonts.core.exception import GluonTSUserError
 from gluonts.mx.trainer.model_averaging import AveragingStrategy
 from gluonts.mx.trainer.model_iteration_averaging import (
     IterationAveragingStrategy,
 )
-from mxnet import gluon
 
 # First-party imports
 from gluonts.core.component import validated, logger
@@ -265,121 +264,50 @@ class CallbackList(Callback):
         if not isinstance(new_callbacks, list):
             new_callbacks = new_callbacks.callbacks
 
-        callback_types = set([type(callback) for callback in self.callbacks])
+        callback_types = {type(callback) for callback in self.callbacks}
         # make sure not to have no duplicates
         for callback in new_callbacks:
             if type(callback) in callback_types:
                 continue
-            else:
-                self.callbacks.append(callback)
+            self.callbacks.append(callback)
 
-    def on_train_start(self, max_epochs: int) -> None:
-        for callback in self.callbacks:
-            callback.on_train_start(max_epochs=max_epochs)
+    def on_train_start(self, *args: Any, **kwargs: Any) -> None:
+        self._exec_all("on_train_start", *args, **kwargs)
 
-    def on_network_initializing_end(
-        self, training_network: nn.HybridBlock
-    ) -> None:
-        for callback in self.callbacks:
-            callback.on_network_initializing_end(
-                training_network=training_network
-            )
+    def on_network_initializing_end(self, *args: Any, **kwargs: Any) -> None:
+        self._exec_all("on_network_initializing_end", *args, **kwargs)
 
-    def on_train_epoch_start(self, training_network: nn.HybridBlock) -> None:
-        for callback in self.callbacks:
-            callback.on_train_epoch_start(training_network=training_network)
+    def on_train_epoch_start(self, *args: Any, **kwargs: Any) -> None:
+        self._exec_all("on_train_epoch_start", *args, **kwargs)
 
-    def on_validation_epoch_start(
-        self, training_network: nn.HybridBlock
-    ) -> None:
-        for callback in self.callbacks:
-            callback.on_validation_epoch_start(
-                training_network=training_network
-            )
+    def on_validation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
+        self._exec_all("on_validation_epoch_start", *args, **kwargs)
 
-    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
-        for callback in self.callbacks:
-            callback.on_train_batch_end(training_network=training_network)
+    def on_train_batch_end(self, *args: Any, **kwargs: Any) -> None:
+        self._exec_all("on_train_batch_end", *args, **kwargs)
 
-    def on_validation_batch_end(
-        self, training_network: nn.HybridBlock
-    ) -> None:
-        for callback in self.callbacks:
-            callback.on_validation_batch_end(training_network=training_network)
+    def on_validation_batch_end(self, *args: Any, **kwargs: Any) -> None:
+        self._exec_all("on_validation_batch_end", *args, **kwargs)
 
-    def on_train_epoch_end(
-        self,
-        epoch_no: int,
-        epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
-    ) -> bool:
-        return np.all(
-            [
-                callback.on_train_epoch_end(
-                    epoch_no=epoch_no,
-                    epoch_loss=epoch_loss,
-                    training_network=training_network,
-                    trainer=trainer,
-                )
-                for callback in self.callbacks
-            ]
-        )
+    def on_train_epoch_end(self, *args: Any, **kwargs: Any) -> bool:
+        return all(self._exec_all("on_train_epoch_end", *args, **kwargs))
 
-    def on_validation_epoch_end(
-        self,
-        epoch_no: int,
-        epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
-    ) -> bool:
-        return np.all(
-            [
-                callback.on_validation_epoch_end(
-                    epoch_no=epoch_no,
-                    epoch_loss=epoch_loss,
-                    training_network=training_network,
-                    trainer=trainer,
-                )
-                for callback in self.callbacks
-            ]
-        )
+    def on_validation_epoch_end(self, *args: Any, **kwargs: Any) -> bool:
+        return all(self._exec_all("on_validation_epoch_end", *args, **kwargs))
 
-    def on_epoch_end(
-        self,
-        epoch_no: int,
-        epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
-        best_epoch_info: Dict[str, Any],
-        ctx: mx.Context,
-    ) -> bool:
-        return np.all(
-            [
-                callback.on_epoch_end(
-                    epoch_no=epoch_no,
-                    epoch_loss=epoch_loss,
-                    training_network=training_network,
-                    trainer=trainer,
-                    best_epoch_info=best_epoch_info,
-                    ctx=ctx,
-                )
-                for callback in self.callbacks
-            ]
-        )
+    def on_epoch_end(self, *args: Any, **kwargs: Any) -> bool:
+        return all(self._exec_all("on_epoch_end", *args, **kwargs))
 
-    def on_train_end(
-        self,
-        training_network: nn.HybridBlock,
-        temporary_dir: str,
-        ctx: mx.context.Context = None,
-    ) -> None:
-        for callback in self.callbacks:
-            callback.on_train_end(
-                training_network=training_network,
-                temporary_dir=temporary_dir,
-                ctx=ctx,
-            )
+    def on_train_end(self, *args: Any, **kwargs: Any) -> None:
+        self._exec_all("on_train_end", *args, **kwargs)
+
+    def _exec_all(
+        self, f: str, *args: Any, **kwargs: Any
+    ) -> Union[List[bool], List[None]]:
+        return [
+            getattr(callback, f)(*args, **kwargs)
+            for callback in self.callbacks
+        ]
 
 
 class TrainingHistory(Callback):
@@ -422,8 +350,7 @@ class TerminateOnNaN(Callback):
                 f"TerminateOnNaN Callback initiated stop of training at epoch {epoch_no}."
             )
             return False
-        else:
-            return True
+        return True
 
 
 class WarmStart(Callback):
@@ -437,7 +364,7 @@ class WarmStart(Callback):
         copy_parameters(self.predictor.prediction_net, training_network)
 
 
-class LearningRateReduction(MetricAttentiveScheduler, Callback):
+class LearningRateReduction(Callback):
     r"""
     This Callback decreases the learning rate based on the value of some
     validation metric to be optimized (maximized or minimized). The value
@@ -484,12 +411,12 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
         assert (
             0 < decay_factor < 1
         ), "The value of `decay_factor` should be in the (0, 1) range"
-        assert 0 <= patience, "The value of `patience` should be >= 0"
+        assert patience >= 0, "The value of `patience` should be >= 0"
         assert (
             0 <= min_lr <= base_lr
         ), "The value of `min_lr` should be >= 0 and <= base_lr"
 
-        super(LearningRateReduction, self).__init__(
+        self.lr_scheduler = MetricAttentiveScheduler(
             objective=objective,
             patience=patience,
             base_lr=base_lr,
@@ -506,14 +433,17 @@ class LearningRateReduction(MetricAttentiveScheduler, Callback):
         best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
-        should_continue = self.step(metric_value=epoch_loss)
+        should_continue = self.lr_scheduler.step(metric_value=epoch_loss)
         if not should_continue:
             print(
                 "Early stopping based on learning rate scheduler callback (min_lr was reached)."
             )
             return False
+
         pre_step_learning_rate = trainer.learning_rate
-        trainer.optimizer.set_learning_rate(self(trainer.optimizer.num_update))
+        trainer.optimizer.set_learning_rate(
+            self.lr_scheduler(trainer.optimizer.num_update)
+        )
 
         if not trainer.learning_rate == pre_step_learning_rate:
             if best_epoch_info["epoch_no"] == -1:
