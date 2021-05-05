@@ -78,14 +78,14 @@ p_cat_zero = p_cat[:, :, :, 0]
 
 log_p_cat_grad_zero_true = np.where(
     x_cat == 0,
-    -np.ones(p_cat_zero.shape, dtype=np.float),
-    np.zeros(p_cat_zero.shape, dtype=np.float),
+    -np.ones(p_cat_zero.shape, dtype=float),
+    np.zeros(p_cat_zero.shape, dtype=float),
 )
 p_cat_one = p_cat[:, :, :, 1]
 log_p_cat_grad_one_true = np.where(
     x_cat == 1,
-    -np.ones(p_cat_one.shape, dtype=np.float),
-    np.zeros(p_cat_one.shape, dtype=np.float),
+    -np.ones(p_cat_one.shape, dtype=float),
+    np.zeros(p_cat_one.shape, dtype=float),
 )
 log_p_cat_grad_true = np.stack(
     [log_p_cat_grad_zero_true, log_p_cat_grad_one_true], axis=-1

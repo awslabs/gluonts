@@ -32,7 +32,7 @@ def test_zero_feature():
 
     assert isinstance(feature, np.ndarray)
     assert feature.shape == (10,)
-    assert feature.dtype == np.float
+    assert feature.dtype == float
 
 
 def test_level_issm_h():
