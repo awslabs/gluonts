@@ -38,22 +38,23 @@ def test_callbacklist_extend():
     list1 = CallbackList([cb1, cb2])
     list2 = CallbackList([cb3])
 
-    list1.extend(list2)
-    list0.extend(list2)
+    list1.extend(list2.callbacks)
+    list0.extend(list2.callbacks)
 
     assert len(list1.callbacks) == 3
     assert len(list0.callbacks) == 2
 
 
 def test_callbacks():
+    n_epochs = 4
+
     history = TrainingHistory()
-    iter_avg = ModelIterationAveraging(avg_strategy=NTA())
+    iter_avg = ModelIterationAveraging(avg_strategy=NTA(epochs=2 * n_epochs))
 
     dataset = "m4_hourly"
     dataset = get_dataset(dataset)
     prediction_length = dataset.metadata.prediction_length
     freq = dataset.metadata.freq
-    n_epochs = 4
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=prediction_length,
