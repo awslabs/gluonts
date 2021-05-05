@@ -233,7 +233,8 @@ class Callback:
 class CallbackList(Callback):
     """
     Used to chain a list of callbacks to one Callback.
-    Boolean hook methods are logically joined with AND, meaning that if at least one callback method returns False, the training is stopped.
+    Boolean hook methods are logically joined with AND, meaning that if at least one callback
+    method returns False, the training is stopped.
 
     Parameters
     ----------
@@ -242,70 +243,58 @@ class CallbackList(Callback):
     """
 
     @validated()
-    def __init__(self, callbacks: Union[List[Callback], Callback], **kwargs):
-
+    def __init__(self, callbacks: Union[List[Callback], Callback]):
         self.callbacks = (
             callbacks if isinstance(callbacks, list) else [callbacks]
         )
 
-    def include(
-        self, new_callbacks: Union["CallbackList", List[Callback]]
-    ) -> None:
+    def extend(self, callbacks: List[Callback]) -> None:
         """
-        Include callbacks of a CallbackList or a list of callbacks in self.callbacks.
-        If two Callbacks are the same type, self.callbacks are prioritized and the new clalback will not be added.
+        Appends the given callbacks to the list of callbacks in `self.callbacks`. Note that this
+        may result in duplicate callbacks of the same type.
 
         Parameters
         ----------
         callbacks
-            A gluonts.mx.trainer.callback.CallbackList.
+            A list of gluonts.mx.trainer.callback.Callback.
         """
-
-        if not isinstance(new_callbacks, list):
-            new_callbacks = new_callbacks.callbacks
-
-        callback_types = {type(callback) for callback in self.callbacks}
-        # make sure not to have no duplicates
-        for callback in new_callbacks:
-            if type(callback) in callback_types:
-                continue
-            self.callbacks.append(callback)
+        self.callbacks.extend(callbacks)
 
     def on_train_start(self, *args: Any, **kwargs: Any) -> None:
-        self._exec_all("on_train_start", *args, **kwargs)
+        self._exec("on_train_start", *args, **kwargs)
 
     def on_network_initializing_end(self, *args: Any, **kwargs: Any) -> None:
-        self._exec_all("on_network_initializing_end", *args, **kwargs)
+        self._exec("on_network_initializing_end", *args, **kwargs)
 
     def on_train_epoch_start(self, *args: Any, **kwargs: Any) -> None:
-        self._exec_all("on_train_epoch_start", *args, **kwargs)
+        self._exec("on_train_epoch_start", *args, **kwargs)
 
     def on_validation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
-        self._exec_all("on_validation_epoch_start", *args, **kwargs)
+        self._exec("on_validation_epoch_start", *args, **kwargs)
 
     def on_train_batch_end(self, *args: Any, **kwargs: Any) -> None:
-        self._exec_all("on_train_batch_end", *args, **kwargs)
+        self._exec("on_train_batch_end", *args, **kwargs)
 
     def on_validation_batch_end(self, *args: Any, **kwargs: Any) -> None:
-        self._exec_all("on_validation_batch_end", *args, **kwargs)
+        self._exec("on_validation_batch_end", *args, **kwargs)
 
     def on_train_epoch_end(self, *args: Any, **kwargs: Any) -> bool:
-        return all(self._exec_all("on_train_epoch_end", *args, **kwargs))
+        return all(self._exec("on_train_epoch_end", *args, **kwargs))
 
     def on_validation_epoch_end(self, *args: Any, **kwargs: Any) -> bool:
-        return all(self._exec_all("on_validation_epoch_end", *args, **kwargs))
+        return all(self._exec("on_validation_epoch_end", *args, **kwargs))
 
     def on_epoch_end(self, *args: Any, **kwargs: Any) -> bool:
-        return all(self._exec_all("on_epoch_end", *args, **kwargs))
+        return all(self._exec("on_epoch_end", *args, **kwargs))
 
     def on_train_end(self, *args: Any, **kwargs: Any) -> None:
-        self._exec_all("on_train_end", *args, **kwargs)
+        self._exec("on_train_end", *args, **kwargs)
 
-    def _exec_all(
-        self, f: str, *args: Any, **kwargs: Any
+    def _exec(
+        self, function_name: str, *args: Any, **kwargs: Any
     ) -> Union[List[bool], List[None]]:
         return [
-            getattr(callback, f)(*args, **kwargs)
+            getattr(callback, function_name)(*args, **kwargs)
             for callback in self.callbacks
         ]
 
@@ -469,7 +458,8 @@ class ModelIterationAveraging(Callback):
     Parameters
     ----------
     avg_strategy
-        IterationAveragingStrategy, one of NTA or Alpha_Suffix from gluonts.mx.trainer.model_iteration_averaging
+        IterationAveragingStrategy, one of NTA or Alpha_Suffix from
+        gluonts.mx.trainer.model_iteration_averaging
     """
 
     @validated()
@@ -493,7 +483,6 @@ class ModelIterationAveraging(Callback):
         return True
 
     def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
-
         self.avg_strategy.apply(training_network)
 
     def on_epoch_end(
@@ -505,7 +494,6 @@ class ModelIterationAveraging(Callback):
         best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
-
         self.avg_strategy.update_average_trigger(
             metric=epoch_loss, epoch=epoch_no + 1
         )
@@ -519,7 +507,6 @@ class ModelIterationAveraging(Callback):
         temporary_dir: str,
         ctx: mx.context.Context = None,
     ) -> None:
-
         logging.info("Loading averaged parameters.")
         self.avg_strategy.load_averaged_model(training_network)
 

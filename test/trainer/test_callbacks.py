@@ -28,7 +28,7 @@ from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 
 
-def test_callbacklist_include():
+def test_callbacklist_extend():
 
     cb1 = TrainingHistory()
     cb2 = TerminateOnNaN()
@@ -38,11 +38,11 @@ def test_callbacklist_include():
     list1 = CallbackList([cb1, cb2])
     list2 = CallbackList([cb3])
 
-    list1.include(list2)
-    list0.include(list2)
+    list1.extend(list2)
+    list0.extend(list2)
 
-    assert len(list1.callbacks) == 2 and len(list1.callbacks) == 2
-    assert len(list1.callbacks) == 2 and len(list1.callbacks) == 2
+    assert len(list1.callbacks) == 3
+    assert len(list0.callbacks) == 2
 
 
 def test_callbacks():

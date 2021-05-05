@@ -105,7 +105,10 @@ class Trainer:
     callbacks
         A list of `gluonts.mx.trainer.callback.Callback` to control the training.
     add_default_callbacks
-        bool, True by default. If True LearningRateReduction and ModelAveragingCallbacks are used in addition to the callbacks specified in the callbacks argument.
+        bool, True by default. If `True`, LearningRateReduction and ModelAveragingCallbacks are
+        used in addition to the callbacks specified in the callbacks argument. Make sure that you
+        only set this to true if you don't specify one of the default callbacks yourself or there
+        will be "duplicate callbacks".
         default callbacks:
         >>> callbacks = [
         ...     ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
@@ -211,8 +214,7 @@ class Trainer:
                     objective="min",
                 ),
             ]
-
-            self.callbacks.include(default_callbacks)
+            self.callbacks.extend(default_callbacks)
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()
