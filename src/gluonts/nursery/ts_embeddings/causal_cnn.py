@@ -81,7 +81,8 @@ class CausalConvolutionBlock(torch.nn.Module):
     (with leaky ReLU activation functions), and a parallel residual connection.
 
     Takes as input a three-dimensional tensor (`B`, `C`, `L`) where `B` is the
-    batch size, `C` is the number of input channels, and `L` is the length of
+    batch size, `C` is the number of input channels (= number of dimensions
+    of the multivariate time series), and `L` is the length of
     the input. Outputs a three-dimensional tensor (`B`, `C`, `L`).
 
     @param in_channels Number of input channels.
@@ -109,6 +110,8 @@ class CausalConvolutionBlock(torch.nn.Module):
                 dilation=dilation,
             )
         )
+
+        # nn.Conv2d(1, hidden_size, kernel_size=(1, 2), dilation=(1, self.dilation))
         # The truncation makes the convolution causal
         chomp1 = Chomp1d(padding)
         relu1 = torch.nn.LeakyReLU()
@@ -162,7 +165,7 @@ class CausalCNN(torch.nn.Module):
     the input. Outputs a three-dimensional tensor (`B`, `C_out`, `L`).
 
     @param in_channels Number of input channels.
-    @param channels Number of channels processed in the network and of output
+    @param channels Number of channels processed inside the network and of output
            channels.
     @param depth Depth of the network.
     @param out_channels Number of output channels.

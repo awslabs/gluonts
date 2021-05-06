@@ -55,7 +55,10 @@ class PreProcessor:
     """
     A PreProcessor can be used before the embedding model is used.
     The `num_out_dim` indicates the number of outputs (e.g. 1 if the pre-processor returns scalar time series).
+    This is later used as input channels in the convolution layer.
     The pre-processor should only use torch operations, since it will be stored as part of the final embedding model.
+
+    Note: the preprocessor operates on a batch, not the entire data set.
     """
 
     num_out_dim: int
@@ -75,22 +78,25 @@ class PreProcessor:
 
 class ScalePreProcessor:
     """
-    A pre-processor that takes scalar time series and normalizes them by the mean
+    A pre-processor that takes a (possibly multi-variate) time series and normalizes each dimension by its mean
     """
 
-    num_out_dim = 1
-
-    def __init__(self, min_scale=1e-12):
+    def __init__(self, out_dim, min_scale=1e-12):
         self.min_scale = min_scale
+        self.num_out_dim = out_dim
 
     def __call__(self, ts_batch):
         s = ts_batch.shape
-        assert len(s) == 2, "Expecting a batch of scalar time series"
+        assert (
+            len(s) == 2 or len(s) == 3
+        ), "Expecting a batch of uni or multivariate time series"
+
         T = ts_batch.size(-1)
         scale = torch.nansum(torch.abs(ts_batch), dim=-1) / T
         scale = torch.clip(scale, self.min_scale, np.inf)
-        res = ts_batch / scale[:, None]
-        return res[:, None, :]
+
+        res = ts_batch / scale[:, :, None]
+        return res[:, :, :]
 
 
 class AggregationPreProcessor:
@@ -100,7 +106,9 @@ class AggregationPreProcessor:
 
     "q0.95" -> quantile 0.95
     "mean" -> mean
+    "sum" -> sum
 
+    todo: test this in the multi-variate setting yet.
     """
 
     def __init__(
@@ -124,8 +132,11 @@ class AggregationPreProcessor:
                 self._agg.append(
                     lambda x: torch.nansum(x, dim=-1) / x.shape[-1]
                 )
+            elif agf == "sum":
+                self._agg.append(lambda x: torch.nansum(x, dim=-1))
             else:
                 raise NotImplementedError()
+
         self.num_out_dim = len(self._agg)
         self.min_scale = min_scale
 
@@ -158,11 +169,12 @@ class EmbedModel(pl.LightningModule):
         compared_length: Optional[int],
         lr: float,
         loss_temperature: float,
-        preprocessor: PreProcessor = ScalePreProcessor(),
+        multivar_dim: int,
+        preprocessor: PreProcessor = None,
         **kwargs,
     ):
         """
-        :param channels: Number of channels in convolutions
+        :param channels: Number of channels in convolutions (if it's >1, then we have a multi-variate time series)
         :param out_channels: Output dimension of encoder
         :param depth: Number of layers
         :param kernel_size: Convolution kernel size
@@ -170,14 +182,18 @@ class EmbedModel(pl.LightningModule):
         :param compared_length: Size of window used during training (this is the outer window that is selected)
         :param lr:
         :param loss_temperature:
-        :param preprocessor:
+        :param multivar_dim:
+        :param preprocessor: defaults to ScalePreprocessor if nothing is selected
         :param kwargs:
         """
         super().__init__()
         self.save_hyperparameters()
         print(self.hparams)
 
-        self.preprocess = preprocessor
+        if preprocessor is None:
+            self.preprocess = ScalePreProcessor(multivar_dim)
+        else:
+            self.preprocess = preprocessor
 
         in_channels = self.preprocess.num_out_dim
 
@@ -240,7 +256,11 @@ class EmbedModel(pl.LightningModule):
             prog_bar=False,
             logger=True,
         )
-        return loss
+        # the loss can become NaN if we pick windows that only contain NaN values. We'll ignore these.
+        if torch.any(loss.isnan()):
+            return None
+        else:
+            return loss
 
     def on_epoch_end(self):
         print("\n")

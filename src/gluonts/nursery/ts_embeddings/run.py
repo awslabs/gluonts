@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -31,6 +33,8 @@ class MyDataModule(pl.LightningDataModule):
         dataset_name: str,
         num_workers: int,
         batch_size: int,
+        multivar_dim: int,
+        shuffle: bool = True,
         **kwargs,
     ):
         super().__init__()
@@ -38,6 +42,8 @@ class MyDataModule(pl.LightningDataModule):
         self.dataset_name = dataset_name
         self.num_workers = num_workers
         self.batch_size = batch_size
+        self.multivar_dim = multivar_dim
+        self.shuffle = shuffle
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -45,6 +51,7 @@ class MyDataModule(pl.LightningDataModule):
         parser.add_argument("--ts_len", type=int)
         parser.add_argument("--dataset_name", type=str, default=None)
         parser.add_argument("--num_workers", type=int, default=4)
+        parser.add_argument("--multivar_dim", type=int, default=1)
         parser.add_argument("--batch_size", type=int, default=128)
         return parser
 
@@ -66,13 +73,45 @@ class MyDataModule(pl.LightningDataModule):
         return torch.tensor(data, dtype=torch.float32)
 
     def setup(self, stage=None):
-        from gluonts.dataset.repository import datasets
+        if self.dataset_name:
+            from gluonts.dataset.repository import datasets
+            from gluonts.dataset.common import FileDataset
+            from pathlib import Path
 
-        self.meta, self.train_ds, self.test_ds = datasets.get_dataset(
-            self.dataset_name
-        )
-        self.X_train = self._get_target_tensor(self.train_ds)
-        # self.X_test = self._get_target_tensor(test_ds)
+            assert (
+                self.multivar_dim >= 1
+            ), "Multivariate dimension must be >= 1"
+
+            # get a data sets from the repository
+            if self.dataset_name in datasets.dataset_names:
+                self.meta, self.train_ds, self.test_ds = datasets.get_dataset(
+                    self.dataset_name
+                )
+                # self.X_test = self._get_target_tensor(test_ds)
+            # get it from Disk
+            else:
+                self.train_ds = FileDataset(
+                    Path(self.dataset_name), freq="10min"
+                )
+                # self.X_train = self._get_target_tensor(self.train_ds)
+            X_train = self._get_target_tensor(self.train_ds)
+
+            num_ts = X_train.shape[0]
+            first_dim = int(num_ts / self.multivar_dim)
+            T = X_train.shape[-1]
+
+            assert (
+                num_ts % self.multivar_dim == 0
+            ), f"Number of time series {num_ts} % multivariate {self.multivar_dim} = {num_ts % self.multivar_dim}"
+
+            if self.multivar_dim > 1:
+                self.X_train = X_train.reshape(first_dim, self.multivar_dim, T)
+            else:
+                self.X_train = X_train.unsqueeze(dim=1)
+
+            print(
+                f"Shape of the tensor: {self.X_train.shape} and we have {num_ts} time series of length {T}."
+            )
 
     def train_dataloader(self):
         return DataLoader(
@@ -80,8 +119,18 @@ class MyDataModule(pl.LightningDataModule):
             self.X_train,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=True,
+            shuffle=self.shuffle
+            # multiprocessing_context=torch.multiprocessing.get_context('spawn') # without this, there are some probs
         )
+
+        def test_dataloader(self):
+            return DataLoader(
+                # TensorDataset(torch.tensor(self.X_train)),
+                self.X_train,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                shuffle=False,
+            )
 
 
 if __name__ == "__main__":
@@ -100,8 +149,10 @@ if __name__ == "__main__":
     print(model_params)
     model = EmbedModel(**model_params)
 
+    # this may be useful
     # from pytorch_lightning.callbacks import LearningRateLogger
     # lr_logger = LearningRateLogger(logging_interval=None)
+    # torch.autograd.set_detect_anomaly(True) # to debug NaN problems
 
     if "TRAINING_JOB_NAME" in os.environ:
         training_job_name = os.environ["TRAINING_JOB_NAME"]

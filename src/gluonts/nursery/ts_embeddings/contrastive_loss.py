@@ -77,7 +77,7 @@ class NT_Xent_Loss(torch.nn.modules.loss._Loss):
                     for j in range(batch_size)
                 ]
             )
-        )  # Anchors representations
+        )  # Anchors representations.
 
         positive_representation = encoder(
             torch.cat(
@@ -103,11 +103,15 @@ class NT_Xent_Loss(torch.nn.modules.loss._Loss):
 
         mask = ~torch.eye(n, device=S.device).bool()
         neg = S.masked_select(mask).view(n, -1).sum(dim=-1)
+        # neg = torch.clip(neg, eps, numpy.inf)
 
         pos = torch.exp(
             torch.sum(representation * augmented_representation, dim=-1)
             / self.temperature
         )
         pos = torch.cat([pos, pos], dim=0)
+
+        # todo check whehter this should be safe-guarded against NaNs
         loss = -torch.log(pos / neg).mean()
+
         return loss
