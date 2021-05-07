@@ -21,25 +21,27 @@ from gluonts.mx.trainer.callback import (
     TerminateOnNaN,
     WarmStart,
     TrainingHistory,
+)
+from gluonts.mx.trainer.model_iteration_averaging import (
+    NTA,
     ModelIterationAveraging,
 )
-from gluonts.mx.trainer.model_iteration_averaging import NTA
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 
 
-def test_callbacklist_extend():
+def test_callbacklist():
 
     cb1 = TrainingHistory()
     cb2 = TerminateOnNaN()
     cb3 = TrainingHistory()
 
-    list0 = CallbackList([cb2])
-    list1 = CallbackList([cb1, cb2])
-    list2 = CallbackList([cb3])
+    list0 = CallbackList(*[cb2])
+    list1 = CallbackList(*[cb1, cb2])
+    list2 = CallbackList(*[cb3])
 
-    list1.extend(list2.callbacks)
-    list0.extend(list2.callbacks)
+    list1 = CallbackList(*(list1.callbacks + list2.callbacks))
+    list0 = CallbackList(*(list0.callbacks + list2.callbacks))
 
     assert len(list1.callbacks) == 3
     assert len(list0.callbacks) == 2
