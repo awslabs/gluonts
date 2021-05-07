@@ -84,7 +84,7 @@ datasets_info = {
         name="wiki-rolling_nips",
         # That file lives on GitHub Large file storage (lfs). We need to use
         # the exact link, otherwise it will only open the lfs pointer file.
-        url="https://github.com/arangatang/gluon-ts/raw/fad615b6e130967b553daabf6b43dfcda7b27e27/datasets/wiki-rolling_nips.tar.gz",
+        url="https://github.com/awslabs/gluon-ts/raw/1553651ca1fca63a16e012b8927bd9ce72b8e79e/datasets/wiki-rolling_nips.tar.gz",
         num_series=9535,
         prediction_length=30,
         freq="D",
