@@ -54,6 +54,26 @@ def find_requirements(filename):
         ]
 
 
+# miniver:
+def get_version_and_cmdclass(package_path):
+    """Load version.py module without importing the whole package.
+
+    Template code from miniver
+    """
+    import os
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    spec = spec_from_file_location(
+        "version", os.path.join(package_path, "_version.py")
+    )
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.__version__, module.cmdclass
+
+
+version, version_cmdclass = get_version_and_cmdclass("src/gluonts")
+
+
 class TypeCheckCommand(distutils.cmd.Command):
     """A custom command to run MyPy on the project sources."""
 
@@ -193,7 +213,7 @@ dev_require = (
 
 setup_kwargs: dict = dict(
     name="gluonts",
-    use_scm_version={"fallback_version": "0.0.0"},
+    version=version,
     description=(
         "GluonTS is a Python toolkit for probabilistic time series modeling, "
         "built around MXNet."
@@ -256,6 +276,7 @@ setup_kwargs: dict = dict(
     cmdclass={
         "type_check": TypeCheckCommand,
         "style_check": StyleCheckCommand,
+        **version_cmdclass,
     },
 )
 
