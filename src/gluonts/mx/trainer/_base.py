@@ -99,7 +99,8 @@ class Trainer:
     hybridize
         If set to True the network will be hybridized before training
     callbacks
-        A list of `gluonts.mx.trainer.callback.Callback` to control the training.
+        A list of `gluonts.mx.trainer.callback.Callback` to control the
+        training.
     add_default_callbacks
         bool, True by default. If `True`, LearningRateReduction and
         ModelAveragingCallbacks are used in addition to the callbacks specified
@@ -212,9 +213,9 @@ class Trainer:
                     objective="min",
                 ),
             ]
-            self.callbacks = CallbackList(*(callbacks + default_callbacks))
+            self.callbacks = CallbackList(callbacks + default_callbacks)
         else:
-            self.callbacks = CallbackList(*callbacks)
+            self.callbacks = CallbackList(callbacks)
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()

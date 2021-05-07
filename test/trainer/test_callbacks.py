@@ -36,12 +36,12 @@ def test_callbacklist():
     cb2 = TerminateOnNaN()
     cb3 = TrainingHistory()
 
-    list0 = CallbackList(*[cb2])
-    list1 = CallbackList(*[cb1, cb2])
-    list2 = CallbackList(*[cb3])
+    list0 = CallbackList([cb2])
+    list1 = CallbackList([cb1, cb2])
+    list2 = CallbackList([cb3])
 
-    list1 = CallbackList(*(list1.callbacks + list2.callbacks))
-    list0 = CallbackList(*(list0.callbacks + list2.callbacks))
+    list1 = CallbackList(list1.callbacks + list2.callbacks)
+    list0 = CallbackList(list0.callbacks + list2.callbacks)
 
     assert len(list1.callbacks) == 3
     assert len(list0.callbacks) == 2

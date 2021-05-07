@@ -244,7 +244,7 @@ class CallbackList(Callback):
     """
 
     @validated()
-    def __init__(self, *callbacks: Callback):
+    def __init__(self, callbacks: List[Callback]):
         self.callbacks = callbacks
 
     def _exec(
