@@ -20,15 +20,9 @@ import math
 import mxnet.gluon.nn as nn
 import mxnet as mx
 from mxnet import gluon
-from gluonts.core.exception import GluonTSUserError
-from gluonts.mx.trainer.model_averaging import AveragingStrategy
-from gluonts.mx.trainer.model_iteration_averaging import (
-    IterationAveragingStrategy,
-)
 
 # First-party imports
-from gluonts.core.component import validated, logger
-from gluonts.mx.trainer.learning_rate_scheduler import MetricAttentiveScheduler
+from gluonts.core.component import validated
 from gluonts.mx.util import copy_parameters
 
 
@@ -236,29 +230,15 @@ class CallbackList(Callback):
     Boolean hook methods are logically joined with AND, meaning that if at least one callback
     method returns False, the training is stopped.
 
-    Parameters
+    Attributes
     ----------
     callbacks
         A list of gluonts.mx.trainer.callback.Callback's.
     """
 
     @validated()
-    def __init__(self, callbacks: Union[List[Callback], Callback]):
-        self.callbacks = (
-            callbacks if isinstance(callbacks, list) else [callbacks]
-        )
-
-    def extend(self, callbacks: List[Callback]) -> None:
-        """
-        Appends the given callbacks to the list of callbacks in `self.callbacks`. Note that this
-        may result in duplicate callbacks of the same type.
-
-        Parameters
-        ----------
-        callbacks
-            A list of gluonts.mx.trainer.callback.Callback.
-        """
-        self.callbacks.extend(callbacks)
+    def __init__(self, *callbacks: Callback):
+        self.callbacks = callbacks
 
     def _exec(
         self, function_name: str, *args: Any, **kwargs: Any
@@ -351,190 +331,3 @@ class WarmStart(Callback):
         self, training_network: nn.HybridBlock
     ) -> None:
         copy_parameters(self.predictor.prediction_net, training_network)
-
-
-class LearningRateReduction(Callback):
-    r"""
-    This Callback decreases the learning rate based on the value of some
-    validation metric to be optimized (maximized or minimized). The value
-    of such metric is provided by calling the `step` method on the scheduler.
-    A `patience` parameter must be provided, and the scheduler will reduce
-    the learning rate if no improvement in the metric is done before
-    `patience` observations of the metric.
-
-    Examples:
-
-        `patience = 0`: learning rate will decrease at every call to
-        `step`, regardless of the metric value
-
-        `patience = 1`: learning rate is reduced as soon `step` is called
-        with a metric value which does not improve over the best encountered
-
-        `patience = 10`: learning rate is reduced if no improvement in the
-        metric is recorded in 10 successive calls to `step`
-
-    Parameters
-    ----------
-    objective
-        String, can either be `"min"` or `"max"`
-    patience
-        The patience to observe before reducing the learning rate, nonnegative integer.
-    base_lr
-        Initial learning rate to be used.
-    decay_factor
-        Factor (between 0 and 1) by which to decrease the learning rate.
-    min_lr
-        Lower bound for the learning rate, learning rate will never go below `min_lr`
-    """
-
-    @validated()
-    def __init__(
-        self,
-        objective: str,
-        patience: int,
-        base_lr: float = 0.01,
-        decay_factor: float = 0.5,
-        min_lr: float = 0.0,
-    ) -> None:
-
-        assert (
-            0 < decay_factor < 1
-        ), "The value of `decay_factor` should be in the (0, 1) range"
-        assert patience >= 0, "The value of `patience` should be >= 0"
-        assert (
-            0 <= min_lr <= base_lr
-        ), "The value of `min_lr` should be >= 0 and <= base_lr"
-
-        self.lr_scheduler = MetricAttentiveScheduler(
-            objective=objective,
-            patience=patience,
-            base_lr=base_lr,
-            decay_factor=decay_factor,
-            min_lr=min_lr,
-        )
-
-    def on_epoch_end(
-        self,
-        epoch_no: int,
-        epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
-        best_epoch_info: Dict[str, Any],
-        ctx: mx.Context,
-    ) -> bool:
-        should_continue = self.lr_scheduler.step(metric_value=epoch_loss)
-        if not should_continue:
-            print(
-                "Early stopping based on learning rate scheduler callback (min_lr was reached)."
-            )
-            return False
-
-        pre_step_learning_rate = trainer.learning_rate
-        trainer.optimizer.set_learning_rate(
-            self.lr_scheduler(trainer.optimizer.num_update)
-        )
-
-        if not trainer.learning_rate == pre_step_learning_rate:
-            if best_epoch_info["epoch_no"] == -1:
-                raise GluonTSUserError(
-                    "Got NaN in first epoch. Try reducing initial learning rate."
-                )
-
-            logger.info(
-                f"Loading parameters from best epoch "
-                f"({best_epoch_info['epoch_no']})"
-            )
-            training_network.load_parameters(
-                best_epoch_info["params_path"], ctx
-            )
-
-        return True
-
-
-class ModelIterationAveraging(Callback):
-    """
-    Callback to implement iteration based model averaging strategies.
-
-    Parameters
-    ----------
-    avg_strategy
-        IterationAveragingStrategy, one of NTA or Alpha_Suffix from
-        gluonts.mx.trainer.model_iteration_averaging
-    """
-
-    @validated()
-    def __init__(self, avg_strategy: IterationAveragingStrategy):
-        self.avg_strategy = avg_strategy
-
-    def on_validation_epoch_start(
-        self, training_network: nn.HybridBlock
-    ) -> None:
-        # use averaged model for validation
-        self.avg_strategy.load_averaged_model(training_network)
-
-    def on_validation_epoch_end(
-        self,
-        epoch_no: int,
-        epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
-    ) -> bool:
-        self.avg_strategy.load_cached_model(training_network)
-        return True
-
-    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
-        self.avg_strategy.apply(training_network)
-
-    def on_epoch_end(
-        self,
-        epoch_no: int,
-        epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
-        best_epoch_info: Dict[str, Any],
-        ctx: mx.Context,
-    ) -> bool:
-        self.avg_strategy.update_average_trigger(
-            metric=epoch_loss, epoch=epoch_no + 1
-        )
-        # once triggered, update the average immediately
-        self.avg_strategy.apply(training_network)
-        return True
-
-    def on_train_end(
-        self,
-        training_network: nn.HybridBlock,
-        temporary_dir: str,
-        ctx: mx.context.Context = None,
-    ) -> None:
-        logging.info("Loading averaged parameters.")
-        self.avg_strategy.load_averaged_model(training_network)
-
-
-class ModelAveraging(Callback):
-    """
-    Callback to implement model averaging strategies.
-    Selects the checkpoints with the best loss values and computes the model average or weighted model average depending on the chosen avg_strategy.
-
-
-    Parameters
-    ----------
-    avg_strategy
-        AveragingStrategy, one of SelectNBestSoftmax or SelectNBestMean from gluonts.mx.trainer.model_averaging
-    """
-
-    @validated()
-    def __init__(self, avg_strategy: AveragingStrategy):
-        self.avg_strategy = avg_strategy
-
-    def on_train_end(
-        self,
-        training_network: nn.HybridBlock,
-        temporary_dir: str,
-        ctx: mx.context.Context = None,
-    ) -> None:
-        logging.info("Computing averaged parameters.")
-        averaged_params_path = self.avg_strategy.apply(temporary_dir)
-
-        logging.info("Loading averaged parameters.")
-        training_network.load_parameters(averaged_params_path, ctx)

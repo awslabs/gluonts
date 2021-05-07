@@ -18,7 +18,7 @@ import tempfile
 import time
 import uuid
 import warnings
-from typing import Any, Callable, List, Optional, Union
+from typing import List, Optional, Union
 
 import mxnet as mx
 import mxnet.autograd as autograd
@@ -27,23 +27,15 @@ import numpy as np
 from mxnet.metric import ndarray
 
 from gluonts.core.component import validated
-from gluonts.core.exception import GluonTSDataError, GluonTSUserError
+from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.loader import DataLoader
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
-from gluonts.mx.trainer.callback import (
-    Callback,
-    CallbackList,
-    ModelAveraging,
-    LearningRateReduction,
-)
+from gluonts.mx.trainer.callback import Callback, CallbackList
 from gluonts.mx.util import HybridContext
-from mxnet.metric import ndarray
 
-from .model_averaging import (
-    SelectNBestMean,
-    save_epoch_info,
-)
+from .learning_rate_scheduler import LearningRateReduction
+from .model_averaging import SelectNBestMean, save_epoch_info, ModelAveraging
 
 logger = logging.getLogger("gluonts").getChild("trainer")
 
@@ -199,8 +191,9 @@ class Trainer:
         self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.halt = False
 
-        # initialize callbacks as a CallbackList
-        self.callbacks = CallbackList(callbacks or [])
+        # Make sure callbacks is list -- they are assigned to `self.callbacks`
+        # below
+        callbacks = callbacks or []
 
         # TODO the following is done for backwards compatibility. For future versions, add the default callbacks as default arg
         if add_default_callbacks:
@@ -214,7 +207,9 @@ class Trainer:
                     objective="min",
                 ),
             ]
-            self.callbacks.extend(default_callbacks)
+            self.callbacks = CallbackList(*(callbacks + default_callbacks))
+        else:
+            self.callbacks = CallbackList(*callbacks)
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()
