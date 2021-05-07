@@ -58,15 +58,19 @@ def generate_m4_dataset(
     ]
 
     if m4_freq == "Yearly":
-        # some time series have more than 300 years which can not be represented in pandas,
-        # this is probably due to a misclassification of those time series as Yearly
-        # we simply use only the last 300 years for training
-        # note this does not affect test time as prediction length is less than 300 years
-        train_target_values = [ts[-300:] for ts in train_target_values]
-        test_target_values = [ts[-300:] for ts in test_target_values]
+        # some time series have more than 300 years which can not be
+        # represented in pandas, this is probably due to a misclassification
+        # of those time series as Yearly. We use only those time series with
+        # fewer than 300 items for this reason.
+        train_target_values = [
+            ts for ts in train_target_values if len(ts) <= 300
+        ]
+        test_target_values = [
+            ts for ts in test_target_values if len(ts) <= 300
+        ]
 
-    # the original dataset did not include time stamps, so we use a mock start date for each time series
-    # we use the earliest point available in pandas
+    # the original dataset did not include time stamps, so we use the earliest
+    # point available in pandas as the start date for each time series.
     mock_start_dataset = "1750-01-01 00:00:00"
 
     save_to_file(
