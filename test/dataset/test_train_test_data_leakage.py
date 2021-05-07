@@ -42,6 +42,7 @@ def check_train_test_split(dataset):
         ), f"test entry for item {k} ends at {test_end[k]} < {expected_end}"
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("name", dataset_names)
 def test_data_leakage(name):
     try:
