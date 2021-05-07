@@ -43,6 +43,7 @@ def check_train_test_split(dataset):
 
 
 @pytest.mark.skip
+@pytest.mark.timeout(300)
 @pytest.mark.parametrize("name", dataset_names)
 def test_data_leakage(name):
     try:
