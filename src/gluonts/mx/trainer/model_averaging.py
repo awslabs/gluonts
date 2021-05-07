@@ -36,7 +36,8 @@ def save_epoch_info(tmp_path: str, epoch_info: dict) -> None:
     tmp_path
         Temporary base path to save the epoch info.
     epoch_info
-        Epoch information dictionary containing the parameters path, the epoch number and the tracking metric value.
+        Epoch information dictionary containing the parameters path, the epoch
+        number and the tracking metric value.
 
     Returns
     -------

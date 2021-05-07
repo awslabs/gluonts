@@ -49,13 +49,15 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
     objective
         String, can either be `"min"` or `"max"`
     patience
-        The patience to observe before reducing the learning rate, nonnegative integer.
+        The patience to observe before reducing the learning rate, nonnegative
+        integer.
     base_lr
         Initial learning rate to be used.
     decay_factor
         Factor (between 0 and 1) by which to decrease the learning rate.
     min_lr
-        Lower bound for the learning rate, learning rate will never go below `min_lr`
+        Lower bound for the learning rate, learning rate will never go below
+        `min_lr`.
     """
 
     def __init__(
@@ -165,15 +167,17 @@ class LearningRateReduction(Callback):
     Parameters
     ----------
     objective
-        String, can either be `"min"` or `"max"`
+        String, can either be `"min"` or `"max"`.
     patience
-        The patience to observe before reducing the learning rate, nonnegative integer.
+        The patience to observe before reducing the learning rate, nonnegative
+        integer.
     base_lr
         Initial learning rate to be used.
     decay_factor
         Factor (between 0 and 1) by which to decrease the learning rate.
     min_lr
-        Lower bound for the learning rate, learning rate will never go below `min_lr`
+        Lower bound for the learning rate, learning rate will never go below
+        `min_lr`.
     """
 
     @validated()

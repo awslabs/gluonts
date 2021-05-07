@@ -30,27 +30,30 @@ class Callback:
     """
     Abstract Callback base class.
     Callbacks control the training of the GluonTS trainer.
-    To write a custom Callback, you can subclass Callback and overwrite one or more of the hook
-    methods. Hook methods with boolean return value stop the training if False is returned.
+    To write a custom Callback, you can subclass Callback and overwrite one or
+    more of the hook methods. Hook methods with boolean return value stop the
+    training if False is returned.
     """
 
     def on_train_start(self, max_epochs: int) -> None:
         """
-        Hook that is called prior to training. This is the very first hook to be called.
+        Hook that is called prior to training. This is the very first hook to
+        be called.
 
         Parameters
         ----------
         max_epochs
-            The maximum number of epochs that training is running. The actual number of epochs may
-            be fewer if another callback hook stops training early.
+            The maximum number of epochs that training is running. The actual
+            number of epochs may be fewer if another callback hook stops
+            training early.
         """
 
     def on_network_initializing_end(
         self, training_network: nn.HybridBlock
     ) -> None:
         """
-        Hook that is called prior to training, after the training network has been initialized.
-        This is the first hook where the network is passed.
+        Hook that is called prior to training, after the training network has
+        been initialized. This is the first hook where the network is passed.
 
         Parameters
         ----------
@@ -72,8 +75,8 @@ class Callback:
         self, training_network: nn.HybridBlock
     ) -> None:
         """
-        Hook that is called prior to each validation epoch. This hook is never called if no
-        validation data is available during training.
+        Hook that is called prior to each validation epoch. This hook is never
+        called if no validation data is available during training.
 
         Parameters
         ----------
@@ -95,8 +98,8 @@ class Callback:
         self, training_network: nn.HybridBlock
     ) -> None:
         """
-        Hook that is called after each validation batch. This hook is never called if no validation
-        data is available during training.
+        Hook that is called after each validation batch. This hook is never
+        called if no validation data is available during training.
 
         Parameters
         ----------
@@ -112,8 +115,8 @@ class Callback:
         trainer: gluon.Trainer,
     ) -> bool:
         """
-        Hook that is called after each training epoch. This method returns a boolean whether
-        training should continue.
+        Hook that is called after each training epoch. This method returns a
+        boolean whether training should continue.
 
         Parameters
         ----------
@@ -141,10 +144,11 @@ class Callback:
         trainer: gluon.Trainer,
     ) -> bool:
         """
-        Hook that is called after each validation epoch. Similar to `on_train_epoch_end`, this
-        method returns a boolean whether training should continue. Note that it is always called
-        after `on_train_epoch_end` within a single epoch. If `on_train_epoch_end` returned `False`,
-        this method will not be called.
+        Hook that is called after each validation epoch. Similar to
+        `on_train_epoch_end`, this method returns a boolean whether training
+        should continue. Note that it is always called after
+        `on_train_epoch_end` within a single epoch. If `on_train_epoch_end`
+        returned `False`, this method will not be called.
 
         Parameters
         ----------
@@ -175,25 +179,27 @@ class Callback:
     ) -> bool:
         """
         Hook that is called after every epoch. As `on_train_epoch_end` and
-        `on_validation_epoch_end`, it returns a boolean whether training should continue. This
-        hook is always called after `on_train_epoch_end` and `on_validation_epoch_end`. It is
-        called regardless of these hooks' return values.
+        `on_validation_epoch_end`, it returns a boolean whether training should
+        continue. This hook is always called after `on_train_epoch_end` and
+        `on_validation_epoch_end`. It is called regardless of these hooks'
+        return values.
 
         Parameters
         ----------
         epoch_no
             The current epoch (the first epoch has `epoch_no = 0`).
         epoch_loss
-            The validation loss that was recorded in the last epoch if validation data was
-            provided. The training loss otherwise.
+            The validation loss that was recorded in the last epoch if
+            validation data was provided. The training loss otherwise.
         training_network
             The network that is being trained.
         trainer
             The trainer which is running the training.
         best_epoch_info
-            Aggregate information about the best epoch. Contains keys `params_path`, `epoch_no` and
-            `score`. The score is the best validation loss if validation data is provided or the
-            best training loss otherwise.
+            Aggregate information about the best epoch. Contains keys
+            `params_path`, `epoch_no` and `score`. The score is the best
+            validation loss if validation data is provided or the best training
+            loss otherwise.
         ctx
             The MXNet context used.
 
@@ -211,7 +217,8 @@ class Callback:
         ctx: mx.context.Context = None,
     ) -> None:
         """
-        Hook that is called after training is finished. This is the last hook to be called.
+        Hook that is called after training is finished. This is the last hook
+        to be called.
 
         Parameters
         ----------
@@ -227,8 +234,8 @@ class Callback:
 class CallbackList(Callback):
     """
     Used to chain a list of callbacks to one Callback.
-    Boolean hook methods are logically joined with AND, meaning that if at least one callback
-    method returns False, the training is stopped.
+    Boolean hook methods are logically joined with AND, meaning that if at
+    least one callback method returns False, the training is stopped.
 
     Attributes
     ----------

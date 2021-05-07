@@ -28,10 +28,10 @@ class IterationAveragingStrategy:
     r"""
     The model averaging is based on paper
     "Stochastic Gradient Descent for Non-smooth Optimization: Convergence
-    Results and Optimal Averaging Schemes", (http://proceedings.mlr.press/v28/shamir13.pdf),
-    which implements polynomial-decay averaging, parameterized by eta.
-    When eta = 0, it is equivalent to simple average over all iterations with
-    same weights.
+    Results and Optimal Averaging Schemes",
+    (http://proceedings.mlr.press/v28/shamir13.pdf), which implements
+    polynomial-decay averaging, parameterized by eta. When eta = 0, it is
+    equivalent to simple average over all iterations with same weights.
     """
 
     averaged_model: Optional[Dict[str, mx.nd.NDArray]]
@@ -51,7 +51,8 @@ class IterationAveragingStrategy:
         self.eta = eta
         # Dict that maintains the averaged model parameters.
         self.averaged_model = None
-        # Temporarily save the current model, so that the averaged model can be used for validation.
+        # Temporarily save the current model, so that the averaged model can be
+        # used for validation.
         self.cached_model = None
         # The number of models accumulated in the average.
         self.average_counter = 0
@@ -114,9 +115,10 @@ class IterationAveragingStrategy:
 
     def load_averaged_model(self, model: nn.HybridBlock):
         r"""
-        When validating/evaluating the averaged model in the half way of training,
-        use load_averaged_model first to load the averaged model and overwrite the current model,
-        do the evaluation, and then use load_cached_model to load the current model back.
+        When validating/evaluating the averaged model in the half way of
+        training, use load_averaged_model first to load the averaged model and
+        overwrite the current model, do the evaluation, and then use
+        load_cached_model to load the current model back.
 
         Parameters
         ----------
@@ -155,10 +157,12 @@ class IterationAveragingStrategy:
 class NTA(IterationAveragingStrategy):
     r"""
     Implement Non-monotonically Triggered AvSGD (NTA).
-    This method is based on paper "Regularizing and Optimizing LSTM Language Models",
-    (https://openreview.net/pdf?id=SyyGPP0TZ), and an implementation is available in Salesforce GitHub
-    (https://github.com/salesforce/awd-lstm-lm/blob/master/main.py)
-    Note that it mismatches the arxiv (and gluonnlp) version, which is referred to as NTA_V2 below
+    This method is based on paper "Regularizing and Optimizing LSTM Language
+    Models", (https://openreview.net/pdf?id=SyyGPP0TZ), and an implementation
+    is available in Salesforce GitHub
+    (https://github.com/salesforce/awd-lstm-lm/blob/master/main.py). Note that
+    it mismatches the arxiv (and gluonnlp) version, which is referred to as
+    NTA_V2 below.
     """
 
     val_logs: List[Any]
@@ -174,8 +178,9 @@ class NTA(IterationAveragingStrategy):
         fallback_alpha: float = 0.05,
     ):
         r"""
-        Depending on the choice of metrics, the users may want to minimize or maximize the metrics.
-        Thus, set maximize = True to maximize, otherwise minimize.
+        Depending on the choice of metrics, the users may want to minimize or
+        maximize the metrics. Thus, set maximize = True to maximize, otherwise
+        minimize.
 
         Parameters
         ----------
@@ -204,8 +209,8 @@ class NTA(IterationAveragingStrategy):
         self.val_logs = []
 
         # The epoch where we fallback to alpha suffix. This solves the edge case
-        # where the averaging is never triggered and without the fallback the model
-        # of the last epoch would be returned.
+        # where the averaging is never triggered and without the fallback the
+        # model of the last epoch would be returned.
         self.fallback_alpha_suffix = epochs * (1.0 - fallback_alpha)
 
     def update_average_trigger(
@@ -252,8 +257,8 @@ class Alpha_Suffix(IterationAveragingStrategy):
 
     r"""
     Implement Alpha Suffix model averaging.
-    This method is based on paper "Making Gradient Descent Optimalfor Strongly Convex Stochastic Optimization",
-    (https://arxiv.org/pdf/1109.5647.pdf).
+    This method is based on paper "Making Gradient Descent Optimalfor Strongly
+    Convex Stochastic Optimization" (https://arxiv.org/pdf/1109.5647.pdf).
     """
 
     alpha_suffix: float

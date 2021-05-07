@@ -63,11 +63,12 @@ class Trainer:
     r"""
     A trainer specifies how a network is going to be trained.
 
-    A trainer is mainly defined by two sets of parameters. The first one determines the number of
-    examples that the network will be trained on (`epochs`, `num_batches_per_epoch`), while the
-    second one specifies how the gradient updates are performed (`learning_rate`,
-    `learning_rate_decay_factor`, `patience`, `minimum_learning_rate`, `clip_gradient` and
-    `weight_decay`).
+    A trainer is mainly defined by two sets of parameters. The first one
+    determines the number of examples that the network will be trained on
+    (`epochs`, `num_batches_per_epoch`), while the second one specifies how the
+    gradient updates are performed (`learning_rate`,
+    `learning_rate_decay_factor`, `patience`, `minimum_learning_rate`,
+    `clip_gradient` and `weight_decay`).
 
     Parameters
     ----------
@@ -79,17 +80,20 @@ class Trainer:
     learning_rate
         Initial learning rate (default: :math:`10^{-3}`).
     learning_rate_decay_factor
-        Factor (between 0 and 1) by which to decrease the learning rate (default: 0.5).
+        Factor (between 0 and 1) by which to decrease the learning rate
+        (default: 0.5).
     patience
-        The patience to observe before reducing the learning rate, nonnegative integer
+        The patience to observe before reducing the learning rate, nonnegative
+        integer
         (default: 10).
     minimum_learning_rate
         Lower bound for the learning rate (default: :math:`5\cdot 10^{-5}`).
     clip_gradient
-        Maximum value of gradient. The gradient is clipped if it is too large (default: 10).
+        Maximum value of gradient. The gradient is clipped if it is too large
+        (default: 10).
     weight_decay
-        The weight decay (or L2 regularization) coefficient. Modifies objective by adding a
-        penalty for having large weights (default :math:`10^{-8}`).
+        The weight decay (or L2 regularization) coefficient. Modifies objective
+        by adding a penalty for having large weights (default :math:`10^{-8}`).
     init
         Initializer of the weights of the network (default: "xavier").
     hybridize
@@ -97,11 +101,11 @@ class Trainer:
     callbacks
         A list of `gluonts.mx.trainer.callback.Callback` to control the training.
     add_default_callbacks
-        bool, True by default. If `True`, LearningRateReduction and ModelAveragingCallbacks are
-        used in addition to the callbacks specified in the callbacks argument. Make sure that you
-        only set this to true if you don't specify one of the default callbacks yourself or there
-        will be "duplicate callbacks".
-        default callbacks:
+        bool, True by default. If `True`, LearningRateReduction and
+        ModelAveragingCallbacks are used in addition to the callbacks specified
+        in the callbacks argument. Make sure that you only set this to true if
+        you don't specify one of the default callbacks yourself or there will
+        be "duplicate callbacks". default callbacks:
         >>> callbacks = [
         ...     ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
         ...     LearningRateReduction(
@@ -145,8 +149,8 @@ class Trainer:
         assert isinstance(batch_size, int)
 
         # TODO param disable_default_callbacks to get backwards compatibility
-        # deprecation warnings, in the future, the following callbacks should be controlled by
-        # altering callbacks:
+        # deprecation warnings, in the future, the following callbacks should be
+        # controlled by altering callbacks:
         if learning_rate_decay_factor is not None:
             warnings.warn(
                 'Trainer argument "learning_rate_decay_factor" is deprecated. Use callbacks instead.',
@@ -195,7 +199,8 @@ class Trainer:
         # below
         callbacks = callbacks or []
 
-        # TODO the following is done for backwards compatibility. For future versions, add the default callbacks as default arg
+        # TODO the following is done for backwards compatibility. For future
+        # versions, add the default callbacks as default arg
         if add_default_callbacks:
             default_callbacks = [
                 ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
@@ -226,20 +231,21 @@ class Trainer:
         validation_iter: Optional[DataLoader] = None,
     ) -> None:  # TODO: we may want to return some training information here
         """
-        Train a network, given an iterable over training (and optionally validation) batches.
+        Train a network, given an iterable over training (and optionally
+        validation) batches.
 
         Parameters
         ----------
         net
-            Network to be trained. This a Gluon HybridBlock, assumed to produce a tensor
-            of loss values as output.
+            Network to be trained. This a Gluon HybridBlock, assumed to produce
+            a tensor of loss values as output.
         train_iter
-            An iterable over batches to be used for training. Batches are assumed to be
-            dictionaries, whose values are MXNet arrays that correspond to the network
-            inputs.
+            An iterable over batches to be used for training. Batches are
+            assumed to be dictionaries, whose values are MXNet arrays that
+            correspond to the network inputs.
         validation_iter
-            Similar to `train_iter` but the batches produced here are used to compute
-            validation metrics.
+            Similar to `train_iter` but the batches produced here are used to
+            compute validation metrics.
         """
         is_validation_available = validation_iter is not None
 
@@ -293,8 +299,9 @@ class Trainer:
                 epoch_loss = mx.metric.Loss()
 
                 if is_training:
-                    # We should not call this method if we haven't compiled the network yet.
-                    # Instead, this callback is called after network initialization.
+                    # We should not call this method if we haven't compiled the
+                    # network yet. Instead, this callback is called after
+                    # network initialization.
                     if not first_forward:
                         self.callbacks.on_train_epoch_start(
                             training_network=net
@@ -322,14 +329,16 @@ class Trainer:
                             training_network=net
                         )
 
-                        # Call the batch start callback as the model was not compiled before
+                        # Call the batch start callback as the model was not
+                        # compiled before
                         self.callbacks.on_train_epoch_start(
                             training_network=net
                         )
 
                     with mx.autograd.record():
-                        # we set the mode explicitly as by default mxnet assumes predict mode and hence
-                        # dropout layers are not used if the mode is not explicitly set to training
+                        # we set the mode explicitly as by default mxnet assumes
+                        # predict mode and hence dropout layers are not used if
+                        # the mode is not explicitly set to training
                         mode = (
                             autograd.train_mode
                             if is_training
@@ -338,10 +347,11 @@ class Trainer:
                         with mode():
                             output = net(*batch.values())
 
-                        # network can returns several outputs, the first being always the loss
-                        # when having multiple outputs, the forward returns a list in the case of hybrid and a
-                        # tuple otherwise
-                        # we may wrap network outputs in the future to avoid this type check
+                        # network can returns several outputs, the first being
+                        # always the loss when having multiple outputs, the
+                        # forward returns a list in the case of hybrid and a
+                        # tuple otherwise we may wrap network outputs in the
+                        # future to avoid this type check
                         if isinstance(output, (list, tuple)):
                             loss = output[0]
                         else:
