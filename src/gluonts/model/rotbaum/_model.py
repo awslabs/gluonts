@@ -196,6 +196,14 @@ class QRX:
         del cell_values_dict
         gc.collect()
 
+        df = pd.DataFrame({'preds': self.sorted_train_preds})
+        df['bins'] = df['preds'].apply(lambda x: self.preds_to_id[x])
+        final_id = df['bins'].drop_duplicates().values[-1]
+        penultimate_id = df['bins'].drop_duplicates().values[-2]
+        if len(self.id_to_bins[final_id]) < self.clump_size:
+            self.id_to_bins[final_id] = self.id_to_bins[final_id] + \
+                                       self.id_to_bins[penultimate_id]
+
     @staticmethod
     def clump(
         dic: Dict, min_num: int, sorted_keys: Optional[List] = None
