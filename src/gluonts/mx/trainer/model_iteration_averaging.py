@@ -161,10 +161,12 @@ class NTA(IterationAveragingStrategy):
     @validated()
     def __init__(
         self,
+        epochs: int,
         n: int = 5,
         maximize: bool = False,
         last_n_trigger: bool = False,
         eta: float = 0,
+        fallback_alpha: float = 0.05,
     ):
         r"""
         Depending on the choice of metrics, the users may want to minimize or maximize the metrics.
@@ -172,6 +174,8 @@ class NTA(IterationAveragingStrategy):
 
         Parameters
         ----------
+        epochs
+            The total number of epochs.
         n
             The non-montone interval.
         maximize
@@ -179,16 +183,25 @@ class NTA(IterationAveragingStrategy):
         eta
             Parameter of polynomial-decay averaging.
         last_n_trigger
-            If True, use [-n:] in average trigger, otherwise use [:-n]
+            If True, use [-n:] in average trigger, otherwise use [:-n].
+        fallback_alpha
+            Fallback epoch proportion of averaging.
         """
 
         super().__init__(eta=eta)
+
+        assert 0 <= fallback_alpha <= 1
 
         self.n = n
         self.maximize = maximize
         self.last_n_trigger = last_n_trigger
         # Historical validation metrics.
         self.val_logs = []
+
+        # The epoch where we fallback to alpha suffix. This solves the edge case
+        # where the averaging is never triggered and without the fallback the model
+        # of the last epoch would be returned.
+        self.fallback_alpha_suffix = epochs * (1.0 - fallback_alpha)
 
     def update_average_trigger(
         self, metric: Any = None, epoch: int = 0, **kwargs
@@ -204,6 +217,11 @@ class NTA(IterationAveragingStrategy):
         Returns
         -------
         """
+
+        # If not triggered already due to epoch loss check fallback condition
+        if not self.averaging_started:
+            if epoch >= self.fallback_alpha_suffix:
+                self.averaging_started = True
 
         if not self.averaging_started and self.n > 0:
             min_len = self.n if self.last_n_trigger else (self.n + 1)

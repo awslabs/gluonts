@@ -49,13 +49,54 @@ from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.forecast import Forecast, Quantile
 
 
-def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
-    return a if a is not np.ma.masked else np.nan
-
-
 def worker_function(evaluator: "Evaluator", inp: tuple):
     ts, forecast = inp
     return evaluator.get_metrics_per_ts(ts, forecast)
+
+
+def aggregate_all(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, float]:
+    """
+    No filtering applied.
+
+    Both `nan` and `inf` possible in aggregate metrics.
+    """
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=False)
+        for key, agg in agg_funs.items()
+    }
+
+
+def aggregate_no_nan(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, float]:
+    """
+    Filter all `nan` but keep `inf`.
+
+    `nan` is only possible in the aggregate metric if all timeseries
+    for a metric resulted in `nan`.
+    """
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=True)
+        for key, agg in agg_funs.items()
+    }
+
+
+def aggregate_valid(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, Union[float, np.ma.core.MaskedConstant]]:
+    """
+    Filter all `nan` & `inf` values from `metric_per_ts`.
+
+    If all metrics in a column of `metric_per_ts` are `nan` or `inf` the
+    result will be `np.ma.masked` for that column.
+    """
+    metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=True)
+        for key, agg in agg_funs.items()
+    }
 
 
 class Evaluator:
@@ -101,6 +142,13 @@ class Evaluator:
     chunk_size
         Controls the approximate chunk size each workers handles at a time.
         Default is 32.
+    ignore_invalid_values
+        Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
+    aggregation_strategy:
+        Function for aggregating per timeseries metrics.
+        Available options are:
+        aggregate_valid | aggregate_all | aggregate_no_nan
+        The default function is aggregate_no_nan.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -114,6 +162,8 @@ class Evaluator:
         custom_eval_fn: Optional[Dict] = None,
         num_workers: Optional[int] = multiprocessing.cpu_count(),
         chunk_size: int = 32,
+        aggregation_strategy: Callable = aggregate_no_nan,
+        ignore_invalid_values: bool = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -122,6 +172,8 @@ class Evaluator:
         self.custom_eval_fn = custom_eval_fn
         self.num_workers = num_workers
         self.chunk_size = chunk_size
+        self.aggregation_strategy = aggregation_strategy
+        self.ignore_invalid_values = ignore_invalid_values
 
     def __call__(
         self,
@@ -257,23 +309,24 @@ class Evaluator:
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Dict[str, Union[float, str, None]]:
+    ) -> Dict[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
-        pred_target = np.ma.masked_invalid(pred_target)
-
-        # required for seasonal_error and owa calculation
         past_data = np.array(self.extract_past_data(time_series, forecast))
-        past_data = np.ma.masked_invalid(past_data)
+
+        if self.ignore_invalid_values:
+            past_data = np.ma.masked_invalid(past_data)
+            pred_target = np.ma.masked_invalid(pred_target)
 
         try:
-            mean_fcst = forecast.mean
-        except:
+            mean_fcst = getattr(forecast, "mean", None)
+        except NotImplementedError:
             mean_fcst = None
 
         median_fcst = forecast.quantile(0.5)
         seasonal_error = calculate_seasonal_error(
             past_data, forecast, self.seasonality
         )
+
         metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
             "MSE": mse(pred_target, mean_fcst)
@@ -350,6 +403,7 @@ class Evaluator:
     def get_aggregate_metrics(
         self, metric_per_ts: pd.DataFrame
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
+
         agg_funs = {
             "MSE": "mean",
             "abs_error": "sum",
@@ -363,21 +417,21 @@ class Evaluator:
             "MSIS": "mean",
         }
 
-        if self.custom_eval_fn is not None:
-            for k, (_, agg_type, _) in self.custom_eval_fn.items():
-                agg_funs.update({k: agg_type})
-
         for quantile in self.quantiles:
             agg_funs[quantile.loss_name] = "sum"
             agg_funs[quantile.coverage_name] = "mean"
+
+        if self.custom_eval_fn is not None:
+            for k, (_, agg_type, _) in self.custom_eval_fn.items():
+                agg_funs.update({k: agg_type})
 
         assert (
             set(metric_per_ts.columns) >= agg_funs.keys()
         ), "Some of the requested item metrics are missing."
 
-        totals = {
-            key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()
-        }
+        totals = self.aggregation_strategy(
+            metric_per_ts=metric_per_ts, agg_funs=agg_funs
+        )
 
         # derived metrics based on previous aggregate metrics
         totals["RMSE"] = np.sqrt(totals["MSE"])

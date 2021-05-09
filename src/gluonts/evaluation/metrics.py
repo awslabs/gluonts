@@ -11,15 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional
 import numpy as np
 import pandas as pd
 from gluonts.model.forecast import Forecast
 from gluonts.time_feature import get_seasonality
-
-
-def nan_if_masked(a: Union[float, np.ma.core.MaskedConstant]) -> float:
-    return a if a is not np.ma.masked else np.nan
 
 
 def calculate_seasonal_error(
@@ -30,10 +26,9 @@ def calculate_seasonal_error(
     r"""
     .. math::
 
-        seasonal_error = mean(|Y[t] - Y[t-m]|)
+        seasonal\_error = mean(|Y[t] - Y[t-m]|)
 
-    where m is the seasonal frequency
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    where m is the seasonal frequency. See [HA21]_ for more details.
     """
     # Check if the length of the time series is larger than the seasonal frequency
     if not seasonality:
@@ -50,80 +45,84 @@ def calculate_seasonal_error(
     y_t = past_data[:-forecast_freq]
     y_tm = past_data[forecast_freq:]
 
-    seasonal_mae = np.mean(abs(y_t - y_tm))
-
-    return nan_if_masked(seasonal_mae)
+    return np.mean(abs(y_t - y_tm))
 
 
 def mse(target: np.ndarray, forecast: np.ndarray) -> float:
-    return nan_if_masked(np.mean(np.square(target - forecast)))
+    """
+    .. math::
+
+        mse = mean((Y - \hat{Y})^2)
+
+    See [HA21]_ for more details.
+    """
+    return np.mean(np.square(target - forecast))
 
 
 def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
-    return nan_if_masked(np.sum(np.abs(target - forecast)))
+    """
+    .. math::
+
+        abs\_error = sum(|Y - \hat{Y}|)
+    """
+    return np.sum(np.abs(target - forecast))
 
 
 def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
-    return nan_if_masked(
-        2 * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
-    )
+    """
+    .. math::
+
+        quantile\_loss = 2 * sum(|(Y - \hat{Y}) * (Y <= \hat{Y}) - q|)
+    """
+    return 2 * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
 
 
 def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
-    return nan_if_masked(np.mean((target < forecast)))
+    """
+    .. math::
+
+        coverage = mean(Y < \hat{Y})
+    """
+    return np.mean(target < forecast)
 
 
 def mase(
     target: np.ndarray,
     forecast: np.ndarray,
     seasonal_error: float,
-    exclude_zero_denominator=True,
 ) -> float:
     r"""
     .. math::
 
-        mase = mean(|Y - Y_hat|) / seasonal_error
+        mase = mean(|Y - \hat{Y}|) / seasonal\_error
 
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    See [HA21]_ for more details.
     """
-    if exclude_zero_denominator and np.isclose(seasonal_error, 0.0):
-        return np.nan
-
-    return nan_if_masked(np.mean(np.abs(target - forecast)) / seasonal_error)
+    return np.mean(np.abs(target - forecast)) / seasonal_error
 
 
-def mape(
-    target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-) -> float:
+def mape(target: np.ndarray, forecast: np.ndarray) -> float:
     r"""
     .. math::
 
-        mape = mean(|Y - Y_hat| / |Y|))
+        mape = mean(|Y - \hat{Y}| / |Y|))
+
+    See [HA21]_ for more details.
     """
-    denominator = np.abs(target)
-    if exclude_zero_denominator:
-        denominator = np.ma.masked_where(
-            np.isclose(denominator, 0.0), denominator
-        )
-    return nan_if_masked(np.mean(np.abs(target - forecast) / denominator))
+    return np.mean(np.abs(target - forecast) / np.abs(target))
 
 
-def smape(
-    target: np.ndarray, forecast: np.ndarray, exclude_zero_denominator=True
-) -> float:
+def smape(target: np.ndarray, forecast: np.ndarray) -> float:
     r"""
     .. math::
 
-        smape = 2 * mean(|Y - Y_hat| / (|Y| + |Y_hat|))
+        smape = 2 * mean(|Y - \hat{Y}| / (|Y| + |\hat{Y}|))
 
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    See [HA21]_ for more details.
     """
-    denominator = np.abs(target) + np.abs(forecast)
-    if exclude_zero_denominator:
-        denominator = np.ma.masked_where(
-            np.isclose(denominator, 0.0), denominator
-        )
-    return nan_if_masked(2 * np.mean(np.abs(target - forecast) / denominator))
+    return 2 * np.mean(
+        np.abs(target - forecast) / (np.abs(target) + np.abs(forecast))
+    )
 
 
 def owa(
@@ -136,9 +135,9 @@ def owa(
     r"""
     .. math::
 
-        owa = 0.5*(smape/smape_naive + mase/mase_naive)
+        owa = 0.5*(smape / smape\_naive + mase / mase\_naive)
 
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    See [SSA20]_ for more details.
     """
     # avoid import error due to circular dependency
     from gluonts.model.naive_2 import naive_2
@@ -148,15 +147,13 @@ def owa(
         past_data, len(target), freq=start_date.freqstr
     )
 
-    owa = 0.5 * (
+    return 0.5 * (
         (smape(target, forecast) / smape(target, naive_median_fcst))
         + (
             mase(target, forecast, seasonal_error)
             / mase(target, naive_median_fcst, seasonal_error)
         )
     )
-
-    return owa
 
 
 def msis(
@@ -165,18 +162,14 @@ def msis(
     upper_quantile: np.ndarray,
     seasonal_error: float,
     alpha: float,
-    exclude_zero_denominator=True,
 ) -> float:
     r"""
-    :math:
+    .. math::
 
-        msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) / seasonal_error
+        msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) / seasonal\_error
 
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    See [SSA20]_ for more details.
     """
-    if exclude_zero_denominator and np.isclose(seasonal_error, 0.0):
-        return np.nan
-
     numerator = np.mean(
         upper_quantile
         - lower_quantile
@@ -184,12 +177,22 @@ def msis(
         + 2.0 / alpha * (target - upper_quantile) * (target > upper_quantile)
     )
 
-    return nan_if_masked(numerator / seasonal_error)
+    return numerator / seasonal_error
 
 
 def abs_target_sum(target) -> float:
-    return nan_if_masked(np.sum(np.abs(target)))
+    """
+    .. math::
+
+        abs\_target\_sum = sum(|Y|)
+    """
+    return np.sum(np.abs(target))
 
 
 def abs_target_mean(target) -> float:
-    return nan_if_masked(np.mean(np.abs(target)))
+    """
+    .. math::
+
+        abs\_target\_mean = mean(|Y|)
+    """
+    return np.mean(np.abs(target))
