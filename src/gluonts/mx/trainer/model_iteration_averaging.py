@@ -12,21 +12,26 @@
 # permissions and limitations under the License.
 
 from typing import Any, Dict, List, Optional
+import logging
 
 import mxnet as mx
 import mxnet.gluon.nn as nn
+from mxnet import gluon
 
 from gluonts.core.component import validated
+
+from .callback import Callback
 
 
 class IterationAveragingStrategy:
 
     r"""
     The model averaging is based on paper
-    "Stochastic Gradient Descent for Non-smooth Optimization: Convergence Results and Optimal Averaging Schemes",
-    (http://proceedings.mlr.press/v28/shamir13.pdf),
-    which implements polynomial-decay averaging, parameterized by eta.
-    When eta = 0, it is equivalent to simple average over all iterations with same weights.
+    "Stochastic Gradient Descent for Non-smooth Optimization: Convergence
+    Results and Optimal Averaging Schemes",
+    (http://proceedings.mlr.press/v28/shamir13.pdf), which implements
+    polynomial-decay averaging, parameterized by eta. When eta = 0, it is
+    equivalent to simple average over all iterations with same weights.
     """
 
     averaged_model: Optional[Dict[str, mx.nd.NDArray]]
@@ -46,7 +51,8 @@ class IterationAveragingStrategy:
         self.eta = eta
         # Dict that maintains the averaged model parameters.
         self.averaged_model = None
-        # Temporarily save the current model, so that the averaged model can be used for validation.
+        # Temporarily save the current model, so that the averaged model can be
+        # used for validation.
         self.cached_model = None
         # The number of models accumulated in the average.
         self.average_counter = 0
@@ -109,9 +115,10 @@ class IterationAveragingStrategy:
 
     def load_averaged_model(self, model: nn.HybridBlock):
         r"""
-        When validating/evaluating the averaged model in the half way of training,
-        use load_averaged_model first to load the averaged model and overwrite the current model,
-        do the evaluation, and then use load_cached_model to load the current model back.
+        When validating/evaluating the averaged model in the half way of
+        training, use load_averaged_model first to load the averaged model and
+        overwrite the current model, do the evaluation, and then use
+        load_cached_model to load the current model back.
 
         Parameters
         ----------
@@ -150,10 +157,12 @@ class IterationAveragingStrategy:
 class NTA(IterationAveragingStrategy):
     r"""
     Implement Non-monotonically Triggered AvSGD (NTA).
-    This method is based on paper "Regularizing and Optimizing LSTM Language Models",
-    (https://openreview.net/pdf?id=SyyGPP0TZ), and an implementation is available in Salesforce GitHub
-    (https://github.com/salesforce/awd-lstm-lm/blob/master/main.py)
-    Note that it mismatches the arxiv (and gluonnlp) version, which is referred to as NTA_V2 below
+    This method is based on paper "Regularizing and Optimizing LSTM Language
+    Models", (https://openreview.net/pdf?id=SyyGPP0TZ), and an implementation
+    is available in Salesforce GitHub
+    (https://github.com/salesforce/awd-lstm-lm/blob/master/main.py). Note that
+    it mismatches the arxiv (and gluonnlp) version, which is referred to as
+    NTA_V2 below.
     """
 
     val_logs: List[Any]
@@ -169,8 +178,9 @@ class NTA(IterationAveragingStrategy):
         fallback_alpha: float = 0.05,
     ):
         r"""
-        Depending on the choice of metrics, the users may want to minimize or maximize the metrics.
-        Thus, set maximize = True to maximize, otherwise minimize.
+        Depending on the choice of metrics, the users may want to minimize or
+        maximize the metrics. Thus, set maximize = True to maximize, otherwise
+        minimize.
 
         Parameters
         ----------
@@ -199,8 +209,8 @@ class NTA(IterationAveragingStrategy):
         self.val_logs = []
 
         # The epoch where we fallback to alpha suffix. This solves the edge case
-        # where the averaging is never triggered and without the fallback the model
-        # of the last epoch would be returned.
+        # where the averaging is never triggered and without the fallback the
+        # model of the last epoch would be returned.
         self.fallback_alpha_suffix = epochs * (1.0 - fallback_alpha)
 
     def update_average_trigger(
@@ -247,8 +257,8 @@ class Alpha_Suffix(IterationAveragingStrategy):
 
     r"""
     Implement Alpha Suffix model averaging.
-    This method is based on paper "Making Gradient Descent Optimalfor Strongly Convex Stochastic Optimization",
-    (https://arxiv.org/pdf/1109.5647.pdf).
+    This method is based on paper "Making Gradient Descent Optimalfor Strongly
+    Convex Stochastic Optimization" (https://arxiv.org/pdf/1109.5647.pdf).
     """
 
     alpha_suffix: float
@@ -293,3 +303,63 @@ class Alpha_Suffix(IterationAveragingStrategy):
         if not self.averaging_started:
             if epoch >= self.alpha_suffix:
                 self.averaging_started = True
+
+
+class ModelIterationAveraging(Callback):
+    """
+    Callback to implement iteration based model averaging strategies.
+
+    Parameters
+    ----------
+    avg_strategy
+        IterationAveragingStrategy, one of NTA or Alpha_Suffix from
+        gluonts.mx.trainer.model_iteration_averaging
+    """
+
+    @validated()
+    def __init__(self, avg_strategy: IterationAveragingStrategy):
+        self.avg_strategy = avg_strategy
+
+    def on_validation_epoch_start(
+        self, training_network: nn.HybridBlock
+    ) -> None:
+        # use averaged model for validation
+        self.avg_strategy.load_averaged_model(training_network)
+
+    def on_validation_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+    ) -> bool:
+        self.avg_strategy.load_cached_model(training_network)
+        return True
+
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+        self.avg_strategy.apply(training_network)
+
+    def on_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+        best_epoch_info: Dict[str, Any],
+        ctx: mx.Context,
+    ) -> bool:
+        self.avg_strategy.update_average_trigger(
+            metric=epoch_loss, epoch=epoch_no + 1
+        )
+        # once triggered, update the average immediately
+        self.avg_strategy.apply(training_network)
+        return True
+
+    def on_train_end(
+        self,
+        training_network: nn.HybridBlock,
+        temporary_dir: str,
+        ctx: mx.context.Context = None,
+    ) -> None:
+        logging.info("Loading averaged parameters.")
+        self.avg_strategy.load_averaged_model(training_network)
