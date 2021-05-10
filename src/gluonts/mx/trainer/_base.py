@@ -18,7 +18,7 @@ import tempfile
 import time
 import uuid
 import warnings
-from typing import Any, Callable, List, Optional, Union
+from typing import List, Optional, Union
 
 import mxnet as mx
 import mxnet.autograd as autograd
@@ -27,19 +27,15 @@ import numpy as np
 from mxnet.metric import ndarray
 
 from gluonts.core.component import validated
-from gluonts.core.exception import GluonTSDataError, GluonTSUserError
+from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.loader import DataLoader
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
+from gluonts.mx.trainer.callback import Callback, CallbackList
 from gluonts.mx.util import HybridContext
 
-from . import learning_rate_scheduler as lrs
-from .model_averaging import (
-    AveragingStrategy,
-    SelectNBestMean,
-    save_epoch_info,
-)
-from .model_iteration_averaging import IterationAveragingStrategy
+from .learning_rate_scheduler import LearningRateReduction
+from .model_averaging import SelectNBestMean, save_epoch_info, ModelAveraging
 
 logger = logging.getLogger("gluonts").getChild("trainer")
 
@@ -67,42 +63,60 @@ class Trainer:
     r"""
     A trainer specifies how a network is going to be trained.
 
-    A trainer is mainly defined by two sets of parameters. The first one determines the number of examples
-    that the network will be trained on (`epochs`, `num_batches_per_epoch` and `batch_size`), while the
-    second one specifies how the gradient updates are performed (`learning_rate`, `learning_rate_decay_factor`,
-    `patience`, `minimum_learning_rate`, `clip_gradient` and `weight_decay`).
+    A trainer is mainly defined by two sets of parameters. The first one
+    determines the number of examples that the network will be trained on
+    (`epochs`, `num_batches_per_epoch`), while the second one specifies how the
+    gradient updates are performed (`learning_rate`,
+    `learning_rate_decay_factor`, `patience`, `minimum_learning_rate`,
+    `clip_gradient` and `weight_decay`).
 
     Parameters
     ----------
     ctx
     epochs
         Number of epochs that the network will train (default: 100).
-    batch_size
-        Number of examples in each batch (default: 32).
     num_batches_per_epoch
         Number of batches at each epoch (default: 50).
     learning_rate
         Initial learning rate (default: :math:`10^{-3}`).
     learning_rate_decay_factor
-        Factor (between 0 and 1) by which to decrease the learning rate (default: 0.5).
+        Factor (between 0 and 1) by which to decrease the learning rate
+        (default: 0.5).
     patience
-        The patience to observe before reducing the learning rate, nonnegative integer (default: 10).
+        The patience to observe before reducing the learning rate, nonnegative
+        integer
+        (default: 10).
     minimum_learning_rate
         Lower bound for the learning rate (default: :math:`5\cdot 10^{-5}`).
     clip_gradient
-        Maximum value of gradient. The gradient is clipped if it is too large (default: 10).
+        Maximum value of gradient. The gradient is clipped if it is too large
+        (default: 10).
     weight_decay
-        The weight decay (or L2 regularization) coefficient. Modifies objective by adding a penalty for having
-        large weights (default :math:`10^{-8}`).
+        The weight decay (or L2 regularization) coefficient. Modifies objective
+        by adding a penalty for having large weights (default :math:`10^{-8}`).
     init
         Initializer of the weights of the network (default: "xavier").
     hybridize
-        If set to true the network will be hybridized before training
-    post_initialize_cb
-        An optional callback function. If provided the function will be called with the
-        initialized network `post_initialize_cb(net)` before the training starts.
-        This callback can be used to e.g. overwrite parameters for warm starting, to freeze some
-        of the network parameters etc.
+        If set to True the network will be hybridized before training
+    callbacks
+        A list of `gluonts.mx.trainer.callback.Callback` to control the
+        training.
+    add_default_callbacks
+        bool, True by default. If `True`, LearningRateReduction and
+        ModelAveragingCallbacks are used in addition to the callbacks specified
+        in the callbacks argument. Make sure that you only set this to true if
+        you don't specify one of the default callbacks yourself or there will
+        be "duplicate callbacks". default callbacks:
+        >>> callbacks = [
+        ...     ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
+        ...     LearningRateReduction(
+        ...         base_lr=1e-3, # learning_rate
+        ...         decay_factor=0.5, # learning_rate_decay_factor
+        ...         patience=10, # patience
+        ...         min_lr=5e-5, # minimum_learning_rate
+        ...         objective="min",
+        ...     )
+        ... ]
     """
 
     @validated()
@@ -120,10 +134,8 @@ class Trainer:
         weight_decay: float = 1e-8,
         init: Union[str, mx.initializer.Initializer] = "xavier",
         hybridize: bool = True,
-        avg_strategy: Union[
-            AveragingStrategy, IterationAveragingStrategy
-        ] = SelectNBestMean(num_models=1),
-        post_initialize_cb: Optional[Callable[[mx.gluon.Block], None]] = None,
+        callbacks: Optional[List[Callback]] = None,
+        add_default_callbacks: bool = True,
     ) -> None:
 
         if batch_size is not None:
@@ -137,6 +149,32 @@ class Trainer:
 
         assert isinstance(batch_size, int)
 
+        # TODO param disable_default_callbacks to get backwards compatibility
+        # deprecation warnings, in the future, the following callbacks should be
+        # controlled by altering callbacks:
+        if learning_rate_decay_factor is not None:
+            warnings.warn(
+                'Trainer argument "learning_rate_decay_factor" is deprecated. Use callbacks instead.',
+                DeprecationWarning,
+            )
+            assert (
+                0 <= learning_rate_decay_factor < 1
+            ), "The value of `learning_rate_decay_factor` should be in the [0, 1) range"
+        if patience is not None:
+            warnings.warn(
+                'Trainer argument "patience" is deprecated. Use callbacks instead.',
+                DeprecationWarning,
+            )
+            assert 0 <= patience, "The value of `patience` should be >= 0"
+        if minimum_learning_rate:
+            warnings.warn(
+                'Trainer argument "minimum_learning_rate" is deprecated. Use callbacks instead.',
+                DeprecationWarning,
+            )
+            assert (
+                0 <= minimum_learning_rate
+            ), "The value of `minimum_learning_rate` should be >= 0"
+
         assert (
             0 <= epochs < float("inf")
         ), "The value of `epochs` should be >= 0"
@@ -147,13 +185,7 @@ class Trainer:
         assert (
             0 < learning_rate < float("inf")
         ), "The value of `learning_rate` should be > 0"
-        assert (
-            0 <= learning_rate_decay_factor < 1
-        ), "The value of `learning_rate_decay_factor` should be in the [0, 1) range"
-        assert 0 <= patience, "The value of `patience` should be >= 0"
-        assert (
-            0 <= minimum_learning_rate
-        ), "The value of `minimum_learning_rate` should be >= 0"
+
         assert 0 < clip_gradient, "The value of `clip_gradient` should be > 0"
         assert 0 <= weight_decay, "The value of `weight_decay` should be => 0"
 
@@ -168,9 +200,29 @@ class Trainer:
         self.weight_decay = weight_decay
         self.init = init
         self.hybridize = hybridize
-        self.avg_strategy = avg_strategy
         self.ctx = ctx if ctx is not None else get_mxnet_context()
-        self.post_initialize_cb = post_initialize_cb
+        self.halt = False
+
+        # Make sure callbacks is list -- they are assigned to `self.callbacks`
+        # below
+        callbacks = callbacks or []
+
+        # TODO the following is done for backwards compatibility. For future
+        # versions, add the default callbacks as default arg
+        if add_default_callbacks:
+            default_callbacks = [
+                ModelAveraging(avg_strategy=SelectNBestMean(num_models=1)),
+                LearningRateReduction(
+                    base_lr=learning_rate,
+                    decay_factor=learning_rate_decay_factor,
+                    patience=patience,
+                    min_lr=minimum_learning_rate,
+                    objective="min",
+                ),
+            ]
+            self.callbacks = CallbackList(callbacks + default_callbacks)
+        else:
+            self.callbacks = CallbackList(callbacks)
 
     def count_model_params(self, net: nn.HybridBlock) -> int:
         params = net.collect_params()
@@ -187,26 +239,35 @@ class Trainer:
         validation_iter: Optional[DataLoader] = None,
     ) -> None:  # TODO: we may want to return some training information here
         """
-        Train a network, given an iterable over training (and optionally validation) batches.
+        Train a network, given an iterable over training (and optionally
+        validation) batches.
 
         Parameters
         ----------
         net
-            Network to be trained. This a Gluon HybridBlock, assumed to produce a tensor
-            of loss values as output.
+            Network to be trained. This a Gluon HybridBlock, assumed to produce
+            a tensor of loss values as output.
         train_iter
-            An iterable over batches to be used for training. Batches are assumed to be
-            dictionaries, whose values are MXNet arrays that correspond to the network
-            inputs.
+            An iterable over batches to be used for training. Batches are
+            assumed to be dictionaries, whose values are MXNet arrays that
+            correspond to the network inputs.
         validation_iter
-            Similar to `train_iter` but the batches produced here are used to compute
-            validation metrics.
+            Similar to `train_iter` but the batches produced here are used to
+            compute validation metrics.
         """
         is_validation_available = validation_iter is not None
 
+        logger.info("Start model training")
+        net.initialize(ctx=self.ctx, init=self.init)
+
         with tempfile.TemporaryDirectory(
             prefix="gluonts-trainer-temp-"
-        ) as gluonts_temp:
+        ) as gluonts_temp, HybridContext(
+            net=net,
+            hybridize=self.hybridize,
+            static_alloc=True,
+            static_shape=True,
+        ):
 
             def base_path() -> str:
                 return os.path.join(
@@ -214,240 +275,230 @@ class Trainer:
                     "{}_{}".format(STATE_ARTIFACT_FILE_NAME, uuid.uuid4()),
                 )
 
-            logger.info("Start model training")
+            best_epoch_info = {
+                "params_path": "%s-%s.params" % (base_path(), "init"),
+                "epoch_no": -1,
+                "score": np.Inf,
+            }
 
-            net.initialize(ctx=self.ctx, init=self.init)
+            optimizer = mx.optimizer.Adam(
+                learning_rate=self.learning_rate,
+                wd=self.weight_decay,
+                clip_gradient=self.clip_gradient,
+            )
 
-            with HybridContext(
-                net=net,
-                hybridize=self.hybridize,
-                static_alloc=True,
-                static_shape=True,
-            ):
-                best_epoch_info = {
-                    "params_path": "%s-%s.params" % (base_path(), "init"),
-                    "epoch_no": -1,
-                    "score": np.Inf,
-                }
+            trainer = mx.gluon.Trainer(
+                net.collect_params(),
+                optimizer=optimizer,
+                kvstore="device",  # FIXME: initialize properly
+            )
 
-                lr_scheduler = lrs.MetricAttentiveScheduler(
-                    objective="min",
-                    patience=self.patience,
-                    decay_factor=self.learning_rate_decay_factor,
-                    min_lr=self.minimum_learning_rate,
-                )
+            first_forward = True
 
-                optimizer = mx.optimizer.Adam(
-                    learning_rate=self.learning_rate,
-                    lr_scheduler=lr_scheduler,
-                    wd=self.weight_decay,
-                    clip_gradient=self.clip_gradient,
-                )
+            def loop(  # todo call run epoch
+                epoch_no,
+                batch_iter,
+                num_batches_to_use: Optional[int] = None,
+                is_training: bool = True,
+            ) -> mx.metric.Loss:
+                nonlocal first_forward
+                tic = time.time()
 
-                trainer = mx.gluon.Trainer(
-                    net.collect_params(),
-                    optimizer=optimizer,
-                    kvstore="device",  # FIXME: initialize properly
-                )
+                epoch_loss = mx.metric.Loss()
 
-                first_forward = True
-
-                def loop(
-                    epoch_no,
-                    batch_iter,
-                    num_batches_to_use: Optional[int] = None,
-                    is_training: bool = True,
-                ) -> mx.metric.Loss:
-                    nonlocal first_forward
-                    tic = time.time()
-
-                    epoch_loss = mx.metric.Loss()
-
-                    # use averaged model for validation
-                    if not is_training and isinstance(
-                        self.avg_strategy, IterationAveragingStrategy
-                    ):
-                        self.avg_strategy.load_averaged_model(net)
-
-                    batch_iter = itertools.islice(
-                        batch_iter, num_batches_to_use
-                    )
-
-                    with tqdm(batch_iter, total=num_batches_to_use) as it:
-                        for batch_no, batch in enumerate(it, start=1):
-                            # `batch` here is expected to be a dictionary whose fields
-                            # should correspond 1-to-1 with the network inputs
-                            # see below how `batch.values()` is fed into the network
-
-                            if first_forward:
-                                first_forward = False
-                                _ = net(*batch.values())
-                                if self.post_initialize_cb:
-                                    self.post_initialize_cb(net)
-
-                            with mx.autograd.record():
-                                # we set the mode explicitly as by default mxnet assumes predict mode and hence
-                                # dropout layers are not used if the mode is not explicitly set to training
-                                mode = (
-                                    autograd.train_mode
-                                    if is_training
-                                    else autograd.predict_mode
-                                )
-                                with mode():
-                                    output = net(*batch.values())
-
-                                # network can returns several outputs, the first being always the loss
-                                # when having multiple outputs, the forward returns a list in the case of hybrid and a
-                                # tuple otherwise
-                                # we may wrap network outputs in the future to avoid this type check
-                                if isinstance(output, (list, tuple)):
-                                    loss = output[0]
-                                else:
-                                    loss = output
-
-                                batch_size = loss.shape[0]
-
-                            if not np.isfinite(ndarray.sum(loss).asscalar()):
-                                logger.warning(
-                                    "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored",
-                                    batch_no,
-                                    epoch_no,
-                                )
-                            else:
-                                if is_training:
-                                    loss.backward()
-                                    trainer.step(batch_size)
-
-                                    # iteration averaging in training
-                                    if isinstance(
-                                        self.avg_strategy,
-                                        IterationAveragingStrategy,
-                                    ):
-                                        self.avg_strategy.apply(net)
-
-                                epoch_loss.update(None, preds=loss)
-
-                            lv = loss_value(epoch_loss)
-                            it.set_postfix(
-                                ordered_dict={
-                                    "epoch": f"{epoch_no + 1}/{self.epochs}",
-                                    ("" if is_training else "validation_")
-                                    + "avg_epoch_loss": lv,
-                                },
-                                refresh=False,
-                            )
-                            # print out parameters of the network at the first pass
-                            if batch_no == 1 and epoch_no == 0:
-                                net_name = type(net).__name__
-                                num_model_param = self.count_model_params(net)
-                                logger.info(
-                                    f"Number of parameters in {net_name}: {num_model_param}"
-                                )
-                    # mark epoch end time and log time cost of current epoch
-                    toc = time.time()
-                    logger.info(
-                        "Epoch[%d] Elapsed time %.3f seconds",
-                        epoch_no,
-                        (toc - tic),
-                    )
-
-                    logger.info(
-                        "Epoch[%d] Evaluation metric '%s'=%f",
-                        epoch_no,
-                        ("" if is_training else "validation_") + "epoch_loss",
-                        lv,
-                    )
-
-                    if not is_training and isinstance(
-                        self.avg_strategy, IterationAveragingStrategy
-                    ):
-                        # bring back the cached model
-                        self.avg_strategy.load_cached_model(net)
-
-                    return epoch_loss
-
-                for epoch_no in range(self.epochs):
-
-                    curr_lr = trainer.learning_rate
-                    logger.info(
-                        f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
-                    )
-
-                    epoch_loss = loop(
-                        epoch_no,
-                        train_iter,
-                        num_batches_to_use=self.num_batches_per_epoch,
-                    )
-                    if is_validation_available:
-                        epoch_loss = loop(
-                            epoch_no, validation_iter, is_training=False
+                if is_training:
+                    # We should not call this method if we haven't compiled the
+                    # network yet. Instead, this callback is called after
+                    # network initialization.
+                    if not first_forward:
+                        self.callbacks.on_train_epoch_start(
+                            training_network=net
                         )
+                else:
+                    self.callbacks.on_validation_epoch_start(
+                        training_network=net
+                    )
 
-                    # update average trigger
-                    if isinstance(
-                        self.avg_strategy, IterationAveragingStrategy
-                    ):
-                        self.avg_strategy.update_average_trigger(
-                            metric=loss_value(epoch_loss), epoch=epoch_no + 1
-                        )
-                        # once triggered, update the average immediately
-                        self.avg_strategy.apply(net)
+                batch_iter = itertools.islice(batch_iter, num_batches_to_use)
 
-                    should_continue = lr_scheduler.step(loss_value(epoch_loss))
-                    if isinstance(
-                        self.avg_strategy, IterationAveragingStrategy
-                    ):
-                        logging.info(
-                            "Overriding early stopping for iteration-based averaging strategies."
-                        )
-                        should_continue = True
-                    if not should_continue:
-                        logger.info("Stopping training")
+                it = tqdm(batch_iter, total=num_batches_to_use)
+                for batch_no, batch in enumerate(it, start=1):
+                    # `batch` here is expected to be a dictionary whose fields
+                    # should correspond 1-to-1 with the network inputs
+                    # see below how `batch.values()` is fed into the network
+                    if self.halt:
                         break
 
-                    # save model and epoch info
-                    bp = base_path()
-                    epoch_info = {
-                        "params_path": f"{bp}-0000.params",
-                        "epoch_no": epoch_no,
-                        "score": loss_value(epoch_loss),
-                    }
+                    if first_forward:
+                        first_forward = False
+                        _ = net(*batch.values())
 
-                    net.save_parameters(
-                        epoch_info["params_path"]
-                    )  # TODO: handle possible exception
+                        self.callbacks.on_network_initializing_end(
+                            training_network=net
+                        )
 
-                    save_epoch_info(bp, epoch_info)
+                        # Call the batch start callback as the model was not
+                        # compiled before
+                        self.callbacks.on_train_epoch_start(
+                            training_network=net
+                        )
 
-                    # update best epoch info - needed for the learning rate scheduler
-                    if loss_value(epoch_loss) < best_epoch_info["score"]:
-                        best_epoch_info = epoch_info.copy()
+                    with mx.autograd.record():
+                        # we set the mode explicitly as by default mxnet assumes
+                        # predict mode and hence dropout layers are not used if
+                        # the mode is not explicitly set to training
+                        mode = (
+                            autograd.train_mode
+                            if is_training
+                            else autograd.predict_mode
+                        )
+                        with mode():
+                            output = net(*batch.values())
 
-                    if not trainer.learning_rate == curr_lr:
-                        if best_epoch_info["epoch_no"] == -1:
-                            raise GluonTSUserError(
-                                "Got NaN in first epoch. Try reducing initial learning rate."
+                        # network can returns several outputs, the first being
+                        # always the loss when having multiple outputs, the
+                        # forward returns a list in the case of hybrid and a
+                        # tuple otherwise we may wrap network outputs in the
+                        # future to avoid this type check
+                        if isinstance(output, (list, tuple)):
+                            loss = output[0]
+                        else:
+                            loss = output
+
+                        batch_size = loss.shape[0]
+
+                    if not np.isfinite(ndarray.sum(loss).asscalar()):
+                        logger.warning(
+                            "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored",
+                            batch_no,
+                            epoch_no,
+                        )
+                    else:
+                        if is_training:
+                            loss.backward()
+                            trainer.step(batch_size)
+
+                            self.callbacks.on_train_batch_end(
+                                training_network=net
+                            )
+                        else:
+                            self.callbacks.on_validation_batch_end(
+                                training_network=net
                             )
 
-                        logger.info(
-                            f"Loading parameters from best epoch "
-                            f"({best_epoch_info['epoch_no']})"
-                        )
-                        net.load_parameters(
-                            best_epoch_info["params_path"], self.ctx
-                        )
+                        epoch_loss.update(None, preds=loss)
 
-                if isinstance(self.avg_strategy, AveragingStrategy):
-                    logging.info("Computing averaged parameters.")
-                    averaged_params_path = self.avg_strategy.apply(
-                        gluonts_temp
+                    lv = loss_value(epoch_loss)
+                    it.set_postfix(
+                        ordered_dict={
+                            "epoch": f"{epoch_no + 1}/{self.epochs}",
+                            ("" if is_training else "validation_")
+                            + "avg_epoch_loss": lv,
+                        },
+                        refresh=False,
+                    )
+                    # print out parameters of the network at the first pass
+                    if batch_no == 1 and epoch_no == 0:
+                        net_name = type(net).__name__
+                        num_model_param = self.count_model_params(net)
+                        logger.info(
+                            f"Number of parameters in {net_name}: {num_model_param}"
+                        )
+                it.close()
+
+                # mark epoch end time and log time cost of current epoch
+                toc = time.time()
+                logger.info(
+                    "Epoch[%d] Elapsed time %.3f seconds",
+                    epoch_no,
+                    (toc - tic),
+                )
+
+                logger.info(
+                    "Epoch[%d] Evaluation metric '%s'=%f",
+                    epoch_no,
+                    ("" if is_training else "validation_") + "epoch_loss",
+                    lv,
+                )
+
+                return epoch_loss
+
+            self.callbacks.on_train_start(max_epochs=self.epochs)
+
+            for epoch_no in range(self.epochs):
+                if self.halt:
+                    logger.info(f"Epoch[{epoch_no}] Interrupting training")
+                    break
+
+                curr_lr = trainer.learning_rate
+                logger.info(f"Epoch[{epoch_no}] Learning rate is {curr_lr}")
+
+                epoch_loss = loop(
+                    epoch_no,
+                    train_iter,
+                    num_batches_to_use=self.num_batches_per_epoch,
+                )
+
+                should_continue = self.callbacks.on_train_epoch_end(
+                    epoch_no=epoch_no,
+                    epoch_loss=loss_value(epoch_loss),
+                    training_network=net,
+                    trainer=trainer,
+                )
+
+                if is_validation_available:
+                    epoch_loss = loop(
+                        epoch_no, validation_iter, is_training=False
                     )
 
-                    logging.info("Loading averaged parameters.")
-                    net.load_parameters(averaged_params_path, self.ctx)
+                    should_continue = (
+                        should_continue
+                        and self.callbacks.on_validation_epoch_end(
+                            epoch_no=epoch_no,
+                            epoch_loss=loss_value(epoch_loss),
+                            training_network=net,
+                            trainer=trainer,
+                        )
+                    )
 
-                if isinstance(self.avg_strategy, IterationAveragingStrategy):
-                    logging.info("Loading averaged parameters.")
-                    self.avg_strategy.load_averaged_model(net)
+                # save model and epoch info
+                bp = base_path()
+                epoch_info = {
+                    "params_path": f"{bp}-0000.params",
+                    "epoch_no": epoch_no,
+                    "score": loss_value(epoch_loss),
+                }
 
-                logger.info("End model training")
+                net.save_parameters(
+                    epoch_info["params_path"]
+                )  # TODO: handle possible exception
+
+                save_epoch_info(bp, epoch_info)
+
+                # update best epoch info
+                if loss_value(epoch_loss) < best_epoch_info["score"]:
+                    best_epoch_info = epoch_info.copy()
+
+                should_continue = (
+                    should_continue
+                    and self.callbacks.on_epoch_end(
+                        epoch_no=epoch_no,
+                        epoch_loss=loss_value(epoch_loss),
+                        training_network=net,
+                        trainer=trainer,
+                        best_epoch_info=best_epoch_info,
+                        ctx=self.ctx,
+                    )
+                )
+
+                if not should_continue:
+                    logger.info("Stopping training")
+                    break
+
+            self.callbacks.on_train_end(
+                training_network=net,
+                temporary_dir=gluonts_temp,
+                ctx=self.ctx,
+            )
+
+            logger.info("End model training")
