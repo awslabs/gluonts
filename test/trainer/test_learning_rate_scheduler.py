@@ -110,7 +110,7 @@ def test_PatientMetricAttentiveScheduler(
     base_lr, decay_factor, patience, minimum_lr, seq_loss_lr
 ):
     lr_scheduler = lrs.MetricAttentiveScheduler(
-        # We construct the scheduler with a different rate, becase we need
+        # We construct the scheduler with a different rate, because we need
         # to test that the optimizer can override this setting: this is
         # consistent with how schedulers and optimizers operate in MXNet.
         base_lr=10 * base_lr,

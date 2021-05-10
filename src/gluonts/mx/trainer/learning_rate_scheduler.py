@@ -11,8 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import mxnet as mx
+from typing import Dict, Any
+
 import numpy as np
+import mxnet as mx
+from mxnet import gluon
+import mxnet.gluon.nn as nn
+
+from gluonts.core.exception import GluonTSUserError
+from gluonts.core.component import validated, logger
+
+from .callback import Callback
 
 
 class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
@@ -40,13 +49,15 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
     objective
         String, can either be `"min"` or `"max"`
     patience
-        The patience to observe before reducing the learning rate, nonnegative integer.
+        The patience to observe before reducing the learning rate, nonnegative
+        integer.
     base_lr
         Initial learning rate to be used.
     decay_factor
         Factor (between 0 and 1) by which to decrease the learning rate.
     min_lr
-        Lower bound for the learning rate, learning rate will never go below `min_lr`
+        Lower bound for the learning rate, learning rate will never go below
+        `min_lr`.
     """
 
     def __init__(
@@ -130,4 +141,104 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
             self.prev_change = self.epoch_no
 
         self.epoch_no += 1
+        return True
+
+
+class LearningRateReduction(Callback):
+    r"""
+    This Callback decreases the learning rate based on the value of some
+    validation metric to be optimized (maximized or minimized). The value
+    of such metric is provided by calling the `step` method on the scheduler.
+    A `patience` parameter must be provided, and the scheduler will reduce
+    the learning rate if no improvement in the metric is done before
+    `patience` observations of the metric.
+
+    Examples:
+
+        `patience = 0`: learning rate will decrease at every call to
+        `step`, regardless of the metric value
+
+        `patience = 1`: learning rate is reduced as soon `step` is called
+        with a metric value which does not improve over the best encountered
+
+        `patience = 10`: learning rate is reduced if no improvement in the
+        metric is recorded in 10 successive calls to `step`
+
+    Parameters
+    ----------
+    objective
+        String, can either be `"min"` or `"max"`.
+    patience
+        The patience to observe before reducing the learning rate, nonnegative
+        integer.
+    base_lr
+        Initial learning rate to be used.
+    decay_factor
+        Factor (between 0 and 1) by which to decrease the learning rate.
+    min_lr
+        Lower bound for the learning rate, learning rate will never go below
+        `min_lr`.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        objective: str,
+        patience: int,
+        base_lr: float = 0.01,
+        decay_factor: float = 0.5,
+        min_lr: float = 0.0,
+    ) -> None:
+
+        assert (
+            0 < decay_factor < 1
+        ), "The value of `decay_factor` should be in the (0, 1) range"
+        assert patience >= 0, "The value of `patience` should be >= 0"
+        assert (
+            0 <= min_lr <= base_lr
+        ), "The value of `min_lr` should be >= 0 and <= base_lr"
+
+        self.lr_scheduler = MetricAttentiveScheduler(
+            objective=objective,
+            patience=patience,
+            base_lr=base_lr,
+            decay_factor=decay_factor,
+            min_lr=min_lr,
+        )
+
+    def on_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+        best_epoch_info: Dict[str, Any],
+        ctx: mx.Context,
+    ) -> bool:
+        should_continue = self.lr_scheduler.step(metric_value=epoch_loss)
+        if not should_continue:
+            print(
+                "Early stopping based on learning rate scheduler callback (min_lr was reached)."
+            )
+            return False
+
+        pre_step_learning_rate = trainer.learning_rate
+        trainer.optimizer.set_learning_rate(
+            self.lr_scheduler(trainer.optimizer.num_update)
+        )
+
+        if not trainer.learning_rate == pre_step_learning_rate:
+            if best_epoch_info["epoch_no"] == -1:
+                raise GluonTSUserError(
+                    "Got NaN in first epoch. Try reducing initial learning rate."
+                )
+
+            logger.info(
+                f"Loading parameters from best epoch "
+                f"({best_epoch_info['epoch_no']})"
+            )
+            training_network.load_parameters(
+                best_epoch_info["params_path"], ctx
+            )
+
         return True
