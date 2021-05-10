@@ -18,6 +18,7 @@ import numpy as np
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
 
+from gluonts.core import fqname_for
 from gluonts.core.component import (
     DType,
     from_hyperparameters,
