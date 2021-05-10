@@ -10,4 +10,4 @@ sphinx-autobuild~=0.7
 sphinx-autorun
 sphinx-gallery
 tornado==5.1.1
-mxtheme==0.3.*
+mxtheme==0.3.15
