@@ -157,16 +157,23 @@ class Trainer:
                 'Trainer argument "learning_rate_decay_factor" is deprecated. Use callbacks instead.',
                 DeprecationWarning,
             )
+            assert (
+                0 <= learning_rate_decay_factor < 1
+            ), "The value of `learning_rate_decay_factor` should be in the [0, 1) range"
         if patience is not None:
             warnings.warn(
                 'Trainer argument "patience" is deprecated. Use callbacks instead.',
                 DeprecationWarning,
             )
+            assert 0 <= patience, "The value of `patience` should be >= 0"
         if minimum_learning_rate:
             warnings.warn(
                 'Trainer argument "minimum_learning_rate" is deprecated. Use callbacks instead.',
                 DeprecationWarning,
             )
+            assert (
+                0 <= minimum_learning_rate
+            ), "The value of `minimum_learning_rate` should be >= 0"
 
         assert (
             0 <= epochs < float("inf")
