@@ -20,12 +20,17 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Install MXNet (Linux)
+      if: ${{ runner.os == 'Linux' }}
+      run: pip install mxnet~=1.8.0
+    - name: Install MXNet (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: pip install mxnet~=1.7.0
+    - name: Install other dependencies
       run: |
         python -m pip install pip==20.2
-        pip install -r requirements/requirements-mxnet.txt
-        pip install torch==1.7.1+cpu --no-cache-dir -f https://download.pytorch.org/whl/torch_stable.html
-        pip install pytorch-lightning~=1.1
+        pip install torch==1.8.1+cpu --no-cache-dir -f https://download.pytorch.org/whl/torch_stable.html
+        pip install pytorch-lightning~=1.3.0
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
