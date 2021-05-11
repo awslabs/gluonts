@@ -125,7 +125,7 @@ def get_lags_for_frequency(
         lags = [[1, 2]]
     elif granularity == "H":
         lags = [[1, 24, 168]]
-    elif granularity == "min":
+    elif granularity in ("min", "T") :
         lags = [[1, 4, 12, 24, 48]]
     else:
         lags = [[1]]
