@@ -36,24 +36,19 @@ from gluonts.mx.activation import get_activation, get_activation_deriv
     ],
 )
 def test_activation_deriv(activation, kwargs):
-    def get_deriv_autograd(input, act):
-        input.attach_grad()
+    def get_deriv_autograd(x, act):
+        x.attach_grad()
         with autograd.record():
-            output = act(input)
-        return autograd.grad(output, [input], create_graph=True)[0]
+            output = act(x)
+        return autograd.grad(output, [x], create_graph=True)[0]
 
-    input = mx.nd.random.randn(500, 20)
+    x = mx.nd.random.randn(500, 20)
     act = get_activation(activation, **kwargs)
     act.initialize()
-    correct_deriv = get_deriv_autograd(input, act)
+    correct_deriv = get_deriv_autograd(x, act)
     act_deriv = get_activation_deriv(act)
-    output_deriv = act_deriv(mx.ndarray, input)
+    output_deriv = act_deriv(mx.ndarray, x)
 
-    assert all(
-        [
-            np.allclose(out, corr, atol=5.0e-8)
-            for out, corr in zip(
-                output_deriv.T.asnumpy(), correct_deriv.T.asnumpy()
-            )
-        ]
+    assert np.allclose(
+        output_deriv.asnumpy(), correct_deriv.asnumpy(), atol=5e-7
     )

@@ -105,6 +105,7 @@ def generate_m5_dataset(
     ]
 
     # Build target series
+    train_ids = sales_train_validation["id"]
     train_df = sales_train_validation.drop(
         ["id", "item_id", "dept_id", "cat_id", "store_id", "state_id"], axis=1
     )
@@ -133,9 +134,14 @@ def generate_m5_dataset(
             FieldName.START: start,
             FieldName.FEAT_DYNAMIC_REAL: fdr.tolist(),
             FieldName.FEAT_STATIC_CAT: fsc.tolist(),
+            FieldName.ITEM_ID: id,
         }
-        for (target, start, fdr, fsc) in zip(
-            train_target_values, dates, train_cal_features_list, stat_cat
+        for (target, start, fdr, fsc, id) in zip(
+            train_target_values,
+            dates,
+            train_cal_features_list,
+            stat_cat,
+            train_ids,
         )
     ]
     save_to_file(train_file, train_ds)
@@ -148,9 +154,14 @@ def generate_m5_dataset(
             FieldName.START: start,
             FieldName.FEAT_DYNAMIC_REAL: fdr.tolist(),
             FieldName.FEAT_STATIC_CAT: fsc.tolist(),
+            FieldName.ITEM_ID: id,
         }
-        for (target, start, fdr, fsc) in zip(
-            test_target_values, dates, test_cal_features_list, stat_cat
+        for (target, start, fdr, fsc, id) in zip(
+            test_target_values,
+            dates,
+            test_cal_features_list,
+            stat_cat,
+            train_ids,
         )
     ]
     save_to_file(test_file, test_ds)
