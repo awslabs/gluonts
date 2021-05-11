@@ -20,10 +20,10 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install MXNet
+    - name: Install MXNet (Linux)
       if: ${{ runner.os == 'Linux' }}
       run: pip install mxnet~=1.8.0
-    - name: Install MXNet
+    - name: Install MXNet (Windows)
       if: ${{ runner.os == 'Windows' }}
       run: pip install mxnet~=1.7.0
     - name: Install other dependencies
