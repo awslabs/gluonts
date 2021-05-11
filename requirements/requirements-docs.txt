@@ -11,4 +11,4 @@ sphinx-autorun
 sphinx-gallery
 sphinx_rtd_theme~=0.4
 tornado==5.1.1
-mxtheme==0.3.*
+mxtheme==0.3.15
