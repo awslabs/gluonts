@@ -8,8 +8,9 @@ import subprocess
 from setuptools.command.build_py import build_py as build_py_orig
 from setuptools.command.sdist import sdist as sdist_orig
 
-Version = namedtuple("Version", ("release", "dev", "labels"))
-
+Version = namedtuple(
+    "Version", ("release", "dev", "labels"), defaults=("0.0.0", None, None)
+)
 # No public API
 __all__ = []
 
@@ -35,7 +36,7 @@ def get_version(version_file=STATIC_VERSION_FILE):
         if not version:
             version = get_version_from_git_archive(version_info)
         if not version:
-            version = Version("unknown", None, None)
+            version = Version()
         return pep440_format(version)
     else:
         return version
@@ -163,9 +164,9 @@ def get_version_from_git_archive(version_info):
     version_tags = set(r[len(VTAG) :] for r in refs if r.startswith(VTAG))
     if version_tags:
         release, *_ = sorted(version_tags)  # prefer e.g. "2.0" over "2.0rc1"
-        return Version(release, dev=None, labels=None)
+        return Version(release)
     else:
-        return Version("unknown", dev=None, labels=["g{}".format(git_hash)])
+        return Version(labels=["g{}".format(git_hash)])
 
 
 __version__ = get_version()
