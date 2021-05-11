@@ -23,6 +23,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Clone and install dependencies
       run: |
+        python -m pip install pip==20.2
         git clone https://github.com/awslabs/gluon-ts --branch $(curl https://api.github.com/repos/awslabs/gluon-ts/releases/latest | grep tag_name | cut -d : -f 2,3 | tr -d \"\ | tr -d \,\ )
         cd gluon-ts
         pip install mxnet~=1.8.0
