@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 # This file is part of 'miniver': https://github.com/jbweston/miniver
 #
-from collections import namedtuple
 import os
 import subprocess
+from typing import List
 
+from pydantic import BaseModel
 from setuptools.command.build_py import build_py as build_py_orig
 from setuptools.command.sdist import sdist as sdist_orig
 
-Version = namedtuple(
-    "Version", ("release", "dev", "labels"), defaults=("0.0.0", None, None)
-)
+
+class Version(BaseModel):
+    release: str = "0.0.0"
+    dev: str = None
+    labels: List[str] = None
+
+
 # No public API
 __all__ = []
 
@@ -139,7 +144,7 @@ def get_version_from_git():
             labels.append("dirty")
 
     if release:
-        return Version(release, dev, labels)
+        return Version(release=release, dev=dev, labels=labels)
     return Version(dev=dev, labels=labels)
 
 
@@ -166,7 +171,7 @@ def get_version_from_git_archive(version_info):
     version_tags = set(r[len(VTAG) :] for r in refs if r.startswith(VTAG))
     if version_tags:
         release, *_ = sorted(version_tags)  # prefer e.g. "2.0" over "2.0rc1"
-        return Version(release)
+        return Version(release=release)
     else:
         return Version(labels=["g{}".format(git_hash)])
 
