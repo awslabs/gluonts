@@ -36,7 +36,7 @@ def get_version(version_file=STATIC_VERSION_FILE):
         if not version:
             version = get_version_from_git_archive(version_info)
         if not version:
-            version = Version(DEFAULT_RELEASE, 0, 0)
+            version = Version(DEFAULT_RELEASE, dev=None, labels=None)
         return pep440_format(version)
     else:
         return version
@@ -164,9 +164,11 @@ def get_version_from_git_archive(version_info):
     version_tags = set(r[len(VTAG) :] for r in refs if r.startswith(VTAG))
     if version_tags:
         release, *_ = sorted(version_tags)  # prefer e.g. "2.0" over "2.0rc1"
-        return Version(release, None, None)
+        return Version(release, dev=None, labels=None)
     else:
-        return Version(DEFAULT_RELEASE, None, labels=["g{}".format(git_hash)])
+        return Version(
+            DEFAULT_RELEASE, dev=None, labels=["g{}".format(git_hash)]
+        )
 
 
 __version__ = get_version()
