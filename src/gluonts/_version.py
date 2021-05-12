@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 # This file is part of 'miniver': https://github.com/jbweston/miniver
 #
+from collections import namedtuple
 import os
 import subprocess
-from typing import List
 
-from pydantic import BaseModel
 from setuptools.command.build_py import build_py as build_py_orig
 from setuptools.command.sdist import sdist as sdist_orig
 
-
-class Version(BaseModel):
-    release: str = "0.0.0"
-    dev: str = None
-    labels: List[str] = None
-
+Version = namedtuple("Version", ("release", "dev", "labels"))
 
 # No public API
 __all__ = []
@@ -31,6 +25,7 @@ else:
     _package_root_inside_src = False
 
 STATIC_VERSION_FILE = "_static_version.py"
+DEFAULT_RELEASE = "0.0.0"
 
 
 def get_version(version_file=STATIC_VERSION_FILE):
@@ -41,7 +36,7 @@ def get_version(version_file=STATIC_VERSION_FILE):
         if not version:
             version = get_version_from_git_archive(version_info)
         if not version:
-            version = Version()
+            version = Version(DEFAULT_RELEASE, 0, 0)
         return pep440_format(version)
     else:
         return version
@@ -126,7 +121,7 @@ def get_version_from_git():
     except ValueError:  # No tags, only the git hash
         # prepend 'g' to match with format returned by 'git describe'
         git = "g{}".format(*description)
-        release = None
+        release = DEFAULT_RELEASE
         dev = None
 
     labels = []
@@ -143,9 +138,7 @@ def get_version_from_git():
         if p.wait() == 1:
             labels.append("dirty")
 
-    if release:
-        return Version(release=release, dev=dev, labels=labels)
-    return Version(dev=dev, labels=labels)
+    return Version(release, dev, labels)
 
 
 # TODO: change this logic when there is a git pretty-format
@@ -171,9 +164,9 @@ def get_version_from_git_archive(version_info):
     version_tags = set(r[len(VTAG) :] for r in refs if r.startswith(VTAG))
     if version_tags:
         release, *_ = sorted(version_tags)  # prefer e.g. "2.0" over "2.0rc1"
-        return Version(release=release)
+        return Version(release, None, None)
     else:
-        return Version(labels=["g{}".format(git_hash)])
+        return Version(DEFAULT_RELEASE, None, labels=["g{}".format(git_hash)])
 
 
 __version__ = get_version()
