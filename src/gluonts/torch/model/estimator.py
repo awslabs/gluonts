@@ -11,37 +11,30 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Iterable
 
 import numpy as np
-from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
+import pytorch_lightning as pl
+import torch
+import torch.nn as nn
 
-from gluonts.core import fqname_for
-from gluonts.core.component import (
-    DType,
-    from_hyperparameters,
-    validated,
-    GluonTSHyperparametersError,
-)
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import DataLoader
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
-from gluonts.model.predictor import Predictor
-from gluonts.mx.trainer import Trainer
-from gluonts.transform import Transformation
+from gluonts.torch.model.predictor import PyTorchPredictor
+from gluonts.transform import Transformation, TransformedDataset
 
 
 class TrainOutput(NamedTuple):
     transformation: Transformation
-    trained_net: HybridBlock
-    predictor: Predictor
+    trained_net: nn.Module
+    predictor: PyTorchPredictor
 
 
-class GluonEstimator(Estimator):
+class PyTorchEstimator(Estimator):
     """
-    An `Estimator` type with utilities for creating Gluon-based models.
+    An `Estimator` type with utilities for creating PyTorch-based models.
 
     To extend this class, one needs to implement three methods:
     `create_transformation`, `create_training_network`, `create_predictor`,
@@ -51,39 +44,15 @@ class GluonEstimator(Estimator):
     @validated()
     def __init__(
         self,
-        *,
-        trainer: Trainer,
-        batch_size: int = 32,
+        trainer: pl.Trainer,
         lead_time: int = 0,
-        dtype: DType = np.float32,
+        device: torch.device = torch.device("cpu"),
+        dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__(lead_time=lead_time)
-
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
-
-        self.batch_size = batch_size
         self.trainer = trainer
+        self.device = device
         self.dtype = dtype
-
-    @classmethod
-    def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
-        Model = getattr(cls.__init__, "Model", None)
-
-        if not Model:
-            raise AttributeError(
-                f"Cannot find attribute Model attached to the "
-                f"{fqname_for(cls)}. Most probably you have forgotten to mark "
-                f"the class constructor as @validated()."
-            )
-
-        try:
-            trainer = from_hyperparameters(Trainer, **hyperparameters)
-
-            return cls(
-                **Model(**{**hyperparameters, "trainer": trainer}).__dict__
-            )
-        except ValidationError as e:
-            raise GluonTSHyperparametersError from e
 
     def create_transformation(self) -> Transformation:
         """
@@ -97,67 +66,71 @@ class GluonEstimator(Estimator):
         """
         raise NotImplementedError
 
-    def create_training_network(self) -> HybridBlock:
+    def create_training_network(self) -> nn.Module:
         """
         Create and return the network used for training (i.e., computing the
         loss).
 
         Returns
         -------
-        HybridBlock
+        nn.Module
             The network that computes the loss given input data.
         """
         raise NotImplementedError
 
     def create_predictor(
-        self, transformation: Transformation, trained_network: HybridBlock
-    ) -> Predictor:
+        self,
+        transformation: Transformation,
+        trained_network: nn.Module,
+        device: torch.device,
+    ) -> PyTorchPredictor:
         """
         Create and return a predictor object.
 
         Returns
         -------
         Predictor
-            A predictor wrapping a `HybridBlock` used for inference.
+            A predictor wrapping a `nn.Module` used for inference.
         """
         raise NotImplementedError
 
-    def create_training_data_loader(
-        self, data: Dataset, **kwargs
-    ) -> DataLoader:
+    def create_training_data_loader(self, data: Dataset, **kwargs) -> Iterable:
         raise NotImplementedError
 
     def create_validation_data_loader(
         self, data: Dataset, **kwargs
-    ) -> DataLoader:
+    ) -> Iterable:
         raise NotImplementedError
 
     def train_model(
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
+        num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
+        **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
-        transformed_training_data = transformation.apply(training_data)
+        transformed_training_data = TransformedDataset(
+            training_data, transformation, is_train=True
+        )
 
         training_data_loader = self.create_training_data_loader(
             transformed_training_data
             if not cache_data
             else Cached(transformed_training_data),
             num_workers=num_workers,
-            num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
         )
 
         validation_data_loader = None
 
         if validation_data is not None:
-            transformed_validation_data = transformation.apply(validation_data)
+            transformed_validation_data = TransformedDataset(
+                validation_data, transformation, is_train=True
+            )
 
             validation_data_loader = self.create_validation_data_loader(
                 transformed_validation_data
@@ -165,38 +138,42 @@ class GluonEstimator(Estimator):
                 else Cached(transformed_validation_data),
             )
 
-        training_network = self.create_training_network()
-
-        self.trainer(
-            net=training_network,
-            train_iter=training_data_loader,
-            validation_iter=validation_data_loader,
+        training_network = self.create_training_network().to(
+            self.device, self.dtype
         )
 
-        with self.trainer.ctx:
-            predictor = self.create_predictor(transformation, training_network)
+        self.trainer.fit(
+            model=training_network,
+            train_dataloader=training_data_loader,
+            val_dataloaders=validation_data_loader,
+        )
 
         return TrainOutput(
             transformation=transformation,
             trained_net=training_network,
-            predictor=predictor,
+            predictor=self.create_predictor(
+                transformation, training_network, self.device
+            ),
         )
+
+    @staticmethod
+    def _worker_init_fn(worker_id):
+        np.random.seed(np.random.get_state()[1][0] + worker_id)
 
     def train(
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
+        num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         **kwargs,
-    ) -> Predictor:
+    ) -> PyTorchPredictor:
         return self.train_model(
-            training_data=training_data,
-            validation_data=validation_data,
+            training_data,
+            validation_data,
             num_workers=num_workers,
-            num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
+            **kwargs,
         ).predictor
