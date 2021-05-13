@@ -136,6 +136,8 @@ class MyDataModule(pl.LightningDataModule):
 if __name__ == "__main__":
     parser = ArgumentParser()
 
+    parser.add_argument("--encoder_path", type=str, default="./encoder.pt")
+
     parser = MyDataModule.add_model_specific_args(parser)
     parser = EmbedModel.add_model_specific_args(parser)
     parser = Trainer.add_argparse_args(parser)
@@ -173,7 +175,7 @@ if __name__ == "__main__":
             encoder = torch.jit.trace(model, batch)
         break
 
-    encoder_model_path = "./encoder.pt"
+    encoder_model_path = args.encoder_path
     print(f"saving encoder to {encoder_model_path}")
     encoder.save(encoder_model_path)
     # loaded_encoder = torch.jit.load(encoder_model_path, map_location=torch.device('cuda'))

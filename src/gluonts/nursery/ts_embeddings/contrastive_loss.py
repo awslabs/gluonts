@@ -26,7 +26,7 @@ class NT_Xent_Loss(torch.nn.modules.loss._Loss):
 
     def __init__(
         self,
-        compared_length,
+        compared_length,  # this is the maximum length of the positive example (and also of the negative example)
         temperature=1.0,
     ):
         super().__init__()
@@ -111,7 +111,7 @@ class NT_Xent_Loss(torch.nn.modules.loss._Loss):
         )
         pos = torch.cat([pos, pos], dim=0)
 
-        # todo check whehter this should be safe-guarded against NaNs
+        # todo check whether this should be safe-guarded against NaNs
         loss = -torch.log(pos / neg).mean()
 
         return loss

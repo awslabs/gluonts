@@ -225,7 +225,7 @@ class EmbedModel(pl.LightningModule):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--channels", type=int, default=32)
         parser.add_argument("--out_channels", type=int, default=128)
-        parser.add_argument("--depth", type=int, default=8)
+        parser.add_argument("--depth", type=int, default=10)
         parser.add_argument("--kernel_size", type=int, default=3)
         parser.add_argument("--reduced_size", type=int, default=64)
         parser.add_argument("--compared_length", type=int, default=2 * 7 * 24)
