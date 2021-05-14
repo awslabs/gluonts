@@ -25,6 +25,7 @@ else:
     _package_root_inside_src = False
 
 STATIC_VERSION_FILE = "_static_version.py"
+FALLBACK_RELEASE = "0.0.0"
 
 
 def get_version(version_file=STATIC_VERSION_FILE):
@@ -35,7 +36,7 @@ def get_version(version_file=STATIC_VERSION_FILE):
         if not version:
             version = get_version_from_git_archive(version_info)
         if not version:
-            version = Version("unknown", None, None)
+            version = Version(FALLBACK_RELEASE, None, None)
         return pep440_format(version)
     else:
         return version
@@ -120,7 +121,7 @@ def get_version_from_git():
     except ValueError:  # No tags, only the git hash
         # prepend 'g' to match with format returned by 'git describe'
         git = "g{}".format(*description)
-        release = "unknown"
+        release = FALLBACK_RELEASE
         dev = None
 
     labels = []
@@ -165,7 +166,9 @@ def get_version_from_git_archive(version_info):
         release, *_ = sorted(version_tags)  # prefer e.g. "2.0" over "2.0rc1"
         return Version(release, dev=None, labels=None)
     else:
-        return Version("unknown", dev=None, labels=["g{}".format(git_hash)])
+        return Version(
+            FALLBACK_RELEASE, dev=None, labels=["g{}".format(git_hash)]
+        )
 
 
 __version__ = get_version()
