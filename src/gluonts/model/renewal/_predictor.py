@@ -55,7 +55,8 @@ class DeepRenewalProcessSampleOutputTransform:
         for i, j in itertools.product(range(batch_size), range(num_samples)):
             t, s = times[i, j], sizes[i, j]
             ix = t[t < max_time].astype(int)
-            out[i, j, ix] = s[: len(ix)]
+            if len(ix) > 0:
+                out[i, j, ix] = s[: len(ix)]
 
         return out
 
