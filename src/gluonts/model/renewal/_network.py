@@ -256,7 +256,7 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
             (batch_size, history_length, 2) shaped tensor containing the past time series
             in an interval-size representation.
         time_remaining
-            (batch_size,) shaped tensor containing the number of time steps that were zero
+            (batch_size, 1) shaped tensor containing the number of time steps that were zero
             before the start of the forecast horizon
 
         Returns
@@ -268,6 +268,12 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
             time_remaining = F.broadcast_like(
                 F.zeros((1,)), past_target, lhs_axes=(0,), rhs_axes=(0,)
             )
+
+        # if no valid points in the past_target, override time remaining with zero
+        batch_sum = F.sum(past_target, axis=1).sum(-1).expand_dims(-1)
+        time_remaining = F.where(
+            batch_sum > 0, time_remaining, F.zeros_like(time_remaining)
+        )
 
         repeated_past_target = past_target.repeat(
             repeats=self.num_parallel_samples, axis=0

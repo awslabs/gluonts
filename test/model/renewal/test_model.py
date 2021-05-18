@@ -28,6 +28,12 @@ def hyperparameters():
 
 
 @pytest.mark.parametrize("hybridize", [True, False])
+def test_accuracy_smoke_test(accuracy_test, hyperparameters, hybridize):
+    hyperparameters.update(num_batches_per_epoch=80, hybridize=hybridize)
+    accuracy_test(DeepRenewalProcessEstimator, hyperparameters, accuracy=10)
+
+
+@pytest.mark.parametrize("hybridize", [True, False])
 def test_repr(repr_test, hyperparameters, hybridize):
     hyperparameters.update(hybridize=hybridize)
     repr_test(DeepRenewalProcessEstimator, hyperparameters)
