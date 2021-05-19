@@ -19,6 +19,7 @@ from gluonts.time_feature import get_seasonality
 @pytest.mark.parametrize(
     "freq, expected_seasonality",
     [
+        ("30min", 48),
         ("1H", 24),
         ("H", 24),
         ("2H", 12),
