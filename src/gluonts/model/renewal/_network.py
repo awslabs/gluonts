@@ -211,16 +211,13 @@ class DeepRenewalTrainingNetwork(DeepRenewalNetwork):
         )
         data_interval, data_size = F.split(past_target, num_outputs=2, axis=-1)
 
-        log_prob = F.add_n(
-            dist_interval.log_prob(
-                data_interval - 1
-            ),  # adjusting since data is 1-indexed and distributions aren't
-            dist_size.log_prob(data_size - 1),
-        ).squeeze(-1)
-
-        reverse_lengths = F.maximum(
-            F.ones_like(valid_length),
-            F.broadcast_sub(F.max(valid_length), valid_length),
+        log_prob = F.squeeze(
+            dist_interval.log_prob(data_interval - 1)
+            + dist_size.log_prob(data_size - 1),
+            axis=-1,
+        )
+        reverse_lengths = F.broadcast_sub(
+            F.max(valid_length), valid_length
         ).squeeze(-1)
         mask = F.SequenceMask(
             F.ones_like(log_prob),
