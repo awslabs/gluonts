@@ -95,6 +95,7 @@ class ScalePreProcessor:
         scale = torch.nansum(torch.abs(ts_batch), dim=-1) / T
         scale = torch.clip(scale, self.min_scale, np.inf)
 
+        res = ts_batch / scale[:, :, None]
         return res[:, :, :]
 
 
