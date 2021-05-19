@@ -59,8 +59,7 @@ class DeepRenewalProcessSampleOutputTransform:
                 try:
                     out[i, j, ix] = s[: len(ix)]
                 except IndexError:
-                    print(ix)
-                    print(t)
+                    raise IndexError(f"ix: {ix}, t: {t}")
 
         return out
 
