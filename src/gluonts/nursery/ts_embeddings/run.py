@@ -166,9 +166,23 @@ if __name__ == "__main__":
 
     trainer = Trainer.from_argparse_args(args, callbacks=[], logger=logger)
 
+    # Run learning rate finder
+    # lr_finder = trainer.tuner.lr_find(
+    #     model=model,
+    #     datamodule=data_module,
+    #     early_stop_threshold=None,
+    #     num_training=50,
+    # )
+    # lr_finder.plot()
+    # print(f"learning rate suggestion: {lr_finder.suggestion()}")
+
+
     ####  training of encoder
     trainer.fit(model, data_module)
     print("encoder training done")
+
+
+
 
     for batch in data_module.train_dataloader():
         with torch.no_grad():

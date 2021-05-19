@@ -95,7 +95,6 @@ class ScalePreProcessor:
         scale = torch.nansum(torch.abs(ts_batch), dim=-1) / T
         scale = torch.clip(scale, self.min_scale, np.inf)
 
-        res = ts_batch / scale[:, :, None]
         return res[:, :, :]
 
 
@@ -206,10 +205,17 @@ class EmbedModel(pl.LightningModule):
             reduced_size=self.hparams.reduced_size,
         )
 
-        self.loss = contrastive_loss.NT_Xent_Loss(
-            compared_length=self.hparams.compared_length,
-            temperature=1.0,
-        )
+        if self.hparams.loss == 'SimCLR':
+            self.loss = contrastive_loss.NT_Xent_Loss(
+                compared_length=self.hparams.compared_length,
+                temperature=self.hparams.loss_temperature,
+            )
+        elif self.hparams.loss == 'BarlowTwins':
+            self.loss = contrastive_loss.BarlowTwins(
+                compared_length=self.hparams.compared_length,
+                out_channels=self.hparams.out_channels,
+                lambd=self.hparams.loss_lambda,
+            )
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -231,6 +237,8 @@ class EmbedModel(pl.LightningModule):
         parser.add_argument("--compared_length", type=int, default=2 * 7 * 24)
         parser.add_argument("--lr", type=float, default=0.005)
         parser.add_argument("--loss_temperature", type=float, default=0.1)
+        parser.add_argument("--loss_lambda", type=float, default=1e-2)
+        parser.add_argument("--loss", type=str, default='SimCLR')
         return parser
 
     def forward(self, x):
