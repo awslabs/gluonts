@@ -68,6 +68,10 @@ class LARSWrapper(object):
     def state(self):
         return self.optim.state
 
+    @state.setter
+    def state(self, s):
+        self.optim.state = s
+
     @property
     def param_groups(self):
         return self.optim.param_groups
