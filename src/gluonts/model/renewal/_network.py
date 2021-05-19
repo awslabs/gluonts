@@ -211,6 +211,8 @@ class DeepRenewalTrainingNetwork(DeepRenewalNetwork):
         )
         data_interval, data_size = F.split(past_target, num_outputs=2, axis=-1)
 
+        # TODO: on windows, operators below may produce NaN values
+
         log_prob = F.squeeze(
             dist_interval.log_prob(data_interval - 1)
             + dist_size.log_prob(data_size - 1),

@@ -56,19 +56,7 @@ class DeepRenewalProcessSampleOutputTransform:
             t, s = times[i, j], sizes[i, j]
             ix = t[t < max_time].astype(int).tolist()
             if len(ix) > 0:
-                try:
-                    out[i, j, ix] = s[: len(ix)]
-                except IndexError:
-                    raise IndexError(
-                        f"""
-                    ix: {ix} 
-                    t: {t}
-                    s: {s}
-                    i, j: {(i, j)}
-                    ia: {ia_times[i, j]}
-                    max_time: {max_time}
-                    """
-                    )
+                out[i, j, ix] = s[: len(ix)]
 
         return out
 
