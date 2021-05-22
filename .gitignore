@@ -146,6 +146,7 @@ tests/externaldata/
 
 # docs
 docs/html
+.DS_Store
 
 # release
 docs/model_zoo/*.zip
@@ -162,4 +163,7 @@ conda
 
 # not to be tracked
 src/gluonts/version.py
+
+# makefiles with own credentials
+Makefile.own
 

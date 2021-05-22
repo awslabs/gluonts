@@ -11,13 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 
-# First-party imports
-from gluonts.trainer import learning_rate_scheduler as lrs
+from gluonts.mx.trainer import learning_rate_scheduler as lrs
 
 
 @pytest.mark.parametrize(
@@ -112,7 +110,7 @@ def test_PatientMetricAttentiveScheduler(
     base_lr, decay_factor, patience, minimum_lr, seq_loss_lr
 ):
     lr_scheduler = lrs.MetricAttentiveScheduler(
-        # We construct the scheduler with a different rate, becase we need
+        # We construct the scheduler with a different rate, because we need
         # to test that the optimizer can override this setting: this is
         # consistent with how schedulers and optimizers operate in MXNet.
         base_lr=10 * base_lr,

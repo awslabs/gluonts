@@ -20,11 +20,14 @@ from itertools import islice
 import mxnet as mx
 import matplotlib.pyplot as plt
 import pandas as pd
+from pandas.plotting import register_matplotlib_converters
+
+register_matplotlib_converters()
 
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.support.util import get_hybrid_forward_input_names
-from gluonts.trainer import Trainer
+from gluonts.mx.util import get_hybrid_forward_input_names
+from gluonts.mx.trainer import Trainer
 from gluonts.dataset.repository.datasets import get_dataset
 
 
@@ -89,9 +92,10 @@ if __name__ == "__main__":
         t = k % nll.shape[1]
 
         time_index = pd.date_range(
-            pd.Timestamp(data_entry["forecast_start"][i]) - context_length,
+            pd.Timestamp(data_entry["forecast_start"][i]),
             periods=context_length + prediction_length,
         )
+        time_index -= context_length * time_index.freq
 
         plt.figure(figsize=(10, 4))
         plt.fill_between(

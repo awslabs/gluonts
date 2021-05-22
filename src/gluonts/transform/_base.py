@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import abc
-from functools import reduce
-from typing import Callable, Iterator, List
+from typing import Callable, Iterable, Iterator, List
 
-# First-party imports
+from gluonts.env import env
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
-from gluonts.runtime_params import GLUONTS_MAX_IDLE_TRANSFORMS
 
 
 class Transformation(metaclass=abc.ABCMeta):
@@ -31,15 +28,12 @@ class Transformation(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
-    ) -> Iterator[DataEntry]:
+        self, data_it: Iterable[DataEntry], is_train: bool
+    ) -> Iterable[DataEntry]:
         pass
 
-    def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
-        return data_it  # default is to pass through without estimation
-
     def chain(self, other: "Transformation") -> "Chain":
-        return Chain(self, other)
+        return Chain([self, other])
 
     def __add__(self, other: "Transformation") -> "Chain":
         return self.chain(other)
@@ -52,7 +46,7 @@ class Chain(Transformation):
 
     @validated()
     def __init__(self, trans: List[Transformation]) -> None:
-        self.transformations = []
+        self.transformations: List[Transformation] = []
         for transformation in trans:
             # flatten chains
             if isinstance(transformation, Chain):
@@ -61,23 +55,18 @@ class Chain(Transformation):
                 self.transformations.append(transformation)
 
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
-    ) -> Iterator[DataEntry]:
+        self, data_it: Iterable[DataEntry], is_train: bool
+    ) -> Iterable[DataEntry]:
         tmp = data_it
         for t in self.transformations:
             tmp = t(tmp, is_train)
         return tmp
 
-    def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
-        return reduce(
-            lambda x, y: y.estimate(x), self.transformations, data_it
-        )
-
 
 class Identity(Transformation):
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
-    ) -> Iterator[DataEntry]:
+        self, data_it: Iterable[DataEntry], is_train: bool
+    ) -> Iterable[DataEntry]:
         return data_it
 
 
@@ -87,7 +76,7 @@ class MapTransformation(Transformation):
     """
 
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
+        self, data_it: Iterable[DataEntry], is_train: bool
     ) -> Iterator:
         for data_entry in data_it:
             try:
@@ -135,27 +124,27 @@ class FlatMapTransformation(Transformation):
     """
 
     def __call__(
-        self, data_it: Iterator[DataEntry], is_train: bool
+        self, data_it: Iterable[DataEntry], is_train: bool
     ) -> Iterator:
-        # num_idle_transforms = 0
+        num_idle_transforms = 0
         for data_entry in data_it:
-            # num_idle_transforms += 1
+            num_idle_transforms += 1
             try:
                 for result in self.flatmap_transform(
                     data_entry.copy(), is_train
                 ):
-                    # num_idle_transforms = 0
+                    num_idle_transforms = 0
                     yield result
             except Exception as e:
                 raise e
-            # if num_idle_transforms > GLUONTS_MAX_IDLE_TRANSFORMS:
-            #     raise Exception(
-            #         f"Reached maximum number of idle transformation calls.\n"
-            #         f"This means the transformation looped over "
-            #         f"GLUONTS_MAX_IDLE_TRANSFORMS={GLUONTS_MAX_IDLE_TRANSFORMS} "
-            #         f"inputs without returning any output.\n"
-            #         f"This occurred in the following transformation:\n{self}"
-            #     )
+            if num_idle_transforms > env.max_idle_transforms:
+                raise Exception(
+                    f"Reached maximum number of idle transformation calls.\n"
+                    f"This means the transformation looped over "
+                    f"GLUONTS_MAX_IDLE_TRANSFORMS={env.max_idle_transforms} "
+                    f"inputs without returning any output.\n"
+                    f"This occurred in the following transformation:\n{self}"
+                )
 
     @abc.abstractmethod
     def flatmap_transform(

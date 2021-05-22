@@ -11,13 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
-import re
-from functools import lru_cache
+import multiprocessing
+import sys
+from functools import partial
 from itertools import chain, tee
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     Iterator,
@@ -25,44 +26,77 @@ from typing import (
     Optional,
     Tuple,
     Union,
-    Callable,
 )
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
-from gluonts.model.forecast import Forecast, Quantile
+from .metrics import (
+    abs_error,
+    abs_target_mean,
+    abs_target_sum,
+    calculate_seasonal_error,
+    coverage,
+    mape,
+    mase,
+    mse,
+    msis,
+    owa,
+    quantile_loss,
+    smape,
+)
 from gluonts.gluonts_tqdm import tqdm
+from gluonts.model.forecast import Forecast, Quantile
 
 
-@lru_cache()
-def get_seasonality(freq: str) -> int:
+def worker_function(evaluator: "Evaluator", inp: tuple):
+    ts, forecast = inp
+    return evaluator.get_metrics_per_ts(ts, forecast)
+
+
+def aggregate_all(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, float]:
     """
-    Returns the default seasonality for a given freq str. E.g. for
+    No filtering applied.
 
-      2H -> 12
-
+    Both `nan` and `inf` possible in aggregate metrics.
     """
-    match = re.match(r"(\d*)(\w+)", freq)
-    assert match, "Cannot match freq regex"
-    mult, base_freq = match.groups()
-    multiple = int(mult) if mult else 1
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=False)
+        for key, agg in agg_funs.items()
+    }
 
-    seasonalities = {"H": 24, "D": 1, "W": 1, "M": 12, "B": 5}
-    if base_freq in seasonalities:
-        seasonality = seasonalities[base_freq]
-    else:
-        seasonality = 1
-    if seasonality % multiple != 0:
-        logging.warning(
-            f"multiple {multiple} does not divide base "
-            f"seasonality {seasonality}."
-            f"Falling back to seasonality 1"
-        )
-        return 1
-    return seasonality // multiple
+
+def aggregate_no_nan(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, float]:
+    """
+    Filter all `nan` but keep `inf`.
+
+    `nan` is only possible in the aggregate metric if all timeseries
+    for a metric resulted in `nan`.
+    """
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=True)
+        for key, agg in agg_funs.items()
+    }
+
+
+def aggregate_valid(
+    metric_per_ts: pd.DataFrame, agg_funs: Dict[str, str]
+) -> Dict[str, Union[float, np.ma.core.MaskedConstant]]:
+    """
+    Filter all `nan` & `inf` values from `metric_per_ts`.
+
+    If all metrics in a column of `metric_per_ts` are `nan` or `inf` the
+    result will be `np.ma.masked` for that column.
+    """
+    metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
+    return {
+        key: metric_per_ts[key].agg(agg, skipna=True)
+        for key, agg in agg_funs.items()
+    }
 
 
 class Evaluator:
@@ -80,11 +114,41 @@ class Evaluator:
         uses the default seasonality
         for the given series frequency as returned by `get_seasonality`
     alpha
-        parameter of the MSIS metric from M4 competition that
-        defines the confidence interval
-        for alpha=0.05 the 95% considered is considered in the metric,
-        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4
-        -Competitors-Guide.pdf for more detail on MSIS
+        Parameter of the MSIS metric from the M4 competition that
+        defines the confidence interval.
+        For alpha=0.05 (default) the 95% considered is considered in the metric,
+        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+        for more detail on MSIS
+    calculate_owa
+        Determines whether the OWA metric should also be calculated,
+        which is computationally expensive to evaluate and thus slows
+        down the evaluation process considerably.
+        By default False.
+    custom_eval_fn
+        Option to include custom evaluation metrics. Expected input is
+        a dictionary with keys specifying the name of the custom metric
+        and the values are a list containing three elements.
+        First, a callable which takes as input target and forecast and
+        returns the evaluation metric.
+        Second, a string specifying the aggregation metric across all
+        time-series, f.e. "mean", "sum".
+        Third, either "mean" or "median" to specify whether mean or median
+        forecast should be passed to the custom evaluation function.
+        E.g. {"RMSE": [rmse, "mean", "median"]}
+    num_workers
+        The number of multiprocessing workers that will be used to process
+        the data in parallel. Default is multiprocessing.cpu_count().
+        Setting it to 0 or None means no multiprocessing.
+    chunk_size
+        Controls the approximate chunk size each workers handles at a time.
+        Default is 32.
+    ignore_invalid_values
+        Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
+    aggregation_strategy:
+        Function for aggregating per timeseries metrics.
+        Available options are:
+        aggregate_valid | aggregate_all | aggregate_no_nan
+        The default function is aggregate_no_nan.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -94,10 +158,22 @@ class Evaluator:
         quantiles: Iterable[Union[float, str]] = default_quantiles,
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
+        calculate_owa: bool = False,
+        custom_eval_fn: Optional[Dict] = None,
+        num_workers: Optional[int] = multiprocessing.cpu_count(),
+        chunk_size: int = 32,
+        aggregation_strategy: Callable = aggregate_no_nan,
+        ignore_invalid_values: bool = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
         self.alpha = alpha
+        self.calculate_owa = calculate_owa
+        self.custom_eval_fn = custom_eval_fn
+        self.num_workers = num_workers
+        self.chunk_size = chunk_size
+        self.aggregation_strategy = aggregation_strategy
+        self.ignore_invalid_values = ignore_invalid_values
 
     def __call__(
         self,
@@ -135,8 +211,20 @@ class Evaluator:
             total=num_series,
             desc="Running evaluation",
         ) as it, np.errstate(invalid="ignore"):
-            for ts, forecast in it:
-                rows.append(self.get_metrics_per_ts(ts, forecast))
+            if self.num_workers and not sys.platform == "win32":
+                mp_pool = multiprocessing.Pool(
+                    initializer=None, processes=self.num_workers
+                )
+                rows = mp_pool.map(
+                    func=partial(worker_function, self),
+                    iterable=iter(it),
+                    chunksize=self.chunk_size,
+                )
+                mp_pool.close()
+                mp_pool.join()
+            else:
+                for ts, forecast in it:
+                    rows.append(self.get_metrics_per_ts(ts, forecast))
 
         assert not any(
             True for _ in ts_iterator
@@ -160,7 +248,7 @@ class Evaluator:
     @staticmethod
     def extract_pred_target(
         time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Union[pd.Series, pd.DataFrame]:
+    ) -> np.ndarray:
         """
 
         Parameters
@@ -170,7 +258,7 @@ class Evaluator:
 
         Returns
         -------
-        Union[pandas.Series, pandas.DataFrame]
+        np.ndarray
             time series cut in the Forecast object dates
         """
         assert forecast.index.intersection(time_series.index).equals(
@@ -185,92 +273,128 @@ class Evaluator:
             np.squeeze(time_series.loc[forecast.index].transpose())
         )
 
-    def seasonal_error(
-        self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> float:
-        r"""
-        .. math::
-
-            seasonal_error = mean(|Y[t] - Y[t-m]|)
-
-        where m is the seasonal frequency
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    # This method is needed for the owa calculation
+    # It extracts the training sequence from the Series or DataFrame to a numpy array
+    @staticmethod
+    def extract_past_data(
+        time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+    ) -> np.ndarray:
         """
+
+        Parameters
+        ----------
+        time_series
+        forecast
+
+        Returns
+        -------
+        np.ndarray
+            time series without the forecast dates
+        """
+
+        assert forecast.index.intersection(time_series.index).equals(
+            forecast.index
+        ), (
+            "Index of forecast is outside the index of target\n"
+            f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
+        )
+
         # Remove the prediction range
         # If the prediction range is not in the end of the time series,
         # everything after the prediction range is truncated
-        forecast_date = pd.Timestamp(forecast.start_date, freq=forecast.freq)
-        date_before_forecast = forecast_date - 1 * forecast_date.freq
-        ts = time_series[:date_before_forecast]
-
-        # Check if the length of the time series is larger than the seasonal frequency
-        seasonality = (
-            self.seasonality
-            if self.seasonality
-            else get_seasonality(forecast.freq)
+        date_before_forecast = forecast.index[0] - forecast.index[0].freq
+        return np.atleast_1d(
+            np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
-        if seasonality < len(ts):
-            forecast_freq = seasonality
-        else:
-            # edge case: the seasonal freq is larger than the length of ts
-            # revert to freq=1
-            # logging.info('The seasonal frequency is larger than the length of the time series. Reverting to freq=1.')
-            forecast_freq = 1
-        y_t = np.ma.masked_invalid(ts.values[:-forecast_freq])
-        y_tm = np.ma.masked_invalid(ts.values[forecast_freq:])
-
-        seasonal_mae = np.mean(abs(y_t - y_tm))
-
-        return seasonal_mae if seasonal_mae is not np.ma.masked else np.nan
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Dict[str, Union[float, str, None]]:
+    ) -> Dict[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
-        pred_target = np.ma.masked_invalid(pred_target)
+        past_data = np.array(self.extract_past_data(time_series, forecast))
+
+        if self.ignore_invalid_values:
+            past_data = np.ma.masked_invalid(past_data)
+            pred_target = np.ma.masked_invalid(pred_target)
 
         try:
-            mean_fcst = forecast.mean
-        except:
+            mean_fcst = getattr(forecast, "mean", None)
+        except NotImplementedError:
             mean_fcst = None
+
         median_fcst = forecast.quantile(0.5)
-        seasonal_error = self.seasonal_error(time_series, forecast)
-        # For MSIS: alpha/2 quantile may not exist. Find the closest.
-        lower_q = min(
-            self.quantiles, key=lambda q: abs(q.value - self.alpha / 2)
-        )
-        upper_q = min(
-            reversed(self.quantiles),
-            key=lambda q: abs(q.value - (1 - self.alpha / 2)),
+        seasonal_error = calculate_seasonal_error(
+            past_data, forecast, self.seasonality
         )
 
-        metrics = {
+        metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
-            "MSE": self.mse(pred_target, mean_fcst)
+            "MSE": mse(pred_target, mean_fcst)
             if mean_fcst is not None
             else None,
-            "abs_error": self.abs_error(pred_target, median_fcst),
-            "abs_target_sum": self.abs_target_sum(pred_target),
-            "abs_target_mean": self.abs_target_mean(pred_target),
+            "abs_error": abs_error(pred_target, median_fcst),
+            "abs_target_sum": abs_target_sum(pred_target),
+            "abs_target_mean": abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
-            "MASE": self.mase(pred_target, median_fcst, seasonal_error),
-            "sMAPE": self.smape(pred_target, median_fcst),
-            "MSIS": self.msis(
+            "MASE": mase(pred_target, median_fcst, seasonal_error),
+            "MAPE": mape(pred_target, median_fcst),
+            "sMAPE": smape(pred_target, median_fcst),
+            "OWA": np.nan,  # by default not calculated
+        }
+
+        if self.custom_eval_fn is not None:
+            for k, (eval_fn, _, fcst_type) in self.custom_eval_fn.items():
+                if fcst_type == "mean":
+                    if mean_fcst is not None:
+                        target_fcst = mean_fcst
+                    else:
+                        logging.warning(
+                            "mean_fcst is None, therefore median_fcst is used."
+                        )
+                        target_fcst = median_fcst
+                else:
+                    target_fcst = median_fcst
+
+                try:
+                    val = {
+                        k: eval_fn(
+                            pred_target,
+                            target_fcst,
+                        )
+                    }
+                except:
+                    val = {k: np.nan}
+
+                metrics.update(val)
+
+        try:
+            metrics["MSIS"] = msis(
                 pred_target,
-                forecast.quantile(lower_q.value),
-                forecast.quantile(upper_q.value),
+                forecast.quantile(self.alpha / 2),
+                forecast.quantile(1.0 - self.alpha / 2),
                 seasonal_error,
                 self.alpha,
-            ),
-        }
+            )
+        except Exception:
+            logging.warning("Could not calculate MSIS metric.")
+            metrics["MSIS"] = np.nan
+
+        if self.calculate_owa:
+            metrics["OWA"] = owa(
+                pred_target,
+                median_fcst,
+                past_data,
+                seasonal_error,
+                forecast.start_date,
+            )
 
         for quantile in self.quantiles:
             forecast_quantile = forecast.quantile(quantile.value)
 
-            metrics[quantile.loss_name] = self.quantile_loss(
+            metrics[quantile.loss_name] = quantile_loss(
                 pred_target, forecast_quantile, quantile.value
             )
-            metrics[quantile.coverage_name] = self.coverage(
+            metrics[quantile.coverage_name] = coverage(
                 pred_target, forecast_quantile
             )
 
@@ -279,6 +403,7 @@ class Evaluator:
     def get_aggregate_metrics(
         self, metric_per_ts: pd.DataFrame
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
+
         agg_funs = {
             "MSE": "mean",
             "abs_error": "sum",
@@ -286,44 +411,47 @@ class Evaluator:
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
             "MASE": "mean",
+            "MAPE": "mean",
             "sMAPE": "mean",
+            "OWA": "mean",
             "MSIS": "mean",
         }
+
         for quantile in self.quantiles:
             agg_funs[quantile.loss_name] = "sum"
             agg_funs[quantile.coverage_name] = "mean"
 
+        if self.custom_eval_fn is not None:
+            for k, (_, agg_type, _) in self.custom_eval_fn.items():
+                agg_funs.update({k: agg_type})
+
         assert (
             set(metric_per_ts.columns) >= agg_funs.keys()
-        ), "The some of the requested item metrics are missing."
+        ), "Some of the requested item metrics are missing."
 
-        totals = {
-            key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()
-        }
+        totals = self.aggregation_strategy(
+            metric_per_ts=metric_per_ts, agg_funs=agg_funs
+        )
 
         # derived metrics based on previous aggregate metrics
         totals["RMSE"] = np.sqrt(totals["MSE"])
+        totals["NRMSE"] = totals["RMSE"] / totals["abs_target_mean"]
+        totals["ND"] = totals["abs_error"] / totals["abs_target_sum"]
 
-        flag = totals["abs_target_mean"] == 0
-        totals["NRMSE"] = np.divide(
-            totals["RMSE"] * (1 - flag), totals["abs_target_mean"] + flag
-        )
-
-        flag = totals["abs_target_sum"] == 0
-        totals["ND"] = np.divide(
-            totals["abs_error"] * (1 - flag), totals["abs_target_sum"] + flag
-        )
-
-        all_qLoss_names = [
-            quantile.weighted_loss_name for quantile in self.quantiles
-        ]
         for quantile in self.quantiles:
-            totals[quantile.weighted_loss_name] = np.divide(
-                totals[quantile.loss_name], totals["abs_target_sum"]
+            totals[quantile.weighted_loss_name] = (
+                totals[quantile.loss_name] / totals["abs_target_sum"]
             )
 
+        totals["mean_absolute_QuantileLoss"] = np.array(
+            [totals[quantile.loss_name] for quantile in self.quantiles]
+        ).mean()
+
         totals["mean_wQuantileLoss"] = np.array(
-            [totals[ql] for ql in all_qLoss_names]
+            [
+                totals[quantile.weighted_loss_name]
+                for quantile in self.quantiles
+            ]
         ).mean()
 
         totals["MAE_Coverage"] = np.mean(
@@ -334,96 +462,10 @@ class Evaluator:
         )
         return totals, metric_per_ts
 
-    @staticmethod
-    def mse(target, forecast):
-        return np.mean(np.square(target - forecast))
-
-    @staticmethod
-    def abs_error(target, forecast):
-        return np.sum(np.abs(target - forecast))
-
-    @staticmethod
-    def quantile_loss(target, quantile_forecast, q):
-        return 2.0 * np.sum(
-            np.abs(
-                (quantile_forecast - target)
-                * ((target <= quantile_forecast) - q)
-            )
-        )
-
-    @staticmethod
-    def coverage(target, quantile_forecast):
-        return np.mean((target < quantile_forecast))
-
-    @staticmethod
-    def mase(target, forecast, seasonal_error):
-        r"""
-        .. math::
-
-            mase = mean(|Y - Y_hat|) / seasonal_error
-
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-        flag = seasonal_error == 0
-        return (np.mean(np.abs(target - forecast)) * (1 - flag)) / (
-            seasonal_error + flag
-        )
-
-    @staticmethod
-    def smape(target, forecast):
-        r"""
-        .. math::
-
-            smape = mean(2 * |Y - Y_hat| / (|Y| + |Y_hat|))
-
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-
-        denominator = np.abs(target) + np.abs(forecast)
-        flag = denominator == 0
-
-        smape = 2 * np.mean(
-            (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
-        )
-        return smape
-
-    @staticmethod
-    def msis(target, lower_quantile, upper_quantile, seasonal_error, alpha):
-        r"""
-        :math:
-
-            msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) /seasonal_error
-
-        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
-        """
-        numerator = np.mean(
-            upper_quantile
-            - lower_quantile
-            + 2.0
-            / alpha
-            * (lower_quantile - target)
-            * (target < lower_quantile)
-            + 2.0
-            / alpha
-            * (target - upper_quantile)
-            * (target > upper_quantile)
-        )
-
-        flag = seasonal_error == 0
-        return (numerator * (1 - flag)) / (seasonal_error + flag)
-
-    @staticmethod
-    def abs_target_sum(target):
-        return np.sum(np.abs(target))
-
-    @staticmethod
-    def abs_target_mean(target):
-        return np.mean(np.abs(target))
-
 
 class MultivariateEvaluator(Evaluator):
     """
-    
+
     The MultivariateEvaluator class owns functionality for evaluating
     multidimensional target arrays of shape
     (target_dimensionality, prediction_length).
@@ -457,6 +499,8 @@ class MultivariateEvaluator(Evaluator):
         alpha: float = 0.05,
         eval_dims: List[int] = None,
         target_agg_funcs: Dict[str, Callable] = {},
+        custom_eval_fn: Optional[dict] = None,
+        num_workers: Optional[int] = None,
     ) -> None:
         """
 
@@ -478,9 +522,16 @@ class MultivariateEvaluator(Evaluator):
             pass key-value pairs that define aggregation functions over the
             dimension axis. Useful to compute metrics over aggregated target
             and forecast (typically sum or mean).
+        num_workers
+            The number of multiprocessing workers that will be used to process
+            metric for each dimension of the multivariate forecast.
         """
         super().__init__(
-            quantiles=quantiles, seasonality=seasonality, alpha=alpha
+            quantiles=quantiles,
+            seasonality=seasonality,
+            alpha=alpha,
+            custom_eval_fn=custom_eval_fn,
+            num_workers=num_workers,
         )
         self._eval_dims = eval_dims
         self.target_agg_funcs = target_agg_funcs

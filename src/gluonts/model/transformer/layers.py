@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 from mxnet.gluon import HybridBlock
 
-# First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 
 
 def split_heads(F, x: Tensor, dim_per_head: int, heads: int) -> Tensor:
@@ -270,9 +267,6 @@ class MultiHeadAttentionBase(HybridBlock):
         contexts = self.dense_att(contexts)
 
         return contexts
-
-    def hybrid_forward(self, F, *args, **kwargs):
-        raise NotImplementedError
 
 
 class MultiHeadSelfAttention(MultiHeadAttentionBase):
@@ -549,6 +543,7 @@ class TransformerProcessBlock(HybridBlock):
                 data = F.broadcast_add(data, prev)
 
             elif step == "n":
+                assert self.layer_norm is not None
                 data = self.layer_norm(data)
 
             elif step == "d":

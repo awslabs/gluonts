@@ -11,9 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
-from ._predictor import KernelType, NPTSPredictor
 from ._estimator import NPTSEstimator
+from ._predictor import KernelType, NPTSPredictor
 
 __all__ = ["KernelType", "NPTSEstimator", "NPTSPredictor"]
 

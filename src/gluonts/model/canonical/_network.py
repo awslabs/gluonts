@@ -11,15 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
-from gluonts.block.feature import FeatureEmbedder
-from gluonts.block.scaler import MeanScaler
 from gluonts.core.component import validated
-from gluonts.distribution import DistributionOutput
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
+from gluonts.mx.block.feature import FeatureEmbedder
+from gluonts.mx.block.scaler import MeanScaler
+from gluonts.mx.distribution import DistributionOutput
 
 
 class CanonicalNetworkBase(HybridBlock):

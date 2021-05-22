@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from itertools import chain, combinations
 
-# Third-party imports
 import mxnet as mx
 import pytest
 
-# First-party imports
-from gluonts.block.feature import FeatureAssembler, FeatureEmbedder
+from gluonts.mx.block.feature import FeatureAssembler, FeatureEmbedder
 
 # fix the seed for the tests in this file
 mx.random.seed(78_431_519)

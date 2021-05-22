@@ -11,20 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional, Tuple
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType
-from gluonts.distribution import MultivariateGaussian
-from gluonts.distribution.distribution import getF
-from gluonts.kernels import Kernel
-from gluonts.model.common import Tensor
-from gluonts.support.linalg_util import (
+from gluonts.mx import Tensor
+from gluonts.mx.distribution import MultivariateGaussian
+from gluonts.mx.distribution.distribution import getF
+from gluonts.mx.kernels import Kernel
+from gluonts.mx.linalg_util import (
     batch_diagonal,
     jitter_cholesky,
     jitter_cholesky_eig,
@@ -40,7 +37,6 @@ class GaussianProcess:
         prediction_length: Optional[int] = None,
         context_length: Optional[int] = None,
         num_samples: Optional[int] = None,
-        ctx: mx.Context = mx.Context("cpu"),
         float_type: DType = np.float64,
         jitter_method: str = "iter",
         max_iter_jitter: int = 10,
@@ -64,8 +60,6 @@ class GaussianProcess:
             Training length.
         num_samples
             The number of samples to be drawn.
-        ctx
-            Determines whether to compute on the cpu or gpu.
         float_type
             Determines whether to use single or double precision.
         jitter_method
@@ -102,7 +96,6 @@ class GaussianProcess:
         )
         self.num_samples = num_samples
         self.F = F if F else getF(sigma)
-        self.ctx = ctx
         self.float_type = float_type
         self.jitter_method = jitter_method
         self.max_iter_jitter = max_iter_jitter
@@ -140,9 +133,7 @@ class GaussianProcess:
                 kernel_matrix,
                 self.F.broadcast_mul(
                     self.sigma ** 2,
-                    self.F.eye(
-                        num_data_points, ctx=self.ctx, dtype=self.float_type
-                    ),
+                    self.F.eye(num_data_points, dtype=self.float_type),
                 ),
             )
         # Warning: This method is more expensive than the iterative jitter
@@ -152,7 +143,6 @@ class GaussianProcess:
                 self.F,
                 kernel_matrix,
                 num_data_points,
-                self.ctx,
                 self.float_type,
                 self.diag_weight,
             )
@@ -161,7 +151,6 @@ class GaussianProcess:
                 self.F,
                 kernel_matrix,
                 num_data_points,
-                self.ctx,
                 self.float_type,
                 self.max_iter_jitter,
                 self.neg_tol,
@@ -310,7 +299,6 @@ class GaussianProcess:
             self.F,
             predictive_covariance,
             self.prediction_length,
-            self.ctx,
             self.float_type,
         )
         # If self.sample_noise = True, predictive covariance has sigma^2 on the diagonal

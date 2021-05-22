@@ -18,15 +18,15 @@ large files in GluonTS master.
 """
 import json
 import os
-import tarfile
 import shutil
+import tarfile
 from pathlib import Path
 from typing import NamedTuple, Optional
 from urllib import request
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 from gluonts.dataset.common import FileDataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 
 
 class GPCopulaDataset(NamedTuple):
@@ -84,7 +84,7 @@ datasets_info = {
         name="wiki-rolling_nips",
         # That file lives on GitHub Large file storage (lfs). We need to use
         # the exact link, otherwise it will only open the lfs pointer file.
-        url="https://github.com/mbohlkeschneider/gluon-ts/raw/650ad5ffe92d20e89d491966b6d8b4459e219be8/datasets/wiki-rolling_nips.tar.gz",
+        url="https://github.com/awslabs/gluon-ts/raw/1553651ca1fca63a16e012b8927bd9ce72b8e79e/datasets/wiki-rolling_nips.tar.gz",
         num_series=9535,
         prediction_length=30,
         freq="D",

@@ -11,23 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import math
 from pathlib import Path
 
-# First-party imports
+import pytest
+
 import gluonts
 from gluonts.core.component import equals
-from gluonts.core.serde import load_code, dump_code
+from gluonts.core.serde import dump_code, load_code
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.dataset.stat import (  # noqa
+from gluonts.dataset.stat import ScaleHistogram  # noqa
+from gluonts.dataset.stat import (
     DatasetStatistics,
-    ScaleHistogram,
     calculate_dataset_statistics,
 )
-from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import BacktestInformation, backtest_metrics
+from gluonts.evaluation import backtest_metrics, Evaluator
+from gluonts.evaluation.backtest import BacktestInformation
 from gluonts.model.trivial.mean import MeanEstimator
 
 root = logging.getLogger()
@@ -52,13 +52,15 @@ def test_forecast_parser():
     )
     assert repr(estimator) == repr(load_code(repr(estimator)))
 
+    predictor = estimator.train(training_data=train_ds)
+
     stats = calculate_dataset_statistics(train_ds)
     assert stats == eval(
         repr(stats), globals(), {"gluonts": gluonts}
     )  # TODO: use load
 
     evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-    agg_metrics, _ = backtest_metrics(train_ds, test_ds, estimator, evaluator)
+    agg_metrics, _ = backtest_metrics(test_ds, predictor, evaluator)
 
     # reset infinite metrics to 0 (otherwise the assertion below fails)
     for key, val in agg_metrics.items():
@@ -68,6 +70,7 @@ def test_forecast_parser():
     assert agg_metrics == load_code(dump_code(agg_metrics))
 
 
+@pytest.mark.skip()
 def test_benchmark(caplog):
     # makes sure that information logged can be reconstructed from previous
     # logs
@@ -78,8 +81,9 @@ def test_benchmark(caplog):
         estimator = make_estimator(
             dataset_info.metadata.freq, dataset_info.prediction_length
         )
+        predictor = estimator.train(training_data=train_ds)
         evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-        backtest_metrics(train_ds, test_ds, estimator, evaluator)
+        backtest_metrics(test_ds, predictor, evaluator)
         train_stats = calculate_dataset_statistics(train_ds)
         test_stats = calculate_dataset_statistics(test_ds)
 

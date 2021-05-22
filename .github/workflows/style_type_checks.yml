@@ -1,0 +1,24 @@
+name: Style and type checks
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        python -m pip install pip==20.2
+        pip install black mypy -c requirements/requirements-setup.txt
+    - name: Style and type checks
+      run: |
+        python setup.py style_check
+        python setup.py type_check
+    - name: Check license headers
+      run: python .devtools/license check src test

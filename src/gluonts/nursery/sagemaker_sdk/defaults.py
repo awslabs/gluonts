@@ -11,9 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from pathlib import Path
-
 
 # Default GluonTS version for when the framework version is not specified.
 # This is no longer updated so as to not break existing workflows.

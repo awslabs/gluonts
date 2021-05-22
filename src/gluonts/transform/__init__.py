@@ -14,6 +14,7 @@
 
 __all__ = [
     "AddAgeFeature",
+    "AddAggregateLags",
     "AddConstFeature",
     "AddObservedValuesIndicator",
     "AddTimeFeatures",
@@ -23,7 +24,12 @@ __all__ = [
     "CanonicalInstanceSplitter",
     "cdf_to_gaussian_forward_transform",
     "CDFtoGaussianTransform",
+    "Chain",
     "ConcatFeatures",
+    "ContinuousTimeInstanceSplitter",
+    "ContinuousTimePointSampler",
+    "ContinuousTimeUniformSampler",
+    "ContinuousTimePredictionSampler",
     "ExpandDimArray",
     "ExpectedNumInstanceSampler",
     "FilterTransformation",
@@ -44,72 +50,83 @@ __all__ = [
     "SwapAxes",
     "target_transformation_length",
     "TargetDimIndicator",
+    "TransformedDataset",
     "TestSplitSampler",
+    "ValidationSplitSampler",
     "Transformation",
     "UniformSplitSampler",
     "VstackFeatures",
+    "MissingValueImputation",
+    "LeavesMissingValues",
+    "DummyValueImputation",
+    "MeanValueImputation",
+    "LastValueImputation",
+    "CausalMeanValueImputation",
+    "RollingMeanValueImputation",
 ]
 
 from ._base import (
-    Transformation,
+    AdhocTransform,
     Chain,
+    FilterTransformation,
+    FlatMapTransformation,
     Identity,
     MapTransformation,
     SimpleTransformation,
-    AdhocTransform,
-    FlatMapTransformation,
-    FilterTransformation,
+    Transformation,
 )
-
 from .convert import (
     AsNumpyArray,
-    ExpandDimArray,
-    VstackFeatures,
-    ConcatFeatures,
-    SwapAxes,
-    ListFeatures,
-    TargetDimIndicator,
-    SampleTargetDim,
     CDFtoGaussianTransform,
+    ConcatFeatures,
+    ExpandDimArray,
+    ListFeatures,
+    SampleTargetDim,
+    SwapAxes,
+    TargetDimIndicator,
+    VstackFeatures,
     cdf_to_gaussian_forward_transform,
 )
-
 from .dataset import TransformedDataset
-
 from .feature import (
-    target_transformation_length,
-    AddObservedValuesIndicator,
-    AddConstFeature,
-    AddTimeFeatures,
     AddAgeFeature,
+    AddAggregateLags,
+    AddConstFeature,
+    AddObservedValuesIndicator,
+    AddTimeFeatures,
+    CausalMeanValueImputation,
+    DummyValueImputation,
+    LastValueImputation,
+    LeavesMissingValues,
+    MeanValueImputation,
+    MissingValueImputation,
+    RollingMeanValueImputation,
+    target_transformation_length,
 )
-
 from .field import (
     RemoveFields,
     RenameFields,
+    SelectFields,
     SetField,
     SetFieldIfNotPresent,
-    SelectFields,
 )
-
-
 from .sampler import (
-    InstanceSampler,
-    UniformSplitSampler,
-    TestSplitSampler,
-    ExpectedNumInstanceSampler,
     BucketInstanceSampler,
     ContinuousTimePointSampler,
     ContinuousTimeUniformSampler,
+    ContinuousTimePredictionSampler,
+    ExpectedNumInstanceSampler,
+    InstanceSampler,
+    TestSplitSampler,
+    ValidationSplitSampler,
+    UniformSplitSampler,
 )
-
 from .split import (
-    shift_timestamp,
-    InstanceSplitter,
     CanonicalInstanceSplitter,
     ContinuousTimeInstanceSplitter,
+    InstanceSplitter,
+    shift_timestamp,
 )
-
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:

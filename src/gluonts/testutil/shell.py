@@ -11,23 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import json
+import multiprocessing
 import socket
 import tempfile
 import time
+import typing
 from contextlib import closing, contextmanager
-from multiprocessing import Process
+from multiprocessing.context import ForkContext
 from pathlib import Path
-from typing import Any, ContextManager, Dict, Optional, Type, Iterable, List
+from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
 
 import requests
-
-# First-party imports
 from gluonts.dataset.common import DataEntry, serialize_data_entry
 from gluonts.dataset.repository.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor
-from gluonts.shell.sagemaker import ServeEnv, ServePaths, TrainEnv, TrainPaths
+from gluonts.shell.env import ServeEnv, TrainEnv
+from gluonts.shell.sagemaker import ServePaths, TrainPaths
 from gluonts.shell.sagemaker.params import encode_sagemaker_parameters
 from gluonts.shell.serve import Settings, make_gunicorn_app
 
@@ -86,8 +86,8 @@ class ServerFacade:
     def batch_invocations(
         self, data_entries: Iterable[DataEntry]
     ) -> List[dict]:
-        instances = map(serialize_data_entry, data_entries)
-        instances = list(map(json.dumps, instances))
+        instances_pre = map(serialize_data_entry, data_entries)
+        instances = list(map(json.dumps, instances_pre))
 
         response = requests.post(
             url=self.url("/invocations"), data="\n".join(instances)
@@ -121,10 +121,10 @@ def temporary_server(
     Parameters
     ----------
     env
-        The :class:`ServeEnv` to use in static inference mode.
+        The `ServeEnv` to use in static inference mode.
         Either `env` or `forecaster_type` must be set.
     forecaster_type
-        The :class:`Predictor` type to use in dynamic inference mode.
+        The `Predictor` type to use in dynamic inference mode.
         Either `env` or `forecaster_type` must be set.
     settings
         Settings to use when instantiating the Gunicorn server.
@@ -132,12 +132,14 @@ def temporary_server(
     Returns
     -------
     ContextManager[ServerFacade]
-        A context manager that yields the :class:`InferenceServer` instance
+        A context manager that yields the `InferenceServer` instance
         wrapping the spawned inference server.
     """
+    context = multiprocessing.get_context("fork")
+    context = typing.cast(ForkContext, context)  # cast to make mypi pass
 
     gunicorn_app = make_gunicorn_app(env, forecaster_type, settings)
-    process = Process(target=gunicorn_app.run)
+    process = context.Process(target=gunicorn_app.run)
     process.start()
 
     endpoint = ServerFacade(
@@ -176,7 +178,7 @@ def temporary_train_env(
     Parameters
     ----------
     hyperparameters
-        The name of the repository dataset to use when instantiating the
+        The hyperparameters to use when instantiating the
         training environment.
     dataset_name
         The name of the repository dataset to use when instantiating the
@@ -184,8 +186,8 @@ def temporary_train_env(
 
     Returns
     -------
-    ContextManager[TrainEnv]
-        A context manager that yields the :class:`TrainEnv` instance.
+    ContextManager[gluonts.shell.env.TrainEnv]
+        A context manager that yields the `TrainEnv` instance.
     """
 
     with tempfile.TemporaryDirectory(prefix="gluonts-train-env") as base:
@@ -216,18 +218,18 @@ def temporary_train_env(
 def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
     """
     A context manager that instantiates a serve environment for a given
-    :class:`Predictor` in a temporary directory and removes the directory on
+    `Predictor` in a temporary directory and removes the directory on
     exit.
 
     Parameters
     ----------
     predictor
-        A predictor to serialize in :class:`ServeEnv` `model` folder.
+        A predictor to serialize in `ServeEnv` `model` folder.
 
     Returns
     -------
-    ContextManager[TrainEnv]
-        A context manager that yields the :class:`ServeEnv` instance.
+    ContextManager[gluonts.shell.env.ServeEnv]
+        A context manager that yields the `ServeEnv` instance.
     """
 
     with tempfile.TemporaryDirectory(prefix="gluonts-serve-env") as base:

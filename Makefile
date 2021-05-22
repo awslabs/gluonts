@@ -30,7 +30,7 @@ lint:
 
 docs: release
 	make -C docs html SPHINXOPTS=-W
-	for f in $(shell find docs/examples -type f -name '*.md' -print) ; do \
+	for f in $(shell find docs/tutorials -type f -name '*.md' -print) ; do \
 		FILE=`echo $$f | sed 's/docs\///g'` ; \
 		DIR=`dirname $$FILE` ; \
 		BASENAME=`basename $$FILE` ; \
@@ -46,17 +46,18 @@ clean:
 	git clean -ff -d -x --exclude="$(ROOTDIR)/tests/externaldata/*" --exclude="$(ROOTDIR)/tests/data/*" --exclude="$(ROOTDIR)/conda/"
 
 compile_notebooks:
-	for f in $(shell find docs/examples -type f -name '*.md' -print) ; do \
+	for f in $(shell find docs/tutorials -type f -name '*.md' -print) ; do \
 		DIR=`dirname $$f` ; \
 		BASENAME=`basename $$f` ; \
 		echo $$DIR $$BASENAME ; \
 		cd $$DIR ; \
 		python $(MD2IPYNB) $$BASENAME ; \
+		if [ $$? -ne 0 ] ; then echo "the following notebook raised an error:" $$BASENAME ; exit 1 ; fi ; \
 		cd - ; \
 	done;
 
 dist_notebooks: compile_notebooks
-	cd docs/examples && \
+	cd docs/tutorials && \
 	find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip --no-dir-entries -r {}.zip {} -x "*.md" -x "__pycache__" -x "*.pyc" -x "*.txt" -x "*.log" -x "*.params" -x "*.npz" -x "*.json"
 
 release: dist_notebooks

@@ -12,22 +12,22 @@
 # permissions and limitations under the License.
 
 
-# Standard library imports
-from pathlib import Path
 import argparse
-import os
 import json
 import logging
+import os
+from pathlib import Path
 
-# Third-party imports
-
-# First-party imports
 from gluonts.core import serde
 from gluonts.dataset import common
 from gluonts.dataset.repository import datasets
 from gluonts.evaluation import Evaluator, backtest
 
-# Logging: print logs analogously to Sagemaker.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s %(message)s",
+    datefmt="[%Y-%m-%d %H:%M:%S]",
+)
 logger = logging.getLogger(__name__)
 
 # TODO: implement model_fn, input_fn, predict_fn, and output_fn !!
@@ -69,7 +69,7 @@ def train(arguments):
     evaluator = Evaluator(quantiles=eval(arguments.quantiles))
 
     agg_metrics, item_metrics = evaluator(
-        ts_it, forecast_it, num_series=len(dataset.test)
+        ts_it, forecast_it, num_series=len(list(dataset.test))
     )
 
     # required for metric tracking.

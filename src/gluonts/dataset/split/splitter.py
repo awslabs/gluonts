@@ -41,20 +41,18 @@ The module also supports rolling splits::
     train, test = splitter.rolling_split(whole_dataset, windows=7)
 """
 
-# Standard library imports
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-# Third-party imports
 import pandas as pd
 import pydantic
 
-# First-party imports
-from gluonts.dataset.common import TimeSeriesItem
+from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 
 
 class TimeSeriesSlice(pydantic.BaseModel):
-    """Like TimeSeriesItem, but all time-related fields are of type pd.Series
+    """Like DataEntry, but all time-related fields are of type pd.Series
     and is indexable, e.g `ts_slice['2018':]`.
     """
 
@@ -71,43 +69,60 @@ class TimeSeriesSlice(pydantic.BaseModel):
     feat_dynamic_real: List[pd.Series] = []
 
     @classmethod
-    def from_time_series_item(
-        cls, item: TimeSeriesItem, freq: Optional[str] = None
+    def from_data_entry(
+        cls, item: DataEntry, freq: Optional[str] = None
     ) -> "TimeSeriesSlice":
         if freq is None:
-            freq = item.start.freq
+            freq = item["start"].freq
 
         index = pd.date_range(
-            start=item.start, freq=freq, periods=len(item.target)
+            start=item["start"], freq=freq, periods=len(item["target"])
         )
 
         feat_dynamic_cat = [
-            pd.Series(cat, index=index) for cat in item.feat_dynamic_cat
+            pd.Series(cat, index=index)
+            for cat in list(item.get("feat_dynamic_cat", []))
         ]
 
         feat_dynamic_real = [
-            pd.Series(real, index=index) for real in item.feat_dynamic_real
+            pd.Series(real, index=index)
+            for real in list(item.get("feat_dynamic_real", []))
         ]
 
+        feat_static_cat = list(item.get("feat_static_cat", []))
+
+        feat_static_real = list(item.get("feat_static_real", []))
+
         return TimeSeriesSlice(
-            target=pd.Series(item.target, index=index),
-            item=item.item,
-            feat_static_cat=item.feat_static_cat,
-            feat_static_real=item.feat_static_real,
+            target=pd.Series(item["target"], index=index),
+            item=item[FieldName.ITEM_ID],
+            feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             feat_dynamic_cat=feat_dynamic_cat,
             feat_dynamic_real=feat_dynamic_real,
         )
 
-    def to_time_series_item(self) -> TimeSeriesItem:
-        return TimeSeriesItem(
-            start=self.start,
-            target=self.target.values,
-            item=self.item,
-            feat_static_cat=self.feat_static_cat,
-            feat_static_real=self.feat_static_real,
-            feat_dynamic_cat=[cat.values for cat in self.feat_dynamic_cat],
-            feat_dynamic_real=[real.values for real in self.feat_dynamic_real],
-        )
+    def to_data_entry(self) -> DataEntry:
+        ret = {
+            FieldName.START: self.start,
+            FieldName.ITEM_ID: self.item,
+            FieldName.TARGET: self.target.values,
+        }
+
+        if self.feat_static_cat:
+            ret[FieldName.FEAT_STATIC_CAT] = self.feat_static_cat
+        if self.feat_static_real:
+            ret[FieldName.FEAT_STATIC_REAL] = self.feat_static_real
+        if self.feat_dynamic_cat:
+            ret[FieldName.FEAT_DYNAMIC_CAT] = [
+                cat.values.tolist() for cat in self.feat_dynamic_cat
+            ]
+        if self.feat_dynamic_real:
+            ret[FieldName.FEAT_DYNAMIC_REAL] = [
+                real.values.tolist() for real in self.feat_dynamic_real
+            ]
+
+        return ret
 
     @property
     def start(self):
@@ -125,14 +140,21 @@ class TimeSeriesSlice(pydantic.BaseModel):
         feat_dynamic_cat = None
 
         if self.feat_dynamic_real is not None:
-            feat_dynamic_real = [feat for feat in self.feat_dynamic_real]
+            feat_dynamic_real = [
+                feat[slice_] for feat in self.feat_dynamic_real
+            ]
 
         if self.feat_dynamic_cat is not None:
-            feat_dynamic_cat = [feat for feat in self.feat_dynamic_cat]
+            feat_dynamic_cat = [feat[slice_] for feat in self.feat_dynamic_cat]
+
+        target = self.target[slice_]
+
+        assert all([len(target) == len(feat) for feat in feat_dynamic_real])
+        assert all([len(target) == len(feat) for feat in feat_dynamic_cat])
 
         return TimeSeriesSlice(
+            target=target,
             item=self.item,
-            target=self.target[slice_],
             feat_dynamic_cat=feat_dynamic_cat,
             feat_dynamic_real=feat_dynamic_real,
             feat_static_cat=self.feat_static_cat,
@@ -141,16 +163,16 @@ class TimeSeriesSlice(pydantic.BaseModel):
 
 
 class TrainTestSplit(pydantic.BaseModel):
-    train: List[TimeSeriesItem] = []
-    test: List[TimeSeriesItem] = []
+    train: List[DataEntry] = []
+    test: List[DataEntry] = []
 
     def _add_train_slice(self, train_slice: TimeSeriesSlice) -> None:
         # is there any data left for training?
         if train_slice:
-            self.train.append(train_slice.to_time_series_item())
+            self.train.append(train_slice.to_data_entry())
 
     def _add_test_slice(self, test_slice: TimeSeriesSlice) -> None:
-        self.test.append(test_slice.to_time_series_item())
+        self.test.append(test_slice.to_data_entry())
 
 
 class AbstractBaseSplitter(ABC):
@@ -162,7 +184,7 @@ class AbstractBaseSplitter(ABC):
 
         max_history:
             If given, all entries in the *test*-set have a max-length of
-            `max_history`. This can be sued to produce smaller file-sizes.
+            `max_history`. This can be used to produce smaller file-sizes.
     """
 
     # @property
@@ -187,27 +209,31 @@ class AbstractBaseSplitter(ABC):
 
     def _trim_history(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
         if getattr(self, "max_history") is not None:
-            return item[: -getattr(self, "max_history")]
+            return item[-getattr(self, "max_history") :]
         else:
             return item
 
-    def split(self, items: List[TimeSeriesItem]) -> TrainTestSplit:
+    def split(self, items: List[DataEntry]) -> TrainTestSplit:
         split = TrainTestSplit()
 
-        for item in map(TimeSeriesSlice.from_time_series_item, items):
+        for item in map(TimeSeriesSlice.from_data_entry, items):
+
             train = self._train_slice(item)
             test = self._trim_history(self._test_slice(item))
 
             split._add_train_slice(train)
 
-            assert len(test) - len(train) >= getattr(self, "prediction_length")
+            prediction_length = getattr(self, "prediction_length")
+
+            assert train.end + train.end.freq * prediction_length <= test.end
+
             split._add_test_slice(test)
 
         return split
 
     def rolling_split(
         self,
-        items: List[TimeSeriesItem],
+        items: List[DataEntry],
         windows: int,
         distance: Optional[int] = None,
     ) -> TrainTestSplit:
@@ -218,7 +244,7 @@ class AbstractBaseSplitter(ABC):
 
         split = TrainTestSplit()
 
-        for item in map(TimeSeriesSlice.from_time_series_item, items):
+        for item in map(TimeSeriesSlice.from_data_entry, items):
             train = self._train_slice(item)
             split._add_train_slice(train)
 
@@ -227,8 +253,11 @@ class AbstractBaseSplitter(ABC):
                 test = self._trim_history(
                     self._test_slice(item, offset=offset)
                 )
+                prediction_length = getattr(self, "prediction_length")
 
-                assert len(test) - len(train) >= getattr(self, "max_history")
+                assert (
+                    train.end + train.end.freq * prediction_length <= test.end
+                )
                 split._add_test_slice(test)
 
         return split
@@ -264,4 +293,8 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
     def _test_slice(
         self, item: TimeSeriesSlice, offset: int = 0
     ) -> TimeSeriesSlice:
-        return item[: self.split_date + self.prediction_length + offset]
+        freq = item.start.freqstr
+        return item[
+            : self.split_date
+            + pd.Timedelta(self.prediction_length + offset, unit=freq)
+        ]

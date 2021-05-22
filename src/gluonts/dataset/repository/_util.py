@@ -14,7 +14,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -56,7 +56,9 @@ def save_to_file(path: Path, data: List[Dict]):
             fp.write("\n".encode("utf-8"))
 
 
-def metadata(cardinality: int, freq: str, prediction_length: int):
+def metadata(
+    cardinality: Union[int, List[int]], freq: str, prediction_length: int
+):
     return {
         "freq": freq,
         "prediction_length": prediction_length,

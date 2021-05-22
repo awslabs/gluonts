@@ -11,24 +11,24 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Tuple
 
-# Third-party imports
+import numpy as np
+import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.distribution.distribution import getF
-from gluonts.model.common import Tensor
-from gluonts.support.util import _broadcast_param
+from gluonts.mx import Tensor
+from gluonts.mx.distribution.distribution import getF
+from gluonts.mx.util import _broadcast_param
 from gluonts.time_feature import (
+    DayOfWeekIndex,
+    HourOfDayIndex,
+    MinuteOfHourIndex,
+    MonthOfYearIndex,
     TimeFeature,
-    MinuteOfHour,
-    HourOfDay,
-    DayOfWeek,
-    WeekOfYear,
-    MonthOfYear,
+    WeekOfYearIndex,
+    norm_freq_str,
 )
 
 
@@ -92,6 +92,15 @@ def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
     return _block_diagonal
 
 
+class ZeroFeature(TimeFeature):
+    """
+    A feature that is identically zero.
+    """
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return np.zeros(index.values.shape)
+
+
 class ISSM:
     r"""
     An abstract class for providing the basic structure of Innovation State Space Model (ISSM).
@@ -99,7 +108,7 @@ class ISSM:
     The structure of ISSM is given by
 
         * dimension of the latent state
-        * transition and emission coefficents of the transition model
+        * transition and innovation coefficients of the transition model
         * emission coefficient of the observation model
 
     """
@@ -109,27 +118,30 @@ class ISSM:
         pass
 
     def latent_dim(self) -> int:
-        raise NotImplemented()
+        raise NotImplementedError
 
     def output_dim(self) -> int:
-        raise NotImplemented()
+        raise NotImplementedError
 
-    def emission_coeff(self, seasonal_indicators: Tensor):
-        raise NotImplemented()
+    def time_features(self) -> List[TimeFeature]:
+        raise NotImplementedError
 
-    def transition_coeff(self, seasonal_indicators: Tensor):
-        raise NotImplemented()
+    def emission_coeff(self, features: Tensor) -> Tensor:
+        raise NotImplementedError
 
-    def innovation_coeff(self, seasonal_indicators: Tensor):
-        raise NotImplemented()
+    def transition_coeff(self, features: Tensor) -> Tensor:
+        raise NotImplementedError
+
+    def innovation_coeff(self, features: Tensor) -> Tensor:
+        raise NotImplementedError
 
     def get_issm_coeff(
-        self, seasonal_indicators: Tensor
+        self, features: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         return (
-            self.emission_coeff(seasonal_indicators),
-            self.transition_coeff(seasonal_indicators),
-            self.innovation_coeff(seasonal_indicators),
+            self.emission_coeff(features),
+            self.transition_coeff(features),
+            self.innovation_coeff(features),
         )
 
 
@@ -140,20 +152,19 @@ class LevelISSM(ISSM):
     def output_dim(self) -> int:
         return 1
 
+    def time_features(self) -> List[TimeFeature]:
+        return [ZeroFeature()]
+
     def emission_coeff(
-        self, seasonal_indicators: Tensor  # (batch_size, time_length)
+        self, feature: Tensor  # (batch_size, time_length, 1)
     ) -> Tensor:
-        F = getF(seasonal_indicators)
+        F = getF(feature)
 
         _emission_coeff = F.ones(shape=(1, 1, 1, self.latent_dim()))
 
-        # get the right shape: (batch_size, seq_length, obs_dim, latent_dim)
+        # get the right shape: (batch_size, time_length, obs_dim, latent_dim)
         zeros = _broadcast_param(
-            F.zeros_like(
-                seasonal_indicators.slice_axis(
-                    axis=-1, begin=0, end=1
-                ).squeeze(axis=-1)
-            ),
+            feature.squeeze(axis=2),
             axes=[2, 3],
             sizes=[1, self.latent_dim()],
         )
@@ -161,21 +172,17 @@ class LevelISSM(ISSM):
         return _emission_coeff.broadcast_like(zeros)
 
     def transition_coeff(
-        self, seasonal_indicators: Tensor  # (batch_size, time_length)
+        self, feature: Tensor  # (batch_size, time_length, 1)
     ) -> Tensor:
-        F = getF(seasonal_indicators)
+        F = getF(feature)
 
         _transition_coeff = (
             F.eye(self.latent_dim()).expand_dims(axis=0).expand_dims(axis=0)
         )
 
-        # get the right shape: (batch_size, seq_length, latent_dim, latent_dim)
+        # get the right shape: (batch_size, time_length, latent_dim, latent_dim)
         zeros = _broadcast_param(
-            F.zeros_like(
-                seasonal_indicators.slice_axis(
-                    axis=-1, begin=0, end=1
-                ).squeeze(axis=-1)
-            ),
+            feature.squeeze(axis=2),
             axes=[2, 3],
             sizes=[self.latent_dim(), self.latent_dim()],
         )
@@ -183,9 +190,9 @@ class LevelISSM(ISSM):
         return _transition_coeff.broadcast_like(zeros)
 
     def innovation_coeff(
-        self, seasonal_indicators: Tensor  # (batch_size, time_length)
+        self, feature: Tensor  # (batch_size, time_length, 1)
     ) -> Tensor:
-        return self.emission_coeff(seasonal_indicators).squeeze(axis=2)
+        return self.emission_coeff(feature).squeeze(axis=2)
 
 
 class LevelTrendISSM(LevelISSM):
@@ -195,10 +202,13 @@ class LevelTrendISSM(LevelISSM):
     def output_dim(self) -> int:
         return 1
 
+    def time_features(self) -> List[TimeFeature]:
+        return [ZeroFeature()]
+
     def transition_coeff(
-        self, seasonal_indicators: Tensor  # (batch_size, time_length)
+        self, feature: Tensor  # (batch_size, time_length, 1)
     ) -> Tensor:
-        F = getF(seasonal_indicators)
+        F = getF(feature)
 
         _transition_coeff = (
             (F.diag(F.ones(shape=(2,)), k=0) + F.diag(F.ones(shape=(1,)), k=1))
@@ -206,13 +216,9 @@ class LevelTrendISSM(LevelISSM):
             .expand_dims(axis=0)
         )
 
-        # get the right shape: (batch_size, seq_length, latent_dim, latent_dim)
+        # get the right shape: (batch_size, time_length, latent_dim, latent_dim)
         zeros = _broadcast_param(
-            F.zeros_like(
-                seasonal_indicators.slice_axis(
-                    axis=-1, begin=0, end=1
-                ).squeeze(axis=-1)
-            ),
+            feature.squeeze(axis=2),
             axes=[2, 3],
             sizes=[self.latent_dim(), self.latent_dim()],
         )
@@ -226,9 +232,10 @@ class SeasonalityISSM(LevelISSM):
     """
 
     @validated()
-    def __init__(self, num_seasons: int) -> None:
+    def __init__(self, num_seasons: int, time_feature: TimeFeature) -> None:
         super(SeasonalityISSM, self).__init__()
         self.num_seasons = num_seasons
+        self.time_feature = time_feature
 
     def latent_dim(self) -> int:
         return self.num_seasons
@@ -236,16 +243,36 @@ class SeasonalityISSM(LevelISSM):
     def output_dim(self) -> int:
         return 1
 
-    def emission_coeff(self, seasonal_indicators: Tensor) -> Tensor:
-        F = getF(seasonal_indicators)
-        return F.one_hot(seasonal_indicators, depth=self.latent_dim())
+    def time_features(self) -> List[TimeFeature]:
+        return [self.time_feature]
 
-    def innovation_coeff(self, seasonal_indicators: Tensor) -> Tensor:
-        F = getF(seasonal_indicators)
-        # seasonal_indicators = F.modulo(seasonal_indicators - 1, self.latent_dim)
-        return F.one_hot(seasonal_indicators, depth=self.latent_dim()).squeeze(
-            axis=2
-        )
+    def emission_coeff(self, feature: Tensor) -> Tensor:
+        F = getF(feature)
+        return F.one_hot(feature, depth=self.latent_dim())
+
+    def innovation_coeff(self, feature: Tensor) -> Tensor:
+        F = getF(feature)
+        return F.one_hot(feature, depth=self.latent_dim()).squeeze(axis=2)
+
+
+def MonthOfYearSeasonalISSM():
+    return SeasonalityISSM(num_seasons=12, time_feature=MonthOfYearIndex())
+
+
+def WeekOfYearSeasonalISSM():
+    return SeasonalityISSM(num_seasons=53, time_feature=WeekOfYearIndex())
+
+
+def DayOfWeekSeasonalISSM():
+    return SeasonalityISSM(num_seasons=7, time_feature=DayOfWeekIndex())
+
+
+def HourOfDaySeasonalISSM():
+    return SeasonalityISSM(num_seasons=24, time_feature=HourOfDayIndex())
+
+
+def MinuteOfHourSeasonalISSM():
+    return SeasonalityISSM(num_seasons=60, time_feature=MinuteOfHourIndex())
 
 
 class CompositeISSM(ISSM):
@@ -272,6 +299,12 @@ class CompositeISSM(ISSM):
     def output_dim(self) -> int:
         return self.nonseasonal_issm.output_dim()
 
+    def time_features(self) -> List[TimeFeature]:
+        ans = self.nonseasonal_issm.time_features()
+        for issm in self.seasonal_issms:
+            ans.extend(issm.time_features())
+        return ans
+
     @classmethod
     def get_from_freq(cls, freq: str, add_trend: bool = DEFAULT_ADD_TREND):
         offset = to_offset(freq)
@@ -279,72 +312,40 @@ class CompositeISSM(ISSM):
         seasonal_issms: List[SeasonalityISSM] = []
 
         if offset.name == "M":
-            seasonal_issms = [
-                SeasonalityISSM(num_seasons=12)  # month-of-year seasonality
-            ]
-        elif offset.name == "W-SUN":
-            seasonal_issms = [
-                SeasonalityISSM(num_seasons=53)  # week-of-year seasonality
-            ]
+            seasonal_issms = [MonthOfYearSeasonalISSM()]
+        elif norm_freq_str(offset.name) == "W":
+            seasonal_issms = [WeekOfYearSeasonalISSM()]
         elif offset.name == "D":
-            seasonal_issms = [
-                SeasonalityISSM(num_seasons=7)  # day-of-week seasonality
-            ]
+            seasonal_issms = [DayOfWeekSeasonalISSM()]
         elif offset.name == "B":  # TODO: check this case
-            seasonal_issms = [
-                SeasonalityISSM(num_seasons=7)  # day-of-week seasonality
-            ]
+            seasonal_issms = [DayOfWeekSeasonalISSM()]
         elif offset.name == "H":
             seasonal_issms = [
-                SeasonalityISSM(num_seasons=24),  # hour-of-day seasonality
-                SeasonalityISSM(num_seasons=7),  # day-of-week seasonality
+                HourOfDaySeasonalISSM(),
+                DayOfWeekSeasonalISSM(),
             ]
         elif offset.name == "T":
             seasonal_issms = [
-                SeasonalityISSM(num_seasons=60),  # minute-of-hour seasonality
-                SeasonalityISSM(num_seasons=24),  # hour-of-day seasonality
+                MinuteOfHourSeasonalISSM(),
+                HourOfDaySeasonalISSM(),
             ]
         else:
             RuntimeError(f"Unsupported frequency {offset.name}")
 
         return cls(seasonal_issms=seasonal_issms, add_trend=add_trend)
 
-    @classmethod
-    def seasonal_features(cls, freq: str) -> List[TimeFeature]:
-        offset = to_offset(freq)
-        if offset.name == "M":
-            return [MonthOfYear(normalized=False)]
-        elif offset.name == "W-SUN":
-            return [WeekOfYear(normalized=False)]
-        elif offset.name == "D":
-            return [DayOfWeek(normalized=False)]
-        elif offset.name == "B":  # TODO: check this case
-            return [DayOfWeek(normalized=False)]
-        elif offset.name == "H":
-            return [HourOfDay(normalized=False), DayOfWeek(normalized=False)]
-        elif offset.name == "T":
-            return [
-                MinuteOfHour(normalized=False),
-                HourOfDay(normalized=False),
-            ]
-        else:
-            RuntimeError(f"Unsupported frequency {offset.name}")
-
-        return []
-
     def get_issm_coeff(
-        self, seasonal_indicators: Tensor  # (batch_size, time_length)
+        self, features: Tensor  # (batch_size, time_length, num_features)
     ) -> Tuple[Tensor, Tensor, Tensor]:
-        F = getF(seasonal_indicators)
+        F = getF(features)
         emission_coeff_ls, transition_coeff_ls, innovation_coeff_ls = zip(
-            self.nonseasonal_issm.get_issm_coeff(seasonal_indicators),
             *[
                 issm.get_issm_coeff(
-                    seasonal_indicators.slice_axis(
-                        axis=-1, begin=ix, end=ix + 1
-                    )
+                    features.slice_axis(axis=-1, begin=ix, end=ix + 1)
                 )
-                for ix, issm in enumerate(self.seasonal_issms)
+                for ix, issm in enumerate(
+                    [self.nonseasonal_issm] + self.seasonal_issms
+                )
             ],
         )
 

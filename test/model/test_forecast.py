@@ -11,20 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
+import mxnet as mx
+
 import numpy as np
 import pandas as pd
 import pytest
-import mxnet as mx
 
-# First-party imports
 from gluonts.model.forecast import (
     QuantileForecast,
     SampleForecast,
-    DistributionForecast,
 )
-
-from gluonts.distribution import Uniform
+from gluonts.mx.distribution import Uniform
+from gluonts.mx.model.forecast import DistributionForecast
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
@@ -94,3 +92,40 @@ def test_DistributionForecast():
     assert forecast.prediction_length == pred_length
     assert len(forecast.index) == pred_length
     assert forecast.index[0] == pd.Timestamp(START_DATE)
+
+
+@pytest.mark.parametrize(
+    "forecast, exp_index",
+    [
+        (
+            SampleForecast(
+                samples=np.random.normal(size=(100, 7, 3)),
+                start_date=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="1D",
+            ),
+            pd.date_range(
+                start=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="1D",
+                periods=7,
+            ),
+        ),
+        (
+            DistributionForecast(
+                Uniform(
+                    low=mx.nd.zeros(shape=(5, 2)),
+                    high=mx.nd.ones(shape=(5, 2)),
+                ),
+                start_date=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="W",
+            ),
+            pd.date_range(
+                start=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="W",
+                periods=5,
+            ),
+        ),
+    ],
+)
+def test_forecast_multivariate(forecast, exp_index):
+    assert forecast.prediction_length == len(exp_index)
+    assert np.all(forecast.index == exp_index)

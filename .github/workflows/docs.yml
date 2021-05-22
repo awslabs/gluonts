@@ -1,4 +1,4 @@
-name: Doc Build
+name: Docs
 
 on: [push, pull_request]
 
@@ -8,23 +8,47 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python 3.6
+
+    - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
-        python-version: 3.6
+        python-version: 3.7
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install pip==20.2
         pip install -r requirements/requirements-mxnet.txt
+        pip install -r requirements/requirements-pytorch.txt
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-docs.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
+        pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-rotbaum.txt
+        pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
 
-    - name: Build docs
+    - name: Install Pandoc
       run: |
-        make -C docs html SPHINXOPTS=-W
+        sudo apt-get install pandoc
+
     - name: Doctests
       run: |
         pytest --doctest-modules src/gluonts
+
+    - name: Build docs
+      run: |
+        make docs
+
+    - name: Configure AWS Credentials
+      if: ${{ github.event_name == 'push' }}
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.DOCS_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.DOCS_AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Publish docs
+      if: ${{ github.event_name == 'push' }}
+      run: |
+        aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --acl public-read

@@ -11,17 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import List
+from typing import List, Tuple
 
-# Third-party imports
 import mxnet as mx
 
-# First-party imports
-from gluonts.block.scaler import MeanScaler, NOPScaler
 from gluonts.core.component import validated
-from gluonts.distribution import Distribution, DistributionOutput
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
+from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.util import weighted_average
 
 
 class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
@@ -92,10 +90,13 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             )
             self.scaler = MeanScaler() if mean_scaling else NOPScaler()
 
-    def get_distr(self, F, past_target: Tensor) -> Distribution:
+    def get_distr_args(
+        self, F, past_target: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Given past target values, applies the feed-forward network and
-        maps the output to a probability distribution for future observations.
+        maps the output to the parameter of probability distribution for
+        future observations.
 
         Parameters
         ----------
@@ -106,26 +107,32 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
 
         Returns
         -------
-        Distribution
-            The predicted probability distribution for future observations.
+        Tensor
+            The parameters of distribution.
+        Tensor
+            An array containing the location (shift) of the distribution.
+        Tensor
+            An array containing the scale of the distribution.
         """
-
-        # (batch_size, seq_len, target_dim) and (batch_size, seq_len, target_dim)
         scaled_target, target_scale = self.scaler(
             past_target,
-            F.ones_like(past_target),  # TODO: pass the actual observed here
+            F.ones_like(past_target),
         )
         mlp_outputs = self.mlp(scaled_target)
         distr_args = self.distr_args_proj(mlp_outputs)
-        return self.distr_output.distribution(
-            distr_args, scale=target_scale.expand_dims(axis=1)
-        )
+        scale = target_scale.expand_dims(axis=1)
+        loc = F.zeros_like(scale)
+        return distr_args, loc, scale
 
 
 class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
-        self, F, past_target: Tensor, future_target: Tensor
+        self,
+        F,
+        past_target: Tensor,
+        future_target: Tensor,
+        future_observed_values: Tensor,
     ) -> Tensor:
         """
         Computes a probability distribution for future data given the past,
@@ -140,22 +147,32 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         future_target
             Tensor with future observations.
             Shape: (batch_size, prediction_length, target_dim).
+        future_observed_values
+            Tensor indicating which values in the target are observed, and
+            which ones are imputed instead.
 
         Returns
         -------
         Tensor
             Loss tensor. Shape: (batch_size, ).
         """
-        distr = self.get_distr(F, past_target)
+        distr_args, loc, scale = self.get_distr_args(F, past_target)
+        distr = self.distr_output.distribution(
+            distr_args, loc=loc, scale=scale
+        )
 
         # (batch_size, prediction_length, target_dim)
         loss = distr.loss(future_target)
 
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=future_observed_values, axis=1
+        )
+
         # (batch_size, )
-        return loss.mean(axis=1)
+        return weighted_loss
 
 
-class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
+class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
     @validated()
     def __init__(
         self, num_parallel_samples: int = 100, *args, **kwargs
@@ -181,10 +198,48 @@ class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
         Tensor
             Prediction sample. Shape: (batch_size, samples, prediction_length).
         """
-        distr = self.get_distr(F, past_target)
+
+        distr_args, loc, scale = self.get_distr_args(F, past_target)
+        distr = self.distr_output.distribution(
+            distr_args, loc=loc, scale=scale
+        )
 
         # (num_samples, batch_size, prediction_length)
         samples = distr.sample(self.num_parallel_samples)
 
         # (batch_size, num_samples, prediction_length)
         return samples.swapaxes(0, 1)
+
+
+class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
+    @validated()
+    def __init__(
+        self, num_parallel_samples: int = 100, *args, **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.num_parallel_samples = num_parallel_samples
+
+    # noinspection PyMethodOverriding,PyPep8Naming
+    def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
+        """
+        Computes the parameters of distribution for future data given the past,
+        and draws samples from it.
+
+        Parameters
+        ----------
+        F
+        past_target
+            Tensor with past observations.
+            Shape: (batch_size, context_length, target_dim).
+
+        Returns
+        -------
+        Tensor
+            The parameters of distribution.
+        Tensor
+            An array containing the location (shift) of the distribution.
+        Tensor
+            An array containing the scale of the distribution.
+        """
+        distr_args, loc, scale = self.get_distr_args(F, past_target)
+        return distr_args, loc, scale

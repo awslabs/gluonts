@@ -2,12 +2,11 @@
 import math
 
 # First-party imports
-from gluonts.kernels import RBFKernel
+from gluonts.mx.kernels import RBFKernel
 from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
 
 # Third-party imports
 import mxnet.ndarray as nd
-import mxnet as mx
 import numpy as np
 
 
@@ -23,7 +22,6 @@ def main():
     context_length = 5
     axis = [-5, 5, -3, 3]
     float_type = np.float64
-    ctx = mx.Context("gpu")
 
     num_samples = 3
     ts_idx = 0
@@ -32,13 +30,11 @@ def main():
     lb = -5
     ub = 5
     dx = (ub - lb) / (prediction_length - 1)
-    x_test = nd.arange(lb, ub + dx, dx, ctx=ctx, dtype=float_type).reshape(
-        -1, 1
-    )
+    x_test = nd.arange(lb, ub + dx, dx, dtype=float_type).reshape(-1, 1)
     x_test = nd.tile(x_test, reps=(batch_size, 1, 1))
 
     # Define the GP hyper parameters
-    amplitude = nd.ones((batch_size, 1, 1), ctx=ctx, dtype=float_type)
+    amplitude = nd.ones((batch_size, 1, 1), dtype=float_type)
     length_scale = math.sqrt(0.4) * nd.ones_like(amplitude)
     sigma = math.sqrt(1e-5) * nd.ones_like(amplitude)
 
@@ -52,16 +48,15 @@ def main():
         prediction_length=prediction_length,
         context_length=context_length,
         num_samples=num_samples,
-        ctx=ctx,
         float_type=float_type,
         sample_noise=False,  # Returns sample without noise
     )
-    mean = nd.zeros((batch_size, prediction_length), ctx=ctx, dtype=float_type)
+    mean = nd.zeros((batch_size, prediction_length), dtype=float_type)
     covariance = rbf_kernel.kernel_matrix(x_test, x_test)
     gp.plot(x_test=x_test, samples=gp.sample(mean, covariance), ts_idx=ts_idx)
 
     # Generate training set on subset of interval using the sine function
-    x_train = nd.array([-4, -3, -2, -1, 1], ctx=ctx, dtype=float_type).reshape(
+    x_train = nd.array([-4, -3, -2, -1, 1], dtype=float_type).reshape(
         context_length, 1
     )
     x_train = nd.tile(x_train, reps=(batch_size, 1, 1))

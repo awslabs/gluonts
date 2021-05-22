@@ -14,7 +14,8 @@ your own models and quickly experiment with different solutions.
 
 * [Documentation (stable version)][stable docs url]
 * [Documentation (latest)][latest docs url]
-* [Paper](https://arxiv.org/abs/1906.05264)
+* [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
+* [ArXiv Paper](https://arxiv.org/abs/1906.05264)
 
 [stable docs url]: https://gluon-ts.mxnet.io/
 [latest docs url]: https://gluon-ts.s3-accelerate.dualstack.amazonaws.com/master/index.html
@@ -25,8 +26,12 @@ GluonTS requires Python 3.6, and the easiest
 way to install it is via `pip`:
 
 ```bash
-pip install --upgrade mxnet==1.4.1 gluonts
+pip install --upgrade mxnet~=1.7 gluonts
 ```
+
+## Dockerfiles
+
+Dockerfiles compatible with Amazon Sagemaker can be found in the [examples/dockerfiles](https://github.com/awslabs/gluon-ts/tree/master/examples/dockerfiles) folder.
 
 ## Quick start guide
 
@@ -78,7 +83,7 @@ We also specify some minimal training options.
 
 ```python
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.trainer import Trainer
+from gluonts.mx.trainer import Trainer
 
 estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
 predictor = estimator.train(training_data=training_data)
@@ -116,8 +121,8 @@ centered around the median (dark green line).
 The following are good entry-points to understand how to use
 many features of GluonTS:
 
-* [Quick Start Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/basic_forecasting_tutorial/tutorial.md): a quick start guide.
-* [Extended Forecasting Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/extended_forecasting_tutorial/extended_tutorial.md): a detailed tutorial on forecasting.
+* [Quick Start Tutorial](https://gluon-ts.mxnet.io/examples/basic_forecasting_tutorial/tutorial.html#Quick-Start-Tutorial): a quick start guide.
+* [Extended Forecasting Tutorial](https://gluon-ts.mxnet.io/examples/extended_forecasting_tutorial/extended_tutorial.html): a detailed tutorial on forecasting using GluonTS.
 * [evaluate_model.py](https://github.com/awslabs/gluon-ts/tree/master/examples/evaluate_model.py): how to train a model and compute evaluation metrics.
 * [benchmark_m4.py](https://github.com/awslabs/gluon-ts/tree/master/examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
 
@@ -134,24 +139,48 @@ If you wish to contribute to the project, please refer to our
 ## Citing
 
 If you use GluonTS in a scientific publication, we encourage you to add
-the following reference to the associated
-[paper](https://arxiv.org/abs/1906.05264):
+the following references to the related papers:
 
-```
-@article{gluonts,
-  title={{GluonTS: Probabilistic Time Series Modeling in Python}},
-  author={Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
-          Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
-          and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
-          Türkmen, A. C. and Wang, Y.},
-  journal={arXiv preprint arXiv:1906.05264},
-  year={2019}
+```bibtex
+@article{gluonts_jmlr,
+  author  = {Alexander Alexandrov and Konstantinos Benidis and Michael Bohlke-Schneider
+    and Valentin Flunkert and Jan Gasthaus and Tim Januschowski and Danielle C. Maddix
+    and Syama Rangapuram and David Salinas and Jasper Schulz and Lorenzo Stella and
+    Ali Caner Türkmen and Yuyang Wang},
+  title   = {{GluonTS: Probabilistic and Neural Time Series Modeling in Python}},
+  journal = {Journal of Machine Learning Research},
+  year    = {2020},
+  volume  = {21},
+  number  = {116},
+  pages   = {1-6},
+  url     = {http://jmlr.org/papers/v21/19-820.html}
 }
 ```
+
+```bibtex
+@article{gluonts_arxiv,
+  author  = {Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
+    Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
+    and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
+    Türkmen, A. C. and Wang, Y.},
+  title   = {{GluonTS: Probabilistic Time Series Modeling in Python}},
+  journal = {arXiv preprint arXiv:1906.05264},
+  year    = {2019}
+}
+```
+
+## Video
+* [Neural Time Series with GluonTS](https://youtu.be/beEJMIt9xJ8)
 
 ## Further Reading 
 
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
+
+### Overview tutorials
+* [Tutorial at WWW 20202 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)
 * [Tutorial at KDD 2019](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
 * [Tutorial at VLDB 2018](https://lovvge.github.io/Forecasting-Tutorial-VLDB-2018/)
+
+### Introductory material
+* [International Symposium of Forecasting: Deep Learning for Forecasting workshop](https://lostella.github.io/ISF-2020-Deep-Learning-Workshop/)

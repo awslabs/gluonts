@@ -4,32 +4,35 @@ dependencies:
   - python=3.6
   - pip=18.1
   - pylint=1.9.2
-  - flake8
-  - sphinx=1.7.9
-  - pytest<4
-  - flaky<4
-  - pytest-cov=2.6.0
+  - flake8=3.4.*
+  - pytest=3.*
+  - flaky=3.6.*
+  - pytest-cov=2.6.*
   - mock<3
-  - pytest-xdist<2
+  - pytest-xdist=1.27.*
   - recommonmark
   - pandoc=1.19.2
+  - ipython
+  - ipykernel
+  - nbconvert=5.4.0
   - notedown
   - sphinx-gallery
   - nbsphinx>=0.3.4,<0.4
-  - nbconvert=5.4.0
   - tornado=5.1.1
-  - ipython
-  - ipykernel
-  - pytest-runner<2.12
-  - mypy>=0.630
-  - black>=18
-  - setuptools>=40.1
+  - pytest-runner>=2.11,<2.12
+  - mypy=0.761
+  - black=19.*
+  - setuptools>=40.1.0
   - pydantic
   - requests<2.21,>=2.20.0
-  - sagemaker-python-sdk
-  - s3fs
+  - sagemaker-python-sdk>=1.44
+  - s3fs>=0.4
   - seaborn
+  - statsmodels>=0.11
+  - numpy=1.18.*
+  - matplotlib=3.0.*
   - pip:
-    - mxnet-cu92mkl>=1.3.1,<1.5.*
-    - https://github.com/mli/mx-theme/archive/0.3.1.tar.gz
+    - mxnet-cu92>=1.6.0
+    - mxtheme==0.3.11
+    - sphinx~=2.1
     - sphinx-autorun

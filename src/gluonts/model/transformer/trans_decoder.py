@@ -11,22 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import Dict, Optional
 
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
 from gluonts.model.transformer.layers import (
-    TransformerProcessBlock,
-    TransformerFeedForward,
-    MultiHeadSelfAttention,
-    MultiHeadAttention,
     InputLayer,
+    MultiHeadAttention,
+    MultiHeadSelfAttention,
+    TransformerFeedForward,
+    TransformerProcessBlock,
 )
+from gluonts.mx import Tensor
 
 
 class TransformerDecoder(HybridBlock):
@@ -36,7 +33,7 @@ class TransformerDecoder(HybridBlock):
         super().__init__(**kwargs)
 
         self.decoder_length = decoder_length
-        self.cache = {}
+        self.cache: Dict[str, Tensor] = {}
 
         with self.name_scope():
             self.enc_input_layer = InputLayer(model_size=config["model_dim"])

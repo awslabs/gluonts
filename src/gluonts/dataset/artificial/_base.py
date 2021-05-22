@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 import random
-from typing import Callable, List, NamedTuple, Optional, Tuple, Union
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.dataset.artificial.recipe import (
     BinaryHolidays,
     BinaryMarkovChain,
@@ -642,7 +639,9 @@ class RecipeDataset(ArtificialDataset):
 
     def __init__(
         self,
-        recipe: Union[Callable, List[Tuple[str, Callable]]],
+        recipe: Union[
+            Callable, Dict[str, Callable], List[Tuple[str, Callable]]
+        ],
         metadata: MetaData,
         max_train_length: int,
         prediction_length: int,
@@ -686,7 +685,7 @@ class RecipeDataset(ArtificialDataset):
 
     @staticmethod
     def trim_ts_item_end(x: DataEntry, length: int) -> DataEntry:
-        """Trim a TimeSeriesItem into a training range, by removing
+        """Trim a DataEntry into a training range, by removing
         the last prediction_length time points from the target and dynamic
         features."""
         y = dict(
@@ -707,7 +706,7 @@ class RecipeDataset(ArtificialDataset):
 
     @staticmethod
     def trim_ts_item_front(x: DataEntry, length: int) -> DataEntry:
-        """Trim a TimeSeriesItem into a training range, by removing
+        """Trim a DataEntry into a training range, by removing
         the first offset_front time points from the target and dynamic
         features."""
         assert length <= len(x[FieldName.TARGET])

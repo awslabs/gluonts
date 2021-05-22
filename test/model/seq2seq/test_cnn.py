@@ -11,13 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 from mxnet import nd
 
-# First-party imports
-from gluonts.block.cnn import CausalConv1D
+from gluonts.mx.block.cnn import CausalConv1D
 
 
 def compute_causalconv1d(

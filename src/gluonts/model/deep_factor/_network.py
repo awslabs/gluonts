@@ -11,15 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Tuple
+
 import math
 
-from mxnet.gluon import HybridBlock
-from mxnet.gluon import nn
+from mxnet.gluon import HybridBlock, nn
 
-# First-party imports
-from gluonts.block.feature import FeatureEmbedder
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
+from gluonts.mx.block.feature import FeatureEmbedder
 
 
 class DeepFactorNetworkBase(HybridBlock):
@@ -71,7 +71,7 @@ class DeepFactorNetworkBase(HybridBlock):
         F,
         feat_static_cat: Tensor,  # (batch_size, 1)
         time_feat: Tensor,  # (batch_size, history_length, num_features)
-    ) -> (Tensor, Tensor):  # both of size (batch_size, history_length, 1)
+    ) -> Tuple[Tensor, Tensor]:  # both of size (batch_size, history_length, 1)
 
         cat, local_input = self.assemble_features(
             F, feat_static_cat, time_feat
@@ -88,9 +88,6 @@ class DeepFactorNetworkBase(HybridBlock):
             F.exp(self.local_model(local_input)) + 1.0
         )  # (batch_size, history_length, 1)
         return F.exp(fixed_effect), random_effect
-
-    def hybrid_forward(self, F, x, *args, **kwargs):
-        raise NotImplementedError
 
     def negative_normal_likelihood(self, F, y, mu, sigma):
         return (

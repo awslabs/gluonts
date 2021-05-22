@@ -11,12 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import random
 from textwrap import dedent
 from typing import Dict, List
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
 
@@ -159,7 +157,7 @@ def test_dynamic_loading():
     code = dedent(
         """
         dict(
-           trainer=gluonts.trainer.Trainer(
+           trainer=gluonts.mx.trainer.Trainer(
                ctx="cpu(0)",
                epochs=5,
                learning_rate=0.001,
@@ -174,7 +172,7 @@ def test_dynamic_loading():
            context_length=5,
            prediction_length=2,
            freq="1H",
-           distr_output=gluonts.distribution.StudentTOutput(),
+           distr_output=gluonts.mx.distribution.StudentTOutput(),
            batch_normalization=False,
            mean_scaling=True
         )

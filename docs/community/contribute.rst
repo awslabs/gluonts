@@ -1,16 +1,15 @@
 Contribute
 ==========
 
-GluonTS community welcomes contributions from anyone! Latest documentation can be found `here <http://gluon-ts.mxnet.io/master/index.html>`__.
+GluonTS community welcomes contributions from anyone! Latest documentation can be found `here <https://ts.gluon.ai/master/index.html>`__.
 
 There are lots of opportunities for you to become our `contributors <https://github.com/awslabs/gluon-ts/blob/master/contributor.rst>`__:
 
 - Ask or answer questions on `GitHub issues <https://github.com/awslabs/gluon-ts/issues>`__.
 - Propose ideas, or review proposed design ideas on `GitHub issues <https://github.com/awslabs/gluon-ts/issues>`__.
-- Improve the `documentation <http://gluon-ts.mxnet.io/master/index.html>`__.
+- Improve the `documentation <https://ts.gluon.ai/master/index.html>`__.
 - Contribute bug reports `GitHub issues <https://github.com/awslabs/gluon-ts/issues>`__.
-  state-of-the-art results.
-- Write new `tutorials <https://github.com/awslabs/gluon-ts/tree/master/docs/examples>`__.
+- Write new `tutorials <https://github.com/awslabs/gluon-ts/tree/master/docs/tutorials>`__.
 - Most importantly, if you have an idea of how to contribute, then do it!
 
 For a list of open starter tasks, check `good first issues <https://github.com/awslabs/gluon-ts/labels/good%20first%20issue>`__.
@@ -45,12 +44,12 @@ submitting, contributor should perform the following checks:
 Contribute tutorials
 --------------------
 
-Our :doc:`tutorials <../examples/index>` are intended for people who
+Our :doc:`tutorials <../tutorials/index>` are intended for people who
 are interested in time series and want to get better familiarized on different parts in time series. In order for
 people to easily understand the content, the code needs to be clean and readable, accompanied by
 explanation with good writing.
 
-See `existing tutorials <https://github.com/awslabs/gluon-ts/tree/master/docs/examples>`__.
+See `existing tutorials <https://github.com/awslabs/gluon-ts/tree/master/docs/tutorials>`__.
 
 To make the review process easy, we adopt `notedown <https://github.com/aaren/notedown>`_ as the
 tutorial format. Notedown notebooks are regular markdown files with code blocks that can be

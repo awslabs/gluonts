@@ -11,18 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Iterator
-
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
+from gluonts.support.pandas import forecast_start
 
 
 class IdentityPredictor(RepresentablePredictor):
@@ -45,7 +41,7 @@ class IdentityPredictor(RepresentablePredictor):
     def __init__(
         self, prediction_length: int, freq: str, num_samples: int
     ) -> None:
-        super().__init__(prediction_length, freq)
+        super().__init__(freq=freq, prediction_length=prediction_length)
 
         assert num_samples > 0, "The value of `num_samples` should be > 0"
 
@@ -60,7 +56,7 @@ class IdentityPredictor(RepresentablePredictor):
 
         return SampleForecast(
             samples=samples,
-            start_date=item["start"],
+            start_date=forecast_start(item),
             freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )

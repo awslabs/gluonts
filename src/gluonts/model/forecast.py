@@ -11,21 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import re
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Union, Callable
+from typing import Callable, Dict, List, NamedTuple, Optional, Set, Union
 
-# Third-party imports
-import mxnet as mx
 import numpy as np
 import pandas as pd
 import pydantic
 
-# First-party imports
-from gluonts.core.exception import GluonTSUserError
-from gluonts.distribution import Distribution
 from gluonts.core.component import validated
+from gluonts.core.exception import GluonTSUserError
 
 
 class Quantile(NamedTuple):
@@ -72,8 +67,8 @@ class Quantile(NamedTuple):
                     f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
                 )
             else:
-                quantile: float = int(m.group(1)) / 100
-                return cls(value=quantile, name=str(quantile))
+                quantile_float: float = int(m.group(1)) / 100
+                return cls(value=quantile_float, name=str(quantile_float))
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
@@ -141,7 +136,7 @@ class Forecast:
         """
         raise NotImplementedError()
 
-    def quantile_ts(self, q):
+    def quantile_ts(self, q: Union[float, str]) -> pd.Series:
         return pd.Series(index=self.index, data=self.quantile(q))
 
     @property
@@ -324,23 +319,21 @@ class SampleForecast(Forecast):
     @validated()
     def __init__(
         self,
-        samples: Union[mx.nd.NDArray, np.ndarray],
-        start_date,
-        freq,
+        samples: np.ndarray,
+        start_date: pd.Timestamp,
+        freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-    ):
+    ) -> None:
         assert isinstance(
-            samples, (np.ndarray, mx.ndarray.ndarray.NDArray)
-        ), "samples should be either a numpy or an mxnet array"
+            samples, np.ndarray
+        ), "samples should be a numpy array"
         assert (
             len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3
         ), "samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {}".format(
             len(np.shape(samples))
         )
-        self.samples = (
-            samples if (isinstance(samples, np.ndarray)) else samples.asnumpy()
-        )
+        self.samples = samples
         self._sorted_samples_value = None
         self._mean = None
         self._dim = None
@@ -373,10 +366,10 @@ class SampleForecast(Forecast):
         """
         Time length of the forecast.
         """
-        return self.samples.shape[-1]
+        return self.samples.shape[1]
 
     @property
-    def mean(self):
+    def mean(self) -> np.ndarray:
         """
         Forecast mean.
         """
@@ -386,18 +379,18 @@ class SampleForecast(Forecast):
             return np.mean(self.samples, axis=0)
 
     @property
-    def mean_ts(self):
+    def mean_ts(self) -> pd.Series:
         """
         Forecast mean, as a pandas.Series object.
         """
-        return pd.Series(self.index, self.mean)
+        return pd.Series(self.mean, index=self.index)
 
-    def quantile(self, q):
+    def quantile(self, q: Union[float, str]) -> np.ndarray:
         q = Quantile.parse(q).value
         sample_idx = int(np.round((self.num_samples - 1) * q))
         return self._sorted_samples[sample_idx, :]
 
-    def copy_dim(self, dim: int):
+    def copy_dim(self, dim: int) -> "SampleForecast":
         if len(self.samples.shape) == 2:
             samples = self.samples
         else:
@@ -416,7 +409,7 @@ class SampleForecast(Forecast):
             info=self.info,
         )
 
-    def copy_aggregate(self, agg_fun: Callable):
+    def copy_aggregate(self, agg_fun: Callable) -> "SampleForecast":
         if len(self.samples.shape) == 2:
             samples = self.samples
         else:
@@ -462,6 +455,18 @@ class SampleForecast(Forecast):
             ]
         )
 
+    def to_quantile_forecast(
+        self, quantiles: List[Union[float, str]]
+    ) -> "QuantileForecast":
+        return QuantileForecast(
+            forecast_arrays=np.array([self.quantile(q) for q in quantiles]),
+            start_date=self.start_date,
+            freq=self.freq,
+            forecast_keys=quantiles,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
 
 class QuantileForecast(Forecast):
     """
@@ -492,7 +497,7 @@ class QuantileForecast(Forecast):
         forecast_keys: List[str],
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-    ):
+    ) -> None:
         self.forecast_array = forecast_arrays
         self.start_date = pd.Timestamp(start_date, freq=freq)
         self.freq = freq
@@ -524,11 +529,14 @@ class QuantileForecast(Forecast):
         return self._forecast_dict.get(q_str, self._nan_out)
 
     @property
-    def mean(self):
+    def mean(self) -> np.ndarray:
         """
         Forecast mean.
         """
-        return self._forecast_dict.get("mean", self._nan_out)
+        if "mean" in self._forecast_dict:
+            return self._forecast_dict["mean"]
+
+        return self.quantile("p50")
 
     def dim(self) -> int:
         if self._dim is not None:
@@ -555,90 +563,25 @@ class QuantileForecast(Forecast):
             ]
         )
 
+    def plot(self, label=None, output_file=None, keys=None, *args, **kwargs):
+        import matplotlib.pyplot as plt
 
-class DistributionForecast(Forecast):
-    """
-    A `Forecast` object that uses a GluonTS distribution directly.
-    This can for instance be used to represent marginal probability
-    distributions for each time point -- although joint distributions are
-    also possible, e.g. when using MultiVariateGaussian).
+        label_prefix = "" if label is None else label + "-"
 
-    Parameters
-    ----------
-    distribution
-        Distribution object. This should represent the entire prediction
-        length, i.e., if we draw `num_samples` samples from the distribution,
-        the sample shape should be
+        if keys is None:
+            keys = self.forecast_keys
 
-           samples = trans_dist.sample(num_samples)
-           samples.shape -> (num_samples, prediction_length)
-
-    start_date
-        start of the forecast
-    freq
-        forecast frequency
-    info
-        additional information that the forecaster may provide e.g. estimated
-        parameters, number of iterations ran etc.
-    """
-
-    @validated()
-    def __init__(
-        self,
-        distribution: Distribution,
-        start_date,
-        freq,
-        item_id: Optional[str] = None,
-        info: Optional[Dict] = None,
-    ):
-        self.distribution = distribution
-        self.shape = (
-            self.distribution.batch_shape + self.distribution.event_shape
-        )
-        self.prediction_length = self.shape[0]
-        self.item_id = item_id
-        self.info = info
-
-        assert isinstance(
-            start_date, pd.Timestamp
-        ), "start_date should be a pandas Timestamp object"
-        self.start_date = start_date
-
-        assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
-        self._mean = None
-
-    @property
-    def mean(self):
-        """
-        Forecast mean.
-        """
-        if self._mean is not None:
-            return self._mean
-        else:
-            self._mean = self.distribution.mean.asnumpy()
-            return self._mean
-
-    @property
-    def mean_ts(self):
-        """
-        Forecast mean, as a pandas.Series object.
-        """
-        return pd.Series(index=self.index, data=self.mean)
-
-    def quantile(self, level):
-        level = Quantile.parse(level).value
-        q = self.distribution.quantile(mx.nd.array([level])).asnumpy()[0]
-        return q
-
-    def to_sample_forecast(self, num_samples: int = 200) -> SampleForecast:
-        return SampleForecast(
-            samples=self.distribution.sample(num_samples),
-            start_date=self.start_date,
-            freq=self.freq,
-            item_id=self.item_id,
-            info=self.info,
-        )
+        for k, v in zip(keys, self.forecast_array):
+            plt.plot(
+                self.index,
+                v,
+                label=f"{label_prefix}q{k}",
+                *args,
+                **kwargs,
+            )
+            plt.legend()
+        if output_file:
+            plt.savefig(output_file)
 
 
 class OutputType(str, Enum):
@@ -649,7 +592,7 @@ class OutputType(str, Enum):
 
 class Config(pydantic.BaseModel):
     num_samples: int = pydantic.Field(100, alias="num_eval_samples")
-    output_types: Set[OutputType] = {"quantiles", "mean"}
+    output_types: Set[OutputType] = {OutputType.quantiles, OutputType.mean}
     # FIXME: validate list elements
     quantiles: List[str] = ["0.1", "0.5", "0.9"]
 

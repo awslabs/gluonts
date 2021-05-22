@@ -54,6 +54,26 @@ def find_requirements(filename):
         ]
 
 
+# miniver:
+def get_version_and_cmdclass(package_path):
+    """Load version.py module without importing the whole package.
+
+    Template code from miniver
+    """
+    import os
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    spec = spec_from_file_location(
+        "version", os.path.join(package_path, "_version.py")
+    )
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.__version__, module.cmdclass
+
+
+version, version_cmdclass = get_version_and_cmdclass("src/gluonts")
+
+
 class TypeCheckCommand(distutils.cmd.Command):
     """A custom command to run MyPy on the project sources."""
 
@@ -176,21 +196,24 @@ class StyleCheckCommand(distutils.cmd.Command):
             sys.exit(exit_code)
 
 
+docs_require = find_requirements("requirements-docs.txt")
 tests_require = find_requirements("requirements-test.txt")
 sagemaker_api_require = find_requirements(
     "requirements-extras-sagemaker-sdk.txt"
 )
 shell_require = find_requirements("requirements-extras-shell.txt")
-setup_requires = find_requirements(
-    "requirements-setup.txt"
-) + find_requirements("requirements-docs.txt")
+setup_requires = find_requirements("requirements-setup.txt")
 dev_require = (
-    tests_require + shell_require + setup_requires + sagemaker_api_require
+    docs_require
+    + tests_require
+    + shell_require
+    + setup_requires
+    + sagemaker_api_require
 )
 
 setup_kwargs: dict = dict(
     name="gluonts",
-    use_scm_version={"fallback_version": "0.0.0"},
+    version=version,
     description=(
         "GluonTS is a Python toolkit for probabilistic time series modeling, "
         "built around MXNet."
@@ -211,6 +234,7 @@ setup_kwargs: dict = dict(
     tests_require=tests_require,
     extras_require={
         "dev": dev_require,
+        "docs": docs_require,
         "R": find_requirements("requirements-extras-r.txt"),
         "Prophet": find_requirements("requirements-extras-prophet.txt"),
         "shell": shell_require,
@@ -218,13 +242,41 @@ setup_kwargs: dict = dict(
     entry_points=dict(
         gluonts_forecasters=[
             "deepar=gluonts.model.deepar:DeepAREstimator",
-            "r=gluonts.model.r_forecast:RForecastPredictor [R]",
-            "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
+            "DeepAR=gluonts.model.deepar:DeepAREstimator",
+            "DeepFactor=gluonts.model.deep_factor:DeepFactorEstimator",
+            "DeepState=gluonts.model.deepstate:DeepStateEstimator",
+            "DeepVAR=gluonts.model.deepvar:DeepVAREstimator",
+            "GaussianProcess=gluonts.model.gp_forecaster:GaussianProcessEstimator",
+            "GPVAR=gluonts.model.gpvar:GPVAREstimator",
+            "LSTNet=gluonts.model.lstnet:LSTNetEstimator",
+            "NBEATS=gluonts.model.n_beats:NBEATSEstimator",
+            "NBEATSEnsemble=gluonts.model.n_beats:NBEATSEnsembleEstimator",
+            "NPTS=gluonts.model.npts:NPTSPredictor",
+            "Rotbaum=gluonts.model.rotbaum:TreeEstimator",
+            "SelfAttention=gluonts.model.san:SelfAttentionEstimator",
+            "SeasonalNaive=gluonts.model.seasonal_naive:SeasonalNaivePredictor",
+            "MQCNN=gluonts.model.seq2seq:MQCNNEstimator",
+            "MQRNN=gluonts.model.seq2seq:MQRNNEstimator",
+            "Seq2Seq=gluonts.model.seq2seq:Seq2SeqEstimator",
+            "SimpleFeedForward=gluonts.model.simple_feedforward:SimpleFeedForwardEstimator",
+            "TFT=gluonts.model.tft:TemporalFusionTransformerEstimator",
+            "DeepTPP=gluonts.model.tpp:DeepTPPEstimator",
+            "Transformer=gluonts.model.transformer:TransformerEstimator",
+            "Constant=gluonts.model.trivial.constant:ConstantPredictor",
+            "ConstantValue=gluonts.model.trivial.constant:ConstantValuePredictor",
+            "Identity=gluonts.model.trivial.identity:IdentityPredictor",
+            "Mean=gluonts.model.trivial.mean:MeanEstimator",
+            "MeanPredictor=gluonts.model.trivial.mean:MeanPredictor",
+            "MovingAverage=gluonts.model.trivial.mean:MovingAveragePredictor",
+            "WaveNet=gluonts.model.wavenet:WaveNetEstimator",
+            # "r=gluonts.model.r_forecast:RForecastPredictor [R]",
+            # "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
         ]
     ),
     cmdclass={
         "type_check": TypeCheckCommand,
         "style_check": StyleCheckCommand,
+        **version_cmdclass,
     },
 )
 
@@ -257,4 +309,6 @@ if HAS_SPHINX:
 # -----------------------------------------------------------------------------
 
 # do the work
-setup(**setup_kwargs)
+
+if __name__ == "__main__":
+    setup(**setup_kwargs)

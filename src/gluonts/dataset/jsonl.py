@@ -11,16 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import functools
+import gzip
 from pathlib import Path
 from typing import NamedTuple
 
-# Third-party imports
-import ujson as json
-
-# First-party imports
+from gluonts import json
 from gluonts.core.exception import GluonTSDataError
+from gluonts.dataset.util import get_bounds_for_mp_data_loading
 
 
 def load(file_obj):
@@ -54,24 +52,45 @@ class JsonLinesFile:
         JSON Lines file.
     """
 
-    def __init__(self, path) -> None:
+    def __init__(self, path: Path, cache: bool = False) -> None:
         self.path = path
+        self.open = gzip.open if path.suffix == ".gz" else open
+        self.cache = cache
+        self._len = None
+        self._data_cache: list = []
 
     def __iter__(self):
-        with open(self.path) as jsonl_file:
-            for line_number, raw in enumerate(jsonl_file, start=1):
-                span = Span(path=self.path, line=line_number)
-                try:
-                    yield Line(json.loads(raw), span=span)
-                except ValueError:
-                    raise GluonTSDataError(
-                        f"Could not read json line {line_number}, {raw}"
-                    )
+        # Basic idea is to split the dataset into roughly equally sized segments
+        # with lower and upper bound, where each worker is assigned one segment
+        bounds = get_bounds_for_mp_data_loading(len(self))
+        if not self.cache or (self.cache and not self._data_cache):
+            with self.open(self.path) as jsonl_file:
+                for line_number, raw in enumerate(jsonl_file):
+                    if not bounds.lower <= line_number < bounds.upper:
+                        continue
+
+                    span = Span(path=self.path, line=line_number)
+                    try:
+                        parsed_line = Line(json.loads(raw), span=span)
+                        if self.cache:
+                            self._data_cache.append(parsed_line)
+                        yield parsed_line
+                    except ValueError:
+                        raise GluonTSDataError(
+                            f"Could not read json line {line_number}, {raw}"
+                        )
+        else:
+            yield from self._data_cache
 
     def __len__(self):
-        # 1MB
-        BUF_SIZE = 1024 ** 2
+        if self._len is None:
+            # 1MB
+            BUF_SIZE = 1024 ** 2
 
-        with open(self.path) as file_obj:
-            read_chunk = functools.partial(file_obj.read, BUF_SIZE)
-            return sum(chunk.count("\n") for chunk in iter(read_chunk, ""))
+            with self.open(self.path, "rb") as file_obj:
+                read_chunk = functools.partial(file_obj.read, BUF_SIZE)
+                file_len = sum(
+                    chunk.count(b"\n") for chunk in iter(read_chunk, b"")
+                )
+                self._len = file_len
+        return self._len

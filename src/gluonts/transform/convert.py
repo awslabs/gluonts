@@ -11,21 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Tuple, Optional
+from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from gluonts.core.component import validated, DType
+from gluonts.core.component import DType, validated, tensor_to_numpy
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
-from gluonts.model.common import Tensor
-from gluonts.monkey_patch.monkey_patch_take_along_axis import take_along_axis
 from gluonts.support.util import erf, erfinv
 
 from ._base import (
-    SimpleTransformation,
-    MapTransformation,
     FlatMapTransformation,
+    MapTransformation,
+    SimpleTransformation,
 )
 
 
@@ -51,19 +49,10 @@ class AsNumpyArray(SimpleTransformation):
         self.dtype = dtype
 
     def transform(self, data: DataEntry) -> DataEntry:
-        value = data[self.field]
-        if not isinstance(value, float):
-            # this lines produces "ValueError: setting an array element with a
-            # sequence" on our test
-            # value = np.asarray(value, dtype=np.float32)
-            # see https://stackoverflow.com/questions/43863748/
-            value = np.asarray(list(value), dtype=self.dtype)
-        else:
-            # ugly: required as list conversion will fail in the case of a
-            # float
-            value = np.asarray(value, dtype=self.dtype)
+        value = np.asarray(data[self.field], dtype=self.dtype)
+
         assert_data_error(
-            value.ndim >= self.expected_ndim,
+            value.ndim == self.expected_ndim,
             'Input for field "{self.field}" does not have the required'
             "dimension (field: {self.field}, ndim observed: {value.ndim}, "
             "expected ndim: {self.expected_ndim})",
@@ -100,7 +89,8 @@ class ExpandDimArray(SimpleTransformation):
 
 class VstackFeatures(SimpleTransformation):
     """
-    Stack fields together using ``np.vstack``.
+    Stack fields together using ``np.vstack`` when h_stack = False.
+    Otherwise stack fields together using ``np.hstack``.
 
     Fields with value ``None`` are ignored.
 
@@ -112,6 +102,8 @@ class VstackFeatures(SimpleTransformation):
         Fields to stack together
     drop_inputs
         If set to true the input fields will be dropped.
+    h_stack
+        To stack horizontally instead of vertically
     """
 
     @validated()
@@ -120,6 +112,7 @@ class VstackFeatures(SimpleTransformation):
         output_field: str,
         input_fields: List[str],
         drop_inputs: bool = True,
+        h_stack: bool = False,
     ) -> None:
         self.output_field = output_field
         self.input_fields = input_fields
@@ -130,6 +123,7 @@ class VstackFeatures(SimpleTransformation):
                 fname for fname in self.input_fields if fname != output_field
             ]
         )
+        self.h_stack = h_stack
 
     def transform(self, data: DataEntry) -> DataEntry:
         r = [
@@ -137,7 +131,7 @@ class VstackFeatures(SimpleTransformation):
             for fname in self.input_fields
             if data[fname] is not None
         ]
-        output = np.vstack(r)
+        output = np.vstack(r) if not self.h_stack else np.hstack(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
             del data[fname]
@@ -298,7 +292,7 @@ class SampleTargetDim(FlatMapTransformation):
         self.shuffle = shuffle
 
     def flatmap_transform(
-        self, data: DataEntry, is_train: bool, slice_future_target: bool = True
+        self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
         if not is_train:
             yield data
@@ -343,6 +337,7 @@ class CDFtoGaussianTransform(MapTransformation):
         observed_values_field: str,
         cdf_suffix="_cdf",
         max_context_length: Optional[int] = None,
+        dtype: DType = np.float32,
     ) -> None:
         """
         Constructor for CDFtoGaussianTransform.
@@ -359,6 +354,8 @@ class CDFtoGaussianTransform(MapTransformation):
             Suffix to mark the field with the transformed target.
         max_context_length
             Sets the maximum context length for the empirical CDF.
+        dtype
+            numpy dtype of output.
         """
         self.target_field = target_field
         self.past_target_field = "past_" + self.target_field
@@ -370,6 +367,7 @@ class CDFtoGaussianTransform(MapTransformation):
         self.cdf_suffix = cdf_suffix
         self.max_context_length = max_context_length
         self.target_dim = target_dim
+        self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         self._preprocess_data(data, is_train=is_train)
@@ -440,7 +438,9 @@ class CDFtoGaussianTransform(MapTransformation):
         # sorts along the time dimension to compute empirical CDF of each
         # dimension
         if is_train:
-            past_target_vec = self._add_noise(past_target_vec)
+            past_target_vec = self._add_noise(past_target_vec).astype(
+                self.dtype
+            )
 
         past_target_vec.sort(axis=0)
 
@@ -469,10 +469,13 @@ class CDFtoGaussianTransform(MapTransformation):
         sorted_target = data[self.sort_target_field]
         sorted_target_length, target_dim = sorted_target.shape
 
-        quantiles = np.stack(
-            [np.arange(sorted_target_length) for _ in range(target_dim)],
-            axis=1,
-        ) / float(sorted_target_length)
+        quantiles = (
+            np.stack(
+                [np.arange(sorted_target_length) for _ in range(target_dim)],
+                axis=1,
+            )
+            / float(sorted_target_length)
+        )
 
         x_diff = np.diff(sorted_target, axis=0)
         y_diff = np.diff(quantiles, axis=0)
@@ -489,8 +492,8 @@ class CDFtoGaussianTransform(MapTransformation):
         intercepts = quantiles - slopes * sorted_target
 
         # Populate new fields with the piece-wise linear parameters.
-        data[self.slopes_field] = slopes
-        data[self.intercepts_field] = intercepts
+        data[self.slopes_field] = slopes.astype(self.dtype)
+        data[self.intercepts_field] = intercepts.astype(self.dtype)
 
     def _empirical_cdf_forward_transform(
         self,
@@ -617,12 +620,12 @@ class CDFtoGaussianTransform(MapTransformation):
     @staticmethod
     def standard_gaussian_cdf(x: np.array) -> np.array:
         u = x / (np.sqrt(2.0))
-        return (erf(np, u) + 1.0) / 2.0
+        return (erf(u) + 1.0) / 2.0
 
     @staticmethod
     def standard_gaussian_ppf(y: np.array) -> np.array:
         y_clipped = np.clip(y, a_min=1.0e-6, a_max=1.0 - 1.0e-6)
-        return np.sqrt(2.0) * erfinv(np, 2.0 * y_clipped - 1.0)
+        return np.sqrt(2.0) * erfinv(2.0 * y_clipped - 1.0)
 
     @staticmethod
     def winsorized_cutoff(m: np.array) -> np.array:
@@ -681,7 +684,7 @@ class CDFtoGaussianTransform(MapTransformation):
 
 
 def cdf_to_gaussian_forward_transform(
-    input_batch: DataEntry, outputs: Tensor
+    input_batch: DataEntry, outputs: np.ndarray
 ) -> np.ndarray:
     """
     Forward transformation of the CDFtoGaussianTransform.
@@ -700,10 +703,10 @@ def cdf_to_gaussian_forward_transform(
     """
 
     def _empirical_cdf_inverse_transform(
-        batch_target_sorted: Tensor,
-        batch_predictions: Tensor,
-        slopes: Tensor,
-        intercepts: Tensor,
+        batch_target_sorted: np.ndarray,
+        batch_predictions: np.ndarray,
+        slopes: np.ndarray,
+        intercepts: np.ndarray,
     ) -> np.ndarray:
         """
         Apply forward transformation of the empirical CDF.
@@ -725,10 +728,7 @@ def cdf_to_gaussian_forward_transform(
             Forward transformed outputs.
 
         """
-        slopes = slopes.asnumpy()
-        intercepts = intercepts.asnumpy()
 
-        batch_target_sorted = batch_target_sorted.asnumpy()
         batch_size, num_timesteps, target_dim = batch_target_sorted.shape
         indices = np.floor(batch_predictions * num_timesteps)
         # indices = indices - 1
@@ -737,10 +737,13 @@ def cdf_to_gaussian_forward_transform(
         indices = indices.astype(np.int)
 
         transformed = np.where(
-            take_along_axis(slopes, indices, axis=1) != 0.0,
-            (batch_predictions - take_along_axis(intercepts, indices, axis=1))
-            / take_along_axis(slopes, indices, axis=1),
-            take_along_axis(batch_target_sorted, indices, axis=1),
+            np.take_along_axis(slopes, indices, axis=1) != 0.0,
+            (
+                batch_predictions
+                - np.take_along_axis(intercepts, indices, axis=1)
+            )
+            / np.take_along_axis(slopes, indices, axis=1),
+            np.take_along_axis(batch_target_sorted, indices, axis=1),
         )
         return transformed
 
@@ -748,11 +751,76 @@ def cdf_to_gaussian_forward_transform(
     batch_size, samples, target_dim, time = outputs.shape
     for sample_index in range(0, samples):
         outputs[:, sample_index, :, :] = _empirical_cdf_inverse_transform(
-            input_batch["past_target_sorted"],
+            tensor_to_numpy(input_batch["past_target_sorted"]),
             CDFtoGaussianTransform.standard_gaussian_cdf(
                 outputs[:, sample_index, :, :]
             ),
-            input_batch["slopes"],
-            input_batch["intercepts"],
+            tensor_to_numpy(input_batch["slopes"]),
+            tensor_to_numpy(input_batch["intercepts"]),
         )
     return outputs
+
+
+class ToIntervalSizeFormat(FlatMapTransformation):
+    """
+    Convert a sparse univariate time series to the `interval-size` format,
+    i.e., a two dimensional time series where the first dimension corresponds
+    to the time since last positive value (1-indexed), and the second dimension
+    corresponds to the size of the demand. This format is used often in the
+    intermittent demand literature, where predictions are performed on this
+    "dense" time series, e.g., as in Croston's method.
+
+    As an example, the time series `[0, 0, 1, 0, 3, 2, 0, 4]` is converted into
+    the 2-dimensional time series `[[3, 2, 1, 2], [1, 3, 2, 4]]`, with a
+    shape (2, M) where M denotes the number of non-zero items in the time series.
+
+    Parameters
+    ----------
+    target_field
+        The target field to be converted, containing a univariate and sparse
+        time series
+    drop_empty
+        If True, all-zero time series will be dropped.
+    discard_first
+        If True, the first element in the converted dense series will be dropped,
+        replacing the target with a (2, M-1) tet instead. This can be used
+        when the first 'inter-demand' time is not well-defined. e.g., when the true
+        starting index of the time-series is not known.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        target_field: str,
+        drop_empty: bool = False,
+        discard_first: bool = False,
+    ) -> None:
+
+        self.target_field = target_field
+        self.drop_empty = drop_empty
+        self.discard_first = discard_first
+
+    def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
+        a = np.array(a)
+        (non_zero_index,) = np.nonzero(a)
+
+        if len(non_zero_index) == 0:
+            return [], []
+
+        times = np.diff(non_zero_index, prepend=-1.0).tolist()
+        sizes = a[non_zero_index].tolist()
+
+        if self.discard_first:
+            return times[1:], sizes[1:]
+        return times, sizes
+
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool
+    ) -> Iterator[DataEntry]:
+        target = data[self.target_field]
+
+        times, sizes = self._process_sparse_time_sample(target)
+
+        if len(times) > 0 or not self.drop_empty:
+            data[self.target_field] = [times, sizes]
+            yield data
