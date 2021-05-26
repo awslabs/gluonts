@@ -16,7 +16,7 @@ from functools import partial
 
 import numpy as np
 from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from gluonts.core import fqname_for
 from gluonts.core.component import (
@@ -33,6 +33,13 @@ from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import Transformation, TransformedDataset
+
+
+class DataLoaderArgs(BaseModel):
+    num_workers: Optional[int]
+    num_prefetch: Optional[int]
+    shuffle_buffer_length: Optional[int]
+    cache_data: bool = False
 
 
 class TrainOutput(NamedTuple):
@@ -58,6 +65,7 @@ class GluonEstimator(Estimator):
         batch_size: int = 32,
         lead_time: int = 0,
         dtype: DType = np.float32,
+        loader: DataLoaderArgs = DataLoaderArgs(),
     ) -> None:
         super().__init__(lead_time=lead_time)
 
@@ -66,6 +74,7 @@ class GluonEstimator(Estimator):
         self.batch_size = batch_size
         self.trainer = trainer
         self.dtype = dtype
+        self.loader_args = loader
 
     @classmethod
     def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
@@ -138,10 +147,6 @@ class GluonEstimator(Estimator):
         self,
         training_data: Optional[Dataset] = None,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-        cache_data: bool = False,
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
@@ -151,11 +156,6 @@ class GluonEstimator(Estimator):
 
         training_data_loader = self.create_training_data_loader(
             transformed_training_data
-            if not cache_data
-            else Cached(transformed_training_data),
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
         )
 
         validation_data_loader = None
@@ -167,8 +167,6 @@ class GluonEstimator(Estimator):
 
             validation_data_loader = self.create_validation_data_loader(
                 transformed_validation_data
-                if not cache_data
-                else Cached(transformed_validation_data),
             )
 
         training_network = self.create_training_network()
@@ -192,17 +190,8 @@ class GluonEstimator(Estimator):
         self,
         training_data: Optional[Dataset] = None,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-        cache_data: bool = False,
-        **kwargs,
     ) -> Predictor:
         return self.train_model(
             training_data=training_data,
             validation_data=validation_data,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
-            cache_data=cache_data,
         ).predictor

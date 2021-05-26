@@ -151,8 +151,6 @@ class GluonPredictor(Predictor):
         self,
         dataset: Dataset,
         num_samples: Optional[int] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
         **kwargs,
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
