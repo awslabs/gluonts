@@ -100,7 +100,7 @@ class GluonEstimator(Estimator):
         self.batch_size = batch_size
         self.trainer = trainer
         self.dtype = dtype
-        self.loader_args = loader
+        self.loader = loader
 
     @classmethod
     def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
