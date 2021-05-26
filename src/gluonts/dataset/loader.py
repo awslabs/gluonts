@@ -12,16 +12,13 @@
 # permissions and limitations under the License.
 
 import io
-import itertools
 import logging
 import multiprocessing as mp
 import pickle
-import random
 import sys
 from functools import partial
 from multiprocessing.reduction import ForkingPickler
-from queue import Empty
-from typing import Callable, Iterable, Iterator, List, Optional
+from typing import Callable, Iterable, Iterator, Optional
 
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.util import MPWorkerInfo
@@ -58,7 +55,7 @@ def worker_fn(
             return
 
 
-class MultiProcessBatcher:
+class MultiProcessBatcher(Iterable):
     def __init__(
         self,
         dataset: Dataset,
@@ -128,8 +125,9 @@ def win32_guard(num_workers: Optional[int]) -> Optional[int]:
 class DataLoader(Iterable[DataBatch]):
     """Iterate a datasets and stack its entries into batches of a given size.
 
-    The object can be configured to use multiple processes to iterate the entries,
-    which increases throughput in case the data entries are lazily transformed.
+    The object can be configured to use multiple processes to iterate the
+    entries, which increases throughput in case the data entries are lazily
+    transformed.
 
     Parameters
     ----------
@@ -144,8 +142,8 @@ class DataLoader(Iterable[DataBatch]):
     num_workers
         Number of worker processes to use. Default: None.
     num_prefetch
-        Sets the length of the queue of batches being produced by worker processes.
-        (Only meaningful when ``num_workers is not None``).
+        Sets the length of the queue of batches being produced by worker
+        processes. (Only meaningful when ``num_workers is not None``).
     decode_fn
         A function called on each batch after it's been taken out of the queue.
         (Only meaningful when ``num_workers is not None``).
@@ -189,7 +187,8 @@ class DataLoader(Iterable[DataBatch]):
         )
 
 
-# TODO: the following are for backward compatibility, and could eventually be removed
+# TODO: the following are for backward compatibility
+# and could eventually be removed
 
 
 def TrainDataLoader(
@@ -203,18 +202,18 @@ def TrainDataLoader(
     num_prefetch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
-):
+) -> Iterator[DataBatch]:
     """Construct an iterator of batches for training purposes.
 
     This function wraps around ``DataLoader`` to offer training-specific
     behaviour and options, as follows:
 
-        1. The provided dataset is iterated cyclically, so that one can go
-        over it multiple times in a single epoch.
-        2. A transformation must be provided, that is lazily applied as the
-        dataset is being iterated; this is useful e.g. to slice random instances
-        of fixed length out of each time series in the dataset.
-        3. The resulting batches can be iterated in a pseudo-shuffled order.
+        1. The provided dataset is iterated cyclically, so that one can go over
+        it multiple times in a single epoch. 2. A transformation must be
+        provided, that is lazily applied as the dataset is being iterated;
+        this is useful e.g. to slice random instances of fixed length out of
+        each time series in the dataset. 3. The resulting batches can be
+        iterated in a pseudo-shuffled order.
 
     The returned object is a stateful iterator, whose length is either
     ``num_batches_per_epoch`` (if not ``None``) or infinite (otherwise).
@@ -237,8 +236,8 @@ def TrainDataLoader(
     num_workers
         Number of worker processes to use. Default: None.
     num_prefetch
-        Sets the length of the queue of batches being produced by worker processes.
-        (Only meaningful when ``num_workers is not None``).
+        Sets the length of the queue of batches being produced by worker
+        processes. (Only meaningful when ``num_workers is not None``).
     shuffle_buffer_length
         Size of the buffer used for shuffling. Default: None, in which case no
         shuffling occurs.
