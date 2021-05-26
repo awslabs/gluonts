@@ -18,6 +18,7 @@ import multiprocessing as mp
 import pickle
 import random
 import sys
+from functools import partial
 from multiprocessing.reduction import ForkingPickler
 from queue import Empty
 from typing import Callable, Iterable, Iterator, List, Optional
@@ -30,7 +31,34 @@ from gluonts.transform import Transformation
 logger = logging.getLogger(__name__)
 
 
-class MultiProcessBatcher(Iterator):
+def _encode(value):
+    buf = io.BytesIO()
+    ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(value)
+    return buf.getvalue()
+
+
+def worker_fn(
+    worker_id: int,
+    num_workers: int,
+    dataset,
+    batch_size: int,
+    stack_fn: Callable,
+    batch_queue: mp.Queue,
+):
+    MPWorkerInfo.set_worker_info(num_workers=num_workers, worker_id=worker_id)
+
+    batches = batcher(dataset, batch_size)
+    batches = map(stack_fn, batches)
+    raw_batches = map(_encode, batches)
+
+    for raw in raw_batches:
+        try:
+            batch_queue.put(raw)
+        except (EOFError, BrokenPipeError):
+            return
+
+
+class MultiProcessBatcher:
     def __init__(
         self,
         dataset: Dataset,
@@ -41,110 +69,50 @@ class MultiProcessBatcher(Iterator):
         decode_fn: Callable = lambda x: x,
     ):
         assert num_workers >= 1
-        assert max_queue_size is None or max_queue_size >= num_workers
 
-        self.batch_size = batch_size
-        self.stack_fn = stack_fn
+        if max_queue_size is None:
+            max_queue_size = 5 * num_workers
+        else:
+            assert max_queue_size >= num_workers
+
         self.decode_fn = decode_fn
-        self.num_workers = num_workers
-        self.max_queue_size = (
-            max_queue_size if max_queue_size is not None else 5 * num_workers
+        self.batch_queue = mp.Manager().Queue(maxsize=max_queue_size)
+
+        common_kwargs = {
+            "num_workers": num_workers,
+            "dataset": dataset,
+            "batch_size": batch_size,
+            "stack_fn": stack_fn,
+            "batch_queue": self.batch_queue,
+        }
+        create_worker = partial(
+            mp.Process, target=worker_fn, kwargs=common_kwargs
         )
 
-        self.manager = mp.Manager()
-        self.batch_queue = self.manager.Queue(maxsize=self.max_queue_size)
-        self.terminate_event = self.manager.Event()
-        self.exhausted_events = [
-            self.manager.Event() for _ in range(self.num_workers)
+        self.processes = [
+            create_worker(args=[worker_id]) for worker_id in range(num_workers)
         ]
-        self.processes = []
+        for process in self.processes:
+            process.start()
 
-        for worker_id, event in enumerate(self.exhausted_events):
-            p = mp.Process(
-                target=self.worker_fn,
-                args=(
-                    worker_id,
-                    num_workers,
-                    dataset,
-                    batch_size,
-                    stack_fn,
-                    self.batch_queue,
-                    self.terminate_event,
-                    event,
-                ),
-            )
-            p.start()
-            self.processes.append(p)
-
-        self.count = 0
-
-    @staticmethod
-    def worker_fn(
-        worker_id: int,
-        num_workers: int,
-        dataset,
-        batch_size: int,
-        stack_fn: Callable,
-        batch_queue: mp.Queue,
-        terminate_event,
-        exhausted_event,
-    ):
-        MPWorkerInfo.set_worker_info(
-            num_workers=num_workers,
-            worker_id=worker_id,
-        )
-
-        for batch in batcher(dataset, batch_size):
-            stacked_batch = stack_fn(batch)
-            try:
-                if terminate_event.is_set():
-                    return
-                buf = io.BytesIO()
-                ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
-                    (worker_id, stacked_batch)
-                )
-                batch_queue.put(buf.getvalue())
-            except (EOFError, BrokenPipeError):
-                return
-
-        exhausted_event.set()
+    def _has_values(self):
+        alive = any(proc.is_alive() for proc in self.processes)
+        return alive or not self.batch_queue.empty()
 
     def __iter__(self):
-        return self
+        while self._has_values():
+            yield self._get()
 
-    def __next__(self):
-        if (
-            all(event.is_set() for event in self.exhausted_events)
-            and self.batch_queue.empty()
-        ):
-            self._halt_processes()
-            raise StopIteration
+        self._terminate()
 
-        try:
-            # TODO make timeout configurable
-            got = self.batch_queue.get(timeout=120)
-            worker_id, batch = pickle.loads(got)
-            batch = self.decode_fn(batch)
-        except Empty:
-            raise StopIteration
+    def _get(self):
+        # TODO make timeout configurable
+        raw = self.batch_queue.get(timeout=120)
+        return self.decode_fn(pickle.loads(raw))
 
-        return batch
-
-    def _empty_queue(self):
-        try:
-            batch = self.batch_queue.get(block=False)
-            while batch:
-                self.batch_queue.get(block=False)
-        except (Empty, FileNotFoundError):
-            pass
-
-    def _halt_processes(self):
-        # Send termination message to workers
-        self.terminate_event.set()
-        # Empty queue to make sure workers get the message
-        self._empty_queue()
-        for p in self.processes:
-            p.join()
+    def _terminate(self):
+        for process in self.processes:
+            process.terminate()
 
 
 def win32_guard(num_workers: Optional[int]) -> Optional[int]:
@@ -204,10 +172,13 @@ class DataLoader(Iterable[DataBatch]):
         self.decode_fn = decode_fn
 
     def __iter__(self):
-        batch_iterator = (
-            map(self.stack_fn, batcher(self.data_iterable, self.batch_size))
-            if self.num_workers is None
-            else MultiProcessBatcher(
+        if self.num_workers is None:
+            return map(
+                self.stack_fn, batcher(self.data_iterable, self.batch_size)
+            )
+
+        return iter(
+            MultiProcessBatcher(
                 self.data_iterable,
                 batch_size=self.batch_size,
                 stack_fn=self.stack_fn,
@@ -216,8 +187,6 @@ class DataLoader(Iterable[DataBatch]):
                 max_queue_size=self.num_prefetch,
             )
         )
-
-        return batch_iterator
 
 
 # TODO: the following are for backward compatibility, and could eventually be removed
