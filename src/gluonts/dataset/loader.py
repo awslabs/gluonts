@@ -25,7 +25,7 @@ from typing import Callable, Iterable, Iterator, List, Optional
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.util import MPWorkerInfo
 from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
-from gluonts.transform import Transformation, TransformedDataset
+from gluonts.transform import Transformation
 
 logger = logging.getLogger(__name__)
 
@@ -282,9 +282,7 @@ def TrainDataLoader(
     Iterator[DataBatch]
         An iterator of batches.
     """
-    transformed_dataset = TransformedDataset(
-        Cyclic(dataset), transform, is_train=True
-    )
+    transformed_dataset = transform.apply(Cyclic(dataset))
     data_iterable = (
         PseudoShuffled(
             transformed_dataset, shuffle_buffer_length=shuffle_buffer_length
@@ -336,7 +334,7 @@ def ValidationDataLoader(
         An iterable sequence of batches.
     """
     return DataLoader(
-        data_iterable=TransformedDataset(dataset, transform, is_train=True),
+        data_iterable=transform.apply(dataset),
         batch_size=batch_size,
         stack_fn=stack_fn,
     )
@@ -371,7 +369,7 @@ def InferenceDataLoader(
         An iterable sequence of batches.
     """
     return DataLoader(
-        data_iterable=TransformedDataset(dataset, transform, is_train=False),
+        data_iterable=transform.apply(dataset, is_train=False),
         batch_size=batch_size,
         stack_fn=stack_fn,
     )

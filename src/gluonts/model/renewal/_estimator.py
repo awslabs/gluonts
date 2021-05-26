@@ -39,7 +39,6 @@ from gluonts.transform import (
     Transformation,
     InstanceSampler,
     SelectFields,
-    TransformedDataset,
     AddObservedValuesIndicator,
 )
 from gluonts.mx.batchify import batchify, as_in_context
@@ -216,9 +215,7 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             + SelectFields(["past_target", "valid_length"])
         )
         return DataLoader(
-            data_iterable=TransformedDataset(
-                Cyclic(data), train_transform, is_train=True
-            ),
+            data_iterable=train_transform.apply(Cyclic(data)),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
             decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
@@ -235,9 +232,7 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             + SelectFields(["past_target", "valid_length"])
         )
         return DataLoader(
-            data_iterable=TransformedDataset(
-                data, validation_transform, is_train=True
-            ),
+            data_iterable=validation_transform.apply(data),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
             decode_fn=partial(as_in_context, ctx=self.trainer.ctx),

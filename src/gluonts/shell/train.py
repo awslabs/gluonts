@@ -28,7 +28,7 @@ from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.support.util import maybe_len
-from gluonts.transform import FilterTransformation, TransformedDataset
+from gluonts.transform import FilterTransformation
 
 from .env import TrainEnv
 
@@ -124,12 +124,9 @@ def run_test(
 ) -> None:
     len_original = maybe_len(test_dataset)
 
-    test_dataset = TransformedDataset(
-        test_dataset,
-        FilterTransformation(
-            lambda x: x["target"].shape[-1] > predictor.prediction_length
-        ),
-    )
+    test_dataset = FilterTransformation(
+        lambda x: x["target"].shape[-1] > predictor.prediction_length
+    ).apply(test_dataset)
 
     len_filtered = len(test_dataset)
 

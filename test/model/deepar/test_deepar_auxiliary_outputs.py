@@ -23,7 +23,6 @@ from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import StudentTOutput
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.transform.dataset import TransformedDataset
 
 ds_info, train_ds, test_ds = constant_dataset()
 freq = ds_info.metadata.freq
@@ -51,7 +50,7 @@ def test_distribution():
     train_output = estimator.train_model(train_ds, test_ds)
 
     training_data_loader = estimator.create_training_data_loader(
-        TransformedDataset(train_ds, estimator.create_transformation())
+        estimator.create_transformation().apply(train_ds)
     )
 
     seq_len = 2 * ds_info.prediction_length
