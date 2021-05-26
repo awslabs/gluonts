@@ -38,8 +38,10 @@ class Transformation(metaclass=abc.ABCMeta):
     def __add__(self, other: "Transformation") -> "Chain":
         return self.chain(other)
 
-    def map(self, dataset, is_train=True) -> "TransformedDataset":
-        return TransformedDataset(dataset, self)
+    def map(
+        self, dataset: Dataset, is_train: bool = True
+    ) -> "TransformedDataset":
+        return TransformedDataset(dataset, self, is_train=is_train)
 
 
 class Chain(Transformation):
