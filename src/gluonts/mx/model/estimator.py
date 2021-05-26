@@ -35,11 +35,37 @@ from gluonts.mx.trainer import Trainer
 from gluonts.transform import Transformation, TransformedDataset
 
 
-class DataLoaderArgs(BaseModel):
+class DataLoader(BaseModel):
     num_workers: Optional[int]
     num_prefetch: Optional[int]
     shuffle_buffer_length: Optional[int]
     cache_data: bool = False
+
+    def train(self, dataset, transform, batch_size, stack_fn, decode_fn):
+        if self.cache_data:
+            dataset = Cached(dataset)
+
+        return TrainDataLoader(
+            dataset=dataset,
+            transform=transform,
+            batch_size=batch_size,
+            stack_fn=stack_fn,
+            decode_fn=decode_fn,
+            num_workers=self.num_workers,
+            num_prefetch=self.num_prefetch,
+            shuffle_buffer_length=self.shuffle_buffer_length,
+        )
+
+    def validation(dataset, transform, batch_size, stack_fn):
+        if self.cache_data:
+            dataset = Cached(dataset)
+
+        return ValidationDataLoader(
+            dataset=dataset,
+            transform=transform,
+            batch_size=batch_size,
+            stack_fn=stack_fn,
+        )
 
 
 class TrainOutput(NamedTuple):

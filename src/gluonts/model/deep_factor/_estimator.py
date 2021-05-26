@@ -195,28 +195,27 @@ class DeepFactorEstimator(GluonEstimator):
     def create_training_data_loader(
         self,
         data: Dataset,
-        **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepFactorTrainingNetwork)
         instance_splitter = self._create_instance_splitter("training")
-        return TrainDataLoader(
+
+        return self.loader.train(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
             decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def create_validation_data_loader(
         self,
         data: Dataset,
-        **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepFactorTrainingNetwork)
         instance_splitter = self._create_instance_splitter("validation")
-        return ValidationDataLoader(
-            dataset=data,
+
+        return self.loader.validation(
+            data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
