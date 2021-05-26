@@ -18,7 +18,7 @@ from typing import Dict, Iterator, NamedTuple, Optional, Tuple
 import pandas as pd
 
 import gluonts  # noqa
-from gluonts import transform
+from gluonts.transform import AdhocTransform
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import (
@@ -30,7 +30,6 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import maybe_len
-from gluonts.transform import TransformedDataset
 
 
 def make_evaluation_predictions(
@@ -99,9 +98,7 @@ def make_evaluation_predictions(
     # TODO or fix the evaluator so it supports missing values instead (all
     # TODO the test set may be gone otherwise with such a filtering)
 
-    dataset_trunc = TransformedDataset(
-        dataset, transformation=transform.AdhocTransform(truncate_target)
-    )
+    dataset_trunc = AdhocTransform(truncate_target).apply(dataset)
 
     return (
         predictor.predict(dataset_trunc, num_samples=num_samples),
