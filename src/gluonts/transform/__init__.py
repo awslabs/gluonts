@@ -74,6 +74,7 @@ from ._base import (
     MapTransformation,
     SimpleTransformation,
     Transformation,
+    TransformedDataset,
 )
 from .convert import (
     AsNumpyArray,
@@ -87,7 +88,7 @@ from .convert import (
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
 )
-from .dataset import TransformedDataset
+
 from .feature import (
     AddAgeFeature,
     AddAggregateLags,

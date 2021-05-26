@@ -16,7 +16,7 @@ from typing import Callable, Iterable, Iterator, List
 
 from gluonts.env import env
 from gluonts.core.component import validated
-from gluonts.dataset.common import DataEntry
+from gluonts.dataset.common import DataEntry, Dataset
 
 
 class Transformation(metaclass=abc.ABCMeta):
@@ -37,6 +37,9 @@ class Transformation(metaclass=abc.ABCMeta):
 
     def __add__(self, other: "Transformation") -> "Chain":
         return self.chain(other)
+
+    def map(self, dataset, is_train=True) -> "TransformedDataset":
+        return TransformedDataset(dataset, self)
 
 
 class Chain(Transformation):
@@ -61,6 +64,43 @@ class Chain(Transformation):
         for t in self.transformations:
             tmp = t(tmp, is_train)
         return tmp
+
+
+class TransformedDataset(Dataset):
+    """
+    A dataset that corresponds to applying a list of transformations to each
+    element in the base_dataset.
+    This only supports SimpleTransformations, which do the same thing at
+    prediction and training time.
+
+
+    Parameters
+    ----------
+    base_dataset
+        Dataset to transform
+    transformations
+        List of transformations to apply
+    """
+
+    def __init__(
+        self,
+        base_dataset: Dataset,
+        transformation: Transformation,
+        is_train=True,
+    ) -> None:
+        self.base_dataset = base_dataset
+        self.transformation = transformation
+        self.is_train = is_train
+
+    def __len__(self):
+        # NOTE this is unsafe when transformations are run with is_train = True
+        # since some transformations may not be deterministic (instance splitter)
+        return sum(1 for _ in self)
+
+    def __iter__(self) -> Iterator[DataEntry]:
+        yield from self.transformation(
+            self.base_dataset, is_train=self.is_train
+        )
 
 
 class Identity(Transformation):
