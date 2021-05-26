@@ -23,7 +23,7 @@ from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import StudentTOutput
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.transform.dataset import TransformedDataset
+from gluonts.transform import TransformedDataset
 
 ds_info, train_ds, test_ds = constant_dataset()
 freq = ds_info.metadata.freq
