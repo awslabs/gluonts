@@ -202,7 +202,7 @@ def TrainDataLoader(
     num_prefetch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
-) -> Iterator[DataBatch]:
+) -> Iterable[DataBatch]:
     """Construct an iterator of batches for training purposes.
 
     This function wraps around ``DataLoader`` to offer training-specific
