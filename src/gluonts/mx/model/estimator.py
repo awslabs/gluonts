@@ -147,6 +147,7 @@ class GluonEstimator(Estimator):
 
         transformed_training_data = transformation.apply(training_data)
 
+        # with env._let()
         training_data_loader = self.create_training_data_loader(
             transformed_training_data
             if not cache_data

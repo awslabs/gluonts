@@ -20,8 +20,10 @@ from functools import partial
 from multiprocessing.reduction import ForkingPickler
 from typing import Callable, Iterable, Iterator, Optional
 
+from toolz import compose_left, thread_first
+
+from gluonts.env import env
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
-from gluonts.dataset.util import MPWorkerInfo
 from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
 from gluonts.transform import Transformation
 
@@ -38,19 +40,14 @@ def worker_fn(
     worker_id: int,
     num_workers: int,
     dataset,
-    batch_size: int,
-    stack_fn: Callable,
-    batch_queue: mp.Queue,
+    fn,
+    result_queue: mp.Queue,
 ):
-    MPWorkerInfo.set_worker_info(num_workers=num_workers, worker_id=worker_id)
+    env._push(num_workers=num_workers, worker_id=worker_id)
 
-    batches = batcher(dataset, batch_size)
-    batches = map(stack_fn, batches)
-    raw_batches = map(_encode, batches)
-
-    for raw in raw_batches:
+    for value in fn(dataset):
         try:
-            batch_queue.put(raw)
+            result_queue.put(_encode(value))
         except (EOFError, BrokenPipeError):
             return
 
@@ -59,8 +56,7 @@ class MultiProcessBatcher(Iterable):
     def __init__(
         self,
         dataset: Dataset,
-        batch_size: int,
-        stack_fn: Callable,
+        pipeline,
         num_workers: int,
         max_queue_size: Optional[int] = None,
         decode_fn: Callable = lambda x: x,
@@ -73,17 +69,17 @@ class MultiProcessBatcher(Iterable):
             assert max_queue_size >= num_workers
 
         self.decode_fn = decode_fn
-        self.batch_queue = mp.Manager().Queue(maxsize=max_queue_size)
+        self.result_queue = mp.Manager().Queue(maxsize=max_queue_size)
 
-        common_kwargs = {
-            "num_workers": num_workers,
-            "dataset": dataset,
-            "batch_size": batch_size,
-            "stack_fn": stack_fn,
-            "batch_queue": self.batch_queue,
-        }
         create_worker = partial(
-            mp.Process, target=worker_fn, kwargs=common_kwargs
+            mp.Process,
+            target=worker_fn,
+            kwargs={
+                "num_workers": num_workers,
+                "dataset": dataset,
+                "fn": pipeline,
+                "result_queue": self.result_queue,
+            },
         )
 
         self.processes = [
@@ -94,7 +90,7 @@ class MultiProcessBatcher(Iterable):
 
     def _has_values(self):
         alive = any(proc.is_alive() for proc in self.processes)
-        return alive or not self.batch_queue.empty()
+        return alive or not self.result_queue.empty()
 
     def __iter__(self):
         while self._has_values():
@@ -104,7 +100,7 @@ class MultiProcessBatcher(Iterable):
 
     def _get(self):
         # TODO make timeout configurable
-        raw = self.batch_queue.get(timeout=120)
+        raw = self.result_queue.get(timeout=120)
         return self.decode_fn(pickle.loads(raw))
 
     def _terminate(self):
@@ -153,8 +149,7 @@ class DataLoader(Iterable[DataBatch]):
         self,
         data_iterable: Iterable[DataEntry],
         *,
-        batch_size: int,
-        stack_fn: Callable,
+        pipeline,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
         decode_fn: Callable = lambda x: x,
@@ -163,23 +158,20 @@ class DataLoader(Iterable[DataBatch]):
         assert num_prefetch is None or num_prefetch > 0
 
         self.data_iterable = data_iterable
-        self.batch_size = batch_size
-        self.stack_fn = stack_fn
+
         self.num_workers = win32_guard(num_workers)
         self.num_prefetch = num_prefetch
         self.decode_fn = decode_fn
+        self.pipeline = pipeline
 
     def __iter__(self):
         if self.num_workers is None:
-            return map(
-                self.stack_fn, batcher(self.data_iterable, self.batch_size)
-            )
+            return self.pipeline(self.data_iterable)
 
         return iter(
             MultiProcessBatcher(
                 self.data_iterable,
-                batch_size=self.batch_size,
-                stack_fn=self.stack_fn,
+                pipeline=self.pipeline,
                 decode_fn=self.decode_fn,
                 num_workers=self.num_workers,
                 max_queue_size=self.num_prefetch,
@@ -189,6 +181,12 @@ class DataLoader(Iterable[DataBatch]):
 
 # TODO: the following are for backward compatibility
 # and could eventually be removed
+
+
+def batch_and_stack(batch_size, stack_fn):
+    return compose_left(
+        partial(batcher, batch_size=batch_size), partial(map, stack_fn)
+    )
 
 
 def TrainDataLoader(
@@ -250,27 +248,26 @@ def TrainDataLoader(
     Iterator[DataBatch]
         An iterator of batches.
     """
-    transformed_dataset = transform.apply(Cyclic(dataset))
-    data_iterable = (
-        PseudoShuffled(
-            transformed_dataset, shuffle_buffer_length=shuffle_buffer_length
+    dataset = Cyclic(dataset)
+    dataset = transform.apply(dataset)
+
+    if shuffle_buffer_length:
+        dataset = PseudoShuffled(dataset, shuffle_buffer_length)
+
+    data_loader = iter(
+        DataLoader(
+            data_iterable=dataset,
+            pipeline=batch_and_stack(batch_size, stack_fn),
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            decode_fn=decode_fn,
         )
-        if shuffle_buffer_length is not None
-        else transformed_dataset
     )
-    data_loader = DataLoader(
-        data_iterable=data_iterable,
-        batch_size=batch_size,
-        stack_fn=stack_fn,
-        num_workers=num_workers,
-        num_prefetch=num_prefetch,
-        decode_fn=decode_fn,
-    )
-    return (
-        iter(data_loader)
-        if num_batches_per_epoch is None
-        else IterableSlice(iter(data_loader), num_batches_per_epoch)
-    )
+
+    if num_batches_per_epoch is None:
+        return data_loader
+    else:
+        return IterableSlice(data_loader, num_batches_per_epoch)
 
 
 def ValidationDataLoader(
@@ -303,8 +300,7 @@ def ValidationDataLoader(
     """
     return DataLoader(
         data_iterable=transform.apply(dataset),
-        batch_size=batch_size,
-        stack_fn=stack_fn,
+        pipeline=batch_and_stack(batch_size, stack_fn),
     )
 
 
@@ -338,6 +334,5 @@ def InferenceDataLoader(
     """
     return DataLoader(
         data_iterable=transform.apply(dataset, is_train=False),
-        batch_size=batch_size,
-        stack_fn=stack_fn,
+        pipeline=batch_and_stack(batch_size, stack_fn),
     )
