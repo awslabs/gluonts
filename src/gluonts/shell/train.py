@@ -32,7 +32,7 @@ from gluonts.transform import FilterTransformation
 
 from .env import TrainEnv
 
-multiprocessing.set_start_method("spawn", force=True)
+# multiprocessing.set_start_method("spawn", force=True)
 logger = logging.getLogger(__name__)
 
 
