@@ -73,10 +73,10 @@ def _encode(value):
 def worker_fn(
     worker_id: int,
     dataset,
+    env_loader,
     result_queue: mp.Queue,
 ):
-    # env._push(num_workers=num_workers, worker_id=worker_id)
-    env._push(loader={"worker_id": worker_id})
+    env._push(loader={**env_loader, "worker_id": worker_id})
 
     for raw in map(_encode, dataset):
         try:
@@ -96,7 +96,7 @@ class MultiProcessLoader(Iterable):
         max_queue_size: Optional[int],
         decode_fn: Callable = lambda x: x,
     ):
-        # assert num_workers >= 1
+        assert num_workers >= 1
 
         if max_queue_size is None:
             max_queue_size = 5 * num_workers
@@ -112,6 +112,7 @@ class MultiProcessLoader(Iterable):
             kwargs={
                 "dataset": dataset,
                 "result_queue": self.result_queue,
+                "env_loader": env.loader.dict(),
             },
         )
 
