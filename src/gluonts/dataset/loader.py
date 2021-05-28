@@ -20,7 +20,9 @@ from functools import partial
 from multiprocessing.reduction import ForkingPickler
 from typing import Callable, Iterable, Iterator, Optional
 
+from pydantic import BaseModel, validator
 from toolz import compose_left, thread_first
+
 
 from gluonts.env import env
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
@@ -28,6 +30,30 @@ from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
 from gluonts.transform import Transformation
 
 logger = logging.getLogger(__name__)
+
+
+class LoaderSettings(BaseModel):
+    class Config:
+        validate_assignment = True
+
+    num_workers: Optional[int]
+    num_prefetch: Optional[int]
+    worker_id: Optional[int]
+
+    @validator("num_workers")
+    def win32_guard(cls, num_workers):
+        if sys.platform != "win32":
+            return worker_id
+
+        if num_workers is not None:
+            logger.warning(
+                "Multiprocessing is not supported on Windows, "
+                "num_workers will be set to None."
+            )
+        return None
+
+
+env._declare("loader", LoaderSettings, default=LoaderSettings())
 
 
 def _encode(value):
@@ -106,16 +132,6 @@ class MultiProcessBatcher(Iterable):
     def _terminate(self):
         for process in self.processes:
             process.terminate()
-
-
-def win32_guard(num_workers: Optional[int]) -> Optional[int]:
-    if num_workers and sys.platform == "win32":
-        logger.warning(
-            "Multiprocessing is not supported on Windows, "
-            "num_workers will be set to None."
-        )
-        return None
-    return num_workers
 
 
 class DataLoader(Iterable[DataBatch]):
