@@ -186,6 +186,13 @@ class Settings:
         except KeyError:
             return default
 
+    def __contains__(self, key):
+        try:
+            self[key]
+            return True
+        except KeyError:
+            return False
+
     def __getitem__(self, key):
         # Iterate all dicts, last to first, and return value as soon as one is
         # found.
@@ -301,7 +308,9 @@ class Settings:
                 arguments = sig.bind_partial(*args, **kwargs).arguments
 
                 setting_kwargs = {
-                    key: self[key] for key in keys if key not in arguments
+                    key: self[key]
+                    for key in keys
+                    if key not in arguments and key in self
                 }
 
                 return fn(**arguments, **setting_kwargs)

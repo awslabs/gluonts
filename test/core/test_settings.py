@@ -69,3 +69,9 @@ def test_inject():
     with settings._let(b=42):
         assert x(0) == (0, 42)
         assert x(1, 2) == (1, 2)
+
+    @settings._inject("a")
+    def x(a=1):
+        assert a == 1
+
+    x()
