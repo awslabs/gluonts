@@ -20,14 +20,48 @@ from functools import partial
 from multiprocessing.reduction import ForkingPickler
 from typing import Callable, Iterable, Iterator, Optional
 
-from toolz import compose_left, thread_first
+from pydantic import BaseModel, validator
+from toolz import compose_left
 
 from gluonts.env import env
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
-from gluonts.transform import Transformation
+from gluonts.transform import (
+    Transformation,
+    FlatMapTransformation,
+    AdhocTransform,
+)
 
 logger = logging.getLogger(__name__)
+
+
+class LoaderSettings(BaseModel):
+    class Config:
+        validate_assignment = True
+
+    num_workers: Optional[int]
+    num_prefetch: Optional[int]
+    worker_id: Optional[int]
+
+    @validator("num_workers")
+    def win32_guard(cls, num_workers):
+        if num_workers is None:
+            return None
+
+        assert num_workers > 0, "num_workers can't be negative"
+
+        if sys.platform == "win32":
+            logger.warning(
+                "Multiprocessing is not supported on Windows, "
+                "num_workers will be set to None."
+            )
+
+            return None
+
+        return num_workers
+
+
+env._declare("loader", LoaderSettings, default=LoaderSettings())
 
 
 def _encode(value):
@@ -38,30 +72,31 @@ def _encode(value):
 
 def worker_fn(
     worker_id: int,
-    num_workers: int,
     dataset,
-    fn,
     result_queue: mp.Queue,
 ):
-    env._push(num_workers=num_workers, worker_id=worker_id)
+    # env._push(num_workers=num_workers, worker_id=worker_id)
+    env._push(loader={"worker_id": worker_id})
 
-    for value in fn(dataset):
+    for raw in map(_encode, dataset):
         try:
-            result_queue.put(_encode(value))
+            result_queue.put(raw)
         except (EOFError, BrokenPipeError):
             return
 
 
-class MultiProcessBatcher(Iterable):
+class MultiProcessLoader(Iterable):
+    @env._inject(
+        num_workers="loader.num_workers", max_queue_size="loader.num_prefetch"
+    )
     def __init__(
         self,
         dataset: Dataset,
-        pipeline,
         num_workers: int,
-        max_queue_size: Optional[int] = None,
+        max_queue_size: Optional[int],
         decode_fn: Callable = lambda x: x,
     ):
-        assert num_workers >= 1
+        # assert num_workers >= 1
 
         if max_queue_size is None:
             max_queue_size = 5 * num_workers
@@ -75,9 +110,7 @@ class MultiProcessBatcher(Iterable):
             mp.Process,
             target=worker_fn,
             kwargs={
-                "num_workers": num_workers,
                 "dataset": dataset,
-                "fn": pipeline,
                 "result_queue": self.result_queue,
             },
         )
@@ -108,85 +141,17 @@ class MultiProcessBatcher(Iterable):
             process.terminate()
 
 
-def win32_guard(num_workers: Optional[int]) -> Optional[int]:
-    if num_workers and sys.platform == "win32":
-        logger.warning(
-            "Multiprocessing is not supported on Windows, "
-            "num_workers will be set to None."
-        )
-        return None
-    return num_workers
-
-
-class DataLoader(Iterable[DataBatch]):
-    """Iterate a datasets and stack its entries into batches of a given size.
-
-    The object can be configured to use multiple processes to iterate the
-    entries, which increases throughput in case the data entries are lazily
-    transformed.
-
-    Parameters
-    ----------
-    data_iterable
-        Data to construct batches from.
-    batch_size
-        Number of entries to include in a batch.
-    stack_fn
-        Function to use to stack data entries into batches.
-        This can be used to set a specific array type or computing device
-        the arrays should end up onto (CPU, GPU).
-    num_workers
-        Number of worker processes to use. Default: None.
-    num_prefetch
-        Sets the length of the queue of batches being produced by worker
-        processes. (Only meaningful when ``num_workers is not None``).
-    decode_fn
-        A function called on each batch after it's been taken out of the queue.
-        (Only meaningful when ``num_workers is not None``).
-    """
-
-    def __init__(
-        self,
-        data_iterable: Iterable[DataEntry],
-        *,
-        pipeline,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        decode_fn: Callable = lambda x: x,
-    ) -> None:
-        assert num_workers is None or num_workers > 0
-        assert num_prefetch is None or num_prefetch > 0
-
-        self.data_iterable = data_iterable
-
-        self.num_workers = win32_guard(num_workers)
-        self.num_prefetch = num_prefetch
-        self.decode_fn = decode_fn
-        self.pipeline = pipeline
-
-    def __iter__(self):
-        if self.num_workers is None:
-            return self.pipeline(self.data_iterable)
-
-        return iter(
-            MultiProcessBatcher(
-                self.data_iterable,
-                pipeline=self.pipeline,
-                decode_fn=self.decode_fn,
-                num_workers=self.num_workers,
-                max_queue_size=self.num_prefetch,
-            )
-        )
-
+DataLoader = Iterable[DataBatch]
 
 # TODO: the following are for backward compatibility
 # and could eventually be removed
 
 
-def batch_and_stack(batch_size, stack_fn):
-    return compose_left(
-        partial(batcher, batch_size=batch_size), partial(map, stack_fn)
-    )
+class Batch(Transformation, BaseModel):
+    batch_size: int
+
+    def __call__(self, data, is_train) -> Iterator[DataEntry]:
+        yield from batcher(data, self.batch_size)
 
 
 def TrainDataLoader(
@@ -196,8 +161,6 @@ def TrainDataLoader(
     batch_size: int,
     stack_fn: Callable,
     num_batches_per_epoch: Optional[int] = None,
-    num_workers: Optional[int] = None,
-    num_prefetch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
 ) -> Iterable[DataBatch]:
@@ -249,25 +212,22 @@ def TrainDataLoader(
         An iterator of batches.
     """
     dataset = Cyclic(dataset)
-    dataset = transform.apply(dataset)
 
     if shuffle_buffer_length:
         dataset = PseudoShuffled(dataset, shuffle_buffer_length)
 
-    data_loader = iter(
-        DataLoader(
-            data_iterable=dataset,
-            pipeline=batch_and_stack(batch_size, stack_fn),
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            decode_fn=decode_fn,
-        )
-    )
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    batches = transform.apply(dataset, is_train=True)
+
+    if env.loader.num_workers is not None:
+        batches = MultiProcessLoader(batches, decode_fn=decode_fn)
+
+    batches = iter(batches)
 
     if num_batches_per_epoch is None:
-        return data_loader
+        return batches
     else:
-        return IterableSlice(data_loader, num_batches_per_epoch)
+        return IterableSlice(batches, num_batches_per_epoch)
 
 
 def ValidationDataLoader(
@@ -298,10 +258,9 @@ def ValidationDataLoader(
     Iterable[DataBatch]
         An iterable sequence of batches.
     """
-    return DataLoader(
-        data_iterable=transform.apply(dataset),
-        pipeline=batch_and_stack(batch_size, stack_fn),
-    )
+
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    return transform.apply(dataset, is_train=True)
 
 
 def InferenceDataLoader(
@@ -332,7 +291,5 @@ def InferenceDataLoader(
     Iterable[DataBatch]
         An iterable sequence of batches.
     """
-    return DataLoader(
-        data_iterable=transform.apply(dataset, is_train=False),
-        pipeline=batch_and_stack(batch_size, stack_fn),
-    )
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    return transform.apply(dataset, is_train=False)

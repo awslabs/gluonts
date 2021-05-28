@@ -34,21 +34,6 @@ from gluonts.env import env
 T = TypeVar("T")
 
 
-# class MPWorkerInfo:
-#     """Contains the current worker information."""
-
-#     worker_process = False
-#     num_workers = None
-#     worker_id = None
-
-#     @classmethod
-#     def set_worker_info(cls, num_workers: int, worker_id: int):
-#         cls.worker_process = True
-#         cls.num_workers = num_workers
-#         cls.worker_id = worker_id
-#         multiprocessing.current_process().name = f"worker_{worker_id}"
-
-
 class DataLoadingBounds(NamedTuple):
     lower: int
     upper: int
@@ -59,15 +44,16 @@ def get_bounds_for_mp_data_loading(dataset_len: int) -> DataLoadingBounds:
     Utility function that returns the bounds for which part of the dataset
     should be loaded in this worker.
     """
-    worker_id = env._get("worker_id")
+    worker_id = env.loader.worker_id
+
     if worker_id is None:
         return DataLoadingBounds(0, dataset_len)
 
-    segment_size = int(dataset_len / env.num_workers)
+    segment_size = int(dataset_len / env.loader.num_workers)
     lower = worker_id * segment_size
     upper = (
         (worker_id + 1) * segment_size
-        if worker_id + 1 != env.num_workers
+        if worker_id + 1 != env.loader.num_workers
         else dataset_len
     )
     return DataLoadingBounds(lower=lower, upper=upper)
