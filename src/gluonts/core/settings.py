@@ -227,7 +227,17 @@ class Settings:
         # If we have type-information, we apply the pydantic-model to the value
         model = self._types.get(key)
         if model is not None:
-            value = getattr(model.parse_obj({key: value}), key)
+            # If `settings.foo` is a pydantic model, we want to allow partial
+            # assignment: `settings.foo = {"b": 1}` should only set `b`
+            # Thus we check whether we are dealing with a pydantic model and if
+            # we are also assigning a `dict`:
+            is_pydantic_model = issubclass(
+                model.__fields__[key].type_, pydantic.BaseModel
+            )
+            if is_pydantic_model and isinstance(value, dict):
+                value = self[key].copy(update=value)
+            else:
+                value = getattr(model.parse_obj({key: value}), key)
 
         dct[key] = value
 
