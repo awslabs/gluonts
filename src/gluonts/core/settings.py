@@ -72,6 +72,7 @@ Whenever a new value is set, it is type-checked.
 
 import functools
 import inspect
+from operator import attrgetter
 from typing import Any
 
 import pydantic
@@ -273,7 +274,7 @@ class Settings:
         """
         return _ScopedSettings(self, kwargs)
 
-    def _inject(self, *keys):
+    def _inject(self, *keys, **kwargs):
         """Dependency injection.
 
         This will inject values from settings if avaiable and not passed
@@ -299,19 +300,30 @@ class Settings:
             # We need the signature to be able to assemble the args later.
             sig = inspect.signature(fn)
 
+            getters = {}
+
             for key in keys:
                 assert key in sig.parameters, f"Key {key} not in arguments."
+                getters[key] = attrgetter(key)
+
+            for key, path in kwargs.items():
+                assert key in sig.parameters, f"Key {key} not in arguments."
+                assert key not in getters, f"Key {key} defined twice."
+                getters[key] = attrgetter(path)
 
             @functools.wraps(fn)
             def wrapper(*args, **kwargs):
                 # arguments are always keyword params
                 arguments = sig.bind_partial(*args, **kwargs).arguments
 
-                setting_kwargs = {
-                    key: self[key]
-                    for key in keys
-                    if key not in arguments and key in self
-                }
+                setting_kwargs = {}
+
+                for key, getter in getters.items():
+                    if key not in arguments:
+                        try:
+                            setting_kwargs[key] = getter(self)
+                        except (KeyError, AttributeError):
+                            continue
 
                 return fn(**arguments, **setting_kwargs)
 
