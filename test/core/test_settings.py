@@ -106,3 +106,6 @@ def test_partial_assignment():
     with settings._let(args=dict(b=3)):
         assert settings.args.a == 9
         assert settings.args.b == 3
+
+    settings.args = {"a": "1"}
+    assert settings.args.a == 1
