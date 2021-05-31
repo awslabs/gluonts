@@ -18,7 +18,7 @@ import pickle
 import sys
 from functools import partial
 from multiprocessing.reduction import ForkingPickler
-from typing import Callable, Iterable, Iterator, Optional
+from typing import Callable, Iterable, Iterator, Optional, List
 
 from pydantic import BaseModel, validator
 from toolz import compose_left
@@ -26,11 +26,7 @@ from toolz import compose_left
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
 from gluonts.dataset.util import MPWorkerInfo
 from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
-from gluonts.transform import (
-    Transformation,
-    FlatMapTransformation,
-    AdhocTransform,
-)
+from gluonts.transform import Transformation, AdhocTransform, Identity
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +141,7 @@ class Batch(Transformation, BaseModel):
 def TrainDataLoader(
     dataset: Dataset,
     *,
-    transform: Transformation,
+    transform: Transformation = Identity(),
     batch_size: int,
     stack_fn: Callable,
     num_batches_per_epoch: Optional[int] = None,
@@ -228,7 +224,7 @@ def TrainDataLoader(
 def ValidationDataLoader(
     dataset: Dataset,
     *,
-    transform: Transformation,
+    transform: Transformation = Identity(),
     batch_size: int,
     stack_fn: Callable,
 ):
@@ -261,7 +257,7 @@ def ValidationDataLoader(
 def InferenceDataLoader(
     dataset: Dataset,
     *,
-    transform: Transformation,
+    transform: Transformation = Identity(),
     batch_size: int,
     stack_fn: Callable,
 ):
