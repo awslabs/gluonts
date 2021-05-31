@@ -76,7 +76,6 @@ from operator import attrgetter
 from typing import Any
 
 import pydantic
-from pydantic.utils import deep_update
 
 
 class Dependency:
@@ -232,12 +231,11 @@ class Settings:
             # assignment: `settings.foo = {"b": 1}` should only set `b`
             # Thus we check whether we are dealing with a pydantic model and if
             # we are also assigning a `dict`:
-            type_ = model.__fields__[key].type_
-
-            if issubclass(type_, pydantic.BaseModel) and isinstance(
-                value, dict
-            ):
-                value = type_.parse_obj(deep_update(self[key].dict(), value))
+            is_pydantic_model = issubclass(
+                model.__fields__[key].type_, pydantic.BaseModel
+            )
+            if is_pydantic_model and isinstance(value, dict):
+                value = self[key].copy(update=value)
             else:
                 value = getattr(model.parse_obj({key: value}), key)
 
