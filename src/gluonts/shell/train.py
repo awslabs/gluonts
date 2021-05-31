@@ -30,8 +30,6 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.support.util import maybe_len
 from gluonts.transform import FilterTransformation
 
-from gluonts.env import env
-
 from .env import TrainEnv
 
 multiprocessing.set_start_method("spawn", force=True)
@@ -89,34 +87,27 @@ def run_train(
     hyperparameters: dict,
     validation_dataset: Optional[Dataset],
 ) -> Predictor:
-
-    if "num_workers" in hyperparameters:
-        env.loader = {"num_workers": hyperparameters["num_workers"]}
-
-    if "num_prefetch" in hyperparameters:
-        env.loader = {"num_prefetch": hyperparameters["num_prefetch"]}
-
-    # num_workers = (
-    #     int(hyperparameters["num_workers"])
-    #     if "num_workers" in hyperparameters.keys()
-    #     else None
-    # )
+    num_workers = (
+        int(hyperparameters["num_workers"])
+        if "num_workers" in hyperparameters.keys()
+        else None
+    )
     shuffle_buffer_length = (
         int(hyperparameters["shuffle_buffer_length"])
         if "shuffle_buffer_length" in hyperparameters.keys()
         else None
     )
-    # num_prefetch = (
-    #     int(hyperparameters["num_prefetch"])
-    #     if "num_prefetch" in hyperparameters.keys()
-    #     else None
-    # )
+    num_prefetch = (
+        int(hyperparameters["num_prefetch"])
+        if "num_prefetch" in hyperparameters.keys()
+        else None
+    )
     if isinstance(forecaster, GluonEstimator):
         return forecaster.train(
             training_data=train_dataset,
             validation_data=validation_dataset,
-            # num_workers=num_workers,
-            # num_prefetch=num_prefetch,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
         )
     else:

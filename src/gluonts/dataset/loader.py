@@ -23,8 +23,8 @@ from typing import Callable, Iterable, Iterator, Optional
 from pydantic import BaseModel, validator
 from toolz import compose_left
 
-from gluonts.env import env
 from gluonts.dataset.common import DataBatch, DataEntry, Dataset
+from gluonts.dataset.util import MPWorkerInfo
 from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
 from gluonts.transform import (
     Transformation,
@@ -35,33 +35,20 @@ from gluonts.transform import (
 logger = logging.getLogger(__name__)
 
 
-class LoaderSettings(BaseModel):
-    class Config:
-        validate_assignment = True
+def win32_guard(cls, num_workers):
+    if num_workers is None:
+        return None
 
-    num_workers: Optional[int]
-    num_prefetch: Optional[int]
-    worker_id: Optional[int]
+    assert num_workers > 0, "num_workers can't be negative"
 
-    @validator("num_workers")
-    def win32_guard(cls, num_workers):
-        if num_workers is None:
-            return None
+    if sys.platform == "win32":
+        logger.warning(
+            "Multiprocessing is not supported on Windows, "
+            "num_workers will be set to None."
+        )
+        return None
 
-        assert num_workers > 0, "num_workers can't be negative"
-
-        if sys.platform == "win32":
-            logger.warning(
-                "Multiprocessing is not supported on Windows, "
-                "num_workers will be set to None."
-            )
-
-            return None
-
-        return num_workers
-
-
-env._declare("loader", LoaderSettings, default=LoaderSettings())
+    return num_workers
 
 
 def _encode(value):
@@ -73,10 +60,13 @@ def _encode(value):
 def worker_fn(
     worker_id: int,
     dataset,
-    env_loader,
+    num_workers: int,
     result_queue: mp.Queue,
 ):
-    env._push(loader={**env_loader, "worker_id": worker_id})
+    MPWorkerInfo.set_worker_info(
+        num_workers=num_workers,
+        worker_id=worker_id,
+    )
 
     for raw in map(_encode, dataset):
         try:
@@ -86,9 +76,6 @@ def worker_fn(
 
 
 class MultiProcessLoader(Iterable):
-    @env._inject(
-        num_workers="loader.num_workers", max_queue_size="loader.num_prefetch"
-    )
     def __init__(
         self,
         dataset: Dataset,
@@ -112,7 +99,7 @@ class MultiProcessLoader(Iterable):
             kwargs={
                 "dataset": dataset,
                 "result_queue": self.result_queue,
-                "env_loader": env.loader.dict(),
+                "num_workers": num_workers,
             },
         )
 
@@ -162,6 +149,8 @@ def TrainDataLoader(
     batch_size: int,
     stack_fn: Callable,
     num_batches_per_epoch: Optional[int] = None,
+    num_prefetch: Optional[int] = None,
+    num_workers: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
 ) -> Iterable[DataBatch]:
@@ -220,8 +209,13 @@ def TrainDataLoader(
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     batches = transform.apply(dataset, is_train=True)
 
-    if env.loader.num_workers is not None:
-        batches = MultiProcessLoader(batches, decode_fn=decode_fn)
+    if num_workers is not None:
+        batches = MultiProcessLoader(
+            batches,
+            decode_fn=decode_fn,
+            num_workers=num_workers,
+            max_queue_size=num_prefetch,
+        )
 
     batches = iter(batches)
 
