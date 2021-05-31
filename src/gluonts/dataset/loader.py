@@ -71,7 +71,10 @@ def worker_fn(
             return
 
 
-class MultiProcessLoader(Iterable):
+DataLoader = Iterable[DataBatch]
+
+
+class MultiProcessLoader(DataLoader):
     def __init__(
         self,
         dataset: Dataset,
@@ -124,8 +127,6 @@ class MultiProcessLoader(Iterable):
         for process in self.processes:
             process.terminate()
 
-
-DataLoader = Iterable[DataBatch]
 
 # TODO: the following are for backward compatibility
 # and could eventually be removed
@@ -203,7 +204,7 @@ def TrainDataLoader(
         dataset = PseudoShuffled(dataset, shuffle_buffer_length)
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
-    batches = transform.apply(dataset, is_train=True)
+    batches: DataLoader = transform.apply(dataset, is_train=True)
 
     if num_workers is not None:
         batches = MultiProcessLoader(
