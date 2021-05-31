@@ -21,6 +21,7 @@ import pytest
 from pydantic import BaseModel
 
 from gluonts.core import serde
+from gluonts.mx.prelude import *
 
 # Example Types
 # -------------
@@ -188,3 +189,13 @@ def test_timestamp_encode_decode() -> None:
 )
 def test_string_escape(serialize_fn) -> None:
     assert serialize_fn(r"a\b") == r"a\b"
+
+
+def test_serde_fq():
+    serde.encode(test_serde_fq)
+
+    def foo():
+        pass
+
+    # with pytest.raises(Exception):
+    serde.encode(foo)

@@ -220,6 +220,12 @@ def encode(v: Any) -> Any:
             "kwargs": encode(kwargs),
         }
 
+    try:
+        # as fallback, we try to just take the path of the value
+        return {"__kind__": Kind.Type, "class": fqname_for(v)}
+    except AttributeError:
+        pass
+
     raise RuntimeError(bad_type_msg.format(fqname_for(v.__class__)))
 
 
