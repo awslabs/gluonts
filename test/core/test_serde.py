@@ -197,5 +197,5 @@ def test_serde_fq():
     def foo():
         pass
 
-    # with pytest.raises(Exception):
-    serde.encode(foo)
+    with pytest.raises(Exception):
+        serde.encode(foo)
