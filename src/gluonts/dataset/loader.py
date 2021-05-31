@@ -138,7 +138,7 @@ DataLoader = Iterable[DataBatch]
 class Batch(Transformation, BaseModel):
     batch_size: int
 
-    def __call__(self, data, is_train) -> Iterator[DataEntry]:
+    def __call__(self, data, is_train) -> Iterator[List[DataEntry]]:
         yield from batcher(data, self.batch_size)
 
 
