@@ -18,12 +18,11 @@ import pickle
 import sys
 from functools import partial
 from multiprocessing.reduction import ForkingPickler
-from typing import Callable, Iterable, Iterator, Optional, List
+from typing import Callable, Iterable, Optional
 
-from pydantic import BaseModel, validator
-from toolz import compose_left
+from pydantic import BaseModel
 
-from gluonts.dataset.common import DataBatch, DataEntry, Dataset
+from gluonts.dataset.common import DataBatch, Dataset
 from gluonts.dataset.util import MPWorkerInfo
 from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
 from gluonts.transform import Transformation, AdhocTransform, Identity
