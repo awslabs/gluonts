@@ -28,6 +28,7 @@ from ._base import (
     MonthOfYearIndex,
     WeekOfYearIndex,
     time_features_from_frequency_str,
+    Constant,
     norm_freq_str,
 )
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
@@ -50,6 +51,7 @@ __all__ = [
     "MinuteOfHourIndex",
     "MonthOfYearIndex",
     "WeekOfYearIndex",
+    "Constant",
     "SPECIAL_DATE_FEATURES",
     "SpecialDateFeatureSet",
     "get_lags_for_frequency",

@@ -33,7 +33,11 @@ from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
+from gluonts.time_feature import (
+    TimeFeature,
+    time_features_from_frequency_str,
+    Constant,
+)
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
@@ -109,6 +113,10 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
 
         if not time_features:
             self.time_features = time_features_from_frequency_str(self.freq)
+            if not self.time_features:
+                # If time features are empty (as for yearly data), we add a
+                # constant feature of 0
+                self.time_features = [Constant()]
         else:
             self.time_features = time_features
         self.static_cardinalities = static_cardinalities

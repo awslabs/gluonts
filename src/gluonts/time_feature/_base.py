@@ -151,6 +151,18 @@ class WeekOfYearIndex(TimeFeature):
         return (week - 1).map(float)
 
 
+class Constant(TimeFeature):
+    """Constant time feature using a predefined value."""
+
+    @validated()
+    def __init__(self, value: float = 0.0):
+        super().__init__()
+        self.value = value
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return np.full(index.shape, self.value)
+
+
 def norm_freq_str(freq_str: str) -> str:
     return freq_str.split("-")[0]
 
