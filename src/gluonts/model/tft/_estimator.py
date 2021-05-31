@@ -309,9 +309,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 ]
             )
 
-        for t in transforms:
-            print(t)
-
         return Chain(transforms)
 
     def _create_instance_splitter(self, mode: str):
