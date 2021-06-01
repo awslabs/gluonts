@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import pytest
+from flaky import flaky
 
 from gluonts.model.rotbaum import TreeEstimator
 
@@ -20,6 +21,7 @@ from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 # TODO: Add support for categorical and dynamic features.
 
 
+@flaky(min_passes=1, max_runs=3)
 @pytest.mark.parametrize(
     "datasets",
     [
