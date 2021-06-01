@@ -72,9 +72,11 @@ Whenever a new value is set, it is type-checked.
 
 import functools
 import inspect
+from operator import attrgetter
 from typing import Any
 
 import pydantic
+from pydantic.utils import deep_update
 
 
 class Dependency:
@@ -186,6 +188,13 @@ class Settings:
         except KeyError:
             return default
 
+    def __contains__(self, key):
+        try:
+            self[key]
+            return True
+        except KeyError:
+            return False
+
     def __getitem__(self, key):
         # Iterate all dicts, last to first, and return value as soon as one is
         # found.
@@ -219,7 +228,18 @@ class Settings:
         # If we have type-information, we apply the pydantic-model to the value
         model = self._types.get(key)
         if model is not None:
-            value = getattr(model.parse_obj({key: value}), key)
+            # If `settings.foo` is a pydantic model, we want to allow partial
+            # assignment: `settings.foo = {"b": 1}` should only set `b`
+            # Thus we check whether we are dealing with a pydantic model and if
+            # we are also assigning a `dict`:
+            type_ = model.__fields__[key].type_
+
+            if issubclass(type_, pydantic.BaseModel) and isinstance(
+                value, dict
+            ):
+                value = type_.parse_obj(deep_update(self[key].dict(), value))
+            else:
+                value = getattr(model.parse_obj({key: value}), key)
 
         dct[key] = value
 
@@ -266,7 +286,7 @@ class Settings:
         """
         return _ScopedSettings(self, kwargs)
 
-    def _inject(self, *keys):
+    def _inject(self, *keys, **kwargs):
         """Dependency injection.
 
         This will inject values from settings if avaiable and not passed
@@ -292,17 +312,30 @@ class Settings:
             # We need the signature to be able to assemble the args later.
             sig = inspect.signature(fn)
 
+            getters = {}
+
             for key in keys:
                 assert key in sig.parameters, f"Key {key} not in arguments."
+                getters[key] = attrgetter(key)
+
+            for key, path in kwargs.items():
+                assert key in sig.parameters, f"Key {key} not in arguments."
+                assert key not in getters, f"Key {key} defined twice."
+                getters[key] = attrgetter(path)
 
             @functools.wraps(fn)
             def wrapper(*args, **kwargs):
                 # arguments are always keyword params
                 arguments = sig.bind_partial(*args, **kwargs).arguments
 
-                setting_kwargs = {
-                    key: self[key] for key in keys if key not in arguments
-                }
+                setting_kwargs = {}
+
+                for key, getter in getters.items():
+                    if key not in arguments:
+                        try:
+                            setting_kwargs[key] = getter(self)
+                        except (KeyError, AttributeError):
+                            continue
 
                 return fn(**arguments, **setting_kwargs)
 

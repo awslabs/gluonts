@@ -24,6 +24,7 @@ from gluonts.time_feature import (
     DayOfYear,
     WeekOfYear,
     MonthOfYear,
+    Constant,
     MinuteOfHourIndex,
     HourOfDayIndex,
     DayOfWeekIndex,
@@ -52,6 +53,7 @@ from gluonts.time_feature import (
         (DayOfYear(), pd.date_range("01-01-2015", periods=365 * 5, freq="D")),
         (WeekOfYear(), pd.date_range("01-01-2015", periods=53 * 5, freq="W")),
         (MonthOfYear(), pd.date_range("01-01-2015", periods=12 * 5, freq="M")),
+        (Constant(), pd.date_range("01-01-2015", periods=5, freq="A")),
     ],
 )
 def test_feature_normalized_bounds(
