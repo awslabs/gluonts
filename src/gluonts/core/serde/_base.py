@@ -229,7 +229,12 @@ def encode(v: Any) -> Any:
 
         if hasattr(v, "__self__") and hasattr(v, "__func__"):
             # v is a method
-            pass
+            # to model`obj.method`, we encode `getattr(obj, "method")`
+            return {
+                "__kind__": Kind.Instance,
+                "class": fqname_for(getattr),
+                "args": encode((v.__self__, v.__func__.__name__)),
+            }
 
         return {"__kind__": Kind.Type, "class": fqname_for(v)}
     except AttributeError:
