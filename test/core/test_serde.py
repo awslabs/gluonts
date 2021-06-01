@@ -212,7 +212,7 @@ def test_serde_partial():
     assert add_1_(2) == 3
 
 
-class X:
+class X(serde.Stateless):
     def m(self):
         return 42
 
