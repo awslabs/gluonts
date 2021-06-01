@@ -207,7 +207,7 @@ def test_serde_fq():
 def test_serde_partial():
     add_1 = partial(add, 1)
 
-    add_1_ = serde.encode(serde.decode(add_1))
+    add_1_ = serde.decode(serde.encode(add_1))
 
     assert add_1_(2) == 3
 
