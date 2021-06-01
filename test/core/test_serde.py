@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from functools import partial
+from operator import add
 from pathlib import Path
 from typing import List, NamedTuple
 
@@ -192,10 +194,32 @@ def test_string_escape(serialize_fn) -> None:
 
 
 def test_serde_fq():
-    serde.encode(test_serde_fq)
+    add_ = serde.decode(serde.encode(add))
+    assert add_(1, 2) == 3
 
     def foo():
         pass
 
     with pytest.raises(Exception):
         serde.encode(foo)
+
+
+def test_serde_partial():
+    add_1 = partial(add, 1)
+
+    add_1_ = serde.encode(serde.decode(add_1))
+
+    assert add_1_(2) == 3
+
+
+class X:
+    def m(self):
+        return 42
+
+
+def test_serde_method():
+    x = X()
+
+    m = serde.decode(serde.encode(x.m))
+
+    assert m() == 42
