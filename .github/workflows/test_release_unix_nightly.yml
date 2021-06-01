@@ -2,12 +2,10 @@ name: Test latest release nightly Ubuntu
 
 on:
   schedule:
-    # * is a special character in YAML so you have to quote this string
-    # nightly:
     - cron:  '0 0 * * *'
 
 jobs:
-  build:
+  test-stable-ubuntu:
 
     strategy:
       max-parallel: 4
@@ -35,6 +33,7 @@ jobs:
         pip install -r requirements/requirements-extras-m-competitions.txt
         pip install -r requirements/requirements-rotbaum.txt
         pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
     - name: Test with pytest
       run: |
         cd gluon-ts
