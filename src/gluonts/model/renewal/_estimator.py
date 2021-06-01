@@ -26,7 +26,11 @@ from gluonts.transform.convert import ToIntervalSizeFormat, SwapAxes
 from gluonts.transform.feature import CountTrailingZeros
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import DataLoader
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.transform import (
     InstanceSplitter,
@@ -214,8 +218,8 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             + self._create_post_split_transform()
             + SelectFields(["past_target", "valid_length"])
         )
-        return DataLoader(
-            data_iterable=train_transform.apply(Cyclic(data)),
+        return TrainDataLoader(
+            train_transform.apply(Cyclic(data)),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
             decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
@@ -231,8 +235,8 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             + self._create_post_split_transform()
             + SelectFields(["past_target", "valid_length"])
         )
-        return DataLoader(
-            data_iterable=validation_transform.apply(data),
+        return ValidationDataLoader(
+            validation_transform.apply(data),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
             decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
