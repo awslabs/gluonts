@@ -3,14 +3,14 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  build:
+  test:
 
     strategy:
       max-parallel: 4
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7, 3.8]
-        platform: [ubuntu-latest, windows-latest]
+        platform: [ubuntu-latest]
 
     runs-on: ${{ matrix.platform }}
 
