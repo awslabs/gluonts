@@ -11,10 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import inspect
 import pydoc
 from typing import Type, Union, cast
 
 import pkg_resources
+from toolz import keyfilter
 
 from gluonts.core.exception import GluonTSForecasterNotFoundError
 from gluonts.model.estimator import Estimator
@@ -56,3 +58,20 @@ def forecaster_type_by_name(name: str) -> Forecaster:
         )
 
     return cast(Forecaster, forecaster)
+
+
+def invoke_with(fn, *args, **kwargs):
+    """Call `fn(*args, **kwargs)`, but only use kwargs that `fn` actually
+    uses.
+    """
+
+    # if `fn` has `**kwargs` argument, we can just call it directly
+    if inspect.getfullargspec(fn).varkw is not None:
+        return fn(*args, **kwargs)
+
+    sig = inspect.signature(fn)
+
+    kwargs = keyfilter(sig.parameters.__contains__, kwargs)
+
+    arguments = sig.bind(*args, **kwargs).arguments
+    return fn(**arguments)
