@@ -14,7 +14,9 @@
 from collections import Counter
 from typing import Any, Dict, List
 
-from gluonts.core.component import validated
+import numpy as np
+
+from gluonts.core.component import validated, DType
 from gluonts.dataset.common import DataEntry
 
 from ._base import MapTransformation, SimpleTransformation
@@ -86,6 +88,31 @@ class SetField(SimpleTransformation):
 
     def transform(self, data: DataEntry) -> DataEntry:
         data[self.output_field] = self.value
+        return data
+
+
+class SetArrayField(SimpleTransformation):
+    """
+    Sets a numpy.array field in the dictionary, from the given value.
+
+    Parameters
+    ----------
+    output_field
+        Name of the field that will be set
+    value
+        Value to be used to construct the array (usually a list)
+    """
+
+    @validated()
+    def __init__(
+        self, output_field: str, value: Any, dtype: DType = np.float32
+    ) -> None:
+        self.output_field = output_field
+        self.value = value
+        self.dtype = dtype
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        data[self.output_field] = np.array(self.value, dtype=self.dtype)
         return data
 
 

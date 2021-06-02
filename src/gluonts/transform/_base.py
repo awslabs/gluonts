@@ -50,7 +50,7 @@ class Chain(Transformation):
     """
 
     @validated()
-    def __init__(self, trans: List[Transformation]) -> None:
+    def __init__(self, trans: List[Transformation] = []) -> None:
         self.transformations: List[Transformation] = []
         for transformation in trans:
             # flatten chains

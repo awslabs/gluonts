@@ -35,21 +35,20 @@ from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.time_feature import (
     TimeFeature,
+    LogAge,
     get_lags_for_frequency,
     time_features_from_frequency_str,
 )
 from gluonts.transform import (
-    AddAgeFeature,
-    AddObservedValuesIndicator,
+    AddObservedTargetIndicator,
     AddTimeFeatures,
     AsNumpyArray,
-    Chain,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     InstanceSplitter,
     RemoveFields,
     SelectFields,
-    SetField,
+    SetArrayField,
     TestSplitSampler,
     Transformation,
     ValidationSplitSampler,
@@ -306,70 +305,64 @@ class DeepAREstimator(GluonEstimator):
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
-        return Chain(
-            [RemoveFields(field_names=remove_field_names)]
-            + (
-                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
-                if not self.use_feat_static_cat
-                else []
+        transform = RemoveFields(field_names=remove_field_names)
+
+        if not self.use_feat_static_cat:
+            transform += SetArrayField(
+                output_field=FieldName.FEAT_STATIC_CAT,
+                value=[0.0],
+                dtype=self.dtype,
             )
-            + (
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
-                    )
-                ]
-                if not self.use_feat_static_real
-                else []
+        else:
+            transform += AsNumpyArray(
+                field=FieldName.FEAT_STATIC_CAT,
+                expected_ndim=1,
+                dtype=self.dtype,
             )
-            + [
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT,
-                    expected_ndim=1,
-                    dtype=self.dtype,
-                ),
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL,
-                    expected_ndim=1,
-                    dtype=self.dtype,
-                ),
-                AsNumpyArray(
-                    field=FieldName.TARGET,
-                    # in the following line, we add 1 for the time dimension
-                    expected_ndim=1 + len(self.distr_output.event_shape),
-                    dtype=self.dtype,
-                ),
-                AddObservedValuesIndicator(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.OBSERVED_VALUES,
-                    dtype=self.dtype,
-                    imputation_method=self.imputation_method,
-                ),
-                AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=self.time_features,
-                    pred_length=self.prediction_length,
-                ),
-                AddAgeFeature(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_AGE,
-                    pred_length=self.prediction_length,
-                    log_scale=True,
-                    dtype=self.dtype,
-                ),
-                VstackFeatures(
-                    output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
-                    + (
-                        [FieldName.FEAT_DYNAMIC_REAL]
-                        if self.use_feat_dynamic_real
-                        else []
-                    ),
-                ),
-            ]
+
+        if not self.use_feat_static_real:
+            transform += SetArrayField(
+                output_field=FieldName.FEAT_STATIC_REAL,
+                value=[0.0],
+                dtype=self.dtype,
+            )
+        else:
+            transform += AsNumpyArray(
+                field=FieldName.FEAT_STATIC_REAL,
+                expected_ndim=1,
+                dtype=self.dtype,
+            )
+
+        transform += AsNumpyArray(
+            field=FieldName.TARGET,
+            expected_ndim=1 + len(self.distr_output.event_shape),
+            dtype=self.dtype,
         )
+
+        transform += AddObservedTargetIndicator(
+            dtype=self.dtype,
+            imputation_method=self.imputation_method,
+        )
+
+        transform += AddTimeFeatures(
+            start_field=FieldName.START,
+            target_field=FieldName.TARGET,
+            output_field=FieldName.FEAT_TIME,
+            time_features=self.time_features + [LogAge()],
+            pred_length=self.prediction_length,
+            dtype=self.dtype,
+        )
+
+        all_time_features = [FieldName.FEAT_TIME]
+        if self.use_feat_dynamic_real:
+            all_time_features.append(FieldName.FEAT_DYNAMIC_REAL)
+
+        transform += VstackFeatures(
+            output_field=FieldName.FEAT_TIME,
+            input_fields=all_time_features,
+        )
+
+        return transform
 
     def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]

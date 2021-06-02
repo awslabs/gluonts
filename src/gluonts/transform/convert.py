@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from typing import Iterator, List, Optional, Tuple
+from functools import partial
 
 import numpy as np
 
@@ -87,7 +88,7 @@ class ExpandDimArray(SimpleTransformation):
         return data
 
 
-class VstackFeatures(SimpleTransformation):
+class StackFeatures(SimpleTransformation):
     """
     Stack fields together using ``np.vstack`` when h_stack = False.
     Otherwise stack fields together using ``np.hstack``.
@@ -136,6 +137,10 @@ class VstackFeatures(SimpleTransformation):
         for fname in self.cols_to_drop:
             del data[fname]
         return data
+
+
+VstackFeatures = partial(StackFeatures, h_stack=False)
+HstackFeatures = partial(StackFeatures, h_stack=True)
 
 
 class ConcatFeatures(SimpleTransformation):

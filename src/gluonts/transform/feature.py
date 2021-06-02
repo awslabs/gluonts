@@ -18,6 +18,7 @@ import pandas as pd
 
 from gluonts.core.component import DType, validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 from gluonts.time_feature import TimeFeature
 
 from ._base import MapTransformation, SimpleTransformation
@@ -241,6 +242,17 @@ class AddObservedValuesIndicator(SimpleTransformation):
             nan_entries, out=nan_entries
         ).astype(self.dtype, copy=False)
         return data
+
+
+class AddObservedTargetIndicator(AddObservedValuesIndicator):
+    @validated()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(
+            *args,
+            **kwargs,
+            target_field=FieldName.TARGET,
+            output_field=FieldName.OBSERVED_VALUES,
+        )
 
 
 class AddConstFeature(MapTransformation):

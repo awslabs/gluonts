@@ -37,6 +37,16 @@ class TimeFeature:
         return self.__class__.__name__ + "()"
 
 
+class Age(TimeFeature):
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return np.arange(len(index))
+
+
+class LogAge(TimeFeature):
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return np.log(np.arange(len(index)))
+
+
 class MinuteOfHour(TimeFeature):
     """Minute of hour encoded as value between [-0.5, 0.5]"""
 

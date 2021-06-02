@@ -13,6 +13,8 @@
 
 from ._base import (
     TimeFeature,
+    Age,
+    LogAge,
     DayOfMonth,
     DayOfWeek,
     DayOfYear,
@@ -37,6 +39,8 @@ from .seasonality import get_seasonality
 
 __all__ = [
     "TimeFeature",
+    "Age",
+    "LogAge",
     "DayOfMonth",
     "DayOfWeek",
     "DayOfYear",

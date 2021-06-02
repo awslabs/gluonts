@@ -42,14 +42,14 @@ from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
-    Chain,
     InstanceSampler,
     ExpectedNumInstanceSampler,
     TestSplitSampler,
     ValidationSplitSampler,
     SelectFields,
-    SetField,
+    SetArrayField,
     Transformation,
+    HstackFeatures,
     VstackFeatures,
 )
 
@@ -155,161 +155,106 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         )
 
     def create_transformation(self) -> Transformation:
-        transforms = (
-            [AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)]
-            + (
-                [
-                    AsNumpyArray(field=name, expected_ndim=1)
-                    for name in self.static_cardinalities.keys()
-                ]
-            )
-            + [
-                AsNumpyArray(field=name, expected_ndim=1)
-                for name in chain(
-                    self.static_feature_dims.keys(),
-                    self.dynamic_cardinalities.keys(),
-                )
-            ]
-            + [
-                AsNumpyArray(field=name, expected_ndim=2)
-                for name in self.dynamic_feature_dims.keys()
-            ]
-            + [
-                AddObservedValuesIndicator(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.OBSERVED_VALUES,
-                ),
-                AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=self.time_features,
-                    pred_length=self.prediction_length,
-                ),
-            ]
+        transform = AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)
+
+        for name in self.static_cardinalities.keys():
+            transform += AsNumpyArray(field=name, expected_ndim=1)
+
+        for name in chain(
+            self.static_feature_dims.keys(),
+            self.dynamic_cardinalities.keys(),
+        ):
+            transform += AsNumpyArray(field=name, expected_ndim=1)
+
+        for name in self.dynamic_feature_dims.keys():
+            transform += AsNumpyArray(field=name, expected_ndim=2)
+
+        transform += AddObservedValuesIndicator(
+            target_field=FieldName.TARGET,
+            output_field=FieldName.OBSERVED_VALUES,
+        )
+
+        transform += AddTimeFeatures(
+            start_field=FieldName.START,
+            target_field=FieldName.TARGET,
+            output_field=FieldName.FEAT_TIME,
+            time_features=self.time_features,
+            pred_length=self.prediction_length,
         )
 
         if self.static_cardinalities:
-            transforms.append(
-                VstackFeatures(
-                    output_field=FieldName.FEAT_STATIC_CAT,
-                    input_fields=list(self.static_cardinalities.keys()),
-                    h_stack=True,
-                )
+            transform += HstackFeatures(
+                output_field=FieldName.FEAT_STATIC_CAT,
+                input_fields=list(self.static_cardinalities.keys()),
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_CAT,
-                        value=[0.0],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
-                    ),
-                ]
+            transform += SetArrayField(
+                output_field=FieldName.FEAT_STATIC_CAT,
+                value=[0.0],
             )
 
         if self.static_feature_dims:
-            transforms.append(
-                VstackFeatures(
-                    output_field=FieldName.FEAT_STATIC_REAL,
-                    input_fields=list(self.static_feature_dims.keys()),
-                    h_stack=True,
-                )
+            transform += HstackFeatures(
+                output_field=FieldName.FEAT_STATIC_REAL,
+                input_fields=list(self.static_feature_dims.keys()),
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL,
-                        value=[0.0],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
-                    ),
-                ]
+            transform += SetArrayField(
+                output_field=FieldName.FEAT_STATIC_REAL,
+                value=[0.0],
             )
 
         if self.dynamic_cardinalities:
-            transforms.append(
-                VstackFeatures(
-                    output_field=FieldName.FEAT_DYNAMIC_CAT,
-                    input_fields=list(self.dynamic_cardinalities.keys()),
-                )
+            transform += VstackFeatures(
+                output_field=FieldName.FEAT_DYNAMIC_CAT,
+                input_fields=list(self.dynamic_cardinalities.keys()),
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_DYNAMIC_CAT,
-                        value=[[0.0]],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.FEAT_DYNAMIC_CAT,
-                        expected_ndim=2,
-                    ),
-                    BroadcastTo(
-                        field=FieldName.FEAT_DYNAMIC_CAT,
-                        ext_length=self.prediction_length,
-                    ),
-                ]
+            transform += SetArrayField(
+                output_field=FieldName.FEAT_DYNAMIC_CAT,
+                value=[[0.0]],
+            )
+            transform += BroadcastTo(
+                field=FieldName.FEAT_DYNAMIC_CAT,
+                ext_length=self.prediction_length,
             )
 
         input_fields = [FieldName.FEAT_TIME]
         if self.dynamic_feature_dims:
             input_fields += list(self.dynamic_feature_dims.keys())
-        transforms.append(
-            VstackFeatures(
-                input_fields=input_fields,
-                output_field=FieldName.FEAT_DYNAMIC_REAL,
-            )
+
+        transform += VstackFeatures(
+            input_fields=input_fields,
+            output_field=FieldName.FEAT_DYNAMIC_REAL,
         )
 
         if self.past_dynamic_cardinalities:
-            transforms.append(
-                VstackFeatures(
-                    output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
-                    input_fields=list(self.past_dynamic_cardinalities.keys()),
-                )
+            transform += VstackFeatures(
+                output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
+                input_fields=list(self.past_dynamic_cardinalities.keys()),
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
-                        value=[[0.0]],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
-                        expected_ndim=2,
-                    ),
-                    BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC + "_cat"),
-                ]
+            transform += SetArrayField(
+                output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
+                value=[[0.0]],
+            )
+            transform += BroadcastTo(
+                field=FieldName.PAST_FEAT_DYNAMIC + "_cat"
             )
 
         if self.past_dynamic_feature_dims:
-            transforms.append(
-                VstackFeatures(
-                    output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
-                    input_fields=list(self.past_dynamic_feature_dims.keys()),
-                )
+            transform += VstackFeatures(
+                output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
+                input_fields=list(self.past_dynamic_feature_dims.keys()),
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
-                        value=[[0.0]],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.PAST_FEAT_DYNAMIC_REAL, expected_ndim=2
-                    ),
-                    BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC_REAL),
-                ]
+            transform += SetArrayField(
+                output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
+                value=[[0.0]],
             )
+            transform += BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC_REAL)
 
-        return Chain(transforms)
+        return transform
 
     def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
