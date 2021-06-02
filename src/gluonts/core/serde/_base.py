@@ -13,7 +13,7 @@
 
 import textwrap
 from enum import Enum
-from functools import singledispatch
+from functools import singledispatch, partial
 from pathlib import PurePath
 from pydoc import locate
 from typing import Any, NamedTuple, cast
@@ -220,6 +220,26 @@ def encode(v: Any) -> Any:
             "kwargs": encode(kwargs),
         }
 
+    try:
+        # as fallback, we try to just take the path of the value
+        fqname = fqname_for(v)
+        assert (
+            "<lambda>" not in fqname
+        ), f"Can't serialize lambda function {fqname}"
+
+        if hasattr(v, "__self__") and hasattr(v, "__func__"):
+            # v is a method
+            # to model`obj.method`, we encode `getattr(obj, "method")`
+            return {
+                "__kind__": Kind.Instance,
+                "class": fqname_for(getattr),
+                "args": encode((v.__self__, v.__func__.__name__)),
+            }
+
+        return {"__kind__": Kind.Type, "class": fqname_for(v)}
+    except AttributeError:
+        pass
+
     raise RuntimeError(bad_type_msg.format(fqname_for(v.__class__)))
 
 
@@ -255,6 +275,17 @@ def encode_pydantic_model(v: BaseModel) -> Any:
         "__kind__": Kind.Instance,
         "class": fqname_for(v.__class__),
         "kwargs": encode(v.__dict__),
+    }
+
+
+@encode.register(partial)
+def encode_partial(v: partial) -> Any:
+    args = (v.func,) + v.args
+    return {
+        "__kind__": Kind.Instance,
+        "class": fqname_for(v.__class__),
+        "args": encode(args),
+        "kwargs": encode(v.keywords),
     }
 
 

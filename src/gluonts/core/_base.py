@@ -11,19 +11,28 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Any
 
-def fqname_for(cls: type) -> str:
+
+def fqname_for(obj: Any) -> str:
     """
-    Returns the fully qualified name of ``cls``.
+    Returns the fully qualified name of ``obj``.
 
     Parameters
     ----------
-    cls
+    obj
         The class we are interested in.
 
     Returns
     -------
     str
-        The fully qualified name of ``cls``.
+        The fully qualified name of ``obj``.
     """
-    return f"{cls.__module__}.{cls.__qualname__}"
+
+    if "<locals>" in obj.__qualname__:
+        raise RuntimeError(
+            "Can't get fully qualified name of locally defined object. "
+            f"{obj.__qualname__}"
+        )
+
+    return f"{obj.__module__}.{obj.__qualname__}"
