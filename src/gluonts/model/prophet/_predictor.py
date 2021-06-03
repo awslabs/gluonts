@@ -15,6 +15,7 @@ from typing import Callable, Dict, Iterator, List, NamedTuple, Optional
 
 import numpy as np
 import pandas as pd
+import toolz
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
@@ -122,7 +123,7 @@ class ProphetPredictor(RepresentablePredictor):
         freq: str,
         prediction_length: int,
         prophet_params: Optional[Dict] = None,
-        init_model: Optional[Callable] = None,
+        init_model: Callable = toolz.identity,
     ) -> None:
         super().__init__(freq=freq, prediction_length=prediction_length)
 
