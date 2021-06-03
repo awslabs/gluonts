@@ -25,12 +25,11 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.support.util import maybe_len
 from gluonts.transform import FilterTransformation, TransformedDataset
 
 from .env import TrainEnv
+from .util import invoke_with
 
 multiprocessing.set_start_method("spawn", force=True)
 logger = logging.getLogger(__name__)
@@ -89,31 +88,28 @@ def run_train(
 ) -> Predictor:
     num_workers = (
         int(hyperparameters["num_workers"])
-        if "num_workers" in hyperparameters.keys()
+        if "num_workers" in hyperparameters
         else None
     )
     shuffle_buffer_length = (
         int(hyperparameters["shuffle_buffer_length"])
-        if "shuffle_buffer_length" in hyperparameters.keys()
+        if "shuffle_buffer_length" in hyperparameters
         else None
     )
     num_prefetch = (
         int(hyperparameters["num_prefetch"])
-        if "num_prefetch" in hyperparameters.keys()
+        if "num_prefetch" in hyperparameters
         else None
     )
-    if isinstance(forecaster, GluonEstimator):
-        return forecaster.train(
-            training_data=train_dataset,
-            validation_data=validation_dataset,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            shuffle_buffer_length=shuffle_buffer_length,
-        )
-    else:
-        return forecaster.train(
-            training_data=train_dataset, validation_data=validation_dataset
-        )
+
+    return invoke_with(
+        forecaster.train,
+        training_data=train_dataset,
+        validation_data=validation_dataset,
+        num_workers=num_workers,
+        num_prefetch=num_prefetch,
+        shuffle_buffer_length=shuffle_buffer_length,
+    )
 
 
 def run_test(
@@ -150,17 +146,16 @@ def run_test(
             Quantile.parse(quantile).name
             for quantile in hyperparameters["test_quantiles"]
         ]
-        if "test_quantiles" in hyperparameters.keys()
+        if "test_quantiles" in hyperparameters
         else None
     )
 
-    if isinstance(predictor, RepresentableBlockPredictor) and isinstance(
-        predictor.forecast_generator, QuantileForecastGenerator
-    ):
-        predictor_quantiles = predictor.forecast_generator.quantiles
+    forecast_generator = getattr(predictor, "forecast_generator", None)
+    if isinstance(forecast_generator, QuantileForecastGenerator):
+        predictor_quantiles = forecast_generator.quantiles
         if test_quantiles is None:
             test_quantiles = predictor_quantiles
-        elif not set(test_quantiles).issubset(set(predictor_quantiles)):
+        elif not set(test_quantiles).issubset(predictor_quantiles):
             logger.warning(
                 f"Some of the evaluation quantiles `{test_quantiles}` are "
                 f"not in the computed quantile forecasts `{predictor_quantiles}`."
