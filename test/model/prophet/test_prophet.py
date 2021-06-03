@@ -14,6 +14,7 @@
 import numpy as np
 import pytest
 
+from gluonts.core import serde
 from gluonts.dataset.common import ListDataset
 from gluonts.model.prophet import PROPHET_IS_INSTALLED, ProphetPredictor
 
@@ -100,3 +101,8 @@ def test_min_obs_error():
     exp_error_msg = "Dataframe has less than 2 non-NaN rows."
 
     assert act_error_msg == exp_error_msg
+
+
+def test_prophet_serialization():
+    predictor = ProphetPredictor(freq="1D", prediction_length=3)
+    assert predictor == serde.decode(serde.encode(predictor))

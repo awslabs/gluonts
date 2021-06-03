@@ -3,7 +3,7 @@ name: Docs
 on: [push, pull_request]
 
 jobs:
-  build:
+  docs-build:
     runs-on: ubuntu-latest
 
     steps:
