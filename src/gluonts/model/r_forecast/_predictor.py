@@ -207,5 +207,9 @@ class RForecastPredictor(RepresentablePredictor):
                 else None
             )
             yield SampleForecast(
-                samples, forecast_start(data), self.freq, info=info
+                samples,
+                forecast_start(data),
+                self.freq,
+                info=info,
+                item_id=entry.get("item_id", None),
             )
