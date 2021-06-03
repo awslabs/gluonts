@@ -122,7 +122,7 @@ class ProphetPredictor(RepresentablePredictor):
         freq: str,
         prediction_length: int,
         prophet_params: Optional[Dict] = None,
-        init_model: Callable = lambda m: m,
+        init_model: Optional[Callable] = None,
     ) -> None:
         super().__init__(freq=freq, prediction_length=prediction_length)
 
