@@ -102,7 +102,8 @@ class MyDataModule(pl.LightningDataModule):
 
             assert (
                 num_ts % self.multivar_dim == 0
-            ), f"Number of time series {num_ts} % multivariate {self.multivar_dim} = {num_ts % self.multivar_dim}"
+            ), f"Number of time series {num_ts} modulo multivariate {self.multivar_dim} = {num_ts % self.multivar_dim}." \
+               f"It should be 0. multivar_dim is probably not set correctly."
 
             if self.multivar_dim > 1:
                 self.X_train = X_train.reshape(first_dim, self.multivar_dim, T)

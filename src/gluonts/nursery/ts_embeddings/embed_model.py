@@ -108,20 +108,22 @@ class AggregationPreProcessor:
     "mean" -> mean
     "sum" -> sum
 
-    todo: test this in the multi-variate setting yet.
+    todo (more complex): allow to compute embeddings for various resolutions (aggregation windows) simultaenously
     """
 
     def __init__(
         self,
         agg_window: int,
         agg_fns: List[str],
+        out_dim: int,
         rescale: bool = True,
-        min_scale: float = 1.0e-12,
+        min_scale: float = 1.0e-12
     ):
         self.agg_window = agg_window
         self.rescale = rescale
         self._agg = []
         for agf in agg_fns:
+            print(agf)
             m = re.match(r"q(\d\.\d+)", agf)
             if m:
                 q = float(m.group(1))
@@ -137,12 +139,21 @@ class AggregationPreProcessor:
             else:
                 raise NotImplementedError()
 
-        self.num_out_dim = len(self._agg)
+        if (out_dim > 1 and len(self._agg) > 1):
+            # unclear whether we should add a dimension to the tensor here, or rather blow up the last
+            # dimension (like this: self.num_out_dim = out_dim * len(self._agg)
+            raise NotImplementedError()
+
+        self.num_out_dim = out_dim * len(self._agg)
         self.min_scale = min_scale
 
     def __call__(self, ts_batch):
         shape = ts_batch.shape
-        assert len(shape) == 2
+
+        assert (
+            len(shape) == 2 or len(shape) == 3
+        ), "Expecting a batch of uni or multivariate time series"
+
         T = shape[-1]
         assert (
             T % self.agg_window == 0
@@ -151,10 +162,12 @@ class AggregationPreProcessor:
         ts_reshape = ts_batch.reshape((shape[0], -1, self.agg_window))
         res = [agf(ts_reshape) for agf in self._agg]
         res = torch.stack(res, dim=1)
+
         if self.rescale:
             scale = torch.nansum(torch.abs(ts_batch), dim=-1) / T
             scale = torch.clip(scale, self.min_scale, np.inf)
-            res / scale[:, None, None]
+            res = res / scale[:, :, None]
+
         return res
 
 
@@ -193,7 +206,12 @@ class EmbedModel(pl.LightningModule):
         if preprocessor is None:
             self.preprocess = ScalePreProcessor(multivar_dim)
         else:
-            self.preprocess = preprocessor
+            if self.hparams.preprocessor == "agg":
+                self.preprocess = AggregationPreProcessor( self.hparams.agg_window, self.hparams.agg_fns, multivar_dim )
+            elif self.hparams.preprocessor == 'scale':
+                self.preprocess = ScalePreProcessor(multivar_dim)
+            else:
+                raise NotImplementedError()
 
         in_channels = self.preprocess.num_out_dim
 
@@ -231,6 +249,9 @@ class EmbedModel(pl.LightningModule):
 
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--channels", type=int, default=32)
+        parser.add_argument("--preprocessor", type=str, default="scale")
+        parser.add_argument("--agg_window", type=int, default=None)
+        parser.add_argument("--agg_fns", nargs='+', default=["mean"])
         parser.add_argument("--out_channels", type=int, default=128)
         parser.add_argument("--depth", type=int, default=10)
         parser.add_argument("--kernel_size", type=int, default=3)
