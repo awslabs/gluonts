@@ -106,7 +106,7 @@ class TreePredictor(RepresentablePredictor):
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
-        clump_size: int = 100,  # Used only for "QRX" method.
+        min_bin_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         use_feat_static_real: bool = False,
         use_feat_dynamic_real: bool = False,
@@ -163,7 +163,7 @@ class TreePredictor(RepresentablePredictor):
         self.prediction_length = prediction_length
         self.freq = freq
         self.max_workers = max_workers
-        self.clump_size = clump_size
+        self.min_bin_size = min_bin_size
         self.quantiles = quantiles
         self.model = model
         self.model_list = None
@@ -205,7 +205,7 @@ class TreePredictor(RepresentablePredictor):
             self.model_list = [
                 QRX(
                     xgboost_params=self.model_params,
-                    clump_size=self.clump_size,
+                    min_bin_size=self.min_bin_size,
                     model=self.model,
                 )
                 for _ in range(n_models)
@@ -228,7 +228,7 @@ class TreePredictor(RepresentablePredictor):
             self.model_list = [
                 QRX(
                     xgboost_params=self.model_params,
-                    clump_size=self.clump_size,
+                    min_bin_size=self.min_bin_size,
                     model=self.model_list[train_QRX_only_using_timestep].model,
                 )
                 if i != train_QRX_only_using_timestep
