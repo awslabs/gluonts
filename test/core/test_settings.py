@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from pydantic import BaseModel
+
 from gluonts.core.settings import Settings, let, inject
 
 
@@ -18,7 +20,13 @@ class MySettings(Settings):
     foo: str = "bar"
 
 
+class Args(BaseModel):
+    a: int = 1
+    b: int = 2
+
+
 settings = MySettings()
+settings._declare("args", Args, default=Args())
 
 
 def test_functional():
@@ -69,3 +77,35 @@ def test_inject():
     with settings._let(b=42):
         assert x(0) == (0, 42)
         assert x(1, 2) == (1, 2)
+
+    @settings._inject("a")
+    def x(a=1):
+        return a
+
+    assert x() == 1
+
+    @settings._inject(a="args.a", b="args.b")
+    def x(a, b):
+        return a, b
+
+    assert x() == (1, 2)
+
+    with settings._let(args={"a": 4, "b": 5}):
+        assert x() == (4, 5)
+
+
+def test_partial_assignment():
+    assert settings.args.a == 1
+
+    settings.args = {"a": 9}
+    assert settings.args.a == 9
+
+    settings.args = {"b": 42}
+    assert settings.args.a == 9
+
+    with settings._let(args=dict(b=3)):
+        assert settings.args.a == 9
+        assert settings.args.b == 3
+
+    settings.args = {"a": "1"}
+    assert settings.args.a == 1
