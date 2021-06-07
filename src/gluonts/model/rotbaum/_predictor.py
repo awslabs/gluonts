@@ -212,9 +212,9 @@ class TreePredictor(RepresentablePredictor):
             ]
         if train_QRX_only_using_timestep != -1:
             assert (
-                1
+                0
                 <= train_QRX_only_using_timestep
-                <= self.preprocess_object.forecast_horizon
+                <= self.preprocess_object.forecast_horizon - 1
             )
             logger.info(
                 f"Training model for step no. {train_QRX_only_using_timestep} in the "
