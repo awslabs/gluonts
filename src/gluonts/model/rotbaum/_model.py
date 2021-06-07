@@ -182,7 +182,9 @@ class QRX:
             }
         ).reset_index(drop=True)
         self.sorted_train_preds = sorted(df["y_pred"].unique())
-        cell_values_dict = self.preprocess_df(df, min_bin_size=self.min_bin_size)
+        cell_values_dict = self.preprocess_df(
+            df, min_bin_size=self.min_bin_size
+        )
         del df
         gc.collect()
         cell_values_dict_df = pd.DataFrame(
