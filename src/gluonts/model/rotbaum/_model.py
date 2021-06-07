@@ -71,7 +71,7 @@ class QRX:
         self,
         model=None,
         xgboost_params: Optional[dict] = None,
-        clump_size: int = 100,
+        min_bin_size: int = 100,
     ):
         """
         QRX is an algorithm that takes a point estimate algorithm and turns it
@@ -83,7 +83,7 @@ class QRX:
         Prediction is done by taking empirical quantiles of *true values*
         associated with point estimate predictions close to the point
         estimate of the given point. The minimal number of associated true
-        values is determined by clump_size.
+        values is determined by min_bin_size.
 
         The algorithm is (loosely) inspired by quantile regression
         forests, in that it is predicts quantiles based on associated true
@@ -97,7 +97,7 @@ class QRX:
             If None, then it uses
             {"max_depth": 5, "n_jobs": -1, "verbosity": 1,
              "objective": "reg:squarederror"}
-        clump_size
+        min_bin_size
             Hyperparameter that determines the minimal size of the list of
             true values associated with each prediction.
         """
@@ -105,7 +105,7 @@ class QRX:
             self.model = copy.deepcopy(model)
         else:
             self.model = self._create_xgboost_model(xgboost_params)
-        self.clump_size = clump_size
+        self.min_bin_size = min_bin_size
         self.sorted_train_preds = None
         self.x_train_is_dataframe = None
         self.id_to_bins = None
@@ -182,7 +182,7 @@ class QRX:
             }
         ).reset_index(drop=True)
         self.sorted_train_preds = sorted(df["y_pred"].unique())
-        cell_values_dict = self.preprocess_df(df, clump_size=self.clump_size)
+        cell_values_dict = self.preprocess_df(df, min_bin_size=self.min_bin_size)
         del df
         gc.collect()
         cell_values_dict_df = pd.DataFrame(
@@ -203,7 +203,7 @@ class QRX:
         df["bins"] = df["preds"].apply(lambda x: self.preds_to_id[x])
         final_id = df["bins"].drop_duplicates().values[-1]
         penultimate_id = df["bins"].drop_duplicates().values[-2]
-        if len(self.id_to_bins[final_id]) < self.clump_size:
+        if len(self.id_to_bins[final_id]) < self.min_bin_size:
             self.id_to_bins[final_id] = (
                 self.id_to_bins[final_id] + self.id_to_bins[penultimate_id]
             )
@@ -267,7 +267,7 @@ class QRX:
                 # list object.
         return new_dic
 
-    def preprocess_df(self, df: pd.DataFrame, clump_size: int = 100) -> Dict:
+    def preprocess_df(self, df: pd.DataFrame, min_bin_size: int = 100) -> Dict:
         """
         Associates true values to each prediction that appears in train. For
         the nature of this association, see details in .clump.
@@ -277,7 +277,7 @@ class QRX:
         df: pd.DataFrame
             Dataframe with columns 'y_true' and 'y_pred', of true and
             predicted values on the training set.
-        clump_size
+        min_bin_size
             Size of clumps to associate to each prediction in the set of
             predictions on the training set.
 
@@ -286,10 +286,10 @@ class QRX:
         dict
             going from predictions from the set of predictions on the
             training set to lists of associated true values, with the length
-            of each being at least clump_size.
+            of each being at least min_bin_size.
         """
         dic = dict(df.groupby("y_pred")["y_true"].apply(list))
-        dic = self.clump(dic, clump_size, self.sorted_train_preds)
+        dic = self.clump(dic, min_bin_size, self.sorted_train_preds)
         return dic
 
     @classmethod
