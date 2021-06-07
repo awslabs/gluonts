@@ -1,0 +1,132 @@
+from datetime import datetime
+from distutils.util import strtobool
+from types import SimpleNamespace
+
+import numpy as np
+from toolz import compose_left
+
+parse_bool = compose_left(strtobool, bool)
+
+
+def parse_attribute(ty, value: str):
+    if ty == "numeric":
+        return int(value)
+
+    if ty == "string":
+        return value
+
+    if ty == "date":
+        return datetime.strptime(value, "%Y-%m-%d %H-%M-%S")
+
+    raise AttributeError(ty)
+
+
+class TSFReader:
+    def __init__(self, path, target_name="target", missing_value="nan"):
+        self.path = path
+        self.target_name = target_name
+        self.missing_value = missing_value
+
+        self.meta = SimpleNamespace(columns={})
+
+    def read(self):
+        # with open(self.path, encoding="utf-8") as in_file:
+        with open(self.path, encoding="latin1") as in_file:
+            # strip whitespace
+            lines = map(str.strip, in_file)
+
+            # ignore all lines starting with #
+            lines = filter(lambda line: not line.startswith("#"), lines)
+
+            data_tag_found = self._read_header(lines)
+            assert data_tag_found, "Missing @data tag."
+            assert (
+                self.meta.columns
+            ), "Missing attribute section. Attribute section must come before data."
+
+            assert self.target_name not in self.meta.columns
+            self.meta.columns[self.target_name] = None
+
+            data = list(map(self._read_data, lines))
+
+            return self.meta, data
+
+    def _read_header(self, lines):
+        for line in lines:
+            assert line.startswith("@")
+            stop = self._tag(line[1:])
+
+            if stop:
+                return True
+
+        return False
+
+    def _read_data(self, line):
+        parts = line.split(":")
+
+        assert len(parts) == len(
+            self.meta.columns
+        ), "Missing attributes/values in series."
+
+        *attributes, target = parts
+
+        record = {}
+
+        record[self.target_name] = self._data_target(target)
+
+        for (column, ty), attr in zip(self.meta.columns.items(), attributes):
+            record[column] = parse_attribute(ty, attr)
+
+        return record
+
+    def _data_target(self, s):
+        values = s.split(",")
+        assert (
+            values
+        ), "A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series. Missing values should be indicated with ? symbol"
+
+        target = np.array(values, dtype="object")
+        nan_mask = target == "?"
+
+        assert (
+            not nan_mask.all()
+        ), "All series values are missing. A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series."
+
+        target[nan_mask] = self.missing_value
+
+        return target.astype(float)
+
+    def _tag(self, line):
+        fn_by_tag = {
+            "attribute": self._tag_attribute,
+            "frequency": self._tag_frequency,
+            "horizon": self._tag_horizon,
+            "missing": self._tag_missing,
+            "equallength": self._tag_equallength,
+            "data": self._tag_data,
+        }
+        tag, *args = line.split(" ")
+
+        if tag not in fn_by_tag:
+            return
+        # assert tag in fn_by_tag, tag
+
+        return fn_by_tag[tag](*args)
+
+    def _tag_attribute(self, name, ty):
+        self.meta.columns[name] = ty
+
+    def _tag_frequency(self, frequency):
+        self.meta.frequency = frequency
+
+    def _tag_horizon(self, horizon):
+        self.meta.forecast_horizon = horizon
+
+    def _tag_missing(self, missing):
+        self.meta.has_missing_values = parse_bool(missing)
+
+    def _tag_equallength(self, equallength):
+        self.meta.has_equal_length = parse_bool(equallength)
+
+    def _tag_data(self):
+        return True
