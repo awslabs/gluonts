@@ -138,7 +138,7 @@ class QRX:
         seed: int = 1,
         x_train_is_dataframe: bool = False,  # This should be False for
         # XGBoost, but True if one uses lightgbm.
-        model_is_already_train: bool = False,  # True if there is no need to
+        model_is_already_trained: bool = False,  # True if there is no need to
         # train self.model
         **kwargs
     ):
@@ -172,7 +172,7 @@ class QRX:
             )
             x_train = x_train[idx]
             y_train = y_train[idx]
-        if model_is_already_train is False:
+        if model_is_already_trained is False:
             self.model.fit(x_train, y_train, **kwargs)
         y_train_pred = self.model.predict(x_train)
         df = pd.DataFrame(
