@@ -138,6 +138,8 @@ class QRX:
         seed: int = 1,
         x_train_is_dataframe: bool = False,  # This should be False for
         # XGBoost, but True if one uses lightgbm.
+        model_is_already_train: bool = False,  # True if there is no need to
+        # train self.model
         **kwargs
     ):
         """
@@ -170,7 +172,8 @@ class QRX:
             )
             x_train = x_train[idx]
             y_train = y_train[idx]
-        self.model.fit(x_train, y_train, **kwargs)
+        if model_is_already_train is False:
+            self.model.fit(x_train, y_train, **kwargs)
         y_train_pred = self.model.predict(x_train)
         df = pd.DataFrame(
             {
@@ -196,13 +199,14 @@ class QRX:
         del cell_values_dict
         gc.collect()
 
-        df = pd.DataFrame({'preds': self.sorted_train_preds})
-        df['bins'] = df['preds'].apply(lambda x: self.preds_to_id[x])
-        final_id = df['bins'].drop_duplicates().values[-1]
-        penultimate_id = df['bins'].drop_duplicates().values[-2]
+        df = pd.DataFrame({"preds": self.sorted_train_preds})
+        df["bins"] = df["preds"].apply(lambda x: self.preds_to_id[x])
+        final_id = df["bins"].drop_duplicates().values[-1]
+        penultimate_id = df["bins"].drop_duplicates().values[-2]
         if len(self.id_to_bins[final_id]) < self.clump_size:
-            self.id_to_bins[final_id] = self.id_to_bins[final_id] + \
-                                       self.id_to_bins[penultimate_id]
+            self.id_to_bins[final_id] = (
+                self.id_to_bins[final_id] + self.id_to_bins[penultimate_id]
+            )
 
     @staticmethod
     def clump(
