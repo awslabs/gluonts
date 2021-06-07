@@ -63,9 +63,9 @@ dataset_recipes = OrderedDict(
         "taxi_30min": partial(
             generate_gp_copula_dataset, dataset_name="taxi_30min"
         ),
-        "m1_yearly": partial(generate_forecasting_dataset),
-        "m1_quarterly": partial(generate_forecasting_dataset),
-        "m1_monthly": partial(generate_forecasting_dataset),
+        "m1_yearly": partial(generate_forecasting_dataset, dataset_name="m1_yearly"),
+        "m1_quarterly": partial(generate_forecasting_dataset, dataset_name="m1_quarterly"),
+        "m1_monthly": partial(generate_forecasting_dataset, dataset_name="m1_monthly"),
         "m3_monthly": partial(generate_m3_dataset, m3_freq="monthly"),
         "m3_quarterly": partial(generate_m3_dataset, m3_freq="quarterly"),
         "m3_yearly": partial(generate_m3_dataset, m3_freq="yearly"),
