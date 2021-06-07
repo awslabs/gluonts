@@ -39,7 +39,7 @@ from gluonts.time_feature import (
     Constant,
 )
 from gluonts.transform import (
-    AddObservedValuesIndicator,
+    AddObservedTargetIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     InstanceSampler,
@@ -49,8 +49,8 @@ from gluonts.transform import (
     SelectFields,
     SetArrayField,
     Transformation,
-    HstackFeatures,
-    VstackFeatures,
+    Hstack,
+    Vstack,
 )
 
 from ._network import (
@@ -169,10 +169,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         for name in self.dynamic_feature_dims.keys():
             transform += AsNumpyArray(field=name, expected_ndim=2)
 
-        transform += AddObservedValuesIndicator(
-            target_field=FieldName.TARGET,
-            output_field=FieldName.OBSERVED_VALUES,
-        )
+        transform += AddObservedTargetIndicator()
 
         transform += AddTimeFeatures(
             start_field=FieldName.START,
@@ -183,7 +180,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         )
 
         if self.static_cardinalities:
-            transform += HstackFeatures(
+            transform += Hstack(
                 output_field=FieldName.FEAT_STATIC_CAT,
                 input_fields=list(self.static_cardinalities.keys()),
             )
@@ -194,7 +191,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             )
 
         if self.static_feature_dims:
-            transform += HstackFeatures(
+            transform += Hstack(
                 output_field=FieldName.FEAT_STATIC_REAL,
                 input_fields=list(self.static_feature_dims.keys()),
             )
@@ -205,7 +202,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             )
 
         if self.dynamic_cardinalities:
-            transform += VstackFeatures(
+            transform += Vstack(
                 output_field=FieldName.FEAT_DYNAMIC_CAT,
                 input_fields=list(self.dynamic_cardinalities.keys()),
             )
@@ -223,13 +220,13 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         if self.dynamic_feature_dims:
             input_fields += list(self.dynamic_feature_dims.keys())
 
-        transform += VstackFeatures(
+        transform += Vstack(
             input_fields=input_fields,
             output_field=FieldName.FEAT_DYNAMIC_REAL,
         )
 
         if self.past_dynamic_cardinalities:
-            transform += VstackFeatures(
+            transform += Vstack(
                 output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
                 input_fields=list(self.past_dynamic_cardinalities.keys()),
             )
@@ -243,7 +240,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             )
 
         if self.past_dynamic_feature_dims:
-            transform += VstackFeatures(
+            transform += Vstack(
                 output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
                 input_fields=list(self.past_dynamic_feature_dims.keys()),
             )

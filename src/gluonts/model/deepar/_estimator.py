@@ -52,7 +52,7 @@ from gluonts.transform import (
     TestSplitSampler,
     Transformation,
     ValidationSplitSampler,
-    VstackFeatures,
+    Vstack,
 )
 from gluonts.transform.feature import (
     DummyValueImputation,
@@ -357,7 +357,7 @@ class DeepAREstimator(GluonEstimator):
         if self.use_feat_dynamic_real:
             all_time_features.append(FieldName.FEAT_DYNAMIC_REAL)
 
-        transform += VstackFeatures(
+        transform += Vstack(
             output_field=FieldName.FEAT_TIME,
             input_fields=all_time_features,
         )

@@ -54,7 +54,7 @@ from gluonts.transform import (
     SelectFields,
     SetFieldIfNotPresent,
     SimpleTransformation,
-    VstackFeatures,
+    Vstack,
     InstanceSampler,
     ValidationSplitSampler,
     TestSplitSampler,
@@ -280,7 +280,7 @@ class WaveNetEstimator(GluonEstimator):
                     output_field=FieldName.FEAT_AGE,
                     pred_length=self.prediction_length,
                 ),
-                VstackFeatures(
+                Vstack(
                     output_field=FieldName.FEAT_TIME,
                     input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE],
                 ),

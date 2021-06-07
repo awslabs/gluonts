@@ -88,7 +88,7 @@ class ExpandDimArray(SimpleTransformation):
         return data
 
 
-class StackFeatures(SimpleTransformation):
+class Stack(SimpleTransformation):
     """
     Stack fields together using ``np.vstack`` when h_stack = False.
     Otherwise stack fields together using ``np.hstack``.
@@ -139,11 +139,12 @@ class StackFeatures(SimpleTransformation):
         return data
 
 
-VstackFeatures = partial(StackFeatures, h_stack=False)
-HstackFeatures = partial(StackFeatures, h_stack=True)
+StackFeatures = Stack  # for backward compatibility
+Vstack = partial(Stack, h_stack=False)
+Hstack = partial(Stack, h_stack=True)
 
 
-class ConcatFeatures(SimpleTransformation):
+class Concat(SimpleTransformation):
     """
     Concatenate fields together using ``np.concatenate``.
 
@@ -187,6 +188,9 @@ class ConcatFeatures(SimpleTransformation):
         for fname in self.cols_to_drop:
             del data[fname]
         return data
+
+
+ConcatFeatures = Concat  # for backward compatibility
 
 
 class SwapAxes(SimpleTransformation):

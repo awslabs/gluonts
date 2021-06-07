@@ -52,7 +52,7 @@ from gluonts.transform import (
     SetField,
     TestSplitSampler,
     Transformation,
-    VstackFeatures,
+    Vstack,
 )
 
 from ._network import DeepStatePredictionNetwork, DeepStateTrainingNetwork
@@ -301,7 +301,7 @@ class DeepStateEstimator(GluonEstimator):
                     pred_length=self.prediction_length,
                     log_scale=True,
                 ),
-                VstackFeatures(
+                Vstack(
                     output_field=FieldName.FEAT_TIME,
                     input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
                     + (

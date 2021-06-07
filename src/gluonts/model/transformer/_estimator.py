@@ -54,7 +54,7 @@ from gluonts.transform import (
     SelectFields,
     SetField,
     Transformation,
-    VstackFeatures,
+    Vstack,
     InstanceSampler,
     ValidationSplitSampler,
     TestSplitSampler,
@@ -273,7 +273,7 @@ class TransformerEstimator(GluonEstimator):
                     pred_length=self.prediction_length,
                     log_scale=True,
                 ),
-                VstackFeatures(
+                Vstack(
                     output_field=FieldName.FEAT_TIME,
                     input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
                     + (

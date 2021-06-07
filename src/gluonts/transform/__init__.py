@@ -35,7 +35,7 @@ __all__ = [
     "ExpectedNumInstanceSampler",
     "FilterTransformation",
     "FlatMapTransformation",
-    "HstackFeatures",
+    "Hstack",
     "Identity",
     "InstanceSampler",
     "InstanceSplitter",
@@ -58,7 +58,7 @@ __all__ = [
     "ValidationSplitSampler",
     "Transformation",
     "UniformSplitSampler",
-    "VstackFeatures",
+    "Vstack",
     "MissingValueImputation",
     "LeavesMissingValues",
     "DummyValueImputation",
@@ -88,8 +88,8 @@ from .convert import (
     SampleTargetDim,
     SwapAxes,
     TargetDimIndicator,
-    HstackFeatures,
-    VstackFeatures,
+    Hstack,
+    Vstack,
     cdf_to_gaussian_forward_transform,
 )
 from .feature import (

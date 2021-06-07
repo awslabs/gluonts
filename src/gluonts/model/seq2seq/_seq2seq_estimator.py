@@ -136,7 +136,7 @@ class Seq2SeqEstimator(GluonEstimator):
                     time_features=time_features_from_frequency_str(self.freq),
                     pred_length=self.prediction_length,
                 ),
-                transform.VstackFeatures(
+                transform.Vstack(
                     output_field=FieldName.FEAT_DYNAMIC_REAL,
                     input_fields=[FieldName.FEAT_TIME],
                 ),

@@ -244,15 +244,13 @@ class AddObservedValuesIndicator(SimpleTransformation):
         return data
 
 
-class AddObservedTargetIndicator(AddObservedValuesIndicator):
-    @validated()
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(
-            *args,
-            **kwargs,
-            target_field=FieldName.TARGET,
-            output_field=FieldName.OBSERVED_VALUES,
-        )
+def AddObservedTargetIndicator(*args, **kwargs) -> AddObservedValuesIndicator:
+    return AddObservedValuesIndicator(
+        *args,
+        **kwargs,
+        target_field=FieldName.TARGET,
+        output_field=FieldName.OBSERVED_VALUES,
+    )
 
 
 class AddConstFeature(MapTransformation):

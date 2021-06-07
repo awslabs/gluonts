@@ -52,7 +52,7 @@ from gluonts.transform import (
     SelectFields,
     TargetDimIndicator,
     Transformation,
-    VstackFeatures,
+    Vstack,
     cdf_to_gaussian_forward_transform,
     InstanceSampler,
     ValidationSplitSampler,
@@ -269,7 +269,7 @@ class GPVAREstimator(GluonEstimator):
                     time_features=self.time_features,
                     pred_length=self.prediction_length,
                 ),
-                VstackFeatures(
+                Vstack(
                     output_field=FieldName.FEAT_TIME,
                     input_fields=[FieldName.FEAT_TIME],
                 ),

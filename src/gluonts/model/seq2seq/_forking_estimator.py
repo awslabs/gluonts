@@ -50,7 +50,7 @@ from gluonts.transform import (
     SetField,
     TestSplitSampler,
     Transformation,
-    VstackFeatures,
+    Vstack,
     InstanceSampler,
     SelectFields,
     ValidationSplitSampler,
@@ -342,7 +342,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         # we exclude past_feat_dynamic_real since its length is only context_length
         if len(dynamic_feat_fields) > 1:
             chain.append(
-                VstackFeatures(
+                Vstack(
                     output_field=FieldName.FEAT_DYNAMIC,
                     input_fields=dynamic_feat_fields,
                 )
@@ -426,7 +426,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             # Stack features from ForkingSequenceSplitter horizontally since they were transposed
             # so shape is now (enc_len, num_past_feature_dynamic)
             chain.append(
-                VstackFeatures(
+                Vstack(
                     output_field=FieldName.PAST_FEAT_DYNAMIC,
                     input_fields=[
                         "past_" + FieldName.PAST_FEAT_DYNAMIC_REAL,

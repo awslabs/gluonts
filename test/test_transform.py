@@ -397,7 +397,7 @@ def test_Transformation():
             transform.AddObservedValuesIndicator(
                 target_field=FieldName.TARGET, output_field="observed_values"
             ),
-            transform.VstackFeatures(
+            transform.Vstack(
                 output_field="dynamic_feat",
                 input_fields=["age", "time_feat"],
                 drop_inputs=True,
@@ -468,7 +468,7 @@ def test_multi_dim_transformation(is_train):
                 output_field="observed_values",
                 imputation_method=None,
             ),
-            transform.VstackFeatures(
+            transform.Vstack(
                 output_field="dynamic_feat",
                 input_fields=["age", "time_feat"],
                 drop_inputs=True,

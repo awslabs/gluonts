@@ -51,7 +51,7 @@ from gluonts.transform import (
     SelectFields,
     SetField,
     Transformation,
-    VstackFeatures,
+    Vstack,
     InstanceSampler,
 )
 
@@ -228,7 +228,7 @@ class SelfAttentionEstimator(GluonEstimator):
                     pred_length=self.prediction_length,
                     log_scale=True,
                 ),
-                VstackFeatures(
+                Vstack(
                     output_field=FieldName.FEAT_DYNAMIC_REAL,
                     input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
                     + (
