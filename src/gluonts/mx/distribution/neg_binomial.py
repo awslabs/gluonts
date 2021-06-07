@@ -138,6 +138,7 @@ class NegativeBinomialOutput(DistributionOutput):
         return ()
 
 
-class ZeroInflatedNegativeBinomialOutput(MixtureDistributionOutput):
-    def __init__(self):
-        super().__init__([NegativeBinomialOutput(), DeterministicOutput(0)])
+def ZeroInflatedNegativeBinomialOutput() -> MixtureDistributionOutput:
+    return MixtureDistributionOutput(
+        distr_outputs=[NegativeBinomialOutput(), DeterministicOutput(0)]
+    )

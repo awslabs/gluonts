@@ -115,6 +115,7 @@ class PoissonOutput(DistributionOutput):
         return ()
 
 
-class ZeroInflatedPoissonOutput(MixtureDistributionOutput):
-    def __init__(self):
-        super().__init__([PoissonOutput(), DeterministicOutput(0)])
+def ZeroInflatedPoissonOutput() -> MixtureDistributionOutput:
+    return MixtureDistributionOutput(
+        distr_outputs=[PoissonOutput(), DeterministicOutput(0)]
+    )
