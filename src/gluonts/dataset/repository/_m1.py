@@ -53,7 +53,7 @@ def urllib_retrieve_hook(tqdm):
     return update_to
 
 
-def download_dataset(description: str, path: Path):
+def download_dataset(description: Dict[str, str], path: Path):
     file = description["file"]
     with tqdm(
         [],
@@ -65,7 +65,7 @@ def download_dataset(description: str, path: Path):
     ) as _tqdm:
         request.urlretrieve(
             f"{ROOT}/{description['record']}/files/{file}",
-            path / description["file"],
+            filename=str(path / description["file"]),
             reporthook=urllib_retrieve_hook(_tqdm),
         )
 
@@ -132,7 +132,7 @@ def generate_forecasting_dataset(dataset_path: Path, dataset_name: str):
         # TODO better exception text
         assert len(file_names) == 1, "Too many files"
         for member in tqdm(zip.infolist(), desc=f"Extracting {file}"):
-            zip.extract(member, dataset_path)
+            zip.extract(member, str(dataset_path))
     reader = TSFReader(dataset_path / file_names[0])
     meta, data = reader.read()
 
