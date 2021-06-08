@@ -87,25 +87,31 @@ def frequency_converter(freq: str):
     parts = freq.split("_")
     if len(parts) == 1:
         return freq[0].upper()
-    elif len(parts) == 2 and parts[0].isnumeric():
+    if len(parts) == 2 and parts[0].isnumeric():
         return f"{parts[0]}{parts[1].upper()}"
-    else:
-        raise Exception("Unknown frequency")
 
 
 def save_metadata(
     dataset_path: Path, cardinality: int, freq: str, prediction_length: int
 ):
     with open(dataset_path / "metadata.json", "w") as file:
-        file.write(
-            json.dumps(
-                metadata(
-                    cardinality=cardinality,
-                    freq=freq,
-                    prediction_length=prediction_length,
-                )
-            )
+        json.dump(
+            metadata(
+                cardinality=cardinality,
+                freq=freq,
+                prediction_length=prediction_length,
+            ),
+            file,
         )
+        # file.write(
+        #     json.dump(
+        #         metadata(
+        #             cardinality=cardinality,
+        #             freq=freq,
+        #             prediction_length=prediction_length,
+        #         )
+        #     )
+        # )
 
 
 def save_dataset(dataset_path: Path, data: List[Dict]):
