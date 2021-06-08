@@ -103,15 +103,6 @@ def save_metadata(
             ),
             file,
         )
-        # file.write(
-        #     json.dump(
-        #         metadata(
-        #             cardinality=cardinality,
-        #             freq=freq,
-        #             prediction_length=prediction_length,
-        #         )
-        #     )
-        # )
 
 
 def save_dataset(dataset_path: Path, data: List[Dict]):
