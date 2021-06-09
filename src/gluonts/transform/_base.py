@@ -163,10 +163,6 @@ class FlatMapTransformation(Transformation):
     """
     Transformations that yield zero or more results per input, but do not
     combine elements from the input stream.
-    ----------
-    max_idle_transforms
-        The maximum number of idle transformations before an exception will be
-        thrown. Defaults to the global default if not provided.
     """
 
     @validated()
