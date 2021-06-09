@@ -419,7 +419,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         start_field: str = FieldName.START,
         end_field: str = "end",
         forecast_start_field: str = FieldName.FORECAST_START,
-        max_idle_transforms: Optional[int] = None
+        max_idle_transforms: Optional[int] = None,
     ) -> None:
         super().__init__(max_idle_transforms)
 
