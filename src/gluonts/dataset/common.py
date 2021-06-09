@@ -26,12 +26,12 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import Protocol
 
 import numpy as np
 import pandas as pd
 import pydantic
 from pandas.tseries.offsets import Tick
+from typing_extensions import Protocol
 
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
@@ -114,6 +114,7 @@ class TrainDatasets(NamedTuple):
             Whether to delete previous version in this folder.
         """
         import shutil
+
         from gluonts import json
 
         path = Path(path_str)
@@ -219,30 +220,6 @@ class FileDataset(Dataset):
         # TODO: given that we only support json, should we also filter json
         # TODO: in the extension?
         return not (path.name.startswith(".") or path.name == "_SUCCESS")
-
-
-class InMemoryDataset(Dataset):
-    """
-    Dataset that keeps all time series in memory and allows for constant-time
-    indexing. It is always initialized by iterating over a provided dataset.
-
-    Parameters
-    ----------
-    dataset
-        The dataset which to load in memory.
-    """
-
-    def __init__(self, dataset: Dataset):
-        self.entries = list(dataset)
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        return iter(self.entries)
-
-    def __len__(self) -> int:
-        return len(self.entries)
-
-    def __getitem__(self, index: int) -> DataEntry:
-        return self.entries[index]
 
 
 class ListDataset(Dataset):
@@ -486,10 +463,7 @@ class ProcessDataEntry:
 
 
 def load_datasets(
-    metadata: Path,
-    train: Path,
-    test: Optional[Path],
-    load_in_memory: bool = False,
+    metadata: Path, train: Path, test: Optional[Path]
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
@@ -502,8 +476,6 @@ def load_datasets(
         Path to the training dataset files.
     test
         Path to the test dataset files.
-    load_in_memory
-        Whether to load the dataset in memory for constant-time indexing.
 
     Returns
     -------
@@ -511,15 +483,8 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds: Dataset = FileDataset(path=train, freq=meta.freq)
-    test_ds: Optional[Dataset] = (
-        FileDataset(path=test, freq=meta.freq) if test else None
-    )
-
-    if load_in_memory:
-        train_ds = InMemoryDataset(train_ds)
-        if test_ds is not None:
-            test_ds = InMemoryDataset(test_ds)
+    train_ds = FileDataset(path=train, freq=meta.freq)
+    test_ds = FileDataset(path=test, freq=meta.freq) if test else None
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 

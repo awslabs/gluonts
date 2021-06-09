@@ -13,6 +13,7 @@
 
 
 import os
+
 from .core.settings import Settings
 
 
@@ -21,8 +22,8 @@ class Environment(Settings):
     # returning an output. This parameter is intended to catch infinite loops
     # or inefficiencies, when transformations never or rarely return
     # something.
-    max_idle_transforms: int = int(
-        os.environ.get("GLUONTS_MAX_IDLE_TRANSFORMS", "100")
+    max_idle_transforms: int = os.environ.get(  # type: ignore
+        "GLUONTS_MAX_IDLE_TRANSFORMS", "100"
     )
 
     # we want to be able to disable TQDM, for example when running in sagemaker

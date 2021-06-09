@@ -161,7 +161,6 @@ def get_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
-    load_in_memory: bool = False,
 ) -> TrainDatasets:
     """
     Get a repository dataset.
@@ -180,8 +179,6 @@ def get_dataset(
         be downloaded again.
     path
         where the dataset should be saved
-    load_in_memory
-        Whether to load the dataset in memory for constant-time indexing.
 
     Returns
     -------
@@ -193,7 +190,6 @@ def get_dataset(
         metadata=dataset_path,
         train=dataset_path / "train",
         test=dataset_path / "test",
-        load_in_memory=load_in_memory,
     )
 
 
