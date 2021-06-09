@@ -152,7 +152,9 @@ class DeepTPPEstimator(GluonEstimator):
     def create_transformation(self) -> Transformation:
         return Chain([])  # identity transformation
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -180,6 +182,7 @@ class DeepTPPEstimator(GluonEstimator):
                     past_interval_length=self.context_interval_length,
                     future_interval_length=self.prediction_interval_length,
                     instance_sampler=instance_sampler,
+                    max_idle_transforms=dataset_size,
                 ),
                 RenameFields(
                     {
@@ -196,7 +199,9 @@ class DeepTPPEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepTPPTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -212,7 +217,9 @@ class DeepTPPEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepTPPTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

@@ -371,7 +371,9 @@ class DeepAREstimator(GluonEstimator):
             ]
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -393,6 +395,7 @@ class DeepAREstimator(GluonEstimator):
                 FieldName.OBSERVED_VALUES,
             ],
             dummy_value=self.distr_output.value_in_support,
+            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -401,7 +404,9 @@ class DeepAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -417,7 +422,9 @@ class DeepAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

@@ -161,7 +161,9 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             output_field=FieldName.OBSERVED_VALUES,
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -178,6 +180,7 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length,
+            max_idle_transforms=dataset_size,
         )
 
     @staticmethod
@@ -214,7 +217,7 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         train_transform = (
-            self._create_instance_splitter("training")
+            self._create_instance_splitter("training", len(data))
             + self._create_post_split_transform()
             + SelectFields(["past_target", "valid_length"])
         )
@@ -231,7 +234,7 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         validation_transform = (
-            self._create_instance_splitter("validation")
+            self._create_instance_splitter("validation", len(data))
             + self._create_post_split_transform()
             + SelectFields(["past_target", "valid_length"])
         )

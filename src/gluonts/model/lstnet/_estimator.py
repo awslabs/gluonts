@@ -186,7 +186,9 @@ class LSTNetEstimator(GluonEstimator):
             dtype=self.dtype,
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -206,6 +208,7 @@ class LSTNetEstimator(GluonEstimator):
             future_length=self.prediction_length,
             lead_time=self.lead_time,
             output_NTC=False,  # output NCT for first layer conv2d
+            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -214,7 +217,9 @@ class LSTNetEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(LSTNetTrain)
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -230,7 +235,9 @@ class LSTNetEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(LSTNetTrain)
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

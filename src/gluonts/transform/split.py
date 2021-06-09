@@ -54,9 +54,9 @@ def _shift_timestamp_helper(
         # this line looks innocent, but can create a date which is out of
         # bounds values over year 9999 raise a ValueError
         # values over 2262-04-11 raise a pandas OutOfBoundsDatetime
-        return ts + offset * ts.freq
+        return ts + offset * freq
     except (ValueError, pd._libs.OutOfBoundsDatetime) as ex:
-        raise GluonTSDateBoundsError(ex)
+        raise GluonTSDateBoundsError(ex) from ex
 
 
 class InstanceSplitter(FlatMapTransformation):
@@ -123,18 +123,18 @@ class InstanceSplitter(FlatMapTransformation):
         output_NTC: bool = True,
         time_series_fields: Optional[List[str]] = None,
         dummy_value: float = 0.0,
+        max_idle_transforms: Optional[int] = None,
     ) -> None:
+        super().__init__(max_idle_transforms)
 
-        assert future_length > 0
+        assert future_length > 0, "The value of `future_length` should be > 0"
 
         self.instance_sampler = instance_sampler
         self.past_length = past_length
         self.future_length = future_length
         self.lead_time = lead_time
         self.output_NTC = output_NTC
-        self.ts_fields = (
-            time_series_fields if time_series_fields is not None else []
-        )
+        self.ts_fields = time_series_fields or []
         self.target_field = target_field
         self.is_pad_field = is_pad_field
         self.start_field = start_field
@@ -154,8 +154,6 @@ class InstanceSplitter(FlatMapTransformation):
         lt = self.lead_time
         slice_cols = self.ts_fields + [self.target_field]
         target = data[self.target_field]
-
-        len_target = target.shape[-1]
 
         sampled_indices = self.instance_sampler(target)
 
@@ -217,9 +215,10 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     In prediction mode, one can set `use_prediction_features` to get
     future_`time_series_fields`.
 
-    If the target array is one-dimensional, the `target_field` in the resulting instance has shape
-    (`instance_length`). In the multi-dimensional case, the instance has shape (`dim`, `instance_length`),
-    where `dim` can also take a value of 1.
+    If the target array is one-dimensional, the `target_field` in the resulting
+    instance has shape (`instance_length`). In the multi-dimensional case, the
+    instance has shape (`dim`, `instance_length`), where `dim` can also take a
+    value of 1.
 
     In the case of insufficient number of time series values, the
     transformation also adds a field 'past_is_pad' that indicates whether
@@ -269,16 +268,19 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         instance_sampler: InstanceSampler,
         instance_length: int,
         output_NTC: bool = True,
-        time_series_fields: List[str] = [],
+        time_series_fields: Optional[List[str]] = None,
         allow_target_padding: bool = False,
         pad_value: float = 0.0,
         use_prediction_features: bool = False,
         prediction_length: Optional[int] = None,
+        max_idle_transforms: Optional[int] = None,
     ) -> None:
+        super().__init__(max_idle_transforms)
+
         self.instance_sampler = instance_sampler
         self.instance_length = instance_length
         self.output_NTC = output_NTC
-        self.dynamic_feature_fields = time_series_fields
+        self.dynamic_feature_fields = time_series_fields or []
         self.target_field = target_field
         self.allow_target_padding = allow_target_padding
         self.pad_value = pad_value
@@ -304,8 +306,6 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     ) -> Iterator[DataEntry]:
         ts_fields = self.dynamic_feature_fields + [self.target_field]
         ts_target = data[self.target_field]
-
-        len_target = ts_target.shape[-1]
 
         sampling_indices = self.instance_sampler(ts_target)
 
@@ -419,7 +419,9 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         start_field: str = FieldName.START,
         end_field: str = "end",
         forecast_start_field: str = FieldName.FORECAST_START,
+        max_idle_transforms: Optional[int] = None
     ) -> None:
+        super().__init__(max_idle_transforms)
 
         assert (
             future_interval_length > 0

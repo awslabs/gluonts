@@ -364,7 +364,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
         return Chain(chain)
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -409,12 +411,13 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     # Decoder will use all fields under FEAT_DYNAMIC which are the RTS with past and future values
                     FieldName.FEAT_DYNAMIC,
                 ]
-                + ([FieldName.OBSERVED_VALUES] if mode is not "test" else []),
+                + ([FieldName.OBSERVED_VALUES] if mode != "test" else []),
                 decoder_disabled_fields=(
                     [FieldName.FEAT_DYNAMIC]
                     if not self.enable_decoder_dynamic_feature
                     else []
                 ),
+                max_idle_transforms=dataset_size,
             )
         )
 
@@ -446,7 +449,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             ForkingSeq2SeqTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -464,7 +469,9 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             ForkingSeq2SeqTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

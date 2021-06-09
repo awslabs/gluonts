@@ -17,6 +17,7 @@ from typing import List, Optional, Callable
 import numpy as np
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
+from gluonts import dataset
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
@@ -313,7 +314,9 @@ class DeepStateEstimator(GluonEstimator):
             ]
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         return CanonicalInstanceSplitter(
@@ -331,6 +334,7 @@ class DeepStateEstimator(GluonEstimator):
             instance_length=self.past_length,
             use_prediction_features=(mode is not "training"),
             prediction_length=self.prediction_length,
+            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -339,7 +343,9 @@ class DeepStateEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -355,7 +361,9 @@ class DeepStateEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

@@ -28,11 +28,6 @@ from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._m5 import generate_m5_dataset
 from gluonts.support.util import get_download_path
 
-m4_freq = "Hourly"
-pandas_freq = "H"
-dataset_path = Path(f"m4-{m4_freq}")
-prediction_length = 48
-
 dataset_recipes = OrderedDict(
     {
         # each recipe generates a dataset given a path
@@ -152,11 +147,11 @@ def materialize_dataset(
     dataset_recipe = dataset_recipes[dataset_name]
 
     if not dataset_path.exists() or regenerate:
-        logging.info(f"downloading and processing {dataset_name}")
+        logging.info("downloading and processing %s", dataset_name)
         dataset_recipe(dataset_path=dataset_path)
     else:
         logging.info(
-            f"using dataset already processed in path {dataset_path}."
+            "using dataset already processed in path %s.", dataset_path
         )
 
     return dataset_path
@@ -166,6 +161,7 @@ def get_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
+    load_in_memory: bool = False,
 ) -> TrainDatasets:
     """
     Get a repository dataset.
@@ -184,6 +180,9 @@ def get_dataset(
         be downloaded again.
     path
         where the dataset should be saved
+    load_in_memory
+        Whether to load the dataset in memory for constant-time indexing.
+
     Returns
     -------
         dataset obtained by either downloading or reloading from local file.
@@ -194,6 +193,7 @@ def get_dataset(
         metadata=dataset_path,
         train=dataset_path / "train",
         test=dataset_path / "test",
+        load_in_memory=load_in_memory,
     )
 
 

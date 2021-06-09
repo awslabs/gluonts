@@ -180,7 +180,9 @@ class DeepFactorEstimator(GluonEstimator):
             ]
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         return transform.InstanceSplitter(
             target_field=FieldName.TARGET,
             is_pad_field=FieldName.IS_PAD,
@@ -190,6 +192,7 @@ class DeepFactorEstimator(GluonEstimator):
             time_series_fields=[FieldName.FEAT_TIME],
             past_length=self.context_length,
             future_length=self.prediction_length,
+            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -198,7 +201,9 @@ class DeepFactorEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepFactorTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -214,7 +219,9 @@ class DeepFactorEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepFactorTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

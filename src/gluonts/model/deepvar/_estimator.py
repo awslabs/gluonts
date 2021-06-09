@@ -366,7 +366,9 @@ class DeepVAREstimator(GluonEstimator):
             ]
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -387,6 +389,7 @@ class DeepVAREstimator(GluonEstimator):
                 FieldName.FEAT_TIME,
                 FieldName.OBSERVED_VALUES,
             ],
+            max_idle_transforms=dataset_size,
         ) + (
             CDFtoGaussianTransform(
                 target_field=FieldName.TARGET,
@@ -409,7 +412,9 @@ class DeepVAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepVARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -425,7 +430,9 @@ class DeepVAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepVARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

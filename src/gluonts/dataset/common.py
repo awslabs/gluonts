@@ -26,6 +26,7 @@ from typing import (
     Union,
     cast,
 )
+from typing_extensions import Protocol
 
 import numpy as np
 import pandas as pd
@@ -39,9 +40,13 @@ from gluonts.dataset import jsonl, util
 DataEntry = Dict[str, Any]
 DataBatch = Dict[str, Any]
 
-# TODO: change this maybe to typing_extensions.Protocol
 # A Dataset is an iterable of DataEntry.
-Dataset = Iterable[DataEntry]
+class Dataset(Protocol):
+    def __iter__(self) -> Iterator[DataEntry]:
+        raise NotImplementedError
+
+    def __len__(self) -> int:
+        raise NotImplementedError
 
 
 class Timestamp(pd.Timestamp):
@@ -132,7 +137,7 @@ class TrainDatasets(NamedTuple):
         if self.test is not None:
             (path / "test").mkdir(parents=True)
             with open(path / "test/data.json", "wb") as f:
-                for entry in self.test:
+                for entry in self.test:  # pylint: disable=not-an-iterable
                     dump_line(f, serialize_data_entry(entry))
 
 
@@ -216,10 +221,36 @@ class FileDataset(Dataset):
         return not (path.name.startswith(".") or path.name == "_SUCCESS")
 
 
+class InMemoryDataset(Dataset):
+    """
+    Dataset that keeps all time series in memory and allows for constant-time
+    indexing. It is always initialized by iterating over a provided dataset.
+
+    Parameters
+    ----------
+    dataset
+        The dataset which to load in memory.
+    """
+
+    def __init__(self, dataset: Dataset):
+        self.entries = list(dataset)
+
+    def __iter__(self) -> Iterator[DataEntry]:
+        return iter(self.entries)
+
+    def __len__(self) -> int:
+        return len(self.entries)
+
+    def __getitem__(self, index: int) -> DataEntry:
+        return self.entries[index]
+
+
 class ListDataset(Dataset):
     """
     Dataset backed directly by a list of dictionaries.
 
+    Parameters
+    ----------
     data_iter
         Iterable object yielding all items in the dataset.
         Each item should be a dictionary mapping strings to values.
@@ -290,7 +321,7 @@ class ProcessStartField(pydantic.BaseModel):
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
-            )
+            ) from e
 
         if timestamp.tz is not None:
             if self.tz_strategy == TimeZoneStrategy.error:
@@ -298,7 +329,7 @@ class ProcessStartField(pydantic.BaseModel):
                     "Timezone information is not supported, "
                     f'but provided in the "{self.name}" field.'
                 )
-            elif self.tz_strategy == TimeZoneStrategy.utc:
+            if self.tz_strategy == TimeZoneStrategy.utc:
                 # align timestamp to utc timezone
                 timestamp = timestamp.tz_convert("UTC")
 
@@ -455,7 +486,10 @@ class ProcessDataEntry:
 
 
 def load_datasets(
-    metadata: Path, train: Path, test: Optional[Path]
+    metadata: Path,
+    train: Path,
+    test: Optional[Path],
+    load_in_memory: bool = False,
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
@@ -468,6 +502,8 @@ def load_datasets(
         Path to the training dataset files.
     test
         Path to the test dataset files.
+    load_in_memory
+        Whether to load the dataset in memory for constant-time indexing.
 
     Returns
     -------
@@ -477,6 +513,11 @@ def load_datasets(
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
     train_ds = FileDataset(path=train, freq=meta.freq)
     test_ds = FileDataset(path=test, freq=meta.freq) if test else None
+
+    if load_in_memory:
+        train_ds = InMemoryDataset(train_ds)
+        if test_ds is not None:
+            test_ds = InMemoryDataset(test_ds)
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 

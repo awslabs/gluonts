@@ -311,7 +311,9 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
 
         return Chain(transforms)
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -342,7 +344,9 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             TemporalFusionTransformerTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -360,7 +364,9 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             TemporalFusionTransformerTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Callable
+from typing import List, Optional
 
 from mxnet.gluon import HybridBlock, nn
 
@@ -93,7 +93,9 @@ class CanonicalEstimator(GluonEstimator):
             + AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1)
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -115,6 +117,7 @@ class CanonicalEstimator(GluonEstimator):
             time_series_fields=[FieldName.FEAT_TIME],
             past_length=self.context_length,
             future_length=self.prediction_length,
+            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -123,7 +126,9 @@ class CanonicalEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(CanonicalTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -139,7 +144,9 @@ class CanonicalEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(CanonicalTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -205,7 +212,7 @@ class CanonicalRNNEstimator(CanonicalEstimator):
             mode=cell_type, num_layers=num_layers, num_hidden=num_cells
         )
 
-        super(CanonicalRNNEstimator, self).__init__(
+        super().__init__(
             model=model,
             is_sequential=True,
             freq=freq,
@@ -245,7 +252,7 @@ class MLPForecasterEstimator(CanonicalEstimator):
                 )
             )
 
-        super(MLPForecasterEstimator, self).__init__(
+        super().__init__(
             model=model,
             is_sequential=False,
             freq=freq,

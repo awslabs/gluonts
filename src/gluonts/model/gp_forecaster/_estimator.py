@@ -170,7 +170,9 @@ class GaussianProcessEstimator(GluonEstimator):
             + AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1)
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(
+        self, mode: str, dataset_size: Optional[int] = None
+    ):
         assert mode in ["training", "validation", "test"]
 
         return CanonicalInstanceSplitter(
@@ -181,8 +183,9 @@ class GaussianProcessEstimator(GluonEstimator):
             instance_sampler=TestSplitSampler(),
             time_series_fields=[FieldName.FEAT_TIME],
             instance_length=self.context_length,
-            use_prediction_features=(mode is not "training"),
+            use_prediction_features=(mode != "training"),
             prediction_length=self.prediction_length,
+            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -193,7 +196,9 @@ class GaussianProcessEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             GaussianProcessTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter(
+            "training", len(data)
+        )
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -211,7 +216,9 @@ class GaussianProcessEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             GaussianProcessTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter(
+            "validation", len(data)
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
