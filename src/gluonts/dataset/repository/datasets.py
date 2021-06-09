@@ -147,11 +147,11 @@ def materialize_dataset(
     dataset_recipe = dataset_recipes[dataset_name]
 
     if not dataset_path.exists() or regenerate:
-        logging.info("downloading and processing %s", dataset_name)
+        logging.info(f"downloading and processing {dataset_name}")
         dataset_recipe(dataset_path=dataset_path)
     else:
         logging.info(
-            "using dataset already processed in path %s.", dataset_path
+            f"using dataset already processed in path {dataset_path}."
         )
 
     return dataset_path
