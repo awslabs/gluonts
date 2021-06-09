@@ -172,7 +172,7 @@ class QRX:
             )
             x_train = x_train[idx]
             y_train = y_train[idx]
-        if model_is_already_trained is False:
+        if not model_is_already_trained:
             self.model.fit(x_train, y_train, **kwargs)
         y_train_pred = self.model.predict(x_train)
         df = pd.DataFrame(
@@ -202,13 +202,11 @@ class QRX:
         gc.collect()
 
         df = pd.DataFrame({"preds": self.sorted_train_preds})
-        df["bins"] = df["preds"].apply(lambda x: self.preds_to_id[x])
-        final_id = df["bins"].drop_duplicates().values[-1]
-        penultimate_id = df["bins"].drop_duplicates().values[-2]
+        df["bin_ids"] = df["preds"].apply(lambda x: self.preds_to_id[x])
+        bin_ids = df["bin_ids"].drop_duplicates().values()
+        final_id, penultimate_id = bin_ids[-1], bin_ids[-2]
         if len(self.id_to_bins[final_id]) < self.min_bin_size:
-            self.id_to_bins[final_id] = (
-                self.id_to_bins[final_id] + self.id_to_bins[penultimate_id]
-            )
+            self.id_to_bins[final_id] += self.id_to_bins[penultimate_id]
 
     @staticmethod
     def clump(
