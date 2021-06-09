@@ -42,14 +42,18 @@ from gluonts.transform import (
     SelectFields,
     Transformation,
 )
+
 from gluonts.transform.feature import (
     DummyValueImputation,
     MissingValueImputation,
 )
 
+
 from ._network import (
+
     SimpleFeedForwardDistributionNetwork,
     SimpleFeedForwardSamplingNetwork,
+
     SimpleFeedForwardTrainingNetwork,
 )
 
@@ -168,6 +172,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         self.mean_scaling = mean_scaling
         self.num_parallel_samples = num_parallel_samples
         self.sampling = sampling
+
         self.imputation_method = (
             imputation_method
             if imputation_method is not None
@@ -185,6 +190,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             if validation_sampler is not None
             else ValidationSplitSampler(min_future=prediction_length)
         )
+
 
     # Here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a
@@ -270,7 +276,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     # we now define how the prediction happens given that we are provided a
     # training network.
     def create_predictor(self, transformation, trained_network):
-        prediction_splitter = self._create_instance_splitter("test")
 
         if self.sampling is True:
             prediction_network = SimpleFeedForwardSamplingNetwork(
@@ -285,9 +290,11 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             )
 
             return RepresentableBlockPredictor(
+
                 input_transform=transformation + prediction_splitter,
                 prediction_net=prediction_network,
                 batch_size=self.batch_size,
+
                 freq=self.freq,
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
@@ -305,9 +312,11 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                 num_parallel_samples=self.num_parallel_samples,
             )
             return RepresentableBlockPredictor(
+
                 input_transform=transformation + prediction_splitter,
                 prediction_net=prediction_network,
                 batch_size=self.batch_size,
+
                 forecast_generator=DistributionForecastGenerator(
                     self.distr_output
                 ),
