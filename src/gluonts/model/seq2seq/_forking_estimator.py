@@ -447,9 +447,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             ForkingSeq2SeqTrainingNetwork
         )
         with env._let(max_idle_transforms=len(data)):
-            instance_splitter = self._create_instance_splitter(
-                "training", len(data)
-            )
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
