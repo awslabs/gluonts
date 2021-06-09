@@ -174,7 +174,7 @@ class FlatMapTransformation(Transformation):
     @validated()
     def __init__(self, max_idle_transforms: Optional[int] = None):
         self.max_idle_transforms = (
-            max_idle_transforms or env.max_idle_tranforms
+            max_idle_transforms or env.max_idle_transforms
         )
 
     def __call__(
