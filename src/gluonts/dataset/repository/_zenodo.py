@@ -27,12 +27,41 @@ from gluonts.gluonts_tqdm import tqdm
 ROOT = "https://zenodo.org/record"
 
 dataset_info = {
+    "kaggle_web_traffic_with_missing": {
+        "file": "kaggle_web_traffic_dataset_with_missing_values.zip",
+        "record": "4656080",
+    },
+    "kaggle_web_traffic_without_missing": {
+        "file": "kaggle_web_traffic_dataset_without_missing_values.zip",
+        "record": "4656075",
+    },
+    "kaggle_web_traffic_weekly": {
+        "file": "kaggle_web_traffic_weekly_dataset.zip",
+        "record": "4656664",
+    },
     "m1_yearly": {"file": "m1_yearly_dataset.zip", "record": "4656193"},
     "m1_quarterly": {"file": "m1_quarterly_dataset.zip", "record": "4656154"},
     "m1_monthly": {"file": "m1_monthly_dataset.zip", "record": "4656159"},
-    "traffic_hourly": {
-        "file": "traffic_hourly_dataset.zip",
-        "record": "4656132",
+    "nn5_daily_with_missing": {
+        "file": "nn5_daily_dataset_with_missing_values.zip",
+        "record": "4656110",
+    },
+    "nn5_daily_without_missing": {
+        "file": "nn5_daily_dataset_without_missing_values.zip",
+        "record": "4656117",
+    },
+    "nn5_weekly": {"file": "nn5_weekly_dataset.zip", "record": "4656125"},
+    "tourism_monthly": {
+        "file": "tourism_monthly_dataset.zip",
+        "record": "4656096",
+    },
+    "tourism_quarterly": {
+        "file": "tourism_quarterly_dataset.zip",
+        "record": "4656093",
+    },
+    "tourism_yearly": {
+        "file": "tourism_yearly_dataset.zip",
+        "record": "4656103",
     },
 }
 
@@ -105,17 +134,29 @@ def save_metadata(
         )
 
 
-def save_dataset(dataset_path: Path, data: List[Dict]):
-    save_to_file(
-        dataset_path / "data.json",
-        [
-            to_dict(
+def save_datasets(path: Path, data: List[Dict], train_offset: int):
+    train = path / "train"
+    train.mkdir(exist_ok=True)
+    test = path / "test"
+    test.mkdir(exist_ok=True)
+
+    with open(train / "data.json", "wb") as train_fp, open(
+        test / "data.json", "wb"
+    ) as test_fp:
+        for data_entry in tqdm(
+            data, total=len(data), desc="creating json files"
+        ):
+            dic = to_dict(
                 target_values=data_entry["target"],
                 start=str(data_entry["start_timestamp"]),
             )
-            for data_entry in data
-        ],
-    )
+
+            test_fp.write(json.dumps(dic).encode("utf-8"))
+            test_fp.write("\n".encode("utf-8"))
+
+            dic["target"] = dic["target"][:-train_offset]
+            train_fp.write(json.dumps(dic).encode("utf-8"))
+            train_fp.write("\n".encode("utf-8"))
 
 
 def create_train_ds(data: List[dict], prediction_length: int):
@@ -153,9 +194,7 @@ def generate_forecasting_dataset(dataset_path: Path, dataset_name: str):
         frequency_converter(meta.frequency),
         prediction_length,
     )
-    train_data = create_train_ds(data, prediction_length)
-    save_dataset(dataset_path / "train", train_data)
-    save_dataset(dataset_path / "test", data)
+    save_datasets(dataset_path, data, prediction_length)
 
     file_names.append(file)
     clean_up_dataset(dataset_path, file_names)
