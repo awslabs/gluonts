@@ -62,7 +62,7 @@ class SelfAttentionEstimator(GluonEstimator):
         self,
         freq: str,
         prediction_length: int,
-        cardinalities: Optional[List[int]] = None,
+        cardinalities: List[int] = [],
         context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
         model_dim: int = 64,
@@ -93,7 +93,7 @@ class SelfAttentionEstimator(GluonEstimator):
         self.num_heads = num_heads
         self.num_layers = num_layers
         self.num_outputs = num_outputs
-        self.cardinalities = cardinalities or []
+        self.cardinalities = cardinalities
         self.kernel_sizes = kernel_sizes
         self.distance_encoding = distance_encoding
         self.pre_layer_norm = pre_layer_norm

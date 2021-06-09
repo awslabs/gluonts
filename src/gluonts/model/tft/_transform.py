@@ -66,8 +66,8 @@ class TFTInstanceSplitter(InstanceSplitter):
         observed_value_field: str = FieldName.OBSERVED_VALUES,
         lead_time: int = 0,
         output_NTC: bool = True,
-        time_series_fields: Optional[List[str]] = None,
-        past_time_series_fields: Optional[List[str]] = None,
+        time_series_fields: List[str] = [],
+        past_time_series_fields: List[str] = [],
         dummy_value: float = 0.0,
     ) -> None:
         super().__init__(
@@ -87,7 +87,7 @@ class TFTInstanceSplitter(InstanceSplitter):
         assert past_length > 0, "The value of `past_length` should be > 0"
 
         self.observed_value_field = observed_value_field
-        self.past_ts_fields = past_time_series_fields or []
+        self.past_ts_fields = past_time_series_fields
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool

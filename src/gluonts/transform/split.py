@@ -121,7 +121,7 @@ class InstanceSplitter(FlatMapTransformation):
         future_length: int,
         lead_time: int = 0,
         output_NTC: bool = True,
-        time_series_fields: Optional[List[str]] = None,
+        time_series_fields: List[str] = [],
         dummy_value: float = 0.0,
     ) -> None:
         super().__init__()
@@ -133,7 +133,7 @@ class InstanceSplitter(FlatMapTransformation):
         self.future_length = future_length
         self.lead_time = lead_time
         self.output_NTC = output_NTC
-        self.ts_fields = time_series_fields or []
+        self.ts_fields = time_series_fields
         self.target_field = target_field
         self.is_pad_field = is_pad_field
         self.start_field = start_field
@@ -267,7 +267,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         instance_sampler: InstanceSampler,
         instance_length: int,
         output_NTC: bool = True,
-        time_series_fields: Optional[List[str]] = None,
+        time_series_fields: List[str] = [],
         allow_target_padding: bool = False,
         pad_value: float = 0.0,
         use_prediction_features: bool = False,
@@ -278,7 +278,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         self.instance_sampler = instance_sampler
         self.instance_length = instance_length
         self.output_NTC = output_NTC
-        self.dynamic_feature_fields = time_series_fields or []
+        self.dynamic_feature_fields = time_series_fields
         self.target_field = target_field
         self.allow_target_padding = allow_target_padding
         self.pad_value = pad_value
