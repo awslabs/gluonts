@@ -14,7 +14,7 @@
 import logging
 from enum import Enum
 from itertools import chain, starmap
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional
 
 import numpy as np
 
@@ -43,6 +43,7 @@ class PreprocessGeneric:
         stratify_targets: bool = False,
         n_ignore_last: int = 0,
         max_n_datapts: int = 400000,
+        seed: Optional[int] = None,
         **kwargs
     ):
         """
@@ -79,6 +80,7 @@ class PreprocessGeneric:
         self.num_samples = None
         self.feature_data = None
         self.target_data = None
+
 
     def make_features(self, time_series, starting_index):
         """
