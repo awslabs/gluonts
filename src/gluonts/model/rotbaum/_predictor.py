@@ -106,7 +106,7 @@ class TreePredictor(RepresentablePredictor):
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
-        clump_size: int = 100,  # Used only for "QRX" method.
+        min_bin_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         use_feat_static_real: bool = False,
         use_feat_dynamic_real: bool = False,
@@ -118,6 +118,7 @@ class TreePredictor(RepresentablePredictor):
         method: str = "QRX",
         quantiles=None,  # Used only for "QuantileRegression" method.
         model=None,
+        seed=None,
     ) -> None:
         assert method in [
             "QRX",
@@ -140,6 +141,7 @@ class TreePredictor(RepresentablePredictor):
             use_feat_dynamic_cat=use_feat_dynamic_cat,
             cardinality=cardinality,
             one_hot_encode=one_hot_encode,
+            seed=seed,
         )
 
         assert (
@@ -161,7 +163,7 @@ class TreePredictor(RepresentablePredictor):
         self.prediction_length = prediction_length
         self.freq = freq
         self.max_workers = max_workers
-        self.clump_size = clump_size
+        self.min_bin_size = min_bin_size
         self.quantiles = quantiles
         self.model = model
         self.model_list = None
@@ -170,7 +172,13 @@ class TreePredictor(RepresentablePredictor):
             "If using the Evaluator class with a TreePredictor, set num_workers=0."
         )
 
-    def train(self, training_data):
+    def train(
+        self,
+        training_data,
+        train_QRX_only_using_timestep: int = -1,  # If not -1 and self.method
+        # == 'QRX', this will use only the train_QRX_only_using_timestep^th
+        # timestep in the forecast horizon to create the partition.
+    ):
         assert training_data
         assert self.freq is not None
         if next(iter(training_data))["start"].freq is not None:
@@ -197,22 +205,66 @@ class TreePredictor(RepresentablePredictor):
             self.model_list = [
                 QRX(
                     xgboost_params=self.model_params,
-                    clump_size=self.clump_size,
+                    min_bin_size=self.min_bin_size,
                     model=self.model,
                 )
                 for _ in range(n_models)
             ]
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.max_workers
-        ) as executor:
-            for n_step, model in enumerate(self.model_list):
-                logger.info(
-                    f"Training model for step no. {n_step + 1} in the forecast"
-                    f" horizon"
+        if train_QRX_only_using_timestep != -1:
+            assert (
+                0
+                <= train_QRX_only_using_timestep
+                <= self.preprocess_object.forecast_horizon - 1
+            )
+            logger.info(
+                f"Training model for step no. {train_QRX_only_using_timestep} in the "
+                f"forecast"
+                f" horizon"
+            )
+            self.model_list[train_QRX_only_using_timestep].fit(
+                feature_data,
+                np.array(target_data)[:, train_QRX_only_using_timestep],
+            )
+            self.model_list = [
+                QRX(
+                    xgboost_params=self.model_params,
+                    min_bin_size=self.min_bin_size,
+                    model=self.model_list[train_QRX_only_using_timestep].model,
                 )
-                executor.submit(
-                    model.fit, feature_data, np.array(target_data)[:, n_step]
-                )
+                if i != train_QRX_only_using_timestep
+                else self.model_list[i]
+                for i in range(n_models)
+            ]
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.max_workers
+            ) as executor:
+                for n_step, model in enumerate(self.model_list):
+                    if n_step != train_QRX_only_using_timestep:
+                        logger.info(
+                            f"Training model for step no. {n_step + 1} in the "
+                            f"forecast"
+                            f" horizon"
+                        )
+                        executor.submit(
+                            model.fit,
+                            feature_data,
+                            np.array(target_data)[:, n_step],
+                            model_is_already_trained=True,
+                        )
+        else:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.max_workers
+            ) as executor:
+                for n_step, model in enumerate(self.model_list):
+                    logger.info(
+                        f"Training model for step no. {n_step + 1} in the forecast"
+                        f" horizon"
+                    )
+                    executor.submit(
+                        model.fit,
+                        feature_data,
+                        np.array(target_data)[:, n_step],
+                    )
         return self
 
     def predict(
