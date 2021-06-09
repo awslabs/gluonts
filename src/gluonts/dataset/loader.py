@@ -203,22 +203,23 @@ def TrainDataLoader(
         dataset = PseudoShuffled(dataset, shuffle_buffer_length)
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
-    batches: DataLoader = transform.apply(dataset, is_train=True)
+    transformed_dataset = transform.apply(dataset, is_train=True)
 
     if num_workers is not None:
         batches = MultiProcessLoader(
-            batches,
+            transformed_dataset,
             decode_fn=decode_fn,
             num_workers=num_workers,
             max_queue_size=num_prefetch,
         )
-
-    batches = iter(batches)
+        iterator = iter(batches)
+    else:
+        iterator = iter(transformed_dataset)
 
     if num_batches_per_epoch is None:
-        return batches
+        return iterator
     else:
-        return IterableSlice(batches, num_batches_per_epoch)
+        return IterableSlice(iterator, num_batches_per_epoch)
 
 
 def ValidationDataLoader(

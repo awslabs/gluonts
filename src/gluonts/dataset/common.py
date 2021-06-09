@@ -511,8 +511,10 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds = FileDataset(path=train, freq=meta.freq)
-    test_ds = FileDataset(path=test, freq=meta.freq) if test else None
+    train_ds: Dataset = FileDataset(path=train, freq=meta.freq)
+    test_ds: Optional[Dataset] = (
+        FileDataset(path=test, freq=meta.freq) if test else None
+    )
 
     if load_in_memory:
         train_ds = InMemoryDataset(train_ds)
