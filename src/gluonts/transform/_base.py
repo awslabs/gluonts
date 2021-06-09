@@ -12,11 +12,11 @@
 # permissions and limitations under the License.
 
 import abc
-from typing import Callable, Iterable, Iterator, List, Optional
+from typing import Callable, Iterable, Iterator, List
 
-from gluonts.env import env
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.env import env
 
 
 class Transformation(metaclass=abc.ABCMeta):
@@ -163,8 +163,6 @@ class FlatMapTransformation(Transformation):
     """
     Transformations that yield zero or more results per input, but do not
     combine elements from the input stream.
-
-    Parameters
     ----------
     max_idle_transforms
         The maximum number of idle transformations before an exception will be
@@ -172,10 +170,8 @@ class FlatMapTransformation(Transformation):
     """
 
     @validated()
-    def __init__(self, max_idle_transforms: Optional[int] = None):
-        self.max_idle_transforms = (
-            max_idle_transforms or env.max_idle_transforms
-        )
+    def __init__(self):
+        self.max_idle_transforms = max(env.max_idle_transforms, 100)
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
@@ -190,7 +186,7 @@ class FlatMapTransformation(Transformation):
                 raise Exception(
                     f"Reached maximum number of idle transformation calls.\n"
                     f"This means the transformation looped over "
-                    f"{self.max_idle_transforms} inputs without returning any"
+                    f"{self.max_idle_transforms} inputs without returning any "
                     f"output.\nThis occurred in the following transformation:\n"
                     f"{self}"
                 )

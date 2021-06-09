@@ -123,9 +123,8 @@ class InstanceSplitter(FlatMapTransformation):
         output_NTC: bool = True,
         time_series_fields: Optional[List[str]] = None,
         dummy_value: float = 0.0,
-        max_idle_transforms: Optional[int] = None,
     ) -> None:
-        super().__init__(max_idle_transforms)
+        super().__init__()
 
         assert future_length > 0, "The value of `future_length` should be > 0"
 
@@ -273,9 +272,8 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         pad_value: float = 0.0,
         use_prediction_features: bool = False,
         prediction_length: Optional[int] = None,
-        max_idle_transforms: Optional[int] = None,
     ) -> None:
-        super().__init__(max_idle_transforms)
+        super().__init__()
 
         self.instance_sampler = instance_sampler
         self.instance_length = instance_length
@@ -419,9 +417,8 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         start_field: str = FieldName.START,
         end_field: str = "end",
         forecast_start_field: str = FieldName.FORECAST_START,
-        max_idle_transforms: Optional[int] = None,
     ) -> None:
-        super().__init__(max_idle_transforms)
+        super().__init__()
 
         assert (
             future_interval_length > 0

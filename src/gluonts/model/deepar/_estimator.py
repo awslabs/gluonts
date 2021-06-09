@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -26,6 +26,7 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.dataset.stat import calculate_dataset_statistics
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
@@ -371,9 +372,7 @@ class DeepAREstimator(GluonEstimator):
             ]
         )
 
-    def _create_instance_splitter(
-        self, mode: str, dataset_size: Optional[int] = None
-    ):
+    def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -395,7 +394,6 @@ class DeepAREstimator(GluonEstimator):
                 FieldName.OBSERVED_VALUES,
             ],
             dummy_value=self.distr_output.value_in_support,
-            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -404,9 +402,8 @@ class DeepAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter(
-            "training", len(data)
-        )
+        with env._let(max_idle_transforms=len(data)):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -422,9 +419,8 @@ class DeepAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter(
-            "validation", len(data)
-        )
+        with env._let(max_idle_transforms=len(data)):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

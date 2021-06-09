@@ -14,45 +14,39 @@
 from functools import partial
 from typing import List, Optional
 
-import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     DataLoader,
     TrainDataLoader,
     ValidationDataLoader,
 )
+from gluonts.env import env
 from gluonts.model.forecast_generator import QuantileForecastGenerator
-from gluonts.mx.batchify import batchify, as_in_context
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.time_feature import (
-    TimeFeature,
-    get_lags_for_frequency,
-    time_features_from_frequency_str,
-)
+from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    ExpandDimArray,
     ExpectedNumInstanceSampler,
+    InstanceSampler,
     InstanceSplitter,
-    ValidationSplitSampler,
-    TestSplitSampler,
-    RemoveFields,
     SelectFields,
     SetField,
+    TestSplitSampler,
     Transformation,
+    ValidationSplitSampler,
     VstackFeatures,
-    InstanceSampler,
 )
 
 # Relative import
@@ -241,9 +235,7 @@ class SelfAttentionEstimator(GluonEstimator):
         )
         return Chain(transforms)
 
-    def _create_instance_splitter(
-        self, mode: str, dataset_size: Optional[int] = None
-    ):
+    def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -267,7 +259,6 @@ class SelfAttentionEstimator(GluonEstimator):
             past_length=self.context_length,
             future_length=self.prediction_length,
             time_series_fields=time_series_fields,
-            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -278,9 +269,8 @@ class SelfAttentionEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             SelfAttentionTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter(
-            "training", len(data)
-        )
+        with env._let(max_idle_transforms=len(data)):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -298,9 +288,8 @@ class SelfAttentionEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             SelfAttentionTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter(
-            "validation", len(data)
-        )
+        with env._let(max_idle_transforms=len(data)):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

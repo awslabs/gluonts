@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -21,14 +21,15 @@ from gluonts.core.component import DType, validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
+    DataLoader,
     TrainDataLoader,
     ValidationDataLoader,
-    DataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.kernels import KernelOutput, RBFKernelOutput
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
@@ -37,9 +38,8 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     CanonicalInstanceSplitter,
-    Chain,
-    SetFieldIfNotPresent,
     SelectFields,
+    SetFieldIfNotPresent,
     TestSplitSampler,
     Transformation,
 )
@@ -170,9 +170,7 @@ class GaussianProcessEstimator(GluonEstimator):
             + AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1)
         )
 
-    def _create_instance_splitter(
-        self, mode: str, dataset_size: Optional[int] = None
-    ):
+    def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
 
         return CanonicalInstanceSplitter(
@@ -185,7 +183,6 @@ class GaussianProcessEstimator(GluonEstimator):
             instance_length=self.context_length,
             use_prediction_features=(mode != "training"),
             prediction_length=self.prediction_length,
-            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -196,9 +193,8 @@ class GaussianProcessEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             GaussianProcessTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter(
-            "training", len(data)
-        )
+        with env._let(max_idle_transforms=len(data)):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -216,9 +212,8 @@ class GaussianProcessEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             GaussianProcessTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter(
-            "validation", len(data)
-        )
+        with env._let(max_idle_transforms=len(data)):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

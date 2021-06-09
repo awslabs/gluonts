@@ -69,7 +69,6 @@ class TFTInstanceSplitter(InstanceSplitter):
         time_series_fields: Optional[List[str]] = None,
         past_time_series_fields: Optional[List[str]] = None,
         dummy_value: float = 0.0,
-        max_idle_transforms: Optional[int] = None,
     ) -> None:
         super().__init__(
             target_field=target_field,
@@ -83,7 +82,6 @@ class TFTInstanceSplitter(InstanceSplitter):
             output_NTC=output_NTC,
             time_series_fields=time_series_fields,
             dummy_value=dummy_value,
-            max_idle_transforms=max_idle_transforms,
         )
 
         assert past_length > 0, "The value of `past_length` should be > 0"

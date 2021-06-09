@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Tuple, Callable
+from typing import List, Optional
 
 from mxnet.gluon import HybridBlock
 
@@ -24,6 +24,7 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
+from gluonts.env import env
 from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
@@ -33,14 +34,13 @@ from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.transform import (
     AddObservedValuesIndicator,
-    Chain,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     InstanceSplitter,
-    TestSplitSampler,
-    ValidationSplitSampler,
     SelectFields,
+    TestSplitSampler,
     Transformation,
+    ValidationSplitSampler,
 )
 from gluonts.transform.feature import (
     DummyValueImputation,
@@ -200,9 +200,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             imputation_method=self.imputation_method,
         )
 
-    def _create_instance_splitter(
-        self, mode: str, dataset_size: Optional[int] = None
-    ):
+    def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -220,7 +218,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             past_length=self.context_length,
             future_length=self.prediction_length,
             time_series_fields=[FieldName.OBSERVED_VALUES],
-            max_idle_transforms=dataset_size,
         )
 
     def create_training_data_loader(
@@ -231,9 +228,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             SimpleFeedForwardTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter(
-            "training", len(data)
-        )
+        with env._let(max_idle_transforms=len(data)):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -251,9 +247,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             SimpleFeedForwardTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter(
-            "validation", len(data)
-        )
+        with env._let(max_idle_transforms=len(data)):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

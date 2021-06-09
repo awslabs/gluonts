@@ -39,9 +39,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         decoder_disabled_fields: Optional[List[str]] = None,
         is_pad_out: str = "is_pad",
         start_input_field: str = "start",
-        max_idle_transforms: Optional[int] = None,
     ) -> None:
-        super().__init__(max_idle_transforms)
+        super().__init__()
 
         assert enc_len > 0, "The value of `enc_len` should be > 0"
         assert dec_len > 0, "The value of `dec_len` should be > 0"
