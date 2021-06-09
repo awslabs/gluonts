@@ -24,8 +24,8 @@ from pydantic import BaseModel
 
 from gluonts.dataset.common import DataBatch, Dataset
 from gluonts.dataset.util import MPWorkerInfo
-from gluonts.itertools import batcher, Cyclic, IterableSlice, PseudoShuffled
-from gluonts.transform import Transformation, AdhocTransform, Identity
+from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled, batcher
+from gluonts.transform import AdhocTransform, Identity, Transformation
 
 logger = logging.getLogger(__name__)
 
@@ -206,20 +206,20 @@ def TrainDataLoader(
     transformed_dataset = transform.apply(dataset, is_train=True)
 
     if num_workers is not None:
-        batches = MultiProcessLoader(
+        loader = MultiProcessLoader(
             transformed_dataset,
             decode_fn=decode_fn,
             num_workers=num_workers,
             max_queue_size=num_prefetch,
         )
-        iterator = iter(batches)
+        batches = iter(loader)
     else:
-        iterator = iter(transformed_dataset)
+        batches = iter(transformed_dataset)
 
     if num_batches_per_epoch is None:
-        return iterator
+        return batches
     else:
-        return IterableSlice(iterator, num_batches_per_epoch)
+        return IterableSlice(batches, num_batches_per_epoch)
 
 
 def ValidationDataLoader(
