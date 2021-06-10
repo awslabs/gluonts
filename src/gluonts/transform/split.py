@@ -155,8 +155,6 @@ class InstanceSplitter(FlatMapTransformation):
         slice_cols = self.ts_fields + [self.target_field]
         target = data[self.target_field]
 
-        len_target = target.shape[-1]
-
         sampled_indices = self.instance_sampler(target)
 
         for i in sampled_indices:
@@ -304,8 +302,6 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     ) -> Iterator[DataEntry]:
         ts_fields = self.dynamic_feature_fields + [self.target_field]
         ts_target = data[self.target_field]
-
-        len_target = ts_target.shape[-1]
 
         sampling_indices = self.instance_sampler(ts_target)
 

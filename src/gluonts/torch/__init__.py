@@ -19,4 +19,4 @@ from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)  # type: ignore
 
 
-from gluonts.torch.prelude import *  # noqa: F401
+import gluonts.torch.prelude as _  # noqa

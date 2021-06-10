@@ -180,7 +180,7 @@ class GaussianProcessEstimator(GluonEstimator):
             instance_sampler=TestSplitSampler(),
             time_series_fields=[FieldName.FEAT_TIME],
             instance_length=self.context_length,
-            use_prediction_features=(mode is not "training"),
+            use_prediction_features=(mode != "training"),
             prediction_length=self.prediction_length,
         )
 

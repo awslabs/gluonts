@@ -329,7 +329,7 @@ class DeepStateEstimator(GluonEstimator):
             ],
             allow_target_padding=True,
             instance_length=self.past_length,
-            use_prediction_features=(mode is not "training"),
+            use_prediction_features=(mode != "training"),
             prediction_length=self.prediction_length,
         )
 
