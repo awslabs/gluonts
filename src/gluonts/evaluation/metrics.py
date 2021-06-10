@@ -181,7 +181,7 @@ def msis(
 
 
 def abs_target_sum(target) -> float:
-    """
+    r"""
     .. math::
 
         abs\_target\_sum = sum(|Y|)
@@ -190,7 +190,7 @@ def abs_target_sum(target) -> float:
 
 
 def abs_target_mean(target) -> float:
-    """
+    r"""
     .. math::
 
         abs\_target\_mean = mean(|Y|)
