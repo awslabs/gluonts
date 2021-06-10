@@ -22,5 +22,3 @@ jobs:
         python setup.py type_check
     - name: Check license headers
       run: python .devtools/license check src test
-    - name: Flake8
-      run: flake8 --ignore E501,E203,W503,W291 src
