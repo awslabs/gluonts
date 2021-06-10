@@ -141,8 +141,8 @@ def save_datasets(path: Path, data: List[Dict], train_offset: int):
     train.mkdir(exist_ok=True)
     test.mkdir(exist_ok=True)
 
-    with open(train / "data.json", "wb") as train_fp, open(
-        test / "data.json", "wb"
+    with open(train / "data.json", "w") as train_fp, open(
+        test / "data.json", "w"
     ) as test_fp:
         for data_entry in tqdm(
             data, total=len(data), desc="creating json files"
@@ -152,12 +152,12 @@ def save_datasets(path: Path, data: List[Dict], train_offset: int):
                 start=str(data_entry["start_timestamp"]),
             )
 
-            test_fp.write(json.dumps(dic).encode("utf-8"))
-            test_fp.write("\n".encode("utf-8"))
+            test_fp.write(json.dumps(dic))
+            test_fp.write("\n")
 
             dic["target"] = dic["target"][:-train_offset]
-            train_fp.write(json.dumps(dic).encode("utf-8"))
-            train_fp.write("\n".encode("utf-8"))
+            train_fp.write(json.dumps(dic))
+            train_fp.write("\n")
 
 
 def clean_up_dataset(dataset_path: Path, file_names: List[str]):
