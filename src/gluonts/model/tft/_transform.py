@@ -11,14 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Optional
+from typing import Iterator, List
 
 import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.support.pandas import forecast_start
 from gluonts.transform import (
     InstanceSplitter,
     MapTransformation,
