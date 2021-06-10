@@ -11,22 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Union, Optional
+from typing import Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import pandas as pd
 import numpy as np
-import os
-from scipy import stats
-from tqdm import tqdm
+import pandas as pd
 
-import torch
-from torch import optim
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torch.nn as nn
+import torch.nn
+import torch.optim
 
 from .distr_tcn import DistributionalTCN
 
@@ -105,7 +98,6 @@ def eval_on_series(
 
         if trying_mini_batches:
             batch_indices = np.arange(ts_len - window_length - 1)
-            # for i in tqdm(range(numb_mini_batches),  position=0, leave=True):
             for i in range(numb_mini_batches):
                 idx = np.random.choice(batch_indices, mini_batch_size)
                 batch_indices = np.setdiff1d(batch_indices, idx)

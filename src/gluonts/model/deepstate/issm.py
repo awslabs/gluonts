@@ -13,8 +13,6 @@
 
 from typing import List, Tuple
 
-import numpy as np
-import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.core.component import validated

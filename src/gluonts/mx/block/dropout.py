@@ -198,13 +198,15 @@ class RNNZoneoutCell(ModifierCell):
     def hybrid_forward(
         self, F, inputs: Tensor, states: Tensor
     ) -> Tuple[Tensor, Tensor]:
+        def mask(p, like):
+            return F.Dropout(F.ones_like(like), p=p)
+
         cell, p_outputs, p_states = (
             self.base_cell,
             self.zoneout_outputs,
             self.zoneout_states,
         )
         next_output, next_states = cell(inputs, states)
-        mask = lambda p, like: F.Dropout(F.ones_like(like), p=p)
 
         prev_output = self._prev_output
         if prev_output is None:

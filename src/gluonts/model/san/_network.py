@@ -11,19 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
-# Third-party import
-import mxnet as mx
 from mxnet import init
-from mxnet.gluon import HybridBlock, Parameter, nn
-from mxnet.gluon.contrib.nn import HybridConcurrent
+from mxnet.gluon import HybridBlock, nn
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.block.feature import FeatureAssembler, FeatureEmbedder
+from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
-from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.util import weighted_average
 
 from ._layers import PosFFN, SelfAttention

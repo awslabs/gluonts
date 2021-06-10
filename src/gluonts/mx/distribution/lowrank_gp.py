@@ -19,7 +19,7 @@ from mxnet import gluon
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
-from . import LowrankMultivariateGaussian, bijection
+from . import LowrankMultivariateGaussian
 from .distribution_output import (
     ArgProj,
     DistributionOutput,

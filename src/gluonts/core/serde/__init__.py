@@ -17,8 +17,10 @@ from ._json import dump_json, load_json
 from ._repr import dump_code, load_code
 
 # TODO: remove
-from .np import *
-from .pd import *
+# These are needed because we implement `encode` for numpy and pandas types in
+# submodules.
+from .np import *  # noqa
+from .pd import *  # noqa
 
 __all__ = [
     "flat",

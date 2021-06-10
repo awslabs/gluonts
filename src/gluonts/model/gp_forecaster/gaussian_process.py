@@ -163,7 +163,7 @@ class GaussianProcess:
     def log_prob(self, x_train: Tensor, y_train: Tensor) -> Tensor:
         r"""
         This method computes the negative marginal log likelihood
-        
+
         .. math::
             :nowrap:
 

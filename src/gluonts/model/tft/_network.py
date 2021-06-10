@@ -11,11 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List
 
-import mxnet as nx
 import numpy as np
-from mxnet import gluon, init
 from mxnet.gluon import HybridBlock, nn
 
 from gluonts.core.component import DType, validated
@@ -198,7 +196,7 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                 units=self.d_var,
                 in_units=1,
                 flatten=False,
-                prefix=f"target_projection_",
+                prefix="target_projection_",
             )
             if self.d_past_feat_dynamic_real:
                 self.past_feat_dynamic_proj = FeatureProjector(

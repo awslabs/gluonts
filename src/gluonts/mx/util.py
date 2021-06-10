@@ -14,10 +14,9 @@
 import inspect
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, cast, Type
+from typing import List, Optional, Tuple, cast, Type
 
 import mxnet as mx
-import numpy as np
 from mxnet.gluon.block import _flatten
 
 from gluonts.core.serde import dump_json, load_json

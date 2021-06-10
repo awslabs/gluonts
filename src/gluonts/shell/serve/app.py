@@ -255,7 +255,7 @@ def batch_inference_invocations(
     def invocations_error_wrapper() -> Response:
         try:
             return invocations()
-        except Exception as error:
+        except Exception:
             return Response(
                 json.dumps({"error": traceback.format_exc()}),
                 mimetype="application/jsonlines",

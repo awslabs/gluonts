@@ -14,14 +14,11 @@
 import math
 from typing import List, Optional, Tuple
 
-import mxnet as mx
-import numpy as np
-from mxnet import gluon, init
+from mxnet import init
 from mxnet.gluon import HybridBlock, nn, rnn
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.block.feature import FeatureEmbedder
 
 
 class GatedLinearUnit(HybridBlock):

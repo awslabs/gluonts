@@ -37,16 +37,15 @@ To help splitting the input preemptively glides offers a `partition`-method.
 """
 
 __all__ = [
-    "partition",
     "Apply",
-    "ParApply",
+    "divide_into",
+    "imap_unordered",
     "lift",
     "Map",
+    "ParApply",
+    "partition",
     "Pipeline",
-    "imap_unordered",
 ]
-
-from functools import partial
 
 from ._partition import partition, divide_into
 from .parallel import ParApply

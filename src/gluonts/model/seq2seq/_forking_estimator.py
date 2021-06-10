@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import numpy as np
 
@@ -26,7 +26,10 @@ from gluonts.dataset.loader import (
 )
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.forecast import Quantile
-from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.model.forecast_generator import (
+    DistributionForecastGenerator,
+    QuantileForecastGenerator,
+)
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.mx.block.decoder import Seq2SeqDecoder
@@ -34,7 +37,6 @@ from gluonts.mx.block.enc2dec import FutureFeatIntegratorEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.distribution import DistributionOutput
-from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
@@ -54,7 +56,6 @@ from gluonts.transform import (
     InstanceSampler,
     SelectFields,
     ValidationSplitSampler,
-    TestSplitSampler,
 )
 
 from ._forking_network import (
@@ -409,7 +410,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     # Decoder will use all fields under FEAT_DYNAMIC which are the RTS with past and future values
                     FieldName.FEAT_DYNAMIC,
                 ]
-                + ([FieldName.OBSERVED_VALUES] if mode is not "test" else []),
+                + ([FieldName.OBSERVED_VALUES] if mode != "test" else []),
                 decoder_disabled_fields=(
                     [FieldName.FEAT_DYNAMIC]
                     if not self.enable_decoder_dynamic_feature

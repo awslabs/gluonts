@@ -18,7 +18,6 @@ import torch
 from gluonts.model.forecast_generator import (
     recursively_zip_arrays,
     make_distribution_forecast,
-    DistributionForecastGenerator,  # this is for analogy with gluonts.mx.model.forecast_generator
 )
 from gluonts.torch.model.forecast import DistributionForecast
 

@@ -15,11 +15,9 @@ from functools import partial
 from itertools import chain
 from typing import Dict, List, Optional
 
-import mxnet as mx
-import numpy as np
 from mxnet.gluon import HybridBlock
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (

@@ -10,16 +10,13 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
-import math
-from functools import partial
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.distribution import Distribution, box_cox_transform, uniform
+from gluonts.mx.distribution import box_cox_transform, uniform
 from gluonts.mx.distribution.distribution import (
     MAX_SUPPORT_VAL,
     _sample_multiple,

@@ -17,7 +17,6 @@ import torch
 from torch.distributions import constraints
 from torch.distributions.distribution import Distribution
 from torch.distributions.utils import broadcast_all
-import torch.nn.functional as F
 
 import numpy as np
 

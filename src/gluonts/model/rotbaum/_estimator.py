@@ -14,7 +14,6 @@
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.estimator import Estimator, Predictor
-from gluonts.transform import FilterTransformation, Transformation
 
 from ._predictor import TreePredictor
 

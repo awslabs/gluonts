@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 from functools import partial
-from typing import Optional, Callable
 
 from mxnet.gluon import HybridBlock
 
@@ -22,7 +21,7 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator, TrainOutput
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.model.tpp import PointProcessGluonPredictor
 from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput

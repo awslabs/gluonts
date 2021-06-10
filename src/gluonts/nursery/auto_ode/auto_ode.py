@@ -11,14 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-
 import numpy as np
-import mxnet as mx
-from mxnet import gluon, nd, autograd
 import matplotlib.pyplot as plt
-from mxnet.gluon import nn, rnn
+import mxnet as mx
+import mxnet.gluon.nn
+import mxnet.gluon.rnn
+from mxnet import gluon, nd, autograd
 from tqdm import tqdm_notebook as tqdm
-import math
 
 
 class NeuralLV:

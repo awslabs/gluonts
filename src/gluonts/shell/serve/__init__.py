@@ -121,7 +121,7 @@ def make_gunicorn_app(
     settings: Settings,
 ) -> Application:
     if forecaster_type is not None:
-        logger.info(f"Using dynamic predictor factory")
+        logger.info("Using dynamic predictor factory")
 
         ctor = forecaster_type.from_hyperparameters
 
@@ -132,7 +132,7 @@ def make_gunicorn_app(
             return ctor(**request["configuration"])
 
     else:
-        logger.info(f"Using static predictor factory")
+        logger.info("Using static predictor factory")
 
         assert env is not None
         predictor = Predictor.deserialize(env.path.model)

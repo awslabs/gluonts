@@ -18,7 +18,7 @@ from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
-from mxnet import nd, gluon
+from mxnet import gluon
 
 
 class DeepRenewalNetwork(gluon.HybridBlock):
