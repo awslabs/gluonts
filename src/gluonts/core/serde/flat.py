@@ -86,7 +86,7 @@ def _asdict(trie):
 
 
 def nest(data):
-    Trie = lambda: defaultdict(Trie)
+    Trie = lambda: defaultdict(Trie)  # noqa
     trie = Trie()
 
     for parts, value in data.items():

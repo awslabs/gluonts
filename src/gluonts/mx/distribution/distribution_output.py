@@ -19,7 +19,6 @@ from mxnet import gluon
 from gluonts.core.component import DType, validated
 from gluonts.mx import Tensor
 
-from .bijection import AffineTransformation
 from .distribution import Distribution
 from .transformed_distribution import AffineTransformedDistribution
 

@@ -23,7 +23,7 @@ import pytest
 from pydantic import BaseModel
 
 from gluonts.core import serde
-from gluonts.mx.prelude import *
+import gluonts.mx.prelude as _
 
 # Example Types
 # -------------

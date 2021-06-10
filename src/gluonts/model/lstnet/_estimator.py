@@ -37,7 +37,6 @@ from gluonts.support.util import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AsNumpyArray,
-    Chain,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     InstanceSplitter,
