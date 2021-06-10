@@ -23,4 +23,4 @@ __path__ = extend_path(__path__, __name__)  # type: ignore
 # Tensor type for HybridBlocks in Gluon
 Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
 
-import gluonts.mx.prelude as _  # noqa
+from . import prelude as _  # noqa
