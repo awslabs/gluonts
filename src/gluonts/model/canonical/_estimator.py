@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Callable
+from typing import List
 
 from mxnet.gluon import HybridBlock, nn
 

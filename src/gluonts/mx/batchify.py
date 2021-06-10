@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import functools
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import mxnet as mx
 import numpy as np

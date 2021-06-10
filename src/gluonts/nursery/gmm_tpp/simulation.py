@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import numpy as np
-import scipy as sp
 
 
 def thinning_sampler(rng, lamb, xmin=0, lamb_min=1e-10):

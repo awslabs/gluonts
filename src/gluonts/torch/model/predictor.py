@@ -12,14 +12,14 @@
 # permissions and limitations under the License.
 
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional
+from typing import Iterator, List, Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
 
 from gluonts.core.serde import dump_json, load_json
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (

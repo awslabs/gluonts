@@ -56,7 +56,6 @@ from .neg_binomial import (
     ZeroInflatedNegativeBinomialOutput,
 )
 from .piecewise_linear import (
-    FixedKnotsPiecewiseLinearOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
     TransformedPiecewiseLinear,

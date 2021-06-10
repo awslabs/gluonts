@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Tuple, Callable
+from typing import List, Optional
 
 from mxnet.gluon import HybridBlock
 
@@ -33,7 +33,6 @@ from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.transform import (
     AddObservedValuesIndicator,
-    Chain,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     InstanceSplitter,

@@ -14,11 +14,10 @@
 from functools import partial
 from typing import List, Optional
 
-import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     DataLoader,
@@ -31,23 +30,17 @@ from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.time_feature import (
-    TimeFeature,
-    get_lags_for_frequency,
-    time_features_from_frequency_str,
-)
+from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    ExpandDimArray,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     ValidationSplitSampler,
     TestSplitSampler,
-    RemoveFields,
     SelectFields,
     SetField,
     Transformation,

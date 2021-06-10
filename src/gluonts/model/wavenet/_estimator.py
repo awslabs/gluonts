@@ -12,9 +12,8 @@
 # permissions and limitations under the License.
 
 import logging
-import re
 from functools import partial
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import mxnet as mx
 import numpy as np

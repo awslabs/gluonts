@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -37,7 +37,6 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     CanonicalInstanceSplitter,
-    Chain,
     SetFieldIfNotPresent,
     SelectFields,
     TestSplitSampler,
