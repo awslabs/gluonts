@@ -110,7 +110,7 @@ class TabularPredictor(Predictor):
         dtype=np.float32,
     ) -> None:
         super().__init__(prediction_length=prediction_length, freq=freq)
-        assert all(l >= 1 for l in lag_indices)
+        assert all(lag_idx >= 1 for lag_idx in lag_indices)
 
         self.ag_model = ag_model
         self.time_features = time_features

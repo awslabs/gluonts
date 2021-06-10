@@ -99,7 +99,9 @@ class TabularEstimator(Estimator):
 
         if self.disable_auto_regression:
             self.lag_indices = [
-                l for l in self.lag_indices if l >= self.prediction_length
+                lag_idx
+                for lag_idx in self.lag_indices
+                if lag_idx >= self.prediction_length
             ]
 
         default_kwargs = {

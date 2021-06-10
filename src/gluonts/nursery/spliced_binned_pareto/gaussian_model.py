@@ -14,10 +14,8 @@
 
 import torch
 import torch.nn.functional as F
-import torch.nn as nn
+from torch import nn
 
-from torch.distributions import constraints
-from torch.distributions.distribution import Distribution
 from torch.distributions.normal import Normal
 
 

@@ -13,8 +13,7 @@
 
 import functools
 import inspect
-import itertools
-from typing import Any, Optional
+from typing import Any
 
 import pydantic
 

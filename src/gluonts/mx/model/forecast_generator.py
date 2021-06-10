@@ -11,14 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Any, Callable, Iterator, List, Optional
+from typing import Iterator
 
 import mxnet as mx
 
 from gluonts.model.forecast_generator import (
     recursively_zip_arrays,
     make_distribution_forecast,
-    DistributionForecastGenerator,  # this is for backward compatibility
 )
 from gluonts.mx.distribution import Distribution
 from gluonts.mx.model.forecast import DistributionForecast

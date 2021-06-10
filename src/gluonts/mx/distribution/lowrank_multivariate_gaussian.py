@@ -20,7 +20,6 @@ from mxnet import gluon
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
-from . import bijection
 from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import (
     ArgProj,

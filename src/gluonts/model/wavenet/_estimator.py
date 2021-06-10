@@ -12,9 +12,8 @@
 # permissions and limitations under the License.
 
 import logging
-import re
 from functools import partial
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import mxnet as mx
 import numpy as np
@@ -308,7 +307,7 @@ class WaveNetEstimator(GluonEstimator):
             instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length
-            if mode is "test"
+            if mode == "test"
             else self.train_window_length,
             output_NTC=False,
             time_series_fields=[
