@@ -38,7 +38,7 @@ class Pipeline:
         return self.and_then(*lifted(fns))
 
     def but_first(self, *fns):
-        return Pipeline(fn, fns + self.fns)
+        return Pipeline(fns + self.fns)
 
     def but_first_each(self, *fns):
         return self.but_first(*lifted(fns))

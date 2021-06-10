@@ -106,7 +106,7 @@ def truncate_features(timeseries: dict, max_len: int) -> dict:
         FieldName.FEAT_DYNAMIC_CAT,
         FieldName.FEAT_DYNAMIC_REAL,
     ):
-        if not key in timeseries:
+        if key not in timeseries:
             continue
         timeseries[key] = [feature[:max_len] for feature in timeseries[key]]
 

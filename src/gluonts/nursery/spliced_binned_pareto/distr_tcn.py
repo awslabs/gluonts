@@ -59,15 +59,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import pandas as pd
-import numpy as np
-from tqdm import tqdm
-
 import torch
-from torch import optim
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torch.nn as nn
+import torch.nn
 
 from .tcn import TCNBlock
 

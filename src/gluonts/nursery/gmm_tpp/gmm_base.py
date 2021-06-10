@@ -10,13 +10,11 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
-import numpy as np
-import scipy as sp
-import pylab as pl
 import time
+
 import mxnet as mx
 from mxnet import gluon
+import numpy as np
 
 
 class GMMModel(gluon.HybridBlock):

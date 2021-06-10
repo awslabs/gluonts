@@ -13,7 +13,7 @@
 
 from functools import partial
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, cast
+from typing import Iterator, List, Optional, cast
 
 import mxnet as mx
 import numpy as np

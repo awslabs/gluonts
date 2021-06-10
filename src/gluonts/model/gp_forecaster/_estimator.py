@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -37,7 +37,6 @@ from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     CanonicalInstanceSplitter,
-    Chain,
     SetFieldIfNotPresent,
     SelectFields,
     TestSplitSampler,
@@ -181,7 +180,7 @@ class GaussianProcessEstimator(GluonEstimator):
             instance_sampler=TestSplitSampler(),
             time_series_fields=[FieldName.FEAT_TIME],
             instance_length=self.context_length,
-            use_prediction_features=(mode is not "training"),
+            use_prediction_features=(mode != "training"),
             prediction_length=self.prediction_length,
         )
 

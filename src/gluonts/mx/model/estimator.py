@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 from typing import NamedTuple, Optional
-from functools import partial
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -30,7 +29,6 @@ from gluonts.dataset.loader import DataLoader
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import Transformation
 

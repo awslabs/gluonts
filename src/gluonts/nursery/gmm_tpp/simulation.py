@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import numpy as np
-import scipy as sp
 
 
 def thinning_sampler(rng, lamb, xmin=0, lamb_min=1e-10):
@@ -42,6 +41,7 @@ def Hawkes(rng, background, kernel, xmin, xmax, N_max=1e6):
         x = thinning_sampler(rng, lamb, max(X + [xmin]))
         if x > xmax:  # out of range
             return X
-        else:
-            X.append(x)
+
+        X.append(x)
+
     raise ValueError(f"N>{N_max}; check if int_0^infty kernel < inf")

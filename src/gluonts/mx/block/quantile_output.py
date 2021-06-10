@@ -13,7 +13,6 @@
 
 from typing import List, Optional, Tuple
 
-from mxnet import nd
 from mxnet.gluon import nn
 from mxnet.gluon.loss import Loss
 

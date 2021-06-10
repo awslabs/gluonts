@@ -14,17 +14,12 @@
 import math
 from typing import List, Optional, Tuple
 
-import mxnet as mx
-
-# Third-party import
-import numpy as np
 from mxnet import init
 from mxnet.gluon import HybridBlock, Parameter, nn
 from mxnet.gluon.contrib.nn import HybridConcurrent
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.block.feature import FeatureEmbedder
 
 
 def _torch_gather(F, data: Tensor, idx: Tensor, axis: int):

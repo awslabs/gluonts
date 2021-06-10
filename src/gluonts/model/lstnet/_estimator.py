@@ -35,7 +35,6 @@ from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AsNumpyArray,
-    Chain,
     ExpectedNumInstanceSampler,
     InstanceSplitter,
     SelectFields,
