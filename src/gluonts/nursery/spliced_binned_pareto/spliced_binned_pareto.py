@@ -47,10 +47,10 @@ class Binned(torch.nn.Module):
 
         assert (
             bins_lower_bound.shape.numel() == 1
-        ), f"bins_lower_bound needs to have shape torch.Size([1])"
+        ), "bins_lower_bound needs to have shape torch.Size([1])"
         assert (
             bins_upper_bound.shape.numel() == 1
-        ), f"bins_upper_bound needs to have shape torch.Size([1])"
+        ), "bins_upper_bound needs to have shape torch.Size([1])"
         assert (
             bins_lower_bound < bins_upper_bound
         ), f"bins_lower_bound {bins_lower_bound} needs to less than bins_upper_bound {bins_upper_bound}"

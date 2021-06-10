@@ -49,7 +49,7 @@ def calculate_seasonal_error(
 
 
 def mse(target: np.ndarray, forecast: np.ndarray) -> float:
-    """
+    r"""
     .. math::
 
         mse = mean((Y - \hat{Y})^2)
@@ -60,7 +60,7 @@ def mse(target: np.ndarray, forecast: np.ndarray) -> float:
 
 
 def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
-    """
+    r"""
     .. math::
 
         abs\_error = sum(|Y - \hat{Y}|)
@@ -69,7 +69,7 @@ def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
 
 
 def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
-    """
+    r"""
     .. math::
 
         quantile\_loss = 2 * sum(|(Y - \hat{Y}) * (Y <= \hat{Y}) - q|)
@@ -78,7 +78,7 @@ def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
 
 
 def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
-    """
+    r"""
     .. math::
 
         coverage = mean(Y < \hat{Y})

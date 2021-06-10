@@ -19,8 +19,8 @@ from ._repr import dump_code, load_code
 # TODO: remove
 # These are needed because we implement `encode` for numpy and pandas types in
 # submodules.
-from .np import *  # noqa: F401
-from .pd import *  # noqa: F401
+from .np import *  # noqa
+from .pd import *  # noqa
 
 __all__ = [
     "flat",

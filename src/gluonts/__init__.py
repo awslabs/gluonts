@@ -18,7 +18,6 @@ from pkgutil import extend_path
 
 from ._version import __version__  # noqa
 
+__all__ == ["__version__", "__path__"]  # noqa
+
 __path__ = extend_path(__path__, __name__)  # type: ignore
-
-
-__all__ == ["__version__"]
