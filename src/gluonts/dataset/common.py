@@ -42,7 +42,7 @@ from gluonts.dataset import jsonl, util
 DataEntry = Dict[str, Any]
 DataBatch = Dict[str, Any]
 
-# A Dataset is an iterable of DataEntry.
+
 class Dataset(Protocol):
     def __iter__(self) -> Iterator[DataEntry]:
         raise NotImplementedError
