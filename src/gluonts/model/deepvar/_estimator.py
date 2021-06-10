@@ -115,17 +115,16 @@ def get_lags_for_frequency(
     freq_str: str, num_lags: Optional[int] = None
 ) -> List[int]:
     offset = to_offset(freq_str)
-    multiple, granularity = offset.n, offset.name
 
-    if granularity == "M":
+    if offset.name == "M":
         lags = [[1, 12]]
-    elif granularity == "D":
+    elif offset.name == "D":
         lags = [[1, 7, 14]]
-    elif granularity == "B":
+    elif offset.name == "B":
         lags = [[1, 2]]
-    elif granularity == "H":
+    elif offset.name == "H":
         lags = [[1, 24, 168]]
-    elif granularity in ("min", "T"):
+    elif offset.name in ("min", "T"):
         lags = [[1, 4, 12, 24, 48]]
     else:
         lags = [[1]]
