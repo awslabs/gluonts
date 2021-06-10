@@ -11,17 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
 import os
 from pathlib import Path
 from typing import List, Dict
 from urllib import request
 from zipfile import ZipFile
-import copy
 
 from ._tsf_reader import TSFReader
 from ._util import metadata, to_dict, save_to_file
 
+from gluonts import json
+from gluonts.dataset.jsonl import dump
 from gluonts.gluonts_tqdm import tqdm
 
 ROOT = "https://zenodo.org/record"
@@ -136,8 +136,9 @@ def save_metadata(
 
 def save_datasets(path: Path, data: List[Dict], train_offset: int):
     train = path / "train"
-    train.mkdir(exist_ok=True)
     test = path / "test"
+
+    train.mkdir(exist_ok=True)
     test.mkdir(exist_ok=True)
 
     with open(train / "data.json", "wb") as train_fp, open(
@@ -159,16 +160,10 @@ def save_datasets(path: Path, data: List[Dict], train_offset: int):
             train_fp.write("\n".encode("utf-8"))
 
 
-def create_train_ds(data: List[dict], prediction_length: int):
-    train_ds = copy.deepcopy(data)
-    for data_entry in data:
-        data_entry["target"] = data_entry["target"][:-prediction_length]
-    return train_ds
-
-
 def clean_up_dataset(dataset_path: Path, file_names: List[str]):
     for file in file_names:
-        os.remove(dataset_path / file)
+        file_path = dataset_path / file
+        file_path.unlink()
 
 
 def generate_forecasting_dataset(dataset_path: Path, dataset_name: str):
