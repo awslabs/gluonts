@@ -41,6 +41,7 @@ def Hawkes(rng, background, kernel, xmin, xmax, N_max=1e6):
         x = thinning_sampler(rng, lamb, max(X + [xmin]))
         if x > xmax:  # out of range
             return X
-        else:
-            X.append(x)
+
+        X.append(x)
+
     raise ValueError(f"N>{N_max}; check if int_0^infty kernel < inf")

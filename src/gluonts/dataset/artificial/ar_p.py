@@ -22,6 +22,7 @@ except:
     warnings.warn(
         "Could not import numba. ar_p will be slower for long series (len > 1000)."
     )
+
     # TODO: support parameters
     def njit(fn):
         return fn
