@@ -363,7 +363,7 @@ class Evaluator:
                         )
                     }
                 except Exception:
-                    logging.warrning(f"Error occured when evaluating {k}.")
+                    logging.warning(f"Error occured when evaluating {k}.")
                     val = {k: np.nan}
 
                 metrics.update(val)
