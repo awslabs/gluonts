@@ -203,7 +203,7 @@ class QRX:
 
         df = pd.DataFrame({"preds": self.sorted_train_preds})
         df["bin_ids"] = df["preds"].apply(lambda x: self.preds_to_id[x])
-        bin_ids = df["bin_ids"].drop_duplicates().values()
+        bin_ids = df["bin_ids"].drop_duplicates().values
         final_id, penultimate_id = bin_ids[-1], bin_ids[-2]
         if len(self.id_to_bins[final_id]) < self.min_bin_size:
             self.id_to_bins[final_id] += self.id_to_bins[penultimate_id]
