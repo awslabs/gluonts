@@ -32,9 +32,9 @@ class TrainOutput(NamedTuple):
     predictor: PyTorchPredictor
 
 
-class PyTorchEstimator(Estimator):
+class PyTorchLightningEstimator(Estimator):
     """
-    An `Estimator` type with utilities for creating PyTorch-based models.
+    An `Estimator` type with utilities for creating PyTorch-Lightning-based models.
 
     To extend this class, one needs to implement three methods:
     `create_transformation`, `create_training_network`, `create_predictor`,
@@ -66,7 +66,7 @@ class PyTorchEstimator(Estimator):
         """
         raise NotImplementedError
 
-    def create_training_network(self) -> nn.Module:
+    def create_network(self) -> nn.Module:
         """
         Create and return the network used for training (i.e., computing the
         loss).
@@ -81,7 +81,7 @@ class PyTorchEstimator(Estimator):
     def create_predictor(
         self,
         transformation: Transformation,
-        trained_network: nn.Module,
+        network: nn.Module,
         device: torch.device,
     ) -> PyTorchPredictor:
         """
@@ -138,9 +138,7 @@ class PyTorchEstimator(Estimator):
                 else Cached(transformed_validation_data),
             )
 
-        training_network = self.create_training_network().to(
-            self.device, self.dtype
-        )
+        training_network = self.create_network().to(self.device, self.dtype)
 
         self.trainer.fit(
             model=training_network,

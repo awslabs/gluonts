@@ -13,15 +13,17 @@
 
 from typing import List, Optional, Tuple, Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from torch.distributions import Distribution
 
 from gluonts.core.component import validated
 from gluonts.itertools import prod
-from gluonts.torch.modules.distribution_output import DistributionOutput
+from gluonts.time_feature import get_lags_for_frequency
+from gluonts.torch.modules.distribution_output import (
+    DistributionOutput,
+    StudentTOutput,
+)
 from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
 from gluonts.torch.util import weighted_average
@@ -31,62 +33,88 @@ class DeepARNetwork(nn.Module):
     @validated()
     def __init__(
         self,
-        rnn_input_size: int,
-        num_layers: int,
-        num_cells: int,
-        cell_type: str,
-        history_length: int,
-        context_length: int,
+        freq: str,
         prediction_length: int,
-        distr_output: DistributionOutput,
-        dropout_rate: float,
+        num_feat_dynamic_real: int,
+        num_feat_static_real: int,
+        num_feat_static_cat: int,
         cardinality: List[int],
-        embedding_dimension: List[int],
-        lags_seq: List[int],
+        embedding_dimension: Optional[List[int]] = None,
+        num_layers: int = 2,
+        num_cells: int = 40,
+        cell_type: str = "LSTM",
+        context_length: Optional[int] = None,
+        distr_output: DistributionOutput = StudentTOutput(),
+        dropout_rate: float = 0.1,
+        lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
+        num_parallel_samples: int = 100,
     ) -> None:
         super().__init__()
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
-        self.history_length = history_length
-        self.context_length = context_length
+        self.context_length = context_length or prediction_length
         self.prediction_length = prediction_length
         self.dropout_rate = dropout_rate
+        self.num_feat_dynamic_real = num_feat_dynamic_real
+        self.num_feat_static_cat = num_feat_static_cat
+        self.num_feat_static_real = num_feat_static_real
         self.cardinality = cardinality
-        self.embedding_dimension = embedding_dimension
-        self.num_cat = len(cardinality)
+        self.embedding_dimension = (
+            embedding_dimension
+            if embedding_dimension is not None or self.cardinality is None
+            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
+        )
         self.scaling = scaling
-
-        self.lags_seq = lags_seq
-
+        self.lags_seq = lags_seq or get_lags_for_frequency(
+            freq_str=freq, lag_ub=self.context_length
+        )
+        self.num_parallel_samples = num_parallel_samples
+        self.history_length = self.context_length + max(self.lags_seq)
+        # for decoding the lags are shifted by one, at the first time-step
+        # of the decoder a lag of one corresponds to the last target value
+        self.shifted_lags = [l - 1 for l in self.lags_seq]
         self.distr_output = distr_output
         rnn = {"LSTM": nn.LSTM, "GRU": nn.GRU}[self.cell_type]
         self.rnn = rnn(
-            input_size=rnn_input_size,
+            input_size=self._rnn_input_size,
             hidden_size=num_cells,
             num_layers=num_layers,
             dropout=dropout_rate,
             batch_first=True,
         )
-
         self.target_shape = distr_output.event_shape
-
         self.proj_distr_args = distr_output.get_args_proj(num_cells)
-
-        self.embedder = FeatureEmbedder(
-            cardinalities=cardinality, embedding_dims=embedding_dimension
-        )
-
+        if self.cardinality is not None:
+            self.embedder = FeatureEmbedder(
+                cardinalities=self.cardinality,
+                embedding_dims=self.embedding_dimension,
+            )
+        else:
+            self.embedder = None
         if scaling:
             self.scaler = MeanScaler(keepdim=True)
         else:
             self.scaler = NOPScaler(keepdim=True)
 
+    @property
+    def _rnn_input_size(self) -> int:
+        return (
+            1  # TODO adjust this for multivariate target?
+            + len(self.lags_seq)
+            + sum(self.embedding_dimension)
+            + self.num_feat_dynamic_real
+            + self.num_feat_static_real
+        )
+
+    @property
+    def _past_length(self) -> int:
+        return self.context_length + max(self.lags_seq)
+
     @staticmethod
     def get_lagged_subsequences(
         sequence: torch.Tensor,
-        sequence_length: int,
         indices: List[int],
         subsequences_length: int = 1,
     ) -> torch.Tensor:
@@ -98,8 +126,6 @@ class DeepARNetwork(nn.Module):
         sequence : Tensor
             the sequence from which lagged subsequences should be extracted.
             Shape: (N, T, C).
-        sequence_length : int
-            length of sequence in the T (time) dimension (axis = 1).
         indices : List[int]
             list of lag indices to be used.
         subsequences_length : int
@@ -112,6 +138,8 @@ class DeepARNetwork(nn.Module):
             I = len(indices), containing lagged subsequences. Specifically,
             lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
         """
+        sequence_length = sequence.shape[1]
+
         assert max(indices) + subsequences_length <= sequence_length, (
             f"lags cannot go further than history length, found lag {max(indices)} "
             f"while history length is only {sequence_length}"
@@ -127,45 +155,33 @@ class DeepARNetwork(nn.Module):
 
     def unroll_encoder(
         self,
-        feat_static_cat: torch.Tensor,  # (batch_size, num_features)
-        feat_static_real: torch.Tensor,  # (batch_size, num_features)
-        past_time_feat: torch.Tensor,  # (batch_size, history_length, num_features)
-        past_target: torch.Tensor,  # (batch_size, history_length, *target_shape)
-        past_observed_values: torch.Tensor,  # (batch_size, history_length, *target_shape)
-        future_time_feat: Optional[
-            torch.Tensor
-        ] = None,  # (batch_size, prediction_length, num_features)
-        future_target: Optional[
-            torch.Tensor
-        ] = None,  # (batch_size, prediction_length, *target_shape)
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_time_feat: Optional[torch.Tensor] = None,
+        future_target: Optional[torch.Tensor] = None,
     ) -> Tuple[
         torch.Tensor, Union[torch.Tensor, List], torch.Tensor, torch.Tensor
     ]:
-
-        if future_time_feat is None or future_target is None:
-            time_feat = past_time_feat[
-                :, self.history_length - self.context_length :, ...
-            ]
+        if not self.training:
+            time_feat = past_time_feat[:, -self.context_length :, ...]
             sequence = past_target
-            sequence_length = self.history_length
             subsequences_length = self.context_length
         else:
             time_feat = torch.cat(
                 (
-                    past_time_feat[
-                        :, self.history_length - self.context_length :, ...
-                    ],
+                    past_time_feat[:, -self.context_length :, ...],
                     future_time_feat,
                 ),
                 dim=1,
             )
             sequence = torch.cat((past_target, future_target), dim=1)
-            sequence_length = self.history_length + self.prediction_length
             subsequences_length = self.context_length + self.prediction_length
 
         lags = self.get_lagged_subsequences(
             sequence=sequence,
-            sequence_length=sequence_length,
             indices=self.lags_seq,
             subsequences_length=subsequences_length,
         )
@@ -176,13 +192,7 @@ class DeepARNetwork(nn.Module):
             past_target[:, self.context_length :, ...],
             past_observed_values[:, self.context_length :, ...],
         )
-
-        # (batch_size, num_features)
         embedded_cat = self.embedder(feat_static_cat)
-
-        # in addition to embedding features, use the log scale as it can help
-        # prediction too
-        # (batch_size, num_features + prod(target_shape))
         static_feat = torch.cat(
             (
                 embedded_cat,
@@ -193,13 +203,9 @@ class DeepARNetwork(nn.Module):
             ),
             dim=1,
         )
-
-        # (batch_size, subsequences_length, num_features + 1)
         repeated_static_feat = static_feat.unsqueeze(1).expand(
             -1, subsequences_length, -1
         )
-
-        # (batch_size, sub_seq_len, *target_shape, num_lags)
         lags_scaled = lags / scale.unsqueeze(-1)
 
         # from (batch_size, sub_seq_len, *target_shape, num_lags)
@@ -212,12 +218,9 @@ class DeepARNetwork(nn.Module):
             )
         )
 
-        # (batch_size, sub_seq_len, input_dim)
         inputs = torch.cat(
             (input_lags, time_feat, repeated_static_feat), dim=-1
         )
-
-        # unroll encoder
         outputs, state = self.rnn(inputs)
 
         # outputs: (batch_size, seq_len, num_cells)
@@ -225,115 +228,6 @@ class DeepARNetwork(nn.Module):
         # scale: (batch_size, 1, *target_shape)
         # static_feat: (batch_size, num_features + prod(target_shape))
         return outputs, state, scale, static_feat
-
-
-class DeepARTrainingNetwork(DeepARNetwork):
-    def distribution(
-        self,
-        feat_static_cat: torch.Tensor,
-        feat_static_real: torch.Tensor,
-        past_time_feat: torch.Tensor,
-        past_target: torch.Tensor,
-        past_observed_values: torch.Tensor,
-        future_time_feat: torch.Tensor,
-        future_target: torch.Tensor,
-        future_observed_values: torch.Tensor,
-    ) -> Distribution:
-        rnn_outputs, _, scale, _ = self.unroll_encoder(
-            feat_static_cat=feat_static_cat,
-            feat_static_real=feat_static_real,
-            past_time_feat=past_time_feat,
-            past_target=past_target,
-            past_observed_values=past_observed_values,
-            future_time_feat=future_time_feat,
-            future_target=future_target,
-        )
-
-        distr_args = self.proj_distr_args(rnn_outputs)
-
-        return self.distr_output.distribution(distr_args, scale=scale)
-
-    def forward(
-        self,
-        feat_static_cat: torch.Tensor,
-        feat_static_real: torch.Tensor,
-        past_time_feat: torch.Tensor,
-        past_target: torch.Tensor,
-        past_observed_values: torch.Tensor,
-        future_time_feat: torch.Tensor,
-        future_target: torch.Tensor,
-        future_observed_values: torch.Tensor,
-    ) -> torch.Tensor:
-        distr = self.distribution(
-            feat_static_cat=feat_static_cat,
-            feat_static_real=feat_static_real,
-            past_time_feat=past_time_feat,
-            past_target=past_target,
-            past_observed_values=past_observed_values,
-            future_time_feat=future_time_feat,
-            future_target=future_target,
-            future_observed_values=future_observed_values,
-        )
-
-        # put together target sequence
-        # (batch_size, seq_len, *target_shape)
-        target = torch.cat(
-            (
-                past_target[
-                    :, self.history_length - self.context_length :, ...
-                ],
-                future_target,
-            ),
-            dim=1,
-        )
-
-        # (batch_size, seq_len)
-        loss = -distr.log_prob(target)
-
-        # (batch_size, seq_len, *target_shape)
-        observed_values = torch.cat(
-            (
-                past_observed_values[
-                    :, self.history_length - self.context_length :, ...
-                ],
-                future_observed_values,
-            ),
-            dim=1,
-        )
-
-        # mask the loss at one time step iff one or more observations is missing in the target dimensions
-        # (batch_size, seq_len)
-        loss_weights = (
-            observed_values
-            if (len(self.target_shape) == 0)
-            else observed_values.min(dim=-1, keepdim=False)
-        )
-
-        return weighted_average(loss, weights=loss_weights)
-
-
-class DeepARLightningNetwork(DeepARTrainingNetwork, pl.LightningModule):
-    def training_step(self, *args, **kwargs):
-        """Execute a training step"""
-        return self(**args[0])
-
-    def validation_step(self, *args, **kwargs):
-        """Execute a validation step"""
-        return self(**args[0])
-
-    def configure_optimizers(self):
-        """Selects what optimizer to use"""
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
-
-
-class DeepARPredictionNetwork(DeepARNetwork):
-    def __init__(self, num_parallel_samples: int = 100, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.num_parallel_samples = num_parallel_samples
-
-        # for decoding the lags are shifted by one, at the first time-step
-        # of the decoder a lag of one corresponds to the last target value
-        self.shifted_lags = [l - 1 for l in self.lags_seq]
 
     def sampling_decoder(
         self,
@@ -398,7 +292,6 @@ class DeepARPredictionNetwork(DeepARNetwork):
             # (batch_size * num_samples, 1, *target_shape, num_lags)
             lags = self.get_lagged_subsequences(
                 sequence=repeated_past_target,
-                sequence_length=self.history_length + k,
                 indices=self.shifted_lags,
                 subsequences_length=1,
             )
@@ -456,55 +349,82 @@ class DeepARPredictionNetwork(DeepARNetwork):
             )
         )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def forward(
         self,
-        feat_static_cat: torch.Tensor,  # (batch_size, num_features)
-        feat_static_real: torch.Tensor,  # (batch_size, num_features)
-        past_time_feat: torch.Tensor,  # (batch_size, history_length, num_features)
-        past_target: torch.Tensor,  # (batch_size, history_length, *target_shape)
-        past_observed_values: torch.Tensor,  # (batch_size, history_length, *target_shape)
-        future_time_feat: torch.Tensor,  # (batch_size, prediction_length, num_features)
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_time_feat: torch.Tensor,
+        future_target: Optional[torch.Tensor] = None,
+        future_observed_values: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """
-        Predicts samples, all tensors should have NTC layout.
-
-        Parameters
-        ----------
-        feat_static_cat
-            Shape: ``(batch_size, num_features)``.
-        feat_static_real
-            Shape: ``(batch_size, num_features)``.
-        past_time_feat
-            Shape: ``(batch_size, history_length, num_features)``.
-        past_target
-            Shape: ``(batch_size, history_length, *target_shape)``.
-        past_observed_values
-            Shape: ``(batch_size, history_length, *target_shape)``.
-        future_time_feat
-            Shape: ``(batch_size, prediction_length, num_features)``.
-
-        Returns
-        -------
-        Tensor
-            Predicted samples, shape: ``(batch_size, num_samples, prediction_length, *target_shape)``.
-        """
-
-        # unroll the decoder in "prediction mode", i.e. with past data only
-        _, state, scale, static_feat = self.unroll_encoder(
+        rnn_outputs, state, scale, static_feat = self.unroll_encoder(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
             past_time_feat=past_time_feat,
             past_target=past_target,
             past_observed_values=past_observed_values,
-            future_time_feat=None,
-            future_target=None,
+            future_time_feat=future_time_feat,
+            future_target=future_target,
         )
 
-        return self.sampling_decoder(
-            past_target=past_target,
-            time_feat=future_time_feat,
-            static_feat=static_feat,
-            scale=scale,
-            begin_states=state,
+        if not self.training:
+            return self.sampling_decoder(
+                past_target=past_target,
+                time_feat=future_time_feat,
+                static_feat=static_feat,
+                scale=scale,
+                begin_states=state,
+            )
+
+        distr_args = self.proj_distr_args(rnn_outputs)
+
+        distr = self.distr_output.distribution(distr_args, scale=scale)
+
+        # put together target sequence
+        # (batch_size, seq_len, *target_shape)
+        target = torch.cat(
+            (
+                past_target[:, -self.context_length :, ...],
+                future_target,
+            ),
+            dim=1,
         )
+
+        # (batch_size, seq_len)
+        loss = -distr.log_prob(target)
+
+        # (batch_size, seq_len, *target_shape)
+        observed_values = torch.cat(
+            (
+                past_observed_values[:, -self.context_length :, ...],
+                future_observed_values,
+            ),
+            dim=1,
+        )
+
+        # mask the loss at one time step iff one or more observations is missing in the target dimensions
+        # (batch_size, seq_len)
+        loss_weights = (
+            observed_values
+            if (len(self.target_shape) == 0)
+            else observed_values.min(dim=-1, keepdim=False)
+        )
+
+        return weighted_average(loss, weights=loss_weights)
+
+
+class DeepARLightningNetwork(DeepARNetwork, pl.LightningModule):
+    def training_step(self, *args, **kwargs):
+        """Execute a training step"""
+        return self(**args[0])
+
+    def validation_step(self, *args, **kwargs):
+        """Execute a validation step"""
+        return self(**args[0])
+
+    def configure_optimizers(self):
+        """Selects what optimizer to use"""
+        return torch.optim.Adam(self.parameters(), lr=1e-3)

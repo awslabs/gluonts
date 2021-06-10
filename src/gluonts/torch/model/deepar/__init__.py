@@ -12,8 +12,9 @@
 # permissions and limitations under the License.
 
 from .deepar_estimator import DeepAREstimator
+from .deepar_network import DeepARNetwork
 
-__all__ = ["DeepAREstimator"]
+__all__ = ["DeepAREstimator", "DeepARNetwork"]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:

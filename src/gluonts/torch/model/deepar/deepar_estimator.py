@@ -15,7 +15,6 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
@@ -43,14 +42,12 @@ from gluonts.transform import (
     TestSplitSampler,
     ExpectedNumInstanceSampler,
     SelectFields,
-    TransformedDataset,
 )
 from gluonts.torch.util import (
-    copy_parameters,
     get_forward_input_names,
     IterableDataset,
 )
-from gluonts.torch.model.estimator import PyTorchEstimator
+from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.modules.distribution_output import (
     DistributionOutput,
@@ -59,12 +56,11 @@ from gluonts.torch.modules.distribution_output import (
 
 from .deepar_network import (
     DeepARLightningNetwork,
-    DeepARTrainingNetwork,
-    DeepARPredictionNetwork,
+    DeepARNetwork,
 )
 
 
-class DeepAREstimator(PyTorchEstimator):
+class DeepAREstimator(PyTorchLightningEstimator):
     @validated()
     def __init__(
         self,
@@ -247,7 +243,7 @@ class DeepAREstimator(PyTorchEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        input_names = get_forward_input_names(DeepARTrainingNetwork)
+        input_names = get_forward_input_names(DeepARNetwork)
         transformation = self._create_instance_splitter(
             "training"
         ) + SelectFields(input_names)
@@ -274,7 +270,7 @@ class DeepAREstimator(PyTorchEstimator):
         data: Dataset,
         **kwargs,
     ) -> Iterable:
-        input_names = get_forward_input_names(DeepARTrainingNetwork)
+        input_names = get_forward_input_names(DeepARNetwork)
         transformation = self._create_instance_splitter(
             "validation"
         ) + SelectFields(input_names)
@@ -287,65 +283,41 @@ class DeepAREstimator(PyTorchEstimator):
             **kwargs,
         )
 
-    def _rnn_input_size(self) -> int:
-        return (
-            2
-            + len(self.time_features)
-            + len(self.lags_seq)
-            + self.num_feat_dynamic_real
-            + self.num_feat_dynamic_cat
-            + max(1, self.num_feat_static_real)
-            + sum(self.embedding_dimension)
-        )
-
-    def create_training_network(self) -> DeepARLightningNetwork:
+    def create_network(self) -> DeepARLightningNetwork:
         return DeepARLightningNetwork(
-            rnn_input_size=self._rnn_input_size(),
+            freq=self.freq,
+            prediction_length=self.prediction_length,
+            num_feat_dynamic_real=1
+            + self.num_feat_dynamic_real
+            + len(self.time_features),
+            num_feat_static_real=max(1, self.num_feat_static_real),
+            num_feat_static_cat=max(1, self.num_feat_static_cat),
+            cardinality=self.cardinality,
+            embedding_dimension=self.embedding_dimension,
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
-            history_length=self.history_length,
             context_length=self.context_length,
-            prediction_length=self.prediction_length,
             distr_output=self.distr_output,
             dropout_rate=self.dropout_rate,
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            num_parallel_samples=self.num_parallel_samples,
         )
 
     def create_predictor(
         self,
         transformation: Transformation,
-        trained_network: nn.Module,
+        network: DeepARNetwork,
         device: torch.device,
     ) -> PyTorchPredictor:
-        prediction_network = DeepARPredictionNetwork(
-            num_parallel_samples=self.num_parallel_samples,
-            rnn_input_size=self._rnn_input_size(),
-            num_layers=self.num_layers,
-            num_cells=self.num_cells,
-            cell_type=self.cell_type,
-            history_length=self.history_length,
-            context_length=self.context_length,
-            prediction_length=self.prediction_length,
-            distr_output=self.distr_output,
-            dropout_rate=self.dropout_rate,
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
-            lags_seq=self.lags_seq,
-            scaling=self.scaling,
-        ).to(device, self.dtype)
-
-        copy_parameters(trained_network, prediction_network)
-        input_names = get_forward_input_names(DeepARPredictionNetwork)
+        input_names = get_forward_input_names(DeepARNetwork)
         prediction_splitter = self._create_instance_splitter("test")
 
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=input_names,
-            prediction_net=prediction_network,
+            prediction_net=network,
             batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
