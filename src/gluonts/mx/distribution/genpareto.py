@@ -16,7 +16,7 @@ import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.distribution import Distribution, box_cox_transform, uniform
+from gluonts.mx.distribution import box_cox_transform, uniform
 from gluonts.mx.distribution.distribution import (
     MAX_SUPPORT_VAL,
     _sample_multiple,

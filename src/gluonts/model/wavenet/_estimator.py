@@ -307,7 +307,7 @@ class WaveNetEstimator(GluonEstimator):
             instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length
-            if mode is "test"
+            if mode == "test"
             else self.train_window_length,
             output_NTC=False,
             time_series_fields=[

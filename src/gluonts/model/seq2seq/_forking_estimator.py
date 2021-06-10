@@ -56,7 +56,6 @@ from gluonts.transform import (
     InstanceSampler,
     SelectFields,
     ValidationSplitSampler,
-    TestSplitSampler,
 )
 
 from ._forking_network import (
@@ -411,7 +410,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     # Decoder will use all fields under FEAT_DYNAMIC which are the RTS with past and future values
                     FieldName.FEAT_DYNAMIC,
                 ]
-                + ([FieldName.OBSERVED_VALUES] if mode is not "test" else []),
+                + ([FieldName.OBSERVED_VALUES] if mode != "test" else []),
                 decoder_disabled_fields=(
                     [FieldName.FEAT_DYNAMIC]
                     if not self.enable_decoder_dynamic_feature
