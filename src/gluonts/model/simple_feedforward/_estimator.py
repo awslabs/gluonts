@@ -32,6 +32,7 @@ from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     ExpectedNumInstanceSampler,
@@ -228,7 +229,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             SimpleFeedForwardTrainingNetwork
         )
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
@@ -247,7 +248,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             SimpleFeedForwardTrainingNetwork
         )
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,

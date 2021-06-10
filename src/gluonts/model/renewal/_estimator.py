@@ -37,6 +37,7 @@ from gluonts.mx.distribution import DistributionOutput, NegativeBinomialOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
+from gluonts.support.util import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AsNumpyArray,
@@ -214,7 +215,7 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             train_transform = (
                 self._create_instance_splitter("training")
                 + self._create_post_split_transform()
@@ -232,7 +233,7 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             validation_transform = (
                 self._create_instance_splitter("validation")
                 + self._create_post_split_transform()

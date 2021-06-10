@@ -38,6 +38,7 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -317,7 +318,7 @@ class TransformerEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             TransformerTrainingNetwork
         )
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
@@ -336,7 +337,7 @@ class TransformerEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             TransformerTrainingNetwork
         )
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,

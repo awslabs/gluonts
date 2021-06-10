@@ -12,13 +12,12 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
 
-from gluonts import dataset
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
@@ -36,6 +35,7 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
     TimeFeature,
     norm_freq_str,
@@ -341,7 +341,7 @@ class DeepStateEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
@@ -358,7 +358,7 @@ class DeepStateEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,

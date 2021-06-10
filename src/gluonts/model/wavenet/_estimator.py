@@ -39,6 +39,7 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
     get_seasonality,
     time_features_from_frequency_str,
@@ -329,7 +330,7 @@ class WaveNetEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(WaveNetTraining)
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
@@ -346,7 +347,7 @@ class WaveNetEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(WaveNetTraining)
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,

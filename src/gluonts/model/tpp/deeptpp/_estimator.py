@@ -29,6 +29,7 @@ from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.transform import (
     Chain,
     ContinuousTimeInstanceSplitter,
@@ -196,7 +197,7 @@ class DeepTPPEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepTPPTrainingNetwork)
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
@@ -213,7 +214,7 @@ class DeepTPPEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepTPPTrainingNetwork)
-        with env._let(max_idle_transforms=len(data)):
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
             instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
