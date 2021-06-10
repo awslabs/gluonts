@@ -285,6 +285,8 @@ class SampleTargetDim(FlatMapTransformation):
         num_samples: int,
         shuffle: bool = True,
     ) -> None:
+        super().__init__()
+
         self.field_name = field_name
         self.target_field = target_field
         self.observed_values_field = observed_values_field
@@ -606,13 +608,13 @@ class CDFtoGaussianTransform(MapTransformation):
             Transformed target vector.
         """
         transformed = list()
-        for sorted, t, slope, intercept in zip(
+        for sorted_vector, t, slope, intercept in zip(
             sorted_vec.transpose(),
             target.transpose(),
             slopes.transpose(),
             intercepts.transpose(),
         ):
-            indices = self._search_sorted(sorted, t)
+            indices = self._search_sorted(sorted_vector, t)
             transformed_value = slope[indices] * t + intercept[indices]
             transformed.append(transformed_value)
         return np.array(transformed).transpose()
@@ -729,7 +731,7 @@ def cdf_to_gaussian_forward_transform(
 
         """
 
-        batch_size, num_timesteps, target_dim = batch_target_sorted.shape
+        num_timesteps = batch_target_sorted.shape[1]
         indices = np.floor(batch_predictions * num_timesteps)
         # indices = indices - 1
         # for now project into [0, 1]
@@ -748,7 +750,7 @@ def cdf_to_gaussian_forward_transform(
         return transformed
 
     # applies inverse cdf to all outputs
-    batch_size, samples, target_dim, time = outputs.shape
+    samples = outputs.shape[1]
     for sample_index in range(0, samples):
         outputs[:, sample_index, :, :] = _empirical_cdf_inverse_transform(
             tensor_to_numpy(input_batch["past_target_sorted"]),
@@ -795,6 +797,7 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         drop_empty: bool = False,
         discard_first: bool = False,
     ) -> None:
+        super().__init__()
 
         self.target_field = target_field
         self.drop_empty = drop_empty

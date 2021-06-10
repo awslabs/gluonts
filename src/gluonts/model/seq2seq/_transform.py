@@ -40,6 +40,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         is_pad_out: str = "is_pad",
         start_input_field: str = "start",
     ) -> None:
+        super().__init__()
 
         assert enc_len > 0, "The value of `enc_len` should be > 0"
         assert dec_len > 0, "The value of `dec_len` should be > 0"

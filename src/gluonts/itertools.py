@@ -35,6 +35,9 @@ class Cyclic(Iterable):
             if not at_least_one:
                 break
 
+    def __len__(self) -> int:
+        return len(self.iterable)
+
 
 def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     """Groups elements from `iterable` into batches of size `batch_size`.
@@ -79,6 +82,9 @@ class Cached(Iterable):
         else:
             yield from self.cache
 
+    def __len__(self) -> int:
+        return len(self.iterable)
+
 
 class PseudoShuffled(Iterable):
     """
@@ -100,6 +106,9 @@ class PseudoShuffled(Iterable):
         while shuffle_buffer:
             yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
 
+    def __len__(self) -> int:
+        return len(self.iterable)
+
 
 class IterableSlice(Iterable):
     """
@@ -113,3 +122,6 @@ class IterableSlice(Iterable):
 
     def __iter__(self):
         return itertools.islice(self.iterable, self.length)
+
+    def __len__(self) -> int:
+        return len(self.iterable)

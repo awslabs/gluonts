@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import shutil
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -31,7 +32,9 @@ import numpy as np
 import pandas as pd
 import pydantic
 from pandas.tseries.offsets import Tick
+from typing_extensions import Protocol
 
+from gluonts import json
 from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
 
@@ -39,9 +42,13 @@ from gluonts.dataset import jsonl, util
 DataEntry = Dict[str, Any]
 DataBatch = Dict[str, Any]
 
-# TODO: change this maybe to typing_extensions.Protocol
 # A Dataset is an iterable of DataEntry.
-Dataset = Iterable[DataEntry]
+class Dataset(Protocol):
+    def __iter__(self) -> Iterator[DataEntry]:
+        raise NotImplementedError
+
+    def __len__(self) -> int:
+        raise NotImplementedError
 
 
 class Timestamp(pd.Timestamp):
@@ -108,9 +115,6 @@ class TrainDatasets(NamedTuple):
         overwrite
             Whether to delete previous version in this folder.
         """
-        import shutil
-        from gluonts import json
-
         path = Path(path_str)
 
         if overwrite:
@@ -132,7 +136,7 @@ class TrainDatasets(NamedTuple):
         if self.test is not None:
             (path / "test").mkdir(parents=True)
             with open(path / "test/data.json", "wb") as f:
-                for entry in self.test:
+                for entry in self.test:  # pylint: disable=not-an-iterable
                     dump_line(f, serialize_data_entry(entry))
 
 
@@ -220,6 +224,8 @@ class ListDataset(Dataset):
     """
     Dataset backed directly by a list of dictionaries.
 
+    Parameters
+    ----------
     data_iter
         Iterable object yielding all items in the dataset.
         Each item should be a dictionary mapping strings to values.
@@ -290,7 +296,7 @@ class ProcessStartField(pydantic.BaseModel):
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
-            )
+            ) from e
 
         if timestamp.tz is not None:
             if self.tz_strategy == TimeZoneStrategy.error:
@@ -298,7 +304,7 @@ class ProcessStartField(pydantic.BaseModel):
                     "Timezone information is not supported, "
                     f'but provided in the "{self.name}" field.'
                 )
-            elif self.tz_strategy == TimeZoneStrategy.utc:
+            if self.tz_strategy == TimeZoneStrategy.utc:
                 # align timestamp to utc timezone
                 timestamp = timestamp.tz_convert("UTC")
 

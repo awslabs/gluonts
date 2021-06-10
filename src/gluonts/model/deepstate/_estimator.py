@@ -20,24 +20,26 @@ from pandas.tseries.frequencies import to_offset
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     DataLoader,
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.dataset.field_names import FieldName
+from gluonts.env import env
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution.lds import ParameterBounds
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
     TimeFeature,
-    time_features_from_frequency_str,
     norm_freq_str,
+    time_features_from_frequency_str,
 )
 from gluonts.transform import (
     AddAgeFeature,
@@ -339,7 +341,8 @@ class DeepStateEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -355,7 +358,8 @@ class DeepStateEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

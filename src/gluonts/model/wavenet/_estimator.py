@@ -27,17 +27,19 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.model.wavenet._network import (
     WaveNet,
-    WaveNetTraining,
     WaveNetSampler,
+    WaveNetTraining,
 )
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
     get_seasonality,
     time_features_from_frequency_str,
@@ -49,14 +51,14 @@ from gluonts.transform import (
     AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
+    InstanceSampler,
     InstanceSplitter,
     SelectFields,
     SetFieldIfNotPresent,
     SimpleTransformation,
-    VstackFeatures,
-    InstanceSampler,
-    ValidationSplitSampler,
     TestSplitSampler,
+    ValidationSplitSampler,
+    VstackFeatures,
 )
 
 
@@ -256,7 +258,9 @@ class WaveNetEstimator(GluonEstimator):
         )
         self.logger = logging.getLogger(__name__)
         self.logger.info(
-            f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
+            "Using dilation depth %d and receptive field length %d",
+            self.dilation_depth,
+            self.context_length,
         )
 
     def create_transformation(self) -> transform.Transformation:
@@ -326,7 +330,8 @@ class WaveNetEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(WaveNetTraining)
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -342,7 +347,8 @@ class WaveNetEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(WaveNetTraining)
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

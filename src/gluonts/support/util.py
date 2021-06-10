@@ -77,7 +77,7 @@ class SignalHandler:
 def maybe_len(obj) -> Optional[int]:
     try:
         return len(obj)
-    except NotImplementedError:
+    except (NotImplementedError, AttributeError):
         return None
 
 

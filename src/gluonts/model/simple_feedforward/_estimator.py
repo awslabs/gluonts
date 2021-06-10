@@ -24,6 +24,7 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
+from gluonts.env import env
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
@@ -31,15 +32,16 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     InstanceSplitter,
-    TestSplitSampler,
-    ValidationSplitSampler,
     SelectFields,
+    TestSplitSampler,
     Transformation,
+    ValidationSplitSampler,
 )
 from gluonts.transform.feature import (
     DummyValueImputation,
@@ -227,7 +229,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             SimpleFeedForwardTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -245,7 +248,8 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             SimpleFeedForwardTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
