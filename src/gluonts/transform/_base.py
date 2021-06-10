@@ -14,9 +14,9 @@
 import abc
 from typing import Callable, Iterable, Iterator, List
 
-from gluonts.env import env
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.env import env
 
 
 class Transformation(metaclass=abc.ABCMeta):
@@ -161,9 +161,13 @@ class AdhocTransform(SimpleTransformation):
 
 class FlatMapTransformation(Transformation):
     """
-    Transformations that yield zero or more results per input, but do not combine
-    elements from the input stream.
+    Transformations that yield zero or more results per input, but do not
+    combine elements from the input stream.
     """
+
+    @validated()
+    def __init__(self):
+        self.max_idle_transforms = max(env.max_idle_transforms, 100)
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
@@ -171,21 +175,16 @@ class FlatMapTransformation(Transformation):
         num_idle_transforms = 0
         for data_entry in data_it:
             num_idle_transforms += 1
-            try:
-                for result in self.flatmap_transform(
-                    data_entry.copy(), is_train
-                ):
-                    num_idle_transforms = 0
-                    yield result
-            except Exception as e:
-                raise e
-            if num_idle_transforms > env.max_idle_transforms:
+            for result in self.flatmap_transform(data_entry.copy(), is_train):
+                num_idle_transforms = 0
+                yield result
+            if num_idle_transforms > self.max_idle_transforms:
                 raise Exception(
                     f"Reached maximum number of idle transformation calls.\n"
                     f"This means the transformation looped over "
-                    f"GLUONTS_MAX_IDLE_TRANSFORMS={env.max_idle_transforms} "
-                    f"inputs without returning any output.\n"
-                    f"This occurred in the following transformation:\n{self}"
+                    f"{self.max_idle_transforms} inputs without returning any "
+                    f"output.\nThis occurred in the following transformation:\n"
+                    f"{self}"
                 )
 
     @abc.abstractmethod
@@ -197,6 +196,7 @@ class FlatMapTransformation(Transformation):
 
 class FilterTransformation(FlatMapTransformation):
     def __init__(self, condition: Callable[[DataEntry], bool]) -> None:
+        super().__init__()
         self.condition = condition
 
     def flatmap_transform(

@@ -11,19 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 from functools import partial
-from typing import Optional, Callable
+from typing import Callable, Optional
 
-from gluonts.core.component import validated
-from gluonts.model.renewal._predictor import DeepRenewalProcessPredictor
 from mxnet.gluon import HybridBlock
 
-from gluonts.itertools import Cyclic
-from gluonts.model.predictor import Predictor
-from gluonts.model.renewal._transform import AddAxisLength
-from gluonts.mx.trainer import Trainer
-from gluonts.mx.util import copy_parameters
-from gluonts.transform.convert import ToIntervalSizeFormat, SwapAxes
-from gluonts.transform.feature import CountTrailingZeros
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -31,26 +23,36 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator
-from gluonts.transform import (
-    InstanceSplitter,
-    ExpectedNumInstanceSampler,
-    Chain,
-    AsNumpyArray,
-    ValidationSplitSampler,
-    TestSplitSampler,
-    RenameFields,
-    Transformation,
-    InstanceSampler,
-    SelectFields,
-    AddObservedValuesIndicator,
-)
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.env import env
+from gluonts.itertools import Cyclic
+from gluonts.model.predictor import Predictor
 from gluonts.model.renewal._network import (
-    DeepRenewalTrainingNetwork,
     DeepRenewalPredictionNetwork,
+    DeepRenewalTrainingNetwork,
 )
-from gluonts.mx.distribution import NegativeBinomialOutput, DistributionOutput
+from gluonts.model.renewal._predictor import DeepRenewalProcessPredictor
+from gluonts.model.renewal._transform import AddAxisLength
+from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.distribution import DistributionOutput, NegativeBinomialOutput
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.trainer import Trainer
+from gluonts.mx.util import copy_parameters
+from gluonts.support.util import maybe_len
+from gluonts.transform import (
+    AddObservedValuesIndicator,
+    AsNumpyArray,
+    Chain,
+    ExpectedNumInstanceSampler,
+    InstanceSampler,
+    InstanceSplitter,
+    RenameFields,
+    SelectFields,
+    TestSplitSampler,
+    Transformation,
+    ValidationSplitSampler,
+)
+from gluonts.transform.convert import SwapAxes, ToIntervalSizeFormat
+from gluonts.transform.feature import CountTrailingZeros
 
 
 class DeepRenewalProcessEstimator(GluonEstimator):
@@ -213,11 +215,12 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        train_transform = (
-            self._create_instance_splitter("training")
-            + self._create_post_split_transform()
-            + SelectFields(["past_target", "valid_length"])
-        )
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            train_transform = (
+                self._create_instance_splitter("training")
+                + self._create_post_split_transform()
+                + SelectFields(["past_target", "valid_length"])
+            )
         return TrainDataLoader(
             train_transform.apply(Cyclic(data)),
             batch_size=self.batch_size,
@@ -230,11 +233,12 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        validation_transform = (
-            self._create_instance_splitter("validation")
-            + self._create_post_split_transform()
-            + SelectFields(["past_target", "valid_length"])
-        )
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            validation_transform = (
+                self._create_instance_splitter("validation")
+                + self._create_post_split_transform()
+                + SelectFields(["past_target", "valid_length"])
+            )
         return ValidationDataLoader(
             validation_transform.apply(data),
             batch_size=self.batch_size,
