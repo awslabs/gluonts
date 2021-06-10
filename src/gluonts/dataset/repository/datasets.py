@@ -28,11 +28,6 @@ from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._m5 import generate_m5_dataset
 from gluonts.support.util import get_download_path
 
-m4_freq = "Hourly"
-pandas_freq = "H"
-dataset_path = Path(f"m4-{m4_freq}")
-prediction_length = 48
-
 dataset_recipes = OrderedDict(
     {
         # each recipe generates a dataset given a path
@@ -184,6 +179,7 @@ def get_dataset(
         be downloaded again.
     path
         where the dataset should be saved
+
     Returns
     -------
         dataset obtained by either downloading or reloading from local file.

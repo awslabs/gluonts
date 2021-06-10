@@ -54,9 +54,9 @@ def _shift_timestamp_helper(
         # this line looks innocent, but can create a date which is out of
         # bounds values over year 9999 raise a ValueError
         # values over 2262-04-11 raise a pandas OutOfBoundsDatetime
-        return ts + offset * ts.freq
+        return ts + offset * freq
     except (ValueError, pd._libs.OutOfBoundsDatetime) as ex:
-        raise GluonTSDateBoundsError(ex)
+        raise GluonTSDateBoundsError(ex) from ex
 
 
 class InstanceSplitter(FlatMapTransformation):
@@ -121,20 +121,19 @@ class InstanceSplitter(FlatMapTransformation):
         future_length: int,
         lead_time: int = 0,
         output_NTC: bool = True,
-        time_series_fields: Optional[List[str]] = None,
+        time_series_fields: List[str] = [],
         dummy_value: float = 0.0,
     ) -> None:
+        super().__init__()
 
-        assert future_length > 0
+        assert future_length > 0, "The value of `future_length` should be > 0"
 
         self.instance_sampler = instance_sampler
         self.past_length = past_length
         self.future_length = future_length
         self.lead_time = lead_time
         self.output_NTC = output_NTC
-        self.ts_fields = (
-            time_series_fields if time_series_fields is not None else []
-        )
+        self.ts_fields = time_series_fields
         self.target_field = target_field
         self.is_pad_field = is_pad_field
         self.start_field = start_field
@@ -215,9 +214,10 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     In prediction mode, one can set `use_prediction_features` to get
     future_`time_series_fields`.
 
-    If the target array is one-dimensional, the `target_field` in the resulting instance has shape
-    (`instance_length`). In the multi-dimensional case, the instance has shape (`dim`, `instance_length`),
-    where `dim` can also take a value of 1.
+    If the target array is one-dimensional, the `target_field` in the resulting
+    instance has shape (`instance_length`). In the multi-dimensional case, the
+    instance has shape (`dim`, `instance_length`), where `dim` can also take a
+    value of 1.
 
     In the case of insufficient number of time series values, the
     transformation also adds a field 'past_is_pad' that indicates whether
@@ -273,6 +273,8 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         use_prediction_features: bool = False,
         prediction_length: Optional[int] = None,
     ) -> None:
+        super().__init__()
+
         self.instance_sampler = instance_sampler
         self.instance_length = instance_length
         self.output_NTC = output_NTC
@@ -416,6 +418,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         end_field: str = "end",
         forecast_start_field: str = FieldName.FORECAST_START,
     ) -> None:
+        super().__init__()
 
         assert (
             future_interval_length > 0
