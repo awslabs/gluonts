@@ -13,7 +13,7 @@
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Dict
+from typing import List, Dict, NamedTuple
 from urllib import request
 from zipfile import ZipFile
 
@@ -24,45 +24,77 @@ from gluonts.gluonts_tqdm import tqdm
 from ._tsf_reader import frequency_converter, TSFReader
 from ._util import metadata, to_dict
 
-ROOT = "https://zenodo.org/record"
 
-dataset_info = {
-    "kaggle_web_traffic_with_missing": {
-        "file": "kaggle_web_traffic_dataset_with_missing_values.zip",
-        "record": "4656080",
-    },
-    "kaggle_web_traffic_without_missing": {
-        "file": "kaggle_web_traffic_dataset_without_missing_values.zip",
-        "record": "4656075",
-    },
-    "kaggle_web_traffic_weekly": {
-        "file": "kaggle_web_traffic_weekly_dataset.zip",
-        "record": "4656664",
-    },
-    "m1_yearly": {"file": "m1_yearly_dataset.zip", "record": "4656193"},
-    "m1_quarterly": {"file": "m1_quarterly_dataset.zip", "record": "4656154"},
-    "m1_monthly": {"file": "m1_monthly_dataset.zip", "record": "4656159"},
-    "nn5_daily_with_missing": {
-        "file": "nn5_daily_dataset_with_missing_values.zip",
-        "record": "4656110",
-    },
-    "nn5_daily_without_missing": {
-        "file": "nn5_daily_dataset_without_missing_values.zip",
-        "record": "4656117",
-    },
-    "nn5_weekly": {"file": "nn5_weekly_dataset.zip", "record": "4656125"},
-    "tourism_monthly": {
-        "file": "tourism_monthly_dataset.zip",
-        "record": "4656096",
-    },
-    "tourism_quarterly": {
-        "file": "tourism_quarterly_dataset.zip",
-        "record": "4656093",
-    },
-    "tourism_yearly": {
-        "file": "tourism_yearly_dataset.zip",
-        "record": "4656103",
-    },
+class Dataset(NamedTuple):
+    file_name: str
+    record: str
+    ROOT: str = "https://zenodo.org/record"
+
+    @property
+    def url(self):
+        return f"{self.ROOT}/{self.record}/files/{self.file_name}"
+
+    def download(self, path: Path):
+        file_path = path / self.file_name
+        with tqdm(
+            [],
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            miniters=5,
+            desc=f"Download {self.file_name}:",
+        ) as _tqdm:
+            request.urlretrieve(
+                self.url,
+                filename=file_path,
+                reporthook=urllib_retrieve_hook(_tqdm),
+            )
+        return file_path
+
+
+datasets = {
+    "kaggle_web_traffic_with_missing": Dataset(
+        file_name="kaggle_web_traffic_dataset_with_missing_values.zip",
+        record="4656080",
+    ),
+    "kaggle_web_traffic_without_missing": Dataset(
+        file_name="kaggle_web_traffic_dataset_without_missing_values.zip",
+        record="4656075",
+    ),
+    "kaggle_web_traffic_weekly": Dataset(
+        file_name="kaggle_web_traffic_weekly_dataset.zip",
+        record="4656664",
+    ),
+    "m1_yearly": Dataset(file_name="m1_yearly_dataset.zip", record="4656193"),
+    "m1_quarterly": Dataset(
+        file_name="m1_quarterly_dataset.zip", record="4656154"
+    ),
+    "m1_monthly": Dataset(
+        file_name="m1_monthly_dataset.zip", record="4656159"
+    ),
+    "nn5_daily_with_missing": Dataset(
+        file_name="nn5_daily_dataset_with_missing_values.zip",
+        record="4656110",
+    ),
+    "nn5_daily_without_missing": Dataset(
+        file_name="nn5_daily_dataset_without_missing_values.zip",
+        record="4656117",
+    ),
+    "nn5_weekly": Dataset(
+        file_name="nn5_weekly_dataset.zip", record="4656125"
+    ),
+    "tourism_monthly": Dataset(
+        file_name="tourism_monthly_dataset.zip",
+        record="4656096",
+    ),
+    "tourism_quarterly": Dataset(
+        file_name="tourism_quarterly_dataset.zip",
+        record="4656093",
+    ),
+    "tourism_yearly": Dataset(
+        file_name="tourism_yearly_dataset.zip",
+        record="4656103",
+    ),
 }
 
 
@@ -76,7 +108,7 @@ def urllib_retrieve_hook(tqdm):
     # ...     reporthook = my_hook(tqdm)
     # ...     urllib.urlretrieve(..., reporthook=reporthook)
     """
-    last_b = [0]
+    last_byte = 0
 
     def update_to(block=1, block_size=1, tsize=None):
         """
@@ -87,28 +119,13 @@ def urllib_retrieve_hook(tqdm):
         tsize  : int, optional
             Total size (in tqdm units). If [default: None] remains unchanged.
         """
+        nonlocal last_byte
         if tsize is not None:
             tqdm.total = tsize
-        tqdm.update((block - last_b[0]) * block_size)
-        last_b[0] = block
+        tqdm.update((block - last_byte) * block_size)
+        last_byte = block
 
     return update_to
-
-
-def download_dataset(description: Dict[str, str], path: Path):
-    with tqdm(
-        [],
-        unit="B",
-        unit_scale=True,
-        unit_divisor=1024,
-        miniters=5,
-        desc=f"download {description['file']}",
-    ) as _tqdm:
-        request.urlretrieve(
-            f"{ROOT}/{description['record']}/files/{description['file']}",
-            filename=str(path / description["file"]),
-            reporthook=urllib_retrieve_hook(_tqdm),
-        )
 
 
 def save_metadata(
@@ -150,15 +167,13 @@ def save_datasets(path: Path, data: List[Dict], train_offset: int):
 
 
 def generate_forecasting_dataset(dataset_path: Path, dataset_name: str):
-    ds_info = dataset_info[dataset_name]
+    dataset = datasets[dataset_name]
     dataset_path.mkdir(exist_ok=True)
 
     with TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        download_dataset(ds_info, temp_path)
-
-        with ZipFile(temp_path / ds_info["file"]) as archive:
+        with ZipFile(dataset.download(temp_path)) as archive:
             archive.extractall(path=temp_path)
 
         # only one file is exptected
