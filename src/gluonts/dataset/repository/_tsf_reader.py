@@ -46,7 +46,11 @@ def frequency_converter(freq: str):
 
 
 class TSFReader:
-    def __init__(self, path, target_name="target", ):
+    def __init__(
+        self,
+        path,
+        target_name="target",
+    ):
         self.path = path
         self.target_name = target_name
 
