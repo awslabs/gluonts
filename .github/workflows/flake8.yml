@@ -3,7 +3,7 @@ name: Flake8
 on: [push, pull_request]
 
 jobs:
-  style-type-checks:
+  flake8:
     runs-on: ubuntu-latest
 
     steps:
