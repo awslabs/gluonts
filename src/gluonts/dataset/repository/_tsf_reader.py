@@ -13,10 +13,15 @@
 
 from datetime import datetime
 from distutils.util import strtobool
+from multiprocessing import cpu_count
 from types import SimpleNamespace
 
 import numpy as np
 from toolz import compose_left
+
+from gluonts import json
+from gluonts.nursery import glide
+
 
 parse_bool = compose_left(strtobool, bool)
 
@@ -51,8 +56,7 @@ class TSFReader:
         self.meta = SimpleNamespace(columns={})
 
     def read(self):
-        # with open(self.path, encoding="utf-8") as in_file:
-        with open(self.path, encoding="latin1") as in_file:
+        with open(self.path) as in_file:
             # strip whitespace
             lines = map(str.strip, in_file)
 
@@ -68,7 +72,7 @@ class TSFReader:
             assert self.target_name not in self.meta.columns
             self.meta.columns[self.target_name] = None
 
-            data = list(map(self._read_data, lines))
+            data = self._read_data_section(lines)
 
             return self.meta, data
 
@@ -81,6 +85,15 @@ class TSFReader:
                 return True
 
         return False
+
+    def _read_data_section(self, lines):
+        lines = list(lines)
+
+        lines = glide.imap_unordered(
+            self._read_data, lines, num_workers=cpu_count(), batch_size=8092
+        )
+
+        return list(lines)
 
     def _read_data(self, line):
         parts = line.split(":")
@@ -101,21 +114,14 @@ class TSFReader:
         return record
 
     def _data_target(self, s):
-        values = s.split(",")
+        s = s.replace("?", '"nan"')
+
+        values = json.loads(f"[{s}]")
         assert (
             values
         ), "A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series. Missing values should be indicated with ? symbol"
 
-        target = np.array(values, dtype="object")
-        nan_mask = target == "?"
-
-        assert (
-            not nan_mask.all()
-        ), "All series values are missing. A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series."
-
-        target[nan_mask] = self.missing_value
-
-        return target.astype(float)
+        return np.array(values, dtype=float)
 
     def _tag(self, line):
         fn_by_tag = {
