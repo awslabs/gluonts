@@ -12,8 +12,9 @@
 # permissions and limitations under the License.
 
 from typing import Optional
+
 import numpy as np
-import pandas as pd
+
 from gluonts.model.forecast import Forecast
 from gluonts.time_feature import get_seasonality
 
@@ -122,37 +123,6 @@ def smape(target: np.ndarray, forecast: np.ndarray) -> float:
     """
     return 2 * np.mean(
         np.abs(target - forecast) / (np.abs(target) + np.abs(forecast))
-    )
-
-
-def owa(
-    target: np.ndarray,
-    forecast: np.ndarray,
-    past_data: np.ndarray,
-    seasonal_error: float,
-    start_date: pd.Timestamp,
-) -> float:
-    r"""
-    .. math::
-
-        owa = 0.5*(smape / smape\_naive + mase / mase\_naive)
-
-    See [SSA20]_ for more details.
-    """
-    # avoid import error due to circular dependency
-    from gluonts.model.naive_2 import naive_2
-
-    # calculate the forecast of the seasonal naive predictor
-    naive_median_fcst = naive_2(
-        past_data, len(target), freq=start_date.freqstr
-    )
-
-    return 0.5 * (
-        (smape(target, forecast) / smape(target, naive_median_fcst))
-        + (
-            mase(target, forecast, seasonal_error)
-            / mase(target, naive_median_fcst, seasonal_error)
-        )
     )
 
 
