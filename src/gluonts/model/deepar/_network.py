@@ -1102,9 +1102,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
             repeated_past_target = F.concat(
                 repeated_past_target, new_samples, dim=1
             )
-            repeated_past_observed_values = F.concat(
-                repeated_past_target, F.ones_like(new_samples), dim=1
-            )
+
             future_samples.append(new_samples)
 
         # (batch_size * num_samples, prediction_length, *target_shape)

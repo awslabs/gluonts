@@ -362,7 +362,8 @@ class Evaluator:
                             target_fcst,
                         )
                     }
-                except:
+                except Exception:
+                    logging.warning(f"Error occured when evaluating {k}.")
                     val = {k: np.nan}
 
                 metrics.update(val)
