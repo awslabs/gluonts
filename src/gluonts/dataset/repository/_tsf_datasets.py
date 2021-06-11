@@ -154,16 +154,15 @@ def generate_forecasting_dataset(dataset_path: Path, dataset_name: str):
     dataset_path.mkdir(exist_ok=True)
 
     with TemporaryDirectory() as temp_dir:
-        temp_dir = Path(temp_dir)
+        temp_path = Path(temp_dir)
 
-        download_dataset(ds_info, temp_dir)
+        download_dataset(ds_info, temp_path)
 
-        with ZipFile(temp_dir / ds_info["file"], "r") as archive:
-            file_names = archive.namelist()
-            assert len(file_names) == 1, "Expected only one file, got multiple"
-            archive.extractall(path=temp_dir)
+        with ZipFile(temp_path / ds_info["file"]) as archive:
+            archive.extractall(path=temp_path)
 
-        reader = TSFReader(temp_dir / file_names[0])
+        # only one file is exptected
+        reader = TSFReader(temp_path / archive.namelist()[0])
         meta, data = reader.read()
 
     prediction_length = int(meta.forecast_horizon)

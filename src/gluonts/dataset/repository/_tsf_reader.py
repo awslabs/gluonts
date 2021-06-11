@@ -17,11 +17,9 @@ from multiprocessing import cpu_count
 from types import SimpleNamespace
 
 import numpy as np
-from toolz import compose_left
-
 from gluonts import json
 from gluonts.nursery import glide
-
+from toolz import compose_left
 
 parse_bool = compose_left(strtobool, bool)
 
@@ -48,15 +46,14 @@ def frequency_converter(freq: str):
 
 
 class TSFReader:
-    def __init__(self, path, target_name="target", missing_value="nan"):
+    def __init__(self, path, target_name="target", ):
         self.path = path
         self.target_name = target_name
-        self.missing_value = missing_value
 
         self.meta = SimpleNamespace(columns={})
 
     def read(self):
-        with open(self.path) as in_file:
+        with open(self.path, encoding="latin1") as in_file:
             # strip whitespace
             lines = map(str.strip, in_file)
 
@@ -136,7 +133,6 @@ class TSFReader:
 
         if tag not in fn_by_tag:
             return
-        # assert tag in fn_by_tag, tag
 
         return fn_by_tag[tag](*args)
 
