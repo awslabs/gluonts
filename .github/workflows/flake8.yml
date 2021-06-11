@@ -17,4 +17,4 @@ jobs:
         python -m pip install pip==20.2
         pip install flake8
     - name: Flake8
-      run: flake8 --ignore E501,E203,W503,W291 src
+      run: flake8 --ignore E501,E203,W503,W291,E741 src
