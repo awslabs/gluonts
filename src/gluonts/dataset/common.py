@@ -489,8 +489,19 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds = FileDataset(path=train, freq=meta.freq, one_dim_target=one_dim_target, cache=cache)
-    test_ds = FileDataset(path=test, freq=meta.freq, one_dim_target=one_dim_target, cache=cache) if test else None
+    train_ds = FileDataset(
+        path=train, freq=meta.freq, one_dim_target=one_dim_target, cache=cache
+    )
+    test_ds = (
+        FileDataset(
+            path=test,
+            freq=meta.freq,
+            one_dim_target=one_dim_target,
+            cache=cache,
+        )
+        if test
+        else None
+    )
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 
