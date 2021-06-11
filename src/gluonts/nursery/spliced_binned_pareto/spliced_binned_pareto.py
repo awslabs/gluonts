@@ -11,21 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-
-import torch
-from torch import optim
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torch.nn as nn
-
-from typing import List, Union, Optional
+from typing import Optional
 
 import numpy as np
 
-from .genpareto import GenPareto
+import torch
+import torch.nn
+import torch.nn.functional as F
+import torch.optim
 
-from torch.distributions import constraints
-from torch.distributions.distribution import Distribution
+from .genpareto import GenPareto
 
 
 class Binned(torch.nn.Module):
@@ -52,10 +47,10 @@ class Binned(torch.nn.Module):
 
         assert (
             bins_lower_bound.shape.numel() == 1
-        ), f"bins_lower_bound needs to have shape torch.Size([1])"
+        ), "bins_lower_bound needs to have shape torch.Size([1])"
         assert (
             bins_upper_bound.shape.numel() == 1
-        ), f"bins_upper_bound needs to have shape torch.Size([1])"
+        ), "bins_upper_bound needs to have shape torch.Size([1])"
         assert (
             bins_lower_bound < bins_upper_bound
         ), f"bins_lower_bound {bins_lower_bound} needs to less than bins_upper_bound {bins_upper_bound}"

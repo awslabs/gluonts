@@ -15,7 +15,7 @@ import os
 import signal
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 
@@ -77,7 +77,7 @@ class SignalHandler:
 def maybe_len(obj) -> Optional[int]:
     try:
         return len(obj)
-    except NotImplementedError:
+    except (NotImplementedError, AttributeError):
         return None
 
 

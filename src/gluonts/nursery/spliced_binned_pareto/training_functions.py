@@ -11,22 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Union, Optional
+from typing import Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import pandas as pd
 import numpy as np
-import os
-from scipy import stats
-from tqdm import tqdm
+import pandas as pd
 
-import torch
-from torch import optim
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torch.nn as nn
+import torch.nn
+import torch.optim
 
 from .distr_tcn import DistributionalTCN
 
@@ -78,7 +71,7 @@ def eval_on_series(
     """
     loss_log = []
 
-    ### Parallelising the training:
+    # Parallelising the training:
     trying_mini_batches = True
     if is_train:
         mini_batch_size = 64
@@ -88,11 +81,6 @@ def eval_on_series(
 
         unfold_layer = torch.nn.Unfold(
             kernel_size=(1, window_length), stride=stride
-        )
-        fold_layer = torch.nn.Fold(
-            kernel_size=(1, window_length),
-            stride=stride,
-            output_size=(1, series_tensor.shape[-1]),
         )
 
         ts_windows = (
@@ -105,7 +93,6 @@ def eval_on_series(
 
         if trying_mini_batches:
             batch_indices = np.arange(ts_len - window_length - 1)
-            # for i in tqdm(range(numb_mini_batches),  position=0, leave=True):
             for i in range(numb_mini_batches):
                 idx = np.random.choice(batch_indices, mini_batch_size)
                 batch_indices = np.setdiff1d(batch_indices, idx)
@@ -192,7 +179,8 @@ def plot_prediction(
             predictions[key] = np.array(
                 list(map(lambda x: x.detach().cpu().numpy(), predictions[key]))
             ).ravel()
-        except:
+        except Exception:
+            # TODO: handle error
             pass
 
     if fig is None:
@@ -264,7 +252,6 @@ def highlight_min(data, color="lightgreen"):
         is_min = data == data.min()
         return [attr if v else "" for v in is_min]
     else:  # from .apply(axis=None)
-        is_max = data == data.min().min()
         return pd.DataFrame(
             np.where(is_min, attr, ""), index=data.index, columns=data.columns
         )

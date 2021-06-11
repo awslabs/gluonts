@@ -15,11 +15,9 @@ from functools import partial
 from itertools import chain
 from typing import Dict, List, Optional
 
-import mxnet as mx
-import numpy as np
 from mxnet.gluon import HybridBlock
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -27,29 +25,31 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
+from gluonts.env import env
 from gluonts.model.forecast_generator import QuantileForecastGenerator
-from gluonts.mx.batchify import batchify, as_in_context
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
+    Constant,
     TimeFeature,
     time_features_from_frequency_str,
-    Constant,
 )
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
-    InstanceSampler,
     ExpectedNumInstanceSampler,
-    TestSplitSampler,
-    ValidationSplitSampler,
+    InstanceSampler,
     SelectFields,
     SetField,
+    TestSplitSampler,
     Transformation,
+    ValidationSplitSampler,
     VstackFeatures,
 )
 
@@ -342,7 +342,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             TemporalFusionTransformerTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -360,7 +361,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             TemporalFusionTransformerTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

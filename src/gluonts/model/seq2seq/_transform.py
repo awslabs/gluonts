@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from collections import Counter
 from typing import Iterator, List, Optional
 
 import numpy as np
@@ -41,6 +40,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         is_pad_out: str = "is_pad",
         start_input_field: str = "start",
     ) -> None:
+        super().__init__()
 
         assert enc_len > 0, "The value of `enc_len` should be > 0"
         assert dec_len > 0, "The value of `dec_len` should be > 0"
