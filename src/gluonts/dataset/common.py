@@ -455,11 +455,11 @@ class ProcessDataEntry:
 
 
 def load_datasets(
-        metadata: Path,
-        train: Path,
-        test: Optional[Path],
-        one_dim_target: bool = True,
-        cache: bool = False,
+    metadata: Path,
+    train: Path,
+    test: Optional[Path],
+    one_dim_target: bool = True,
+    cache: bool = False,
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
