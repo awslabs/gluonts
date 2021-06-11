@@ -18,7 +18,7 @@ import numpy as np
 
 try:
     from numba import njit
-except:
+except ImportError:
     warnings.warn(
         "Could not import numba. ar_p will be slower for long series (len > 1000)."
     )

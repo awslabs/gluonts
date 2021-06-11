@@ -207,7 +207,7 @@ def jitter_cholesky(
             # TODO: Add support for symbolic case: Cannot use <= operator with symbolic variables
             assert F.abs(L.nansum() - L.sum()) <= 1e-1
             return L
-        except:
+        except Exception:  # TODO: this looks weird
             if num_iter == 0:
                 # Initialize the jitter: constant jitter per each batch
                 jitter = (

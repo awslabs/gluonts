@@ -16,7 +16,6 @@ from typing import Callable, Dict, List, Optional, Iterator, Iterable, Tuple
 import numpy as np
 import pandas as pd
 import shutil
-from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 from pathlib import Path
 from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
 
@@ -75,8 +74,6 @@ def get_features_dataframe(
     assert past_data is None or series.index.freq == past_data.index.freq
     assert past_data is None or series.index[0] > past_data.index[-1]
 
-    cal = calendar()
-    holidays = cal.holidays(start=series.index.min(), end=series.index.max())
     time_feature_columns = {
         feature.__class__.__name__: feature(series.index)
         for feature in time_features

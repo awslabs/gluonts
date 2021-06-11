@@ -71,7 +71,7 @@ def eval_on_series(
     """
     loss_log = []
 
-    ### Parallelising the training:
+    # Parallelising the training:
     trying_mini_batches = True
     if is_train:
         mini_batch_size = 64
@@ -81,11 +81,6 @@ def eval_on_series(
 
         unfold_layer = torch.nn.Unfold(
             kernel_size=(1, window_length), stride=stride
-        )
-        fold_layer = torch.nn.Fold(
-            kernel_size=(1, window_length),
-            stride=stride,
-            output_size=(1, series_tensor.shape[-1]),
         )
 
         ts_windows = (
@@ -184,7 +179,8 @@ def plot_prediction(
             predictions[key] = np.array(
                 list(map(lambda x: x.detach().cpu().numpy(), predictions[key]))
             ).ravel()
-        except:
+        except Exception:
+            # TODO: handle error
             pass
 
     if fig is None:
@@ -256,7 +252,6 @@ def highlight_min(data, color="lightgreen"):
         is_min = data == data.min()
         return [attr if v else "" for v in is_min]
     else:  # from .apply(axis=None)
-        is_max = data == data.min().min()
         return pd.DataFrame(
             np.where(is_min, attr, ""), index=data.index, columns=data.columns
         )
