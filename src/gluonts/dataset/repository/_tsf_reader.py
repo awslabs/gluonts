@@ -34,6 +34,14 @@ def parse_attribute(ty, value: str):
     raise AttributeError(ty)
 
 
+def frequency_converter(freq: str):
+    parts = freq.split("_")
+    if len(parts) == 1:
+        return freq[0].upper()
+    if len(parts) == 2 and parts[0].isnumeric():
+        return f"{parts[0]}{parts[1].upper()}"
+
+
 class TSFReader:
     def __init__(self, path, target_name="target", missing_value="nan"):
         self.path = path

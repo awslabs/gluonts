@@ -11,18 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import os
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import List, Dict
 from urllib import request
 from zipfile import ZipFile
 
-from ._tsf_reader import TSFReader
-from ._util import metadata, to_dict, save_to_file
-
 from gluonts import json
-from gluonts.dataset.jsonl import dump
+from gluonts.dataset import jsonl
 from gluonts.gluonts_tqdm import tqdm
+
+from ._tsf_reader import frequency_converter, TSFReader
+from ._util import metadata, to_dict
 
 ROOT = "https://zenodo.org/record"
 
@@ -96,28 +96,19 @@ def urllib_retrieve_hook(tqdm):
 
 
 def download_dataset(description: Dict[str, str], path: Path):
-    file = description["file"]
     with tqdm(
         [],
         unit="B",
         unit_scale=True,
         unit_divisor=1024,
         miniters=5,
-        desc=f"download {file}",
+        desc=f"download {description['file']}",
     ) as _tqdm:
         request.urlretrieve(
-            f"{ROOT}/{description['record']}/files/{file}",
+            f"{ROOT}/{description['record']}/files/{description['file']}",
             filename=str(path / description["file"]),
             reporthook=urllib_retrieve_hook(_tqdm),
         )
-
-
-def frequency_converter(freq: str):
-    parts = freq.split("_")
-    if len(parts) == 1:
-        return freq[0].upper()
-    if len(parts) == 2 and parts[0].isnumeric():
-        return f"{parts[0]}{parts[1].upper()}"
 
 
 def save_metadata(
@@ -152,44 +143,36 @@ def save_datasets(path: Path, data: List[Dict], train_offset: int):
                 start=str(data_entry["start_timestamp"]),
             )
 
-            test_fp.write(json.dumps(dic))
-            test_fp.write("\n")
+            jsonl.dump([dic], test_fp)
 
             dic["target"] = dic["target"][:-train_offset]
-            train_fp.write(json.dumps(dic))
-            train_fp.write("\n")
-
-
-def clean_up_dataset(dataset_path: Path, file_names: List[str]):
-    for file in file_names:
-        file_path = dataset_path / file
-        file_path.unlink()
+            jsonl.dump([dic], train_fp)
 
 
 def generate_forecasting_dataset(dataset_path: Path, dataset_name: str):
     ds_info = dataset_info[dataset_name]
     dataset_path.mkdir(exist_ok=True)
 
-    file = ds_info["file"]
-    file_path = dataset_path / file
-    download_dataset(ds_info, dataset_path)
-    with ZipFile(file_path, "r") as zip:
-        file_names = zip.namelist()
-        # TODO better exception text
-        assert len(file_names) == 1, "Too many files"
-        for member in tqdm(zip.infolist(), desc=f"Extracting {file}"):
-            zip.extract(member, str(dataset_path))
-    reader = TSFReader(dataset_path / file_names[0])
-    meta, data = reader.read()
+    with TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+
+        download_dataset(ds_info, temp_dir)
+
+        with ZipFile(temp_dir / ds_info["file"], "r") as archive:
+            file_names = archive.namelist()
+            assert len(file_names) == 1, "Expected only one file, got multiple"
+            archive.extractall(path=temp_dir)
+
+        reader = TSFReader(temp_dir / file_names[0])
+        meta, data = reader.read()
 
     prediction_length = int(meta.forecast_horizon)
+
     save_metadata(
         dataset_path,
         len(data),
         frequency_converter(meta.frequency),
         prediction_length,
     )
-    save_datasets(dataset_path, data, prediction_length)
 
-    file_names.append(file)
-    clean_up_dataset(dataset_path, file_names)
+    save_datasets(dataset_path, data, prediction_length)
