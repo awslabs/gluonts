@@ -474,7 +474,11 @@ class ProcessDataEntry:
 
 
 def load_datasets(
-    metadata: Path, train: Path, test: Optional[Path]
+    metadata: Path,
+    train: Path,
+    test: Optional[Path],
+    one_dim_target: bool = True,
+    cache: bool = False,
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
@@ -487,6 +491,10 @@ def load_datasets(
         Path to the training dataset files.
     test
         Path to the test dataset files.
+    one_dim_target
+        Whether to load FileDatasets as univariate target time series.
+    cache
+        Indicates whether the FileDatasets should be cached or not.
 
     Returns
     -------
@@ -494,8 +502,19 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds = FileDataset(path=train, freq=meta.freq)
-    test_ds = FileDataset(path=test, freq=meta.freq) if test else None
+    train_ds = FileDataset(
+        path=train, freq=meta.freq, one_dim_target=one_dim_target, cache=cache
+    )
+    test_ds = (
+        FileDataset(
+            path=test,
+            freq=meta.freq,
+            one_dim_target=one_dim_target,
+            cache=cache,
+        )
+        if test
+        else None
+    )
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 
