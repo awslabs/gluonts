@@ -18,26 +18,31 @@ handleForecast <- function(model, params) {
 
 
 arima <- function(ts, params) {
+    set.seed(123)
     model <- forecast::auto.arima(ts, trace=TRUE)
     handleForecast(model, params)
 }
 
 ets <- function(ts, params) {
+    set.seed(123)
     model <- forecast::ets(ts, additive.only=TRUE)
     handleForecast(model, params)
 }
 
 croston <- function(ts, params) {
+    set.seed(123)
     model <- forecast::croston(ts)
     handleForecast(model, params)
 }
 
 tbats <- function(ts, params) {
+    set.seed(123)
     model <- forecast::tbats(ts)
     handleForecast(model, params)
 }
 
 mlp <- function(ts, params) {
+    set.seed(123)
     model <- nnfor::mlp(ts, hd.auto.type="valid")
     handleForecast(model, params)
 }
