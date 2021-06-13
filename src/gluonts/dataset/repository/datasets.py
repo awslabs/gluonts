@@ -26,6 +26,7 @@ from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
 from gluonts.dataset.repository._m3 import generate_m3_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._m5 import generate_m5_dataset
+from gluonts.dataset.repository._walmart import generate_walmart_dataset
 from gluonts.support.util import get_download_path
 
 dataset_recipes = OrderedDict(
@@ -104,6 +105,11 @@ dataset_recipes = OrderedDict(
         ),
         "m5": partial(
             generate_m5_dataset, pandas_freq="D", prediction_length=28
+        ),
+        "walmart": partial(
+            generate_walmart_dataset,
+            pandas_freq="D",
+            prediction_length=7,  # TODO decide of a good number here
         ),
     }
 )
