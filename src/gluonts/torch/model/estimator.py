@@ -94,11 +94,13 @@ class PyTorchLightningEstimator(Estimator):
         """
         raise NotImplementedError
 
-    def create_training_data_loader(self, data: Dataset, **kwargs) -> Iterable:
+    def create_training_data_loader(
+        self, data: Dataset, network: nn.Module, **kwargs
+    ) -> Iterable:
         raise NotImplementedError
 
     def create_validation_data_loader(
-        self, data: Dataset, **kwargs
+        self, data: Dataset, network: nn.Module, **kwargs
     ) -> Iterable:
         raise NotImplementedError
 
@@ -117,10 +119,13 @@ class PyTorchLightningEstimator(Estimator):
             training_data, transformation, is_train=True
         )
 
+        training_network = self.create_network().to(self.device, self.dtype)
+
         training_data_loader = self.create_training_data_loader(
             transformed_training_data
             if not cache_data
             else Cached(transformed_training_data),
+            training_network,
             num_workers=num_workers,
             shuffle_buffer_length=shuffle_buffer_length,
         )
@@ -136,9 +141,8 @@ class PyTorchLightningEstimator(Estimator):
                 transformed_validation_data
                 if not cache_data
                 else Cached(transformed_validation_data),
+                training_network,
             )
-
-        training_network = self.create_network().to(self.device, self.dtype)
 
         self.trainer.fit(
             model=training_network,

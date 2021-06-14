@@ -11,8 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .deepar_estimator import DeepAREstimator
-from .deepar_network import DeepARNetwork
+from ._estimator import DeepAREstimator
+from ._network import DeepARNetwork
 
 __all__ = ["DeepAREstimator", "DeepARNetwork"]
 

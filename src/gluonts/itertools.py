@@ -18,7 +18,7 @@ from typing import Iterable, Iterator, List, Optional, TypeVar
 T = TypeVar("T")
 
 
-def prod(xs):
+def prod(xs: Iterable[T]) -> T:
     """
     Computes the product of the elements of an iterable object.
     """

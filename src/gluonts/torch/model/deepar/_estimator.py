@@ -54,7 +54,7 @@ from gluonts.torch.modules.distribution_output import (
     StudentTOutput,
 )
 
-from .deepar_network import (
+from ._network import (
     DeepARLightningNetwork,
     DeepARNetwork,
 )
@@ -107,26 +107,14 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.cardinality = (
             cardinality if cardinality and num_feat_static_cat > 0 else [1]
         )
-        self.embedding_dimension = (
-            embedding_dimension
-            if embedding_dimension is not None
-            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
-        )
+        self.embedding_dimension = embedding_dimension
         self.scaling = scaling
-        self.lags_seq = (
-            lags_seq
-            if lags_seq is not None
-            else get_lags_for_frequency(
-                freq_str=freq, lag_ub=self.context_length
-            )
-        )
+        self.lags_seq = lags_seq
         self.time_features = (
             time_features
             if time_features is not None
             else time_features_from_frequency_str(self.freq)
         )
-
-        self.history_length = self.context_length + max(self.lags_seq)
 
         self.num_parallel_samples = num_parallel_samples
         self.batch_size = batch_size
@@ -213,7 +201,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             ]
         )
 
-    def _create_instance_splitter(self, mode: str):
+    def _create_instance_splitter(self, network: DeepARNetwork, mode: str):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -228,7 +216,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
             instance_sampler=instance_sampler,
-            past_length=self.history_length,
+            past_length=network._past_length,
             future_length=self.prediction_length,
             time_series_fields=[
                 FieldName.FEAT_TIME,
@@ -240,12 +228,13 @@ class DeepAREstimator(PyTorchLightningEstimator):
     def create_training_data_loader(
         self,
         data: Dataset,
+        network: DeepARNetwork,
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
         input_names = get_forward_input_names(DeepARNetwork)
         transformation = self._create_instance_splitter(
-            "training"
+            network, "training"
         ) + SelectFields(input_names)
 
         training_instances = transformation.apply(
@@ -268,11 +257,12 @@ class DeepAREstimator(PyTorchLightningEstimator):
     def create_validation_data_loader(
         self,
         data: Dataset,
+        network: DeepARNetwork,
         **kwargs,
     ) -> Iterable:
         input_names = get_forward_input_names(DeepARNetwork)
         transformation = self._create_instance_splitter(
-            "validation"
+            network, "validation"
         ) + SelectFields(input_names)
 
         validation_instances = transformation.apply(data)
@@ -312,7 +302,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         device: torch.device,
     ) -> PyTorchPredictor:
         input_names = get_forward_input_names(DeepARNetwork)
-        prediction_splitter = self._create_instance_splitter("test")
+        prediction_splitter = self._create_instance_splitter(network, "test")
 
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,

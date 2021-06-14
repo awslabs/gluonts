@@ -67,17 +67,18 @@ class DeepARNetwork(nn.Module):
             else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         )
         self.scaling = scaling
-        self.lags_seq = lags_seq or get_lags_for_frequency(
-            freq_str=freq, lag_ub=self.context_length
-        )
+        self.lags_seq = lags_seq or get_lags_for_frequency(freq_str=freq)
         self.num_parallel_samples = num_parallel_samples
         self.history_length = self.context_length + max(self.lags_seq)
         # for decoding the lags are shifted by one, at the first time-step
         # of the decoder a lag of one corresponds to the last target value
         self.shifted_lags = [l - 1 for l in self.lags_seq]
         self.distr_output = distr_output
-        rnn = {"LSTM": nn.LSTM, "GRU": nn.GRU}[self.cell_type]
-        self.rnn = rnn(
+        if self.cell_type == "LSTM":
+            rnn_type = nn.LSTM
+        elif self.cell_type == "GRU":
+            rnn_type = nn.GRU
+        self.rnn = rnn_type(
             input_size=self._rnn_input_size,
             hidden_size=num_cells,
             num_layers=num_layers,
@@ -86,13 +87,10 @@ class DeepARNetwork(nn.Module):
         )
         self.target_shape = distr_output.event_shape
         self.proj_distr_args = distr_output.get_args_proj(num_cells)
-        if self.cardinality is not None:
-            self.embedder = FeatureEmbedder(
-                cardinalities=self.cardinality,
-                embedding_dims=self.embedding_dimension,
-            )
-        else:
-            self.embedder = None
+        self.embedder = FeatureEmbedder(
+            cardinalities=self.cardinality,
+            embedding_dims=self.embedding_dimension,
+        )
         if scaling:
             self.scaler = MeanScaler(keepdim=True)
         else:
@@ -189,8 +187,8 @@ class DeepARNetwork(nn.Module):
         # scale is computed on the context length last units of the past target
         # scale shape is (batch_size, 1, *target_shape)
         _, scale = self.scaler(
-            past_target[:, self.context_length :, ...],
-            past_observed_values[:, self.context_length :, ...],
+            past_target[:, -self.context_length :, ...],
+            past_observed_values[:, -self.context_length :, ...],
         )
         embedded_cat = self.embedder(feat_static_cat)
         static_feat = torch.cat(
