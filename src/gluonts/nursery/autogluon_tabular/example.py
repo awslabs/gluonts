@@ -38,9 +38,7 @@ def run_example():
 
     training_data = list(islice(dataset.train, n_train))
 
-    predictor = estimator.train(
-        training_data=training_data,
-    )
+    predictor = estimator.train(training_data=training_data, last_k_for_val=24)
 
     os.makedirs(serialize_path, exist_ok=True)
     predictor.serialize(serialize_path)

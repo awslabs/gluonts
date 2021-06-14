@@ -10,7 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
+import logging
 from typing import Callable, Optional, List, Tuple
 import pandas as pd
 from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
@@ -111,12 +111,15 @@ class TabularEstimator(Estimator):
                 "high_quality_fast_inference_only_refit",
                 "optimize_for_deployment",
             ],
+            "auto_stack": True,
         }
         self.kwargs = {**default_kwargs, **kwargs}
 
     def train(
         self,
         training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        last_k_for_val: Optional[int] = None,
         eval_metric="mean_absolute_error",
     ) -> TabularPredictor:
         dfs = [
@@ -127,13 +130,49 @@ class TabularEstimator(Estimator):
             )
             for entry in training_data
         ]
-        df = pd.concat(dfs)
+        if validation_data is not None or last_k_for_val is not None:
+            self.kwargs["auto_stack"] = False
+            logging.warning(
+                "Auto Stacking is turned off "
+                "as validation dataset is provided before input into Tabular Predictor."
+            )
+        if last_k_for_val is not None:
+            logging.log(
+                20,
+                f"last_k_for_val is provided, choosing last {last_k_for_val} of each time series as validation set.",
+            )
+            train_dfs = [tmp_df.iloc[:-last_k_for_val, :] for tmp_df in dfs]
+            validation_dfs = [
+                tmp_df.iloc[-last_k_for_val:, :] for tmp_df in dfs
+            ]
+            train_df = pd.concat(train_dfs)
+            val_df = pd.concat(validation_dfs)
+        elif validation_data is not None:
+            logging.log(20, "Validation dataset is directly provided.")
+            validation_dfs = [
+                get_features_dataframe(
+                    series=self.scaling(to_pandas(entry))[0],
+                    time_features=self.time_features,
+                    lag_indices=self.lag_indices,
+                )
+                for entry in validation_data
+            ]
+            train_df = pd.concat(dfs)
+            val_df = pd.concat(validation_dfs)
+        else:
+            logging.log(
+                20,
+                "No validation dataset is provided, will let TabularPredictor do the splitting automatically,"
+                "Note that this might break the time order of time series data.",
+            )
+            train_df = pd.concat(dfs)
+            val_df = None
 
         ag_model = AutogluonTabularPredictor(
             label="target",
             problem_type="regression",
             eval_metric=eval_metric,
-        ).fit(df, **self.kwargs)
+        ).fit(train_df, tuning_data=val_df, **self.kwargs)
         return TabularPredictor(
             ag_model=ag_model,
             freq=self.freq,
