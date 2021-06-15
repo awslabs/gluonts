@@ -92,9 +92,9 @@ class DeepARNetwork(nn.Module):
             embedding_dims=self.embedding_dimension,
         )
         if scaling:
-            self.scaler = MeanScaler(keepdim=True)
+            self.scaler = MeanScaler(dim=1, keepdim=True)
         else:
-            self.scaler = NOPScaler(keepdim=True)
+            self.scaler = NOPScaler(dim=1, keepdim=True)
 
     @property
     def _rnn_input_size(self) -> int:
@@ -195,9 +195,7 @@ class DeepARNetwork(nn.Module):
             (
                 embedded_cat,
                 feat_static_real,
-                scale.log()
-                if len(self.target_shape) == 0
-                else scale.squeeze(1).log(),
+                scale.log(),
             ),
             dim=1,
         )
