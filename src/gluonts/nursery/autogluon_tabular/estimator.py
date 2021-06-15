@@ -31,6 +31,8 @@ from .predictor import (
     get_features_dataframe,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class TabularEstimator(Estimator):
     """An estimator that trains an Autogluon Tabular model for time series
@@ -132,12 +134,12 @@ class TabularEstimator(Estimator):
         ]
         if validation_data is not None or last_k_for_val is not None:
             self.kwargs["auto_stack"] = False
-            logging.warning(
+            logger.warning(
                 "Auto Stacking is turned off "
                 "as validation dataset is provided before input into Tabular Predictor."
             )
         if last_k_for_val is not None:
-            logging.log(
+            logger.log(
                 20,
                 f"last_k_for_val is provided, choosing last {last_k_for_val} of each time series as validation set.",
             )
@@ -148,7 +150,7 @@ class TabularEstimator(Estimator):
             train_df = pd.concat(train_dfs)
             val_df = pd.concat(validation_dfs)
         elif validation_data is not None:
-            logging.log(20, "Validation dataset is directly provided.")
+            logger.log(20, "Validation dataset is directly provided.")
             validation_dfs = [
                 get_features_dataframe(
                     series=self.scaling(to_pandas(entry))[0],
@@ -160,7 +162,7 @@ class TabularEstimator(Estimator):
             train_df = pd.concat(dfs)
             val_df = pd.concat(validation_dfs)
         else:
-            logging.log(
+            logger.log(
                 20,
                 "No validation dataset is provided, will let TabularPredictor do the splitting automatically,"
                 "Note that this might break the time order of time series data.",

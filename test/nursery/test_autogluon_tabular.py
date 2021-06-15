@@ -175,12 +175,16 @@ def test_get_features_dataframe(
 )
 @pytest.mark.parametrize("lag_indices", [[], [1, 2, 5]])
 @pytest.mark.parametrize("disable_auto_regression", [False, True])
+@pytest.mark.parametrize(
+    "validation_data_type", [None, "last_k_for_val", "validation_data"]
+)
 def test_tabular_estimator(
     dataset,
     freq,
     prediction_length: int,
     lag_indices: List[int],
     disable_auto_regression: bool,
+    validation_data_type: str,
 ):
     estimator = TabularEstimator(
         freq=freq,
@@ -191,7 +195,16 @@ def test_tabular_estimator(
     )
 
     with tempfile.TemporaryDirectory() as path:
-        predictor = estimator.train(dataset)
+        if validation_data_type is None:
+            predictor = estimator.train(dataset)
+        elif validation_data_type == "last_k_for_val":
+            predictor = estimator.train(
+                dataset, last_k_for_val=prediction_length
+            )
+        elif validation_data_type == "validation_data":
+            predictor = estimator.train(dataset, validation_data=dataset)
+        else:
+            raise TypeError("Unknown validation data type.")
         predictor.serialize(Path(path))
         predictor = None
         predictor = Predictor.deserialize(Path(path))
