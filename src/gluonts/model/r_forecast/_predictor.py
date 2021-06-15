@@ -13,9 +13,8 @@
 
 import os
 from pathlib import Path
-from typing import Dict, Iterator, Optional, List, Union
+from typing import Dict, Optional, List, Union
 
-from joblib import Parallel, delayed
 import numpy as np
 
 from gluonts.core.component import validated
