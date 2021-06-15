@@ -43,7 +43,7 @@ class MeanScaler(nn.Module):
         super().__init__()
         assert (
             dim > 0
-        ), f"Cannot compute scale along dim = 0 (batch dimension), please provide dim > 0"
+        ), "Cannot compute scale along dim = 0 (batch dimension), please provide dim > 0"
         self.dim = dim
         self.keepdim = keepdim
         self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
