@@ -13,13 +13,14 @@
 
 import os
 from pathlib import Path
-from typing import Dict, Iterator, Optional
+from typing import Dict, Iterator, Optional, List, Union
 
+from joblib import Parallel, delayed
 import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.model.forecast import SampleForecast
+from gluonts.model.forecast import SampleForecast, QuantileForecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 from gluonts.time_feature import get_seasonality
@@ -111,11 +112,25 @@ class RForecastPredictor(RepresentablePredictor):
             "mlp",
             "thetaf",
         ]
+
         assert (
             method_name in supported_methods
         ), f"method {method_name} is not supported please use one of {supported_methods}"
 
         self.method_name = method_name
+
+        point_forecast_methods = ["croston", "mlp"]
+        quantile_forecast_methods = ["tbats", "thetaf"]
+
+        if self.method_name in point_forecast_methods:
+            self.point_forecasts = True
+        else:
+            self.point_forecasts = False
+
+        if self.method_name in quantile_forecast_methods:
+            self.quantlie_forecasts = True
+        else:
+            self.quantlie_forecasts = False
 
         self._stats_pkg = rpackages.importr("stats")
         self._r_method = robjects.r[method_name]
@@ -162,9 +177,42 @@ class RForecastPredictor(RepresentablePredictor):
         forecast_dict = dict(
             zip(forecast.names, map(self._unlist, list(forecast)))
         )
-        # FOR NOW ONLY SAMPLES...
-        # if "quantiles" in forecast_dict:
-        #     forecast_dict["quantiles"] = dict(zip(params["quantiles"], forecast_dict["quantiles"]))
+
+        if "quantiles" in forecast_dict or "upper_quantiles" in forecast_dict:
+
+            def from_interval_to_level(interval: int, side: str):
+                if side == "upper":
+                    level = 50 + interval / 2
+                elif side == "lower":
+                    level = 50 - interval / 2
+                else:
+                    raise ValueError
+                return level / 100
+
+            # Post-processing quantiles on then Python side for the convenience of asserting and debugging.
+            upper_quantiles = [
+                str(from_interval_to_level(interval, side="upper"))
+                for interval in params["intervals"]
+            ]
+
+            lower_quantiles = [
+                str(from_interval_to_level(interval, side="lower"))
+                for interval in params["intervals"]
+            ]
+
+            # Median forecasts would be available at two places: Lower 0 and Higher 0 (0-prediction interval)
+            forecast_dict["quantiles"] = dict(
+                zip(
+                    lower_quantiles + upper_quantiles[1:],
+                    forecast_dict["lower_quantiles"]
+                    + forecast_dict["upper_quantiles"][1:],
+                )
+            )
+
+            # `QuantileForecast` allows "mean" as the key; we store them as well since they can differ from median.
+            forecast_dict["quantiles"].update(
+                {"mean": forecast_dict.pop("mean")}
+            )
 
         self._rinterface.set_writeconsole_regular(
             self._rinterface.consolePrint
@@ -178,38 +226,69 @@ class RForecastPredictor(RepresentablePredictor):
         self,
         dataset: Dataset,
         num_samples: int = 100,
+        intervals: Optional[List] = None,
         save_info: bool = False,
         **kwargs,
-    ) -> Iterator[SampleForecast]:
-        for entry in dataset:
-            if isinstance(entry, dict):
-                data = entry
-            else:
-                data = entry.data
-                if self.trunc_length:
-                    data = data[-self.trunc_length :]
+    ) -> Union[SampleForecast, QuantileForecast]:
+        for data in dataset:
+            if self.trunc_length:
+                data["target"] = data["target"][-self.trunc_length :]
 
             params = self.params.copy()
             params["num_samples"] = num_samples
+
+            if self.point_forecasts:
+                params["output_types"] = ["mean"]
+            elif self.quantlie_forecasts:
+                params["output_types"] = ["quantiles", "mean"]
+                if intervals is None:
+                    params["intervals"] = list(range(0, 100, 10))
+                else:
+                    params["intervals"] = np.sort(intervals).tolist()
 
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )
 
-            samples = np.array(forecast_dict["samples"])
-            expected_shape = (params["num_samples"], self.prediction_length)
-            assert (
-                samples.shape == expected_shape
-            ), f"Expected shape {expected_shape} but found {samples.shape}"
-            info = (
-                {"console_output": "\n".join(console_output)}
-                if save_info
-                else None
-            )
-            yield SampleForecast(
-                samples,
-                forecast_start(data),
-                self.freq,
-                info=info,
-                item_id=entry.get("item_id", None),
-            )
+            if self.quantlie_forecasts:
+                quantile_forecasts_dict = forecast_dict["quantiles"]
+
+                yield QuantileForecast(
+                    forecast_arrays=np.array(
+                        list(quantile_forecasts_dict.values())
+                    ),
+                    forecast_keys=list(quantile_forecasts_dict.keys()),
+                    start_date=forecast_start(data),
+                    freq=self.freq,
+                    item_id=data.get("item_id", None),
+                )
+            else:
+                if self.point_forecasts:
+                    # Handling special cases outside of R is better, since it is more visible and is easier to change.
+                    # Repeat mean forecasts `num_samples` times.
+                    samples = np.reshape(
+                        forecast_dict["mean"] * params["num_samples"],
+                        (params["num_samples"], self.prediction_length),
+                    )
+                else:
+                    samples = np.array(forecast_dict["samples"])
+
+                expected_shape = (
+                    params["num_samples"],
+                    self.prediction_length,
+                )
+                assert (
+                    samples.shape == expected_shape
+                ), f"Expected shape {expected_shape} but found {samples.shape}"
+                info = (
+                    {"console_output": "\n".join(console_output)}
+                    if save_info
+                    else None
+                )
+                yield SampleForecast(
+                    samples,
+                    forecast_start(data),
+                    self.freq,
+                    info=info,
+                    item_id=data.get("item_id", None),
+                )
