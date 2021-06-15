@@ -132,6 +132,10 @@ class RForecastPredictor(RepresentablePredictor):
         else:
             self.quantlie_forecasts = False
 
+        assert not (
+            self.point_forecasts and self.quantlie_forecasts
+        ), "A method can be either a point-forecast method or a quantile forecast method but not both!"
+
         self._stats_pkg = rpackages.importr("stats")
         self._r_method = robjects.r[method_name]
 
@@ -242,6 +246,7 @@ class RForecastPredictor(RepresentablePredictor):
             elif self.quantlie_forecasts:
                 params["output_types"] = ["quantiles", "mean"]
                 if intervals is None:
+                    # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05.
                     params["intervals"] = list(range(0, 100, 10))
                 else:
                     params["intervals"] = np.sort(intervals).tolist()

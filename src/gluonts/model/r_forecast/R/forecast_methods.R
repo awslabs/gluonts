@@ -69,7 +69,7 @@ croston <- function(ts, params) {
 tbats <- function(ts, params) {
     model <- forecast::tbats(ts)
 
-    # R doesn't allow `simulate` on the tbats model. We generate prediction intervals directly.
+    # R doesn't allow `simulate` on tbats model. We obtain prediction intervals directly.
     forecasts <- forecast::forecast(model, h=params$prediction_length, level=unlist(params$intervals))
     handleQuantileForecast(forecasts, params)
 }
@@ -83,6 +83,7 @@ mlp <- function(ts, params) {
 }
 
 thetaf <- function(ts, params) {
+    # For thetaf, we obtain prediction intervals directly.
     forecasts <- forecast::thetaf(y=ts, h=params$prediction_length, level=unlist(params$intervals))
     handleQuantileForecast(forecasts, params)
 }
