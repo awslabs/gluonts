@@ -95,6 +95,7 @@ def test_forecasts(method_name):
         evaluator=evaluator,
     )
     assert agg_metrics["mean_wQuantileLoss"] < TOLERANCE
+    assert agg_metrics["NRMSE"] < TOLERANCE
 
 
 def test_r_predictor_serialization():
