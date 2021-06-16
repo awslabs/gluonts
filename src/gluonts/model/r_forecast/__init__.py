@@ -23,8 +23,6 @@ __all__ = [
     "RForecastPredictor",
     "R_IS_INSTALLED",
     "RPY2_IS_INSTALLED",
-    SUPPORTED_METHODS,
-    QUANTILE_FORECAST_METHODS,
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
