@@ -79,6 +79,8 @@ class TabularEstimator(Estimator):
         ] = mean_abs_scaling,
         batch_size: Optional[int] = 32,
         disable_auto_regression: bool = False,
+        last_k_for_val: Optional[int] = None,
+        eval_metric: str = "mean_absolute_error",
         **kwargs,
     ) -> None:
         super().__init__()
@@ -98,6 +100,8 @@ class TabularEstimator(Estimator):
         self.batch_size = batch_size
         self.disable_auto_regression = disable_auto_regression
         self.scaling = scaling
+        self.last_k_for_val = last_k_for_val
+        self.eval_metric = eval_metric
 
         if self.disable_auto_regression:
             self.lag_indices = [
@@ -121,9 +125,10 @@ class TabularEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        last_k_for_val: Optional[int] = None,
-        eval_metric="mean_absolute_error",
     ) -> TabularPredictor:
+
+        kwargs_override = {}
+
         dfs = [
             get_features_dataframe(
                 series=self.scaling(to_pandas(entry))[0],
@@ -132,24 +137,14 @@ class TabularEstimator(Estimator):
             )
             for entry in training_data
         ]
-        if validation_data is not None or last_k_for_val is not None:
-            self.kwargs["auto_stack"] = False
+        if validation_data is not None or self.last_k_for_val is not None:
+            kwargs_override["auto_stack"] = False
             logger.warning(
                 "Auto Stacking is turned off "
                 "as validation dataset is provided before input into Tabular Predictor."
             )
-        if last_k_for_val is not None:
-            logger.log(
-                20,
-                f"last_k_for_val is provided, choosing last {last_k_for_val} of each time series as validation set.",
-            )
-            train_dfs = [tmp_df.iloc[:-last_k_for_val, :] for tmp_df in dfs]
-            validation_dfs = [
-                tmp_df.iloc[-last_k_for_val:, :] for tmp_df in dfs
-            ]
-            train_df = pd.concat(train_dfs)
-            val_df = pd.concat(validation_dfs)
-        elif validation_data is not None:
+
+        if validation_data is not None:
             logger.log(20, "Validation dataset is directly provided.")
             validation_dfs = [
                 get_features_dataframe(
@@ -160,6 +155,19 @@ class TabularEstimator(Estimator):
                 for entry in validation_data
             ]
             train_df = pd.concat(dfs)
+            val_df = pd.concat(validation_dfs)
+        elif self.last_k_for_val is not None:
+            logger.log(
+                20,
+                f"last_k_for_val is provided, choosing last {self.last_k_for_val} of each time series as validation set.",
+            )
+            train_dfs = [
+                tmp_df.iloc[: -self.last_k_for_val, :] for tmp_df in dfs
+            ]
+            validation_dfs = [
+                tmp_df.iloc[-self.last_k_for_val :, :] for tmp_df in dfs
+            ]
+            train_df = pd.concat(train_dfs)
             val_df = pd.concat(validation_dfs)
         else:
             logger.log(
@@ -173,8 +181,10 @@ class TabularEstimator(Estimator):
         ag_model = AutogluonTabularPredictor(
             label="target",
             problem_type="regression",
-            eval_metric=eval_metric,
-        ).fit(train_df, tuning_data=val_df, **self.kwargs)
+            eval_metric=self.eval_metric,
+        ).fit(
+            train_df, tuning_data=val_df, **{**self.kwargs, **kwargs_override}
+        )
         return TabularPredictor(
             ag_model=ag_model,
             freq=self.freq,
