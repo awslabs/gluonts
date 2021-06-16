@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import numpy as np
 import pytest
 
 from gluonts.core import serde
-from gluonts.dataset.common import ListDataset
+from gluonts.dataset.repository import datasets
+from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.forecast import SampleForecast, QuantileForecast
 from gluonts.model.r_forecast import (
     RForecastPredictor,
@@ -33,8 +33,11 @@ if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
     pytest.skip(msg=skip_message, allow_module_level=True)
 
 
+TOLERANCE = 1e-6
+
+
 @pytest.mark.parametrize("method_name", SUPPORTED_METHODS)
-def test_forecast_structure(method_name):
+def test_forecasts(method_name):
     if method_name == "mlp":
         # https://stackoverflow.com/questions/56254321/error-in-ifncol-matrix-rep-argument-is-of-length-zero
         # https://cran.r-project.org/web/packages/neuralnet/index.html
@@ -46,24 +49,23 @@ def test_forecast_structure(method_name):
             "the `neuralnet` package is not yet updated with a known bug fix in ` bips-hb/neuralnet`"
         )
 
-    freq = "1D"
-    prediction_length = 10
+    dataset = datasets.get_dataset("constant")
+
+    (train_dataset, test_dataset, metadata) = (
+        dataset.train,
+        dataset.test,
+        dataset.metadata,
+    )
+
+    freq = metadata.freq
+    prediction_length = metadata.prediction_length
+
     params = dict(
         freq=freq, prediction_length=prediction_length, method_name=method_name
     )
 
-    dataset = ListDataset(
-        data_iter=[
-            {"start": "2017-01-01", "target": np.array([1.0] * 3)},
-            {"start": "2007-09-28", "target": np.array([2.0] * 3)},
-            {"start": "2020-07-20", "target": np.array([3.0] * 3)},
-            {"start": "1947-08-15", "target": np.array([4.0] * 3)},
-        ],
-        freq=params["freq"],
-    )
-
     predictor = RForecastPredictor(**params)
-    predictions = list(predictor.predict(dataset))
+    predictions = list(predictor.predict(train_dataset))
 
     forecast_type = (
         QuantileForecast
@@ -83,8 +85,16 @@ def test_forecast_structure(method_name):
 
     assert all(
         prediction.start_date == forecast_start(data)
-        for data, prediction in zip(dataset, predictions)
+        for data, prediction in zip(train_dataset, predictions)
     )
+
+    evaluator = Evaluator()
+    agg_metrics, item_metrics = backtest_metrics(
+        test_dataset=test_dataset,
+        predictor=predictor,
+        evaluator=evaluator,
+    )
+    assert agg_metrics["mean_wQuantileLoss"] < TOLERANCE
 
 
 def test_r_predictor_serialization():
