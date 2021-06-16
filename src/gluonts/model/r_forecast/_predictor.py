@@ -13,7 +13,7 @@
 
 import os
 from pathlib import Path
-from typing import Dict, Optional, List, Union
+from typing import Dict, Optional, List, Union, Iterator
 
 import numpy as np
 
@@ -24,6 +24,22 @@ from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
 from gluonts.time_feature import get_seasonality
 
+# https://stackoverflow.com/questions/25329955/check-if-r-is-installed-from-python
+from subprocess import Popen, PIPE
+
+proc = Popen(["which", "R"], stdout=PIPE, stderr=PIPE)
+R_IS_INSTALLED = proc.wait() == 0
+
+try:
+    import rpy2.robjects.packages as rpackages
+    from rpy2 import rinterface, robjects
+    from rpy2.rinterface import RRuntimeError
+except ImportError as e:
+    rpy2_error_message = str(e)
+    RPY2_IS_INSTALLED = False
+else:
+    RPY2_IS_INSTALLED = True
+
 USAGE_MESSAGE = """
 The RForecastPredictor is a thin wrapper for calling the R forecast package.
 In order to use it you need to install R and run
@@ -32,6 +48,15 @@ pip install 'rpy2>=2.9.*,<3.*'
 
 R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
 """
+
+SAMPLE_FORECAST_METHODS = ["ets", "arima"]
+QUANTILE_FORECAST_METHODS = ["tbats", "thetaf"]
+POINT_FORECAST_METHODS = ["croston", "mlp"]
+SUPPORTED_METHODS = (
+    SAMPLE_FORECAST_METHODS
+    + QUANTILE_FORECAST_METHODS
+    + POINT_FORECAST_METHODS
+)
 
 
 class RForecastPredictor(RepresentablePredictor):
@@ -78,12 +103,11 @@ class RForecastPredictor(RepresentablePredictor):
     ) -> None:
         super().__init__(freq=freq, prediction_length=prediction_length)
 
-        try:
-            import rpy2.robjects.packages as rpackages
-            from rpy2 import rinterface, robjects
-            from rpy2.rinterface import RRuntimeError
-        except ImportError as e:
-            raise ImportError(str(e) + USAGE_MESSAGE) from e
+        if not R_IS_INSTALLED:
+            raise ImportError("R is not Installed! \n " + USAGE_MESSAGE)
+
+        if not RPY2_IS_INSTALLED:
+            raise ImportError(rpy2_error_message + USAGE_MESSAGE)
 
         self._robjects = robjects
         self._rinterface = rinterface
@@ -103,37 +127,11 @@ class RForecastPredictor(RepresentablePredictor):
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
-        supported_methods = [
-            "ets",
-            "arima",
-            "tbats",
-            "croston",
-            "mlp",
-            "thetaf",
-        ]
-
         assert (
-            method_name in supported_methods
-        ), f"method {method_name} is not supported please use one of {supported_methods}"
+            method_name in SUPPORTED_METHODS
+        ), f"method {method_name} is not supported please use one of {SUPPORTED_METHODS}"
 
         self.method_name = method_name
-
-        point_forecast_methods = ["croston", "mlp"]
-        quantile_forecast_methods = ["tbats", "thetaf"]
-
-        if self.method_name in point_forecast_methods:
-            self.point_forecasts = True
-        else:
-            self.point_forecasts = False
-
-        if self.method_name in quantile_forecast_methods:
-            self.quantlie_forecasts = True
-        else:
-            self.quantlie_forecasts = False
-
-        assert not (
-            self.point_forecasts and self.quantlie_forecasts
-        ), "A method can be either a point-forecast method or a quantile forecast method but not both!"
 
         self._stats_pkg = rpackages.importr("stats")
         self._r_method = robjects.r[method_name]
@@ -232,7 +230,7 @@ class RForecastPredictor(RepresentablePredictor):
         intervals: Optional[List] = None,
         save_info: bool = False,
         **kwargs,
-    ) -> Union[SampleForecast, QuantileForecast]:
+    ) -> Iterator[Union[SampleForecast, QuantileForecast]]:
         for data in dataset:
             if self.trunc_length:
                 data["target"] = data["target"][-self.trunc_length :]
@@ -240,9 +238,17 @@ class RForecastPredictor(RepresentablePredictor):
             params = self.params.copy()
             params["num_samples"] = num_samples
 
-            if self.point_forecasts:
+            if self.method_name in POINT_FORECAST_METHODS:
+                print(
+                    "Overriding `output_types` to `mean` since"
+                    f" {self.method_name} is a point forecast method."
+                )
                 params["output_types"] = ["mean"]
-            elif self.quantlie_forecasts:
+            elif self.method_name in QUANTILE_FORECAST_METHODS:
+                print(
+                    "Overriding `output_types` to `quantiles` since "
+                    f"{self.method_name} is a quantile forecast method."
+                )
                 params["output_types"] = ["quantiles", "mean"]
                 if intervals is None:
                     # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05.
@@ -254,7 +260,7 @@ class RForecastPredictor(RepresentablePredictor):
                 data, params, save_info=save_info
             )
 
-            if self.quantlie_forecasts:
+            if self.method_name in QUANTILE_FORECAST_METHODS:
                 quantile_forecasts_dict = forecast_dict["quantiles"]
 
                 yield QuantileForecast(
@@ -267,7 +273,7 @@ class RForecastPredictor(RepresentablePredictor):
                     item_id=data.get("item_id", None),
                 )
             else:
-                if self.point_forecasts:
+                if self.method_name in POINT_FORECAST_METHODS:
                     # Handling special cases outside of R is better, since it is more visible and is easier to change.
                     # Repeat mean forecasts `num_samples` times.
                     samples = np.reshape(

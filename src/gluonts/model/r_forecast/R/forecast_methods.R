@@ -39,10 +39,10 @@ handlePointForecast <- function(forecasts, params) {
     outputs = list()
     output_types = params$output_types
     if ("samples" %in% output_types) {
-        print("This forecasting method only produces point forecasts!")
+        print("This forecasting method only produces point forecasts! Use mean as (only) output type.")
     }
     if("quantiles" %in% output_types) {
-        print("This forecasting method only produces point forecasts!")
+        print("This forecasting method only produces point forecasts! Use mean as (only) output type.")
     }
     if("mean" %in% output_types) {
         outputs$mean <- forecasts$mean
