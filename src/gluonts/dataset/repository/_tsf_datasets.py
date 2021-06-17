@@ -22,7 +22,7 @@ from gluonts.dataset import jsonl
 from gluonts.gluonts_tqdm import tqdm
 
 from ._tsf_reader import frequency_converter, TSFReader
-from ._util import metadata, to_dict
+from ._util import metadata, to_dict, request_retrieve_hook
 
 
 class Dataset(NamedTuple):
@@ -47,7 +47,7 @@ class Dataset(NamedTuple):
             request.urlretrieve(
                 self.url,
                 filename=file_path,
-                reporthook=urllib_retrieve_hook(_tqdm),
+                reporthook=request_retrieve_hook(_tqdm),
             )
         return file_path
 
@@ -96,36 +96,6 @@ datasets = {
         record="4656103",
     ),
 }
-
-
-def urllib_retrieve_hook(tqdm):
-    """Wraps tqdm instance.
-    Don'tqdm forget to close() or __exit__()
-    the tqdm instance once you're done with it (easiest using `with` syntax).
-    Example
-    -------
-    # >>> with tqdm(...) as tqdm:
-    # ...     reporthook = my_hook(tqdm)
-    # ...     urllib.urlretrieve(..., reporthook=reporthook)
-    """
-    last_byte = 0
-
-    def update_to(block=1, block_size=1, tsize=None):
-        """
-        block  : int, optional
-            Number of blocks transferred so far [default: 1].
-        block_size  : int, optional
-            Size of each block (in tqdm units) [default: 1].
-        tsize  : int, optional
-            Total size (in tqdm units). If [default: None] remains unchanged.
-        """
-        nonlocal last_byte
-        if tsize is not None:
-            tqdm.total = tsize
-        tqdm.update((block - last_byte) * block_size)
-        last_byte = block
-
-    return update_to
 
 
 def save_metadata(
