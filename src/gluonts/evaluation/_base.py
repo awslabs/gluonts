@@ -14,7 +14,6 @@
 import logging
 import multiprocessing
 import sys
-import warnings
 from functools import partial
 from itertools import chain, tee
 from typing import (
@@ -470,7 +469,7 @@ class Evaluator:
         # Compute OWA if required
         if self.calculate_owa:
             if totals["sMAPE_naive2"] == 0 or totals["MASE_naive2"] == 0:
-                warnings.warn(
+                logging.warning(
                     "OWA cannot be computed as Naive2 yields an sMAPE or MASE of 0."
                 )
                 totals["OWA"] = np.nan
