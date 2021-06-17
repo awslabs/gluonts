@@ -11,23 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import numpy as np
+import pytest
+
 from gluonts.evaluation.metrics import (
+    abs_error,
     abs_target_mean,
     abs_target_sum,
     calculate_seasonal_error,
-    mase,
+    coverage,
     mape,
+    mase,
+    mse,
     msis,
-    owa,
     quantile_loss,
     smape,
-    mse,
-    abs_error,
-    coverage,
 )
-import numpy as np
-import pytest
-import pandas as pd
 
 ZEROES = np.array([0.0] * 5)
 LINEAR = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
@@ -51,24 +50,6 @@ CONSTANT = np.array([0.4] * 5)
                 (coverage, 0.0, {}),
                 (mape, np.nan, {}),
                 (smape, np.nan, {}),
-                (
-                    owa,
-                    np.nan,
-                    {
-                        "past_data": ZEROES,
-                        "seasonal_error": 0.0,
-                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
-                    },
-                ),
-                (
-                    owa,
-                    np.nan,
-                    {
-                        "past_data": ZEROES,
-                        "seasonal_error": 1.0,
-                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
-                    },
-                ),
             ],
         ),
         (
@@ -85,15 +66,6 @@ CONSTANT = np.array([0.4] * 5)
                 (coverage, 0.0, {}),
                 (mape, np.nan, {}),
                 (smape, np.nan, {}),
-                (
-                    owa,
-                    np.nan,
-                    {
-                        "past_data": LINEAR,
-                        "seasonal_error": 0.5,
-                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
-                    },
-                ),
             ],
         ),
         (
@@ -109,24 +81,6 @@ CONSTANT = np.array([0.4] * 5)
                 (coverage, 0.8, {}),
                 (mape, np.inf, {}),
                 (smape, 0.8304761904761906, {}),
-                (
-                    owa,
-                    np.nan,
-                    {
-                        "past_data": LINEAR,
-                        "seasonal_error": 0.0,
-                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
-                    },
-                ),
-                (
-                    owa,
-                    1.0,
-                    {
-                        "past_data": LINEAR,
-                        "seasonal_error": 0.5,
-                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
-                    },
-                ),
             ],
         ),
         (
@@ -142,15 +96,6 @@ CONSTANT = np.array([0.4] * 5)
                 (coverage, 1.0, {}),
                 (mape, np.inf, {}),
                 (smape, 2.0, {}),
-                (
-                    owa,
-                    0.61111,
-                    {
-                        "past_data": 10000 * EXPONENTIAL,
-                        "seasonal_error": 0.5,
-                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
-                    },
-                ),
             ],
         ),
         (
@@ -170,15 +115,6 @@ CONSTANT = np.array([0.4] * 5)
                 (coverage, 0.8, {}),
                 (mape, np.nan, {}),
                 (smape, np.nan, {}),
-                (
-                    owa,
-                    np.nan,
-                    {
-                        "past_data": CONSTANT,
-                        "seasonal_error": 0.5,
-                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
-                    },
-                ),
             ],
         ),
         (
@@ -198,15 +134,6 @@ CONSTANT = np.array([0.4] * 5)
                 (coverage, 0.0, {}),
                 (mape, 0.944445, {}),
                 (smape, 1.8182728, {}),
-                (
-                    owa,
-                    np.inf,
-                    {
-                        "past_data": CONSTANT,
-                        "seasonal_error": 0.5,
-                        "start_date": pd.Timestamp("2020-01-20", freq="H"),
-                    },
-                ),
             ],
         ),
     ],

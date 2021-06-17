@@ -31,6 +31,9 @@ from typing import (
 import numpy as np
 import pandas as pd
 
+from gluonts.gluonts_tqdm import tqdm
+from gluonts.model.forecast import Forecast, Quantile
+
 from .metrics import (
     abs_error,
     abs_target_mean,
@@ -41,12 +44,9 @@ from .metrics import (
     mase,
     mse,
     msis,
-    owa,
     quantile_loss,
     smape,
 )
-from gluonts.gluonts_tqdm import tqdm
-from gluonts.model.forecast import Forecast, Quantile
 
 
 def worker_function(evaluator: "Evaluator", inp: tuple):
@@ -339,7 +339,6 @@ class Evaluator:
             "MASE": mase(pred_target, median_fcst, seasonal_error),
             "MAPE": mape(pred_target, median_fcst),
             "sMAPE": smape(pred_target, median_fcst),
-            "OWA": np.nan,  # by default not calculated
         }
 
         if self.custom_eval_fn is not None:
@@ -381,12 +380,14 @@ class Evaluator:
             metrics["MSIS"] = np.nan
 
         if self.calculate_owa:
-            metrics["OWA"] = owa(
-                pred_target,
-                median_fcst,
-                past_data,
-                seasonal_error,
-                forecast.start_date,
+            from gluonts.model.naive_2 import naive_2
+
+            naive_median_forecast = naive_2(
+                past_data, len(pred_target), freq=forecast.start_date.freqstr
+            )
+            metrics["sMAPE_naive2"] = smape(pred_target, naive_median_forecast)
+            metrics["MASE_naive2"] = mase(
+                pred_target, naive_median_forecast, seasonal_error
             )
 
         for quantile in self.quantiles:
@@ -404,7 +405,7 @@ class Evaluator:
     def get_aggregate_metrics(
         self, metric_per_ts: pd.DataFrame
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
-
+        # Define how to aggregate metrics
         agg_funs = {
             "MSE": "mean",
             "abs_error": "sum",
@@ -414,9 +415,11 @@ class Evaluator:
             "MASE": "mean",
             "MAPE": "mean",
             "sMAPE": "mean",
-            "OWA": "mean",
             "MSIS": "mean",
         }
+        if self.calculate_owa:
+            agg_funs["sMAPE_naive2"] = "mean"
+            agg_funs["MASE_naive2"] = "mean"
 
         for quantile in self.quantiles:
             agg_funs[quantile.loss_name] = "sum"
@@ -430,11 +433,12 @@ class Evaluator:
             set(metric_per_ts.columns) >= agg_funs.keys()
         ), "Some of the requested item metrics are missing."
 
+        # Compute the aggregation
         totals = self.aggregation_strategy(
             metric_per_ts=metric_per_ts, agg_funs=agg_funs
         )
 
-        # derived metrics based on previous aggregate metrics
+        # Compute derived metrics
         totals["RMSE"] = np.sqrt(totals["MSE"])
         totals["NRMSE"] = totals["RMSE"] / totals["abs_target_mean"]
         totals["ND"] = totals["abs_error"] / totals["abs_target_sum"]
@@ -461,6 +465,25 @@ class Evaluator:
                 for q in self.quantiles
             ]
         )
+
+        # Compute OWA if required
+        if self.calculate_owa:
+            if totals["sMAPE_naive2"] == 0 or totals["MASE_naive2"] == 0:
+                logging.warning(
+                    "OWA cannot be computed as Naive2 yields an sMAPE or MASE of 0."
+                )
+                totals["OWA"] = np.nan
+            else:
+                totals["OWA"] = 0.5 * (
+                    totals["sMAPE"] / totals["sMAPE_naive2"]
+                    + totals["MASE"] / totals["MASE_naive2"]
+                )
+            # We get rid of the naive_2 metrics
+            del totals["sMAPE_naive2"]
+            del totals["MASE_naive2"]
+        else:
+            totals["OWA"] = np.nan
+
         return totals, metric_per_ts
 
 
