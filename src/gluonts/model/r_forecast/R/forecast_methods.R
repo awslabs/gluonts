@@ -87,3 +87,34 @@ thetaf <- function(ts, params) {
     forecasts <- forecast::thetaf(y=ts, h=params$prediction_length, level=unlist(params$intervals))
     handleQuantileForecast(forecasts, params)
 }
+
+# Adapted the implementation of STL-AR by Thiyanga Talagala to obtain desired prediction intervals.
+# Original implementation: https://rdrr.io/github/thiyangt/seer/src/R/stlar.R
+seer_stlar <- function(y, h=10, s.window=11, robust=FALSE, level=c(80, 95))
+{
+    if(frequency(y)==1 | length(y) <= 2*frequency(y))
+        return(forecast::forecast(forecast::auto.arima(y, max.q=0), h=h, level=level))
+
+    fit_stlm <- forecast::stlm(y, s.window=s.window, robust=robust, modelfunction=ar)
+    forecast::forecast(fit_stlm, h=h, level=level)
+}
+
+stlar <- function(ts, params) {
+    h = params$prediction_length
+    level = unlist(params$intervals)
+
+    if("s_window" %in% params) {
+        s_window = params$s_window
+    } else {
+        s_window = 11
+    }
+
+    if("robust" %in% params) {
+        roubst = params$robust
+    } else {
+        robust = FALSE
+    }
+
+    forecasts <- seer_stlar(y=ts, h=h, s.window=s_window, robust=robust, level=level)
+    handleQuantileForecast(forecasts, params)
+}

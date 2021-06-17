@@ -18,7 +18,6 @@ from typing import Dict, Iterator, NamedTuple, Optional, Tuple
 import pandas as pd
 
 import gluonts  # noqa
-from gluonts.transform import AdhocTransform
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import (
@@ -30,6 +29,7 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import maybe_len
+from gluonts.transform import AdhocTransform
 
 
 def make_evaluation_predictions(

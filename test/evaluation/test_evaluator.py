@@ -440,7 +440,7 @@ INPUT_TYPE = [iterable, iterable, iterable, iterator, iterator, iterable]
 def test_metrics(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
     evaluator = Evaluator(quantiles=QUANTILES, num_workers=None)
-    agg_metrics, item_metrics = calculate_metrics(
+    agg_metrics, _ = calculate_metrics(
         timeseries,
         evaluator,
         ts_datastructure,
