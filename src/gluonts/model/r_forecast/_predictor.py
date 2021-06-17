@@ -50,7 +50,7 @@ R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.or
 """
 
 SAMPLE_FORECAST_METHODS = ["ets", "arima"]
-QUANTILE_FORECAST_METHODS = ["tbats", "thetaf"]
+QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar"]
 POINT_FORECAST_METHODS = ["croston", "mlp"]
 SUPPORTED_METHODS = (
     SAMPLE_FORECAST_METHODS
@@ -231,6 +231,17 @@ class RForecastPredictor(RepresentablePredictor):
         save_info: bool = False,
         **kwargs,
     ) -> Iterator[Union[SampleForecast, QuantileForecast]]:
+        if self.method_name in POINT_FORECAST_METHODS:
+            print(
+                "Overriding `output_types` to `mean` since"
+                f" {self.method_name} is a point forecast method."
+            )
+        elif self.method_name in QUANTILE_FORECAST_METHODS:
+            print(
+                "Overriding `output_types` to `quantiles` since "
+                f"{self.method_name} is a quantile forecast method."
+            )
+
         for data in dataset:
             if self.trunc_length:
                 data["target"] = data["target"][-self.trunc_length :]
@@ -239,16 +250,8 @@ class RForecastPredictor(RepresentablePredictor):
             params["num_samples"] = num_samples
 
             if self.method_name in POINT_FORECAST_METHODS:
-                print(
-                    "Overriding `output_types` to `mean` since"
-                    f" {self.method_name} is a point forecast method."
-                )
                 params["output_types"] = ["mean"]
             elif self.method_name in QUANTILE_FORECAST_METHODS:
-                print(
-                    "Overriding `output_types` to `quantiles` since "
-                    f"{self.method_name} is a quantile forecast method."
-                )
                 params["output_types"] = ["quantiles", "mean"]
                 if intervals is None:
                     # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05.
