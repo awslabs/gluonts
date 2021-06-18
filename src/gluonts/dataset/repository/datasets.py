@@ -26,6 +26,9 @@ from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
 from gluonts.dataset.repository._m3 import generate_m3_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._m5 import generate_m5_dataset
+from gluonts.dataset.repository._tsf_datasets import (
+    generate_forecasting_dataset,
+)
 from gluonts.support.util import get_download_path
 
 dataset_recipes = OrderedDict(
@@ -61,6 +64,46 @@ dataset_recipes = OrderedDict(
         ),
         "taxi_30min": partial(
             generate_gp_copula_dataset, dataset_name="taxi_30min"
+        ),
+        "kaggle_web_traffic_with_missing": partial(
+            generate_forecasting_dataset,
+            dataset_name="kaggle_web_traffic_with_missing",
+        ),
+        "kaggle_web_traffic_without_missing": partial(
+            generate_forecasting_dataset,
+            dataset_name="kaggle_web_traffic_without_missing",
+        ),
+        "kaggle_web_traffic_weekly": partial(
+            generate_forecasting_dataset,
+            dataset_name="kaggle_web_traffic_weekly",
+        ),
+        "m1_yearly": partial(
+            generate_forecasting_dataset, dataset_name="m1_yearly"
+        ),
+        "m1_quarterly": partial(
+            generate_forecasting_dataset, dataset_name="m1_quarterly"
+        ),
+        "m1_monthly": partial(
+            generate_forecasting_dataset, dataset_name="m1_monthly"
+        ),
+        "nn5_daily_with_missing": partial(
+            generate_forecasting_dataset, dataset_name="nn5_daily_with_missing"
+        ),
+        "nn5_daily_without_missing": partial(
+            generate_forecasting_dataset,
+            dataset_name="nn5_daily_without_missing",
+        ),
+        "nn5_weekly": partial(
+            generate_forecasting_dataset, dataset_name="nn5_weekly"
+        ),
+        "tourism_monthly": partial(
+            generate_forecasting_dataset, dataset_name="tourism_monthly"
+        ),
+        "tourism_quarterly": partial(
+            generate_forecasting_dataset, dataset_name="tourism_quarterly"
+        ),
+        "tourism_yearly": partial(
+            generate_forecasting_dataset, dataset_name="tourism_yearly"
         ),
         "m3_monthly": partial(generate_m3_dataset, m3_freq="monthly"),
         "m3_quarterly": partial(generate_m3_dataset, m3_freq="quarterly"),

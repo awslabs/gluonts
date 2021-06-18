@@ -28,7 +28,8 @@ def load(file_obj):
 
 def dump(objects, file_obj):
     for object_ in objects:
-        file_obj.writeline(json.dumps(object_))
+        file_obj.write(json.dumps(object_))
+        file_obj.write("\n")
 
 
 class Span(NamedTuple):

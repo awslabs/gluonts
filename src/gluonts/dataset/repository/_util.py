@@ -66,3 +66,31 @@ def metadata(
             {"name": "feat_static_cat", "cardinality": str(cardinality)}
         ],
     }
+
+
+def request_retrieve_hook(tqdm):
+    """Wraps tqdm instance, usable in request.urlretrieve
+    the tqdm instance once you're done with it (easiest using `with` syntax).
+    Example
+    -------
+    # >>> with tqdm(...) as _tqdm:
+    # ...     request.urlretrieve(..., reporthook=request_retrieve_hook(_tqdm))
+    """
+    last_byte = 0
+
+    def update_to(block=1, block_size=1, tsize=None):
+        """
+        block  : int, optional
+            Number of blocks transferred so far [default: 1].
+        block_size  : int, optional
+            Size of each block (in tqdm units) [default: 1].
+        tsize  : int, optional
+            Total size (in tqdm units). If [default: None] remains unchanged.
+        """
+        nonlocal last_byte
+        if tsize is not None:
+            tqdm.total = tsize
+        tqdm.update((block - last_byte) * block_size)
+        last_byte = block
+
+    return update_to
