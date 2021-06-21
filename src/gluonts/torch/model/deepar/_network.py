@@ -24,6 +24,7 @@ from gluonts.torch.modules.distribution_output import (
     DistributionOutput,
     StudentTOutput,
 )
+from gluonts.torch.modules.loss import NegativeLogLikelihood
 from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
 from gluonts.torch.util import weighted_average
@@ -163,7 +164,7 @@ class DeepARNetwork(nn.Module):
     ) -> Tuple[
         torch.Tensor, Union[torch.Tensor, List], torch.Tensor, torch.Tensor
     ]:
-        if not self.training:
+        if future_target is None:
             time_feat = past_time_feat[:, -self.context_length :, ...]
             sequence = past_target
             subsequences_length = self.context_length
@@ -354,8 +355,8 @@ class DeepARNetwork(nn.Module):
         past_observed_values: torch.Tensor,
         future_time_feat: torch.Tensor,
         future_target: Optional[torch.Tensor] = None,
-        future_observed_values: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+        sampling: Optional[bool] = None,
+    ) -> Union[torch.Tensor, torch.distributions.Distribution]:
         rnn_outputs, state, scale, static_feat = self.unroll_encoder(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
@@ -366,7 +367,7 @@ class DeepARNetwork(nn.Module):
             future_target=future_target,
         )
 
-        if not self.training:
+        if (sampling is None and not self.training) or sampling == True:
             return self.sampling_decoder(
                 past_target=past_target,
                 time_feat=future_time_feat,
@@ -377,50 +378,72 @@ class DeepARNetwork(nn.Module):
 
         distr_args = self.proj_distr_args(rnn_outputs)
 
-        distr = self.distr_output.distribution(distr_args, scale=scale)
-
-        # put together target sequence
-        # (batch_size, seq_len, *target_shape)
-        target = torch.cat(
-            (
-                past_target[:, -self.context_length :, ...],
-                future_target,
-            ),
-            dim=1,
-        )
-
-        # (batch_size, seq_len)
-        loss = -distr.log_prob(target)
-
-        # (batch_size, seq_len, *target_shape)
-        observed_values = torch.cat(
-            (
-                past_observed_values[:, -self.context_length :, ...],
-                future_observed_values,
-            ),
-            dim=1,
-        )
-
-        # mask the loss at one time step iff one or more observations is missing in the target dimensions
-        # (batch_size, seq_len)
-        loss_weights = (
-            observed_values
-            if (len(self.target_shape) == 0)
-            else observed_values.min(dim=-1, keepdim=False)
-        )
-
-        return weighted_average(loss, weights=loss_weights)
+        return self.distr_output.distribution(distr_args, scale=scale)
 
 
 class DeepARLightningNetwork(DeepARNetwork, pl.LightningModule):
-    def training_step(self, *args, **kwargs):
-        """Execute a training step"""
-        return self(**args[0])
+    def __init__(
+        self,
+        *args,
+        loss: torch.nn.Module = NegativeLogLikelihood(),
+        optimizer: Optional[torch.optim.Optimizer] = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.loss = loss
+        self.optimizer = optimizer or torch.optim.Adam(
+            self.parameters(), lr=1e-3
+        )
 
-    def validation_step(self, *args, **kwargs):
-        """Execute a validation step"""
-        return self(**args[0])
+    def _compute_loss(
+        self,
+        distr,
+        past_target,
+        future_target,
+        past_observed_values,
+        future_observed_values,
+    ):
+        context_target = past_target[:, -self.context_length :, ...]
+        target = torch.cat((context_target, future_target), dim=1)
+        loss = self.loss(distr, target)
+
+        context_observed = past_observed_values[:, -self.context_length :, ...]
+        observed_values = torch.cat(
+            (context_observed, future_observed_values), dim=1
+        )
+
+        if len(self.target_shape) == 0:
+            loss_weights = observed_values
+        else:
+            loss_weights = observed_values.min(dim=-1, keepdim=False)
+
+        return weighted_average(loss, weights=loss_weights)
+
+    def _loss_step(self, batch):
+        distr = self(
+            batch["feat_static_cat"],
+            batch["feat_static_real"],
+            batch["past_time_feat"],
+            batch["past_target"],
+            batch["past_observed_values"],
+            batch["future_time_feat"],
+            batch["future_target"],
+            sampling=False,
+        )
+        return self._compute_loss(
+            distr,
+            batch["past_target"],
+            batch["future_target"],
+            batch["past_observed_values"],
+            batch["future_observed_values"],
+        )
+
+    def training_step(self, batch, *args, **kwargs):
+        return self._loss_step(batch)
+
+    def validation_step(self, batch, *args, **kwargs):
+        return self._loss_step(batch)
 
     def configure_optimizers(self):
         """Selects what optimizer to use"""
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
+        return self.optimizer

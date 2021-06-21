@@ -11,12 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._estimator import DeepAREstimator
-from ._network import DeepARNetwork, DeepARLightningNetwork
+import torch
 
-__all__ = ["DeepAREstimator", "DeepARNetwork", "DeepARLightningNetwork"]
 
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+class NegativeLogLikelihood(torch.nn.Module):
+    def forward(
+        self, input: torch.distributions.Distribution, target: torch.Tensor
+    ) -> torch.Tensor:
+        return -input.log_prob(target)

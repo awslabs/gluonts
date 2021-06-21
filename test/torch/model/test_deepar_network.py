@@ -15,7 +15,7 @@ from typing import List, Optional
 import torch
 import pytest
 
-from gluonts.torch.model.deepar import DeepARNetwork
+from gluonts.torch.model.deepar import DeepARNetwork, DeepARLightningNetwork
 
 
 @pytest.mark.parametrize(
@@ -33,9 +33,13 @@ def test_deepar_network_forward(
     num_feat_static_cat: int,
     cardinality: Optional[List[int]],
 ):
-    network = DeepARNetwork(
+    prediction_length = 6
+    context_length = 12
+
+    network = DeepARLightningNetwork(
         freq="1H",
-        prediction_length=6,
+        prediction_length=prediction_length,
+        context_length=context_length,
         num_feat_dynamic_real=num_feat_dynamic_real,
         num_feat_static_real=num_feat_static_real,
         num_feat_static_cat=num_feat_static_cat,
@@ -46,15 +50,15 @@ def test_deepar_network_forward(
     feat_static_cat = torch.zeros(4, num_feat_static_cat, dtype=torch.long)
     feat_static_real = torch.ones(4, num_feat_static_real)
     past_time_feat = torch.ones(4, network._past_length, num_feat_dynamic_real)
-    future_time_feat = torch.ones(4, 6, num_feat_dynamic_real)
+    future_time_feat = torch.ones(4, prediction_length, num_feat_dynamic_real)
     past_target = torch.ones(4, network._past_length)
     past_observed_values = torch.ones(4, network._past_length)
-    future_target = torch.ones(4, 6)
-    future_observed_values = torch.ones(4, 6)
+    future_target = torch.ones(4, prediction_length)
+    future_observed_values = torch.ones(4, prediction_length)
 
     network.train()
 
-    out = network(
+    distr = network(
         feat_static_cat,
         feat_static_real,
         past_time_feat,
@@ -62,14 +66,28 @@ def test_deepar_network_forward(
         past_observed_values,
         future_time_feat,
         future_target,
-        future_observed_values,
     )
 
-    assert out.shape == ()
+    assert distr.batch_shape == (4, context_length + prediction_length)
+    assert distr.event_shape == ()
+
+    batch = dict(
+        feat_static_cat=feat_static_cat,
+        feat_static_real=feat_static_real,
+        past_time_feat=past_time_feat,
+        future_time_feat=future_time_feat,
+        past_target=past_target,
+        past_observed_values=past_observed_values,
+        future_target=future_target,
+        future_observed_values=future_observed_values,
+    )
+
+    assert network.training_step(batch).shape == (4,)
+    assert network.validation_step(batch).shape == (4,)
 
     network.eval()
 
-    out = network(
+    samples = network(
         feat_static_cat,
         feat_static_real,
         past_time_feat,
@@ -78,4 +96,4 @@ def test_deepar_network_forward(
         future_time_feat,
     )
 
-    assert out.shape == (4, 100, 6)
+    assert samples.shape == (4, 100, prediction_length)

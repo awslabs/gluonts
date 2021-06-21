@@ -58,6 +58,20 @@ from ._network import (
     DeepARNetwork,
 )
 
+PREDICTION_INPUT_NAMES = [
+    "feat_static_cat",
+    "feat_static_real",
+    "past_time_feat",
+    "past_target",
+    "past_observed_values",
+    "future_time_feat",
+]
+
+TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
+    "future_target",
+    "future_observed_values",
+]
+
 
 class DeepAREstimator(PyTorchLightningEstimator):
     @validated()
@@ -231,10 +245,9 @@ class DeepAREstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        input_names = get_forward_input_names(DeepARNetwork)
         transformation = self._create_instance_splitter(
             network, "training"
-        ) + SelectFields(input_names)
+        ) + SelectFields(TRAINING_INPUT_NAMES)
 
         training_instances = transformation.apply(
             Cyclic(data)
@@ -259,10 +272,9 @@ class DeepAREstimator(PyTorchLightningEstimator):
         network: DeepARNetwork,
         **kwargs,
     ) -> Iterable:
-        input_names = get_forward_input_names(DeepARNetwork)
         transformation = self._create_instance_splitter(
             network, "validation"
-        ) + SelectFields(input_names)
+        ) + SelectFields(TRAINING_INPUT_NAMES)
 
         validation_instances = transformation.apply(data)
 
@@ -297,15 +309,14 @@ class DeepAREstimator(PyTorchLightningEstimator):
     def create_predictor(
         self,
         transformation: Transformation,
-        network: DeepARNetwork,
+        network: DeepARLightningNetwork,
         device: torch.device,
     ) -> PyTorchPredictor:
-        input_names = get_forward_input_names(DeepARNetwork)
         prediction_splitter = self._create_instance_splitter(network, "test")
 
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
-            input_names=input_names,
+            input_names=PREDICTION_INPUT_NAMES,
             prediction_net=network,
             batch_size=self.batch_size,
             freq=self.freq,
