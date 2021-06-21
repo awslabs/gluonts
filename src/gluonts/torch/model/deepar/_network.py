@@ -438,10 +438,13 @@ class DeepARLightningNetwork(DeepARNetwork, pl.LightningModule):
         )
 
     def training_step(self, batch, *args, **kwargs):
+        """Execute training step"""
         return self._loss_step(batch)
 
     def validation_step(self, batch, *args, **kwargs):
+        """Execute validation step"""
         return self._loss_step(batch)
 
     def configure_optimizers(self):
+        """Returns the optimizer to use"""
         return self.optimizer
