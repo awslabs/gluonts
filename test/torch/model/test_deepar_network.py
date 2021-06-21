@@ -15,7 +15,7 @@ from typing import List, Optional
 import torch
 import pytest
 
-from gluonts.torch.model.deepar import DeepARNetwork, DeepARLightningNetwork
+from gluonts.torch.model.deepar import DeepARLightningNetwork
 
 
 @pytest.mark.parametrize(
@@ -82,8 +82,8 @@ def test_deepar_network_forward(
         future_observed_values=future_observed_values,
     )
 
-    assert network.training_step(batch).shape == (4,)
-    assert network.validation_step(batch).shape == (4,)
+    assert network.training_step(batch).shape == ()
+    assert network.validation_step(batch).shape == ()
 
     network.eval()
 

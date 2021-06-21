@@ -43,7 +43,6 @@ from gluonts.transform import (
     SelectFields,
 )
 from gluonts.torch.util import (
-    get_forward_input_names,
     IterableDataset,
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator

@@ -24,7 +24,7 @@ from gluonts.torch.modules.distribution_output import (
     DistributionOutput,
     StudentTOutput,
 )
-from gluonts.torch.modules.loss import NegativeLogLikelihood
+from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
 from gluonts.torch.util import weighted_average
@@ -367,25 +367,24 @@ class DeepARNetwork(nn.Module):
             future_target=future_target,
         )
 
-        if (sampling is None and not self.training) or sampling == True:
-            return self.sampling_decoder(
-                past_target=past_target,
-                time_feat=future_time_feat,
-                static_feat=static_feat,
-                scale=scale,
-                begin_states=state,
-            )
+        if sampling is False or (sampling is None and self.training):
+            distr_args = self.proj_distr_args(rnn_outputs)
+            return self.distr_output.distribution(distr_args, scale=scale)
 
-        distr_args = self.proj_distr_args(rnn_outputs)
-
-        return self.distr_output.distribution(distr_args, scale=scale)
+        return self.sampling_decoder(
+            past_target=past_target,
+            time_feat=future_time_feat,
+            static_feat=static_feat,
+            scale=scale,
+            begin_states=state,
+        )
 
 
 class DeepARLightningNetwork(DeepARNetwork, pl.LightningModule):
     def __init__(
         self,
         *args,
-        loss: torch.nn.Module = NegativeLogLikelihood(),
+        loss: DistributionLoss = NegativeLogLikelihood(),
         optimizer: Optional[torch.optim.Optimizer] = None,
         **kwargs,
     ) -> None:
@@ -445,5 +444,4 @@ class DeepARLightningNetwork(DeepARNetwork, pl.LightningModule):
         return self._loss_step(batch)
 
     def configure_optimizers(self):
-        """Selects what optimizer to use"""
         return self.optimizer

@@ -14,7 +14,38 @@
 import torch
 
 
-class NegativeLogLikelihood(torch.nn.Module):
+class DistributionLoss(torch.nn.Module):
+    """A ``torch.nn.Module`` extensions that computes loss values by comparing a ``Distribution``
+    (prediction) to a ``Tensor`` (ground-truth).
+    """
+
+    def forward(
+        self, input: torch.distributions.Distribution, target: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Compute the loss of predicting ``target`` with the ``input`` distribution.
+
+        Parameters
+        ----------
+        input
+            Distribution object representing the prediction.
+        target
+            Tensor containing the ground truth.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing loss values, with the same shape as ``target``.
+
+        Raises
+        ------
+        NotImplementedError
+            [description]
+        """
+        raise NotImplementedError
+
+
+class NegativeLogLikelihood(DistributionLoss):
     def forward(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:

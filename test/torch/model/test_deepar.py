@@ -17,7 +17,6 @@ from pathlib import Path
 
 import pytorch_lightning as pl
 
-from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.deepar import DeepAREstimator
