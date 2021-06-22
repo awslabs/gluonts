@@ -391,7 +391,7 @@ class DeepARLightningNetwork(DeepARNetwork, pl.LightningModule):
         super().__init__(*args, **kwargs)
         self.loss = loss
         self.optimizer = optimizer or torch.optim.Adam(
-            self.parameters(), lr=1e-3
+            self.parameters(), lr=1e-3, weight_decay=1e-8
         )
 
     def _compute_loss(

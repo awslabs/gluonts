@@ -78,7 +78,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self,
         freq: str,
         prediction_length: int,
-        trainer: pl.Trainer = pl.Trainer(),
+        trainer: pl.Trainer = pl.Trainer(max_epochs=100),
         context_length: Optional[int] = None,
         num_layers: int = 2,
         num_cells: int = 40,
@@ -257,10 +257,12 @@ class DeepAREstimator(PyTorchLightningEstimator):
         )
 
         return IterableSlice(
-            DataLoader(
-                IterableDataset(training_instances),
-                batch_size=self.batch_size,
-                **kwargs,
+            iter(
+                DataLoader(
+                    IterableDataset(training_instances),
+                    batch_size=self.batch_size,
+                    **kwargs,
+                )
             ),
             self.num_batches_per_epoch,
         )
@@ -308,7 +310,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
     def create_predictor(
         self,
         transformation: Transformation,
-        network: DeepARLightningNetwork,
+        network: DeepARNetwork,
         device: torch.device,
     ) -> PyTorchPredictor:
         prediction_splitter = self._create_instance_splitter(network, "test")
