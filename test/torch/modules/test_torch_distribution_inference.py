@@ -105,6 +105,7 @@ def maximum_likelihood_estimate_sgd(
     ]
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("concentration1, concentration0", [(3.75, 1.25)])
 def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
     """
@@ -143,6 +144,7 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
     ), f"concentration0 did not match: concentration0 = {concentration0}, concentration0_hat = {concentration0_hat}"
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("concentration, rate", [(3.75, 1.25)])
 def test_gamma_likelihood(concentration: float, rate: float) -> None:
     """
@@ -177,6 +179,7 @@ def test_gamma_likelihood(concentration: float, rate: float) -> None:
     ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("loc, scale,", [(1.0, 0.1)])
 def test_normal_likelihood(loc: float, scale: float):
 
@@ -207,6 +210,7 @@ def test_normal_likelihood(loc: float, scale: float):
     ), f"scale did not match: scale = {scale}, scale_hat = {scale_hat}"
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("df, loc, scale,", [(6.0, 2.3, 0.7)])
 def test_studentT_likelihood(df: float, loc: float, scale: float):
 
@@ -242,6 +246,7 @@ def test_studentT_likelihood(df: float, loc: float, scale: float):
     ), f"scale did not match: scale = {scale}, scale_hat = {scale_hat}"
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("rate", [1.0])
 def test_poisson(rate: float) -> None:
     """
