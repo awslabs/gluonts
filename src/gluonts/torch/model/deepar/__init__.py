@@ -11,10 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._estimator import DeepAREstimator
-from ._network import DeepARNetwork, DeepARLightningNetwork
+from ._module import (
+    LaggedLSTM,
+    DeepARModel,
+)
 
-__all__ = ["DeepAREstimator", "DeepARNetwork", "DeepARLightningNetwork"]
+from ._lightning_module import DeepARLightningModule
+
+# from ._estimator import DeepAREstimator
+
+__all__ = [
+    "LaggedLSTM",
+    "DeepARModel",
+    "DeepARLightningModule",
+    # "DeepARSampler",
+    # "DeepAREstimator",
+]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:

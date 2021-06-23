@@ -46,13 +46,9 @@ class PyTorchLightningEstimator(Estimator):
         self,
         trainer: pl.Trainer,
         lead_time: int = 0,
-        device: torch.device = torch.device("cpu"),
-        dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__(lead_time=lead_time)
         self.trainer = trainer
-        self.device = device
-        self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
         """
@@ -66,7 +62,7 @@ class PyTorchLightningEstimator(Estimator):
         """
         raise NotImplementedError
 
-    def create_network(self) -> nn.Module:
+    def create_lightning_module(self) -> pl.LightningModule:
         """
         Create and return the network used for training (i.e., computing the
         loss).
@@ -82,7 +78,6 @@ class PyTorchLightningEstimator(Estimator):
         self,
         transformation: Transformation,
         network: nn.Module,
-        device: torch.device,
     ) -> PyTorchPredictor:
         """
         Create and return a predictor object.
@@ -119,7 +114,7 @@ class PyTorchLightningEstimator(Estimator):
             training_data, transformation, is_train=True
         )
 
-        training_network = self.create_network().to(self.device, self.dtype)
+        training_network = self.create_lightning_module()
 
         training_data_loader = self.create_training_data_loader(
             transformed_training_data
@@ -153,9 +148,7 @@ class PyTorchLightningEstimator(Estimator):
         return TrainOutput(
             transformation=transformation,
             trained_net=training_network,
-            predictor=self.create_predictor(
-                transformation, training_network, self.device
-            ),
+            predictor=self.create_predictor(transformation, training_network),
         )
 
     @staticmethod

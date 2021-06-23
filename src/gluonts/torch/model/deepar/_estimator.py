@@ -26,6 +26,7 @@ from gluonts.time_feature import (
     TimeFeature,
     time_features_from_frequency_str,
 )
+from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
     Transformation,
     Chain,
@@ -52,10 +53,8 @@ from gluonts.torch.modules.distribution_output import (
     StudentTOutput,
 )
 
-from ._network import (
-    DeepARLightningNetwork,
-    DeepARNetwork,
-)
+from ._module import DeepARModel, DeepARSampler
+from ._lightning_module import DeepARLightningModule
 
 PREDICTION_INPUT_NAMES = [
     "feat_static_cat",
@@ -91,11 +90,11 @@ class DeepAREstimator(PyTorchLightningEstimator):
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
         distr_output: DistributionOutput = StudentTOutput(),
+        loss: DistributionLoss = NegativeLogLikelihood(),
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
-        dtype: np.dtype = np.float32,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
     ) -> None:
@@ -107,7 +106,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         )
         self.prediction_length = prediction_length
         self.distr_output = distr_output
-        self.distr_output.dtype = dtype
+        self.loss = loss
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
@@ -213,7 +212,9 @@ class DeepAREstimator(PyTorchLightningEstimator):
             ]
         )
 
-    def _create_instance_splitter(self, network: DeepARNetwork, mode: str):
+    def _create_instance_splitter(
+        self, module: DeepARLightningModule, mode: str
+    ):
         assert mode in ["training", "validation", "test"]
 
         instance_sampler = {
@@ -228,7 +229,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
             instance_sampler=instance_sampler,
-            past_length=network._past_length,
+            past_length=module.model._past_length,
             future_length=self.prediction_length,
             time_series_fields=[
                 FieldName.FEAT_TIME,
@@ -240,12 +241,12 @@ class DeepAREstimator(PyTorchLightningEstimator):
     def create_training_data_loader(
         self,
         data: Dataset,
-        network: DeepARNetwork,
+        module: DeepARLightningModule,
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
         transformation = self._create_instance_splitter(
-            network, "training"
+            module, "training"
         ) + SelectFields(TRAINING_INPUT_NAMES)
 
         training_instances = transformation.apply(
@@ -270,11 +271,11 @@ class DeepAREstimator(PyTorchLightningEstimator):
     def create_validation_data_loader(
         self,
         data: Dataset,
-        network: DeepARNetwork,
+        module: DeepARLightningModule,
         **kwargs,
     ) -> Iterable:
         transformation = self._create_instance_splitter(
-            network, "validation"
+            module, "validation"
         ) + SelectFields(TRAINING_INPUT_NAMES)
 
         validation_instances = transformation.apply(data)
@@ -285,10 +286,9 @@ class DeepAREstimator(PyTorchLightningEstimator):
             **kwargs,
         )
 
-    def create_network(self) -> DeepARLightningNetwork:
-        return DeepARLightningNetwork(
+    def create_lightning_module(self) -> DeepARLightningModule:
+        model = DeepARModel(
             freq=self.freq,
-            prediction_length=self.prediction_length,
             num_feat_dynamic_real=1
             + self.num_feat_dynamic_real
             + len(self.time_features),
@@ -304,23 +304,22 @@ class DeepAREstimator(PyTorchLightningEstimator):
             dropout_rate=self.dropout_rate,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
-            num_parallel_samples=self.num_parallel_samples,
         )
+
+        return DeepARLightningModule(model=model, loss=self.loss)
 
     def create_predictor(
         self,
         transformation: Transformation,
-        network: DeepARNetwork,
-        device: torch.device,
+        module: DeepARLightningModule,
     ) -> PyTorchPredictor:
-        prediction_splitter = self._create_instance_splitter(network, "test")
+        prediction_splitter = self._create_instance_splitter(module, "test")
 
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
-            prediction_net=network,
+            prediction_net=module.model,
             batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
-            device=device,
         )
