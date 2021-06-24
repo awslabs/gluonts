@@ -17,7 +17,7 @@ import torch
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import weighted_average
 
-from ._module import DeepARModel
+from .module import DeepARModel
 
 
 class DeepARLightningModule(pl.LightningModule):
@@ -35,20 +35,25 @@ class DeepARLightningModule(pl.LightningModule):
         self.weight_decay = weight_decay
 
     def _compute_loss(self, batch):
-        params, scale, _, _ = self.model.unroll_lagged_rnn(
-            batch["feat_static_cat"],
-            batch["feat_static_real"],
-            batch["past_time_feat"],
-            batch["past_target"],
-            batch["past_observed_values"],
-            batch["future_time_feat"],
-            batch["future_target"],
-        )
-        distr = self.model.output_distribution(params, scale)
+        feat_static_cat = batch["feat_static_cat"]
+        feat_static_real = batch["feat_static_real"]
+        past_time_feat = batch["past_time_feat"]
         past_target = batch["past_target"]
+        future_time_feat = batch["future_time_feat"]
         future_target = batch["future_target"]
         past_observed_values = batch["past_observed_values"]
         future_observed_values = batch["future_observed_values"]
+
+        params, scale, _, _ = self.model.unroll_lagged_rnn(
+            feat_static_cat,
+            feat_static_real,
+            past_time_feat,
+            past_target,
+            past_observed_values,
+            future_time_feat,
+            future_target,
+        )
+        distr = self.model.output_distribution(params, scale)
 
         context_target = past_target[:, -self.model.context_length + 1 :]
         target = torch.cat(

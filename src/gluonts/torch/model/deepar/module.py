@@ -27,98 +27,6 @@ from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
 
 
-class LaggedLSTM(nn.Module):
-    def __init__(
-        self,
-        input_size: int,
-        features_size: int,
-        num_layers: int = 2,
-        hidden_size: int = 40,
-        dropout_rate: float = 0.1,
-        lags_seq: Optional[List[int]] = None,
-    ) -> None:
-        super().__init__()
-        self.input_size = input_size
-        self.features_size = features_size
-        self.dropout_rate = dropout_rate
-        self.lags_seq = lags_seq
-        self.rnn = nn.LSTM(
-            input_size=input_size * len(self.lags_seq) + features_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout_rate,
-            batch_first=True,
-        )
-
-    def get_lagged_subsequences(
-        self,
-        sequence: torch.Tensor,
-        subsequences_length: int,
-    ) -> torch.Tensor:
-        """
-        Returns lagged subsequences of a given sequence.
-
-        Parameters
-        ----------
-        sequence : Tensor
-            the sequence from which lagged subsequences should be extracted.
-            Shape: (N, T, C).
-        subsequences_length : int
-            length of the subsequences to be extracted.
-
-        Returns
-        --------
-        lagged : Tensor
-            a tensor of shape (N, S, C, I), where S = subsequences_length and
-            I = len(indices), containing lagged subsequences. Specifically,
-            lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
-        """
-        sequence_length = sequence.shape[1]
-        indices = self.lags_seq
-
-        assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag {max(indices)} "
-            f"while history length is only {sequence_length}"
-        )
-
-        lagged_values = []
-        for lag_index in indices:
-            begin_index = -lag_index - subsequences_length
-            end_index = -lag_index if lag_index > 0 else None
-            lagged_values.append(sequence[:, begin_index:end_index, ...])
-        return torch.stack(lagged_values, dim=-1)
-
-    def forward(
-        self,
-        prior_input: torch.Tensor,
-        input: torch.Tensor,
-        features: Optional[torch.Tensor] = None,
-        state: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
-    ):
-        sequence = torch.cat((prior_input, input), dim=1)
-        lagged_target_sequence = self.get_lagged_subsequences(
-            sequence=sequence,
-            subsequences_length=input.shape[1],
-        )
-
-        expected_shape = input.shape[:2] + (
-            self.input_size * len(self.lags_seq),
-        )
-        assert (
-            lagged_target_sequence.shape == expected_shape
-        ), f"got shape {lagged_target_sequence.shape}, expected {expected_shape}"
-
-        if features is None:
-            rnn_input = lagged_target_sequence
-        else:
-            rnn_input = torch.cat((lagged_target_sequence, features), dim=-1)
-
-        if state is None:
-            return self.rnn(rnn_input)
-        else:
-            return self.rnn(rnn_input, state)
-
-
 class DeepARModel(nn.Module):
     @validated()
     def __init__(
@@ -246,6 +154,7 @@ class DeepARModel(nn.Module):
         params = self.param_proj(output)
         return params, scale, static_feat, new_state
 
+    @torch.jit.ignore
     def output_distribution(
         self, params, scale, trailing_n=None
     ) -> torch.distributions.Distribution:
@@ -262,7 +171,11 @@ class DeepARModel(nn.Module):
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
         future_time_feat: torch.Tensor,
+        num_parallel_samples: Optional[int] = None,
     ) -> torch.Tensor:
+        if num_parallel_samples is None:
+            num_parallel_samples = self.num_parallel_samples
+
         params, scale, static_feat, state = self.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
@@ -321,3 +234,113 @@ class DeepARModel(nn.Module):
             repeated_past_target[:, -self.prediction_length :],
             (-1, self.num_parallel_samples, self.prediction_length),
         )
+
+
+class LaggedLSTM(nn.Module):
+    def __init__(
+        self,
+        input_size: int,
+        features_size: int,
+        num_layers: int = 2,
+        hidden_size: int = 40,
+        dropout_rate: float = 0.1,
+        lags_seq: Optional[List[int]] = None,
+    ) -> None:
+        super().__init__()
+        self.input_size = input_size
+        self.features_size = features_size
+        self.dropout_rate = dropout_rate
+        self.lags_seq = lags_seq
+        self.rnn_input_size = input_size * len(self.lags_seq) + features_size
+        self.rnn = nn.LSTM(
+            input_size=self.rnn_input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            dropout=dropout_rate,
+            batch_first=True,
+        )
+
+    def get_lagged_subsequences(
+        self,
+        sequence: torch.Tensor,
+        subsequences_length: int,
+    ) -> torch.Tensor:
+        """
+        Returns lagged subsequences of a given sequence.
+
+        Parameters
+        ----------
+        sequence : Tensor
+            the sequence from which lagged subsequences should be extracted.
+            Shape: (N, T, C).
+        subsequences_length : int
+            length of the subsequences to be extracted.
+
+        Returns
+        --------
+        lagged : Tensor
+            a tensor of shape (N, S, C, I), where S = subsequences_length and
+            I = len(indices), containing lagged subsequences. Specifically,
+            lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
+        """
+        sequence_length = sequence.shape[1]
+        indices = self.lags_seq
+
+        assert max(indices) + subsequences_length <= sequence_length, (
+            f"lags cannot go further than history length, found lag {max(indices)} "
+            f"while history length is only {sequence_length}"
+        )
+
+        lagged_values = []
+        for lag_index in indices:
+            begin_index = -lag_index - subsequences_length
+            end_index = -lag_index if lag_index > 0 else None
+            lagged_values.append(sequence[:, begin_index:end_index, ...])
+        return torch.stack(lagged_values, dim=-1)
+
+    def _check_shapes(
+        self,
+        prior_input: torch.Tensor,
+        input: torch.Tensor,
+        features: Optional[torch.Tensor],
+    ) -> None:
+        assert len(prior_input.shape) == len(input.shape)
+        assert (
+            len(prior_input.shape) == 2 and self.input_size == 1
+        ) or prior_input.shape[2] == self.input_size
+        assert (len(input.shape) == 2 and self.input_size == 1) or input.shape[
+            -1
+        ] == self.input_size
+        assert (
+            features is None or features.shape[2] == self.features_size
+        ), f"{features.shape[2]}, expected {self.features_size}"
+
+    def forward(
+        self,
+        prior_input: torch.Tensor,
+        input: torch.Tensor,
+        features: Optional[torch.Tensor] = None,
+        state: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
+    ):
+        self._check_shapes(prior_input, input, features)
+
+        sequence = torch.cat((prior_input, input), dim=1)
+        lagged_sequence = self.get_lagged_subsequences(
+            sequence=sequence,
+            subsequences_length=input.shape[1],
+        )
+
+        lags_shape = lagged_sequence.shape
+        reshaped_lagged_sequence = lagged_sequence.reshape(
+            lags_shape[0], lags_shape[1], -1
+        )
+
+        if features is None:
+            rnn_input = reshaped_lagged_sequence
+        else:
+            rnn_input = torch.cat((reshaped_lagged_sequence, features), dim=-1)
+
+        if state is None:
+            return self.rnn(rnn_input)
+        else:
+            return self.rnn(rnn_input, state)

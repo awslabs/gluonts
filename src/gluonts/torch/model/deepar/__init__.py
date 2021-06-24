@@ -11,17 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._module import (
-    LaggedLSTM,
-    DeepARModel,
-)
-
-from ._lightning_module import DeepARLightningModule
-
-from ._estimator import DeepAREstimator
+from .module import DeepARModel
+from .lightning_module import DeepARLightningModule
+from .estimator import DeepAREstimator
 
 __all__ = [
-    "LaggedLSTM",
     "DeepARModel",
     "DeepARLightningModule",
     "DeepAREstimator",

@@ -15,7 +15,6 @@ from typing import NamedTuple, Optional, Iterable
 
 import numpy as np
 import pytorch_lightning as pl
-import torch
 import torch.nn as nn
 
 from gluonts.core.component import validated
@@ -110,8 +109,8 @@ class PyTorchLightningEstimator(Estimator):
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
-        transformed_training_data = TransformedDataset(
-            training_data, transformation, is_train=True
+        transformed_training_data = transformation.apply(
+            training_data, is_train=True
         )
 
         training_network = self.create_lightning_module()
@@ -128,8 +127,8 @@ class PyTorchLightningEstimator(Estimator):
         validation_data_loader = None
 
         if validation_data is not None:
-            transformed_validation_data = TransformedDataset(
-                validation_data, transformation, is_train=True
+            transformed_validation_data = transformation.apply(
+                validation_data, is_train=True
             )
 
             validation_data_loader = self.create_validation_data_loader(

@@ -52,8 +52,8 @@ from gluonts.torch.modules.distribution_output import (
     StudentTOutput,
 )
 
-from ._module import DeepARModel
-from ._lightning_module import DeepARLightningModule
+from .module import DeepARModel
+from .lightning_module import DeepARLightningModule
 
 PREDICTION_INPUT_NAMES = [
     "feat_static_cat",
@@ -82,7 +82,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
         hidden_size: int = 40,
         dropout_rate: float = 0.1,
         num_feat_dynamic_real: int = 0,
-        num_feat_dynamic_cat: int = 0,
         num_feat_static_cat: int = 0,
         num_feat_static_real: int = 0,
         cardinality: Optional[List[int]] = None,
@@ -109,7 +108,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.hidden_size = hidden_size
         self.dropout_rate = dropout_rate
         self.num_feat_dynamic_real = num_feat_dynamic_real
-        self.num_feat_dynamic_cat = num_feat_dynamic_cat
         self.num_feat_static_cat = num_feat_static_cat
         self.num_feat_static_real = num_feat_static_real
         self.cardinality = (
@@ -141,8 +139,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
             remove_field_names.append(FieldName.FEAT_STATIC_REAL)
         if self.num_feat_dynamic_real == 0:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
-        if self.num_feat_dynamic_cat == 0:
-            remove_field_names.append(FieldName.FEAT_DYNAMIC_CAT)
 
         return Chain(
             [RemoveFields(field_names=remove_field_names)]
@@ -198,11 +194,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
                     + (
                         [FieldName.FEAT_DYNAMIC_REAL]
                         if self.num_feat_dynamic_real > 0
-                        else []
-                    )
-                    + (
-                        [FieldName.FEAT_DYNAMIC_CAT]
-                        if self.num_feat_dynamic_cat > 0
                         else []
                     ),
                 ),

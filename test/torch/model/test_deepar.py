@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytorch_lightning as pl
 
+from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.deepar import DeepAREstimator
@@ -44,6 +45,78 @@ def test_torch_deepar():
         predictor_copy = Predictor.deserialize(Path(td))
 
     forecasts = predictor_copy.predict(constant.test)
+
+    for f in islice(forecasts, 5):
+        f.mean
+
+
+def test_torch_deepar_with_features():
+    freq = "1h"
+    prediction_length = 12
+
+    training_dataset = ListDataset(
+        [
+            {
+                "start": "2021-01-01 00:00:00",
+                "target": [1.0] * 200,
+                "feat_static_cat": [0, 1],
+                "feat_static_real": [42.0],
+                "feat_dynamic_real": [[1.0] * 200] * 3,
+            },
+            {
+                "start": "2021-02-01 00:00:00",
+                "target": [1.0] * 100,
+                "feat_static_cat": [1, 0],
+                "feat_static_real": [1.0],
+                "feat_dynamic_real": [[1.0] * 100] * 3,
+            },
+        ],
+        freq=freq,
+    )
+
+    prediction_dataset = ListDataset(
+        [
+            {
+                "start": "2021-01-01 00:00:00",
+                "target": [1.0] * 200,
+                "feat_static_cat": [0, 1],
+                "feat_static_real": [42.0],
+                "feat_dynamic_real": [[1.0] * (200 + prediction_length)] * 3,
+            },
+            {
+                "start": "2021-02-01 00:00:00",
+                "target": [1.0] * 100,
+                "feat_static_cat": [1, 0],
+                "feat_static_real": [1.0],
+                "feat_dynamic_real": [[1.0] * (100 + prediction_length)] * 3,
+            },
+        ],
+        freq=freq,
+    )
+
+    estimator = DeepAREstimator(
+        freq=freq,
+        prediction_length=prediction_length,
+        batch_size=4,
+        num_batches_per_epoch=3,
+        num_feat_dynamic_real=3,
+        num_feat_static_real=1,
+        num_feat_static_cat=2,
+        cardinality=[2, 2],
+        trainer=pl.Trainer(max_epochs=2),
+    )
+
+    predictor = estimator.train(
+        training_data=training_dataset,
+        validation_data=training_dataset,
+        shuffle_buffer_length=5,
+    )
+
+    with tempfile.TemporaryDirectory() as td:
+        predictor.serialize(Path(td))
+        predictor_copy = Predictor.deserialize(Path(td))
+
+    forecasts = predictor_copy.predict(prediction_dataset)
 
     for f in islice(forecasts, 5):
         f.mean

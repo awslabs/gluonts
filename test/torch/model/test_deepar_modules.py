@@ -16,26 +16,45 @@ import torch
 import pytest
 
 from gluonts.torch.model.deepar import (
-    LaggedLSTM,
     DeepARModel,
     DeepARLightningModule,
 )
+from gluonts.torch.model.deepar.module import LaggedLSTM
 
 
 @pytest.mark.parametrize(
-    "model",
-    [LaggedLSTM(input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20])],
-)
-@pytest.mark.parametrize(
-    "prior_input, input, features, more_input, more_features",
+    "model, prior_input, input, features, more_input, more_features",
     [
         (
+            LaggedLSTM(
+                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
+            ),
             torch.ones((4, 100)),
             torch.ones((4, 8)),
             torch.ones((4, 8, 3)),
             torch.ones((4, 5)),
             torch.ones((4, 5, 3)),
-        )
+        ),
+        (
+            LaggedLSTM(
+                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
+            ),
+            torch.ones((4, 100, 1)),
+            torch.ones((4, 8, 1)),
+            torch.ones((4, 8, 3)),
+            torch.ones((4, 5, 1)),
+            torch.ones((4, 5, 3)),
+        ),
+        (
+            LaggedLSTM(
+                input_size=2, features_size=3, lags_seq=[0, 1, 5, 10, 20]
+            ),
+            torch.ones((4, 100, 2)),
+            torch.ones((4, 8, 2)),
+            torch.ones((4, 8, 3)),
+            torch.ones((4, 5, 2)),
+            torch.ones((4, 5, 3)),
+        ),
     ],
 )
 def test_lagged_lstm(
