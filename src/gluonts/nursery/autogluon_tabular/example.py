@@ -32,15 +32,14 @@ def run_example():
         prediction_length=24,
         time_limit=10,  # two minutes for training
         disable_auto_regression=True,  # makes prediction faster, but potentially less accurate
+        last_k_for_val=24,  # split the last 24 targets from each time series to be the validation data
     )
 
     n_train = 5
 
     training_data = list(islice(dataset.train, n_train))
 
-    predictor = estimator.train(
-        training_data=training_data,
-    )
+    predictor = estimator.train(training_data=training_data)
 
     os.makedirs(serialize_path, exist_ok=True)
     predictor.serialize(serialize_path)
