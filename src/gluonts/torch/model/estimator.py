@@ -22,7 +22,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.transform import Transformation, TransformedDataset
+from gluonts.transform import Transformation
 
 
 class TrainOutput(NamedTuple):

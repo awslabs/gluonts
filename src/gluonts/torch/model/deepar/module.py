@@ -17,7 +17,6 @@ import torch
 import torch.nn as nn
 
 from gluonts.core.component import validated
-from gluonts.itertools import prod
 from gluonts.time_feature import get_lags_for_frequency
 from gluonts.torch.modules.distribution_output import (
     DistributionOutput,
