@@ -10,7 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
+import logging
 from typing import Callable, Optional, List, Tuple
 import pandas as pd
 from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
@@ -30,6 +30,8 @@ from .predictor import (
     mean_abs_scaling,
     get_features_dataframe,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TabularEstimator(Estimator):
@@ -77,6 +79,8 @@ class TabularEstimator(Estimator):
         ] = mean_abs_scaling,
         batch_size: Optional[int] = 32,
         disable_auto_regression: bool = False,
+        last_k_for_val: Optional[int] = None,
+        eval_metric: str = "mean_absolute_error",
         **kwargs,
     ) -> None:
         super().__init__()
@@ -96,6 +100,8 @@ class TabularEstimator(Estimator):
         self.batch_size = batch_size
         self.disable_auto_regression = disable_auto_regression
         self.scaling = scaling
+        self.last_k_for_val = last_k_for_val
+        self.eval_metric = eval_metric
 
         if self.disable_auto_regression:
             self.lag_indices = [
@@ -111,14 +117,18 @@ class TabularEstimator(Estimator):
                 "high_quality_fast_inference_only_refit",
                 "optimize_for_deployment",
             ],
+            "auto_stack": True,
         }
         self.kwargs = {**default_kwargs, **kwargs}
 
     def train(
         self,
         training_data: Dataset,
-        eval_metric="mean_absolute_error",
+        validation_data: Optional[Dataset] = None,
     ) -> TabularPredictor:
+
+        kwargs_override = {}
+
         dfs = [
             get_features_dataframe(
                 series=self.scaling(to_pandas(entry))[0],
@@ -127,13 +137,54 @@ class TabularEstimator(Estimator):
             )
             for entry in training_data
         ]
-        df = pd.concat(dfs)
+        if validation_data is not None or self.last_k_for_val is not None:
+            kwargs_override["auto_stack"] = False
+            logger.warning(
+                "Auto Stacking is turned off "
+                "as validation dataset is provided before input into Tabular Predictor."
+            )
+
+        if validation_data is not None:
+            logger.log(20, "Validation dataset is directly provided.")
+            validation_dfs = [
+                get_features_dataframe(
+                    series=self.scaling(to_pandas(entry))[0],
+                    time_features=self.time_features,
+                    lag_indices=self.lag_indices,
+                )
+                for entry in validation_data
+            ]
+            train_df = pd.concat(dfs)
+            val_df = pd.concat(validation_dfs)
+        elif self.last_k_for_val is not None:
+            logger.log(
+                20,
+                f"last_k_for_val is provided, choosing last {self.last_k_for_val} of each time series as validation set.",
+            )
+            train_dfs = [
+                tmp_df.iloc[: -self.last_k_for_val, :] for tmp_df in dfs
+            ]
+            validation_dfs = [
+                tmp_df.iloc[-self.last_k_for_val :, :] for tmp_df in dfs
+            ]
+            train_df = pd.concat(train_dfs)
+            val_df = pd.concat(validation_dfs)
+        else:
+            logger.log(
+                20,
+                "No validation dataset is provided, will let TabularPredictor do the splitting automatically,"
+                "Note that this might break the time order of time series data.",
+            )
+            train_df = pd.concat(dfs)
+            val_df = None
 
         ag_model = AutogluonTabularPredictor(
             label="target",
             problem_type="regression",
-            eval_metric=eval_metric,
-        ).fit(df, **self.kwargs)
+            eval_metric=self.eval_metric,
+        ).fit(
+            train_df, tuning_data=val_df, **{**self.kwargs, **kwargs_override}
+        )
         return TabularPredictor(
             ag_model=ag_model,
             freq=self.freq,
