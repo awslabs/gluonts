@@ -18,14 +18,13 @@ from ._module import (
 
 from ._lightning_module import DeepARLightningModule
 
-# from ._estimator import DeepAREstimator
+from ._estimator import DeepAREstimator
 
 __all__ = [
     "LaggedLSTM",
     "DeepARModel",
     "DeepARLightningModule",
-    # "DeepARSampler",
-    # "DeepAREstimator",
+    "DeepAREstimator",
 ]
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM

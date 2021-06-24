@@ -14,7 +14,6 @@
 from typing import List, Optional, Iterable
 
 import numpy as np
-import torch
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
@@ -53,7 +52,7 @@ from gluonts.torch.modules.distribution_output import (
     StudentTOutput,
 )
 
-from ._module import DeepARModel, DeepARSampler
+from ._module import DeepARModel
 from ._lightning_module import DeepARLightningModule
 
 PREDICTION_INPUT_NAMES = [
@@ -80,8 +79,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         trainer: pl.Trainer = pl.Trainer(max_epochs=100),
         context_length: Optional[int] = None,
         num_layers: int = 2,
-        num_cells: int = 40,
-        cell_type: str = "LSTM",
+        hidden_size: int = 40,
         dropout_rate: float = 0.1,
         num_feat_dynamic_real: int = 0,
         num_feat_dynamic_cat: int = 0,
@@ -108,8 +106,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.distr_output = distr_output
         self.loss = loss
         self.num_layers = num_layers
-        self.num_cells = num_cells
-        self.cell_type = cell_type
+        self.hidden_size = hidden_size
         self.dropout_rate = dropout_rate
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_dynamic_cat = num_feat_dynamic_cat
@@ -289,21 +286,22 @@ class DeepAREstimator(PyTorchLightningEstimator):
     def create_lightning_module(self) -> DeepARLightningModule:
         model = DeepARModel(
             freq=self.freq,
-            num_feat_dynamic_real=1
-            + self.num_feat_dynamic_real
-            + len(self.time_features),
+            context_length=self.context_length,
+            prediction_length=self.prediction_length,
+            num_feat_dynamic_real=(
+                1 + self.num_feat_dynamic_real + len(self.time_features)
+            ),
             num_feat_static_real=max(1, self.num_feat_static_real),
             num_feat_static_cat=max(1, self.num_feat_static_cat),
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             num_layers=self.num_layers,
-            num_cells=self.num_cells,
-            cell_type=self.cell_type,
-            context_length=self.context_length,
+            hidden_size=self.hidden_size,
             distr_output=self.distr_output,
             dropout_rate=self.dropout_rate,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            num_parallel_samples=self.num_parallel_samples,
         )
 
         return DeepARLightningModule(model=model, loss=self.loss)
