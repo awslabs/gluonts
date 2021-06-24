@@ -155,7 +155,7 @@ class DeepARModel(nn.Module):
 
     @torch.jit.ignore
     def output_distribution(
-        self, params, scale, trailing_n=None
+        self, params, scale=None, trailing_n=None
     ) -> torch.distributions.Distribution:
         sliced_params = params
         if trailing_n is not None:
@@ -184,16 +184,19 @@ class DeepARModel(nn.Module):
             future_time_feat[:, :1],
         )
 
+        repeated_scale = scale.repeat_interleave(
+            repeats=self.num_parallel_samples, dim=0
+        )
         repeated_static_feat = static_feat.repeat_interleave(
             repeats=self.num_parallel_samples, dim=0
         ).unsqueeze(dim=1)
-        repeated_past_target = past_target.repeat_interleave(
-            repeats=self.num_parallel_samples, dim=0
+        repeated_past_target = (
+            past_target.repeat_interleave(
+                repeats=self.num_parallel_samples, dim=0
+            )
+            / repeated_scale
         )
         repeated_time_feat = future_time_feat.repeat_interleave(
-            repeats=self.num_parallel_samples, dim=0
-        )
-        repeated_scale = scale.repeat_interleave(
             repeats=self.num_parallel_samples, dim=0
         )
         repeated_state = [
@@ -201,37 +204,39 @@ class DeepARModel(nn.Module):
             for s in state
         ]
 
-        distr = self.output_distribution(params, scale, trailing_n=1)
+        distr = self.output_distribution(params, trailing_n=1)
 
-        new_sample = distr.sample(sample_shape=(self.num_parallel_samples,))
-        new_sample = new_sample.reshape(
-            (new_sample.shape[0] * new_sample.shape[1], -1)
+        next_sample = distr.sample(sample_shape=(self.num_parallel_samples,))
+        next_sample = next_sample.transpose(0, 1).reshape(
+            (next_sample.shape[0] * next_sample.shape[1], -1)
         )
-        all_samples = [new_sample]
+        future_samples = [next_sample]
 
         for k in range(1, self.prediction_length):
-            new_features = torch.cat(
+            next_features = torch.cat(
                 (repeated_static_feat, repeated_time_feat[:, k : k + 1]),
                 dim=-1,
             )
             output, repeated_state = self.lagged_rnn(
-                repeated_past_target, new_sample, new_features, repeated_state
+                repeated_past_target,
+                next_sample,
+                next_features,
+                repeated_state,
             )
             params = self.param_proj(output)
-            distr = self.output_distribution(params, repeated_scale)
+            distr = self.output_distribution(params)
             repeated_past_target = torch.cat(
-                (repeated_past_target, new_sample), dim=1
+                (repeated_past_target, next_sample), dim=1
             )
-            new_sample = distr.sample()
-            all_samples.append(new_sample)
+            next_sample = distr.sample()
+            future_samples.append(next_sample)
 
-        repeated_past_target = torch.cat(
-            (repeated_past_target, new_sample), dim=1
+        unscaled_future_samples = (
+            torch.cat(future_samples, dim=1) * repeated_scale
         )
-
-        return torch.reshape(
-            repeated_past_target[:, -self.prediction_length :],
-            (-1, self.num_parallel_samples, self.prediction_length),
+        return unscaled_future_samples.reshape(
+            (-1, self.num_parallel_samples, self.prediction_length)
+            + self.target_shape,
         )
 
 
