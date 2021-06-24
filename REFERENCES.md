@@ -20,6 +20,29 @@ chronographically.
 ## Methods
 A number of the below methods are available in GluonTS.
 
+### Optimization methods for time series
+```
+@inproceedings{rangapuram2021,
+	Author = {Yucheng Lu, Youngsuk Park, Lifan Chen, Yuyang Wang, Christopher De Sa, Dean Foster},
+	Booktitle = {International Conference on Machine Learning},
+	Title = {Variance Reduced Training with Stratified Sampling for Forecasting Models},
+	Year = {2021}
+}
+```
+
+
+### Hierarchical forecasting models 
+```
+@inproceedings{rangapuram2021,
+	Author = {Syama S. Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski},
+	Booktitle = {International Conference on Machine Learning},
+	Title = {End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series},
+	Year = {2021}
+}
+```
+
+
+
 ### Multi-variate forecasting models
 [Normalizing Kalman Filters](https://papers.nips.cc/paper/2020/hash/1f47cef5e38c952f94c5d61726027439-Abstract.html)
 ```
