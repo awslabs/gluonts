@@ -25,10 +25,14 @@ class DeepARLightningModule(pl.LightningModule):
         self,
         model: DeepARModel,
         loss: DistributionLoss = NegativeLogLikelihood(),
+        lr: float = 1e-3,
+        weight_decay: float = 1e-8,
     ) -> None:
         super().__init__()
         self.model = model
         self.loss = loss
+        self.lr = lr
+        self.weight_decay = weight_decay
 
     def _compute_loss(self, batch):
         params, scale, _, _ = self.model.unroll_lagged_rnn(
@@ -78,5 +82,7 @@ class DeepARLightningModule(pl.LightningModule):
     def configure_optimizers(self):
         """Returns the optimizer to use"""
         return torch.optim.Adam(
-            self.model.parameters(), lr=1e-3, weight_decay=1e-8
+            self.model.parameters(),
+            lr=self.lr,
+            weight_decay=self.weight_decay,
         )
