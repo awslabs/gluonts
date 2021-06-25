@@ -45,7 +45,7 @@ from gluonts.torch.modules.distribution_output import (
     StudentTOutput,
 )
 
-NUM_SAMPLES = 2000
+NUM_SAMPLES = 3000
 BATCH_SIZE = 32
 TOL = 0.3
 START_TOL_MULTIPLE = 1

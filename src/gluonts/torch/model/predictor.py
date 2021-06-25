@@ -46,20 +46,25 @@ class PyTorchPredictor(Predictor):
         batch_size: int,
         prediction_length: int,
         freq: str,
-        device: torch.device,
         input_transform: Transformation,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
+        device=torch.device("cpu"),
     ) -> None:
         super().__init__(prediction_length, freq=freq, lead_time=lead_time)
         self.input_names = input_names
-        self.prediction_net = prediction_net
+        self.prediction_net = prediction_net.to(device)
         self.batch_size = batch_size
         self.input_transform = input_transform
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.device = device
+
+    def to(self, device) -> "PyTorchPredictor":
+        self.prediction_net = self.prediction_net.to(device)
+        self.device = device
+        return self
 
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None

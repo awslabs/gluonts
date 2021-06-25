@@ -11,37 +11,33 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Iterable, Dict, Any
+import logging
 
 import numpy as np
-from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
+import pytorch_lightning as pl
+import torch.nn as nn
 
-from gluonts.core import fqname_for
-from gluonts.core.component import (
-    DType,
-    from_hyperparameters,
-    validated,
-    GluonTSHyperparametersError,
-)
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import DataLoader
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
-from gluonts.model.predictor import Predictor
-from gluonts.mx.trainer import Trainer
+from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
+
+logger = logging.getLogger(__name__)
 
 
 class TrainOutput(NamedTuple):
     transformation: Transformation
-    trained_net: HybridBlock
-    predictor: Predictor
+    trained_net: nn.Module
+    trainer: pl.Trainer
+    predictor: PyTorchPredictor
 
 
-class GluonEstimator(Estimator):
+class PyTorchLightningEstimator(Estimator):
     """
-    An `Estimator` type with utilities for creating Gluon-based models.
+    An `Estimator` type with utilities for creating PyTorch-Lightning-based models.
 
     To extend this class, one needs to implement three methods:
     `create_transformation`, `create_training_network`, `create_predictor`,
@@ -51,39 +47,11 @@ class GluonEstimator(Estimator):
     @validated()
     def __init__(
         self,
-        *,
-        trainer: Trainer,
-        batch_size: int = 32,
+        trainer_kwargs: Dict[str, Any],
         lead_time: int = 0,
-        dtype: DType = np.float32,
     ) -> None:
         super().__init__(lead_time=lead_time)
-
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
-
-        self.batch_size = batch_size
-        self.trainer = trainer
-        self.dtype = dtype
-
-    @classmethod
-    def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
-        Model = getattr(cls.__init__, "Model", None)
-
-        if not Model:
-            raise AttributeError(
-                f"Cannot find attribute Model attached to the "
-                f"{fqname_for(cls)}. Most probably you have forgotten to mark "
-                f"the class constructor as @validated()."
-            )
-
-        try:
-            trainer = from_hyperparameters(Trainer, **hyperparameters)
-
-            return cls(
-                **Model(**{**hyperparameters, "trainer": trainer}).__dict__
-            )
-        except ValidationError as e:
-            raise GluonTSHyperparametersError from e
+        self.trainer_kwargs = trainer_kwargs
 
     def create_transformation(self) -> Transformation:
         """
@@ -97,106 +65,129 @@ class GluonEstimator(Estimator):
         """
         raise NotImplementedError
 
-    def create_training_network(self) -> HybridBlock:
+    def create_lightning_module(self) -> pl.LightningModule:
         """
         Create and return the network used for training (i.e., computing the
         loss).
 
         Returns
         -------
-        HybridBlock
+        nn.Module
             The network that computes the loss given input data.
         """
         raise NotImplementedError
 
     def create_predictor(
-        self, transformation: Transformation, trained_network: HybridBlock
-    ) -> Predictor:
+        self,
+        transformation: Transformation,
+        network: nn.Module,
+    ) -> PyTorchPredictor:
         """
         Create and return a predictor object.
 
         Returns
         -------
         Predictor
-            A predictor wrapping a `HybridBlock` used for inference.
+            A predictor wrapping a `nn.Module` used for inference.
         """
         raise NotImplementedError
 
     def create_training_data_loader(
-        self, data: Dataset, **kwargs
-    ) -> DataLoader:
+        self, data: Dataset, network: nn.Module, **kwargs
+    ) -> Iterable:
         raise NotImplementedError
 
     def create_validation_data_loader(
-        self, data: Dataset, **kwargs
-    ) -> DataLoader:
+        self, data: Dataset, network: nn.Module, **kwargs
+    ) -> Iterable:
         raise NotImplementedError
 
     def train_model(
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
+        num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
+        **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
-        transformed_training_data = transformation.apply(training_data)
+        transformed_training_data = transformation.apply(
+            training_data, is_train=True
+        )
+
+        training_network = self.create_lightning_module()
 
         training_data_loader = self.create_training_data_loader(
             transformed_training_data
             if not cache_data
             else Cached(transformed_training_data),
+            training_network,
             num_workers=num_workers,
-            num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
         )
 
         validation_data_loader = None
 
         if validation_data is not None:
-            transformed_validation_data = transformation.apply(validation_data)
+            transformed_validation_data = transformation.apply(
+                validation_data, is_train=True
+            )
 
             validation_data_loader = self.create_validation_data_loader(
                 transformed_validation_data
                 if not cache_data
                 else Cached(transformed_validation_data),
+                training_network,
             )
 
-        training_network = self.create_training_network()
-
-        self.trainer(
-            net=training_network,
-            train_iter=training_data_loader,
-            validation_iter=validation_data_loader,
+        monitor = "train_loss" if validation_data is None else "val_loss"
+        checkpoint = pl.callbacks.ModelCheckpoint(
+            monitor=monitor, mode="min", verbose=True
         )
 
-        with self.trainer.ctx:
-            predictor = self.create_predictor(transformation, training_network)
+        custom_callbacks = self.trainer_kwargs.get("callbacks", [])
+        callbacks = [checkpoint] + custom_callbacks
+        trainer_kwargs = {**self.trainer_kwargs, "callbacks": callbacks}
+        trainer = pl.Trainer(**trainer_kwargs)
+
+        trainer.fit(
+            model=training_network,
+            train_dataloader=training_data_loader,
+            val_dataloaders=validation_data_loader,
+        )
+
+        logger.info(f"Loading best model from {checkpoint.best_model_path}")
+        best_model = training_network.load_from_checkpoint(
+            checkpoint.best_model_path
+        )
 
         return TrainOutput(
             transformation=transformation,
-            trained_net=training_network,
-            predictor=predictor,
+            trained_net=best_model,
+            trainer=trainer,
+            predictor=self.create_predictor(transformation, best_model),
         )
+
+    @staticmethod
+    def _worker_init_fn(worker_id):
+        np.random.seed(np.random.get_state()[1][0] + worker_id)
 
     def train(
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
+        num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         **kwargs,
-    ) -> Predictor:
+    ) -> PyTorchPredictor:
         return self.train_model(
-            training_data=training_data,
-            validation_data=validation_data,
+            training_data,
+            validation_data,
             num_workers=num_workers,
-            num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
+            **kwargs,
         ).predictor

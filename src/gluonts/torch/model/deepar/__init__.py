@@ -11,8 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from .module import DeepARModel
+from .lightning_module import DeepARLightningModule
+from .estimator import DeepAREstimator
 
-from pkgutil import extend_path
+__all__ = [
+    "DeepARModel",
+    "DeepARLightningModule",
+    "DeepAREstimator",
+]
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)

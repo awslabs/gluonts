@@ -29,7 +29,7 @@ from gluonts.torch.modules.distribution_output import (
     NormalOutput,
     StudentTOutput,
 )
-from gluonts.torch.support.util import copy_parameters
+from gluonts.torch.util import copy_parameters
 from gluonts.transform import (
     AddObservedValuesIndicator,
     Chain,
