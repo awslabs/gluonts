@@ -76,7 +76,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self,
         freq: str,
         prediction_length: int,
-        trainer: pl.Trainer = pl.Trainer(max_epochs=100),
+        trainer: pl.Trainer = pl.Trainer(
+            max_epochs=100,
+            gradient_clip_val=10.0,
+        ),
         context_length: Optional[int] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
