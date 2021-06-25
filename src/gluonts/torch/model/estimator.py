@@ -143,7 +143,7 @@ class PyTorchLightningEstimator(Estimator):
                 training_network,
             )
 
-        monitor = "loss" if validation_data is None else "val_loss"
+        monitor = "train_loss" if validation_data is None else "val_loss"
         checkpoint = pl.callbacks.ModelCheckpoint(
             monitor=monitor, mode="min", verbose=True
         )
@@ -154,7 +154,6 @@ class PyTorchLightningEstimator(Estimator):
             patience=10,
             check_on_train_epoch_end=validation_data is None,
         )
-
         trainer = pl.Trainer(
             callbacks=[checkpoint, early_stopping], **self.trainer_kwargs
         )
@@ -166,7 +165,7 @@ class PyTorchLightningEstimator(Estimator):
         )
 
         logger.info(f"Loading best model from {checkpoint.best_model_path}")
-        best_model = training_network.__class__.load_from_checkpoint(
+        best_model = training_network.load_from_checkpoint(
             checkpoint.best_model_path
         )
 

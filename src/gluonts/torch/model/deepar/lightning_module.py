@@ -79,14 +79,22 @@ class DeepARLightningModule(pl.LightningModule):
 
     def training_step(self, batch, batch_idx: int):
         """Execute training step"""
-        loss = self._compute_loss(batch)
-        self.log("loss", loss, on_epoch=True)
-        return loss
+        train_loss = self._compute_loss(batch)
+        self.log(
+            "train_loss",
+            train_loss,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+        )
+        return train_loss
 
     def validation_step(self, batch, batch_idx: int):
         """Execute validation step"""
         val_loss = self._compute_loss(batch)
-        self.log("val_loss", val_loss, on_epoch=True)
+        self.log(
+            "val_loss", val_loss, on_epoch=True, on_step=False, prog_bar=True
+        )
         return val_loss
 
     def configure_optimizers(self):
