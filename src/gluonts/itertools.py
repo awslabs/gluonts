@@ -18,6 +18,16 @@ from typing import Iterable, Iterator, List, Optional, TypeVar
 T = TypeVar("T")
 
 
+def prod(xs: Iterable[T]) -> T:
+    """
+    Computes the product of the elements of an iterable object.
+    """
+    p = 1
+    for x in xs:
+        p *= x
+    return p
+
+
 class Cyclic(Iterable):
     """
     Like `itertools.cycle`, but does not store the data.
