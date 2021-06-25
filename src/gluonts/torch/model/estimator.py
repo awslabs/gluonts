@@ -11,7 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional, Iterable
+from typing import NamedTuple, Optional, Iterable, Dict, Any
+import logging
 
 import numpy as np
 import pytorch_lightning as pl
@@ -21,13 +22,17 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
+from gluonts.torch.model.deepar.lightning_module import DeepARLightningModule
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
+
+logger = logging.getLogger(__name__)
 
 
 class TrainOutput(NamedTuple):
     transformation: Transformation
     trained_net: nn.Module
+    trainer: pl.Trainer
     predictor: PyTorchPredictor
 
 
@@ -43,11 +48,11 @@ class PyTorchLightningEstimator(Estimator):
     @validated()
     def __init__(
         self,
-        trainer: pl.Trainer,
+        trainer_kwargs: Dict[str, Any],
         lead_time: int = 0,
     ) -> None:
         super().__init__(lead_time=lead_time)
-        self.trainer = trainer
+        self.trainer_kwargs = trainer_kwargs
 
     def create_transformation(self) -> Transformation:
         """
@@ -138,16 +143,38 @@ class PyTorchLightningEstimator(Estimator):
                 training_network,
             )
 
-        self.trainer.fit(
+        monitor = "loss" if validation_data is None else "val_loss"
+        checkpoint = pl.callbacks.ModelCheckpoint(
+            monitor=monitor, mode="min", verbose=True
+        )
+        early_stopping = pl.callbacks.EarlyStopping(
+            monitor=monitor,
+            mode="min",
+            verbose=True,
+            patience=10,
+            check_on_train_epoch_end=validation_data is None,
+        )
+
+        trainer = pl.Trainer(
+            callbacks=[checkpoint, early_stopping], **self.trainer_kwargs
+        )
+
+        trainer.fit(
             model=training_network,
             train_dataloader=training_data_loader,
             val_dataloaders=validation_data_loader,
         )
 
+        logger.info(f"Loading best model from {checkpoint.best_model_path}")
+        best_model = training_network.__class__.load_from_checkpoint(
+            checkpoint.best_model_path
+        )
+
         return TrainOutput(
             transformation=transformation,
-            trained_net=training_network,
-            predictor=self.create_predictor(transformation, training_network),
+            trained_net=best_model,
+            trainer=trainer,
+            predictor=self.create_predictor(transformation, best_model),
         )
 
     @staticmethod

@@ -31,7 +31,7 @@ def test_torch_deepar():
         prediction_length=constant.metadata.prediction_length,
         batch_size=4,
         num_batches_per_epoch=3,
-        trainer=pl.Trainer(max_epochs=2),
+        trainer_kwargs=dict(max_epochs=2),
     )
 
     predictor = estimator.train(
@@ -103,7 +103,7 @@ def test_torch_deepar_with_features():
         num_feat_static_real=1,
         num_feat_static_cat=2,
         cardinality=[2, 2],
-        trainer=pl.Trainer(max_epochs=2),
+        trainer_kwargs=dict(max_epochs=2),
     )
 
     predictor = estimator.train(

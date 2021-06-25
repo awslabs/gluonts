@@ -29,6 +29,7 @@ class DeepARLightningModule(pl.LightningModule):
         weight_decay: float = 1e-8,
     ) -> None:
         super().__init__()
+        self.save_hyperparameters()
         self.model = model
         self.loss = loss
         self.lr = lr
@@ -78,11 +79,15 @@ class DeepARLightningModule(pl.LightningModule):
 
     def training_step(self, batch, batch_idx: int):
         """Execute training step"""
-        return self._compute_loss(batch)
+        loss = self._compute_loss(batch)
+        self.log("loss", loss, on_epoch=True)
+        return loss
 
     def validation_step(self, batch, batch_idx: int):
         """Execute validation step"""
-        return self._compute_loss(batch)
+        val_loss = self._compute_loss(batch)
+        self.log("val_loss", val_loss, on_epoch=True)
+        return val_loss
 
     def configure_optimizers(self):
         """Returns the optimizer to use"""
