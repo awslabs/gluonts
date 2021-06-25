@@ -22,7 +22,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
-from gluonts.torch.model.deepar.lightning_module import DeepARLightningModule
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
 
@@ -147,16 +146,7 @@ class PyTorchLightningEstimator(Estimator):
         checkpoint = pl.callbacks.ModelCheckpoint(
             monitor=monitor, mode="min", verbose=True
         )
-        early_stopping = pl.callbacks.EarlyStopping(
-            monitor=monitor,
-            mode="min",
-            verbose=True,
-            patience=10,
-            check_on_train_epoch_end=validation_data is None,
-        )
-        trainer = pl.Trainer(
-            callbacks=[checkpoint, early_stopping], **self.trainer_kwargs
-        )
+        trainer = pl.Trainer(callbacks=[checkpoint], **self.trainer_kwargs)
 
         trainer.fit(
             model=training_network,
