@@ -574,7 +574,7 @@ Finally, each estimator is configured by a `Trainer`, which defines how the mode
 
 ```python
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.mx.trainer import Trainer
+from gluonts.mx import Trainer
 ```
 
 
@@ -845,11 +845,11 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import validated
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
-from gluonts.mx.model.estimator import GluonEstimator
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-from gluonts.mx.trainer import Trainer
-from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.mx import as_in_context, batchify
+from gluonts.mx import GluonEstimator
+from gluonts.mx import RepresentableBlockPredictor
+from gluonts.mx import Trainer
+from gluonts.mx import copy_parameters, get_hybrid_forward_input_names
 from gluonts.transform import (
     ExpectedNumInstanceSampler,
     Transformation,
@@ -1016,7 +1016,7 @@ Note that in all the tensors that we handle there is an initial dimension that r
 
 
 ```python
-from gluonts.mx.distribution import DistributionOutput, GaussianOutput
+from gluonts.mx import DistributionOutput, GaussianOutput
 ```
 
 
@@ -1236,7 +1236,7 @@ An important issue that a practitioner needs to deal with often is the different
 
 
 ```python
-from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx import MeanScaler, NOPScaler
 ```
 
 
