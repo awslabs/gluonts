@@ -24,3 +24,8 @@ __path__ = extend_path(__path__, __name__)  # type: ignore
 Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
 
 from . import prelude as _  # noqa
+from .trainer import Trainer  # noqa
+
+__all__ = [
+    "Trainer",
+]
