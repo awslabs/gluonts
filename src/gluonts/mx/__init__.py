@@ -25,7 +25,11 @@ Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
 
 from . import prelude as _  # noqa
 from .trainer import Trainer  # noqa
+from .util import get_hybrid_forward_input_names  # noqa
+from .kernels import RBFKernel  # noqa
 
 __all__ = [
+    "RBFKernel",
+    "get_hybrid_forward_input_names",
     "Trainer",
 ]
