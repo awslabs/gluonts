@@ -845,11 +845,15 @@ from mxnet.gluon import HybridBlock
 from gluonts.core.component import validated
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.predictor import Predictor
-from gluonts.mx import as_in_context, batchify
-from gluonts.mx import GluonEstimator
-from gluonts.mx import RepresentableBlockPredictor
-from gluonts.mx import Trainer
-from gluonts.mx import copy_parameters, get_hybrid_forward_input_names
+from gluonts.mx import (
+    as_in_context, 
+    batchify,
+    copy_parameters, 
+    get_hybrid_forward_input_names,
+    GluonEstimator,
+    RepresentableBlockPredictor,
+    Trainer,
+)
 from gluonts.transform import (
     ExpectedNumInstanceSampler,
     Transformation,
