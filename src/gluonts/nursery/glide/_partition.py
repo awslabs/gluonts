@@ -33,7 +33,7 @@ def partition(xs, n):
     )
 
 
-@partition.register
+@partition.register(Sequence)
 def partition_sequence(xs: Sequence, n):
     slices = divide_into(len(xs), n)
 
