@@ -24,3 +24,11 @@ __path__ = extend_path(__path__, __name__)  # type: ignore
 Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
 
 from . import prelude as _  # noqa
+from .batchify import as_in_context, batchify  # noqa
+from .block.scaler import MeanScaler, NOPScaler  # noqa
+from .distribution import DistributionOutput, GaussianOutput  # noqa
+from .kernels import RBFKernel  # noqa
+from .model.estimator import GluonEstimator  # noqa
+from .model.predictor import RepresentableBlockPredictor  # noqa
+from .trainer import Trainer  # noqa
+from .util import copy_parameters, get_hybrid_forward_input_names  # noqa
