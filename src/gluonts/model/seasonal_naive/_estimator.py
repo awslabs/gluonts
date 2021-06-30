@@ -11,12 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._estimator import SeasonalNaiveEstimator
+from gluonts.core.component import validated
+from gluonts.model.estimator import DummyEstimator
+
 from ._predictor import SeasonalNaivePredictor
 
-__all__ = ["SeasonalNaiveEstimator", "SeasonalNaivePredictor"]
 
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+class SeasonalNaiveEstimator(DummyEstimator):
+    @validated(
+        getattr(SeasonalNaivePredictor.__init__, "Model")
+    )  # Reuse the model Predictor model
+    def __init__(self, **kwargs) -> None:
+        super().__init__(predictor_cls=SeasonalNaivePredictor, **kwargs)
