@@ -73,7 +73,7 @@ def test_flow_invertibility(
     ), f"y and y_hat did not match: y = {inp}, y_hat = {y_hat}"
     assert allclose(
         inp, x_hat, rtol=1.0e-4
-    ), f"y and y_hat did not match: x = {inp}, x_hat = {x_hat}"
+    ), f"x and x_hat did not match: x = {inp}, x_hat = {x_hat}"
 
 
 @pytest.mark.parametrize(
