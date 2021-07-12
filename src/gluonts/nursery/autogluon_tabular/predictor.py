@@ -130,6 +130,10 @@ class TabularPredictor(Predictor):
         start_timestamp: pd.Timestamp,
         item_id=None,
     ) -> Iterator[SampleForecast]:
+        if ag_output.size > self.prediction_length:
+            samples = ag_output.transpose()
+        else:
+            samples = ag_output.reshape((1, self.prediction_length))
         samples = ag_output.reshape((1, self.prediction_length))
         sample = SampleForecast(
             freq=self.freq,

@@ -33,7 +33,8 @@ def run_example():
         time_limit=10,  # two minutes for training
         disable_auto_regression=True,  # makes prediction faster, but potentially less accurate
         last_k_for_val=24,  # split the last 24 targets from each time series to be the validation data
-        quantile=False,
+        quantile=True,
+        quantiles_topredict=[0.1, 0.5, 0.9],
     )
 
     n_train = 5
@@ -47,13 +48,6 @@ def run_example():
     predictor = None
     predictor = Predictor.deserialize(serialize_path)
     forecasts = list(predictor.predict(training_data))
-
-    for entry, forecast in zip(training_data, forecasts):
-        ts = to_pandas(entry)
-        plt.figure()
-        plt.plot(ts[-7 * predictor.prediction_length :], label="target")
-        forecast.plot()
-        plt.show()
 
 
 if __name__ == "__main__":
