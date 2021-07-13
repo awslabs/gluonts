@@ -4,8 +4,6 @@ This notebook illustrates how one can control the training procedure of MXNet-ba
 A callback is a function which gets called at one or more specific hook points during training.
 You can use predefined GluonTS callbacks like `TrainingHistory`, `ModelAveraging` or `TerminateOnNaN`, or you can implement your own callback.
 
-## Using a single callback
-
 ```python
 from gluonts.dataset.repository.datasets import get_dataset
 
@@ -14,6 +12,11 @@ dataset = get_dataset(dataset)
 prediction_length = dataset.metadata.prediction_length
 freq = dataset.metadata.freq
 ```
+
+## Using a single callback
+
+To use callbacks, simply pass them as a list when constructing the `Trainer`:
+in the following example, we are using the `TrainingHistory` callback to record loss values measured during training.
 
 ```python
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
@@ -24,7 +27,7 @@ from gluonts.mx.trainer.callback import TrainingHistory
 history = TrainingHistory()
 
 trainer = Trainer(epochs=5, callbacks=[history])
-estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq = freq, trainer=trainer)
+estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq=freq, trainer=trainer)
 
 predictor = estimator.train(dataset.train, num_workers=None)
 ```
@@ -38,7 +41,7 @@ print(history.loss_history)
 ## Using multiple callbacks
 
 To continue the training from a given predictor you can use the `WarmStart` callback.
-When you want to use more than one callback, provide them as a list:
+When you want to use more than one callback, just provide a list with multiple callback objects:
 
 ```python
 from gluonts.mx.trainer.callback import WarmStart
