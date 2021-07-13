@@ -80,14 +80,14 @@ Here is an example implementation of a Metric value based early stopping custom 
 It only implements the hook method "on_epoch_end()" which gets called after all batches of one epoch have been processed.
 
 ```python
+import numpy as np
+import mxnet as mx
+
 from gluonts.evaluation import Evaluator
 from gluonts.dataset.common import Dataset
 from gluonts.mx.model.predictor import GluonPredictor
-from mxnet.gluon import nn
-from mxnet import gluon
-import numpy as np
-import mxnet as mx
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters
+
 
 class MetricInferenceEarlyStopping(Callback):
     """
@@ -169,8 +169,8 @@ class MetricInferenceEarlyStopping(Callback):
         self,
         epoch_no: int,
         epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
+        training_network: mx.gluon.nn.HybridBlock,
+        trainer: mx.gluon.Trainer,
         best_epoch_info: dict,
         ctx: mx.Context
     ) -> bool:
