@@ -23,7 +23,7 @@ from gluonts.mx.trainer.callback import TrainingHistory
 # defining a callback, which will log the training loss for each epoch
 history = TrainingHistory()
 
-trainer = Trainer(epochs=5, callbacks=history)
+trainer = Trainer(epochs=5, callbacks=[history])
 estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq = freq, trainer=trainer)
 
 predictor = estimator.train(dataset.train, num_workers=None)
@@ -62,8 +62,8 @@ In addition to the callbacks you specify, the `Trainer` class uses the two defau
 You can turn them off by setting add_default_callbacks=False when initializing the Trainer.
 
 ```python
-trainer=Trainer(epochs=20, callbacks=history) # use the TrainingHistory Callback and the default callbacks.
-trainer=Trainer(epochs=20, callbacks=history, add_default_callbacks=False) # use only the TrainingHistory Callback
+trainer=Trainer(epochs=20, callbacks=[history]) # use the TrainingHistory Callback and the default callbacks.
+trainer=Trainer(epochs=20, callbacks=[history], add_default_callbacks=False) # use only the TrainingHistory Callback
 trainer=Trainer(epochs=20, add_default_callbacks=False) # use no callback at all
 ```
 
@@ -226,7 +226,7 @@ predictor = estimator.create_predictor(transformation=transformation, trained_ne
 
 es_callback = MetricInferenceEarlyStopping(validation_dataset=dataset.test, predictor=predictor, metric="MSE")
 
-trainer = Trainer(epochs=10, callbacks=es_callback)
+trainer = Trainer(epochs=10, callbacks=[es_callback])
 
 estimator.trainer = trainer
 
