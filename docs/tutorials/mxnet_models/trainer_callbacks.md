@@ -26,7 +26,7 @@ from gluonts.mx.trainer.callback import TrainingHistory
 # defining a callback, which will log the training loss for each epoch
 history = TrainingHistory()
 
-trainer = Trainer(epochs=5, callbacks=[history])
+trainer = Trainer(epochs=3, callbacks=[history])
 estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq=freq, trainer=trainer)
 
 predictor = estimator.train(dataset.train, num_workers=None)
@@ -48,7 +48,7 @@ from gluonts.mx.trainer.callback import WarmStart
 
 warm_start = WarmStart(predictor=predictor)
 
-trainer=Trainer(epochs=5, callbacks=[history, warm_start])
+trainer=Trainer(epochs=3, callbacks=[history, warm_start])
 
 estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq=freq, trainer=trainer)
 
@@ -56,7 +56,7 @@ predictor = estimator.train(dataset.train, num_workers=None)
 ```
 
 ```python
-print(history.loss_history) # The training loss history of all 5+5 epochs we trained the model for
+print(history.loss_history) # The training loss history of all 3+3 epochs we trained the model for
 ```
 
 ## Default callbacks
@@ -218,7 +218,9 @@ class MetricInferenceEarlyStopping(Callback):
         return should_continue
 ```
 
-We can now use the custom callback as follows:
+We can now use the custom callback as follows.
+Note that we're running an extremely short number of epochs, simply to keep the runtime of the notebook manageable:
+feel free to increase the number of epochs to properly test the effectiveness of the callback.
 
 ```python
 estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq=freq)
@@ -229,7 +231,7 @@ predictor = estimator.create_predictor(transformation=transformation, trained_ne
 
 es_callback = MetricInferenceEarlyStopping(validation_dataset=dataset.test, predictor=predictor, metric="MSE")
 
-trainer = Trainer(epochs=10, callbacks=[es_callback])
+trainer = Trainer(epochs=5, callbacks=[es_callback])
 
 estimator.trainer = trainer
 
