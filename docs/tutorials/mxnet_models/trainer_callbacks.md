@@ -20,7 +20,7 @@ in the following example, we are using the `TrainingHistory` callback to record 
 
 ```python
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.mx.trainer import Trainer
+from gluonts.mx import Trainer
 from gluonts.mx.trainer.callback import TrainingHistory
 
 # defining a callback, which will log the training loss for each epoch
@@ -85,8 +85,8 @@ import mxnet as mx
 
 from gluonts.evaluation import Evaluator
 from gluonts.dataset.common import Dataset
-from gluonts.mx.model.predictor import GluonPredictor
-from gluonts.mx.util import copy_parameters
+from gluonts.mx import copy_parameters, GluonPredictor
+from gluonts.mx.trainer.callback import Callback
 
 
 class MetricInferenceEarlyStopping(Callback):
