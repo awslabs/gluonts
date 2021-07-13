@@ -30,8 +30,8 @@ from .distribution import DistributionOutput, GaussianOutput  # noqa
 from .kernels import RBFKernel  # noqa
 from .model.estimator import GluonEstimator  # noqa
 from .model.predictor import (
-    GluonPredictor,
-    RepresentableBlockPredictor,
-)  # noqa
+    GluonPredictor,  # noqa
+    RepresentableBlockPredictor,  # noqa
+)
 from .trainer import Trainer  # noqa
 from .util import copy_parameters, get_hybrid_forward_input_names  # noqa
