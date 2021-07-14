@@ -14,11 +14,9 @@
 
 from itertools import islice
 from pathlib import Path
-import matplotlib.pyplot as plt
 import os
 
 
-from gluonts.dataset.util import to_pandas
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.nursery.autogluon_tabular import TabularEstimator
 from gluonts.model.predictor import Predictor
@@ -33,7 +31,7 @@ def run_example():
         time_limit=10,  # two minutes for training
         disable_auto_regression=True,  # makes prediction faster, but potentially less accurate
         last_k_for_val=24,  # split the last 24 targets from each time series to be the validation data
-        quantiles_to_predict=None,
+        quantiles_to_predict=[0.1, 0.5, 0.9],
     )
 
     n_train = 5
@@ -45,15 +43,12 @@ def run_example():
     os.makedirs(serialize_path, exist_ok=True)
     predictor.serialize(serialize_path)
     predictor = None
-    predictor = Predictor.deserialize(serialize_path)
+    # the quantiles_to_predict parameters should be List[str] type
+    predictor = Predictor.deserialize(
+        serialize_path, quantiles_to_predict=["0.1", "0.5", "0.9"]
+    )
     forecasts = list(predictor.predict(training_data))
-
-    for entry, forecast in zip(training_data, forecasts):
-        ts = to_pandas(entry)
-        plt.figure()
-        plt.plot(ts[-7 * predictor.prediction_length :], label="target")
-        forecast.plot()
-        plt.show()
+    print(forecasts)
 
 
 if __name__ == "__main__":
