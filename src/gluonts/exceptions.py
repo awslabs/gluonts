@@ -22,49 +22,13 @@ class GluonTSException(Exception):
     Base class for all GluonTS exceptions.
     """
 
-    pass
+    @classmethod
+    def guard(cls, condition, *args, **kwargs):
+        if not condition:
+            raise cls(*args, **kwargs)
 
 
-class GluonTSFatalError(GluonTSException):
-    """
-    An exception indicating an arbitrary cause that prohibits further
-    execution of the program.
-    """
-
-    pass
-
-
-class GluonTSForecasterNotFoundError(GluonTSException):
-    """
-    An exception indicating that a forecaster identified by the given
-    name cannot be found in the current environment.
-    """
-
-    pass
-
-
-class GluonTSHyperparameterParseError(GluonTSException):
-    """
-    An exception indicating a parse error when trying to re-interpret a
-    string value ``value`` for a parameter ``key`` as a value of type ``type``.
-    """
-
-    __cause__: ValueError
-
-    def __init__(self, key, value, type):
-        self.key = key
-        self.value = value
-        self.type = type
-
-    def __str__(self, *args, **kwargs):
-        return (
-            f'Error when trying to re-interpret string value "{self.value}" '
-            f"for parameter {self.key} as a {self.type}:\n"
-            f"{repr(self.__cause__)}"
-        )
-
-
-class GluonTSHyperparametersError(GluonTSException):
+class GluonTSHyperparametersError(GluonTSException, ValueError):
     """
     An exception wrapping a Pydantic ``ValidationError``, usually thrown when
     the validation of a :func:`~gluonts.core.component.validated` initializer
@@ -84,14 +48,6 @@ class GluonTSHyperparametersError(GluonTSException):
 class GluonTSDataError(GluonTSException):
     """
     An exception indicating an error with the input data.
-    """
-
-    pass
-
-
-class GluonTSInvalidRequestException(GluonTSException):
-    """
-    An exception indicating an invalid inference request.
     """
 
     pass
@@ -159,51 +115,3 @@ def assert_data_error(condition: bool, message: str, *args, **kwargs) -> None:
         exception message.
     """
     assert_gluonts(GluonTSDataError, condition, message, *args, **kwargs)
-
-
-def reraise_error(
-    origin_class: type,
-    message: str = None,
-    target_class: type = GluonTSUserError,
-) -> Callable:
-    """
-    Decorator that converts `Origin` to `Target` exception, where `Origin` is
-    not an instance of `CustomerError`.
-
-    If `message` is not provided, the message of the causing exception is
-    simply past to the ``GluonTSUserError``. If `message` is specified, the
-    ``GluonTSUserError`` will be constructed with that message and the causing
-    exception is added as the cause.
-
-    Parameters
-    ----------
-    origin_class
-        The type of the original exception.
-    message
-        A message to pass to the re-raised exception.
-    target_class
-        The type of hte re-raised exception.
-
-    Returns
-    -------
-
-    """
-
-    def decorator(fn):
-        @functools.wraps(fn)
-        def inner(*args, **kwargs):
-            try:
-                return fn(*args, **kwargs)
-            except origin_class as error:
-                import traceback
-
-                traceback.print_exc()
-                error_message = message or getattr(error, "message", None)
-                if error_message is None:
-                    raise target_class(message=error)
-                else:
-                    raise target_class(message=error_message, caused_by=error)
-
-        return inner
-
-    return decorator
