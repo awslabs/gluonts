@@ -66,7 +66,7 @@ class TabularEstimator(Estimator):
         this will remove any lag index which is smaller than ``prediction_length``.
         This will make predictions more efficient, but may impact their accuracy.
     quantiles_to_predict
-        Whether to forecast in quantile way. If assigned with quantile values, 
+        Whether to forecast in quantile way. If assigned with quantile values,
         this will train model using quantile prediction model. If None, then the model
         will be trained in a regular way.
     """
