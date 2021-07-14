@@ -18,9 +18,9 @@ import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
-from gluonts.core.exception import GluonTSDateBoundsError
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
+from gluonts.exceptions import GluonTSDateBoundsError
 
 from ._base import FlatMapTransformation
 from .sampler import ContinuousTimePointSampler, InstanceSampler

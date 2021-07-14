@@ -28,9 +28,9 @@ import numpy as np
 import gluonts
 from gluonts.core import fqname_for
 from gluonts.core.component import equals, from_hyperparameters, validated
-from gluonts.core.exception import GluonTSException
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.exceptions import GluonTSException
 from gluonts.model.forecast import Forecast
 
 if TYPE_CHECKING:  # avoid circular import
