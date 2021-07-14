@@ -11,8 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import functools
-from typing import Callable
 
 from pydantic.error_wrappers import ValidationError, display_errors
 
