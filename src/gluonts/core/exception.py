@@ -13,10 +13,29 @@
 
 import warnings
 
-from gluonts.exceptions import *
+from gluonts.exceptions import (
+    assert_gluonts,
+    assert_data_error,
+    GluonTSException,
+    GluonTSDataError,
+    GluonTSDateBoundsError,
+    GluonTSHyperparametersError,
+    GluonTSUserError,
+)
 
+
+__all__ = [
+    "assert_gluonts",
+    "assert_data_error",
+    "GluonTSException",
+    "GluonTSDataError",
+    "GluonTSDateBoundsError",
+    "GluonTSHyperparametersError",
+    "GluonTSUserError",
+]
 
 warnings.warn(
-    "`gluonts.core.exception` is deprecated, use `gluonts.exceptions` instead.",
+    "`gluonts.core.exception` is deprecated, "
+    "use `gluonts.exceptions` instead.",
     DeprecationWarning,
 )
