@@ -33,35 +33,37 @@ import ncad
 # --download_data=False \
 # --yahoo_path=None
 
+
 def parse_arguments():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--ncad_dir', type=PosixPath)
-    parser.add_argument('--data_dir', type=PosixPath)
-    parser.add_argument('--hparams_dir', type=PosixPath)
-    parser.add_argument('--out_dir', type=PosixPath )
-    parser.add_argument('--download_data', type=str_to_bool, default=False)
-    parser.add_argument('--yahoo_path', type=PosixPath, default='~')
-    parser.add_argument('--number_of_trials', type=int, default=10)
-    parser.add_argument('--run_swat', type=str_to_bool, default=True)
-    parser.add_argument('--run_yahoo', type=str_to_bool, default=True)    
+    parser.add_argument("--ncad_dir", type=PosixPath)
+    parser.add_argument("--data_dir", type=PosixPath)
+    parser.add_argument("--hparams_dir", type=PosixPath)
+    parser.add_argument("--out_dir", type=PosixPath)
+    parser.add_argument("--download_data", type=str_to_bool, default=False)
+    parser.add_argument("--yahoo_path", type=PosixPath, default="~")
+    parser.add_argument("--number_of_trials", type=int, default=10)
+    parser.add_argument("--run_swat", type=str_to_bool, default=True)
+    parser.add_argument("--run_yahoo", type=str_to_bool, default=True)
     args, _ = parser.parse_known_args()
     # args = parser.parse_args()
-    
+
     return args
 
+
 def main(
-        ncad_dir,
-        data_dir,
-        hparams_dir,
-        out_dir,
-        download_data,
-        yahoo_path=None,
-        number_of_trials=10,
-        run_swat=True,
-        run_yahoo=True,
-        ):
+    ncad_dir,
+    data_dir,
+    hparams_dir,
+    out_dir,
+    download_data,
+    yahoo_path=None,
+    number_of_trials=10,
+    run_swat=True,
+    run_yahoo=True,
+):
 
     # ncad_dir = Path.home()/'ncad/01_code/ncad'
     # data_dir = Path.home()/'ncad/02_data'
@@ -75,14 +77,14 @@ def main(
     hparams_dir = hparams_dir.expanduser()
     out_dir = out_dir.expanduser()
 
-    sys.path.append(str(ncad_dir/'examples'))
-    
+    sys.path.append(str(ncad_dir / "examples"))
+
     # Benchmark datasets to consider
-    benchmarks = ['kpi','nasa','smd','swat','yahoo']
+    benchmarks = ["kpi", "nasa", "smd", "swat", "yahoo"]
     if not run_swat:
-        benchmarks.remove('swat')
+        benchmarks.remove("swat")
     if not run_yahoo:
-        benchmarks.remove('yahoo')
+        benchmarks.remove("yahoo")
 
     # Import pipelines
     for bmk in benchmarks:
@@ -91,9 +93,9 @@ def main(
     if download_data:
         yahoo_path = yahoo_path.expanduser()
         ncad.datasets.download(
-            data_dir = data_dir,
-            benchmarks = benchmarks,
-            yahoo_path = yahoo_path,
+            data_dir=data_dir,
+            benchmarks=benchmarks,
+            yahoo_path=yahoo_path,
         )
 
     # Hyperparameter configurations
@@ -109,28 +111,30 @@ def main(
             continue
 
         print(f"\n Executing hparams: \n {file} \n")
-        with open(hparams_dir/file, "r") as f:
+        with open(hparams_dir / file, "r") as f:
             hparams = json.load(f)
-
 
         for trail_i in range(number_of_trials):
             # Identify corresponding benckmark dataset
             bmk = benchmarks[np.where([file.startswith(bmk) for bmk in benchmarks])[0][0]]
 
             # Modify hyperparameters
-            hparams.update(dict(
-                data_dir = data_dir/bmk,
-                model_dir = out_dir/bmk,
-                log_dir = out_dir/bmk,
-                gpus = 1 if torch.cuda.is_available() else 0,
-                evaluation_result_path = out_dir/bmk/file.replace(".json","_results.json"),
-               # epochs = 1,
-            ))
+            hparams.update(
+                dict(
+                    data_dir=data_dir / bmk,
+                    model_dir=out_dir / bmk,
+                    log_dir=out_dir / bmk,
+                    gpus=1 if torch.cuda.is_available() else 0,
+                    evaluation_result_path=out_dir / bmk / file.replace(".json", "_results.json"),
+                    # epochs = 1,
+                )
+            )
 
             eval(f"{bmk}_pipeline")(**hparams)
 
-if __name__ == '__main__':
-    
+
+if __name__ == "__main__":
+
     args = parse_arguments()
-    args_dict = vars(args) # arguments as dictionary
+    args_dict = vars(args)  # arguments as dictionary
     main(**args_dict)

@@ -1,4 +1,3 @@
-
 from .timeseries import (
     TimeSeries,
     TimeSeriesDataset,
@@ -10,11 +9,11 @@ from .timeseries import (
 )
 
 __all__ = [
-    'TimeSeries',
-    'TimeSeriesDataset',
-    'split_train_val_test',
-    'ts_random_crop',
-    'ts_rolling_window',
-    'ts_split',
-    'ts_to_array',
+    "TimeSeries",
+    "TimeSeriesDataset",
+    "split_train_val_test",
+    "ts_random_crop",
+    "ts_rolling_window",
+    "ts_split",
+    "ts_to_array",
 ]

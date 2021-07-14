@@ -20,9 +20,9 @@ from .misc import (
 )
 
 __all__ = [
-    'clear_dir',
-    'NpEncoder',
-    'rm_file_or_dir',
-    'save_args',
-    'take_n_cycle',
+    "clear_dir",
+    "NpEncoder",
+    "rm_file_or_dir",
+    "save_args",
+    "take_n_cycle",
 ]

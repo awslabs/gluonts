@@ -27,125 +27,141 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 
 from ncad.ts import TimeSeriesDataset, ts_random_crop
 
-class NCADDataModule( pl.LightningDataModule ):
+
+class NCADDataModule(pl.LightningDataModule):
     def __init__(
-            self,
-            train_ts_dataset: TimeSeriesDataset,
-            validation_ts_dataset: Optional[TimeSeriesDataset],
-            test_ts_dataset: Optional[TimeSeriesDataset],
-            window_length: int,
-            suspect_window_length: int,
-            num_series_in_train_batch: int,
-            num_crops_per_series: int = 1,
-            label_reduction_method: Optional[str] = [None,'any'][-1],
-            stride_val_test: int = 1,
-            num_workers: int = 0,
-        *args, **kwargs ) -> None:
+        self,
+        train_ts_dataset: TimeSeriesDataset,
+        validation_ts_dataset: Optional[TimeSeriesDataset],
+        test_ts_dataset: Optional[TimeSeriesDataset],
+        window_length: int,
+        suspect_window_length: int,
+        num_series_in_train_batch: int,
+        num_crops_per_series: int = 1,
+        label_reduction_method: Optional[str] = [None, "any"][-1],
+        stride_val_test: int = 1,
+        num_workers: int = 0,
+        *args,
+        **kwargs,
+    ) -> None:
 
         super().__init__()
 
         self.train_ts_dataset = train_ts_dataset
         self.validation_ts_dataset = validation_ts_dataset
         self.test_ts_dataset = test_ts_dataset
-        
+
         hparams = AttributeDict(
-            window_length = window_length,
-            suspect_window_length = suspect_window_length,
-            num_series_in_train_batch = num_series_in_train_batch,
-            num_crops_per_series = num_crops_per_series,
-            label_reduction_method = label_reduction_method,
-            stride_val_test = stride_val_test,
-            num_workers = num_workers,
+            window_length=window_length,
+            suspect_window_length=suspect_window_length,
+            num_series_in_train_batch=num_series_in_train_batch,
+            num_crops_per_series=num_crops_per_series,
+            label_reduction_method=label_reduction_method,
+            stride_val_test=stride_val_test,
+            num_workers=num_workers,
         )
         self.hparams = hparams
 
         self.datasets = {}
-        assert not train_ts_dataset.nan_ts_values, "TimeSeries in train_ts_dataset must not have nan values."
-        self.datasets['train'] = CroppedTimeSeriesDatasetTorch(
-            ts_dataset = train_ts_dataset,
-            window_length = self.hparams.window_length,
-            suspect_window_length = self.hparams.suspect_window_length,
-            label_reduction_method = self.hparams.label_reduction_method,
-            num_crops_per_series = self.hparams.num_crops_per_series,
+        assert (
+            not train_ts_dataset.nan_ts_values
+        ), "TimeSeries in train_ts_dataset must not have nan values."
+        self.datasets["train"] = CroppedTimeSeriesDatasetTorch(
+            ts_dataset=train_ts_dataset,
+            window_length=self.hparams.window_length,
+            suspect_window_length=self.hparams.suspect_window_length,
+            label_reduction_method=self.hparams.label_reduction_method,
+            num_crops_per_series=self.hparams.num_crops_per_series,
         )
 
         if validation_ts_dataset is not None:
-            assert not validation_ts_dataset.nan_ts_values, "TimeSeries in validation_ts_dataset must not have nan values."
-            self.datasets['validation'] = TimeSeriesDatasetTorch(validation_ts_dataset)
+            assert (
+                not validation_ts_dataset.nan_ts_values
+            ), "TimeSeries in validation_ts_dataset must not have nan values."
+            self.datasets["validation"] = TimeSeriesDatasetTorch(validation_ts_dataset)
 
         if test_ts_dataset is not None:
-            assert not test_ts_dataset.nan_ts_values, "TimeSeries in test_ts_dataset must not have nan values."
-            self.datasets['test'] = TimeSeriesDatasetTorch(test_ts_dataset)
+            assert (
+                not test_ts_dataset.nan_ts_values
+            ), "TimeSeries in test_ts_dataset must not have nan values."
+            self.datasets["test"] = TimeSeriesDatasetTorch(test_ts_dataset)
 
-    def setup(self, stage = None):
+    def setup(self, stage=None):
         pass
 
     def train_dataloader(self):
         return DataLoader(
-            dataset = self.datasets[ "train" ],
-            batch_size = self.hparams[f"num_series_in_train_batch"],
-            shuffle = True,
-            num_workers = self.hparams.num_workers,
+            dataset=self.datasets["train"],
+            batch_size=self.hparams[f"num_series_in_train_batch"],
+            shuffle=True,
+            num_workers=self.hparams.num_workers,
         )
 
     def val_dataloader(self):
         return DataLoader(
-            dataset = self.datasets['validation'],
-            batch_size = 1,
-            shuffle = False,
-            num_workers = self.hparams.num_workers,
+            dataset=self.datasets["validation"],
+            batch_size=1,
+            shuffle=False,
+            num_workers=self.hparams.num_workers,
         )
 
     def test_dataloader(self):
         return DataLoader(
-            dataset = self.datasets['test'],
-            batch_size = 1,
-            shuffle = False,
-            num_workers = self.hparams.num_workers,
+            dataset=self.datasets["test"],
+            batch_size=1,
+            shuffle=False,
+            num_workers=self.hparams.num_workers,
         )
 
 
-class TimeSeriesDatasetTorch( Dataset ):
-    """ Time series dataset
+class TimeSeriesDatasetTorch(Dataset):
+    """Time series dataset
 
     Creates a pytorch dataset based on a TimeSeriesDataset.
 
     It is possible to apply transformation to the input TimeSeries or the windows.
     """
+
     def __init__(
-            self,
-            dataset: TimeSeriesDataset,
-            ) -> None:
+        self,
+        dataset: TimeSeriesDataset,
+    ) -> None:
         """
         Args:
             dataset : TimeSeriesDataset with which serve as the basis for the Torch dataset.
         """
         self.dataset = dataset
 
-        self.transform = Compose([
-                Lambda( lambda ts: [ts.values, ts.labels] ),
-                Lambda( lambda vl: [np.expand_dims(vl[0], axis=1) if vl[0].ndim==1 else vl[0], vl[1]] ), # Add ts channel dimension, if needed
-                Lambda( lambda vl: [np.transpose(vl[0]), vl[1]] ), # Transpose ts values, so the dimensions are (channel, time)
-                Lambda( lambda x: [torch.from_numpy(x_i) for x_i in x] ),
-            ])
-            
+        self.transform = Compose(
+            [
+                Lambda(lambda ts: [ts.values, ts.labels]),
+                Lambda(
+                    lambda vl: [np.expand_dims(vl[0], axis=1) if vl[0].ndim == 1 else vl[0], vl[1]]
+                ),  # Add ts channel dimension, if needed
+                Lambda(
+                    lambda vl: [np.transpose(vl[0]), vl[1]]
+                ),  # Transpose ts values, so the dimensions are (channel, time)
+                Lambda(lambda x: [torch.from_numpy(x_i) for x_i in x]),
+            ]
+        )
+
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
-        
-        x, y = self.transform( self.dataset[idx] )
+
+        x, y = self.transform(self.dataset[idx])
 
         return x, y
 
 
-class CroppedTimeSeriesDatasetTorch( Dataset ):
-    """ Cropped time series dataset
+class CroppedTimeSeriesDatasetTorch(Dataset):
+    """Cropped time series dataset
 
     Creates a pytorch dataset based on windows from a TimeSeriesDataset.
-    
+
     Each window (a.k.a. crop) has length of window_length.
 
     The label y is based on the last 'suspect_window_length' time steps.
@@ -153,14 +169,15 @@ class CroppedTimeSeriesDatasetTorch( Dataset ):
 
     It is possible to apply transformation to the input TimeSeries or each window.
     """
+
     def __init__(
-            self,
-            ts_dataset: TimeSeriesDataset,
-            window_length: int,
-            suspect_window_length: int,
-            num_crops_per_series: int = 1,
-            label_reduction_method: Optional[str] = [None,'any'][-1],
-        ) -> None:
+        self,
+        ts_dataset: TimeSeriesDataset,
+        window_length: int,
+        suspect_window_length: int,
+        num_crops_per_series: int = 1,
+        label_reduction_method: Optional[str] = [None, "any"][-1],
+    ) -> None:
         """
         Args:
             ts_dataset : TimeSeriesDataset with which serve as the basis for the cropped windows
@@ -183,43 +200,56 @@ class CroppedTimeSeriesDatasetTorch( Dataset ):
 
         # Validate that all TimeSeries in ts_dataset are longer than window_length
         ts_dataset_lengths = np.array([len(ts.values) for ts in self.ts_dataset])
-        if any(ts_dataset_lengths<self.window_length):
-            raise ValueError("All TimeSeries in 'ts_dataset' must be of length greater or equal to 'window_length'")
-        
-        self.cropping_fun = partial(ts_random_crop, length = self.window_length, num_crops = self.num_crops_per_series)
-        
+        if any(ts_dataset_lengths < self.window_length):
+            raise ValueError(
+                "All TimeSeries in 'ts_dataset' must be of length greater or equal to 'window_length'"
+            )
+
+        self.cropping_fun = partial(
+            ts_random_crop, length=self.window_length, num_crops=self.num_crops_per_series
+        )
+
         # Apply ts_window_transform, to anomalize the window randomly
-        self.transform = Compose([
-            # Pick a random crop from the selected TimeSeries
-            Lambda( lambda x: self.cropping_fun(ts=x) ), # Output: List with cropped TimeSeries
-            Lambda( lambda x: ( np.stack([ts.values.reshape(ts.shape).T for ts in x], axis=0), np.stack([ts.labels for ts in x], axis=0) ) ), # output: tuple of two np.arrays (values, labels), with shapes (num_crops, N, T) and (num_crops, T)
-            Lambda( lambda x: [torch.from_numpy(x_i) for x_i in x] ), # output: two torch Tensor (values, labels) with shapes (num_crops, N, T) and (num_crops, T)
-        ])
-        
+        self.transform = Compose(
+            [
+                # Pick a random crop from the selected TimeSeries
+                Lambda(lambda x: self.cropping_fun(ts=x)),  # Output: List with cropped TimeSeries
+                Lambda(
+                    lambda x: (
+                        np.stack([ts.values.reshape(ts.shape).T for ts in x], axis=0),
+                        np.stack([ts.labels for ts in x], axis=0),
+                    )
+                ),  # output: tuple of two np.arrays (values, labels), with shapes (num_crops, N, T) and (num_crops, T)
+                Lambda(
+                    lambda x: [torch.from_numpy(x_i) for x_i in x]
+                ),  # output: two torch Tensor (values, labels) with shapes (num_crops, N, T) and (num_crops, T)
+            ]
+        )
+
     def __len__(self):
         return len(self.ts_dataset)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
-        
-        x, y = self.transform( self.ts_dataset[idx] )
+
+        x, y = self.transform(self.ts_dataset[idx])
 
         y_suspect = reduce_labels(
-            y = y,
-            suspect_window_length = self.suspect_window_length,
-            reduction_method = self.label_reduction_method,
+            y=y,
+            suspect_window_length=self.suspect_window_length,
+            reduction_method=self.label_reduction_method,
         )
 
         return x, y_suspect
 
 
 def reduce_labels(
-        y: torch.Tensor,
-        suspect_window_length: int,
-        reduction_method: Optional[str] = [None,'any'][-1],
-    ) -> torch.Tensor:
-    """ Auxiliary function to reduce labels, one per batch element
+    y: torch.Tensor,
+    suspect_window_length: int,
+    reduction_method: Optional[str] = [None, "any"][-1],
+) -> torch.Tensor:
+    """Auxiliary function to reduce labels, one per batch element
 
     Args:
         y : Tensor with the labels to be reduced. Shape (batch, time).
@@ -235,11 +265,11 @@ def reduce_labels(
 
     suspect_window_length = int(suspect_window_length)
 
-    y_suspect = y[...,-suspect_window_length:]
+    y_suspect = y[..., -suspect_window_length:]
 
     if reduction_method is None:
         pass
-    elif reduction_method == 'any':
+    elif reduction_method == "any":
         # Currently we will do:
         #   nan are valued as zero, unless
         #   if there are only nan's, y will be nan
@@ -251,12 +281,18 @@ def reduce_labels(
         #     [nan,nan,nan,1,nan] -> 1
         y_nan = torch.isnan(y_suspect)
         if torch.any(y_nan).item():
-            y_suspect = torch.where(y_nan,torch.zeros_like(y_suspect),y_suspect) # Substitutes nan by 0
-            y_suspect = torch.sum( y_suspect, dim=1).bool().float() # Add to check if theres any 1 in each row
-            y_suspect = torch.where( torch.sum(y_nan, dim=1).bool(), torch.full_like(y_suspect,float('nan')), y_suspect ) # put nan if all elements are nan
+            y_suspect = torch.where(
+                y_nan, torch.zeros_like(y_suspect), y_suspect
+            )  # Substitutes nan by 0
+            y_suspect = (
+                torch.sum(y_suspect, dim=1).bool().float()
+            )  # Add to check if theres any 1 in each row
+            y_suspect = torch.where(
+                torch.sum(y_nan, dim=1).bool(), torch.full_like(y_suspect, float("nan")), y_suspect
+            )  # put nan if all elements are nan
         else:
-            y_suspect = torch.sum( y_suspect, dim=1).bool().float()
+            y_suspect = torch.sum(y_suspect, dim=1).bool().float()
     else:
         raise ValueError(f"reduction_method = {reduction_method} not supported.")
-    
+
     return y_suspect

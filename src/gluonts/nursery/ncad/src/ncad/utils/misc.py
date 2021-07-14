@@ -30,34 +30,37 @@ import pandas as pd
 # import openpyxl as op
 
 
-def rm_file_or_dir( file_path: str ):
+def rm_file_or_dir(file_path: str):
     try:
         if os.path.isfile(file_path) or os.path.islink(file_path):
             os.unlink(file_path)
         elif os.path.isdir(file_path):
             shutil.rmtree(file_path, ignore_errors=True)
     except Exception as e:
-        print('Failed to delete %s. Reason: %s' % (file_path, e))
+        print("Failed to delete %s. Reason: %s" % (file_path, e))
 
 
-def clear_dir( path: str ):
+def clear_dir(path: str):
     for filename in os.listdir(path):
         file_path = os.path.join(path, filename)
-        rm_file_or_dir( file_path )
+        rm_file_or_dir(file_path)
 
 
-def save_args(args:dict, path:PosixPath):
+def save_args(args: dict, path: PosixPath):
     args_dict = args.copy()
 
-    args_dict = {key:(str(value) if isinstance(value,Path) else value) for key, value in args_dict.items()}
-    
-    with open(path, 'w') as fp:
-        json.dump(args_dict, fp, sort_keys=True, indent = 4)
+    args_dict = {
+        key: (str(value) if isinstance(value, Path) else value) for key, value in args_dict.items()
+    }
+
+    with open(path, "w") as fp:
+        json.dump(args_dict, fp, sort_keys=True, indent=4)
 
 
-def take_n_cycle(it: Iterable, n:int) -> List:
+def take_n_cycle(it: Iterable, n: int) -> List:
     cycle_it = itertools.cycle(it)
     return list(itertools.islice(cycle_it, n))
+
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -81,7 +84,7 @@ class NpEncoder(json.JSONEncoder):
 #         rows = ws.iter_rows(min_row=skiprows+1, max_row=skiprows+nrows)
 #     # Get headers
 #     if header:
-#         headers = [cell.value for cell in next(rows)]    
+#         headers = [cell.value for cell in next(rows)]
 #     # Load the data
 #     data = []
 #     for row in rows:

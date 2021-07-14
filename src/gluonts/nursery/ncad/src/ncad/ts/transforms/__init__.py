@@ -28,6 +28,4 @@ from .spikes_injection import (
     SpikeSmoothed,
 )
 
-from .smap_injections import (
-    smap_injection
-)
+from .smap_injections import smap_injection

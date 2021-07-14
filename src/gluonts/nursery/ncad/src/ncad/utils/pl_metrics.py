@@ -16,25 +16,24 @@ import torch
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
+
 class CachePredictions(Metric):
-    """Compute a number of metrics for  over all batches
-    """
-    def __init__(
-            self,
-            *args, **kwargs) -> None:
+    """Compute a number of metrics for  over all batches"""
+
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.add_state("preds", default=[], dist_reduce_fx=None)
         self.add_state("target", default=[], dist_reduce_fx=None)
 
         rank_zero_warn(
-            'Metric `CachePredictions` will save all targets and predictions in buffer.'
-            ' For large datasets this may lead to large memory footprint.'
+            "Metric `CachePredictions` will save all targets and predictions in buffer."
+            " For large datasets this may lead to large memory footprint."
         )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         # preds, target = _input_format_classification(preds, target)
         assert preds.shape == target.shape
-        
+
         self.preds.append(preds)
         self.target.append(target)
 

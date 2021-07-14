@@ -14,7 +14,8 @@
 import torch
 from torch import nn
 
-class ContrastiveClasifier( nn.Module ):
+
+class ContrastiveClasifier(nn.Module):
     """Contrastive Classifier.
 
     Calculates the distance between two random vectors, and returns an exponential transformation of it,
@@ -26,25 +27,25 @@ class ContrastiveClasifier( nn.Module ):
     """
 
     def __init__(
-            self,
-            distance: nn.Module,
-        ):
+        self,
+        distance: nn.Module,
+    ):
         """
         Args:
             distance : A Pytorch module which takes two (batches of) vectors and returns a (batch of)
                 positive number.
         """
         super().__init__()
-        
+
         self.distance = distance
-        
+
         self.eps = 1e-10
 
     def forward(
-            self,
-            x1: torch.Tensor,
-            x2: torch.Tensor,
-        ) -> torch.Tensor:
+        self,
+        x1: torch.Tensor,
+        x2: torch.Tensor,
+    ) -> torch.Tensor:
 
         # Compute distance
         dists = self.distance(x1, x2)
@@ -53,8 +54,8 @@ class ContrastiveClasifier( nn.Module ):
         log_prob_equal = -dists
 
         # Computation of log_prob_different
-        prob_different = torch.clamp( 1-torch.exp(log_prob_equal), self.eps, 1 )
-        log_prob_different = torch.log( prob_different )
+        prob_different = torch.clamp(1 - torch.exp(log_prob_equal), self.eps, 1)
+        log_prob_different = torch.log(prob_different)
 
         logits_different = log_prob_different - log_prob_equal
 

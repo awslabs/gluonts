@@ -18,7 +18,7 @@ try:
 except DistributionNotFound:
     __version__ = "0.0.0-unknown"
 
-from . import  datasets, model, ts, utils
+from . import datasets, model, ts, utils
 
 from .model import NCAD, NCADDataModule
 from .ts import TimeSeries, TimeSeriesDataset

@@ -31,16 +31,17 @@ class Chomp1d(torch.nn.Module):
     Args:
         chomp_size : Number of elements to remove.
     """
-    def __init__(self, chomp_size:int, last:bool=True):
+
+    def __init__(self, chomp_size: int, last: bool = True):
         super(Chomp1d, self).__init__()
         self.chomp_size = chomp_size
 
     def forward(self, x):
-        return x[:, :, :-self.chomp_size]
+        return x[:, :, : -self.chomp_size]
 
 
 class TCNBlock(torch.nn.Module):
-    """ Temporal Convolutional Network block.
+    """Temporal Convolutional Network block.
 
     Composed sequentially of two causal convolutions (with leaky ReLU activation functions),
     and a parallel residual connection.
@@ -56,55 +57,62 @@ class TCNBlock(torch.nn.Module):
         dilation : Dilation parameter of non-residual convolutions.
         final : If True, the last activation function is disabled.
     """
+
     def __init__(
-            self,
-            in_channels:int,
-            out_channels:int,
-            kernel_size:int,
-            dilation:int,
-            final:bool = False,
-        ):
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        dilation: int,
+        final: bool = False,
+    ):
 
         super(TCNBlock, self).__init__()
 
         in_channels = int(in_channels)
-        kernel_size=int(kernel_size)
-        out_channels=int(out_channels)
-        dilation=int(dilation)
+        kernel_size = int(kernel_size)
+        out_channels = int(out_channels)
+        dilation = int(dilation)
 
         # Computes left padding so that the applied convolutions are causal
-        padding = int( (kernel_size - 1) * dilation )
+        padding = int((kernel_size - 1) * dilation)
 
         # First causal convolution
         conv1_pre = torch.nn.Conv1d(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-            padding=padding, dilation=dilation,
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            dilation=dilation,
         )
-        conv1 = torch.nn.utils.weight_norm( conv1_pre )
-        
+        conv1 = torch.nn.utils.weight_norm(conv1_pre)
+
         # The truncation makes the convolution causal
-        chomp1 = Chomp1d( chomp_size=padding )
+        chomp1 = Chomp1d(chomp_size=padding)
 
         relu1 = torch.nn.LeakyReLU()
 
         # Second causal convolution
         conv2_pre = torch.nn.Conv1d(
-            in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-            padding=padding, dilation=dilation,
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            dilation=dilation,
         )
-        conv2 = torch.nn.utils.weight_norm( conv2_pre )
-        chomp2 = Chomp1d( chomp_size=padding )
+        conv2 = torch.nn.utils.weight_norm(conv2_pre)
+        chomp2 = Chomp1d(chomp_size=padding)
         relu2 = torch.nn.LeakyReLU()
 
         # Causal network
-        self.causal = torch.nn.Sequential(
-            conv1, chomp1, relu1, conv2, chomp2, relu2
-        )
+        self.causal = torch.nn.Sequential(conv1, chomp1, relu1, conv2, chomp2, relu2)
 
         # Residual connection
-        self.upordownsample = torch.nn.Conv1d(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=1
-        ) if in_channels != out_channels else None
+        self.upordownsample = (
+            torch.nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
+            if in_channels != out_channels
+            else None
+        )
 
         # Final activation function
         self.activation = torch.nn.LeakyReLU() if final else None
@@ -119,7 +127,7 @@ class TCNBlock(torch.nn.Module):
 
 
 class TCN(torch.nn.Module):
-    """ Temporal Convolutional Network.
+    """Temporal Convolutional Network.
 
     Composed of a sequence of causal convolution blocks.
 
@@ -135,19 +143,20 @@ class TCN(torch.nn.Module):
             channels.
         layers : Depth of the network.
     """
+
     def __init__(
-            self,
-            in_channels:int,
-            out_channels:int,
-            kernel_size:int,
-            channels:int,
-            layers:int,
-        ):
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        channels: int,
+        layers: int,
+    ):
 
         super(TCN, self).__init__()
 
         layers = int(layers)
-        
+
         net_layers = []  # List of sequential TCN blocks
         dilation_size = 1  # Initial dilation size
 
@@ -159,7 +168,7 @@ class TCN(torch.nn.Module):
                     out_channels=channels,
                     kernel_size=kernel_size,
                     dilation=dilation_size,
-                    final=False
+                    final=False,
                 )
             )
             dilation_size *= 2  # Doubles the dilation size at each step
@@ -171,19 +180,19 @@ class TCN(torch.nn.Module):
                 out_channels=out_channels,
                 kernel_size=kernel_size,
                 dilation=dilation_size,
-                final=True
+                final=True,
             )
         )
 
-        self.network = torch.nn.Sequential( *net_layers )
+        self.network = torch.nn.Sequential(*net_layers)
 
     def forward(self, x):
         return self.network(x)
 
 
 class TCNEncoder(torch.nn.Module):
-    """ Encoder of a time series using a Temporal Convolution Network (TCN).
-    
+    """Encoder of a time series using a Temporal Convolution Network (TCN).
+
     The computed representation is the output of a fully connected layer applied
     to the output of an adaptive max pooling layer applied on top of the TCN,
     which reduces the length of the time series to a fixed size.
@@ -205,15 +214,17 @@ class TCNEncoder(torch.nn.Module):
             is reduced.
         normalize_embedding : Normalize size of the embeddings
     """
-    def __init__(self,
-        in_channels:int,
-        out_channels:int,
-        kernel_size:int,
-        tcn_channels:int,
-        tcn_layers:int,
-        tcn_out_channels:int,
-        maxpool_out_channels:int=1,
-        normalize_embedding:bool=True,
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        tcn_channels: int,
+        tcn_layers: int,
+        tcn_out_channels: int,
+        maxpool_out_channels: int = 1,
+        normalize_embedding: bool = True,
     ):
 
         super(TCNEncoder, self).__init__()
@@ -226,13 +237,11 @@ class TCNEncoder(torch.nn.Module):
         )
 
         maxpool_out_channels = int(maxpool_out_channels)
-        maxpooltime = torch.nn.AdaptiveMaxPool1d( maxpool_out_channels )
-        flatten = torch.nn.Flatten() # Flatten two and third dimensions (tcn_out_channels and time)
-        fc = torch.nn.Linear( tcn_out_channels * maxpool_out_channels , out_channels )
-        self.network = torch.nn.Sequential(
-            tcn, maxpooltime, flatten, fc
-        )
-            
+        maxpooltime = torch.nn.AdaptiveMaxPool1d(maxpool_out_channels)
+        flatten = torch.nn.Flatten()  # Flatten two and third dimensions (tcn_out_channels and time)
+        fc = torch.nn.Linear(tcn_out_channels * maxpool_out_channels, out_channels)
+        self.network = torch.nn.Sequential(tcn, maxpooltime, flatten, fc)
+
         self.normalize_embedding = normalize_embedding
 
     def forward(self, x):

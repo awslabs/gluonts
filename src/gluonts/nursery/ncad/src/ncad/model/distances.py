@@ -19,15 +19,14 @@ from torch import nn
 import torch.nn.functional as F
 
 
-class CosineDistance( nn.Module ):
-    r"""Returns the cosine distance between :math:`x_1` and :math:`x_2`, computed along dim.
-    """
+class CosineDistance(nn.Module):
+    r"""Returns the cosine distance between :math:`x_1` and :math:`x_2`, computed along dim."""
 
     def __init__(
-            self,
-            dim: int = 1,
-            keepdim: bool = True,
-        ) -> None:
+        self,
+        dim: int = 1,
+        keepdim: bool = True,
+    ) -> None:
 
         super().__init__()
         self.dim = int(dim)
@@ -35,29 +34,28 @@ class CosineDistance( nn.Module ):
         self.eps = 1e-10
 
     def forward(
-            self,
-            x1: torch.Tensor,
-            x2: torch.Tensor,
-        ) -> torch.Tensor:
+        self,
+        x1: torch.Tensor,
+        x2: torch.Tensor,
+    ) -> torch.Tensor:
         # Cosine of angle between x1 and x2
         cos_sim = F.cosine_similarity(x1, x2, self.dim, self.eps)
-        dist = -torch.log( (1+cos_sim)/2 )
+        dist = -torch.log((1 + cos_sim) / 2)
 
         if self.keepdim:
-            dist = dist.unsqueeze( dim=self.dim )
+            dist = dist.unsqueeze(dim=self.dim)
         return dist
 
 
-class LpDistance( nn.Module ):
-    r"""Returns the Lp norm between :math:`x_1` and :math:`x_2`, computed along dim.
-    """
+class LpDistance(nn.Module):
+    r"""Returns the Lp norm between :math:`x_1` and :math:`x_2`, computed along dim."""
 
     def __init__(
-            self,
-            p: int = 2,
-            dim: int = 1,
-            keepdim: bool = True,
-        ) -> None:
+        self,
+        p: int = 2,
+        dim: int = 1,
+        keepdim: bool = True,
+    ) -> None:
 
         super().__init__()
         self.dim = int(dim)
@@ -66,61 +64,56 @@ class LpDistance( nn.Module ):
         self.eps = 1e-10
 
     def forward(
-            self,
-            x1: torch.Tensor,
-            x2: torch.Tensor,
-        ) -> torch.Tensor:
+        self,
+        x1: torch.Tensor,
+        x2: torch.Tensor,
+    ) -> torch.Tensor:
         # Lp norm between x1 and x2
-        dist = torch.norm( x2-x1, p=self.p, dim=self.dim, keepdim=self.keepdim)
+        dist = torch.norm(x2 - x1, p=self.p, dim=self.dim, keepdim=self.keepdim)
 
         return dist
 
 
-class NeuralDistance( nn.Module ):
-    ''' Neural Distance
-    
+class NeuralDistance(nn.Module):
+    """Neural Distance
+
     Transforms two vectors into a single positive scalar, which can be interpreted as a distance.
-    '''
-    def __init__(
-            self,
-            rep_dim: int,
-            layers: int = 1
-        ) -> None:
+    """
+
+    def __init__(self, rep_dim: int, layers: int = 1) -> None:
 
         super().__init__()
 
         rep_dim = int(rep_dim)
         layers = int(layers)
-        if layers<1:
-            raise ValueError('layers>=1 is required')
-        net_features_dim = np.linspace(rep_dim,1,layers+1).astype(int)
-    
+        if layers < 1:
+            raise ValueError("layers>=1 is required")
+        net_features_dim = np.linspace(rep_dim, 1, layers + 1).astype(int)
+
         net = []
         for i in range(layers):
-            net.append( torch.nn.Linear( net_features_dim[i], net_features_dim[i+1] ) )
-            if i < (layers-1):
-                net.append(
-                    torch.nn.ReLU()
-                )
+            net.append(torch.nn.Linear(net_features_dim[i], net_features_dim[i + 1]))
+            if i < (layers - 1):
+                net.append(torch.nn.ReLU())
 
-        net.append( torch.nn.Softplus(beta=1) )
-        
-        self.net = torch.nn.Sequential( *net )
+        net.append(torch.nn.Softplus(beta=1))
+
+        self.net = torch.nn.Sequential(*net)
 
     def forward(
-            self,
-            x1: torch.Tensor,
-            x2: torch.Tensor,
-        ) -> torch.Tensor:
+        self,
+        x1: torch.Tensor,
+        x2: torch.Tensor,
+    ) -> torch.Tensor:
 
-        out = self.net( x2 - x1 )
+        out = self.net(x2 - x1)
 
         return out
 
 
 class BinaryOnX1(NeuralDistance):
-    ''' Turns Contrast Classifier to a Binary Classifier for x1
-    
+    """Turns Contrast Classifier to a Binary Classifier for x1
+
     Effectively undo the contrastive approach from inside,
     and transforms the contrast classifier into a conventional binary classifier
     which maps x1 to a single real value representing the
@@ -139,14 +132,14 @@ class BinaryOnX1(NeuralDistance):
     log(p/(1-p)) = net(x)
     Therefore, the output of the contrast classifier
     would be effectively net(x)
-    '''
+    """
 
     def forward(
-            self,
-            x1: torch.Tensor,
-            x2: torch.Tensor,
-        ) -> torch.Tensor:
+        self,
+        x1: torch.Tensor,
+        x2: torch.Tensor,
+    ) -> torch.Tensor:
 
-        out = self.net( x1 )
+        out = self.net(x1)
 
         return out

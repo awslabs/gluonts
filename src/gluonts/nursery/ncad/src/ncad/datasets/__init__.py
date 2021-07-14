@@ -6,10 +6,10 @@ from .swat import swat
 from .yahoo import yahoo
 
 __all__ = [
-    'download',
-    'kpi',
-    'nasa',
+    "download",
+    "kpi",
+    "nasa",
     "smd",
     "swat",
-    'yahoo',
+    "yahoo",
 ]

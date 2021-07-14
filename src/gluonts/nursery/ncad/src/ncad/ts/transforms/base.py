@@ -27,7 +27,7 @@ class TimeSeriesTransform(object):
 
     def transform(self, ts: TimeSeries) -> TimeSeries:
         raise NotImplementedError()
-    
+
     def __add__(self, other: "TimeSeriesTransform") -> "TimeSeriesTransform":
         return Chain([self, other])
 
@@ -65,10 +65,10 @@ class IdentityTransform(TimeSeriesTransform):
 
 class ApplyWithProbability(TimeSeriesTransform):
     def __init__(
-            self,
-            base_transform: TimeSeriesTransform,
-            p: float,
-            ) -> None:
+        self,
+        base_transform: TimeSeriesTransform,
+        p: float,
+    ) -> None:
         self.base_transform = base_transform
         self.p = p
 
@@ -80,20 +80,20 @@ class ApplyWithProbability(TimeSeriesTransform):
 
 class TimeSeriesScaler(TimeSeriesTransform):
     def __init__(
-            self,
-            type: str = ['standard','robust'][1],
-            ) -> None:
+        self,
+        type: str = ["standard", "robust"][1],
+    ) -> None:
         super().__init__()
-        
+
         self.type = type
-        if self.type == 'standard':
+        if self.type == "standard":
             self.scaler = sklearn.preprocessing.StandardScaler()
-        if self.type == 'robust':
+        if self.type == "robust":
             self.scaler = sklearn.preprocessing.RobustScaler()
 
     def transform(self, ts: TimeSeries) -> TimeSeries:
-        if ts.shape[0]>0:
-            ts.values = self.scaler.fit_transform( ts.values.reshape( ts.shape ) ).squeeze()
+        if ts.shape[0] > 0:
+            ts.values = self.scaler.fit_transform(ts.values.reshape(ts.shape)).squeeze()
 
         return ts
 
@@ -104,7 +104,7 @@ class RandomPickListTransforms(TimeSeriesTransform):
         l_transforms: List[TimeSeriesTransform],
         number_picks: int = 1,
         mixture_proportions: Optional[np.ndarray] = None,
-        ) -> None:
+    ) -> None:
         super().__init__()
         self.l_transforms = l_transforms
         self.number_picks = number_picks
@@ -116,18 +116,16 @@ class RandomPickListTransforms(TimeSeriesTransform):
 
     def transform(self, ts: TimeSeries) -> TimeSeries:
         draws = np.random.choice(
-                range(len(self.l_transforms)),
-                self.number_picks,
-                p=self.mixture_proportions
-            )
+            range(len(self.l_transforms)), self.number_picks, p=self.mixture_proportions
+        )
         for k in draws:
             ts = self.l_transforms[k].transform(ts)
-        
+
         return ts
 
 
 class ShortALongB(TimeSeriesTransform):
-    """ Apply different transforms for TimeSeries shorter and longer than a length threshold
+    """Apply different transforms for TimeSeries shorter and longer than a length threshold
 
     If the time series is shorter than length_threshold, it applies TimeSeriesTransform A,
     otherwise, applies transform B.
@@ -138,15 +136,15 @@ class ShortALongB(TimeSeriesTransform):
         length_threshold: int = 0,
         A: TimeSeriesTransform = IdentityTransform(),
         B: TimeSeriesTransform = IdentityTransform(),
-        ):
+    ):
         self.length_threshold = length_threshold
         self.A = A
         self.B = B
-    
+
     def transform(self, ts: TimeSeries) -> TimeSeries:
         if ts.shape[0] < self.length_threshold:
             return self.A.transform(ts)
-        
+
         return self.B.transform(ts)
 
 
@@ -168,12 +166,12 @@ class LabelNoise(TimeSeriesTransform):
 
 
 def apply_transform_to_dataset(
-        dataset: TimeSeriesDataset,
-        transform: TimeSeriesTransform,
-        ) -> TimeSeriesDataset:
+    dataset: TimeSeriesDataset,
+    transform: TimeSeriesTransform,
+) -> TimeSeriesDataset:
     new_dataset = TimeSeriesDataset()
     for ts in dataset:
-        new_dataset.append( transform.transform(ts) )
+        new_dataset.append(transform.transform(ts))
     return new_dataset
 
 

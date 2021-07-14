@@ -20,13 +20,14 @@ import tarfile
 
 from ncad.utils import rm_file_or_dir
 
+
 def download(
-        data_dir: Union[str,PosixPath] = '~/ncad_datasets',
-        benchmarks: Union[str,List[str]] = ['kpi','nasa','smd','swat','yahoo'],
-        swat_path: Union[str,PosixPath] = None,
-        yahoo_path: Union[str,PosixPath] = None
-        ) -> None:
-    """ Download benchmark datasets for Anomaly detection on Time Series.
+    data_dir: Union[str, PosixPath] = "~/ncad_datasets",
+    benchmarks: Union[str, List[str]] = ["kpi", "nasa", "smd", "swat", "yahoo"],
+    swat_path: Union[str, PosixPath] = None,
+    yahoo_path: Union[str, PosixPath] = None,
+) -> None:
+    """Download benchmark datasets for Anomaly detection on Time Series.
 
     Args:
         data_dir : Directory to store the data files
@@ -37,23 +38,25 @@ def download(
             If 'yahoo' is included, yahoo_path is required.
         swat_path : Path to the file provided by iTrust.
         yahoo_path : Path to the tar file downloaded from Yahoo Labs (only used if 'yahoo' is in benchmarks).
-    
+
     Sources:
         https://github.com/khundman/telemanom
         https://github.com/NetManAIOps/KPI-Anomaly-Detection
     """
 
     # Transform data_dir to Path
-    data_dir = PosixPath(data_dir).expanduser() if str(data_dir).startswith('~') else Path(data_dir)
+    data_dir = PosixPath(data_dir).expanduser() if str(data_dir).startswith("~") else Path(data_dir)
 
-    if isinstance(benchmarks,str):
-        benchmarks = [benchmarks,]
+    if isinstance(benchmarks, str):
+        benchmarks = [
+            benchmarks,
+        ]
 
     # Create directory
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-    
-    if 'kpi' in benchmarks:
+
+    if "kpi" in benchmarks:
         print("Preparing KPI dataset...")
         cmd_string = (
             f"cd {data_dir}"
@@ -65,13 +68,13 @@ def download(
         )
         os.system(cmd_string)
         # remove unnecessary files
-        kpi_files = ['phase2_ground_truth.hdf','phase2_train.csv']
-        rm_these = set(os.listdir(data_dir/'kpi')) - set(kpi_files)
+        kpi_files = ["phase2_ground_truth.hdf", "phase2_train.csv"]
+        rm_these = set(os.listdir(data_dir / "kpi")) - set(kpi_files)
         for file in rm_these:
-            rm_file_or_dir(data_dir/'kpi'/file)
+            rm_file_or_dir(data_dir / "kpi" / file)
         print("... KPI dataset ready!")
 
-    if 'nasa' in benchmarks:
+    if "nasa" in benchmarks:
         print("Preparing NASA datasets (SMAP and MSL)...")
         cmd_string = (
             f"cd {data_dir}"
@@ -83,13 +86,13 @@ def download(
         )
         os.system(cmd_string)
         # remove unnecessary files
-        nasa_files = ['train','test','labeled_anomalies.csv']
-        rm_these = set(os.listdir(data_dir/'nasa')) - set(nasa_files)
+        nasa_files = ["train", "test", "labeled_anomalies.csv"]
+        rm_these = set(os.listdir(data_dir / "nasa")) - set(nasa_files)
         for file in rm_these:
-            rm_file_or_dir(data_dir/'nasa'/file)
+            rm_file_or_dir(data_dir / "nasa" / file)
         print("... NASA dataset ready")
-    
-    if 'smd' in benchmarks:
+
+    if "smd" in benchmarks:
         print("Preparing SMD dataset...")
         cmd_string = (
             f"cd {data_dir}"
@@ -102,28 +105,34 @@ def download(
         os.system(cmd_string)
         print("... SMD dataset ready")
 
-    if 'swat' in benchmarks:
-        os.makedirs(data_dir/'swat', exist_ok=True)
-        files_swat = ['SWaT_Dataset_Normal_v0.csv', 'SWaT_Dataset_Attack_v0.csv']
-        print(f"Request SWAT dataset from the iTrust Labs (https://itrust.sutd.edu.sg/ and copy the files\n{files_swat}\n from Dec2015 in {data_dir/'swat'}")
+    if "swat" in benchmarks:
+        os.makedirs(data_dir / "swat", exist_ok=True)
+        files_swat = ["SWaT_Dataset_Normal_v0.csv", "SWaT_Dataset_Attack_v0.csv"]
+        print(
+            f"Request SWAT dataset from the iTrust Labs (https://itrust.sutd.edu.sg/ and copy the files\n{files_swat}\n from Dec2015 in {data_dir/'swat'}"
+        )
 
-    if 'yahoo' in benchmarks:
+    if "yahoo" in benchmarks:
         if yahoo_path is None:
             raise ValueError(f"yahoo_path must be provided if 'yahoo' is in benchmarks")
         else:
             print("Preparing Yahoo dataset...")
-            
-            yahoo_path = PosixPath(yahoo_path).expanduser() if str(yahoo_path).startswith('~') else Path(yahoo_path)
+
+            yahoo_path = (
+                PosixPath(yahoo_path).expanduser()
+                if str(yahoo_path).startswith("~")
+                else Path(yahoo_path)
+            )
             with tarfile.open(str(yahoo_path)) as tar:
-                tar.extractall(path=data_dir/'yahoo')
-            aux_dir = os.listdir(data_dir/'yahoo')[0]
-            
-            yahoo_files = [f"A{i}Benchmark" for i in range(1,5)]
+                tar.extractall(path=data_dir / "yahoo")
+            aux_dir = os.listdir(data_dir / "yahoo")[0]
+
+            yahoo_files = [f"A{i}Benchmark" for i in range(1, 5)]
             cmd_string = f"cd {data_dir}/yahoo"
             for dir_i in yahoo_files:
                 cmd_string += f" && mv {aux_dir}/{dir_i} ."
             os.system(cmd_string)
-            rm_these = set(os.listdir(data_dir/'yahoo')) - set(yahoo_files)
+            rm_these = set(os.listdir(data_dir / "yahoo")) - set(yahoo_files)
             for file in rm_these:
-                rm_file_or_dir(data_dir/'yahoo'/file)
+                rm_file_or_dir(data_dir / "yahoo" / file)
             print("...Yahoo dataset ready!")
