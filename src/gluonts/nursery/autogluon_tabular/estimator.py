@@ -107,7 +107,6 @@ class TabularEstimator(Estimator):
         self.scaling = scaling
         self.last_k_for_val = last_k_for_val
         self.eval_metric = eval_metric
-
         self.quantiles_to_predict = quantiles_to_predict
 
         if self.disable_auto_regression:
