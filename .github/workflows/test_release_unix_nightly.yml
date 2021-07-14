@@ -2,12 +2,10 @@ name: Test latest release nightly Ubuntu
 
 on:
   schedule:
-    # * is a special character in YAML so you have to quote this string
-    # nightly:
     - cron:  '0 0 * * *'
 
 jobs:
-  build:
+  test-stable-ubuntu:
 
     strategy:
       max-parallel: 4
@@ -25,14 +23,17 @@ jobs:
       run: |
         git clone https://github.com/awslabs/gluon-ts --branch $(curl https://api.github.com/repos/awslabs/gluon-ts/releases/latest | grep tag_name | cut -d : -f 2,3 | tr -d \"\ | tr -d \,\ )
         cd gluon-ts
-        python -m pip install --upgrade pip
-        pip install -r requirements/requirements-mxnet.txt
-        pip install -r requirements/requirements-pytorch.txt --no-cache-dir
-        pip install gluonts
+        python -m pip install pip==20.2
+        pip install mxnet~=1.8.0
+        pip install torch==1.8.1+cpu --no-cache-dir -f https://download.pytorch.org/whl/torch_stable.html
+        pip install pytorch-lightning~=1.3.0
+        pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
-        pip install -r requirements/requirements-extras-shell.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-rotbaum.txt
+        pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
     - name: Test with pytest
       run: |
         cd gluon-ts

@@ -11,20 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# First-party imports
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.mx.distribution import (
-    MultivariateGaussianOutput,
-    LowrankMultivariateGaussianOutput,
-)
-from gluonts.evaluation.backtest import backtest_metrics
-from gluonts.model.deepvar import DeepVAREstimator
 from gluonts.dataset.common import TrainDatasets
-from gluonts.mx.trainer import Trainer
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
-from gluonts.evaluation import MultivariateEvaluator
+from gluonts.evaluation import backtest_metrics, MultivariateEvaluator
+from gluonts.model.deepvar import DeepVAREstimator
+from gluonts.mx.distribution import (
+    LowrankMultivariateGaussianOutput,
+    MultivariateGaussianOutput,
+)
+from gluonts.mx.trainer import Trainer
 
 
 def load_multivariate_constant_dataset():
@@ -111,6 +109,7 @@ def test_deepvar(
             epochs=1,
             batch_size=8,
             learning_rate=1e-10,
+            minimum_learning_rate=1e-13,
             num_batches_per_epoch=num_batches_per_epoch,
             hybridize=hybridize,
         ),

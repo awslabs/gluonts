@@ -11,23 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import multiprocessing
 from ipaddress import IPv4Address
-from typing import Optional, Type, Union
+from typing import List, Optional, Type, Union
 
-# Third-party imports
 from flask import Flask
 from gunicorn.app.base import BaseApplication
 from pydantic import BaseSettings
 
-# First-party imports
 import gluonts
 from gluonts.core import fqname_for
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.shell.sagemaker import ServeEnv
+from gluonts.shell.env import ServeEnv
 
 from .app import make_app
 
@@ -55,7 +52,11 @@ class Settings(BaseSettings):
     sagemaker_server_timeout: int = 100
 
     gluonts_batch_timeout: int = 0
-    gluonts_batch_fallback_predictor: str = "gluonts.model.trivial.mean.MeanPredictor"
+    gluonts_batch_fallback_predictor: str = (
+        "gluonts.model.trivial.mean.MeanPredictor"
+    )
+    gluonts_batch_suppress_errors: bool = False
+    gluonts_forward_fields: List[str] = []
 
     sagemaker_batch: bool = False
     sagemaker_batch_strategy: str = "SINGLE_RECORD"
@@ -120,7 +121,7 @@ def make_gunicorn_app(
     settings: Settings,
 ) -> Application:
     if forecaster_type is not None:
-        logger.info(f"Using dynamic predictor factory")
+        logger.info("Using dynamic predictor factory")
 
         ctor = forecaster_type.from_hyperparameters
 
@@ -131,7 +132,7 @@ def make_gunicorn_app(
             return ctor(**request["configuration"])
 
     else:
-        logger.info(f"Using static predictor factory")
+        logger.info("Using static predictor factory")
 
         assert env is not None
         predictor = Predictor.deserialize(env.path.model)

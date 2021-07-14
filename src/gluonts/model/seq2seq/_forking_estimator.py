@@ -11,29 +11,37 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
+from functools import partial
 from typing import List, Optional
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType, validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
+from gluonts.env import env
 from gluonts.model.forecast import Quantile
-from gluonts.model.forecast_generator import QuantileForecastGenerator
-from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
+from gluonts.model.forecast_generator import (
+    DistributionForecastGenerator,
+    QuantileForecastGenerator,
+)
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import FutureFeatIntegratorEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
@@ -41,20 +49,22 @@ from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
     Chain,
+    InstanceSampler,
     RemoveFields,
     RenameFields,
+    SelectFields,
     SetField,
     TestSplitSampler,
     Transformation,
+    ValidationSplitSampler,
     VstackFeatures,
 )
 
-# Relative imports
 from ._forking_network import (
-    ForkingSeq2SeqNetworkBase,
-    ForkingSeq2SeqTrainingNetwork,
-    ForkingSeq2SeqPredictionNetwork,
     ForkingSeq2SeqDistributionPredictionNetwork,
+    ForkingSeq2SeqNetworkBase,
+    ForkingSeq2SeqPredictionNetwork,
+    ForkingSeq2SeqTrainingNetwork,
 )
 from ._transform import ForkingSequenceSplitter
 
@@ -125,13 +135,21 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
     trainer
         trainer (default: Trainer())
     scaling
-        Whether to automatically scale the target values. (default: False)
+        Whether to automatically scale the target values. (default: False if quantile_output is used, True otherwise)
     scaling_decoder_dynamic_feature
         Whether to automatically scale the dynamic features for the decoder. (default: False)
     dtype
         (default: np.float32)
     num_forking
-        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN
+        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
+    max_ts_len
+        Returns the length of the longest time series in the dataset to be used in bounding context_length.
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -154,13 +172,16 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         enable_encoder_dynamic_feature: bool = True,
         enable_decoder_dynamic_feature: bool = True,
         trainer: Trainer = Trainer(),
-        scaling: bool = False,
+        scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         dtype: DType = np.float32,
         num_forking: Optional[int] = None,
         max_ts_len: Optional[int] = None,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
+        batch_size: int = 32,
     ) -> None:
-        super().__init__(trainer=trainer)
+        super().__init__(trainer=trainer, batch_size=batch_size)
 
         assert (distr_output is None) != (quantile_output is None)
         assert (
@@ -221,9 +242,22 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         )
         self.enable_encoder_dynamic_feature = enable_encoder_dynamic_feature
         self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
-        self.scaling = scaling
+        self.scaling = (
+            scaling if scaling is not None else (quantile_output is None)
+        )
         self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
         self.dtype = dtype
+
+        self.train_sampler = (
+            train_sampler
+            if train_sampler is not None
+            else ValidationSplitSampler(min_future=prediction_length)
+        )
+        self.validation_sampler = (
+            validation_sampler
+            if validation_sampler is not None
+            else ValidationSplitSampler(min_future=prediction_length)
+        )
 
     def create_transformation(self) -> Transformation:
         chain = []
@@ -331,13 +365,24 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 )
             )
 
-        # --- SAMPLE AND CUT THE TIME-SERIES ---
+        return Chain(chain)
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        instance_sampler = {
+            "training": self.train_sampler,
+            "validation": self.validation_sampler,
+            "test": TestSplitSampler(),
+        }[mode]
+
+        chain = []
 
         chain.append(
             # because of how the forking decoder works, every time step
             # in context is used for splitting, which is why we use the TestSplitSampler
             ForkingSequenceSplitter(
-                train_sampler=TestSplitSampler(),
+                instance_sampler=instance_sampler,
                 enc_len=self.context_length,
                 dec_len=self.prediction_length,
                 num_forking=self.num_forking,
@@ -364,16 +409,15 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     else []
                 ),
                 decoder_series_fields=[
-                    FieldName.OBSERVED_VALUES,
                     # Decoder will use all fields under FEAT_DYNAMIC which are the RTS with past and future values
                     FieldName.FEAT_DYNAMIC,
-                ],
+                ]
+                + ([FieldName.OBSERVED_VALUES] if mode != "test" else []),
                 decoder_disabled_fields=(
                     [FieldName.FEAT_DYNAMIC]
                     if not self.enable_decoder_dynamic_feature
                     else []
                 ),
-                prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
             )
         )
 
@@ -397,6 +441,42 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
 
         return Chain(chain)
 
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            ForkingSeq2SeqTrainingNetwork
+        )
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            ForkingSeq2SeqTrainingNetwork
+        )
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+        )
+
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:
         return ForkingSeq2SeqTrainingNetwork(
             encoder=self.encoder,
@@ -409,6 +489,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
+            scaling_decoder_dynamic_feature=self.scaling_decoder_dynamic_feature,
             dtype=self.dtype,
         )
 
@@ -425,6 +506,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             if self.quantile_output is not None
             else None
         )
+
+        prediction_splitter = self._create_instance_splitter("test")
 
         prediction_network_class = (
             ForkingSeq2SeqPredictionNetwork
@@ -443,15 +526,16 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             scaling=self.scaling,
+            scaling_decoder_dynamic_feature=self.scaling_decoder_dynamic_feature,
             dtype=self.dtype,
         )
 
         copy_parameters(trained_network, prediction_network)
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from functools import partial
 
-# Third-party imports
 import numpy as np
 import pytest
 
-# First-party imports
-from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.trainer import Trainer
 
+from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 common_estimator_hps = dict(
     freq="D",
@@ -110,8 +107,11 @@ common_estimator_hps = dict(
     ],
 )
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-def test_deepar_smoke(estimator, datasets, dtype):
-    estimator = estimator(dtype=dtype)
+@pytest.mark.parametrize("impute_missing_values", [False, True])
+def test_deepar_smoke(estimator, datasets, dtype, impute_missing_values):
+    estimator = estimator(
+        dtype=dtype, impute_missing_values=impute_missing_values
+    )
     dataset_train, dataset_test = datasets
     predictor = estimator.train(dataset_train)
     forecasts = list(predictor.predict(dataset_test))

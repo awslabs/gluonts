@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from typing import Dict, Tuple
 
-# First-party imports
-from gluonts.model.common import Tensor
+from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF, softplus
 
-# Relative imports
 from . import Kernel, KernelOutputDict
 
 
@@ -149,27 +146,25 @@ class PeriodicKernelOutput(KernelOutputDict):
 
     # noinspection PyMethodOverriding,PyPep8Naming
     @classmethod
-    def domain_map(
-        cls, F, amplitude: Tensor, length_scale: Tensor, frequency: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
-        """
+    def domain_map(cls, F, amplitude, length_scale, frequency):
+        r"""
         This function applies the softmax to the Periodic Kernel hyper-parameters.
 
         Parameters
         ----------
-        F : ModuleType
+        F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-        amplitude : Tensor
+        amplitude
             Periodic kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
-        length_scale : Tensor
+        length_scale
             Periodic kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
-        frequency : Tensor
+        frequency
             Periodic kernel hyper-parameter of shape (batch_size, 1, 1).
 
         Returns
         -------
-        Tuple
+        Tuple[Tensor, Tensor, Tensor]
             Three GP Periodic kernel hyper-parameters.
             Each is a Tensor of shape: (batch_size, 1, 1).
         """

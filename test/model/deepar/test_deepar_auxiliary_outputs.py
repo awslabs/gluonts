@@ -11,19 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from itertools import islice
 from functools import partial
+from itertools import islice
 
 import mxnet as mx
 
-from gluonts.mx.distribution import StudentTOutput
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.loader import TrainDataLoader
-from gluonts.support.util import get_hybrid_forward_input_names
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.batchify import batchify
+from gluonts.mx.distribution import StudentTOutput
 from gluonts.mx.trainer import Trainer
-
+from gluonts.mx.util import get_hybrid_forward_input_names
 
 ds_info, train_ds, test_ds = constant_dataset()
 freq = ds_info.metadata.freq
@@ -35,31 +34,31 @@ def test_distribution():
     Makes sure additional tensors can be accessed and have expected shapes
     """
     prediction_length = ds_info.prediction_length
-    estimator = DeepAREstimator(
-        freq=freq,
-        prediction_length=prediction_length,
-        trainer=Trainer(epochs=2, num_batches_per_epoch=1),
-        distr_output=StudentTOutput(),
-    )
-
-    train_output = estimator.train_model(train_ds, test_ds)
 
     # todo adapt loader to anomaly detection use-case
     batch_size = 2
     num_samples = 3
 
-    training_data_loader = TrainDataLoader(
-        dataset=train_ds,
-        transform=train_output.transformation,
+    estimator = DeepAREstimator(
+        freq=freq,
+        prediction_length=prediction_length,
+        trainer=Trainer(epochs=2, num_batches_per_epoch=1),
+        distr_output=StudentTOutput(),
         batch_size=batch_size,
-        num_batches_per_epoch=estimator.trainer.num_batches_per_epoch,
-        stack_fn=partial(batchify, ctx=mx.cpu()),
+    )
+
+    train_output = estimator.train_model(train_ds, test_ds)
+
+    training_data_loader = estimator.create_training_data_loader(
+        estimator.create_transformation().apply(train_ds)
     )
 
     seq_len = 2 * ds_info.prediction_length
 
     for data_entry in islice(training_data_loader, 1):
-        input_names = get_hybrid_forward_input_names(train_output.trained_net)
+        input_names = get_hybrid_forward_input_names(
+            type(train_output.trained_net)
+        )
 
         distr = train_output.trained_net.distribution(
             *[data_entry[k] for k in input_names]

@@ -15,10 +15,9 @@ from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import DType, validated, tensor_to_numpy
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
-from gluonts.model.common import Tensor
 from gluonts.support.util import erf, erfinv
 
 from ._base import (
@@ -286,6 +285,8 @@ class SampleTargetDim(FlatMapTransformation):
         num_samples: int,
         shuffle: bool = True,
     ) -> None:
+        super().__init__()
+
         self.field_name = field_name
         self.target_field = target_field
         self.observed_values_field = observed_values_field
@@ -293,7 +294,7 @@ class SampleTargetDim(FlatMapTransformation):
         self.shuffle = shuffle
 
     def flatmap_transform(
-        self, data: DataEntry, is_train: bool, slice_future_target: bool = True
+        self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
         if not is_train:
             yield data
@@ -338,6 +339,7 @@ class CDFtoGaussianTransform(MapTransformation):
         observed_values_field: str,
         cdf_suffix="_cdf",
         max_context_length: Optional[int] = None,
+        dtype: DType = np.float32,
     ) -> None:
         """
         Constructor for CDFtoGaussianTransform.
@@ -354,6 +356,8 @@ class CDFtoGaussianTransform(MapTransformation):
             Suffix to mark the field with the transformed target.
         max_context_length
             Sets the maximum context length for the empirical CDF.
+        dtype
+            numpy dtype of output.
         """
         self.target_field = target_field
         self.past_target_field = "past_" + self.target_field
@@ -365,6 +369,7 @@ class CDFtoGaussianTransform(MapTransformation):
         self.cdf_suffix = cdf_suffix
         self.max_context_length = max_context_length
         self.target_dim = target_dim
+        self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         self._preprocess_data(data, is_train=is_train)
@@ -435,7 +440,9 @@ class CDFtoGaussianTransform(MapTransformation):
         # sorts along the time dimension to compute empirical CDF of each
         # dimension
         if is_train:
-            past_target_vec = self._add_noise(past_target_vec)
+            past_target_vec = self._add_noise(past_target_vec).astype(
+                self.dtype
+            )
 
         past_target_vec.sort(axis=0)
 
@@ -464,10 +471,13 @@ class CDFtoGaussianTransform(MapTransformation):
         sorted_target = data[self.sort_target_field]
         sorted_target_length, target_dim = sorted_target.shape
 
-        quantiles = np.stack(
-            [np.arange(sorted_target_length) for _ in range(target_dim)],
-            axis=1,
-        ) / float(sorted_target_length)
+        quantiles = (
+            np.stack(
+                [np.arange(sorted_target_length) for _ in range(target_dim)],
+                axis=1,
+            )
+            / float(sorted_target_length)
+        )
 
         x_diff = np.diff(sorted_target, axis=0)
         y_diff = np.diff(quantiles, axis=0)
@@ -484,8 +494,8 @@ class CDFtoGaussianTransform(MapTransformation):
         intercepts = quantiles - slopes * sorted_target
 
         # Populate new fields with the piece-wise linear parameters.
-        data[self.slopes_field] = slopes
-        data[self.intercepts_field] = intercepts
+        data[self.slopes_field] = slopes.astype(self.dtype)
+        data[self.intercepts_field] = intercepts.astype(self.dtype)
 
     def _empirical_cdf_forward_transform(
         self,
@@ -598,13 +608,13 @@ class CDFtoGaussianTransform(MapTransformation):
             Transformed target vector.
         """
         transformed = list()
-        for sorted, t, slope, intercept in zip(
+        for sorted_vector, t, slope, intercept in zip(
             sorted_vec.transpose(),
             target.transpose(),
             slopes.transpose(),
             intercepts.transpose(),
         ):
-            indices = self._search_sorted(sorted, t)
+            indices = self._search_sorted(sorted_vector, t)
             transformed_value = slope[indices] * t + intercept[indices]
             transformed.append(transformed_value)
         return np.array(transformed).transpose()
@@ -612,12 +622,12 @@ class CDFtoGaussianTransform(MapTransformation):
     @staticmethod
     def standard_gaussian_cdf(x: np.array) -> np.array:
         u = x / (np.sqrt(2.0))
-        return (erf(np, u) + 1.0) / 2.0
+        return (erf(u) + 1.0) / 2.0
 
     @staticmethod
     def standard_gaussian_ppf(y: np.array) -> np.array:
         y_clipped = np.clip(y, a_min=1.0e-6, a_max=1.0 - 1.0e-6)
-        return np.sqrt(2.0) * erfinv(np, 2.0 * y_clipped - 1.0)
+        return np.sqrt(2.0) * erfinv(2.0 * y_clipped - 1.0)
 
     @staticmethod
     def winsorized_cutoff(m: np.array) -> np.array:
@@ -676,7 +686,7 @@ class CDFtoGaussianTransform(MapTransformation):
 
 
 def cdf_to_gaussian_forward_transform(
-    input_batch: DataEntry, outputs: Tensor
+    input_batch: DataEntry, outputs: np.ndarray
 ) -> np.ndarray:
     """
     Forward transformation of the CDFtoGaussianTransform.
@@ -695,10 +705,10 @@ def cdf_to_gaussian_forward_transform(
     """
 
     def _empirical_cdf_inverse_transform(
-        batch_target_sorted: Tensor,
-        batch_predictions: Tensor,
-        slopes: Tensor,
-        intercepts: Tensor,
+        batch_target_sorted: np.ndarray,
+        batch_predictions: np.ndarray,
+        slopes: np.ndarray,
+        intercepts: np.ndarray,
     ) -> np.ndarray:
         """
         Apply forward transformation of the empirical CDF.
@@ -720,11 +730,8 @@ def cdf_to_gaussian_forward_transform(
             Forward transformed outputs.
 
         """
-        slopes = slopes.asnumpy()
-        intercepts = intercepts.asnumpy()
 
-        batch_target_sorted = batch_target_sorted.asnumpy()
-        batch_size, num_timesteps, target_dim = batch_target_sorted.shape
+        num_timesteps = batch_target_sorted.shape[1]
         indices = np.floor(batch_predictions * num_timesteps)
         # indices = indices - 1
         # for now project into [0, 1]
@@ -743,14 +750,80 @@ def cdf_to_gaussian_forward_transform(
         return transformed
 
     # applies inverse cdf to all outputs
-    batch_size, samples, target_dim, time = outputs.shape
+    samples = outputs.shape[1]
     for sample_index in range(0, samples):
         outputs[:, sample_index, :, :] = _empirical_cdf_inverse_transform(
-            input_batch["past_target_sorted"],
+            tensor_to_numpy(input_batch["past_target_sorted"]),
             CDFtoGaussianTransform.standard_gaussian_cdf(
                 outputs[:, sample_index, :, :]
             ),
-            input_batch["slopes"],
-            input_batch["intercepts"],
+            tensor_to_numpy(input_batch["slopes"]),
+            tensor_to_numpy(input_batch["intercepts"]),
         )
     return outputs
+
+
+class ToIntervalSizeFormat(FlatMapTransformation):
+    """
+    Convert a sparse univariate time series to the `interval-size` format,
+    i.e., a two dimensional time series where the first dimension corresponds
+    to the time since last positive value (1-indexed), and the second dimension
+    corresponds to the size of the demand. This format is used often in the
+    intermittent demand literature, where predictions are performed on this
+    "dense" time series, e.g., as in Croston's method.
+
+    As an example, the time series `[0, 0, 1, 0, 3, 2, 0, 4]` is converted into
+    the 2-dimensional time series `[[3, 2, 1, 2], [1, 3, 2, 4]]`, with a
+    shape (2, M) where M denotes the number of non-zero items in the time series.
+
+    Parameters
+    ----------
+    target_field
+        The target field to be converted, containing a univariate and sparse
+        time series
+    drop_empty
+        If True, all-zero time series will be dropped.
+    discard_first
+        If True, the first element in the converted dense series will be dropped,
+        replacing the target with a (2, M-1) tet instead. This can be used
+        when the first 'inter-demand' time is not well-defined. e.g., when the true
+        starting index of the time-series is not known.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        target_field: str,
+        drop_empty: bool = False,
+        discard_first: bool = False,
+    ) -> None:
+        super().__init__()
+
+        self.target_field = target_field
+        self.drop_empty = drop_empty
+        self.discard_first = discard_first
+
+    def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
+        a = np.array(a)
+        (non_zero_index,) = np.nonzero(a)
+
+        if len(non_zero_index) == 0:
+            return [], []
+
+        times = np.diff(non_zero_index, prepend=-1.0).tolist()
+        sizes = a[non_zero_index].tolist()
+
+        if self.discard_first:
+            return times[1:], sizes[1:]
+        return times, sizes
+
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool
+    ) -> Iterator[DataEntry]:
+        target = data[self.target_field]
+
+        times, sizes = self._process_sparse_time_sample(target)
+
+        if len(times) > 0 or not self.drop_empty:
+            data[self.target_field] = [times, sizes]
+            yield data

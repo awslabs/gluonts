@@ -54,9 +54,9 @@ def _shift_timestamp_helper(
         # this line looks innocent, but can create a date which is out of
         # bounds values over year 9999 raise a ValueError
         # values over 2262-04-11 raise a pandas OutOfBoundsDatetime
-        return ts + offset * ts.freq
+        return ts + offset * freq
     except (ValueError, pd._libs.OutOfBoundsDatetime) as ex:
-        raise GluonTSDateBoundsError(ex)
+        raise GluonTSDateBoundsError(ex) from ex
 
 
 class InstanceSplitter(FlatMapTransformation):
@@ -91,7 +91,7 @@ class InstanceSplitter(FlatMapTransformation):
         field containing the start date of the time series
     forecast_start_field
         output field that will contain the time point where the forecast starts
-    train_sampler
+    instance_sampler
         instance sampler that provides sampling indices given a time-series
     past_length
         length of the target seen before making prediction
@@ -105,12 +105,6 @@ class InstanceSplitter(FlatMapTransformation):
     time_series_fields
         fields that contains time-series, they are split in the same interval
         as the target (default: None)
-    pick_incomplete
-        whether training examples can be sampled with only a part of
-        past_length time-units
-        present for the time series. This is useful to train models for
-        cold-start. In such case, is_pad_out contains an indicator whether
-        data is padded or not. (default: True)
     dummy_value
         Value to use for padding. (default: 0.0)
     """
@@ -122,31 +116,28 @@ class InstanceSplitter(FlatMapTransformation):
         is_pad_field: str,
         start_field: str,
         forecast_start_field: str,
-        train_sampler: InstanceSampler,
+        instance_sampler: InstanceSampler,
         past_length: int,
         future_length: int,
         lead_time: int = 0,
         output_NTC: bool = True,
-        time_series_fields: Optional[List[str]] = None,
-        pick_incomplete: bool = True,
+        time_series_fields: List[str] = [],
         dummy_value: float = 0.0,
     ) -> None:
+        super().__init__()
 
-        assert future_length > 0
+        assert future_length > 0, "The value of `future_length` should be > 0"
 
-        self.train_sampler = train_sampler
+        self.instance_sampler = instance_sampler
         self.past_length = past_length
         self.future_length = future_length
         self.lead_time = lead_time
         self.output_NTC = output_NTC
-        self.ts_fields = (
-            time_series_fields if time_series_fields is not None else []
-        )
+        self.ts_fields = time_series_fields
         self.target_field = target_field
         self.is_pad_field = is_pad_field
         self.start_field = start_field
         self.forecast_start_field = forecast_start_field
-        self.pick_incomplete = pick_incomplete
         self.dummy_value = dummy_value
 
     def _past(self, col_name):
@@ -163,45 +154,10 @@ class InstanceSplitter(FlatMapTransformation):
         slice_cols = self.ts_fields + [self.target_field]
         target = data[self.target_field]
 
-        len_target = target.shape[-1]
+        sampled_indices = self.instance_sampler(target)
 
-        minimum_length = (
-            self.future_length
-            if self.pick_incomplete
-            else self.past_length + self.future_length
-        ) + self.lead_time
-
-        if is_train:
-            sampling_bounds = (
-                (
-                    0,
-                    len_target - self.future_length - self.lead_time,
-                )  # TODO: create parameter lower sampling bound for NBEATS
-                if self.pick_incomplete
-                else (
-                    self.past_length,
-                    len_target - self.future_length - self.lead_time,
-                )
-            )
-
-            # We currently cannot handle time series that are
-            # too short during training, so we just skip these.
-            # If we want to include them we would need to pad and to
-            # mask the loss.
-            sampled_indices = (
-                np.array([], dtype=int)
-                if len_target < minimum_length
-                else self.train_sampler(target, *sampling_bounds)
-            )
-        else:
-            assert self.pick_incomplete or len_target >= self.past_length
-            sampled_indices = np.array([len_target], dtype=int)
         for i in sampled_indices:
             pad_length = max(self.past_length - i, 0)
-            if not self.pick_incomplete:
-                assert (
-                    pad_length == 0
-                ), f"pad_length should be zero, got {pad_length}"
             d = data.copy()
             for ts_field in slice_cols:
                 if i > self.past_length:
@@ -225,7 +181,7 @@ class InstanceSplitter(FlatMapTransformation):
                     ..., i + lt : i + lt + pl
                 ]
                 del d[ts_field]
-            pad_indicator = np.zeros(self.past_length)
+            pad_indicator = np.zeros(self.past_length, dtype=target.dtype)
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1
 
@@ -258,9 +214,10 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     In prediction mode, one can set `use_prediction_features` to get
     future_`time_series_fields`.
 
-    If the target array is one-dimensional, the `target_field` in the resulting instance has shape
-    (`instance_length`). In the multi-dimensional case, the instance has shape (`dim`, `instance_length`),
-    where `dim` can also take a value of 1.
+    If the target array is one-dimensional, the `target_field` in the resulting
+    instance has shape (`instance_length`). In the multi-dimensional case, the
+    instance has shape (`dim`, `instance_length`), where `dim` can also take a
+    value of 1.
 
     In the case of insufficient number of time series values, the
     transformation also adds a field 'past_is_pad' that indicates whether
@@ -316,6 +273,8 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         use_prediction_features: bool = False,
         prediction_length: Optional[int] = None,
     ) -> None:
+        super().__init__()
+
         self.instance_sampler = instance_sampler
         self.instance_length = instance_length
         self.output_NTC = output_NTC
@@ -346,22 +305,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         ts_fields = self.dynamic_feature_fields + [self.target_field]
         ts_target = data[self.target_field]
 
-        len_target = ts_target.shape[-1]
-
-        if is_train:
-            if len_target < self.instance_length:
-                sampling_indices = (
-                    # Returning [] for all time series will cause this to be in loop forever!
-                    [len_target]
-                    if self.allow_target_padding
-                    else []
-                )
-            else:
-                sampling_indices = self.instance_sampler(
-                    ts_target, self.instance_length, len_target
-                )
-        else:
-            sampling_indices = [len_target]
+        sampling_indices = self.instance_sampler(ts_target)
 
         for i in sampling_indices:
             d = data.copy()
@@ -374,7 +318,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
             )
 
             # set is_pad field
-            is_pad = np.zeros(self.instance_length)
+            is_pad = np.zeros(self.instance_length, dtype=ts_target.dtype)
             if pad_length > 0:
                 is_pad[:pad_length] = 1
             d[self.is_pad_field] = is_pad
@@ -395,7 +339,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
                 past_ts = past_ts.transpose() if self.output_NTC else past_ts
                 d[self._past(ts_field)] = past_ts
 
-                if self.use_prediction_features and not is_train:
+                if self.use_prediction_features:
                     if not ts_field == self.target_field:
                         future_ts = full_ts[
                             ..., i : i + self.prediction_length
@@ -468,18 +412,19 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         self,
         past_interval_length: float,
         future_interval_length: float,
-        train_sampler: ContinuousTimePointSampler,
+        instance_sampler: ContinuousTimePointSampler,
         target_field: str = FieldName.TARGET,
         start_field: str = FieldName.START,
         end_field: str = "end",
         forecast_start_field: str = FieldName.FORECAST_START,
     ) -> None:
+        super().__init__()
 
         assert (
             future_interval_length > 0
         ), "Prediction interval must have length greater than 0."
 
-        self.train_sampler = train_sampler
+        self.instance_sampler = instance_sampler
         self.past_interval_length = past_interval_length
         self.future_interval_length = future_interval_length
         self.target_field = target_field
@@ -503,19 +448,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
             data[self.end_field] - data[self.start_field]
         ) / data[self.start_field].freq.delta
 
-        # sample forecast start times in continuous time
-        if is_train:
-            if total_interval_length < (
-                self.future_interval_length + self.past_interval_length
-            ):
-                sampling_times: np.ndarray = np.array([])
-            else:
-                sampling_times = self.train_sampler(
-                    self.past_interval_length,
-                    total_interval_length - self.future_interval_length,
-                )
-        else:
-            sampling_times = np.array([total_interval_length])
+        sampling_times = self.instance_sampler(total_interval_length)
 
         ia_times = data[self.target_field][0, :]
         marks = data[self.target_field][1:, :]

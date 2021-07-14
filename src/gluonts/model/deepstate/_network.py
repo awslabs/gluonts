@@ -11,19 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 from typing import List, Optional
 
-# Third-party imports
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.common import Tensor
 from gluonts.model.deepstate.issm import ISSM
+from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution.lds import LDS, LDSArgsProj, ParameterBounds
-from gluonts.support.util import make_nd_diag, weighted_average
+from gluonts.mx.util import make_nd_diag, weighted_average
 
 
 class DeepStateNetwork(mx.gluon.HybridBlock):

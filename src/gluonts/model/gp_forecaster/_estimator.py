@@ -11,34 +11,40 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
+from functools import partial
 from typing import List, Optional
 
-# Third-party imports
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import DType, validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.estimator import GluonEstimator
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.kernels import KernelOutput, RBFKernelOutput
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     CanonicalInstanceSplitter,
-    Chain,
+    SelectFields,
     SetFieldIfNotPresent,
     TestSplitSampler,
     Transformation,
 )
 
-# Relative imports
 from ._network import (
     GaussianProcessPredictionNetwork,
     GaussianProcessTrainingNetwork,
@@ -93,6 +99,8 @@ class GaussianProcessEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100).
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -111,9 +119,12 @@ class GaussianProcessEstimator(GluonEstimator):
         sample_noise: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
+        batch_size: int = 32,
     ) -> None:
         self.float_type = dtype
-        super().__init__(trainer=trainer, dtype=self.float_type)
+        super().__init__(
+            trainer=trainer, batch_size=batch_size, dtype=self.float_type
+        )
 
         assert (
             prediction_length > 0
@@ -145,32 +156,70 @@ class GaussianProcessEstimator(GluonEstimator):
         self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> Transformation:
-        return Chain(
-            [
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
-                AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=self.time_features,
-                    pred_length=self.prediction_length,
-                ),
-                SetFieldIfNotPresent(
-                    field=FieldName.FEAT_STATIC_CAT, value=[0.0]
-                ),
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-                CanonicalInstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    instance_sampler=TestSplitSampler(),
-                    time_series_fields=[FieldName.FEAT_TIME],
-                    instance_length=self.context_length,
-                    use_prediction_features=True,
-                    prediction_length=self.prediction_length,
-                ),
-            ]
+        return (
+            AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)
+            + AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field=FieldName.FEAT_TIME,
+                time_features=self.time_features,
+                pred_length=self.prediction_length,
+            )
+            + SetFieldIfNotPresent(
+                field=FieldName.FEAT_STATIC_CAT, value=[0.0]
+            )
+            + AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1)
+        )
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        return CanonicalInstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=TestSplitSampler(),
+            time_series_fields=[FieldName.FEAT_TIME],
+            instance_length=self.context_length,
+            use_prediction_features=(mode != "training"),
+            prediction_length=self.prediction_length,
+        )
+
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            GaussianProcessTrainingNetwork
+        )
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(
+            GaussianProcessTrainingNetwork
+        )
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
         )
 
     def create_training_network(self) -> HybridBlock:
@@ -180,7 +229,6 @@ class GaussianProcessEstimator(GluonEstimator):
             cardinality=self.cardinality,
             kernel_output=self.kernel_output,
             params_scaling=self.params_scaling,
-            ctx=self.trainer.ctx,
             float_type=self.float_type,
             max_iter_jitter=self.max_iter_jitter,
             jitter_method=self.jitter_method,
@@ -189,6 +237,8 @@ class GaussianProcessEstimator(GluonEstimator):
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = self._create_instance_splitter("test")
+
         prediction_network = GaussianProcessPredictionNetwork(
             prediction_length=self.prediction_length,
             context_length=self.context_length,
@@ -197,7 +247,6 @@ class GaussianProcessEstimator(GluonEstimator):
             params=trained_network.collect_params(),
             kernel_output=self.kernel_output,
             params_scaling=self.params_scaling,
-            ctx=self.trainer.ctx,
             float_type=self.float_type,
             max_iter_jitter=self.max_iter_jitter,
             jitter_method=self.jitter_method,
@@ -209,9 +258,9 @@ class GaussianProcessEstimator(GluonEstimator):
         )
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

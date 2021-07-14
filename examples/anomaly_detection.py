@@ -17,6 +17,7 @@ The model is first trained and then time-points with the largest negative log-li
 """
 import numpy as np
 from itertools import islice
+from functools import partial
 import mxnet as mx
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -26,8 +27,9 @@ register_matplotlib_converters()
 
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.support.util import get_hybrid_forward_input_names
+from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.mx.trainer import Trainer
+from gluonts.mx.batchify import batchify
 from gluonts.dataset.repository.datasets import get_dataset
 
 
@@ -39,33 +41,37 @@ if __name__ == "__main__":
         prediction_length=dataset.metadata.prediction_length,
         freq=dataset.metadata.freq,
         trainer=Trainer(
-            learning_rate=1e-3, epochs=50, num_batches_per_epoch=100
+            learning_rate=1e-3, epochs=20, num_batches_per_epoch=100
         ),
     )
 
     # instead of calling `train` method, we call `train_model` that returns more things including the training model
     train_output = estimator.train_model(dataset.train)
 
+    input_names = get_hybrid_forward_input_names(
+        type(train_output.trained_net)
+    )
+
     # we construct a data_entry that contains 500 random windows
     batch_size = 500
     num_samples = 100
+    instance_splitter = estimator._create_instance_splitter("training")
     training_data_loader = TrainDataLoader(
         dataset=dataset.train,
-        transform=train_output.transformation,
+        transform=train_output.transformation + instance_splitter,
         batch_size=batch_size,
         num_batches_per_epoch=estimator.trainer.num_batches_per_epoch,
-        ctx=mx.cpu(),
+        stack_fn=partial(
+            batchify, ctx=estimator.trainer.ctx, dtype=estimator.dtype
+        ),
     )
 
-    for data_entry in islice(training_data_loader, 1):
-        pass
+    data_entry = next(iter(training_data_loader))
 
     # we now call the train model to get the predicted distribution on each window
     # this allows us to investigate where are the biggest anomalies
     context_length = train_output.trained_net.context_length
     prediction_length = train_output.trained_net.prediction_length
-
-    input_names = get_hybrid_forward_input_names(train_output.trained_net)
 
     distr = train_output.trained_net.distribution(
         *[data_entry[k] for k in input_names]

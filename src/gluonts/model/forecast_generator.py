@@ -12,26 +12,35 @@
 # permissions and limitations under the License.
 
 import logging
-from typing import Callable, Iterator, List, Optional
 from functools import singledispatch
+from typing import Callable, Iterator, List, Optional
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import InferenceDataLoader
-from gluonts.model.forecast import (
-    Forecast,
-    QuantileForecast,
-    SampleForecast,
-)
+from gluonts.dataset.loader import DataLoader
+from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
+
+logger = logging.getLogger(__name__)
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 LOG_CACHE = set([])
+OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG = (
+    "The `output_transform` argument is not supported and will be ignored."
+)
+NOT_SAMPLE_BASED_MSG = "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
+
+
+def log_once(msg):
+    global LOG_CACHE
+    if msg not in LOG_CACHE:
+        logger.info(msg)
+        LOG_CACHE.add(msg)
+
+
 # different deep learning frameworks generate predictions and the tensor to numpy conversion differently,
 # use a dispatching function to prevent needing a ForecastGenerators for each framework
 @singledispatch
@@ -39,11 +48,53 @@ def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
     raise NotImplementedError
 
 
-def log_once(msg):
-    global LOG_CACHE
-    if msg not in LOG_CACHE:
-        logging.info(msg)
-        LOG_CACHE.add(msg)
+@singledispatch
+def recursively_zip_arrays(x) -> Iterator:
+    """
+    Helper function to recursively zip nested collections of arrays.
+
+    This defines the fallback implementation, which one can specialized for specific types
+    using by doing ``@recursively_zip_arrays.register`` on the type. Implementations for
+    lists, tuples, and NumPy arrays are provided.
+
+    For an array `a` (e.g. a numpy array)
+
+        _extract_instances(a) -> [a[0], a[1], ...]
+
+    For (nested) tuples of arrays `(a, (b, c))`
+
+        _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b[1], c[1])), ...]
+    """
+    raise NotImplementedError
+
+
+@recursively_zip_arrays.register(np.ndarray)
+def _(x: np.ndarray) -> Iterator[list]:
+    for i in range(x.shape[0]):
+        yield x[i]
+
+
+@recursively_zip_arrays.register(tuple)
+def _(x: tuple) -> Iterator[tuple]:
+    for m in zip(*[recursively_zip_arrays(y) for y in x]):
+        yield tuple([r for r in m])
+
+
+@recursively_zip_arrays.register(list)
+def _(x: list) -> Iterator[list]:
+    for m in zip(*[recursively_zip_arrays(y) for y in x]):
+        yield [r for r in m]
+
+
+@recursively_zip_arrays.register(type(None))
+def _(x: type(None)) -> Iterator[type(None)]:
+    while True:
+        yield None
+
+
+@singledispatch
+def make_distribution_forecast(distr, *args, **kwargs) -> Forecast:
+    raise NotImplementedError
 
 
 class ForecastGenerator:
@@ -53,7 +104,7 @@ class ForecastGenerator:
 
     def __call__(
         self,
-        inference_data_loader: InferenceDataLoader,
+        inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
         freq: str,
@@ -71,7 +122,7 @@ class QuantileForecastGenerator(ForecastGenerator):
 
     def __call__(
         self,
-        inference_data_loader: InferenceDataLoader,
+        inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
         freq: str,
@@ -86,9 +137,7 @@ class QuantileForecastGenerator(ForecastGenerator):
                 outputs = output_transform(batch, outputs)
 
             if num_samples:
-                log_once(
-                    "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
-                )
+                log_once(NOT_SAMPLE_BASED_MSG)
 
             i = -1
             for i, output in enumerate(outputs):
@@ -112,7 +161,7 @@ class SampleForecastGenerator(ForecastGenerator):
 
     def __call__(
         self,
-        inference_data_loader: InferenceDataLoader,
+        inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
         freq: str,
@@ -153,6 +202,44 @@ class SampleForecastGenerator(ForecastGenerator):
             assert i + 1 == len(batch["forecast_start"])
 
 
-# import mxnet-dependent DistributionForecastGenerator for backwards compatibility
-# TODO add deprecation warning
-from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
+class DistributionForecastGenerator(ForecastGenerator):
+    @validated()
+    def __init__(self, distr_output) -> None:
+        self.distr_output = distr_output
+
+    def __call__(
+        self,
+        inference_data_loader: DataLoader,
+        prediction_net,
+        input_names: List[str],
+        freq: str,
+        output_transform: Optional[OutputTransform],
+        num_samples: Optional[int],
+        **kwargs
+    ) -> Iterator[Forecast]:
+        for batch in inference_data_loader:
+            inputs = [batch[k] for k in input_names]
+            outputs = prediction_net(*inputs)
+
+            if output_transform:
+                log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)
+            if num_samples:
+                log_once(NOT_SAMPLE_BASED_MSG)
+
+            distributions = [
+                self.distr_output.distribution(*u)
+                for u in recursively_zip_arrays(outputs)
+            ]
+
+            i = -1
+            for i, distr in enumerate(distributions):
+                yield make_distribution_forecast(
+                    distr,
+                    start_date=batch["forecast_start"][i],
+                    freq=freq,
+                    item_id=batch[FieldName.ITEM_ID][i]
+                    if FieldName.ITEM_ID in batch
+                    else None,
+                    info=batch["info"][i] if "info" in batch else None,
+                )
+            assert i + 1 == len(batch["forecast_start"])

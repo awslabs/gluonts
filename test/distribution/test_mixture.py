@@ -11,32 +11,32 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 import pytest
 
-# First-party imports
+from gluonts.core.serde import dump_json, load_json
+
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.model.common import Tensor, NPArrayLike
-from gluonts.mx.distribution.distribution import Distribution
-from gluonts.mx.distribution.distribution_output import DistributionOutput
+from gluonts.model.common import NPArrayLike
+from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
     Gamma,
-    Gaussian,
-    GenPareto,
-    StudentT,
-    MixtureDistribution,
     GammaOutput,
+    Gaussian,
     GaussianOutput,
+    GenPareto,
     GenParetoOutput,
-    StudentTOutput,
     LaplaceOutput,
-    MultivariateGaussianOutput,
+    MixtureDistribution,
     MixtureDistributionOutput,
+    MultivariateGaussianOutput,
+    StudentT,
+    StudentTOutput,
 )
+from gluonts.mx.distribution.distribution import Distribution
+from gluonts.mx.distribution.distribution_output import DistributionOutput
 from gluonts.testutil import empirical_cdf
-from gluonts.core.serde import dump_json, load_json
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
@@ -99,11 +99,11 @@ mx.random.seed(35120171)
         ),
         (
             Gaussian(
-                mu=mx.nd.array([0.]),
+                mu=mx.nd.array([0.0]),
                 sigma=mx.nd.array([1e-3 + 0.2]),
             ),
             Gaussian(
-                mu=mx.nd.array([1.]),
+                mu=mx.nd.array([1.0]),
                 sigma=mx.nd.array([1e-3 + 0.1]),
             ),
             mx.nd.array([0.2]),
@@ -367,6 +367,11 @@ def test_inference_mixture_different_families(
         (
             Gamma(alpha=mx.nd.array([0.9]), beta=mx.nd.array([2.0])),
             mx.nd.array([-1.0]),
+            GammaOutput(),
+        ),
+        (
+            Gamma(alpha=mx.nd.array([0.9]), beta=mx.nd.array([2.0])),
+            mx.nd.array([0.0]),
             GammaOutput(),
         ),
         (

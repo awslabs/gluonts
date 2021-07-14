@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -87,7 +87,7 @@ class MeanValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        if len(values) == 1:
+        if len(values) == 1 or np.isnan(values).all():
             return DummyValueImputation()(values)
         nan_indices = np.where(np.isnan(values))
         values[nan_indices] = np.nanmean(values)
@@ -101,7 +101,7 @@ class LastValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        if len(values) == 1:
+        if len(values) == 1 or np.isnan(values).all():
             return DummyValueImputation()(values)
         values = np.expand_dims(values, axis=0)
 
@@ -127,7 +127,7 @@ class CausalMeanValueImputation(MissingValueImputation):
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        if len(values) == 1:
+        if len(values) == 1 or np.isnan(values).all():
             return DummyValueImputation()(values)
         mask = np.isnan(values)
 
@@ -165,7 +165,7 @@ class RollingMeanValueImputation(MissingValueImputation):
         self.window_size = 1 if window_size < 1 else window_size
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        if len(values) == 1:
+        if len(values) == 1 or np.isnan(values).all():
             return DummyValueImputation()(values)
         mask = np.isnan(values)
 
@@ -233,7 +233,9 @@ class AddObservedValuesIndicator(SimpleTransformation):
         nan_entries = np.isnan(value)
 
         if self.imputation_method is not None:
-            data[self.target_field] = self.imputation_method(value)
+            if nan_entries.any():
+                value = value.copy()
+                data[self.target_field] = self.imputation_method(value)
 
         data[self.output_field] = np.invert(
             nan_entries, out=nan_entries
@@ -537,7 +539,7 @@ class AddAggregateLags(MapTransformation):
                     -(l * self.ratio - self.half_window + len(t)) : -(
                         l * self.ratio - self.half_window
                     )
-                    if -(l * self.ratio - self.half_window) is not 0
+                    if -(l * self.ratio - self.half_window) != 0
                     else None
                 ]
                 for l in self.valid_lags
@@ -552,4 +554,53 @@ class AddAggregateLags(MapTransformation):
             len(data[self.target_field]) + self.pred_length * (not is_train),
         )
 
+        return data
+
+
+class CountTrailingZeros(SimpleTransformation):
+    """
+    Add the number of 'trailing' zeros in each univariate time series as a feature, to be
+    used when dealing with sparse (intermittent) time series.
+
+    For example, for 1-d a time series `[0, 0, 2, 3, 0]`, the number of trailing
+    zeros will be 1. If an n-dimensional array is provided, the first 1-d array along the `axis`
+    dimension will be checked for trailing zeros. For example, if axis is set to 1 for a
+    3-d array A, the transformation will return the number of trailing zeros in `A[0, :, 0]`.
+
+    Parameters
+    ----------
+    new_field
+        Name of the new field to be created, which will contain the number of trailing
+        zeros.
+    target_field
+        Field with target values (array) of time series
+    as_array
+        if True, the returned field will be a numpy array of shape (1,)
+    """
+
+    @validated()
+    def __init__(
+        self,
+        new_field: str = "trailing_zeros",
+        target_field: str = "target",
+        axis: int = -1,
+        as_array: bool = False,
+    ) -> None:
+        self.target_field = target_field
+        self.new_field = new_field
+        self.axis = axis
+        self.as_array = as_array
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        target = data[self.target_field]
+        if len(target) == 0:
+            return data
+        while target.ndim > 1:
+            slice_: List[Union[int, slice]] = [0] * target.ndim
+            slice_[self.axis] = slice(None)
+            target = target[slice_]
+        trailing_zeros = len(target) - len(np.trim_zeros(target, "b"))
+        data[self.new_field] = (
+            np.array([trailing_zeros]) if self.as_array else trailing_zeros
+        )
         return data

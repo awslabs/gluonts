@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from . import bijection
 from .beta import Beta, BetaOutput
 from .binned import Binned, BinnedOutput
@@ -32,14 +31,14 @@ from .gamma import Gamma, GammaOutput
 from .gaussian import Gaussian, GaussianOutput
 from .genpareto import GenPareto, GenParetoOutput
 from .inflated_beta import (
+    OneInflatedBeta,
+    OneInflatedBetaOutput,
     ZeroAndOneInflatedBeta,
     ZeroAndOneInflatedBetaOutput,
     ZeroInflatedBeta,
     ZeroInflatedBetaOutput,
-    OneInflatedBeta,
-    OneInflatedBetaOutput,
 )
-from .laplace import Laplace, LaplaceOutput
+from .laplace import Laplace, LaplaceOutput, LaplaceFixedVarianceOutput
 from .logit_normal import LogitNormal, LogitNormalOutput
 from .lowrank_multivariate_gaussian import (
     LowrankMultivariateGaussian,
@@ -51,73 +50,84 @@ from .multivariate_gaussian import (
     MultivariateGaussianOutput,
 )
 from .nan_mixture import NanMixture, NanMixtureOutput
-from .neg_binomial import NegativeBinomial, NegativeBinomialOutput
+from .neg_binomial import (
+    NegativeBinomial,
+    NegativeBinomialOutput,
+    ZeroInflatedNegativeBinomialOutput,
+)
 from .piecewise_linear import (
+    FixedKnotsPiecewiseLinearOutput,
     PiecewiseLinear,
     PiecewiseLinearOutput,
     TransformedPiecewiseLinear,
 )
-from .poisson import Poisson, PoissonOutput
+from .poisson import Poisson, PoissonOutput, ZeroInflatedPoissonOutput
 from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
 from .transformed_distribution_output import TransformedDistributionOutput
 from .uniform import Uniform, UniformOutput
 
 __all__ = [
-    "Distribution",
-    "DistributionOutput",
-    "StudentTOutput",
-    "StudentT",
-    "GammaOutput",
-    "Gamma",
-    "BetaOutput",
     "Beta",
-    "ZeroAndOneInflatedBeta",
-    "ZeroAndOneInflatedBetaOutput",
-    "ZeroInflatedBeta",
-    "ZeroInflatedBetaOutput",
-    "OneInflatedBeta",
-    "OneInflatedBetaOutput",
-    "GenPareto",
-    "GaussianOutput",
-    "Gaussian",
-    "LaplaceOutput",
-    "Laplace",
-    "MultivariateGaussian",
-    "MultivariateGaussianOutput",
-    "LowrankMultivariateGaussian",
-    "LowrankMultivariateGaussianOutput",
-    "MixtureDistributionOutput",
-    "MixtureDistribution",
-    "NanMixture",
-    "NanMixtureOutput",
-    "NegativeBinomialOutput",
-    "NegativeBinomial",
-    "UniformOutput",
-    "Uniform",
+    "BetaOutput",
+    "bijection",
     "Binned",
     "BinnedOutput",
+    "BoxCoxTransformOutput",
+    "Categorical",
+    "CategoricalOutput",
+    "Deterministic",
+    "DeterministicOutput",
+    "Dirichlet",
+    "DirichletMultinomial",
+    "DirichletMultinomialOutput",
+    "DirichletOutput",
+    "Distribution",
+    "DistributionOutput",
+    "FixedKnotsPiecewiseLinearOutput",
+    "Gamma",
+    "GammaOutput",
+    "Gaussian",
+    "GaussianOutput",
+    "GenPareto",
+    "GenParetoOutput",
+    "InverseBoxCoxTransformOutput",
+    "Laplace",
+    "LaplaceFixedVarianceOutput",
+    "LaplaceOutput",
+    "LogitNormal",
+    "LogitNormalOutput",
+    "LowrankMultivariateGaussian",
+    "LowrankMultivariateGaussianOutput",
+    "MixtureDistribution",
+    "MixtureDistributionOutput",
+    "MultivariateGaussian",
+    "MultivariateGaussianOutput",
+    "NanMixture",
+    "NanMixtureOutput",
+    "NegativeBinomial",
+    "NegativeBinomialOutput",
+    "OneInflatedBeta",
+    "OneInflatedBetaOutput",
     "PiecewiseLinear",
     "PiecewiseLinearOutput",
     "Poisson",
     "PoissonOutput",
-    "TransformedPiecewiseLinear",
+    "StudentT",
+    "StudentTOutput",
     "TransformedDistribution",
     "TransformedDistributionOutput",
-    "InverseBoxCoxTransformOutput",
-    "BoxCoxTransformOutput",
-    "bijection",
-    "Dirichlet",
-    "DirichletOutput",
-    "DirichletMultinomial",
-    "DirichletMultinomialOutput",
-    "Categorical",
-    "CategoricalOutput",
-    "LogitNormal",
-    "LogitNormalOutput",
-    "Deterministic",
-    "DeterministicOutput",
+    "TransformedPiecewiseLinear",
+    "Uniform",
+    "UniformOutput",
+    "ZeroAndOneInflatedBeta",
+    "ZeroAndOneInflatedBetaOutput",
+    "ZeroInflatedBeta",
+    "ZeroInflatedBetaOutput",
+    "ZeroInflatedNegativeBinomialOutput",
+    "ZeroInflatedPoissonOutput",
 ]
+
 
 # fix Sphinx issues, see https://bit.ly/2K2eptM
 for item in __all__:

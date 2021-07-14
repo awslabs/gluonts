@@ -11,21 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 from functools import partial
 from typing import Dict, List, Optional, Tuple
 
-# Third-party imports
 import numpy as np
 
-
-# First-party imports
-from gluonts.model.common import Tensor
-from gluonts.support.util import erf, erfinv
 from gluonts.core.component import validated
+from gluonts.mx import Tensor
 
-# Relative imports
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
 
@@ -89,7 +83,7 @@ class Gaussian(Distribution):
         u = F.broadcast_div(
             F.broadcast_minus(x, self.mu), self.sigma * math.sqrt(2.0)
         )
-        return (erf(F, u) + 1.0) / 2.0
+        return (F.erf(u) + 1.0) / 2.0
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
@@ -124,7 +118,7 @@ class Gaussian(Distribution):
         return F.broadcast_add(
             self.mu,
             F.broadcast_mul(
-                self.sigma, math.sqrt(2.0) * erfinv(F, 2.0 * level - 1.0)
+                self.sigma, math.sqrt(2.0) * F.erfinv(2.0 * level - 1.0)
             ),
         )
 

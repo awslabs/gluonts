@@ -11,36 +11,37 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import numpy as np
+from typing import Tuple
 
-from gluonts.core.component import validated
+import numpy as np
+from pydantic import BaseModel
+
 from gluonts.dataset.stat import ScaleHistogram
 
 
-class InstanceSampler:
+class InstanceSampler(BaseModel):
     """
-    An InstanceSampler is called with the time series and the valid
-    index bounds a, b and should return a set of indices a <= i <= b
-    at which training instances will be generated.
+    An InstanceSampler is called with the time series ``ts``, and returns
+    a set of indices at which training instances will be generated.
 
-    The object should be called with:
-
-    Parameters
-    ----------
-    ts
-        target that should be sampled with shape (dim, seq_len)
-    a
-        first index of the target that can be sampled
-    b
-        last index of the target that can be sampled
-
-    Returns
-    -------
-    np.ndarray
-        Selected points to sample
+    The sampled indices ``i`` satisfy ``a <= i <= b``, where ``a = min_past``
+    and ``b = ts.shape[axis] - min_future``.
     """
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+    axis: int = -1
+    min_past: int = 0
+    min_future: int = 0
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def _get_bounds(self, ts: np.ndarray) -> Tuple[int, int]:
+        return (
+            self.min_past,
+            ts.shape[self.axis] - self.min_future,
+        )
+
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
 
@@ -54,32 +55,53 @@ class UniformSplitSampler(InstanceSampler):
         Probability of selecting a time point
     """
 
-    @validated()
-    def __init__(self, p: float) -> None:
-        self.p = p
+    p: float
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        assert (
-            a <= b
-        ), "First index must be less than or equal to the last index."
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+
+        if a > b:
+            return np.array([], dtype=int)
 
         window_size = b - a + 1
         (indices,) = np.where(np.random.random_sample(window_size) < self.p)
         return indices + a
 
 
-class TestSplitSampler(InstanceSampler):
+class PredictionSplitSampler(InstanceSampler):
     """
     Sampler used for prediction. Always selects the last time point for
     splitting i.e. the forecast point for the time series.
     """
 
-    @validated()
-    def __init__(self) -> None:
-        pass
+    allow_empty_interval: bool = False
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        return np.array([b])
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+        assert self.allow_empty_interval or a <= b
+        return np.array([b]) if a <= b else np.array([], dtype=int)
+
+
+def ValidationSplitSampler(
+    axis: int = -1, min_past: int = 0, min_future: int = 0
+) -> PredictionSplitSampler:
+    return PredictionSplitSampler(
+        allow_empty_interval=True,
+        axis=axis,
+        min_past=min_past,
+        min_future=min_future,
+    )
+
+
+def TestSplitSampler(
+    axis: int = -1, min_past: int = 0
+) -> PredictionSplitSampler:
+    return PredictionSplitSampler(
+        allow_empty_interval=False,
+        axis=axis,
+        min_past=min_past,
+        min_future=0,
+    )
 
 
 class ExpectedNumInstanceSampler(InstanceSampler):
@@ -95,21 +117,27 @@ class ExpectedNumInstanceSampler(InstanceSampler):
         number of training examples generated per time series on average
     """
 
-    @validated()
-    def __init__(self, num_instances: float) -> None:
-        self.num_instances = num_instances
-        self.total_length = 0
-        self.n = 0
+    num_instances: float
+    total_length: int = 0
+    n: int = 0
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
         window_size = b - a + 1
+
+        if window_size <= 0:
+            return np.array([], dtype=int)
 
         self.n += 1
         self.total_length += window_size
         avg_length = self.total_length / self.n
 
-        sampler = UniformSplitSampler(self.num_instances / avg_length)
-        return sampler(ts, a, b)
+        if avg_length <= 0:
+            return np.array([], dtype=int)
+
+        p = self.num_instances / avg_length
+        (indices,) = np.where(np.random.random_sample(window_size) < p)
+        return indices + a
 
 
 class BucketInstanceSampler(InstanceSampler):
@@ -127,33 +155,32 @@ class BucketInstanceSampler(InstanceSampler):
         value of the time series.
     """
 
-    @validated()
-    def __init__(self, scale_histogram: ScaleHistogram) -> None:
-        # probability of sampling a bucket i is the inverse of its number of
-        # elements
-        self.scale_histogram = scale_histogram
-        self.lookup = np.arange(2 ** 13)
+    scale_histogram: ScaleHistogram
 
-    def __call__(self, ts: np.ndarray, a: int, b: int) -> None:
-        while ts.shape[-1] >= len(self.lookup):
-            self.lookup = np.arange(2 * len(self.lookup))
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
         p = 1.0 / self.scale_histogram.count(ts)
-        mask = np.random.uniform(low=0.0, high=1.0, size=b - a + 1) < p
-        indices = self.lookup[a : a + len(mask)][mask]
-        return indices
+        (indices,) = np.where(np.random.random_sample(b - a + 1) < p)
+        return indices + a
 
 
-class ContinuousTimePointSampler:
+class ContinuousTimePointSampler(BaseModel):
     """
     Abstract class for "continuous time" samplers, which, given a lower bound
     and upper bound, sample "points" (events) in continuous time from a
     specified interval.
     """
 
-    def __init__(self, num_instances: int) -> None:
-        self.num_instances = num_instances
+    min_past: float = 0.0
+    min_future: float = 0.0
 
-    def __call__(self, a: float, b: float) -> np.ndarray:
+    def _get_bounds(self, interval_length: float) -> Tuple[float, float]:
+        return (
+            self.min_past,
+            interval_length - self.min_future,
+        )
+
+    def __call__(self, interval_length: float) -> np.ndarray:
         """
         Returns random points in the real interval between :code:`a` and
         :code:`b`.
@@ -174,6 +201,23 @@ class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
     interval between :code:`a` and :code:`b`.
     """
 
-    def __call__(self, a: float, b: float) -> np.ndarray:
-        assert a <= b, "Interval start time must be before interval end time."
-        return np.random.rand(self.num_instances) * (b - a) + a
+    num_instances: int
+
+    def __call__(self, interval_length: float) -> np.ndarray:
+        a, b = self._get_bounds(interval_length)
+        return (
+            np.random.rand(self.num_instances) * (b - a) + a
+            if a <= b
+            else np.array([])
+        )
+
+
+class ContinuousTimePredictionSampler(ContinuousTimePointSampler):
+    allow_empty_interval: bool = False
+
+    def __call__(self, interval_length: float) -> np.ndarray:
+        a, b = self._get_bounds(interval_length)
+        assert (
+            self.allow_empty_interval or a <= b
+        ), "Interval start time must be before interval end time."
+        return np.array([b]) if a <= b else np.array([])

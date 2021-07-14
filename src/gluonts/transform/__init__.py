@@ -29,6 +29,7 @@ __all__ = [
     "ContinuousTimeInstanceSplitter",
     "ContinuousTimePointSampler",
     "ContinuousTimeUniformSampler",
+    "ContinuousTimePredictionSampler",
     "ExpandDimArray",
     "ExpectedNumInstanceSampler",
     "FilterTransformation",
@@ -51,6 +52,7 @@ __all__ = [
     "TargetDimIndicator",
     "TransformedDataset",
     "TestSplitSampler",
+    "ValidationSplitSampler",
     "Transformation",
     "UniformSplitSampler",
     "VstackFeatures",
@@ -72,6 +74,7 @@ from ._base import (
     MapTransformation,
     SimpleTransformation,
     Transformation,
+    TransformedDataset,
 )
 from .convert import (
     AsNumpyArray,
@@ -85,7 +88,6 @@ from .convert import (
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
 )
-from .dataset import TransformedDataset
 from .feature import (
     AddAgeFeature,
     AddAggregateLags,
@@ -112,9 +114,11 @@ from .sampler import (
     BucketInstanceSampler,
     ContinuousTimePointSampler,
     ContinuousTimeUniformSampler,
+    ContinuousTimePredictionSampler,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     TestSplitSampler,
+    ValidationSplitSampler,
     UniformSplitSampler,
 )
 from .split import (

@@ -11,305 +11,277 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterable, Iterator, Callable, Optional, List
-import itertools
-import random
-import logging
-from multiprocessing import Process, Manager, Queue
-from multiprocessing.reduction import ForkingPickler
 import io
+import logging
+import multiprocessing as mp
 import pickle
 import sys
-from queue import Empty
+from functools import partial
+from multiprocessing.reduction import ForkingPickler
+from typing import Callable, Iterable, Optional
 
-from gluonts.dataset.common import DataEntry, DataBatch, Dataset
-from gluonts.dataset.util import MPWorkerInfo, batcher
-from gluonts.transform import Transformation
-from gluonts.transform.dataset import TransformedDataset
+from pydantic import BaseModel
 
+from gluonts.dataset.common import DataBatch, Dataset
+from gluonts.dataset.util import MPWorkerInfo
+from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled, batcher
+from gluonts.transform import AdhocTransform, Identity, Transformation
 
 logger = logging.getLogger(__name__)
 
 
-class Cycle(Iterable):
-    def __init__(self, iterable: Iterable) -> None:
-        self.iterable = iterable
+def win32_guard(cls, num_workers):
+    if num_workers is None:
+        return None
 
-    def __iter__(self):
-        while True:
-            yield from self.iterable
+    assert num_workers > 0, "num_workers can't be negative"
 
-
-class PseudoShuffledIterator(Iterator):
-    """
-    A wrapper class which takes a serialized iterator as an input and generates a
-    pseudo randomized iterator using the same elements from the input iterator.
-    """
-
-    def __init__(self, iterator: Iterator, shuffle_buffer_length: int):
-        self.shuffle_buffer: List = []
-        self.shuffle_buffer_length = shuffle_buffer_length
-        self.iterator = iterator
-
-    def __next__(self):
-        # If the buffer is empty, fill the buffer first.
-        if not self.shuffle_buffer:
-            self.shuffle_buffer = list(
-                itertools.islice(self.iterator, self.shuffle_buffer_length)
-            )
-
-        # If buffer still empty, means all elements used, return a signal of
-        # end of iterator
-        if not self.shuffle_buffer:
-            raise StopIteration
-
-        # Choose an element at a random index and yield it and fill it with
-        # the next element in the sequential generator
-        idx = random.randrange(len(self.shuffle_buffer))
-        next_sample = self.shuffle_buffer[idx]
-
-        # Replace the index with the next element in the iterator if the
-        # iterator has not finished. Delete the index otherwise.
-        try:
-            self.shuffle_buffer[idx] = next(self.iterator)
-        except StopIteration:
-            del self.shuffle_buffer[idx]
-
-        return next_sample
-
-
-class MultiProcessBatcher(Iterator):
-    def __init__(
-        self,
-        base_iterable: Iterable,
-        batch_size: int,
-        stack_fn: Callable,
-        num_workers: int,
-        max_queue_size: Optional[int] = None,
-        decode_fn: Callable = lambda x: x,
-    ):
-        assert num_workers >= 1
-        assert max_queue_size is None or max_queue_size >= num_workers
-
-        self.base_iterable = base_iterable
-        self.batch_size = batch_size
-        self.stack_fn = stack_fn
-        self.decode_fn = decode_fn
-        self.num_workers = num_workers
-        self.max_queue_size = (
-            max_queue_size if max_queue_size is not None else 5 * num_workers
-        )
-
-        self.manager = Manager()
-        self.batch_queue = self.manager.Queue(maxsize=self.max_queue_size)
-        self.terminate_event = self.manager.Event()
-        self.exhausted_events = [
-            self.manager.Event() for _ in range(self.num_workers)
-        ]
-        self.processes = []
-
-        for worker_id, event in enumerate(self.exhausted_events):
-            p = Process(
-                target=self.worker_fn,
-                args=(
-                    worker_id,
-                    self.num_workers,
-                    self.base_iterable,
-                    self.batch_size,
-                    self.stack_fn,
-                    self.batch_queue,
-                    self.terminate_event,
-                    event,
-                ),
-            )
-            p.start()
-            self.processes.append(p)
-
-        self.count = 0
-
-    @staticmethod
-    def worker_fn(
-        worker_id: int,
-        num_workers: int,
-        iterable: Iterable,
-        batch_size: int,
-        stack_fn: Callable,
-        batch_queue: Queue,
-        terminate_event,
-        exhausted_event,
-    ):
-        MPWorkerInfo.worker_process = True
-        MPWorkerInfo.worker_id = worker_id
-        MPWorkerInfo.num_workers = num_workers
-
-        for batch in batcher(iterable, batch_size):
-            stacked_batch = stack_fn(batch)
-            try:
-                if terminate_event.is_set():
-                    return
-                buf = io.BytesIO()
-                ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
-                    (worker_id, stacked_batch)
-                )
-                batch_queue.put(buf.getvalue())
-            except (EOFError, BrokenPipeError):
-                return
-
-        exhausted_event.set()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if (
-            all(event.is_set() for event in self.exhausted_events)
-            and self.batch_queue.empty()
-        ):
-            self._halt_processes()
-            raise StopIteration
-
-        try:
-            # TODO make timeout configurable
-            got = self.batch_queue.get(timeout=120)
-            worker_id, batch = pickle.loads(got)
-            batch = self.decode_fn(batch)
-        except Empty:
-            raise StopIteration()
-
-        return batch
-
-    def _empty_queue(self):
-        try:
-            batch = self.batch_queue.get(block=False)
-            while batch:
-                self.batch_queue.get(block=False)
-        except (Empty, FileNotFoundError):
-            pass
-
-    def _halt_processes(self):
-        # Send termination message to workers
-        self.terminate_event.set()
-        # Empty queue to make sure workers get the message
-        self._empty_queue()
-        for p in self.processes:
-            p.join()
-
-
-class DataLoader(Iterable[DataBatch]):
-    pass
-
-
-def win32_guard(num_worker: Optional[int]) -> Optional[int]:
     if sys.platform == "win32":
         logger.warning(
             "Multiprocessing is not supported on Windows, "
             "num_workers will be set to None."
         )
         return None
-    return num_worker
+
+    return num_workers
 
 
-class TrainDataLoader(DataLoader):
+def _encode(value):
+    buf = io.BytesIO()
+    ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(value)
+    return buf.getvalue()
+
+
+def worker_fn(
+    worker_id: int,
+    dataset,
+    num_workers: int,
+    result_queue: mp.Queue,
+):
+    MPWorkerInfo.set_worker_info(
+        num_workers=num_workers,
+        worker_id=worker_id,
+    )
+
+    for raw in map(_encode, dataset):
+        try:
+            result_queue.put(raw)
+        except (EOFError, BrokenPipeError):
+            return
+
+
+DataLoader = Iterable[DataBatch]
+
+
+class MultiProcessLoader(DataLoader):
     def __init__(
         self,
         dataset: Dataset,
-        *,
-        transform: Transformation,
-        batch_size: int,
-        stack_fn: Callable,
-        num_batches_per_epoch: int,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
+        num_workers: int,
+        max_queue_size: Optional[int],
         decode_fn: Callable = lambda x: x,
-    ) -> None:
-        self.batch_size = batch_size
-        self.stack_fn = stack_fn
-        self.num_batches_per_epoch = num_batches_per_epoch
-        self.num_workers = win32_guard(num_workers)
-        self.num_prefetch = num_prefetch
-        self.shuffle_buffer_length = shuffle_buffer_length
+    ):
+        assert num_workers >= 1
 
-        transformed_dataset = TransformedDataset(
-            Cycle(dataset), transform, is_train=True,
+        if max_queue_size is None:
+            max_queue_size = 5 * num_workers
+        else:
+            assert max_queue_size >= num_workers
+
+        self.decode_fn = decode_fn
+        self.result_queue = mp.Manager().Queue(maxsize=max_queue_size)
+
+        create_worker = partial(
+            mp.Process,
+            target=worker_fn,
+            kwargs={
+                "dataset": dataset,
+                "result_queue": self.result_queue,
+                "num_workers": num_workers,
+            },
         )
 
-        shuffled_iterator: Iterable[DataEntry] = (
-            iter(transformed_dataset)
-            if shuffle_buffer_length is None
-            else PseudoShuffledIterator(
-                iter(transformed_dataset),
-                shuffle_buffer_length=shuffle_buffer_length,
-            )
-        )
+        self.processes = [
+            create_worker(args=[worker_id]) for worker_id in range(num_workers)
+        ]
+        for process in self.processes:
+            process.start()
 
-        self.batch_iterator = (
-            map(stack_fn, batcher(shuffled_iterator, batch_size))
-            if self.num_workers is None
-            else MultiProcessBatcher(
-                shuffled_iterator,
-                batch_size=batch_size,
-                stack_fn=stack_fn,
-                decode_fn=decode_fn,
-                num_workers=self.num_workers,
-                max_queue_size=num_prefetch,
-            )
-        )
-
-    def __len__(self):
-        return self.num_batches_per_epoch
+    def _has_values(self):
+        alive = any(proc.is_alive() for proc in self.processes)
+        return alive or not self.result_queue.empty()
 
     def __iter__(self):
-        yield from itertools.islice(
-            self.batch_iterator, self.num_batches_per_epoch
+        while self._has_values():
+            yield self._get()
+
+        self._terminate()
+
+    def _get(self):
+        # TODO make timeout configurable
+        raw = self.result_queue.get(timeout=120)
+        return self.decode_fn(pickle.loads(raw))
+
+    def _terminate(self):
+        for process in self.processes:
+            process.terminate()
+
+
+# TODO: the following are for backward compatibility
+# and could eventually be removed
+
+
+class Batch(Transformation, BaseModel):
+    batch_size: int
+
+    def __call__(self, data, is_train):
+        yield from batcher(data, self.batch_size)
+
+
+def TrainDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation = Identity(),
+    batch_size: int,
+    stack_fn: Callable,
+    num_batches_per_epoch: Optional[int] = None,
+    num_prefetch: Optional[int] = None,
+    num_workers: Optional[int] = None,
+    shuffle_buffer_length: Optional[int] = None,
+    decode_fn: Callable = lambda x: x,
+):
+    """Construct an iterator of batches for training purposes.
+
+    This function wraps around ``DataLoader`` to offer training-specific
+    behaviour and options, as follows:
+
+        1. The provided dataset is iterated cyclically, so that one can go over
+        it multiple times in a single epoch. 2. A transformation must be
+        provided, that is lazily applied as the dataset is being iterated;
+        this is useful e.g. to slice random instances of fixed length out of
+        each time series in the dataset. 3. The resulting batches can be
+        iterated in a pseudo-shuffled order.
+
+    The returned object is a stateful iterator, whose length is either
+    ``num_batches_per_epoch`` (if not ``None``) or infinite (otherwise).
+
+    Parameters
+    ----------
+    dataset
+        Data to iterate over.
+    transform
+        Transformation to be lazily applied as data is being iterated.
+        The transformation is applied in "training mode" (``is_train=True``).
+    batch_size
+        Number of entries to include in a batch.
+    stack_fn
+        Function to use to stack data entries into batches.
+        This can be used to set a specific array type or computing device
+        the arrays should end up onto (CPU, GPU).
+    num_batches_per_epoch
+        Length of the iterator. If ``None``, then the iterator is endless.
+    num_workers
+        Number of worker processes to use. Default: None.
+    num_prefetch
+        Sets the length of the queue of batches being produced by worker
+        processes. (Only meaningful when ``num_workers is not None``).
+    shuffle_buffer_length
+        Size of the buffer used for shuffling. Default: None, in which case no
+        shuffling occurs.
+    decode_fn
+        A function called on each batch after it's been taken out of the queue.
+        (Only meaningful when ``num_workers is not None``).
+
+    Returns
+    -------
+    Iterator[DataBatch]
+        An iterator of batches.
+    """
+    dataset = Cyclic(dataset)
+
+    if shuffle_buffer_length:
+        dataset = PseudoShuffled(dataset, shuffle_buffer_length)
+
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    transformed_dataset = transform.apply(dataset, is_train=True)
+
+    if num_workers is not None:
+        loader = MultiProcessLoader(
+            transformed_dataset,
+            decode_fn=decode_fn,
+            num_workers=num_workers,
+            max_queue_size=num_prefetch,
         )
+        batches = iter(loader)
+    else:
+        batches = iter(transformed_dataset)
+
+    if num_batches_per_epoch is None:
+        return batches
+    else:
+        return IterableSlice(batches, num_batches_per_epoch)
 
 
-class ValidationDataLoader(DataLoader):
-    def __init__(
-        self,
-        dataset: Dataset,
-        *,
-        transform: Transformation,
-        batch_size: int,
-        stack_fn: Callable,
-        # FIXME: the following aren't used
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-    ) -> None:
-        self.transformed_dataset = TransformedDataset(
-            dataset, transform, is_train=True,
-        )
-        self.batch_size = batch_size
-        self.stack_fn = stack_fn
+def ValidationDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation = Identity(),
+    batch_size: int,
+    stack_fn: Callable,
+):
+    """Construct an iterator of batches for validation purposes.
 
-    def __iter__(self):
-        yield from map(
-            self.stack_fn, batcher(self.transformed_dataset, self.batch_size),
-        )
+    Parameters
+    ----------
+    dataset
+        Data to iterate over.
+    transform
+        Transformation to be lazily applied as data is being iterated.
+        The transformation is applied in "training mode" (``is_train=True``).
+    batch_size
+        Number of entries to include in a batch.
+    stack_fn
+        Function to use to stack data entries into batches.
+        This can be used to set a specific array type or computing device
+        the arrays should end up onto (CPU, GPU).
+
+    Returns
+    -------
+    Iterable[DataBatch]
+        An iterable sequence of batches.
+    """
+
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    return transform.apply(dataset, is_train=True)
 
 
-class InferenceDataLoader(DataLoader):
-    def __init__(
-        self,
-        dataset: Dataset,
-        *,
-        transform: Transformation,
-        batch_size: int,
-        stack_fn: Callable,
-        # FIXME: the following aren't used
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        shuffle_buffer_length: Optional[int] = None,
-    ) -> None:
-        self.transformed_dataset = TransformedDataset(
-            dataset, transform, is_train=False,
-        )
-        self.batch_size = batch_size
-        self.stack_fn = stack_fn
+def InferenceDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation = Identity(),
+    batch_size: int,
+    stack_fn: Callable,
+):
+    """Construct an iterator of batches for inference purposes.
 
-    def __iter__(self):
-        yield from map(
-            self.stack_fn, batcher(self.transformed_dataset, self.batch_size),
-        )
+    Parameters
+    ----------
+    dataset
+        Data to iterate over.
+    transform
+        Transformation to be lazily applied as data is being iterated.
+        The transformation is applied in "inference mode" (``is_train=False``).
+    batch_size
+        Number of entries to include in a batch.
+    stack_fn
+        Function to use to stack data entries into batches.
+        This can be used to set a specific array type or computing device
+        the arrays should end up onto (CPU, GPU).
+
+    Returns
+    -------
+    Iterable[DataBatch]
+        An iterable sequence of batches.
+    """
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    return transform.apply(dataset, is_train=False)

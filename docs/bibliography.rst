@@ -5,6 +5,8 @@ Bibliography
 .. Generate labels using the so-called AMS "authorship trigraph" style.
 .. Citations are ordered alphabetically.
 
+.. [BJC19] Jens Behrmann, Will Grathwohl, Ricky T. Q. Chen, David Duvenaud, Jörn-Henrik Jacobsen. "Invertible residual networks." International Conference on Machine Learning. 2019.
+
 .. [BKH16] Ba, Jimmy Lei, Jamie Ryan Kiros, and Geoffrey E. Hinton. "Layer normalization." arXiv preprint arXiv:1607.06450 (2016).
 
 .. [BKK18] Bai, Shaojie, J. Zico Kolter, and Vladlen Koltun. "An empirical evaluation of generic convolutional and recurrent networks for sequence modeling." arXiv preprint arXiv:1803.01271 (2018).
@@ -13,9 +15,13 @@ Bibliography
 
 .. [GG16] Gal, Yarin, and Zoubin Ghahramani. "A theoretically grounded application of dropout in recurrent neural networks." Advances in neural information processing systems. 2016.
 
+.. [HA21] Hyndman, Rob J., and George Athanasopoulos. Forecasting: principles and practice, 3rd edition. OTexts, 2021.
+
 .. [KMK16] Krueger, David, Tegan Maharaj, János Kramár, Mohammad Pezeshki, Nicolas Ballas, Nan Rosemary Ke, Anirudh Goyal, Yoshua Bengio, Aaron Courville, and Chris Pal. "Zoneout: Regularizing rnns by randomly preserving hidden activations." arXiv preprint arXiv:1606.01305 (2016).
 
 .. [LCY+18] Lai, Guokun, et al. "Modeling long-and short-term temporal patterns with deep neural networks." The 41st International ACM SIGIR Conference on Research & Development in Information Retrieval. ACM, 2018.
+
+.. [SSA20] Makridakis, Spyros, Evangelos Spiliotis, and Vassilios Assimakopoulos. "The M4 Competition: 100,000 time series and 61 forecasting methods." International Journal of Forecasting 36.1 (2020): 54-74.
 
 .. [MKH19] Muller, Rafael, Simon Kornblith, and Geoffrey E. Hinton. "When does label smoothing help?." Advances in Neural Information Processing Systems. 2019.
 

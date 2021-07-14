@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 from typing import Callable, Optional
 
@@ -19,8 +18,6 @@ import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
-
-# First-party imports
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
 
@@ -42,12 +39,12 @@ class MultivariateGrouper:
     padded to produce an array of shape (dim, num_time_steps)
 
     Test: The test dataset might have multiple start dates (usually because
-          the test dataset mimics a rolling evaluation scenario). In this case,
-          the univariate dataset will be split into n multivariate time series,
-          where n is the number of evaluation dates. Again, the
-          time series will be grouped but only left padded. Note that the
-          padded value will influence the prediction if the context length is
-          longer than the length of the time series.
+    the test dataset mimics a rolling evaluation scenario). In this case,
+    the univariate dataset will be split into n multivariate time series,
+    where n is the number of evaluation dates. Again, the
+    time series will be grouped but only left padded. Note that the
+    padded value will influence the prediction if the context length is
+    longer than the length of the time series.
 
     Rules for padding for training and test datasets can be specified by the
     user.

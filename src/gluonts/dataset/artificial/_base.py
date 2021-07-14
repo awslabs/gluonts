@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import math
 import random
-from typing import Callable, List, NamedTuple, Optional, Tuple, Union
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
-# Third-party imports
 import numpy as np
 import pandas as pd
 
-# First-party imports
 from gluonts.dataset.artificial.recipe import (
     BinaryHolidays,
     BinaryMarkovChain,
@@ -642,7 +639,9 @@ class RecipeDataset(ArtificialDataset):
 
     def __init__(
         self,
-        recipe: Union[Callable, List[Tuple[str, Callable]]],
+        recipe: Union[
+            Callable, Dict[str, Callable], List[Tuple[str, Callable]]
+        ],
         metadata: MetaData,
         max_train_length: int,
         prediction_length: int,

@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import functools
 import itertools
 import json
@@ -22,28 +21,16 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Iterator,
-    Optional,
-    Type,
-)
+from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
 
-# Third-party imports
 import numpy as np
 
-# First-party imports
 import gluonts
-from gluonts.core.component import (
-    equals,
-    from_hyperparameters,
-    validated,
-)
+from gluonts.core import fqname_for
+from gluonts.core.component import equals, from_hyperparameters, validated
 from gluonts.core.exception import GluonTSException
-from gluonts.core.serde import dump_json, fqname_for, load_json
-from gluonts.dataset.common import DataEntry, Dataset, ListDataset
-
+from gluonts.core.serde import dump_json, load_json
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.forecast import Forecast
 
 if TYPE_CHECKING:  # avoid circular import
@@ -394,12 +381,9 @@ class Localizer(Predictor):
         logger = logging.getLogger(__name__)
         for i, ts in enumerate(dataset, start=1):
             logger.info(f"training for time series {i} / {len(dataset)}")
-            local_ds = ListDataset([ts], freq=self.freq)
-            trained_pred = self.estimator.train(local_ds)
+            trained_pred = self.estimator.train([ts])
             logger.info(f"predicting for time series {i} / {len(dataset)}")
-            predictions = trained_pred.predict(local_ds, **kwargs)
-            for pred in predictions:
-                yield pred
+            yield from trained_pred.predict([ts], **kwargs)
 
 
 class FallbackPredictor(Predictor):
@@ -432,12 +416,3 @@ def fallback(fallback_cls: Type[FallbackPredictor]):
         return fallback_predict
 
     return decorator
-
-
-# import mxnet-dependent Predictor classes for backwards compatibility
-# TODO add deprecation warning
-from gluonts.mx.model.predictor import (
-    GluonPredictor,
-    SymbolBlockPredictor,
-    RepresentableBlockPredictor,
-)

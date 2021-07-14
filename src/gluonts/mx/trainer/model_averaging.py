@@ -13,17 +13,16 @@
 
 import glob
 import json
-
-# Standard library imports
+import logging
 from typing import Dict, List, Tuple
 
 import mxnet as mx
-
-# Third-party imports
+import mxnet.gluon.nn as nn
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
+
+from .callback import Callback
 
 EPOCH_INFO_STRING = "epoch-info"
 
@@ -37,7 +36,8 @@ def save_epoch_info(tmp_path: str, epoch_info: dict) -> None:
     tmp_path
         Temporary base path to save the epoch info.
     epoch_info
-        Epoch information dictionary containing the parameters path, the epoch number and the tracking metric value.
+        Epoch information dictionary containing the parameters path, the epoch
+        number and the tracking metric value.
 
     Returns
     -------
@@ -64,7 +64,8 @@ class AveragingStrategy:
         metric
             Metric which is used to average models.
         maximize
-            Boolean flag to indicate whether the metric should be maximized or minimized.
+            Boolean flag to indicate whether the metric should be maximized or
+            minimized.
         """
         self.num_models = num_models
         self.metric = metric
@@ -72,9 +73,11 @@ class AveragingStrategy:
 
     def apply(self, model_path: str) -> str:
         r"""
-        Averages model parameters of serialized models based on the selected model strategy and metric.
-        IMPORTANT: Depending on the metric the user might want to minimize or maximize. The maximize flag has to be
-        chosen appropriately to reflect this.
+        Averages model parameters of serialized models based on the selected
+        model strategy and metric.
+        IMPORTANT: Depending on the metric the user might want to minimize or
+        maximize. The maximize flag has to be chosen appropriately to reflect
+        this.
 
         Parameters
         ----------
@@ -106,7 +109,8 @@ class AveragingStrategy:
 
         Returns
         -------
-        List of checkpoint information dictionaries (metric, epoch_no, checkpoint path).
+        List of checkpoint information dictionaries (metric, epoch_no,
+        checkpoint path).
         """
         epoch_info_files = glob.glob(
             "{}/*-{}.json".format(model_path, EPOCH_INFO_STRING)
@@ -170,7 +174,8 @@ class AveragingStrategy:
         arrays: List[mx.nd.NDArray], weights: List[float]
     ) -> mx.nd.NDArray:
         r"""
-        Takes a list of arrays of the same shape and computes the element wise weighted average.
+        Takes a list of arrays of the same shape and computes the element wise
+        weighted average.
 
         Parameters
         ----------
@@ -185,7 +190,7 @@ class AveragingStrategy:
         """
 
         def _assert_shapes(arrays):
-            shape_set = set([array.shape for array in arrays])
+            shape_set = {array.shape for array in arrays}
             assert (
                 len(shape_set) == 1
             ), "All arrays should be the same shape. Found arrays with these shapes instead :{}".format(
@@ -271,3 +276,33 @@ class SelectNBestMean(AveragingStrategy):
         checkpoint_paths = [c[1] for c in top_checkpoints]
 
         return checkpoint_paths, weights
+
+
+class ModelAveraging(Callback):
+    """
+    Callback to implement model averaging strategies.
+    Selects the checkpoints with the best loss values and computes the model
+    average or weighted model average depending on the chosen avg_strategy.
+
+    Parameters
+    ----------
+    avg_strategy
+        AveragingStrategy, one of SelectNBestSoftmax or SelectNBestMean from
+        gluonts.mx.trainer.model_averaging.
+    """
+
+    @validated()
+    def __init__(self, avg_strategy: AveragingStrategy):
+        self.avg_strategy = avg_strategy
+
+    def on_train_end(
+        self,
+        training_network: nn.HybridBlock,
+        temporary_dir: str,
+        ctx: mx.context.Context = None,
+    ) -> None:
+        logging.info("Computing averaged parameters.")
+        averaged_params_path = self.avg_strategy.apply(temporary_dir)
+
+        logging.info("Loading averaged parameters.")
+        training_network.load_parameters(averaged_params_path, ctx)

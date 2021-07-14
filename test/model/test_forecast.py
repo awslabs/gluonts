@@ -11,20 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Third-party imports
+import mxnet as mx
+
 import numpy as np
 import pandas as pd
 import pytest
-import mxnet as mx
 
-# First-party imports
 from gluonts.model.forecast import (
     QuantileForecast,
     SampleForecast,
-    DistributionForecast,
 )
-
 from gluonts.mx.distribution import Uniform
+from gluonts.mx.model.forecast import DistributionForecast
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
@@ -121,7 +119,9 @@ def test_DistributionForecast():
                 freq="W",
             ),
             pd.date_range(
-                start=pd.Timestamp("2020-01-01 00:00:00"), freq="W", periods=5,
+                start=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="W",
+                periods=5,
             ),
         ),
     ],

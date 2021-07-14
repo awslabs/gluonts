@@ -10,28 +10,22 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
-# Standard library imports
-import math
-from functools import partial
 from typing import Dict, List, Optional, Tuple
 
-# Third-party imports
 import numpy as np
 
 from gluonts.core.component import validated
-
-from gluonts.model.common import Tensor
-from .distribution import Distribution
-
-from gluonts.mx.distribution import Distribution
+from gluonts.mx import Tensor
+from gluonts.mx.distribution import box_cox_transform, uniform
 from gluonts.mx.distribution.distribution import (
+    MAX_SUPPORT_VAL,
+    _sample_multiple,
     getF,
     softplus,
-    _sample_multiple,
 )
-from gluonts.mx.distribution import uniform, box_cox_transform
 from gluonts.mx.distribution.distribution_output import DistributionOutput
+
+from .distribution import Distribution
 
 
 class GenPareto(Distribution):
@@ -44,16 +38,26 @@ class GenPareto(Distribution):
         Tensor containing the xi shape parameters, of shape `(*batch_shape, *event_shape)`.
     beta
         Tensor containing the beta scale parameters, of shape `(*batch_shape, *event_shape)`.
-    F
     """
 
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, xi: Tensor, beta: Tensor, F=None) -> None:
+    def __init__(self, xi: Tensor, beta: Tensor) -> None:
         self.xi = xi
         self.beta = beta
-        self.F = F if F else getF(xi)  # assuming xi and beta of same type
+
+    @property
+    def F(self):
+        return getF(self.xi)
+
+    @property
+    def support_min_max(self) -> Tuple[Tensor, Tensor]:
+        F = self.F
+        return (
+            F.zeros(self.batch_shape),
+            F.ones(self.batch_shape) * MAX_SUPPORT_VAL,
+        )
 
     @property
     def batch_shape(self) -> Tuple:
@@ -87,9 +91,26 @@ class GenPareto(Distribution):
         """
         return F.where(
             x < 0,
-            -np.inf * F.ones_like(x),
+            -(10.0 ** 15) * F.ones_like(x),
             genpareto_log_prob(F.abs(x), xi, beta),
         )
+
+    def cdf(self, x: Tensor) -> Tensor:
+        F = self.F
+        x_shifted = F.broadcast_div(x, self.beta)
+        u = 1 - F.power(1 + self.xi * x_shifted, -F.reciprocal(self.xi))
+        return u
+
+    def quantile(self, level: Tensor):
+        F = self.F
+        # we consider level to be an independent axis and so expand it
+        # to shape (num_levels, 1, 1, ...)
+        for _ in range(self.all_dim):
+            level = level.expand_dims(axis=-1)
+
+        x_shifted = F.broadcast_div(F.power(1 - level, -self.xi) - 1, self.xi)
+        x = F.broadcast_mul(x_shifted, self.beta)
+        return x
 
     @property
     def mean(self) -> Tensor:
@@ -129,7 +150,10 @@ class GenPareto(Distribution):
             return sample_X
 
         samples = _sample_multiple(
-            s, xi=self.xi, beta=self.beta, num_samples=num_samples,
+            s,
+            xi=self.xi,
+            beta=self.beta,
+            num_samples=num_samples,
         )
         return self.F.clip(
             data=samples, a_min=np.finfo(dtype).eps, a_max=np.finfo(dtype).max

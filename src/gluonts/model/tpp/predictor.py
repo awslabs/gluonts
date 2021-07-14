@@ -11,37 +11,30 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from pathlib import Path
-from typing import Iterator, List, Optional, cast, Callable
 from functools import partial
+from pathlib import Path
+from typing import Iterator, List, Optional, cast
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import DataBatch, InferenceDataLoader
+from gluonts.dataset.loader import DataBatch, DataLoader, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
 from gluonts.model.predictor import OutputTransform
-from gluonts.mx.model.predictor import (
-    GluonPredictor,
-    SymbolBlockPredictor,
-)
-from gluonts.transform import Transformation
 from gluonts.mx.batchify import batchify
+from gluonts.mx.model.predictor import GluonPredictor, SymbolBlockPredictor
+from gluonts.transform import Transformation
 
-# Relative imports
 from .forecast import PointProcessSampleForecast
 
 
 class PointProcessForecastGenerator(ForecastGenerator):
     def __call__(
         self,
-        inference_data_loader: InferenceDataLoader,
+        inference_data_loader: DataLoader,
         prediction_net: mx.gluon.Block,
         input_names: List[str],
         freq: str,
@@ -113,9 +106,6 @@ class PointProcessGluonPredictor(GluonPredictor):
     outputs a 2-tuple of Tensors, for the samples themselves and their
     `valid_length`.
 
-    Finally, this class uses a VariableLengthInferenceDataLoader as opposed
-    to the default InferenceDataLoader.
-
     Parameters
     ----------
     prediction_interval_length
@@ -163,7 +153,9 @@ class PointProcessGluonPredictor(GluonPredictor):
         )
 
     def as_symbol_block_predictor(
-        self, batch: DataBatch
+        self,
+        batch: Optional[DataBatch] = None,
+        dataset: Optional[Dataset] = None,
     ) -> SymbolBlockPredictor:
         raise NotImplementedError(
             "Point process models are currently not hybridizable"
@@ -184,9 +176,6 @@ class PointProcessGluonPredictor(GluonPredictor):
             stack_fn=partial(
                 batchify, ctx=self.ctx, dtype=self.dtype, variable_length=True
             ),
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            **kwargs,
         )
         yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,

@@ -19,8 +19,6 @@ from .global_relative_binning import GlobalRelativeBinning
 from .hybrid_representation import HybridRepresentation
 from .local_absolute_binning import LocalAbsoluteBinning
 from .mean_scaling import MeanScaling
-
-# Relative imports
 from .representation import Representation
 from .representation_chain import RepresentationChain
 

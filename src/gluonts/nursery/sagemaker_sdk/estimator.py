@@ -13,8 +13,6 @@
 
 
 import json
-
-# Standard library imports
 import logging
 import tarfile
 from functools import partial
@@ -24,14 +22,11 @@ from typing import Dict, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 import s3fs
-
-# Third-party imports
 import sagemaker
 from sagemaker.estimator import Framework
-from sagemaker.fw_utils import empty_framework_version_warning, parse_s3_url
+from sagemaker.s3 import parse_s3_url
 from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
 
-# First-party imports
 from gluonts.core import serde
 from gluonts.dataset.repository import datasets
 from gluonts.model.estimator import Estimator
@@ -132,7 +127,7 @@ class GluonTSFramework(Framework):
         role to access training data and model artifacts. After the endpoint is
         created, the inference code might use the IAM role, if it needs to
         access an AWS resource.
-    image_name:
+    image_uri:
         The estimator will use this image for training and hosting. It must be
         an ECR url. If you use an image with MXNET with GPU support, you will
         have to use a GPU instance.
@@ -143,14 +138,14 @@ class GluonTSFramework(Framework):
     base_job_name:
         Prefix for training job name when the :meth:`GluonTSFramework.train` or
         :meth:`GluonTSFramework.run` method is called.
-    train_instance_type:
+    instance_type:
         Type of EC2 instance to use for training.
         Example::
 
             'ml.c5.xlarge' # CPU,
             'ml.p2.xlarge' # GPU
 
-    train_instance_count:
+    instance_count:
         Currently not more than one supported.
         Otherwise the number of Amazon EC2 instances to use for training.
     dependencies:
@@ -226,10 +221,10 @@ class GluonTSFramework(Framework):
         self,
         sagemaker_session: sagemaker.Session,
         role: str,
-        image_name: str,
+        image_uri: str,
         base_job_name: str,
-        train_instance_type: str = "ml.c5.xlarge",
-        train_instance_count: int = 1,
+        instance_type: str = "ml.c5.xlarge",
+        instance_count: int = 1,
         dependencies: Optional[List[str]] = None,
         output_path: str = None,
         code_location: str = None,
@@ -240,12 +235,6 @@ class GluonTSFramework(Framework):
     ):
         # Framework_version currently serves no purpose,
         # except for compatibility with the sagemaker framework.
-        if framework_version is None:
-            logger.warning(
-                empty_framework_version_warning(
-                    GLUONTS_VERSION, self.LATEST_VERSION
-                )
-            )
         self.framework_version = framework_version or GLUONTS_VERSION
 
         super().__init__(
@@ -254,20 +243,21 @@ class GluonTSFramework(Framework):
             code_location=code_location,
             sagemaker_session=sagemaker_session,
             role=role,
-            train_instance_type=train_instance_type,
-            train_instance_count=train_instance_count,
+            instance_type=instance_type,
+            instance_count=instance_count,
             base_job_name=base_job_name,
             entry_point=entry_point,
             hyperparameters=hyperparameters,
-            image_name=image_name,
+            image_uri=image_uri,
             **kwargs,
         )
 
         # must be set
         self.py_version = PYTHON_VERSION
 
-        # automatically retrieves credentials using context manager, see: https://s3fs.readthedocs.io/en/latest/
-        self._s3fs = s3fs.S3FileSystem()
+        self._s3fs = s3fs.S3FileSystem(
+            session=sagemaker_session.boto_session._session
+        )
 
     def create_model(
         self,
@@ -279,7 +269,7 @@ class GluonTSFramework(Framework):
         entry_point: str = None,
         source_dir: str = None,
         dependencies: List[str] = None,
-        image_name: str = None,
+        image_uri: str = None,
         **kwargs,
     ) -> GluonTSModel:
         """Create a ``GluonTSModel`` object that can be deployed to an
@@ -362,7 +352,7 @@ class GluonTSFramework(Framework):
             This may brake the :meth:`GluonTSFramework.train` method though.
             If not specified, them dependencies from the Estimator will be
             used.
-        image_name:
+        image_uri:
             The estimator will use this image for training and hosting. It must
             be an ECR url. If you use an image with MXNET with GPU support, you
             will have to use a GPU instance.
@@ -392,7 +382,7 @@ class GluonTSFramework(Framework):
             container_log_level=self.container_log_level,
             code_location=self.code_location,
             framework_version=self.framework_version,
-            image=(image_name or self.image_name),
+            image_uri=(image_uri or self.image_uri),
             model_server_workers=model_server_workers,
             sagemaker_session=self.sagemaker_session,
             vpc_config=self.get_vpc_config(vpc_config_override),
@@ -481,7 +471,7 @@ class GluonTSFramework(Framework):
 
     def _prepare_inputs(self, locations, dataset):
         s3_json_input = partial(
-            sagemaker.s3_input, content_type="application/json"
+            sagemaker.TrainingInput, content_type="application/json"
         )
 
         inputs = {"estimator": s3_json_input(locations.estimator_path)}
@@ -602,10 +592,10 @@ class GluonTSFramework(Framework):
         inputs,
         sagemaker_session: sagemaker.Session,
         role: str,
-        image_name: str,
+        image_uri: str,
         base_job_name: str,
-        train_instance_type: str,
-        train_instance_count: int = 1,
+        instance_type: str,
+        instance_count: int = 1,
         dependencies: Optional[List[str]] = [],
         output_path: str = None,
         code_location: str = None,
@@ -638,23 +628,23 @@ class GluonTSFramework(Framework):
 
             You can assign entry_point='src/train.py'.
         inputs:
-            Type is str or dict or sagemaker.s3_input, however, cannot be empty!
+            Type is str or dict or sagemaker.TrainingInput, however, cannot be empty!
             Information about the training data. This can be one of three types;
 
             * If (str) the S3 location where training data is saved.
-            * If (dict[str, str] or dict[str, sagemaker.s3_input]) If using multiple
+            * If (dict[str, str] or dict[str, sagemaker.TrainingInput]) If using multiple
                 channels for training data, you can specify a dict mapping channel names to
-                strings or :func:`~sagemaker.s3_input` objects.
-            * If (sagemaker.s3_input) - channel configuration for S3 data sources that can
+                strings or :func:`~sagemaker.TrainingInput` objects.
+            * If (sagemaker.TrainingInput) - channel configuration for S3 data sources that can
                 provide additional information as well as the path to the training dataset.
-                See :func:`sagemaker.s3_input` for full details.
+                See :func:`sagemaker.TrainingInput` for full details.
             * If (sagemaker.session.FileSystemInput) - channel configuration for
                 a file system data source that can provide additional information as well as
                 the path to the training dataset.
 
             Example::
 
-                inputs = {'my_dataset': sagemaker.s3_input(my_dataset_file, content_type='application/json')} # or
+                inputs = {'my_dataset': sagemaker.TrainingInput(my_dataset_file, content_type='application/json')} # or
                 inputs = {'my_dataset': my_dataset_dir}
 
             where 'my_dataset_file' and 'my_dataset_dir' are the relative or absolute paths as strings.
@@ -666,7 +656,7 @@ class GluonTSFramework(Framework):
             Amazon SageMaker endpoints use this role to access training data and model artifacts.
             After the endpoint is created, the inference code might use the IAM role,
             if it needs to access an AWS resource.
-        image_name:
+        image_uri:
             The estimator will use this image for training and hosting. It must be an ECR url.
             If you use an image with MXNET with GPU support, you will have to
             use a GPU instance.
@@ -677,14 +667,14 @@ class GluonTSFramework(Framework):
         base_job_name:
             Prefix for training job name when the :meth:`GluonTSFramework.train` or
             :meth:`GluonTSFramework.run` method is called.
-        train_instance_type:
+        instance_type:
             Type of EC2 instance to use for training.
             Example::
 
                 'ml.c5.xlarge' # CPU,
                 'ml.p2.xlarge' # GPU
 
-        train_instance_count:
+        instance_count:
             Currently not more than one supported.
             Otherwise the number of Amazon EC2 instances to use for training.
         dependencies:
@@ -770,10 +760,10 @@ class GluonTSFramework(Framework):
             code_location=code_location,
             sagemaker_session=sagemaker_session,
             role=role,
-            train_instance_type=train_instance_type,
-            train_instance_count=train_instance_count,
+            instance_type=instance_type,
+            instance_count=instance_count,
             base_job_name=base_job_name,
-            image_name=image_name,
+            image_uri=image_uri,
             framework_version=framework_version,
             source_dir=source_dir,
             metric_definitions=make_metrics(monitored_metrics),

@@ -23,14 +23,13 @@ from gluonts.dataset.repository._gp_copula_2019 import (
     generate_gp_copula_dataset,
 )
 from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
+from gluonts.dataset.repository._m3 import generate_m3_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._m5 import generate_m5_dataset
+from gluonts.dataset.repository._tsf_datasets import (
+    generate_forecasting_dataset,
+)
 from gluonts.support.util import get_download_path
-
-m4_freq = "Hourly"
-pandas_freq = "H"
-dataset_path = Path(f"m4-{m4_freq}")
-prediction_length = 48
 
 dataset_recipes = OrderedDict(
     {
@@ -66,6 +65,50 @@ dataset_recipes = OrderedDict(
         "taxi_30min": partial(
             generate_gp_copula_dataset, dataset_name="taxi_30min"
         ),
+        "kaggle_web_traffic_with_missing": partial(
+            generate_forecasting_dataset,
+            dataset_name="kaggle_web_traffic_with_missing",
+        ),
+        "kaggle_web_traffic_without_missing": partial(
+            generate_forecasting_dataset,
+            dataset_name="kaggle_web_traffic_without_missing",
+        ),
+        "kaggle_web_traffic_weekly": partial(
+            generate_forecasting_dataset,
+            dataset_name="kaggle_web_traffic_weekly",
+        ),
+        "m1_yearly": partial(
+            generate_forecasting_dataset, dataset_name="m1_yearly"
+        ),
+        "m1_quarterly": partial(
+            generate_forecasting_dataset, dataset_name="m1_quarterly"
+        ),
+        "m1_monthly": partial(
+            generate_forecasting_dataset, dataset_name="m1_monthly"
+        ),
+        "nn5_daily_with_missing": partial(
+            generate_forecasting_dataset, dataset_name="nn5_daily_with_missing"
+        ),
+        "nn5_daily_without_missing": partial(
+            generate_forecasting_dataset,
+            dataset_name="nn5_daily_without_missing",
+        ),
+        "nn5_weekly": partial(
+            generate_forecasting_dataset, dataset_name="nn5_weekly"
+        ),
+        "tourism_monthly": partial(
+            generate_forecasting_dataset, dataset_name="tourism_monthly"
+        ),
+        "tourism_quarterly": partial(
+            generate_forecasting_dataset, dataset_name="tourism_quarterly"
+        ),
+        "tourism_yearly": partial(
+            generate_forecasting_dataset, dataset_name="tourism_yearly"
+        ),
+        "m3_monthly": partial(generate_m3_dataset, m3_freq="monthly"),
+        "m3_quarterly": partial(generate_m3_dataset, m3_freq="quarterly"),
+        "m3_yearly": partial(generate_m3_dataset, m3_freq="yearly"),
+        "m3_other": partial(generate_m3_dataset, m3_freq="other"),
         "m4_hourly": partial(
             generate_m4_dataset,
             m4_freq="Hourly",
@@ -93,13 +136,13 @@ dataset_recipes = OrderedDict(
         "m4_quarterly": partial(
             generate_m4_dataset,
             m4_freq="Quarterly",
-            pandas_freq="3M",
+            pandas_freq="Q",
             prediction_length=8,
         ),
         "m4_yearly": partial(
             generate_m4_dataset,
             m4_freq="Yearly",
-            pandas_freq="12M",
+            pandas_freq="Y",
             prediction_length=6,
         ),
         "m5": partial(
@@ -179,6 +222,7 @@ def get_dataset(
         be downloaded again.
     path
         where the dataset should be saved
+
     Returns
     -------
         dataset obtained by either downloading or reloading from local file.
@@ -193,7 +237,6 @@ def get_dataset(
 
 
 if __name__ == "__main__":
-
     for dataset in dataset_names:
         print(f"generate {dataset}")
         ds = get_dataset(dataset, regenerate=True)

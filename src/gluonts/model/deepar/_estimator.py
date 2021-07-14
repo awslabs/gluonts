@@ -11,25 +11,30 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from functools import partial
 from typing import List, Optional
 
-# Standard library imports
 import numpy as np
-
-# Third-party imports
 from mxnet.gluon import HybridBlock
 
-# First-party imports
 from gluonts.core.component import DType, validated
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.loader import (
+    DataLoader,
+    TrainDataLoader,
+    ValidationDataLoader,
+)
 from gluonts.dataset.stat import calculate_dataset_statistics
-from gluonts.model.estimator import GluonEstimator
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
-from gluonts.support.util import copy_parameters
+from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -42,10 +47,14 @@ from gluonts.transform import (
     AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
+    InstanceSampler,
     InstanceSplitter,
     RemoveFields,
+    SelectFields,
     SetField,
+    TestSplitSampler,
     Transformation,
+    ValidationSplitSampler,
     VstackFeatures,
 )
 from gluonts.transform.feature import (
@@ -53,7 +62,6 @@ from gluonts.transform.feature import (
     MissingValueImputation,
 )
 
-# Relative imports
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
 
 
@@ -87,7 +95,7 @@ class DeepAREstimator(GluonEstimator):
         Type of recurrent cells to use (available: 'lstm' or 'gru';
         default: 'lstm')
     dropoutcell_type
-        Type of dropout cells to use 
+        Type of dropout cells to use
         (available: 'ZoneoutCell', 'RNNZoneoutCell', 'VariationalDropoutCell' or 'VariationalZoneoutCell';
         default: 'ZoneoutCell')
     dropout_rate
@@ -124,10 +132,29 @@ class DeepAREstimator(GluonEstimator):
         This is a model optimization that does not affect the accuracy (default: 100)
     imputation_method
         One of the methods from ImputationStrategy
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
     alpha
         The scaling coefficient of the activation regularization
     beta
         The scaling coefficient of the temporal activation regularization
+    batch_size
+        The size of the batches to be used training and prediction.
+    minimum_scale
+        The minimum scale that is returned by the MeanScaler
+    default_scale
+        Default scale that is applied if the context length window is
+        completely unobserved. If not set, the scale in this case will be
+        the mean scale in the batch.
+    impute_missing_values
+        Whether to impute the missing values during training by using the
+        current model parameters. Recommended if the dataset contains many
+        missing values. However, this is a lot slower than the default mode.
+    num_imputation_samples
+        How many samples to use to impute values when
+        impute_missing_values=True
     """
 
     @validated()
@@ -153,11 +180,18 @@ class DeepAREstimator(GluonEstimator):
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
         imputation_method: Optional[MissingValueImputation] = None,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
         dtype: DType = np.float32,
         alpha: float = 0.0,
         beta: float = 0.0,
+        batch_size: int = 32,
+        default_scale: Optional[float] = None,
+        minimum_scale: float = 1e-10,
+        impute_missing_values: bool = False,
+        num_imputation_samples: int = 1,
     ) -> None:
-        super().__init__(trainer=trainer, dtype=dtype)
+        super().__init__(trainer=trainer, batch_size=batch_size, dtype=dtype)
 
         assert (
             prediction_length > 0
@@ -237,8 +271,25 @@ class DeepAREstimator(GluonEstimator):
             else DummyValueImputation(self.distr_output.value_in_support)
         )
 
+        self.train_sampler = (
+            train_sampler
+            if train_sampler is not None
+            else ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=prediction_length
+            )
+        )
+        self.validation_sampler = (
+            validation_sampler
+            if validation_sampler is not None
+            else ValidationSplitSampler(min_future=prediction_length)
+        )
+
         self.alpha = alpha
         self.beta = beta
+        self.num_imputation_samples = num_imputation_samples
+        self.default_scale = default_scale
+        self.minimum_scale = minimum_scale
+        self.impute_missing_values = impute_missing_values
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -319,21 +370,63 @@ class DeepAREstimator(GluonEstimator):
                         else []
                     ),
                 ),
-                InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                    past_length=self.history_length,
-                    future_length=self.prediction_length,
-                    time_series_fields=[
-                        FieldName.FEAT_TIME,
-                        FieldName.OBSERVED_VALUES,
-                    ],
-                    dummy_value=self.distr_output.value_in_support,
-                ),
             ]
+        )
+
+    def _create_instance_splitter(self, mode: str):
+        assert mode in ["training", "validation", "test"]
+
+        instance_sampler = {
+            "training": self.train_sampler,
+            "validation": self.validation_sampler,
+            "test": TestSplitSampler(),
+        }[mode]
+
+        return InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=instance_sampler,
+            past_length=self.history_length,
+            future_length=self.prediction_length,
+            time_series_fields=[
+                FieldName.FEAT_TIME,
+                FieldName.OBSERVED_VALUES,
+            ],
+            dummy_value=self.distr_output.value_in_support,
+        )
+
+    def create_training_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(DeepARTrainingNetwork)
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
+        return TrainDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
+            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
+            **kwargs,
+        )
+
+    def create_validation_data_loader(
+        self,
+        data: Dataset,
+        **kwargs,
+    ) -> DataLoader:
+        input_names = get_hybrid_forward_input_names(DeepARTrainingNetwork)
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
+        return ValidationDataLoader(
+            dataset=data,
+            transform=instance_splitter + SelectFields(input_names),
+            batch_size=self.batch_size,
+            stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
         )
 
     def create_training_network(self) -> DeepARTrainingNetwork:
@@ -354,11 +447,17 @@ class DeepAREstimator(GluonEstimator):
             dtype=self.dtype,
             alpha=self.alpha,
             beta=self.beta,
+            num_imputation_samples=self.num_imputation_samples,
+            default_scale=self.default_scale,
+            minimum_scale=self.minimum_scale,
+            impute_missing_values=self.impute_missing_values,
         )
 
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
+        prediction_splitter = self._create_instance_splitter("test")
+
         prediction_network = DeepARPredictionNetwork(
             num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
@@ -375,14 +474,18 @@ class DeepAREstimator(GluonEstimator):
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             dtype=self.dtype,
+            num_imputation_samples=self.num_imputation_samples,
+            default_scale=self.default_scale,
+            minimum_scale=self.minimum_scale,
+            impute_missing_values=self.impute_missing_values,
         )
 
         copy_parameters(trained_network, prediction_network)
 
         return RepresentableBlockPredictor(
-            input_transform=transformation,
+            input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,

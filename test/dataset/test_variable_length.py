@@ -12,61 +12,30 @@
 # permissions and limitations under the License.
 import itertools
 from functools import partial
-from typing import Dict, Any
+from typing import Any, Dict, Iterable
 
-# Third-party imports
 import mxnet as mx
 import numpy as np
-import pandas as pd
 import pytest
 
-# First-party imports
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.loader import (
+    DataBatch,
     DataLoader,
-    TrainDataLoader,
     InferenceDataLoader,
+    TrainDataLoader,
 )
-from gluonts.mx.batchify import batchify, stack, _pad_arrays
+from gluonts.mx.batchify import _pad_arrays, batchify, stack
+from gluonts.testutil.dummy_datasets import get_dataset
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimeUniformSampler,
+    ContinuousTimePredictionSampler,
 )
 
 
 @pytest.fixture
 def pp_dataset():
-    def get_dataset():
-
-        data_entry_list = [
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1]),
-                    np.array([0, 1, 2, 0, 1, 2, 2, 2]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.1, 0.2, 0.5, 0.4]),
-                    np.array([0, 1, 2, 1, 1]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-            {
-                "target": np.c_[
-                    np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.2, 0.1]),
-                    np.array([0, 1, 2, 0, 1, 0, 2]),
-                ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-            },
-        ]
-
-        return ListDataset(data_entry_list, freq="H", one_dim_target=False,)
-
     return get_dataset
 
 
@@ -79,7 +48,7 @@ def loader_factory():
         context_interval_length: float,
         is_train: bool = True,
         override_args: dict = None,
-    ) -> DataLoader:
+    ) -> Iterable[DataBatch]:
 
         if override_args is None:
             override_args = {}
@@ -87,7 +56,17 @@ def loader_factory():
         splitter = ContinuousTimeInstanceSplitter(
             future_interval_length=prediction_interval_length,
             past_interval_length=context_interval_length,
-            train_sampler=ContinuousTimeUniformSampler(num_instances=10),
+            instance_sampler=(
+                ContinuousTimeUniformSampler(
+                    num_instances=10,
+                    min_past=context_interval_length,
+                    min_future=prediction_interval_length,
+                )
+                if is_train
+                else ContinuousTimePredictionSampler(
+                    min_past=context_interval_length
+                )
+            ),
         )
 
         kwargs: Dict[str, Any] = dict(
@@ -101,11 +80,11 @@ def loader_factory():
         kwargs.update(override_args)
 
         if is_train:
-            return TrainDataLoader(
-                num_batches_per_epoch=22, num_workers=None, **kwargs
+            return itertools.islice(
+                TrainDataLoader(num_workers=None, **kwargs), 22
             )
         else:
-            return InferenceDataLoader(num_workers=None, **kwargs)
+            return InferenceDataLoader(**kwargs)
 
     return train_loader
 
@@ -216,59 +195,52 @@ def test_inference_loader_short_intervals(loader_factory, pp_dataset):
     assert d["past_target"].shape[1] == 1
 
 
-@pytest.mark.parametrize(
-    "array_type, multi_processing",
-    itertools.product(["np", "mx"], [True, False]),
-)
-def test_variable_length_stack(pp_dataset, array_type, multi_processing):
-    arrays = [
-        d["target"].T if array_type == "np" else mx.nd.array(d["target"].T)
-        for d in list(iter(pp_dataset()))
-    ]
+@pytest.mark.parametrize("is_right_pad", [True, False])
+def test_variable_length_stack(pp_dataset, is_right_pad):
+    arrays = [d["target"].T for d in list(iter(pp_dataset()))]
 
-    assert isinstance(multi_processing, bool)
-    stacked = stack(arrays, variable_length=True,)
+    stacked = stack(
+        arrays,
+        variable_length=True,
+        is_right_pad=is_right_pad,
+    )
 
     assert stacked.shape[0] == 3
     assert stacked.shape[1] > 0
     assert stacked.shape[2] == 2
 
 
-@pytest.mark.parametrize(
-    "array_type, multi_processing",
-    itertools.product(["np", "mx"], [True, False]),
-)
-def test_variable_length_stack_zerosize(
-    pp_dataset, array_type, multi_processing
-):
-    arrays = [
-        np.zeros(shape=(0, 2))
-        if array_type == "np"
-        else mx.nd.array(np.zeros(shape=(0, 2)))
-        for _ in range(5)
-    ]
+@pytest.mark.parametrize("is_right_pad", [True, False])
+def test_variable_length_stack_zerosize(pp_dataset, is_right_pad):
+    arrays = [np.zeros(shape=(0, 2)) for _ in range(5)]
 
-    assert isinstance(multi_processing, bool)
-    stacked = stack(arrays, variable_length=True,)
+    stacked = stack(
+        arrays,
+        variable_length=True,
+        is_right_pad=is_right_pad,
+    )
 
     assert stacked.shape[0] == 5
     assert stacked.shape[1] == 1
     assert stacked.shape[2] == 2
 
 
-@pytest.mark.parametrize(
-    "array_type, multi_processing, axis",
-    itertools.product(["np", "mx"], [True, False], [0, 1]),
-)
-def test_pad_arrays_axis(pp_dataset, array_type, multi_processing, axis: int):
-    arrays = [
-        d["target"] if array_type == "np" else mx.nd.array(d["target"])
-        for d in list(iter(pp_dataset()))
-    ]
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("is_right_pad", [True, False])
+def test_pad_arrays_axis(axis: int, is_right_pad: bool):
+    arrays = [d["target"] for d in list(iter(get_dataset()))]
     if axis == 0:
         arrays = [x.T for x in arrays]
 
-    padded_arrays = _pad_arrays(arrays, axis)
+    padded_arrays = _pad_arrays(arrays, axis, is_right_pad=is_right_pad)
 
     assert all(a.shape[axis] == 8 for a in padded_arrays)
     assert all(a.shape[1 - axis] == 2 for a in padded_arrays)
+
+
+def test_pad_arrays_pad_left():
+    arrays = [d["target"] for d in list(iter(get_dataset()))]
+    padded_arrays = _pad_arrays(arrays, 1, is_right_pad=False)
+
+    for padded_array in padded_arrays[1:]:
+        assert np.allclose(padded_array[:, 0], 0)

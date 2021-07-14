@@ -11,34 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Iterator, List, Optional
-from pathlib import Path
-import json
-
-
-# Third-party imports
-import numpy as np
-import pandas as pd
-from itertools import chain
 import concurrent.futures
 import logging
-import mxnet as mx
+from itertools import chain
+from typing import Iterator, List, Optional
 
-# First-party imports
-import gluonts
-from gluonts.core.component import validated, equals
-from gluonts.core.serde import dump_json, fqname_for, load_json
+import numpy as np
+import pandas as pd
+
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once
-from gluonts.mx.model.predictor import GluonPredictor
+from gluonts.model.predictor import RepresentablePredictor
 from gluonts.support.pandas import forecast_start
-from gluonts.dataset.loader import DataBatch
 
-# Relative imports
-from ._preprocess import PreprocessOnlyLagFeatures, Cardinality
-from ._model import QRX, QuantileReg, QRF
+from ._model import QRF, QRX, QuantileReg
+from ._preprocess import Cardinality, PreprocessOnlyLagFeatures
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +89,7 @@ class RotbaumForecast(Forecast):
         )
 
 
-class TreePredictor(GluonPredictor):
+class TreePredictor(RepresentablePredictor):
     """
     A predictor that uses a QRX model for each of the steps in the forecast
     horizon. (In other words, there's a total of prediction_length many
@@ -117,7 +106,7 @@ class TreePredictor(GluonPredictor):
         n_ignore_last: int = 0,
         lead_time: int = 0,
         max_n_datapts: int = 1000000,
-        clump_size: int = 100,  # Used only for "QRX" method.
+        min_bin_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         use_feat_static_real: bool = False,
         use_feat_dynamic_real: bool = False,
@@ -128,6 +117,8 @@ class TreePredictor(GluonPredictor):
         max_workers: Optional[int] = None,
         method: str = "QRX",
         quantiles=None,  # Used only for "QuantileRegression" method.
+        model=None,
+        seed=None,
     ) -> None:
         assert method in [
             "QRX",
@@ -150,6 +141,7 @@ class TreePredictor(GluonPredictor):
             use_feat_dynamic_cat=use_feat_dynamic_cat,
             cardinality=cardinality,
             one_hot_encode=one_hot_encode,
+            seed=seed,
         )
 
         assert (
@@ -171,15 +163,22 @@ class TreePredictor(GluonPredictor):
         self.prediction_length = prediction_length
         self.freq = freq
         self.max_workers = max_workers
-        self.clump_size = clump_size
+        self.min_bin_size = min_bin_size
         self.quantiles = quantiles
+        self.model = model
         self.model_list = None
 
         logger.info(
             "If using the Evaluator class with a TreePredictor, set num_workers=0."
         )
 
-    def __call__(self, training_data):
+    def train(
+        self,
+        training_data,
+        train_QRX_only_using_timestep: int = -1,  # If not -1 and self.method
+        # == 'QRX', this will use only the train_QRX_only_using_timestep^th
+        # timestep in the forecast horizon to create the partition.
+    ):
         assert training_data
         assert self.freq is not None
         if next(iter(training_data))["start"].freq is not None:
@@ -206,29 +205,68 @@ class TreePredictor(GluonPredictor):
             self.model_list = [
                 QRX(
                     xgboost_params=self.model_params,
-                    clump_size=self.clump_size,
+                    min_bin_size=self.min_bin_size,
+                    model=self.model,
                 )
                 for _ in range(n_models)
             ]
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.max_workers
-        ) as executor:
-            for n_step, model in enumerate(self.model_list):
-                logger.info(
-                    f"Training model for step no. {n_step + 1} in the forecast"
-                    f" horizon"
+        if train_QRX_only_using_timestep != -1:
+            assert (
+                0
+                <= train_QRX_only_using_timestep
+                <= self.preprocess_object.forecast_horizon - 1
+            )
+            logger.info(
+                f"Training model for step no. {train_QRX_only_using_timestep} in the "
+                f"forecast"
+                f" horizon"
+            )
+            self.model_list[train_QRX_only_using_timestep].fit(
+                feature_data,
+                np.array(target_data)[:, train_QRX_only_using_timestep],
+            )
+            self.model_list = [
+                QRX(
+                    xgboost_params=self.model_params,
+                    min_bin_size=self.min_bin_size,
+                    model=self.model_list[train_QRX_only_using_timestep].model,
                 )
-                executor.submit(
-                    model.fit, feature_data, np.array(target_data)[:, n_step]
-                )
-
+                if i != train_QRX_only_using_timestep
+                else self.model_list[i]
+                for i in range(n_models)
+            ]
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.max_workers
+            ) as executor:
+                for n_step, model in enumerate(self.model_list):
+                    if n_step != train_QRX_only_using_timestep:
+                        logger.info(
+                            f"Training model for step no. {n_step + 1} in the "
+                            f"forecast"
+                            f" horizon"
+                        )
+                        executor.submit(
+                            model.fit,
+                            feature_data,
+                            np.array(target_data)[:, n_step],
+                            model_is_already_trained=True,
+                        )
+        else:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.max_workers
+            ) as executor:
+                for n_step, model in enumerate(self.model_list):
+                    logger.info(
+                        f"Training model for step no. {n_step + 1} in the forecast"
+                        f" horizon"
+                    )
+                    executor.submit(
+                        model.fit,
+                        feature_data,
+                        np.array(target_data)[:, n_step],
+                    )
         return self
 
-    @validated()
-    def train(self, training_data):
-        self.__call__(training_data)
-
-    @validated()
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
@@ -257,37 +295,3 @@ class TreePredictor(GluonPredictor):
                 prediction_length=self.prediction_length,
                 freq=self.freq,
             )
-
-    def serialize(self, path: Path) -> None:
-
-        with (path / "type.txt").open("w") as fp:
-            fp.write(fqname_for(self.__class__))
-        with (path / "version.json").open("w") as fp:
-            json.dump(
-                {"model": self.__version__, "gluonts": gluonts.__version__}, fp
-            )
-        with (path / "predictor.json").open("w") as fp:
-            print(dump_json(self), file=fp)
-
-    def serialize_prediction_net(self, path: Path) -> None:
-        self.serialize(path)
-
-    @classmethod
-    def deserialize(
-        cls, path: Path, ctx: Optional[mx.Context] = None
-    ) -> "TreePredictor":
-
-        with (path / "predictor.json").open("r") as fp:
-            return load_json(fp.read())
-
-    def as_symbol_block_predictor(
-        self, batch: DataBatch
-    ) -> "SymbolBlockPredictor":
-        return None
-
-    def __eq__(self, that):
-        """
-        Two RepresentablePredictor instances are considered equal if they
-        have the same constructor arguments.
-        """
-        return equals(self, that)

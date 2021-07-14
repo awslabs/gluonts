@@ -11,17 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
 import re
 from typing import Dict, Iterator, NamedTuple, Optional, Tuple
 
-# Third-party imports
 import pandas as pd
 
-# First-party imports
 import gluonts  # noqa
-from gluonts import transform
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import (
@@ -33,17 +29,20 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import maybe_len
-from gluonts.transform import TransformedDataset
+from gluonts.transform import AdhocTransform
 
 
 def make_evaluation_predictions(
-    dataset: Dataset, predictor: Predictor, num_samples: int
+    dataset: Dataset,
+    predictor: Predictor,
+    num_samples: int = 100,
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
-    Return predictions on the last portion of predict_length time units of the
-    target. Such portion is cut before making predictions, such a function can
-    be used in evaluations where accuracy is evaluated on the last portion of
-    the target.
+    Returns predictions for the trailing prediction_length observations of the given
+    time series, using the given predictor.
+
+    The predictor will take as input the given time series without the trailing
+    prediction_length observations.
 
     Parameters
     ----------
@@ -53,10 +52,14 @@ def make_evaluation_predictions(
     predictor
         Model used to draw predictions.
     num_samples
-        Number of samples to draw on the model when evaluating.
+        Number of samples to draw on the model when evaluating. Only sampling-based
+        models will use this.
 
     Returns
     -------
+    Tuple[Iterator[Forecast], Iterator[pd.Series]]
+        A pair of iterators, the first one yielding the forecasts, and the second
+        one yielding the corresponding ground truth series.
     """
 
     prediction_length = predictor.prediction_length
@@ -95,9 +98,7 @@ def make_evaluation_predictions(
     # TODO or fix the evaluator so it supports missing values instead (all
     # TODO the test set may be gone otherwise with such a filtering)
 
-    dataset_trunc = TransformedDataset(
-        dataset, transformation=transform.AdhocTransform(truncate_target)
-    )
+    dataset_trunc = AdhocTransform(truncate_target).apply(dataset)
 
     return (
         predictor.predict(dataset_trunc, num_samples=num_samples),
@@ -123,7 +124,7 @@ def backtest_metrics(
     ),
     num_samples: int = 100,
     logging_file: Optional[str] = None,
-):
+) -> Tuple[dict, pd.DataFrame]:
     """
     Parameters
     ----------
@@ -134,13 +135,14 @@ def backtest_metrics(
     evaluator
         Evaluator to use.
     num_samples
-        Number of samples to use when generating sample-based forecasts.
+        Number of samples to use when generating sample-based forecasts. Only
+        sampling-based models will use this.
     logging_file
         If specified, information of the backtest is redirected to this file.
 
     Returns
     -------
-    tuple
+    Tuple[dict, pd.DataFrame]
         A tuple of aggregate metrics and per-time-series metrics obtained by
         training `forecaster` on `train_dataset` and evaluating the resulting
         `evaluator` provided on the `test_dataset`.
