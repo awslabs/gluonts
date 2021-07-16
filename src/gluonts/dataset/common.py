@@ -35,8 +35,8 @@ from pandas.tseries.offsets import Tick
 from typing_extensions import Protocol
 
 from gluonts import json
-from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset import jsonl, util
+from gluonts.exceptions import GluonTSDataError
 
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]

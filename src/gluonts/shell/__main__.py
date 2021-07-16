@@ -18,11 +18,11 @@ from typing import Optional
 
 import click
 
-from gluonts.core.exception import GluonTSForecasterNotFoundError
 from gluonts.env import env as gluonts_env
 from gluonts.shell.serve import Settings
 
 from .env import ServeEnv, TrainEnv
+from .exceptions import ForecasterNotFound
 from .sagemaker import TrainPaths
 from .util import Forecaster, forecaster_type_by_name
 
@@ -122,12 +122,11 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
             try:
                 forecaster = env.hyperparameters["forecaster_name"]
             except KeyError:
-                msg = (
+                raise ForecasterNotFound(
                     "Forecaster shell parameter is `None`, but "
                     "the `forecaster_name` key is not defined in the "
                     "hyperparameters.json dictionary."
                 )
-                raise GluonTSForecasterNotFoundError(msg)
         train.run_train_and_test(env, forecaster_type_by_name(forecaster))
     except Exception as error:
         with open(
