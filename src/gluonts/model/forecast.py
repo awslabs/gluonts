@@ -20,7 +20,7 @@ import pandas as pd
 import pydantic
 
 from gluonts.core.component import validated
-from gluonts.core.exception import GluonTSUserError
+from gluonts.exceptions import GluonTSUserError
 
 
 class Quantile(NamedTuple):

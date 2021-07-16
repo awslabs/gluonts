@@ -17,13 +17,13 @@ from typing import cast
 import numpy as np
 import pandas as pd
 
-from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.stat import (
     DatasetStatistics,
     ScaleHistogram,
     calculate_dataset_statistics,
 )
+from gluonts.exceptions import GluonTSDataError
 
 
 def make_dummy_dynamic_feat(target, num_features) -> np.ndarray:

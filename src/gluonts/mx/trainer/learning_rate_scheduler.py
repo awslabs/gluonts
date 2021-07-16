@@ -18,8 +18,8 @@ import mxnet as mx
 from mxnet import gluon
 import mxnet.gluon.nn as nn
 
-from gluonts.core.exception import GluonTSUserError
 from gluonts.core.component import validated, logger
+from gluonts.exceptions import GluonTSUserError
 
 from .callback import Callback
 

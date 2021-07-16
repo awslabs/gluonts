@@ -24,11 +24,11 @@ from pydantic import ValidationError
 
 from gluonts.core import fqname_for
 from gluonts.core.component import from_hyperparameters, validated
-from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch
+from gluonts.exceptions import GluonTSHyperparametersError
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import Predictor

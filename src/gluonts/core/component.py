@@ -22,8 +22,8 @@ from typing import Any, Type, TypeVar
 import numpy as np
 from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
-from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_code
+from gluonts.exceptions import GluonTSHyperparametersError
 
 from . import fqname_for
 

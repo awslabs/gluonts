@@ -11,24 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import warnings
-
-# flake8: noqa
-
-from gluonts.exceptions import (
-    assert_gluonts,
-    assert_data_error,
-    GluonTSException,
-    GluonTSDataError,
-    GluonTSDateBoundsError,
-    GluonTSHyperparametersError,
-    GluonTSUserError,
-)
+from gluonts.exceptions import GluonTSException
 
 
-warnings.warn(
-    "`gluonts.core.exception` is deprecated, "
-    "use `gluonts.exceptions` instead.",
-    DeprecationWarning,
-    stacklevel=2,
-)
+class ForecasterNotFound(GluonTSException):
+    """
+    An exception indicating that a forecaster identified by the given
+    name cannot be found in the current environment.
+    """
