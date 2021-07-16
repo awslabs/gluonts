@@ -18,8 +18,8 @@ import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
-from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.common import Dataset
+from gluonts.exceptions import GluonTSDataError
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.time_feature import time_features_from_frequency_str

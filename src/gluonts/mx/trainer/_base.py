@@ -27,8 +27,8 @@ import numpy as np
 from mxnet.metric import ndarray
 
 from gluonts.core.component import validated
-from gluonts.core.exception import GluonTSDataError
 from gluonts.dataset.loader import DataLoader
+from gluonts.exceptions import GluonTSDataError
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.mx.context import get_mxnet_context
 from gluonts.mx.trainer.callback import Callback, CallbackList
