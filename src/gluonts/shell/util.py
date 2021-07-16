@@ -18,9 +18,10 @@ from typing import Type, Union, cast
 import pkg_resources
 from toolz import keyfilter
 
-from gluonts.core.exception import GluonTSForecasterNotFoundError
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
+
+from .exceptions import ForecasterNotFound
 
 Forecaster = Type[Union[Estimator, Predictor]]
 
@@ -52,10 +53,10 @@ def forecaster_type_by_name(name: str) -> Forecaster:
     else:
         forecaster = pydoc.locate(name)
 
-    if forecaster is None:
-        raise GluonTSForecasterNotFoundError(
-            f'Cannot locate estimator with classname "{name}".'
-        )
+    ForecasterNotFound.guard(
+        forecaster is not None,
+        f'Cannot locate estimator with classname "{name}".',
+    )
 
     return cast(Forecaster, forecaster)
 
