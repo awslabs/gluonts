@@ -38,4 +38,5 @@ warnings.warn(
     "`gluonts.core.exception` is deprecated, "
     "use `gluonts.exceptions` instead.",
     DeprecationWarning,
+    stacklevel=2,
 )
