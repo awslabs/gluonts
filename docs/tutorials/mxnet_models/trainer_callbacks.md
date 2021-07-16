@@ -62,7 +62,7 @@ print(history.loss_history) # The training loss history of all 3+3 epochs we tra
 ## Default callbacks
 
 In addition to the callbacks you specify, the `Trainer` class uses the two default callbacks `ModelAveraging` and `LearningRateReduction`.
-You can turn them off by setting add_default_callbacks=False when initializing the Trainer.
+You can turn them off by setting `add_default_callbacks=False` when initializing the Trainer.
 
 ```python
 trainer=Trainer(epochs=20, callbacks=[history]) # use the TrainingHistory Callback and the default callbacks.
@@ -76,8 +76,8 @@ To implement your own callback you can write a class which inherits from `gluont
 Have a look at the abstract `Callback` class, the hooks take different arguments which you can use. 
 Hook methods with boolean return value stop the training if False is returned.
 
-Here is an example implementation of a Metric value based early stopping custom callback implementation.
-It only implements the hook method "on_epoch_end()" which gets called after all batches of one epoch have been processed.
+Here is an example for a custom callback implementation which terminates training early based on the value of some metric (such as the RMSE).
+It only implements the hook method `on_epoch_end` which gets called after all batches of one epoch have been processed.
 
 ```python
 import numpy as np
