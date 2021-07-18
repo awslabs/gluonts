@@ -23,8 +23,8 @@ encoding, `serde` outputs json-compatible text. This has two main advantages:
 It is human-readable and the encoding works across different Python versions.
 
 Values which can be directly represented in `json` are not changed, thus
-`serde.encode` is virtually the same as `json.dumps` for values such as `1`, `
-["a", "b", "c"]` or `{"foo": "bar"}`.
+`serde.encode` is virtually the same as `json.dumps` for values such as `1`,
+`["a", "b", "c"]` or `{"foo": "bar"}`.
 
 However, more complex values are encoded differently. For these, we create an
 object which uses a special `__kind__` attribute, which can be one of::
