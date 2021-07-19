@@ -49,7 +49,7 @@ def frequency_converter(freq: str):
 
 def convert_base(text: str) -> str:
     if text.lower() == "minutely":
-        return "MIN"
+        return "T"
     return text[0].upper()
 
 

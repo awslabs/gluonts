@@ -17,6 +17,8 @@ from typing import Dict, List, NamedTuple, Optional
 from urllib import request
 from zipfile import ZipFile
 
+from pandas.tseries.frequencies import to_offset
+
 from gluonts import json
 from gluonts.dataset import jsonl
 from gluonts.dataset.field_names import FieldName
@@ -219,19 +221,18 @@ def generate_forecasting_dataset(
 
 
 def default_prediction_length_from_frequency(freq: str) -> int:
-    freq = freq.strip("0123456789").upper()
-    if freq == "MIN":
-        return 60
-    if freq == "H":
-        return 48
-    if freq == "D":
-        return 30
-    if freq == "W":
-        return 8
-    if freq == "M":
-        return 12
-    if freq == "Y":
-        return 4
-    raise ValueError(
-        f"Cannot obtain default prediction length from frequency `{freq}`."
-    )
+    prediction_length_map = {
+        "T": 60,
+        "H": 48,
+        "D": 30,
+        "W": 8,
+        "M": 12,
+        "Y": 4,
+    }
+    try:
+        freq = to_offset(freq).name
+        return prediction_length_map[freq]
+    except KeyError as err:
+        raise ValueError(
+            f"Cannot obtain default prediction length from frequency `{freq}`."
+        ) from err
