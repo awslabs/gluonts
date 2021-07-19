@@ -357,6 +357,8 @@ class TimeLimitCallback(Callback):
         if self.time_limit is not None:
             cur_time = time.time()
             if cur_time - self.start_time > self.time_limit:
-                logging.warning("Time limit exceed during training, stop training.")
+                logging.warning(
+                    "Time limit exceed during training, stop training."
+                )
                 return False
         return True
