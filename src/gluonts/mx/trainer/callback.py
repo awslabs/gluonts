@@ -26,6 +26,8 @@ from mxnet import gluon
 from gluonts.core.component import validated
 from gluonts.mx.util import copy_parameters
 
+logger = logging.getLogger(__name__)
+
 
 class Callback:
     """
@@ -341,11 +343,19 @@ class WarmStart(Callback):
         copy_parameters(self.predictor.prediction_net, training_network)
 
 
-class TimeLimitCallback(Callback):
-    @validated()
+class TrainingTimeLimitCallback(Callback):
     def __init__(self, time_limit=None):
-        self.start_time = None
+        """
+        Used when you want to set a time limit to the training process.
+        Once passed into model.train(), the training process will end roughly after 'time_limit' seconds.
+
+        Attributes
+        ----------
+        time_limit: int
+                    time in seconds, after which your training process will end.
+        """
         self.time_limit = time_limit
+        self.start_time = None
 
     def on_train_start(self, max_epochs: int) -> None:
         self.start_time = time.time()
@@ -362,7 +372,7 @@ class TimeLimitCallback(Callback):
         if self.time_limit is not None:
             cur_time = time.time()
             if cur_time - self.start_time > self.time_limit:
-                logging.warning(
+                logger.warning(
                     "Time limit exceed during training, stop training."
                 )
                 return False
