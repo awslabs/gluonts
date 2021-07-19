@@ -355,7 +355,7 @@ class TrainingTimeLimit(Callback):
             time in seconds, after which training ends
         """
         self.time_limit = time_limit
-        self.start_time = None
+        self.start_time = -1.0
 
     def on_train_start(self, max_epochs: int) -> None:
         self.start_time = time.time()
