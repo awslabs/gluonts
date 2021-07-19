@@ -15,8 +15,3 @@ from ._estimator import TreeEstimator
 from ._predictor import TreePredictor
 
 __all__ = ["TreeEstimator", "TreePredictor"]
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)

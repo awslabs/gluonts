@@ -16,8 +16,3 @@ from . import model_averaging, model_iteration_averaging
 from ._base import Trainer
 
 __all__ = ["lrs", "Trainer", "model_averaging", "model_iteration_averaging"]
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
