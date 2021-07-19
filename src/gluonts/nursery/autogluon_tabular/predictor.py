@@ -149,7 +149,6 @@ class TabularPredictor(Predictor):
                 item_id=item_id,
                 samples=samples,
             )
-        return sample
 
     # serial prediction (both auto-regressive and not)
     # `auto_regression == False`: one call to Autogluon's `predict` per input time series
