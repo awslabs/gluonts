@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Optional
 import logging
 import math
 import time
@@ -343,8 +343,8 @@ class WarmStart(Callback):
         copy_parameters(self.predictor.prediction_net, training_network)
 
 
-class TrainingTimeLimitCallback(Callback):
-    def __init__(self, time_limit=None):
+class TrainingTimeLimit(Callback):
+    def __init__(self, time_limit: Optional[int] = None) -> None:
         """
         Used when you want to set a time limit to the training process.
         Once passed into model.train(), the training process will end roughly after 'time_limit' seconds.
@@ -352,7 +352,7 @@ class TrainingTimeLimitCallback(Callback):
         Attributes
         ----------
         time_limit: int
-                    time in seconds, after which your training process will end.
+            time in seconds, after which training ends
         """
         self.time_limit = time_limit
         self.start_time = None
@@ -370,10 +370,10 @@ class TrainingTimeLimitCallback(Callback):
         ctx: mx.Context,
     ) -> bool:
         if self.time_limit is not None:
-            cur_time = time.time()
-            if cur_time - self.start_time > self.time_limit:
+            elapsed = time.time() - self.start_time
+            if elapsed > self.time_limit:
                 logger.warning(
-                    "Time limit exceed during training, stop training."
+                    "Time limit exceeded during training, stopping training."
                 )
                 return False
         return True
