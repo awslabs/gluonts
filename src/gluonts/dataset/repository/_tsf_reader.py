@@ -17,9 +17,10 @@ from multiprocessing import cpu_count
 from types import SimpleNamespace
 
 import numpy as np
+from toolz import compose_left
+
 from gluonts import json
 from gluonts.nursery import glide
-from toolz import compose_left
 
 parse_bool = compose_left(strtobool, bool)
 
@@ -40,9 +41,24 @@ def parse_attribute(ty, value: str):
 def frequency_converter(freq: str):
     parts = freq.split("_")
     if len(parts) == 1:
-        return freq[0].upper()
-    if len(parts) == 2 and parts[0].isnumeric():
-        return f"{parts[0]}{parts[1].upper()}"
+        return convert_base(parts[0])
+    if len(parts) == 2:
+        return convert_multiple(parts[0]) + convert_base(parts[1])
+    raise ValueError(f"Invalid frequency string {freq}.")
+
+
+def convert_base(text: str) -> str:
+    if text.lower() == "minutely":
+        return "MIN"
+    return text[0].upper()
+
+
+def convert_multiple(text: str) -> str:
+    if text.isnumeric():
+        return text
+    if text == "half":
+        return "0.5"
+    raise ValueError(f"Unknown frequency multiple {text}.")
 
 
 class TSFReader:

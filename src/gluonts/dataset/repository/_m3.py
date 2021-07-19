@@ -16,7 +16,7 @@ import os
 import re
 import warnings
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 import numpy as np
 import pandas as pd
@@ -77,7 +77,9 @@ class M3Setting(NamedTuple):
     freq: str
 
 
-def generate_m3_dataset(dataset_path: Path, m3_freq: str):
+def generate_m3_dataset(
+    dataset_path: Path, m3_freq: str, prediction_length: Optional[int] = None
+):
     from gluonts.dataset.repository.datasets import default_dataset_path
 
     m3_xls_path = default_dataset_path / "M3C.xls"
@@ -180,7 +182,8 @@ def generate_m3_dataset(dataset_path: Path, m3_freq: str):
                 metadata(
                     cardinality=[len(train_data), len(categories)],
                     freq=subset.freq,
-                    prediction_length=subset.prediction_length,
+                    prediction_length=prediction_length
+                    or subset.prediction_length,
                 )
             )
         )
