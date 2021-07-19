@@ -142,7 +142,7 @@ class TabularPredictor(Predictor):
                 forecast_keys=self.quantiles_to_predict,
             )
         else:
-            samples = ag_output.reshape((1, self.prediction_length))
+            return ag_output.reshape((1, self.prediction_length))
             sample = SampleForecast(
                 freq=self.freq,
                 start_date=pd.Timestamp(start_timestamp, freq=self.freq),
