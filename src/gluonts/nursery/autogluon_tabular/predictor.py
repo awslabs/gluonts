@@ -134,7 +134,7 @@ class TabularPredictor(Predictor):
     ) -> Iterator[Forecast]:
         if ag_output.size > self.prediction_length:
             forecasts = ag_output.transpose()
-            sample = QuantileForecast(
+            return QuantileForecast(
                 freq=self.freq,
                 start_date=pd.Timestamp(start_timestamp, freq=self.freq),
                 item_id=item_id,
