@@ -347,12 +347,17 @@ class TimeLimitCallback(Callback):
         self.start_time = None
         self.time_limit = time_limit
 
-    def on_train_start(self, **kwargs) -> None:
+    def on_train_start(self, max_epochs: int) -> None:
         self.start_time = time.time()
 
     def on_epoch_end(
         self,
-        **kwargs,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+        best_epoch_info: Dict[str, Any],
+        ctx: mx.Context,
     ) -> bool:
         if self.time_limit is not None:
             cur_time = time.time()
