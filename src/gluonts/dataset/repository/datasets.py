@@ -287,12 +287,12 @@ def get_dataset(
         datasets from the Monash Time Series Forecasting Repository do not
         actually have a default prediction length -- the default then depends
         on the frequency of the data:
-            - Minutely data --> prediction length of 60 (one hour)
-            - Hourly data --> prediction length of 48 (two days)
-            - Daily data --> prediction length of 30 (one month)
-            - Weekly data --> prediction length of 8 (two months)
-            - Monthly data --> prediction length of 12 (one year)
-            - Yearly data --> prediction length of 4 (four years)
+        - Minutely data --> prediction length of 60 (one hour)
+        - Hourly data --> prediction length of 48 (two days)
+        - Daily data --> prediction length of 30 (one month)
+        - Weekly data --> prediction length of 8 (two months)
+        - Monthly data --> prediction length of 12 (one year)
+        - Yearly data --> prediction length of 4 (four years)
 
     Returns
     -------
