@@ -13,6 +13,7 @@
 
 import json
 from pathlib import Path
+from typing import Optional
 
 from gluonts.dataset.artificial import ArtificialDataset
 from gluonts.dataset.artificial.generate_synthetic import generate_sf2
@@ -20,7 +21,9 @@ from gluonts.dataset.common import serialize_data_entry
 
 
 def generate_artificial_dataset(
-    dataset_path: Path, dataset: ArtificialDataset
+    dataset_path: Path,
+    dataset: ArtificialDataset,
+    prediction_length: Optional[int] = None,
 ) -> None:
     dataset_path_train = dataset_path / "train"
     dataset_path_test = dataset_path / "test"
@@ -31,6 +34,8 @@ def generate_artificial_dataset(
 
     ds = dataset.generate()
     assert ds.test is not None
+    if prediction_length is not None:
+        ds.metadata.prediction_length = prediction_length
 
     with (dataset_path / "metadata.json").open("w") as fp:
         json.dump(ds.metadata.dict(), fp, indent=2, sort_keys=True)
