@@ -14,8 +14,3 @@
 from ._predictor import Naive2Predictor, naive_2
 
 __all__ = ["naive_2", "Naive2Predictor"]
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
