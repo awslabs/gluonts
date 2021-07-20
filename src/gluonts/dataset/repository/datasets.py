@@ -16,21 +16,19 @@ import shutil
 from collections import OrderedDict
 from functools import partial
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from gluonts.dataset.artificial import ConstantDataset
 from gluonts.dataset.common import TrainDatasets, load_datasets
 from gluonts.dataset.repository._artificial import generate_artificial_dataset
-from gluonts.dataset.repository._gp_copula_2019 import (
-    generate_gp_copula_dataset,
-)
+from gluonts.dataset.repository._gp_copula_2019 import \
+    generate_gp_copula_dataset
 from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
 from gluonts.dataset.repository._m3 import generate_m3_dataset
 from gluonts.dataset.repository._m4 import generate_m4_dataset
 from gluonts.dataset.repository._m5 import generate_m5_dataset
-from gluonts.dataset.repository._tsf_datasets import (
-    generate_forecasting_dataset,
-)
+from gluonts.dataset.repository._tsf_datasets import \
+    generate_forecasting_dataset
 from gluonts.support.util import get_download_path
 
 dataset_recipes = OrderedDict(
@@ -241,10 +239,12 @@ def materialize_dataset(
             shutil.rmtree(dataset_path)
             dataset_path.mkdir()
 
-        dataset_recipe(
-            dataset_path=dataset_path,
-            prediction_length=prediction_length,
-        )
+        # Optionally pass prediction length to not override any non-None
+        # defaults (e.g. for M4)
+        kwargs: Dict[str, Any] = {"dataset_path": dataset_path}
+        if prediction_length is not None:
+            kwargs["prediction_length"] = prediction_length
+        dataset_recipe(**kwargs)
     else:
         logging.info(
             f"using dataset already processed in path {dataset_path}."
