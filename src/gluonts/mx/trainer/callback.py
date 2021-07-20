@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Union, Dict, Any, Optional
+from typing import List, Union, Dict, Any
 import logging
 import math
 import time
