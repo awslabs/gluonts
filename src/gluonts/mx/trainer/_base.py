@@ -378,12 +378,16 @@ class Trainer:
                             loss.backward()
                             trainer.step(batch_size)
 
-                            self.callbacks.on_train_batch_end(
-                                training_network=net
+                            should_continue = (
+                                self.callbacks.on_train_batch_end(
+                                    training_network=net
+                                )
                             )
                         else:
-                            self.callbacks.on_validation_batch_end(
-                                training_network=net
+                            should_continue = (
+                                self.callbacks.on_validation_batch_end(
+                                    training_network=net
+                                )
                             )
 
                         epoch_loss.update(None, preds=loss)
@@ -404,6 +408,8 @@ class Trainer:
                         logger.info(
                             f"Number of parameters in {net_name}: {num_model_param}"
                         )
+                    if not should_continue:
+                        break
                 it.close()
 
                 # mark epoch end time and log time cost of current epoch

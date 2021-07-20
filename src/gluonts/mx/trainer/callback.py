@@ -87,7 +87,7 @@ class Callback:
             The network that is being trained.
         """
 
-    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
         """
         Hook that is called after each training batch.
 
@@ -96,10 +96,11 @@ class Callback:
         training_network
             The network that is being trained.
         """
+        return True
 
     def on_validation_batch_end(
         self, training_network: nn.HybridBlock
-    ) -> None:
+    ) -> bool:
         """
         Hook that is called after each validation batch. This hook is never
         called if no validation data is available during training.
@@ -109,6 +110,7 @@ class Callback:
         training_network
             The network that is being trained.
         """
+        return True
 
     def on_train_epoch_end(
         self,
@@ -270,11 +272,11 @@ class CallbackList(Callback):
     def on_validation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         self._exec("on_validation_epoch_start", *args, **kwargs)
 
-    def on_train_batch_end(self, *args: Any, **kwargs: Any) -> None:
-        self._exec("on_train_batch_end", *args, **kwargs)
+    def on_train_batch_end(self, *args: Any, **kwargs: Any) -> bool:
+        return all(self._exec("on_train_batch_end", *args, **kwargs))
 
-    def on_validation_batch_end(self, *args: Any, **kwargs: Any) -> None:
-        self._exec("on_validation_batch_end", *args, **kwargs)
+    def on_validation_batch_end(self, *args: Any, **kwargs: Any) -> bool:
+        return all(self._exec("on_validation_batch_end", *args, **kwargs))
 
     def on_train_epoch_end(self, *args: Any, **kwargs: Any) -> bool:
         return all(self._exec("on_train_epoch_end", *args, **kwargs))
@@ -344,7 +346,12 @@ class WarmStart(Callback):
 
 
 class TrainingTimeLimit(Callback):
-    def __init__(self, time_limit: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        time_limit: int,
+        include_validation_in_time_limit: bool = True,
+        stop_during_epoch: bool = False,
+    ) -> None:
         """
         Used when you want to set a time limit to the training process.
         Once passed into model.train(), the training process will end roughly after 'time_limit' seconds.
@@ -355,10 +362,81 @@ class TrainingTimeLimit(Callback):
             time in seconds, after which training ends
         """
         self.time_limit = time_limit
-        self.start_time = -1.0
+        self.include_validation_in_time_limit = (
+            include_validation_in_time_limit
+        )
+        self.stop_during_epoch = stop_during_epoch
+        self.time_spent = 0.0
+        self.checkpoint = -1.0
 
     def on_train_start(self, max_epochs: int) -> None:
-        self.start_time = time.time()
+        self.checkpoint = time.time()
+
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
+        print(
+            "on_train_batch_end", self.time_spent
+        )  # for debugging purpose, will be deleted before merging
+        self.time_spent += time.time() - self.checkpoint
+        self.checkpoint = time.time()
+        if self.stop_during_epoch:
+            if self.time_spent > self.time_limit:
+                return False
+        return True
+
+    def on_train_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+    ) -> bool:
+        self.time_spent += time.time() - self.checkpoint
+        self.checkpoint = time.time()
+        print(
+            "on_train_epoch_end", self.time_spent
+        )  # for debugging purpose, will be deleted before merging
+        if self.time_spent > self.time_limit:
+            logger.warning("Time limit exceeded, stopping training.")
+            return False
+        return True
+
+    def on_validation_batch_end(
+        self, training_network: nn.HybridBlock
+    ) -> bool:
+        print(
+            "on_validation_batch_end", self.time_spent
+        )  # for debugging purpose, will be deleted before merging
+        tmp_time_spent = time.time() - self.checkpoint
+        self.checkpoint = time.time()
+
+        if self.include_validation_in_time_limit:
+            self.time_spent += tmp_time_spent
+
+        if self.stop_during_epoch:
+            if self.time_spent > self.time_limit:
+                return False
+        return True
+
+    def on_validation_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+    ) -> bool:
+        print(
+            "on_validation_epoch_end", self.time_spent
+        )  # for debugging purpose, will be deleted before merging
+        tmp_time_spent = time.time() - self.checkpoint
+        self.checkpoint = time.time()
+        if self.include_validation_in_time_limit:
+            self.time_spent += tmp_time_spent
+            if self.time_spent > self.time_limit:
+                logger.warning(
+                    "Time limit exceeded during training, stopping training."
+                )
+                return False
+        return True
 
     def on_epoch_end(
         self,
@@ -369,11 +447,11 @@ class TrainingTimeLimit(Callback):
         best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
-        if self.time_limit is not None:
-            elapsed = time.time() - self.start_time
-            if elapsed > self.time_limit:
-                logger.warning(
-                    "Time limit exceeded during training, stopping training."
-                )
-                return False
+        self.time_spent += time.time() - self.checkpoint
+        self.checkpoint = time.time()
+        if self.time_spent > self.time_limit:
+            logger.warning(
+                "Time limit exceeded during training, stopping training."
+            )
+            return False
         return True
