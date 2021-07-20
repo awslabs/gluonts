@@ -404,6 +404,7 @@ class QRX:
             )
         return predicted_samples
 
-LSF = QRX # LSF stands for "Level Set Forecaster". This name emphasizes that
+
+LSF = QRX  # LSF stands for "Level Set Forecaster". This name emphasizes that
 # the underlying algorithm can be used with any point forecasting algorithm,
 # not just XGBoost.
