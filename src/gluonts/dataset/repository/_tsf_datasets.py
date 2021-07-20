@@ -13,16 +13,19 @@
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Dict, NamedTuple
+from typing import Dict, List, NamedTuple, Optional
 from urllib import request
 from zipfile import ZipFile
 
+from pandas.tseries.frequencies import to_offset
+
 from gluonts import json
 from gluonts.dataset import jsonl
+from gluonts.dataset.field_names import FieldName
 from gluonts.gluonts_tqdm import tqdm
 
-from ._tsf_reader import frequency_converter, TSFReader
-from ._util import metadata, to_dict, request_retrieve_hook
+from ._tsf_reader import TSFReader, frequency_converter
+from ._util import metadata, request_retrieve_hook, to_dict
 
 
 class Dataset(NamedTuple):
@@ -95,6 +98,50 @@ datasets = {
         file_name="tourism_yearly_dataset.zip",
         record="4656103",
     ),
+    "cif_2016": Dataset(
+        file_name="cif_2016_dataset.zip",
+        record="4656042",
+    ),
+    "london_smart_meters_without_missing": Dataset(
+        file_name="london_smart_meters_dataset_without_missing_values.zip",
+        record="4656091",
+    ),
+    "wind_farms_without_missing": Dataset(
+        file_name="wind_farms_minutely_dataset_without_missing_values.zip",
+        record="4654858",
+    ),
+    "car_parts_without_missing": Dataset(
+        file_name="car_parts_dataset_without_missing_values.zip",
+        record="4656021",
+    ),
+    "dominick": Dataset(
+        file_name="dominick_dataset.zip",
+        record="4654802",
+    ),
+    "fred_md": Dataset(
+        file_name="fred_md_dataset.zip",
+        record="4654833",
+    ),
+    "pedestrian_counts": Dataset(
+        file_name="pedestrian_counts_dataset.zip",
+        record="4656626",
+    ),
+    "hospital": Dataset(
+        file_name="hospital_dataset.zip",
+        record="4656014",
+    ),
+    "covid_deaths": Dataset(
+        file_name="covid_deaths_dataset.zip",
+        record="4656009",
+    ),
+    "kdd_cup_2018_without_missing": Dataset(
+        file_name="kdd_cup_2018_dataset_without_missing_values.zip",
+        record="4656756",
+    ),
+    "weather": Dataset(
+        file_name="weather_dataset.zip",
+        record="4654822",
+    ),
 }
 
 
@@ -136,7 +183,11 @@ def save_datasets(path: Path, data: List[Dict], train_offset: int):
             jsonl.dump([dic], train_fp)
 
 
-def generate_forecasting_dataset(dataset_path: Path, dataset_name: str):
+def generate_forecasting_dataset(
+    dataset_path: Path,
+    dataset_name: str,
+    prediction_length: Optional[int] = None,
+):
     dataset = datasets[dataset_name]
     dataset_path.mkdir(exist_ok=True)
 
@@ -150,13 +201,38 @@ def generate_forecasting_dataset(dataset_path: Path, dataset_name: str):
         reader = TSFReader(temp_path / archive.namelist()[0])
         meta, data = reader.read()
 
-    prediction_length = int(meta.forecast_horizon)
+    freq = frequency_converter(meta.frequency)
+    if prediction_length is None:
+        if hasattr(meta, "forecast_horizon"):
+            prediction_length = int(meta.forecast_horizon)
+        else:
+            prediction_length = default_prediction_length_from_frequency(freq)
 
-    save_metadata(
-        dataset_path,
-        len(data),
-        frequency_converter(meta.frequency),
-        prediction_length,
-    )
+    save_metadata(dataset_path, len(data), freq, prediction_length)
 
+    # Impute missing start dates with unix epoch and remove time series whose
+    # length is less than or equal to the prediction length
+    data = [
+        {**d, "start_timestamp": d.get("start_timestamp", "1970-01-01")}
+        for d in data
+        if len(d[FieldName.TARGET]) > prediction_length
+    ]
     save_datasets(dataset_path, data, prediction_length)
+
+
+def default_prediction_length_from_frequency(freq: str) -> int:
+    prediction_length_map = {
+        "T": 60,
+        "H": 48,
+        "D": 30,
+        "W": 8,
+        "M": 12,
+        "Y": 4,
+    }
+    try:
+        freq = to_offset(freq).name
+        return prediction_length_map[freq]
+    except KeyError as err:
+        raise ValueError(
+            f"Cannot obtain default prediction length from frequency `{freq}`."
+        ) from err

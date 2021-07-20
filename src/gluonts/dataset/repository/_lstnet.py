@@ -117,13 +117,17 @@ datasets_info = {
 }
 
 
-def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
+def generate_lstnet_dataset(
+    dataset_path: Path,
+    dataset_name: str,
+    prediction_length: Optional[int] = None,
+):
     ds_info = datasets_info[dataset_name]
 
     ds_metadata = metadata(
         cardinality=ds_info.num_series,
         freq=ds_info.freq if ds_info.agg_freq is None else ds_info.agg_freq,
-        prediction_length=ds_info.prediction_length,
+        prediction_length=prediction_length or ds_info.prediction_length,
     )
 
     os.makedirs(dataset_path, exist_ok=True)
