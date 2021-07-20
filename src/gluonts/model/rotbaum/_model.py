@@ -403,3 +403,7 @@ class QRX:
                 self.id_to_bins[self.preds_to_id[closest_pred]]
             )
         return predicted_samples
+
+LSF = QRX # LSF stands for "Level Set Forecaster". This name emphasizes that
+# the underlying algorithm can be used with any point forecasting algorithm,
+# not just XGBoost.
