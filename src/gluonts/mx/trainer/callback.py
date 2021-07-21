@@ -95,6 +95,11 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
+
+        Returns
+        -------
+        bool
+            A boolean whether the training should continue. Defaults to `True`.
         """
         return True
 
@@ -109,6 +114,11 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
+
+        Returns
+        -------
+        bool
+            A boolean whether the training should continue. Defaults to `True`.
         """
         return True
 
@@ -349,7 +359,7 @@ class TrainingTimeLimit(Callback):
     def __init__(
         self,
         time_limit: int,
-        include_validation_in_time_limit: bool = True,
+        track_validation_duration: bool = True,
         stop_during_epoch: bool = False,
     ) -> None:
         """
@@ -360,11 +370,13 @@ class TrainingTimeLimit(Callback):
         ----------
         time_limit: int
             time in seconds, after which training ends
+        track_validation_duration: bool, default = True
+            whether we are recording the time used for validation.
+        stop_during_epoch: bool, default = False
+            whether we want to stop in the middle of an epoch when time is used up.
         """
         self.time_limit = time_limit
-        self.include_validation_in_time_limit = (
-            include_validation_in_time_limit
-        )
+        self.track_validation_duration = track_validation_duration
         self.stop_during_epoch = stop_during_epoch
         self.time_spent = 0.0
         self.checkpoint = -1.0
@@ -409,7 +421,7 @@ class TrainingTimeLimit(Callback):
         tmp_time_spent = time.time() - self.checkpoint
         self.checkpoint = time.time()
 
-        if self.include_validation_in_time_limit:
+        if self.track_validation_duration:
             self.time_spent += tmp_time_spent
 
         if self.stop_during_epoch:
@@ -429,7 +441,7 @@ class TrainingTimeLimit(Callback):
         )  # for debugging purpose, will be deleted before merging
         tmp_time_spent = time.time() - self.checkpoint
         self.checkpoint = time.time()
-        if self.include_validation_in_time_limit:
+        if self.track_validation_duration:
             self.time_spent += tmp_time_spent
             if self.time_spent > self.time_limit:
                 logger.warning(
