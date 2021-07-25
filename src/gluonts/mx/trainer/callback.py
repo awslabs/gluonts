@@ -380,20 +380,34 @@ class TrainingTimeLimit(Callback):
         self.stop_during_epoch = stop_during_epoch
         self.time_spent = 0.0
         self.checkpoint = -1.0
+        self.report_exceed_timelimit = True
 
     def on_train_start(self, max_epochs: int) -> None:
         self.checkpoint = time.time()
+
+    def should_continue_by_timelimit(self, record_time=True, should_stop=True):
+        tmp_time_spent = time.time() - self.checkpoint
+        self.checkpoint = time.time()
+        if record_time:
+            self.time_spent += tmp_time_spent
+
+        if should_stop:
+            if self.time_spent > self.time_limit:
+                if self.report_exceed_timelimit:
+                    logger.warning(
+                        "Time limit exceeded during training, stopping training."
+                    )
+                    self.report_exceed_timelimit = False
+                return False
+        return True
 
     def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
         print(
             "on_train_batch_end", self.time_spent
         )  # for debugging purpose, will be deleted before merging
-        self.time_spent += time.time() - self.checkpoint
-        self.checkpoint = time.time()
-        if self.stop_during_epoch:
-            if self.time_spent > self.time_limit:
-                return False
-        return True
+        return self.should_continue_by_timelimit(
+            should_stop=self.stop_during_epoch
+        )
 
     def on_train_epoch_end(
         self,
@@ -402,15 +416,11 @@ class TrainingTimeLimit(Callback):
         training_network: nn.HybridBlock,
         trainer: gluon.Trainer,
     ) -> bool:
-        self.time_spent += time.time() - self.checkpoint
-        self.checkpoint = time.time()
         print(
             "on_train_epoch_end", self.time_spent
         )  # for debugging purpose, will be deleted before merging
-        if self.time_spent > self.time_limit:
-            logger.warning("Time limit exceeded, stopping training.")
-            return False
-        return True
+
+        return self.should_continue_by_timelimit()
 
     def on_validation_batch_end(
         self, training_network: nn.HybridBlock
@@ -418,16 +428,10 @@ class TrainingTimeLimit(Callback):
         print(
             "on_validation_batch_end", self.time_spent
         )  # for debugging purpose, will be deleted before merging
-        tmp_time_spent = time.time() - self.checkpoint
-        self.checkpoint = time.time()
-
-        if self.track_validation_duration:
-            self.time_spent += tmp_time_spent
-
-        if self.stop_during_epoch:
-            if self.time_spent > self.time_limit:
-                return False
-        return True
+        return self.should_continue_by_timelimit(
+            record_time=self.track_validation_duration,
+            should_stop=self.stop_during_epoch,
+        )
 
     def on_validation_epoch_end(
         self,
@@ -439,16 +443,10 @@ class TrainingTimeLimit(Callback):
         print(
             "on_validation_epoch_end", self.time_spent
         )  # for debugging purpose, will be deleted before merging
-        tmp_time_spent = time.time() - self.checkpoint
-        self.checkpoint = time.time()
-        if self.track_validation_duration:
-            self.time_spent += tmp_time_spent
-            if self.time_spent > self.time_limit:
-                logger.warning(
-                    "Time limit exceeded during training, stopping training."
-                )
-                return False
-        return True
+
+        return self.should_continue_by_timelimit(
+            record_time=self.track_validation_duration
+        )
 
     def on_epoch_end(
         self,
@@ -459,11 +457,4 @@ class TrainingTimeLimit(Callback):
         best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
-        self.time_spent += time.time() - self.checkpoint
-        self.checkpoint = time.time()
-        if self.time_spent > self.time_limit:
-            logger.warning(
-                "Time limit exceeded during training, stopping training."
-            )
-            return False
-        return True
+        return self.should_continue_by_timelimit()
