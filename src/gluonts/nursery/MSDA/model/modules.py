@@ -25,13 +25,12 @@ class GNet(nn.Module):
             self.fc1 = nn.Linear(opt.num_domain, opt.nh)
             self.fc_final = nn.Linear(opt.nh, opt.nt)
 
-
     def forward(self, x):
         re = x.dim() == 3
         if re:
             T, B, C = x.shape
             x = x.reshape(T * B, -1)
-        
+
         if self.use_g_encode:
             x = torch.matmul(x.float(), self.G)
         else:
@@ -115,7 +114,7 @@ class GraphDNet(nn.Module):
             self.bn5 = Identity()
             self.bn6 = Identity()
             self.bn7 = Identity()
-    
+
     def forward(self, x):
         re = x.dim() == 3
 
@@ -184,7 +183,7 @@ class ResGraphDNet(nn.Module):
             self.bn9 = Identity()
             self.bn10 = Identity()
             self.bn11 = Identity()
-    
+
     def forward(self, x):
         re = x.dim() == 3
 
@@ -221,11 +220,8 @@ class ResGraphDNet(nn.Module):
             return x
 
 
-
 class DiscNet(nn.Module):
-    """
-    Discriminator doing binary classification: source v.s. target
-    """
+    # Discriminator doing binary classification: source v.s. target
 
     def __init__(self, opt):
         super(DiscNet, self).__init__()
@@ -513,12 +509,11 @@ class PredNet(nn.Module):
         x = F.relu(self.bn4(self.fc4(x)))
         x = self.fc_final(x)
         x_softmax = F.softmax(x, dim=1)
-        
+
         # x = F.log_softmax(x, dim=1)
         # x = torch.clamp_max(x_softmax + 1e-4, 1)
         # x = torch.log(x)
         x = torch.log(x_softmax + 1e-4)
-
 
         if re:
             x = x.reshape(T, B, -1)

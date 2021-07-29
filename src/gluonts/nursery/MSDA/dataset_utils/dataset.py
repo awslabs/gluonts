@@ -1,19 +1,20 @@
 import numpy as np
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 import pickle
+
+
 def read_pickle(name):
     with open(name, 'rb') as f:
         data = pickle.load(f)
     return data
 
+
 def write_pickle(data, name):
-    with open(name,'wb') as f:
+    with open(name, 'wb') as f:
         pickle.dump(data, f)
 
-import os
-from torch.utils import data
-from random import shuffle
-from torch.utils import data as Data
+# import os
+# from random import shuffle
 # from utils import read_pickle
 # from utils import write_pickle
 

@@ -6,6 +6,11 @@ import pickle
 # import the experiment setting
 
 from configs.config_random_15_new import opt
+
+# load the data
+from torch.utils.data import DataLoader
+from dataset_utils.dataset import ToyDataset, SeqToyDataset
+
 # actually the config doesn't change much
 # from configs.config_random_60_new import opt
 
@@ -24,12 +29,9 @@ elif opt.model == "ADDA":
     from model.model import ADDA as Model
 elif opt.model == "MDD":
     from model.model import MDD as Model 
-model = Model(opt).to(opt.device) # .double()
+model = Model(opt).to(opt.device)  # .double()
 
 data_source = opt.dataset
-
-# load the data
-from dataset_utils.dataset import *
 
 with open(data_source, "rb") as data_file:
     data_pkl = pickle.load(data_file)
@@ -60,4 +62,3 @@ for epoch in range(opt.num_epoch):
         model.save()
     if (epoch + 1) % opt.test_interval == 0 or (epoch + 1) == opt.num_epoch:    
         model.test(epoch, dataloader)
-    
