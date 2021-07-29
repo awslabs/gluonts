@@ -4,7 +4,7 @@ import pickle
 
 
 def read_pickle(name):
-    with open(name, 'rb') as f:
+    with open(name, "rb") as f:
         data = pickle.load(f)
     return data
 
@@ -32,8 +32,10 @@ print("src domain: {}".format(opt.src_domain))
 # opt.model = "CDANN"
 # opt.model = "ADDA"
 # opt.model = 'MDD'
-opt.model = 'GDA'
-opt.cond_disc = False  # whether use conditional discriminator or not (for CDANN)
+opt.model = "GDA"
+opt.cond_disc = (
+    False  # whether use conditional discriminator or not (for CDANN)
+)
 print("model: {}".format(opt.model))
 opt.use_visdom = False
 opt.visdom_port = 2000
@@ -83,4 +85,4 @@ opt.p = 0.2
 opt.shuffle = True
 
 # dataset
-opt.dataset = 'data/toy_d60_spiral.pkl'
+opt.dataset = "data/toy_d60_spiral.pkl"

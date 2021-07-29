@@ -20,7 +20,7 @@ class GNet(nn.Module):
             G = np.zeros((opt.num_domain, opt.nt))
             for i in range(opt.num_domain):
                 G[i] = opt.g_encode[str(i)]
-            self.G = torch.from_numpy(G).float().to(device=opt.device) 
+            self.G = torch.from_numpy(G).float().to(device=opt.device)
         else:
             self.fc1 = nn.Linear(opt.num_domain, opt.nh)
             self.fc_final = nn.Linear(opt.nh, opt.nt)
@@ -87,6 +87,7 @@ class GraphDNet(nn.Module):
     """
     Generate z' for connection loss
     """
+
     def __init__(self, opt):
         super(GraphDNet, self).__init__()
         nh = opt.nh
@@ -140,6 +141,7 @@ class ResGraphDNet(nn.Module):
     """
     Generate z' for connection loss
     """
+
     def __init__(self, opt):
         super(ResGraphDNet, self).__init__()
         nh = opt.nh
@@ -251,11 +253,11 @@ class DiscNet(nn.Module):
             self.bn7 = Identity()
 
         self.fc_final = nn.Linear(nh, 1)
-        if opt.model in ['ADDA', 'CUA']:
-            print('===> Discrinimator Output Activation: sigmoid')
+        if opt.model in ["ADDA", "CUA"]:
+            print("===> Discrinimator Output Activation: sigmoid")
             self.output = lambda x: torch.sigmoid(x)
         else:
-            print('===> Discrinimator Output Activation: identity')
+            print("===> Discrinimator Output Activation: identity")
             self.output = lambda x: x
 
     def forward(self, x):
@@ -291,7 +293,7 @@ class ClassDiscNet(nn.Module):
         nout = opt.num_domain
 
         if opt.cond_disc:
-            print('===> Conditioned Discriminator')
+            print("===> Conditioned Discriminator")
             nmid = nh * 2
             self.cond = nn.Sequential(
                 nn.Linear(nc, nh),
@@ -300,11 +302,11 @@ class ClassDiscNet(nn.Module):
                 nn.ReLU(True),
             )
         else:
-            print('===> Unconditioned Discriminator')
+            print("===> Unconditioned Discriminator")
             nmid = nh
             self.cond = None
 
-        print(f'===> Discriminator will distinguish {nout} domains')
+        print(f"===> Discriminator will distinguish {nout} domains")
 
         self.fc3 = nn.Linear(nin, nh)
         self.bn3 = nn.BatchNorm1d(nh)
@@ -365,7 +367,7 @@ class CondClassDiscNet(nn.Module):
         nout = opt.num_domain
 
         if opt.cond_disc:
-            print('===> Conditioned Discriminator')
+            print("===> Conditioned Discriminator")
             nmid = nh * 2
             self.cond = nn.Sequential(
                 nn.Linear(nc, nh),
@@ -374,11 +376,11 @@ class CondClassDiscNet(nn.Module):
                 nn.ReLU(True),
             )
         else:
-            print('===> Unconditioned Discriminator')
+            print("===> Unconditioned Discriminator")
             nmid = nh
             self.cond = None
 
-        print(f'===> Discriminator will distinguish {nout} domains')
+        print(f"===> Discriminator will distinguish {nout} domains")
 
         self.fc3 = nn.Linear(nin, nh)
         self.bn3 = nn.BatchNorm1d(nh)
@@ -479,7 +481,11 @@ class ProbDiscNet(nn.Module):
         x_weight = torch.softmax(x_weight, dim=1)
 
         if re:
-            return x_mean.reshape(T, B, -1), x_std.reshape(T, B, -1), x_weight.reshape(T, B, -1)
+            return (
+                x_mean.reshape(T, B, -1),
+                x_std.reshape(T, B, -1),
+                x_weight.reshape(T, B, -1),
+            )
         else:
             return x_mean, x_std, x_weight
 
@@ -523,5 +529,6 @@ class PredNet(nn.Module):
             return x, x_softmax
         else:
             return x
+
 
 # ======================================================================================================================

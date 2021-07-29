@@ -5,7 +5,15 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.optim.lr_scheduler as lr_scheduler
 import numpy as np
-from model.modules import FeatureNet, PredNet, GNet, ClassDiscNet, CondClassDiscNet, DiscNet, GraphDNet
+from model.modules import (
+    FeatureNet,
+    PredNet,
+    GNet,
+    ClassDiscNet,
+    CondClassDiscNet,
+    DiscNet,
+    GraphDNet,
+)
 import pickle
 from visdom import Visdom
 
@@ -30,8 +38,9 @@ def flat(x):
 
 
 def write_pickle(data, name):
-    with open(name, 'wb') as f:
+    with open(name, "wb") as f:
         pickle.dump(data, f)
+
 
 # ======================================================================================================================
 
@@ -60,25 +69,25 @@ class BaseModel(nn.Module):
             self.test_dmn_num = self.opt.tgt_dmn_num
 
         self.train_log = self.opt.outf + "/loss.log"
-        self.model_path = opt.outf + '/model.pth'
-        self.out_pic_f = opt.outf + '/plt_pic'
+        self.model_path = opt.outf + "/model.pth"
+        self.out_pic_f = opt.outf + "/plt_pic"
         if not os.path.exists(self.opt.outf):
             os.mkdir(self.opt.outf)
         if not os.path.exists(self.out_pic_f):
             os.mkdir(self.out_pic_f)
-        with open(self.train_log, 'w') as f:
+        with open(self.train_log, "w") as f:
             f.write("log start!\n")
 
         mask_list = np.zeros(opt.num_domain)
         mask_list[opt.src_domain] = 1
-        self.domain_mask = torch.IntTensor(mask_list).to(opt.device)  # not sure if device is needed
+        self.domain_mask = torch.IntTensor(mask_list).to(
+            opt.device
+        )  # not sure if device is needed
 
     def learn(self, epoch, dataloader):
         self.train()
         self.epoch = epoch
-        loss_values = {
-            loss: 0 for loss in self.loss_names
-        }
+        loss_values = {loss: 0 for loss in self.loss_names}
 
         count = 0
         for data in dataloader:
@@ -121,7 +130,11 @@ class BaseModel(nn.Module):
             with torch.no_grad():
                 self.__test_forward__()
 
-            acc_curve.append(self.g_seq.eq(self.y_seq).to(torch.float).mean(-1, keepdim=True))
+            acc_curve.append(
+                self.g_seq.eq(self.y_seq)
+                .to(torch.float)
+                .mean(-1, keepdim=True)
+            )
             l_x.append(to_np(self.x_seq))
             l_domain.append(to_np(self.domain_seq))
             l_encode.append(to_np(self.e_seq))
@@ -133,26 +146,34 @@ class BaseModel(nn.Module):
         label_all = np.concatenate(l_label, axis=1)
 
         z_seq = to_np(self.z_seq)
-        z_seq_all = z_seq[0:self.batch_size * self.test_dmn_num:self.batch_size, :]
+        z_seq_all = z_seq[
+            0 : self.batch_size * self.test_dmn_num : self.batch_size, :
+        ]
 
         d_all = dict()
 
-        d_all['data'] = flat(x_all)
-        d_all['domain'] = flat(domain_all)
-        d_all['label'] = flat(label_all)
-        d_all['encodeing'] = flat(e_all)
-        d_all['z'] = z_seq_all
+        d_all["data"] = flat(x_all)
+        d_all["domain"] = flat(domain_all)
+        d_all["label"] = flat(label_all)
+        d_all["encodeing"] = flat(e_all)
+        d_all["z"] = z_seq_all
 
         acc = to_np(torch.cat(acc_curve, 1).mean(-1))
-        test_acc = (acc.sum() - acc[self.opt.src_domain].sum()) / (self.opt.num_target) * 100
-        acc_msg = '[Test][{}] Accuracy: total average {:.1f}, test average {:.1f}, in each domain {}'.format(epoch, acc.mean() * 100, test_acc, np.around(acc * 100, decimals=1))
+        test_acc = (
+            (acc.sum() - acc[self.opt.src_domain].sum())
+            / (self.opt.num_target)
+            * 100
+        )
+        acc_msg = "[Test][{}] Accuracy: total average {:.1f}, test average {:.1f}, in each domain {}".format(
+            epoch, acc.mean() * 100, test_acc, np.around(acc * 100, decimals=1)
+        )
         self.__log_write__(acc_msg)
         if self.use_visdom:
-            self.__vis_test_error__(test_acc, 'test acc')
+            self.__vis_test_error__(test_acc, "test acc")
 
-        d_all['acc_msg'] = acc_msg
+        d_all["acc_msg"] = acc_msg
 
-        write_pickle(d_all, self.opt.outf + '/' + str(epoch) + '_pred.pkl')
+        write_pickle(d_all, self.opt.outf + "/" + str(epoch) + "_pred.pkl")
 
     def __vis_test_error__(self, loss, title):
         if self.epoch == self.opt.test_interval - 1:
@@ -160,14 +181,14 @@ class BaseModel(nn.Module):
             self.test_pane[title] = self.env.line(
                 X=np.array([self.epoch]),
                 Y=np.array([loss]),
-                opts=dict(title=title)
+                opts=dict(title=title),
             )
         else:
             self.env.line(
                 X=np.array([self.epoch]),
                 Y=np.array([loss]),
                 win=self.test_pane[title],
-                update='append'
+                update="append",
             )
 
     def save(self):
@@ -183,27 +204,49 @@ class BaseModel(nn.Module):
         """
         if train:
             # the domain seq is in d3!!
-            x_seq, y_seq, domain_seq = [d[0][None, :, :] for d in data], [d[1][None, :] for d in data], [d[2][None, :] for d in data]
+            x_seq, y_seq, domain_seq = (
+                [d[0][None, :, :] for d in data],
+                [d[1][None, :] for d in data],
+                [d[2][None, :] for d in data],
+            )
             self.x_seq = torch.cat(x_seq, 0).to(self.device)
             self.y_seq = torch.cat(y_seq, 0).to(self.device)
             self.domain_seq = torch.cat(domain_seq, 0).to(self.device)
             self.tmp_batch_size = self.x_seq.shape[1]
-            one_hot_seq = [torch.nn.functional.one_hot(d[2], self.num_domain) for d in data]
-            self.one_hot_seq = torch.cat(one_hot_seq, 0).reshape(self.num_domain, self.tmp_batch_size, -1).to(self.device)
+            one_hot_seq = [
+                torch.nn.functional.one_hot(d[2], self.num_domain)
+                for d in data
+            ]
+            self.one_hot_seq = (
+                torch.cat(one_hot_seq, 0)
+                .reshape(self.num_domain, self.tmp_batch_size, -1)
+                .to(self.device)
+            )
 
         else:
-            x_seq, y_seq, domain_seq = [d[0][None, :, :] for d in data], [d[1][None, :] for d in data], [d[2][None, :] for d in data]
+            x_seq, y_seq, domain_seq = (
+                [d[0][None, :, :] for d in data],
+                [d[1][None, :] for d in data],
+                [d[2][None, :] for d in data],
+            )
             self.x_seq = torch.cat(x_seq, 0).to(self.device)
             self.y_seq = torch.cat(y_seq, 0).to(self.device)
             self.domain_seq = torch.cat(domain_seq, 0).to(self.device)
             self.tmp_batch_size = self.x_seq.shape[1]
-            one_hot_seq = [torch.nn.functional.one_hot(d[2], self.num_domain) for d in data]
-            self.one_hot_seq = torch.cat(one_hot_seq, 0).reshape(self.test_dmn_num, self.tmp_batch_size, -1).to(self.device)
+            one_hot_seq = [
+                torch.nn.functional.one_hot(d[2], self.num_domain)
+                for d in data
+            ]
+            self.one_hot_seq = (
+                torch.cat(one_hot_seq, 0)
+                .reshape(self.test_dmn_num, self.tmp_batch_size, -1)
+                .to(self.device)
+            )
 
     def __train_forward__(self):
-        self.z_seq = self.netG(self.one_hot_seq)        
+        self.z_seq = self.netG(self.one_hot_seq)
         self.e_seq = self.netE(self.x_seq, self.z_seq)  # encoder of the data
-        self.f_seq = self.netF(self.e_seq)              # prediction
+        self.f_seq = self.netF(self.e_seq)  # prediction
 
         if self.opt.lambda_gan != 0:
             self.d_seq = self.netD(self.e_seq)
@@ -211,21 +254,23 @@ class BaseModel(nn.Module):
             self.loss_D = self.__loss_D__(self.d_seq)
 
     def __test_forward__(self):
-        self.z_seq = self.netG(self.one_hot_seq)        
+        self.z_seq = self.netG(self.one_hot_seq)
         self.e_seq = self.netE(self.x_seq, self.z_seq)  # encoder of the data
         self.f_seq = self.netF(self.e_seq)
-        self.g_seq = torch.argmax(self.f_seq.detach(), dim=2)  # class of the prediction
+        self.g_seq = torch.argmax(
+            self.f_seq.detach(), dim=2
+        )  # class of the prediction
 
     def __optimize__(self):
         loss_value = dict()
         if not self.use_g_encode:
-            loss_value['G'] = self.__optimize_G__()
+            loss_value["G"] = self.__optimize_G__()
         if self.opt.lambda_gan != 0:
-            loss_value['D'] = self.__optimize_D__()
+            loss_value["D"] = self.__optimize_D__()
         else:
-            loss_value['D'] = 0
+            loss_value["D"] = 0
 
-        loss_value['E_pred'], loss_value['E_gan'] = self.__optimize_EF__()  
+        loss_value["E_pred"], loss_value["E_gan"] = self.__optimize_EF__()
 
         if self.opt.wgan:
             clamp_range = 2.0
@@ -250,10 +295,13 @@ class BaseModel(nn.Module):
             for j in range(i + 1, sample_v):
                 v_j = sub_graph[j]
                 label = torch.tensor(self.opt.A[v_i][v_j]).to(self.device)
-                output = (self.z_seq[v_i * self.tmp_batch_size] * self.z_seq[v_j * self.tmp_batch_size]).sum()
+                output = (
+                    self.z_seq[v_i * self.tmp_batch_size]
+                    * self.z_seq[v_j * self.tmp_batch_size]
+                ).sum()
                 errorG += criterion(output, label)
 
-        errorG /= (sample_v * (sample_v - 1) / 2)
+        errorG /= sample_v * (sample_v - 1) / 2
 
         errorG.backward(retain_graph=True)
 
@@ -279,9 +327,11 @@ class BaseModel(nn.Module):
         self.optimizer_EF.zero_grad()
 
         if self.opt.lambda_gan != 0:
-            loss_E_gan = - self.loss_D
+            loss_E_gan = -self.loss_D
         else:
-            loss_E_gan = torch.tensor(0, dtype=torch.float, device=self.opt.device)
+            loss_E_gan = torch.tensor(
+                0, dtype=torch.float, device=self.opt.device
+            )
 
         y_seq_source = self.y_seq[self.domain_mask == 1]
         f_seq_source = self.f_seq[self.domain_mask == 1]
@@ -297,17 +347,16 @@ class BaseModel(nn.Module):
 
     def __log_write__(self, loss_msg):
         print(loss_msg)
-        with open(self.train_log, 'a') as f:
+        with open(self.train_log, "a") as f:
             f.write(loss_msg + "\n")
 
     def __vis_loss__(self, loss_values):
         if self.epoch == 0:
             self.panes = {
-                loss_name: 
-                self.env.line(
+                loss_name: self.env.line(
                     X=np.array([self.epoch]),
                     Y=np.array([loss_values[loss_name]]),
-                    opts=dict(title='loss for {} on epochs'.format(loss_name))
+                    opts=dict(title="loss for {} on epochs".format(loss_name)),
                 )
                 for loss_name in self.loss_names
             }
@@ -317,7 +366,7 @@ class BaseModel(nn.Module):
                     X=np.array([self.epoch]),
                     Y=np.array([loss_values[loss_name]]),
                     win=self.panes[loss_name],
-                    update='append'
+                    update="append",
                 )
 
     def __init_weight__(self, net=None):
@@ -326,8 +375,8 @@ class BaseModel(nn.Module):
         for m in net.modules():
             if isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, mean=0, std=0.01)
-#                 nn.init.normal_(m.weight, mean=0, std=0.1)
-#                 nn.init.xavier_normal_(m.weight, gain=10)
+                #                 nn.init.normal_(m.weight, mean=0, std=0.1)
+                #                 nn.init.xavier_normal_(m.weight, gain=10)
                 nn.init.constant_(m.bias, val=0)
 
     # for graph random sampling:
@@ -348,7 +397,9 @@ class BaseModel(nn.Module):
 
             node_to_choose = np.where(vis == 0)[0]
             num = node_to_choose.shape[0]
-            node_to_choose = np.random.choice(node_to_choose, num, replace=False)
+            node_to_choose = np.random.choice(
+                node_to_choose, num, replace=False
+            )
 
             for i in node_to_choose:
                 if cur_node != i:
@@ -368,14 +419,16 @@ class BaseModel(nn.Module):
 
     def __sub_graph__(self, my_sample_v):
         if np.random.randint(0, 2) == 0:
-            return np.random.choice(self.num_domain, size=my_sample_v, replace=False)
+            return np.random.choice(
+                self.num_domain, size=my_sample_v, replace=False
+            )
 
         # subsample a chain (or multiple chains in graph)
         left_nodes = my_sample_v
         choosen_node = []
         vis = np.zeros(self.num_domain)
         while left_nodes > 0:
-            chain_node, node_num = self.__rand_walk__(vis, left_nodes) 
+            chain_node, node_num = self.__rand_walk__(vis, left_nodes)
             choosen_node.extend(chain_node)
             left_nodes -= node_num
 
@@ -386,6 +439,7 @@ class DANN(BaseModel):
     """
     DANN Model
     """
+
     def __init__(self, opt):
         super(DANN, self).__init__(opt)
         self.netE = FeatureNet(opt).to(opt.device)
@@ -394,22 +448,40 @@ class DANN(BaseModel):
         self.netD = ClassDiscNet(opt).to(opt.device)
 
         self.__init_weight__()
-        EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
-        self.optimizer_EF = optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
-        self.optimizer_D = optim.Adam(self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999))
+        EF_parameters = list(self.netE.parameters()) + list(
+            self.netF.parameters()
+        )
+        self.optimizer_EF = optim.Adam(
+            EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999)
+        )
+        self.optimizer_D = optim.Adam(
+            self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999)
+        )
         if not self.use_g_encode:
-            self.optimizer_G = optim.Adam(self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
+            self.optimizer_G = optim.Adam(
+                self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999)
+            )
 
-        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100))
-        self.lr_scheduler_D = lr_scheduler.ExponentialLR(optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100))
+        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100)
+        )
+        self.lr_scheduler_D = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100)
+        )
         if not self.use_g_encode:
-            self.lr_scheduler_G = lr_scheduler.ExponentialLR(optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100))
-            self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D, self.lr_scheduler_G]
+            self.lr_scheduler_G = lr_scheduler.ExponentialLR(
+                optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100)
+            )
+            self.lr_schedulers = [
+                self.lr_scheduler_EF,
+                self.lr_scheduler_D,
+                self.lr_scheduler_G,
+            ]
         else:
             self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D]
-        self.loss_names = ['E_pred', 'E_gan', 'D', 'G']
+        self.loss_names = ["E_pred", "E_gan", "D", "G"]
         if self.use_g_encode:
-            self.loss_names.remove('G')
+            self.loss_names.remove("G")
 
         self.lambda_gan = self.opt.lambda_gan
 
@@ -437,24 +509,27 @@ class DANN(BaseModel):
         self.optimizer_EF.zero_grad()
         self.d_seq = self.netD(self.e_seq)
 
-        self.loss_E_gan = - F.nll_loss(flat(self.d_seq), flat(self.domain_seq))
+        self.loss_E_gan = -F.nll_loss(flat(self.d_seq), flat(self.domain_seq))
 
         self.y_seq_source = self.y_seq[self.domain_mask == 1]
         self.f_seq_source = self.f_seq[self.domain_mask == 1]
 
-        self.loss_E_pred = F.nll_loss(flat(self.f_seq_source), flat(self.y_seq_source))
+        self.loss_E_pred = F.nll_loss(
+            flat(self.f_seq_source), flat(self.y_seq_source)
+        )
 
         self.loss_E = self.loss_E_gan * self.lambda_gan + self.loss_E_pred
         self.loss_E.backward()
         self.optimizer_EF.step()
 
-        return self.loss_E_pred.item(), self.loss_E_gan.item() 
+        return self.loss_E_pred.item(), self.loss_E_gan.item()
 
 
 class CDANN(BaseModel):
     """
     CDANN Model
     """
+
     def __init__(self, opt):
         super(CDANN, self).__init__(opt)
         self.netE = FeatureNet(opt).to(opt.device)
@@ -463,23 +538,41 @@ class CDANN(BaseModel):
         self.netD = CondClassDiscNet(opt).to(opt.device)
 
         self.__init_weight__()
-        EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
-        self.optimizer_EF = optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
-        self.optimizer_D = optim.Adam(self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999))
+        EF_parameters = list(self.netE.parameters()) + list(
+            self.netF.parameters()
+        )
+        self.optimizer_EF = optim.Adam(
+            EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999)
+        )
+        self.optimizer_D = optim.Adam(
+            self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999)
+        )
 
-        if not self.use_g_encode: 
-            self.optimizer_G = optim.Adam(self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
-
-        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100))
-        self.lr_scheduler_D = lr_scheduler.ExponentialLR(optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100))
         if not self.use_g_encode:
-            self.lr_scheduler_G = lr_scheduler.ExponentialLR(optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100))
-            self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D, self.lr_scheduler_G]
+            self.optimizer_G = optim.Adam(
+                self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999)
+            )
+
+        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100)
+        )
+        self.lr_scheduler_D = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100)
+        )
+        if not self.use_g_encode:
+            self.lr_scheduler_G = lr_scheduler.ExponentialLR(
+                optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100)
+            )
+            self.lr_schedulers = [
+                self.lr_scheduler_EF,
+                self.lr_scheduler_D,
+                self.lr_scheduler_G,
+            ]
         else:
             self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D]
-        self.loss_names = ['E_pred', 'E_gan', 'D', 'G']
+        self.loss_names = ["E_pred", "E_gan", "D", "G"]
         if self.use_g_encode:
-            self.loss_names.remove('G')
+            self.loss_names.remove("G")
 
         self.lambda_gan = self.opt.lambda_gan
 
@@ -509,18 +602,20 @@ class CDANN(BaseModel):
         self.optimizer_EF.zero_grad()
         self.d_seq = self.netD(self.e_seq, self.f_seq_sig.detach())
 
-        self.loss_E_gan = - F.nll_loss(flat(self.d_seq), flat(self.domain_seq))
+        self.loss_E_gan = -F.nll_loss(flat(self.d_seq), flat(self.domain_seq))
 
         self.y_seq_source = self.y_seq[self.domain_mask == 1]
         self.f_seq_source = self.f_seq[self.domain_mask == 1]
 
-        self.loss_E_pred = F.nll_loss(flat(self.f_seq_source), flat(self.y_seq_source))
+        self.loss_E_pred = F.nll_loss(
+            flat(self.f_seq_source), flat(self.y_seq_source)
+        )
 
         self.loss_E = self.loss_E_gan * self.lambda_gan + self.loss_E_pred
         self.loss_E.backward()
         self.optimizer_EF.step()
 
-        return self.loss_E_pred.item(), self.loss_E_gan.item() 
+        return self.loss_E_pred.item(), self.loss_E_gan.item()
 
 
 class ADDA(BaseModel):
@@ -531,23 +626,41 @@ class ADDA(BaseModel):
         self.netG = GNet(opt).to(opt.device)
         self.netD = DiscNet(opt).to(opt.device)
         self.__init_weight__()
-        EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
-        self.optimizer_EF = optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
-        self.optimizer_D = optim.Adam(self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999))
+        EF_parameters = list(self.netE.parameters()) + list(
+            self.netF.parameters()
+        )
+        self.optimizer_EF = optim.Adam(
+            EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999)
+        )
+        self.optimizer_D = optim.Adam(
+            self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999)
+        )
 
         if not self.use_g_encode:
-            self.optimizer_G = optim.Adam(self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
+            self.optimizer_G = optim.Adam(
+                self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999)
+            )
 
-        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100))
-        self.lr_scheduler_D = lr_scheduler.ExponentialLR(optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100))
+        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100)
+        )
+        self.lr_scheduler_D = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100)
+        )
         if not self.use_g_encode:
-            self.lr_scheduler_G = lr_scheduler.ExponentialLR(optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100))
-            self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D, self.lr_scheduler_G]
+            self.lr_scheduler_G = lr_scheduler.ExponentialLR(
+                optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100)
+            )
+            self.lr_schedulers = [
+                self.lr_scheduler_EF,
+                self.lr_scheduler_D,
+                self.lr_scheduler_G,
+            ]
         else:
             self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D]
-        self.loss_names = ['E_pred', 'E_gan', 'D', 'G']
+        self.loss_names = ["E_pred", "E_gan", "D", "G"]
         if self.use_g_encode:
-            self.loss_names.remove('G')
+            self.loss_names.remove("G")
 
     def __train_forward__(self):
         self.z_seq = self.netG(self.one_hot_seq)
@@ -556,7 +669,7 @@ class ADDA(BaseModel):
 
     def __optimize_D__(self):
         self.netD.train()
-        self.netG.eval(), self.netE.eval(), self.netF.eval(), 
+        self.netG.eval(), self.netE.eval(), self.netF.eval(),
 
         self.optimizer_D.zero_grad()
 
@@ -564,8 +677,10 @@ class ADDA(BaseModel):
         self.d_seq_source = self.d_seq[self.domain_mask == 1]
         self.d_seq_target = self.d_seq[self.domain_mask == 0]
         # D: discriminator loss from classifying source v.s. target
-        self.loss_D = - torch.log(self.d_seq_source + 1e-10).mean() \
-                      - torch.log(1 - self.d_seq_target + 1e-10).mean()
+        self.loss_D = (
+            -torch.log(self.d_seq_source + 1e-10).mean()
+            - torch.log(1 - self.d_seq_target + 1e-10).mean()
+        )
         self.loss_D.backward()
 
         self.optimizer_D.step()
@@ -578,24 +693,27 @@ class ADDA(BaseModel):
         self.optimizer_EF.zero_grad()
         self.d_seq = self.netD(self.e_seq)
         self.d_seq_target = self.d_seq[self.domain_mask == 0]
-        self.loss_E_gan = - torch.log(self.d_seq_target + 1e-10).mean()
+        self.loss_E_gan = -torch.log(self.d_seq_target + 1e-10).mean()
         # E_pred: encoder loss from prediction the label
         self.y_seq_source = self.y_seq[self.domain_mask == 1]
         self.f_seq_source = self.f_seq[self.domain_mask == 1]
-        self.loss_E_pred = F.nll_loss(flat(self.f_seq_source), flat(self.y_seq_source))
+        self.loss_E_pred = F.nll_loss(
+            flat(self.f_seq_source), flat(self.y_seq_source)
+        )
 
         self.loss_E = self.loss_E_gan * self.opt.lambda_gan + self.loss_E_pred
 
         self.loss_E.backward()
         self.optimizer_EF.step()
 
-        return self.loss_E_pred.item(), self.loss_E_gan.item() 
+        return self.loss_E_pred.item(), self.loss_E_gan.item()
 
 
 class MDD(BaseModel):
-    '''
+    """
     Margin Disparity Discrepancy
-    '''
+    """
+
     def __init__(self, opt):
         super(MDD, self).__init__(opt)
         self.netE = FeatureNet(opt).to(opt.device)
@@ -603,22 +721,40 @@ class MDD(BaseModel):
         self.netG = GNet(opt).to(opt.device)
         self.netD = PredNet(opt).to(opt.device)
         self.__init_weight__()
-        EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
-        self.optimizer_EF = optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
-        self.optimizer_D = optim.Adam(self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999))
+        EF_parameters = list(self.netE.parameters()) + list(
+            self.netF.parameters()
+        )
+        self.optimizer_EF = optim.Adam(
+            EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999)
+        )
+        self.optimizer_D = optim.Adam(
+            self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999)
+        )
         if not self.use_g_encode:
-            self.optimizer_G = optim.Adam(self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
+            self.optimizer_G = optim.Adam(
+                self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999)
+            )
 
-        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100))
-        self.lr_scheduler_D = lr_scheduler.ExponentialLR(optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100))
+        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100)
+        )
+        self.lr_scheduler_D = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100)
+        )
         if not self.use_g_encode:
-            self.lr_scheduler_G = lr_scheduler.ExponentialLR(optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100))
-            self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D, self.lr_scheduler_G]
+            self.lr_scheduler_G = lr_scheduler.ExponentialLR(
+                optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100)
+            )
+            self.lr_schedulers = [
+                self.lr_scheduler_EF,
+                self.lr_scheduler_D,
+                self.lr_scheduler_G,
+            ]
         else:
             self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D]
-        self.loss_names = ['E_pred', 'E_adv', 'ADV_src', 'ADV_tgt', 'G']
+        self.loss_names = ["E_pred", "E_adv", "ADV_src", "ADV_tgt", "G"]
         if self.use_g_encode:
-            self.loss_names.remove('G')
+            self.loss_names.remove("G")
 
         self.lambda_src = opt.lambda_src
         self.lambda_tgt = opt.lambda_tgt
@@ -627,39 +763,57 @@ class MDD(BaseModel):
         self.z_seq = self.netG(self.one_hot_seq)
         self.e_seq = self.netE(self.x_seq, self.z_seq)  # encoder of the data
         self.f_seq = self.netF(self.e_seq)
-        self.g_seq = torch.argmax(self.f_seq.detach(), dim=2)  # class of the prediction
+        self.g_seq = torch.argmax(
+            self.f_seq.detach(), dim=2
+        )  # class of the prediction
 
     def __optimize__(self):
         loss_value = dict()
         if not self.use_g_encode:
-            loss_value['G'] = self.__optimize_G__()
+            loss_value["G"] = self.__optimize_G__()
         if self.opt.lambda_gan != 0:
-            loss_value['ADV_src'], loss_value['ADV_tgt'] = self.__optimize_D__()
+            (
+                loss_value["ADV_src"],
+                loss_value["ADV_tgt"],
+            ) = self.__optimize_D__()
         else:
-            loss_value['ADV_src'], loss_value['ADV_tgt'] = 0
+            loss_value["ADV_src"], loss_value["ADV_tgt"] = 0
         # print(loss_value['D'])
-        loss_value['E_pred'], loss_value['E_adv'] = self.__optimize_EF__()  # loss_value['E_pred_value'], 
+        (
+            loss_value["E_pred"],
+            loss_value["E_adv"],
+        ) = self.__optimize_EF__()  # loss_value['E_pred_value'],
         return loss_value
 
     def __optimize_D__(self):
         self.netD.train()
-        self.netG.eval(), self.netE.eval(), self.netF.eval(), 
+        self.netG.eval(), self.netE.eval(), self.netF.eval(),
 
         self.optimizer_D.zero_grad()
 
         # # backward process:
         # self.loss_D.backward(retain_graph=True)
         # return self.loss_D.item()
-        self.f_adv, self.f_adv_softmax = self.netD(self.e_seq.detach(), return_softmax=True)
+        self.f_adv, self.f_adv_softmax = self.netD(
+            self.e_seq.detach(), return_softmax=True
+        )
         # agreement with netF on source domain
-        self.loss_ADV_src = F.nll_loss(flat(self.f_adv[self.domain_mask == 1]),
-                                       flat(self.g_seq[self.domain_mask == 1]))
-        f_adv_tgt = torch.log(1 - self.f_adv_softmax[self.domain_mask == 0] + 1e-10)
+        self.loss_ADV_src = F.nll_loss(
+            flat(self.f_adv[self.domain_mask == 1]),
+            flat(self.g_seq[self.domain_mask == 1]),
+        )
+        f_adv_tgt = torch.log(
+            1 - self.f_adv_softmax[self.domain_mask == 0] + 1e-10
+        )
         # disagreement with netF on target domain
-        self.loss_ADV_tgt = F.nll_loss(flat(f_adv_tgt),
-                                       flat(self.g_seq[self.domain_mask == 0]))
+        self.loss_ADV_tgt = F.nll_loss(
+            flat(f_adv_tgt), flat(self.g_seq[self.domain_mask == 0])
+        )
         # minimize the agreement on source domain while maximize the disagreement on target domain
-        self.loss_D = (self.loss_ADV_src * self.lambda_src + self.loss_ADV_tgt * self.lambda_tgt) / (self.lambda_src + self.lambda_tgt)
+        self.loss_D = (
+            self.loss_ADV_src * self.lambda_src
+            + self.loss_ADV_tgt * self.lambda_tgt
+        ) / (self.lambda_src + self.lambda_tgt)
 
         self.loss_D.backward()
 
@@ -671,16 +825,28 @@ class MDD(BaseModel):
         self.netE.train(), self.netF.train()
 
         self.optimizer_EF.zero_grad()
-        self.loss_E_pred = F.nll_loss(flat(self.f_seq[self.domain_mask == 1]),
-                                      flat(self.y_seq[self.domain_mask == 1]))
+        self.loss_E_pred = F.nll_loss(
+            flat(self.f_seq[self.domain_mask == 1]),
+            flat(self.y_seq[self.domain_mask == 1]),
+        )
 
-        self.f_adv, self.f_adv_softmax = self.netD(self.e_seq, return_softmax=True)
-        self.loss_ADV_src = F.nll_loss(flat(self.f_adv[self.domain_mask == 1]),
-                                       flat(self.g_seq[self.domain_mask == 1]))
-        f_adv_tgt = torch.log(1 - self.f_adv_softmax[self.domain_mask == 0] + 1e-10)
-        self.loss_ADV_tgt = F.nll_loss(flat(f_adv_tgt),
-                                       flat(self.g_seq[self.domain_mask == 0]))
-        self.loss_E_adv = -(self.loss_ADV_src * self.lambda_src + self.loss_ADV_tgt * self.lambda_tgt) / (self.lambda_src + self.lambda_tgt)
+        self.f_adv, self.f_adv_softmax = self.netD(
+            self.e_seq, return_softmax=True
+        )
+        self.loss_ADV_src = F.nll_loss(
+            flat(self.f_adv[self.domain_mask == 1]),
+            flat(self.g_seq[self.domain_mask == 1]),
+        )
+        f_adv_tgt = torch.log(
+            1 - self.f_adv_softmax[self.domain_mask == 0] + 1e-10
+        )
+        self.loss_ADV_tgt = F.nll_loss(
+            flat(f_adv_tgt), flat(self.g_seq[self.domain_mask == 0])
+        )
+        self.loss_E_adv = -(
+            self.loss_ADV_src * self.lambda_src
+            + self.loss_ADV_tgt * self.lambda_tgt
+        ) / (self.lambda_src + self.lambda_tgt)
         self.loss_E = self.loss_E_pred + self.opt.lambda_gan * self.loss_E_adv
 
         self.loss_E.backward()
@@ -694,6 +860,7 @@ class GDA(BaseModel):
     """
     GDA Model
     """
+
     def __init__(self, opt):
         super(GDA, self).__init__(opt)
         self.netE = FeatureNet(opt).to(opt.device)
@@ -702,28 +869,46 @@ class GDA(BaseModel):
         self.netD = GraphDNet(opt).to(opt.device)
         self.__init_weight__()
 
-        EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
-        self.optimizer_EF = optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
-        self.optimizer_D = optim.Adam(self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999))
+        EF_parameters = list(self.netE.parameters()) + list(
+            self.netF.parameters()
+        )
+        self.optimizer_EF = optim.Adam(
+            EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999)
+        )
+        self.optimizer_D = optim.Adam(
+            self.netD.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999)
+        )
         if not self.use_g_encode:
-            self.optimizer_G = optim.Adam(self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
+            self.optimizer_G = optim.Adam(
+                self.netG.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999)
+            )
 
-        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100))
-        self.lr_scheduler_D = lr_scheduler.ExponentialLR(optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100))
+        self.lr_scheduler_EF = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_EF, gamma=0.5 ** (1 / 100)
+        )
+        self.lr_scheduler_D = lr_scheduler.ExponentialLR(
+            optimizer=self.optimizer_D, gamma=0.5 ** (1 / 100)
+        )
         if not self.use_g_encode:
-            self.lr_scheduler_G = lr_scheduler.ExponentialLR(optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100))
-            self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D, self.lr_scheduler_G]
+            self.lr_scheduler_G = lr_scheduler.ExponentialLR(
+                optimizer=self.optimizer_G, gamma=0.5 ** (1 / 100)
+            )
+            self.lr_schedulers = [
+                self.lr_scheduler_EF,
+                self.lr_scheduler_D,
+                self.lr_scheduler_G,
+            ]
         else:
             self.lr_schedulers = [self.lr_scheduler_EF, self.lr_scheduler_D]
-        self.loss_names = ['E_pred', 'E_gan', 'D', 'G']
+        self.loss_names = ["E_pred", "E_gan", "D", "G"]
         if self.use_g_encode:
-            self.loss_names.remove('G')
+            self.loss_names.remove("G")
 
     def __train_forward__(self):
 
         self.z_seq = self.netG(self.one_hot_seq)
         self.e_seq = self.netE(self.x_seq, self.z_seq)  # encoder of the data
-        self.f_seq = self.netF(self.e_seq)              # prediction
+        self.f_seq = self.netF(self.e_seq)  # prediction
 
         if self.opt.lambda_gan != 0:
             self.d_seq = self.netD(self.e_seq)
@@ -738,18 +923,18 @@ class GDA(BaseModel):
     def __optimize__(self):
         loss_value = dict()
         if not self.use_g_encode:
-            loss_value['G'] = self.__optimize_G__()
+            loss_value["G"] = self.__optimize_G__()
         if self.opt.lambda_gan != 0:
-            loss_value['D'] = self.__optimize_D__()
+            loss_value["D"] = self.__optimize_D__()
         else:
-            loss_value['D'] = 0
+            loss_value["D"] = 0
 
-        loss_value['E_pred'], loss_value['E_gan'] = self.__optimize_EF__()
+        loss_value["E_pred"], loss_value["E_gan"] = self.__optimize_EF__()
         return loss_value
 
     def __optimize_G__(self):
         self.netG.train()
-        self.netD.eval(), self.netE.eval(), self.netF.eval(), 
+        self.netD.eval(), self.netE.eval(), self.netF.eval(),
 
         self.optimizer_G.zero_grad()
 
@@ -765,10 +950,13 @@ class GDA(BaseModel):
                 v_j = sub_graph[j]
                 label = torch.tensor(self.opt.A[v_i][v_j]).to(self.device)
                 # dot product
-                output = (self.z_seq[v_i * self.tmp_batch_size] * self.z_seq[v_j * self.tmp_batch_size]).sum()
+                output = (
+                    self.z_seq[v_i * self.tmp_batch_size]
+                    * self.z_seq[v_j * self.tmp_batch_size]
+                ).sum()
                 errorG += criterion(output, label)
 
-        errorG /= (sample_v * (sample_v - 1) / 2)
+        errorG /= sample_v * (sample_v - 1) / 2
 
         errorG.backward(retain_graph=True)
 
@@ -777,7 +965,7 @@ class GDA(BaseModel):
 
     def __optimize_D__(self):
         self.netD.train()
-        self.netG.eval(), self.netE.eval(), self.netF.eval(), 
+        self.netG.eval(), self.netE.eval(), self.netF.eval(),
 
         self.optimizer_D.zero_grad()
 
@@ -805,7 +993,11 @@ class GDA(BaseModel):
             # no self loop version!!
             for j in range(i + 1, self.opt.sample_v):
                 v_j = sub_graph[j]
-                label = torch.full((self.tmp_batch_size,), self.opt.A[v_i][v_j], device=self.device)
+                label = torch.full(
+                    (self.tmp_batch_size,),
+                    self.opt.A[v_i][v_j],
+                    device=self.device,
+                )
                 # dot product
                 if v_i == v_j:
                     idx = torch.randperm(self.tmp_batch_size)
@@ -820,6 +1012,9 @@ class GDA(BaseModel):
                     errorD_disconnected += criterion(output, label)
                     count_disconnected += 1
 
-        errorD = 0.5 * (errorD_connected / count_connected + errorD_disconnected / count_disconnected)
+        errorD = 0.5 * (
+            errorD_connected / count_connected
+            + errorD_disconnected / count_disconnected
+        )
         # this is a loss balance
         return errorD * self.num_domain

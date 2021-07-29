@@ -4,14 +4,15 @@ import pickle
 
 
 def read_pickle(name):
-    with open(name, 'rb') as f:
+    with open(name, "rb") as f:
         data = pickle.load(f)
     return data
 
 
 def write_pickle(data, name):
-    with open(name, 'wb') as f:
+    with open(name, "wb") as f:
         pickle.dump(data, f)
+
 
 # import os
 # from random import shuffle
@@ -21,9 +22,9 @@ def write_pickle(data, name):
 
 class ToyDataset(Dataset):
     def __init__(self, pkl, domain_id, opt=None):
-        idx = pkl['domain'] == domain_id
-        self.data = pkl['data'][idx].astype(np.float32)
-        self.label = pkl['label'][idx].astype(np.int64)
+        idx = pkl["domain"] == domain_id
+        self.data = pkl["data"][idx].astype(np.float32)
+        self.label = pkl["label"][idx].astype(np.int64)
         self.domain = domain_id
 
         # if opt.normalize_domain:
@@ -42,9 +43,11 @@ class SeqToyDataset(Dataset):
     def __init__(self, datasets, size=3 * 200):
         self.datasets = datasets
         self.size = size
-        print('SeqDataset Size {} Sub Size {}'.format(
-            size, [len(ds) for ds in datasets]
-        ))
+        print(
+            "SeqDataset Size {} Sub Size {}".format(
+                size, [len(ds) for ds in datasets]
+            )
+        )
 
     def __len__(self):
         return self.size
