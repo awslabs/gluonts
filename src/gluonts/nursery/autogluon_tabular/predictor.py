@@ -369,6 +369,7 @@ class TabularPredictor(Predictor):
                 time_features=self.time_features,
                 lag_indices=self.lag_indices,
                 ag_path=path / Path(ag_path.name),
+                quantile=self.quantiles_to_predict,
             )
             print(dump_json(parameters), file=fp)
 
@@ -376,7 +377,6 @@ class TabularPredictor(Predictor):
     def deserialize(
         cls,
         path: Path,
-        quantiles_to_predict=None,
         # TODO this is temporary, we should make the callable object serializable in the first place
         scaling: Callable[
             [pd.Series], Tuple[pd.Series, float]
@@ -394,6 +394,6 @@ class TabularPredictor(Predictor):
         return TabularPredictor(
             ag_model=ag_model,
             scaling=scaling,
-            quantiles_to_predict=quantiles_to_predict,
+            quantiles_to_predict=parameters["quantile"],
             **parameters,
         )
