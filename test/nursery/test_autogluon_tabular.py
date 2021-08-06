@@ -233,9 +233,7 @@ def test_tabular_estimator(
 
     def check_consistency(entry, f1, f2):
         ts = to_pandas(entry)
-        start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(
-            freq
-        )
+        start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
         assert f1.samples.shape == (1, prediction_length)
         assert f1.start_date == start_timestamp
         assert f2.samples.shape == (1, prediction_length)
@@ -278,7 +276,9 @@ def test_tabular_estimator(
         quantiles_to_predict=[0.1, 0.3, 0.5],
     )
     with tempfile.TemporaryDirectory() as path:
-        predictor = estimator_quantile.train(dataset, validation_data=validation_data)
+        predictor = estimator_quantile.train(
+            dataset, validation_data=validation_data
+        )
         predictor.serialize(Path(path))
         predictor = None
         predictor = Predictor.deserialize(Path(path))

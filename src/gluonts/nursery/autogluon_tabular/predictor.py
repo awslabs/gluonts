@@ -142,13 +142,14 @@ class TabularPredictor(Predictor):
                 forecast_keys=self.quantiles_to_predict,
             )
         else:
-            return ag_output.reshape((1, self.prediction_length))
+            samples = ag_output.reshape((1, self.prediction_length))
             sample = SampleForecast(
                 freq=self.freq,
                 start_date=pd.Timestamp(start_timestamp, freq=self.freq),
                 item_id=item_id,
                 samples=samples,
             )
+            return sample
 
     # serial prediction (both auto-regressive and not)
     # `auto_regression == False`: one call to Autogluon's `predict` per input time series
@@ -369,7 +370,7 @@ class TabularPredictor(Predictor):
                 time_features=self.time_features,
                 lag_indices=self.lag_indices,
                 ag_path=path / Path(ag_path.name),
-                quantile=self.quantiles_to_predict,
+                quantiles_to_predict=self.quantiles_to_predict,
             )
             print(dump_json(parameters), file=fp)
 
@@ -394,6 +395,5 @@ class TabularPredictor(Predictor):
         return TabularPredictor(
             ag_model=ag_model,
             scaling=scaling,
-            quantiles_to_predict=parameters["quantile"],
             **parameters,
         )
