@@ -265,30 +265,3 @@ def test_tabular_estimator(
                 dataset, forecasts_serial, forecasts_batch_autoreg
             ):
                 check_consistency(entry, f1, f2)
-
-    estimator_quantile = TabularEstimator(
-        freq=freq,
-        prediction_length=prediction_length,
-        lag_indices=lag_indices,
-        time_limit=10,
-        disable_auto_regression=disable_auto_regression,
-        last_k_for_val=last_k_for_val,
-        quantiles_to_predict=[0.1, 0.3, 0.5],
-    )
-    with tempfile.TemporaryDirectory() as path:
-        predictor = estimator_quantile.train(
-            dataset, validation_data=validation_data
-        )
-        predictor.serialize(Path(path))
-        predictor = None
-        predictor = Predictor.deserialize(Path(path))
-        assert not predictor.auto_regression or any(
-            l < prediction_length for l in predictor.lag_indices
-        )
-
-        assert predictor.batch_size > 1
-
-        forecasts_serial = list(predictor._predict_serial(dataset))
-        forecasts_batch = list(predictor.predict(dataset))
-        for entry, f1, f2 in zip(dataset, forecasts_serial, forecasts_batch):
-            check_consistency(entry, f1, f2)
