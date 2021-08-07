@@ -109,6 +109,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN.
     max_ts_len
         Returns the length of the longest time series in the dataset to be used in bounding context_length.
+    batch_size
+        The size of the batches to be used training and prediction.
     """
 
     @validated()
@@ -139,6 +141,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
         max_ts_len: Optional[int] = None,
+        batch_size: int = 32,
     ) -> None:
 
         assert (distr_output is None) or (quantiles is None)
@@ -238,6 +241,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
             num_forking=num_forking,
             max_ts_len=max_ts_len,
+            batch_size=batch_size,
         )
 
     @classmethod
@@ -319,6 +323,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
+        batch_size: int = 32,
     ) -> None:
 
         assert (
@@ -375,4 +380,5 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
             num_forking=num_forking,
+            batch_size=batch_size,
         )
