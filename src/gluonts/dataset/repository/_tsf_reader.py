@@ -48,7 +48,7 @@ def frequency_converter(freq: str):
 
 
 def convert_base(text: str) -> str:
-    if text.lower() == "minutely":
+    if text.lower() in ["minutely", "minutes"]:
         return "T"
     return text[0].upper()
 
