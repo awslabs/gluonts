@@ -69,12 +69,11 @@ BASE_FREQ_TO_PANDAS_OFFSET: Dict[str, str] = {
 
 def convert_base(text: str) -> str:
     try:
-        offset_str = BASE_FREQ_TO_PANDAS_OFFSET[text]
+        return BASE_FREQ_TO_PANDAS_OFFSET[text]
     except KeyError:
         raise GluonTSDataError(
             f'"{text}" is not recognized as a frequency string'
         )
-    return offset_str
 
 
 def convert_multiple(text: str) -> str:
