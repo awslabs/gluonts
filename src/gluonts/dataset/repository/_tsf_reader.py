@@ -62,6 +62,7 @@ BASE_FREQ_TO_PANDAS_OFFSET: Dict[str, str] = {
     "monthly": "M",
     "months": "M",
     "quarterly": "Q",
+    "quarters": "Q",
     "yearly": "Y",
     "years": "Y",
 }

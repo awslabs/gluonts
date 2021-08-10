@@ -31,6 +31,7 @@ from gluonts.dataset.repository._tsf_reader import frequency_converter
         ("monthly", "M"),
         ("2_months", "2M"),
         ("quarterly", "Q"),
+        ("2_quarters", "2Q"),
         ("yearly", "Y"),
         ("2_years", "2Y"),
     ],
