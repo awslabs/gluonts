@@ -15,11 +15,13 @@ from datetime import datetime
 from distutils.util import strtobool
 from multiprocessing import cpu_count
 from types import SimpleNamespace
+from typing import Dict
 
 import numpy as np
 from toolz import compose_left
 
 from gluonts import json
+from gluonts.exceptions import GluonTSDataError
 from gluonts.nursery import glide
 
 parse_bool = compose_left(strtobool, bool)
@@ -47,10 +49,31 @@ def frequency_converter(freq: str):
     raise ValueError(f"Invalid frequency string {freq}.")
 
 
+BASE_FREQ_TO_PANDAS_OFFSET: Dict[str, str] = {
+    "seconds": "S",
+    "minutely": "T",
+    "minutes": "T",
+    "hourly": "H",
+    "hours": "H",
+    "daily": "D",
+    "weekly": "W",
+    "weeks": "W",
+    "monthly": "M",
+    "months": "M",
+    "quarterly": "Q",
+    "yearly": "Y",
+    "years": "Y",
+}
+
+
 def convert_base(text: str) -> str:
-    if text.lower() in ["minutely", "minutes"]:
-        return "T"
-    return text[0].upper()
+    try:
+        offset_str = BASE_FREQ_TO_PANDAS_OFFSET[text]
+    except KeyError:
+        raise GluonTSDataError(
+            f"{text} is not recognized as a frequency string"
+        )
+    return offset_str
 
 
 def convert_multiple(text: str) -> str:
