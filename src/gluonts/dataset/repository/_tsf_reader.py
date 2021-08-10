@@ -56,6 +56,7 @@ BASE_FREQ_TO_PANDAS_OFFSET: Dict[str, str] = {
     "hourly": "H",
     "hours": "H",
     "daily": "D",
+    "days": "D",
     "weekly": "W",
     "weeks": "W",
     "monthly": "M",
@@ -71,7 +72,7 @@ def convert_base(text: str) -> str:
         offset_str = BASE_FREQ_TO_PANDAS_OFFSET[text]
     except KeyError:
         raise GluonTSDataError(
-            f"{text} is not recognized as a frequency string"
+            f'"{text}" is not recognized as a frequency string'
         )
     return offset_str
 

@@ -19,17 +19,20 @@ from gluonts.dataset.repository._tsf_reader import frequency_converter
 @pytest.mark.parametrize(
     "input_freq_str, output_freq_str",
     [
-        ("hourly", "H"),
-        ("minutely", "T"),
-        ("daily", "D"),
-        ("half_hourly", "0.5H"),
-        ("weekly", "W"),
-        ("monthly", "M"),
-        ("quarterly", "Q"),
         ("30_seconds", "30S"),
+        ("minutely", "T"),
         ("10_minutes", "10T"),
+        ("hourly", "H"),
+        ("half_hourly", "0.5H"),
+        ("daily", "D"),
+        ("7_days", "7D"),
+        ("weekly", "W"),
         ("4_weeks", "4W"),
+        ("monthly", "M"),
         ("2_months", "2M"),
+        ("quarterly", "Q"),
+        ("yearly", "Y"),
+        ("2_years", "2Y"),
     ],
 )
 def test_frequency_converter(input_freq_str: str, output_freq_str: str):
