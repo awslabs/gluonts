@@ -104,7 +104,7 @@ class TabularPredictor(Predictor):
         lag_indices: List[int],
         scaling: Callable[[pd.Series], Tuple[pd.Series, float]],
         batch_size: Optional[int] = 32,
-        quantiles_to_predict: List[str] = None,
+        quantiles_to_predict: Optional[list] = None,
         dtype=np.float32,
     ) -> None:
         super().__init__(prediction_length=prediction_length, freq=freq)
