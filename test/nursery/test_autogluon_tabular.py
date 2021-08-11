@@ -231,6 +231,15 @@ def test_tabular_estimator(
         last_k_for_val=last_k_for_val,
     )
 
+    def check_consistency(entry, f1, f2):
+        ts = to_pandas(entry)
+        start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
+        assert f1.samples.shape == (1, prediction_length)
+        assert f1.start_date == start_timestamp
+        assert f2.samples.shape == (1, prediction_length)
+        assert f2.start_date == start_timestamp
+        assert np.allclose(f1.samples, f2.samples)
+
     with tempfile.TemporaryDirectory() as path:
         predictor = estimator.train(dataset, validation_data=validation_data)
         predictor.serialize(Path(path))
@@ -244,17 +253,6 @@ def test_tabular_estimator(
 
         forecasts_serial = list(predictor._predict_serial(dataset))
         forecasts_batch = list(predictor.predict(dataset))
-
-        def check_consistency(entry, f1, f2):
-            ts = to_pandas(entry)
-            start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(
-                freq
-            )
-            assert f1.samples.shape == (1, prediction_length)
-            assert f1.start_date == start_timestamp
-            assert f2.samples.shape == (1, prediction_length)
-            assert f2.start_date == start_timestamp
-            assert np.allclose(f1.samples, f2.samples)
 
         for entry, f1, f2 in zip(dataset, forecasts_serial, forecasts_batch):
             check_consistency(entry, f1, f2)

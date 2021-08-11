@@ -62,9 +62,13 @@ class TabularEstimator(Estimator):
         Batch size of the resulting predictor; this is just used at prediction
         time, and does not affect training in any way.
     disable_auto_regression
-        Weather to forecefully disable auto-regression in the model. If ``True``,
+        Whether to forecefully disable auto-regression in the model. If ``True``,
         this will remove any lag index which is smaller than ``prediction_length``.
         This will make predictions more efficient, but may impact their accuracy.
+    quantiles_to_predict
+        Whether to forecast in quantile way. If assigned with quantile values,
+        this will train model using quantile prediction model. If None, then the model
+        will be trained in a regular way.
     """
 
     @validated()
@@ -80,6 +84,7 @@ class TabularEstimator(Estimator):
         batch_size: Optional[int] = 32,
         disable_auto_regression: bool = False,
         last_k_for_val: Optional[int] = None,
+        quantiles_to_predict: Optional[List[float]] = None,
         eval_metric: str = "mean_absolute_error",
         **kwargs,
     ) -> None:
@@ -102,6 +107,7 @@ class TabularEstimator(Estimator):
         self.scaling = scaling
         self.last_k_for_val = last_k_for_val
         self.eval_metric = eval_metric
+        self.quantiles_to_predict = quantiles_to_predict
 
         if self.disable_auto_regression:
             self.lag_indices = [
@@ -112,7 +118,7 @@ class TabularEstimator(Estimator):
 
         default_kwargs = {
             "time_limit": 60,
-            "excluded_model_types": ["KNN", "XT", "RF"],
+            # "excluded_model_types": ["KNN", "XT", "RF"],
             "presets": [
                 "high_quality_fast_inference_only_refit",
                 "optimize_for_deployment",
@@ -178,13 +184,27 @@ class TabularEstimator(Estimator):
             train_df = pd.concat(dfs)
             val_df = None
 
-        ag_model = AutogluonTabularPredictor(
-            label="target",
-            problem_type="regression",
-            eval_metric=self.eval_metric,
-        ).fit(
-            train_df, tuning_data=val_df, **{**self.kwargs, **kwargs_override}
-        )
+        if self.quantiles_to_predict is not None:
+            ag_model = AutogluonTabularPredictor(
+                label="target",
+                problem_type="quantile",
+                quantile_levels=self.quantiles_to_predict,
+            ).fit(
+                train_df,
+                tuning_data=val_df,
+                **{**self.kwargs, **kwargs_override},
+            )
+        else:
+            ag_model = AutogluonTabularPredictor(
+                label="target",
+                problem_type="regression",
+                eval_metric=self.eval_metric,
+            ).fit(
+                train_df,
+                tuning_data=val_df,
+                **{**self.kwargs, **kwargs_override},
+            )
+
         return TabularPredictor(
             ag_model=ag_model,
             freq=self.freq,
@@ -193,4 +213,5 @@ class TabularEstimator(Estimator):
             lag_indices=self.lag_indices,
             scaling=self.scaling,
             batch_size=self.batch_size,
+            quantiles_to_predict=self.quantiles_to_predict,
         )
