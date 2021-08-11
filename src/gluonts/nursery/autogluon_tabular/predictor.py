@@ -131,7 +131,7 @@ class TabularPredictor(Predictor):
         ag_output: np.ndarray,
         start_timestamp: pd.Timestamp,
         item_id=None,
-    ) -> Iterator[Forecast]:
+    ) -> Forecast:
         if self.quantiles_to_predict:
             forecasts = ag_output.transpose()
             return QuantileForecast(
