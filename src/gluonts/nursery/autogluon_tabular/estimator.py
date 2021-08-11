@@ -84,7 +84,7 @@ class TabularEstimator(Estimator):
         batch_size: Optional[int] = 32,
         disable_auto_regression: bool = False,
         last_k_for_val: Optional[int] = None,
-        quantiles_to_predict: Optional[list] = None,
+        quantiles_to_predict: Optional[List[float]] = None,
         eval_metric: str = "mean_absolute_error",
         **kwargs,
     ) -> None:

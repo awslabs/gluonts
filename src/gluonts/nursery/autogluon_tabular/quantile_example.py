@@ -28,7 +28,7 @@ def run_example():
     estimator = TabularEstimator(
         freq="H",
         prediction_length=24,
-        time_limit=10,  # two minutes for training
+        time_limit=600,  # ten minutes for training
         disable_auto_regression=True,  # makes prediction faster, but potentially less accurate
         last_k_for_val=24,  # split the last 24 targets from each time series to be the validation data
         quantiles_to_predict=[0.1, 0.5, 0.9],
@@ -44,9 +44,7 @@ def run_example():
     predictor.serialize(serialize_path)
     predictor = None
     # the quantiles_to_predict parameters should be List[str] type
-    predictor = Predictor.deserialize(
-        serialize_path, quantiles_to_predict=["0.1", "0.5", "0.9"]
-    )
+    predictor = Predictor.deserialize(serialize_path)
     forecasts = list(predictor.predict(training_data))
     print(forecasts)
 

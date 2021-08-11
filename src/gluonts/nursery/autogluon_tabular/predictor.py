@@ -104,7 +104,7 @@ class TabularPredictor(Predictor):
         lag_indices: List[int],
         scaling: Callable[[pd.Series], Tuple[pd.Series, float]],
         batch_size: Optional[int] = 32,
-        quantiles_to_predict: Optional[list] = None,
+        quantiles_to_predict: Optional[List[float]] = None,
         dtype=np.float32,
     ) -> None:
         super().__init__(prediction_length=prediction_length, freq=freq)
@@ -117,6 +117,11 @@ class TabularPredictor(Predictor):
         self.batch_size = batch_size
         self.dtype = dtype
         self.quantiles_to_predict = quantiles_to_predict
+        self.forecast_keys = (
+            [str(q) for q in quantiles_to_predict]
+            if quantiles_to_predict is not None
+            else None
+        )
 
     @property
     def auto_regression(self) -> bool:
@@ -139,7 +144,7 @@ class TabularPredictor(Predictor):
                 start_date=pd.Timestamp(start_timestamp, freq=self.freq),
                 item_id=item_id,
                 forecast_arrays=forecasts,
-                forecast_keys=self.quantiles_to_predict,
+                forecast_keys=self.forecast_keys,
             )
         else:
             samples = ag_output.reshape((1, self.prediction_length))
