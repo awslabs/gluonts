@@ -15,11 +15,14 @@ from datetime import datetime
 from distutils.util import strtobool
 from multiprocessing import cpu_count
 from types import SimpleNamespace
+from typing import Dict
 
 import numpy as np
-from gluonts import json
-from gluonts.nursery import glide
 from toolz import compose_left
+
+from gluonts import json
+from gluonts.exceptions import GluonTSDataError
+from gluonts.nursery import glide
 
 parse_bool = compose_left(strtobool, bool)
 
@@ -40,9 +43,46 @@ def parse_attribute(ty, value: str):
 def frequency_converter(freq: str):
     parts = freq.split("_")
     if len(parts) == 1:
-        return freq[0].upper()
-    if len(parts) == 2 and parts[0].isnumeric():
-        return f"{parts[0]}{parts[1].upper()}"
+        return convert_base(parts[0])
+    if len(parts) == 2:
+        return convert_multiple(parts[0]) + convert_base(parts[1])
+    raise ValueError(f"Invalid frequency string {freq}.")
+
+
+BASE_FREQ_TO_PANDAS_OFFSET: Dict[str, str] = {
+    "seconds": "S",
+    "minutely": "T",
+    "minutes": "T",
+    "hourly": "H",
+    "hours": "H",
+    "daily": "D",
+    "days": "D",
+    "weekly": "W",
+    "weeks": "W",
+    "monthly": "M",
+    "months": "M",
+    "quarterly": "Q",
+    "quarters": "Q",
+    "yearly": "Y",
+    "years": "Y",
+}
+
+
+def convert_base(text: str) -> str:
+    try:
+        return BASE_FREQ_TO_PANDAS_OFFSET[text]
+    except KeyError:
+        raise GluonTSDataError(
+            f'"{text}" is not recognized as a frequency string'
+        )
+
+
+def convert_multiple(text: str) -> str:
+    if text.isnumeric():
+        return text
+    if text == "half":
+        return "0.5"
+    raise ValueError(f"Unknown frequency multiple {text}.")
 
 
 class TSFReader:

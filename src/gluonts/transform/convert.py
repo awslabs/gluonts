@@ -16,8 +16,8 @@ from typing import Iterator, List, Optional, Tuple
 import numpy as np
 
 from gluonts.core.component import DType, validated, tensor_to_numpy
-from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
+from gluonts.exceptions import assert_data_error
 from gluonts.support.util import erf, erfinv
 
 from ._base import (
