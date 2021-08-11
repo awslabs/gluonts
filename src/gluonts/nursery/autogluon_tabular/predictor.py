@@ -143,13 +143,12 @@ class TabularPredictor(Predictor):
             )
         else:
             samples = ag_output.reshape((1, self.prediction_length))
-            sample = SampleForecast(
+            return SampleForecast(
                 freq=self.freq,
                 start_date=pd.Timestamp(start_timestamp, freq=self.freq),
                 item_id=item_id,
                 samples=samples,
             )
-            return sample
 
     # serial prediction (both auto-regressive and not)
     # `auto_regression == False`: one call to Autogluon's `predict` per input time series
