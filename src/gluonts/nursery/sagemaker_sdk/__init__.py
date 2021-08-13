@@ -16,7 +16,3 @@ from .estimator import GluonTSFramework
 from .model import GluonTSModel, GluonTSPredictor
 
 __all__ = ["GluonTSFramework", "GluonTSPredictor", "GluonTSModel"]
-
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)

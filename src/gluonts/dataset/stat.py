@@ -18,8 +18,8 @@ from typing import Any, List, NamedTuple, Optional, Set
 import numpy as np
 
 from gluonts.core.component import validated
-from gluonts.core.exception import assert_data_error
 from gluonts.dataset.field_names import FieldName
+from gluonts.exceptions import assert_data_error
 from gluonts.gluonts_tqdm import tqdm
 
 
