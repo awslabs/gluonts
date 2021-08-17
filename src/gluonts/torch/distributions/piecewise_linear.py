@@ -33,37 +33,52 @@ class PiecewiseLinear(Distribution):
         self,
         gamma: torch.Tensor,
         slopes: torch.Tensor,
-        knots: torch.Tensor,
+        knot_spacings: torch.Tensor,
         validate_args=False,
     ) -> None:
-        self.gamma, self.slopes, self.knots = gamma, slopes, knots
-        self.m, self.knots_pos = PiecewiseLinear._to_orig_params(slopes, knots)
+        self.gamma, self.slopes, self.knot_spacings = (
+            gamma,
+            slopes,
+            knot_spacings,
+        )
+        self.b, self.knot_positions = PiecewiseLinear._to_orig_params(
+            slopes, knot_spacings
+        )
 
-        batch_shape = self.gamma.shape
+        # self.batch_shape = self.gamma.shape
         super(PiecewiseLinear, self).__init__(
-            batch_shape=batch_shape, validate_args=validate_args
+            batch_shape=self.batch_shape, validate_args=validate_args
         )
 
     @staticmethod
     def _to_orig_params(
-        slopes: torch.Tensor, knots: torch.Tensor
+        slopes: torch.Tensor, knot_spacings: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        m = PiecewiseLinear.parametrize_slopes(slopes)
-        knots_pos = PiecewiseLinear.parametrize_knots(knots)
-        return m, knots_pos
+        b = PiecewiseLinear.parametrize_slopes(slopes)
+        knot_positions = PiecewiseLinear.parametrize_knots(knot_spacings)
+        return b, knot_positions
 
     @staticmethod
     def parametrize_slopes(slopes: torch.Tensor) -> torch.Tensor:
-        slopes_parametrized = slopes
-        slopes_parametrized[..., 1:] = torch.diff(slopes, dim=-1)
+        slopes_parametrized = torch.diff(slopes, dim=-1)
+        slopes_parametrized = torch.cat(
+            [slopes[..., 0:1], slopes_parametrized], dim=-1
+        )
+
         return slopes_parametrized
 
     @staticmethod
-    def parametrize_knots(knots: torch.Tensor) -> torch.Tensor:
-        knots_pos = torch.cumsum(knots, dim=-1)[
-            ..., :-1
-        ]  # the last entry is 1 and can be omitted
-        return knots_pos
+    def parametrize_knots(knot_spacings: torch.Tensor) -> torch.Tensor:
+        # the last entry is 1 and can be omitted
+        knot_positions = torch.cumsum(knot_spacings, dim=-1)[..., :-1]
+
+        # the first knot pos is 0
+        knot_positions = torch.cat(
+            [torch.zeros_like(knot_positions[..., 0:1]), knot_positions],
+            dim=-1,
+        )
+
+        return knot_positions
 
     def quantile_internal(
         self, u: torch.Tensor, dim: Optional[int] = None
@@ -76,17 +91,18 @@ class PiecewiseLinear(Distribution):
             # dim = 0
             # u.shape          = (num_samples, *batch_shape)
             # gamma.shape      = (1, *batch_shape)
-            # other_para.shape = (1, *batch_shape, num_knots)
+            # other_para.shape = (1, *batch_shape, num_pieces)
             #
             # In training, u_tilde is needed to compute CRPS
             # dim = -2
-            # u.shape          = (*batch_shape, num_knots)
+            # u.shape          = (*batch_shape, num_pieces)
             # gamma.shape      = (*batch_shape, 1)
-            # other_para.shape = (*batch_shape, 1, num_knots)
+            # other_para.shape = (*batch_shape, 1, num_pieces)
 
             gamma = self.gamma.unsqueeze(dim=0 if dim == 0 else -1)
-            knots_pos, m = self.knots_pos.unsqueeze(dim=dim), self.m.unsqueeze(
-                dim=dim
+            knot_positions, b = (
+                self.knot_positions.unsqueeze(dim=dim),
+                self.b.unsqueeze(dim=dim),
             )
         else:
             # when num_sample is None
@@ -95,37 +111,42 @@ class PiecewiseLinear(Distribution):
             # dim = None
             # u.shape          = (*batch_shape)
             # gamma.shape      = (*batch_shape)
-            # other_para.shape = (*batch_shape, num_knots)
+            # other_para.shape = (*batch_shape, num_pieces)
 
             gamma = self.gamma
-            knots_pos, m = self.knots_pos, self.m
+            knot_positions, b = self.knot_positions, self.b
 
         u = u.unsqueeze(-1)
-        u_spline = F.relu(u - knots_pos)
-        quantile = gamma + torch.sum(m * u_spline, dim=-1)
+        u_spline = F.relu(u - knot_positions)
+        quantile = gamma + torch.sum(b * u_spline, dim=-1)
 
         return quantile
 
     def quantile(self, u: torch.Tensor) -> torch.Tensor:
         return self.quantile_internal(u, dim=0)
 
-    def get_u_tilde(self, z: torch.Tensor) -> torch.Tensor:
-        """
-        compute the quantile levels u_tilde s.t. quantile(u_tilde)=z
+    def cdf(self, z: torch.Tensor) -> torch.Tensor:
+        r"""
+        compute the quantile levels u_tilde s.t. quantile(u_tilde) = z
 
-        Input
-        z: observations, shape = gamma.shape = (*batch_size)
+        Parameters
+        ----------
+        z
+            observations, shape = gamma.shape = (*batch_size)
 
-        Output
-        u_tilde: of type torch.Tensor
+        Returns
+        -------
+        torch.Tensor
+            u_tilde
         """
+
         gamma = self.gamma
-        m, knots_pos = self.m, self.knots_pos
+        b, knot_positions = self.b, self.knot_positions
 
-        knots_eval = self.quantile_internal(knots_pos, dim=-2)
+        knots_eval = self.quantile_internal(knot_positions, dim=-2)
         mask = torch.lt(knots_eval, z.unsqueeze(-1))
 
-        sum_slopes = torch.sum(mask * m, dim=-1)
+        sum_slopes = torch.sum(mask * b, dim=-1)
 
         zero_val = torch.zeros(
             1, dtype=gamma.dtype, device=gamma.device, layout=gamma.layout
@@ -141,7 +162,7 @@ class PiecewiseLinear(Distribution):
         u_tilde = torch.where(
             sum_slopes == zero_val,
             zero_val,
-            (z - gamma + torch.sum(m * knots_pos * mask, dim=-1))
+            (z - gamma + torch.sum(b * knot_positions * mask, dim=-1))
             / sum_slopes_nz,
         )
 
@@ -154,20 +175,20 @@ class PiecewiseLinear(Distribution):
 
     def crps(self, z: torch.Tensor) -> torch.Tensor:
         gamma = self.gamma
-        m, knots_pos = self.m, self.knots_pos
+        b, knot_positions = self.b, self.knot_positions
 
-        u_tilde = self.get_u_tilde(z)
+        u_tilde = self.cdf(z)
 
-        max_u_tilde_knots = torch.max(u_tilde.unsqueeze(-1), knots_pos)
+        max_u_tilde_knots = torch.max(u_tilde.unsqueeze(-1), knot_positions)
 
         coeff = (
-            (1 - knots_pos ** 3) / 3
-            - knots_pos
+            (1 - knot_positions ** 3) / 3
+            - knot_positions
             - max_u_tilde_knots ** 2
-            + 2 * max_u_tilde_knots * knots_pos
+            + 2 * max_u_tilde_knots * knot_positions
         )
 
-        result = (2 * u_tilde - 1) * (z - gamma) + torch.sum(m * coeff, dim=-1)
+        result = (2 * u_tilde - 1) * (z - gamma) + torch.sum(b * coeff, dim=-1)
 
         return result
 
@@ -192,6 +213,10 @@ class PiecewiseLinear(Distribution):
 
         return sample
 
+    @property
+    def batch_shape(self) -> torch.Size():
+        return self.gamma.shape
+
 
 class PiecewiseLinearOutput(DistributionOutput):
     distr_cls: type = PiecewiseLinear
@@ -207,20 +232,22 @@ class PiecewiseLinearOutput(DistributionOutput):
         self.num_pieces = num_pieces
         self.args_dim = cast(
             Dict[str, int],
-            {"gamma": 1, "slopes": num_pieces, "knots": num_pieces},
+            {"gamma": 1, "slopes": num_pieces, "knot_spacings": num_pieces},
         )
 
     @classmethod
     def domain_map(
-        cls, gamma: torch.Tensor, slopes: torch.Tensor, knots: torch.Tensor
+        cls,
+        gamma: torch.Tensor,
+        slopes: torch.Tensor,
+        knot_spacings: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         slopes_nn = torch.abs(slopes)
 
-        knots = F.softmax(knots, dim=-1)
-        knots = torch.cat([torch.zeros_like(knots[..., 0:1]), knots], dim=-1)
+        knot_spacings_proj = F.softmax(knot_spacings, dim=-1)
 
-        return gamma.squeeze(dim=-1), slopes_nn, knots
+        return gamma.squeeze(dim=-1), slopes_nn, knot_spacings_proj
 
     def distribution(
         self,
