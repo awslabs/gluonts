@@ -411,7 +411,9 @@ def _sample_multiple(
     """
     args_expanded = [_expand_param(a, num_samples) for a in args]
     kwargs_expanded = {
-        k: _expand_param(v, num_samples) for k, v in kwargs.items()
+        k: _expand_param(v, num_samples)
+        for k, v in kwargs.items()
+        if v is not None
     }
     samples = sample_func(*args_expanded, **kwargs_expanded)
     return samples

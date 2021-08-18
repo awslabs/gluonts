@@ -27,6 +27,7 @@ from .dirichlet_multinomial import (
 )
 from .distribution import Distribution
 from .distribution_output import DistributionOutput
+from .empirical_distribution import EmpiricalDistribution
 from .gamma import Gamma, GammaOutput
 from .gaussian import Gaussian, GaussianOutput
 from .genpareto import GenPareto, GenParetoOutput

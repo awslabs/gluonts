@@ -621,6 +621,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
             # (batch_size, 1, target_dim)
             new_samples = distr.sample()
+            if self._post_process_samples:
+                new_samples = self.post_process_samples(new_samples)
 
             # (batch_size, seq_len, target_dim)
             future_samples.append(new_samples)
@@ -804,6 +806,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
     def __init__(self, num_parallel_samples: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.num_parallel_samples = num_parallel_samples
+        self._post_process_samples = False
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to
