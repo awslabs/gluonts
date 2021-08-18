@@ -32,7 +32,8 @@ import numpy as np
 import pandas as pd
 import pydantic
 from pandas.tseries.offsets import Tick
-from typing_extensions import Protocol
+from typing_extensions import Protocol, runtime_checkable
+
 
 from gluonts import json
 from gluonts.dataset import jsonl, util
@@ -43,6 +44,7 @@ DataEntry = Dict[str, Any]
 DataBatch = Dict[str, Any]
 
 
+@runtime_checkable
 class Dataset(Protocol):
     def __iter__(self) -> Iterator[DataEntry]:
         raise NotImplementedError
