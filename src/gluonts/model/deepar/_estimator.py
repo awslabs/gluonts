@@ -211,9 +211,6 @@ class DeepAREstimator(GluonEstimator):
             dropoutcell_type in supported_dropoutcell_types
         ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (cardinality and use_feat_static_cat) or (
-            not (cardinality or use_feat_static_cat)
-        ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
         assert cardinality is None or all(
             [c > 0 for c in cardinality]
         ), "Elements of `cardinality` should be > 0"
