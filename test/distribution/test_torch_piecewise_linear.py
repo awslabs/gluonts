@@ -4,7 +4,11 @@ import pytest
 import torch
 import numpy as np
 
-from gluonts.torch.distributions.piecewise_linear import PiecewiseLinear, PiecewiseLinearOutput
+from gluonts.torch.distributions.piecewise_linear import (
+    PiecewiseLinear,
+    PiecewiseLinearOutput,
+)
+
 
 def empirical_cdf(
     samples: np.ndarray, num_bins: int = 100
@@ -51,7 +55,9 @@ def empirical_cdf(
             PiecewiseLinear(
                 gamma=torch.ones(size=(1,)),
                 slopes=torch.Tensor([2, 3, 1]).reshape(shape=(1, 3)),
-                knot_spacings=torch.Tensor([0.3, 0.4, 0.3]).reshape(shape=(1, 3)),
+                knot_spacings=torch.Tensor([0.3, 0.4, 0.3]).reshape(
+                    shape=(1, 3)
+                ),
             ),
             [2.2],
             [0.5],
@@ -110,7 +116,9 @@ def test_shapes(batch_shape: Tuple, num_pieces: int, num_samples: int):
     )  # positive and sum to 1
     target = torch.ones(size=batch_shape)  # shape of gamma
 
-    distr = PiecewiseLinear(gamma=gamma, slopes=slopes, knot_spacings=knot_spacings)
+    distr = PiecewiseLinear(
+        gamma=gamma, slopes=slopes, knot_spacings=knot_spacings
+    )
 
     # assert that the parameters and target have proper shapes
     assert gamma.shape == target.shape
@@ -144,7 +152,10 @@ def test_shapes(batch_shape: Tuple, num_pieces: int, num_samples: int):
     # is not None is correct
     samples = distr.sample((num_samples,))
     assert samples.shape == (num_samples, *batch_shape)
-    assert distr.quantile_internal(samples, dim=0).shape == (num_samples, *batch_shape,)
+    assert distr.quantile_internal(samples, dim=0).shape == (
+        num_samples,
+        *batch_shape,
+    )
 
 
 def test_simple_symmetric():
@@ -152,7 +163,9 @@ def test_simple_symmetric():
     slopes = torch.Tensor([[2.0, 2.0]])
     knot_spacings = torch.Tensor([[0.5, 0.5]])
 
-    distr = PiecewiseLinear(gamma=gamma, slopes=slopes, knot_spacings=knot_spacings)
+    distr = PiecewiseLinear(
+        gamma=gamma, slopes=slopes, knot_spacings=knot_spacings
+    )
 
     assert distr.cdf(torch.Tensor([-2.0])).numpy().item() == 0.0
     assert distr.cdf(torch.Tensor([+2.0])).numpy().item() == 1.0
