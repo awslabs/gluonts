@@ -127,17 +127,17 @@ class PiecewiseLinear(Distribution):
 
     def cdf(self, z: torch.Tensor) -> torch.Tensor:
         r"""
-        compute the quantile levels u_tilde s.t. quantile(u_tilde) = z
+        Compute the quantile levels associated with the given observations.
 
         Parameters
         ----------
         z
-            observations, shape = gamma.shape = (*batch_size)
+            Observations, shape = gamma.shape = (*batch_shape)
 
         Returns
         -------
         torch.Tensor
-            u_tilde
+            The quantile levels corresponding to the input observations.
         """
 
         gamma = self.gamma
