@@ -64,7 +64,7 @@ def get_version_and_cmdclass(version_file):
     return globals_["__version__"], globals_["cmdclass"]()
 
 
-version, version_cmdclass = get_version_and_cmdclass("src/gluonts")
+version, version_cmdclass = get_version_and_cmdclass("src/gluonts/_version.py")
 
 
 class TypeCheckCommand(distutils.cmd.Command):
