@@ -61,7 +61,7 @@ def get_version_and_cmdclass(version_file):
     globals_ = {"__file__": str(version_file)}
     exec(code, globals_)
 
-    return globals_["__version__"], globals_["cmdclass"]
+    return globals_["__version__"], globals_["cmdclass"]()
 
 
 version, version_cmdclass = get_version_and_cmdclass("src/gluonts")

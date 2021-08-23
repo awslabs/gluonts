@@ -102,9 +102,12 @@ def search_for(name: str, where: Path, levels: int = 0):
 
 file_name = Path(__file__).name  # this files name
 package_root = Path(__file__).resolve().parent
-dist_root = search_for(
-    "setup.py", package_root, levels=SEARCH_PACKAGE_LEVELS
-).parent
+
+
+def dist_root():
+    return search_for(
+        "setup.py", package_root, levels=SEARCH_PACKAGE_LEVELS
+    ).parent
 
 
 class GitRepo:
@@ -167,10 +170,11 @@ def get_git_version(fallback):
         labels = "+" + ".".join(labels) if labels else ""
         return "".join([release, dev, labels])
 
-    repo = GitRepo(dist_root)
+    dist_root_ = dist_root()
+    repo = GitRepo(dist_root_)
 
     # TODO: Do we really need this check?
-    if repo.root() != dist_root:
+    if repo.root() != dist_root_:
         return None
 
     try:
@@ -214,25 +218,19 @@ def get_version(fallback):
     return fallback
 
 
-__version__ = get_version(fallback="0.0.0")
-
-
-def write_version(target):
-    target /= file_name
-    if target.exists():
-        target.unlink()
-
-    with open(target, "w") as version_file:
-        version_file.write(
-            f"""# created by setup.py
-__version__ = "{__version__}"
-"""
-        )
-
-
-def cmdclasses():
+def cmdclass():
     import setuptools.command.build_py
     import setuptools.command.sdist
+
+    def write_version(target):
+        target /= file_name
+        if target.exists():
+            target.unlink()
+
+        with open(target, "w") as version_file:
+            version_file.write(
+                f'# created by setup.py\n__version__ = "{__version__}"'
+            )
 
     class build_py(setuptools.command.build_py.build_py):
         def run(self):
@@ -243,10 +241,14 @@ def cmdclasses():
         def make_release_tree(self, base_dir, files):
             super().make_release_tree(base_dir, files)
 
-            write_version(Path(base_dir) / package_root.relative_to(dist_root))
+            write_version(
+                Path(base_dir) / package_root.relative_to(dist_root())
+            )
 
-    cmdclass = {"sdist": sdist, "build_py": build_py}
+    return {"sdist": sdist, "build_py": build_py}
 
+
+__version__ = get_version(fallback="0.0.0")
 
 if __name__ == "__main__":
     print(__version__)
