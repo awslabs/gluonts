@@ -170,8 +170,12 @@ def get_git_version(fallback):
     dist_root_ = dist_root()
     repo = GitRepo(dist_root_)
 
-    # TODO: Do we really need this check?
-    if repo.root() != dist_root_:
+    try:
+        # TODO: Do we really need this check?
+        if repo.root() != dist_root_:
+            return None
+    except subprocess.CalledProcessError:
+        # can fail if git is not installed, or command fails
         return None
 
     try:
@@ -197,22 +201,11 @@ def get_git_version(fallback):
 
 
 def get_version(fallback):
-    version = get_git_archive_version(fallback)
-
-    if version is not None:
-        return version
-
-    try:
-        # can return none
-        version = get_git_version(fallback)
-    except Exception:
-        raise
-        pass
-
-    if version is not None:
-        return version
-
-    return fallback
+    return (
+        get_git_archive_version(fallback)
+        or get_git_version(fallback)
+        or fallback
+    )
 
 
 def cmdclass():
