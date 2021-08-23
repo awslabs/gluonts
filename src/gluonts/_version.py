@@ -60,11 +60,8 @@ In `setup.py`, you need to import and use this file like this:
     )
 """
 
-import re
-
 import subprocess
 from pathlib import Path
-from typing import NamedTuple, List
 
 
 GIT_DESCRIBE = [
