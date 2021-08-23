@@ -55,8 +55,8 @@ def find_requirements(filename):
 
 
 def get_version_and_cmdclass(version_file):
-    with open(version_file) as version_file:
-        code = version_file.read()
+    with open(version_file) as fobj:
+        code = fobj.read()
 
     globals_ = {"__file__": str(version_file)}
     exec(code, globals_)
