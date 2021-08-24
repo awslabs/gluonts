@@ -31,7 +31,10 @@ from gluonts.transform import Transformation
 
 
 # Relative imports
-from ._network import DeepVARHierarchicalPredictionNetwork, DeepVARHierarchicalTrainingNetwork
+from ._network import (
+    DeepVARHierarchicalPredictionNetwork,
+    DeepVARHierarchicalTrainingNetwork,
+)
 
 
 def projection_mat(S, return_constraint_mat: bool = False):
@@ -221,8 +224,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         )
 
         # Assert that projection is *not* being done only during training
-        assert not (
-            coherent_pred_samples == False and coherent_train_samples == True
+        assert coherent_pred_samples or (
+            not coherent_train_samples
         ), "Cannot project only during training (and not during prediction)"
 
         self.M, self.A = projection_mat(S, return_constraint_mat=True)

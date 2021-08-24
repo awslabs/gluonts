@@ -13,7 +13,6 @@
 
 from typing import Optional, Tuple
 
-import mxnet as mx
 import numpy as np
 
 from gluonts.core.component import validated
@@ -56,25 +55,27 @@ class EmpiricalDistribution(Distribution):
 
     @property
     def mean(self) -> Tensor:
-        return F.mean(self.samples, axis=0)
+        return self.F.mean(self.samples, axis=0)
 
     @property
     def stddev(self) -> Tensor:
-        return F.std(self.samples, axis=0)
+        return self.F.std(self.samples, axis=0)
 
     def sample(
-            self, num_samples: Optional[int] = None, dtype=np.float32
+        self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
         return self.samples
 
     def quantile(self, level: Tensor) -> Tensor:
         # `sample_idx` would be same for each element of the batch, time point and dimension.
         num_samples = self.sorted_samples.shape[0]
-        sample_idx = np.round((num_samples - 1) * q)
+        sample_idx = np.round((num_samples - 1) * level)
 
-        return sorted_samples[sample_idx, :, :]
+        return self.sorted_samples[sample_idx, :, :]
 
-    def quantile_losses(self, obs: Tensor, quantiles: Tensor, levels: Tensor) -> Tensor:
+    def quantile_losses(
+        self, obs: Tensor, quantiles: Tensor, levels: Tensor
+    ) -> Tensor:
         """
         Computes quantile losses for all the quantiles specified.
 
@@ -100,7 +101,7 @@ class EmpiricalDistribution(Distribution):
         return self.F.where(
             obs >= quantiles,
             levels * (obs - quantiles),
-            (1 - levels) * (quantiles - obs)
+            (1 - levels) * (quantiles - obs),
         )
 
     def crps_univariate(self, obs: Tensor) -> Tensor:
@@ -126,7 +127,9 @@ class EmpiricalDistribution(Distribution):
 
         # We compute quantile losses for all the possible quantile levels; i.e, `num_quantiles` = `num_samples`.
         num_quantiles = sorted_samples.shape[0]
-        levels_np = np.arange(1 / num_quantiles, 1 + 1 / num_quantiles, 1 / num_quantiles)
+        levels_np = np.arange(
+            1 / num_quantiles, 1 + 1 / num_quantiles, 1 / num_quantiles
+        )
 
         # Quantiles are just sorted samples with a different shape (for convenience):
         # (*batch_shape, *event_shape, num_quantiles)

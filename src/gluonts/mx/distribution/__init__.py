@@ -85,6 +85,7 @@ __all__ = [
     "DirichletOutput",
     "Distribution",
     "DistributionOutput",
+    "EmpiricalDistribution",
     "FixedKnotsPiecewiseLinearOutput",
     "Gamma",
     "GammaOutput",

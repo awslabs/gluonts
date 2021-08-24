@@ -271,6 +271,7 @@ class GPVARPredictionNetwork(GPVARNetwork):
     def __init__(self, num_parallel_samples: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.num_parallel_samples = num_parallel_samples
+        self._post_process_samples = False
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to the

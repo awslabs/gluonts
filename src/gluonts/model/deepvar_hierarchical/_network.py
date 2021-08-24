@@ -25,7 +25,11 @@ from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution import EmpiricalDistribution
 from gluonts.mx.util import assert_shape, weighted_average
 from gluonts.mx.distribution import LowrankMultivariateGaussian
-from gluonts.model.deepvar._network import DeepVARNetwork, DeepVARTrainingNetwork, DeepVARPredictionNetwork
+from gluonts.model.deepvar._network import (
+    DeepVARNetwork,
+    DeepVARTrainingNetwork,
+    DeepVARPredictionNetwork,
+)
 
 
 class DeepVARHierarchicalNetwork(DeepVARNetwork):
@@ -280,7 +284,9 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
 
         # Pick loss function approach. This avoids sampling if we are only training with likelihoods on params
         if self.CRPS_weight > 0.0:
-            loss_CRPS = EmpiricalDistribution(samples=samples).crps_univariate(obs=target)
+            loss_CRPS = EmpiricalDistribution(samples=samples).crps_univariate(
+                obs=target
+            )
             loss_unmasked = (
                 self.CRPS_weight * loss_CRPS
                 + self.likelihood_weight * likelihoods
@@ -347,7 +353,9 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         ).asnumpy()[0]
 
 
-class DeepVARHierarchicalTrainingNetwork(DeepVARHierarchicalNetwork, DeepVARTrainingNetwork):
+class DeepVARHierarchicalTrainingNetwork(
+    DeepVARHierarchicalNetwork, DeepVARTrainingNetwork
+):
     def __init__(
         self,
         num_samples_for_loss: int,
@@ -384,11 +392,15 @@ class DeepVARHierarchicalTrainingNetwork(DeepVARHierarchicalNetwork, DeepVARTrai
         if not self.sample_LH == 0.0 and self.coherent_train_samples:
             assert "No sampling being performed. coherent_train_samples flag is ignored"
         if self.likelihood_weight == 0.0 and self.sample_LH:
-            assert "likelihood_weight is 0 but sample likelihoods are still being calculated. " \
-                   "Set sample_LH=0 when likelihood_weight=0"
+            assert (
+                "likelihood_weight is 0 but sample likelihoods are still being calculated. "
+                "Set sample_LH=0 when likelihood_weight=0"
+            )
 
 
-class DeepVARHierarchicalPredictionNetwork(DeepVARHierarchicalNetwork, DeepVARPredictionNetwork):
+class DeepVARHierarchicalPredictionNetwork(
+    DeepVARHierarchicalNetwork, DeepVARPredictionNetwork
+):
     @validated()
     def __init__(
         self,
@@ -422,7 +434,6 @@ class DeepVARHierarchicalPredictionNetwork(DeepVARHierarchicalNetwork, DeepVARPr
 
         # assert that A*X_proj ~ 0
         if self.assert_reconciliation:
-            assert (self.reconciliation_error(samples=coherent_samples) < 1e-2)
+            assert self.reconciliation_error(samples=coherent_samples) < 1e-2
 
         return coherent_samples
-
