@@ -82,15 +82,15 @@ class EmpiricalDistribution(Distribution):
         Parameters
         ----------
         obs
-            Ground truth observation. Shape: (batch_size, seq_len, *event_shape)
+            Ground truth observation. Shape: `(batch_size, seq_len, *event_shape)`
         quantiles
-            Quantile values. Shape: (batch_size, seq_len, *event_shape, num_quantiles)
+            Quantile values. Shape: `(batch_size, seq_len, *event_shape, num_quantiles)`
         levels
-            Quantile levels. Shape: (batch_size, seq_len, *event_shape, num_quantiles)
+            Quantile levels. Shape: `(batch_size, seq_len, *event_shape, num_quantiles)`
         Returns
         -------
         Tensor
-            Quantile losses of shape: (batch_size, seq_len, *event_shape, num_quantiles)
+            Quantile losses of shape: `(batch_size, seq_len, *event_shape, num_quantiles)`
 
         """
         obs = obs.expand_dims(axis=-1)
@@ -115,12 +115,12 @@ class EmpiricalDistribution(Distribution):
         Parameters
         ----------
         obs
-            Tensor of ground truth with shape (*batch_shape, *event_shape)
+            Tensor of ground truth with shape `(*batch_shape, *event_shape)`
 
         Returns
         -------
         Tensor
-            CRPS score of shape (*batch_shape, 1).
+            CRPS score of shape `(*batch_shape, 1)`.
         """
         F = self.F
         sorted_samples = self.sorted_samples
@@ -132,22 +132,22 @@ class EmpiricalDistribution(Distribution):
         )
 
         # Quantiles are just sorted samples with a different shape (for convenience):
-        # (*batch_shape, *event_shape, num_quantiles)
+        # `(*batch_shape, *event_shape, num_quantiles)`
         axes_ordering = list(range(1, self.all_dim + 1))
         axes_ordering.append(0)
         quantiles = sorted_samples.transpose(axes_ordering)
 
-        # Shape: (*batch_shape, *event_shape, num_quantiles)
+        # Shape: `(*batch_shape, *event_shape, num_quantiles)`
         qlosses = self.quantile_losses(
             obs=obs,
             quantiles=quantiles,
             levels=F.array(levels_np).broadcast_like(quantiles),
         )
 
-        # CRPS for each target dimension. Shape: (*batch_shape, *event_shape)
+        # CRPS for each target dimension. Shape: `(*batch_shape, *event_shape)`
         crps_per_dim = F.sum(qlosses, axis=-1)
 
-        # Total CRPS. Shape: (*batch_shape, 1)
+        # Total CRPS. Shape: `(*batch_shape, 1)`
         crps_total = F.sum(crps_per_dim, axis=-1, keepdims=True)
 
         return crps_total

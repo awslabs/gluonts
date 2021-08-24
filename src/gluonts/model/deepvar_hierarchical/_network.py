@@ -410,7 +410,7 @@ class DeepVARHierarchicalPredictionNetwork(
         **kwargs,
     ) -> None:
         super().__init__(num_parallel_samples=num_parallel_samples, **kwargs)
-        self.post_process_samples = coherent_pred_samples
+        self._post_process_samples = coherent_pred_samples
 
         self.assert_reconciliation = assert_reconciliation
 
