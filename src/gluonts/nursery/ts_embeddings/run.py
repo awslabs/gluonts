@@ -100,10 +100,10 @@ class MyDataModule(pl.LightningDataModule):
             first_dim = int(num_ts / self.multivar_dim)
             T = X_train.shape[-1]
 
-            assert (
-                num_ts % self.multivar_dim == 0
-            ), f"Number of time series {num_ts} modulo multivariate {self.multivar_dim} = {num_ts % self.multivar_dim}." \
-               f"It should be 0. multivar_dim is probably not set correctly."
+            assert num_ts % self.multivar_dim == 0, (
+                f"Number of time series {num_ts} modulo multivariate {self.multivar_dim} = {num_ts % self.multivar_dim}."
+                f"It should be 0. multivar_dim is probably not set correctly."
+            )
 
             if self.multivar_dim > 1:
                 self.X_train = X_train.reshape(first_dim, self.multivar_dim, T)
@@ -120,18 +120,19 @@ class MyDataModule(pl.LightningDataModule):
             self.X_train,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=self.shuffle
+            shuffle=self.shuffle,
+            drop_last=True,
             # multiprocessing_context=torch.multiprocessing.get_context('spawn') # without this, there are some probs
         )
 
-        def test_dataloader(self):
-            return DataLoader(
-                # TensorDataset(torch.tensor(self.X_train)),
-                self.X_train,
-                batch_size=self.batch_size,
-                num_workers=self.num_workers,
-                shuffle=False,
-            )
+    def test_dataloader(self):
+        return DataLoader(
+            # TensorDataset(torch.tensor(self.X_train)),
+            self.X_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+        )
 
 
 if __name__ == "__main__":
@@ -146,7 +147,6 @@ if __name__ == "__main__":
 
     print(f"args={args}")
     data_module = MyDataModule.from_argparse_args(args)
-    data_module.setup()
 
     model_params = vars(args)
     print(model_params)
@@ -177,13 +177,9 @@ if __name__ == "__main__":
     # lr_finder.plot()
     # print(f"learning rate suggestion: {lr_finder.suggestion()}")
 
-
     ####  training of encoder
     trainer.fit(model, data_module)
     print("encoder training done")
-
-
-
 
     for batch in data_module.train_dataloader():
         with torch.no_grad():
