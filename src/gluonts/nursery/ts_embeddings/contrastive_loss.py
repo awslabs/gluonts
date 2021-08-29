@@ -108,7 +108,7 @@ class NT_Xent_Loss(torch.nn.modules.loss._Loss):
         # neg = torch.clip(neg, eps, numpy.inf)
 
         pos = torch.exp(
-            torch.sum(representation * augmented_representation, dim=-1)
+            torch.sum(norm_rep * norm_augmented_rep, dim=-1)
             / self.temperature
         )
         pos = torch.cat([pos, pos], dim=0)
