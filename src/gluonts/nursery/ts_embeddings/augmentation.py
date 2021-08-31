@@ -160,3 +160,77 @@ class TimeWrap(object):
             return ret
         else:
             return x
+
+
+class WindowSlice(object):
+    """https://halshs.archives-ouvertes.fr/halshs-01357973/document"""
+
+    def __init__(self, p, reduce_ratio=0.9):
+        self.p = p
+        self.reduce_ration = reduce_ratio
+
+    def __call__(self, x):
+        if random.random() < self.p:
+            target_len = np.ceil(self.reduce_ratio * x.shape[1]).astype(int)
+            if target_len >= x.shape[1]:
+                return x
+            starts = np.random.randint(
+                low=0, high=x.shape[1] - target_len, size=(x.shape[0])
+            ).astype(int)
+            ends = (target_len + starts).astype(int)
+
+            ret = np.zeros_like(x)
+            for i, pat in enumerate(x):
+                for dim in range(x.shape[2]):
+                    ret[i, :, dim] = np.interp(
+                        np.linspace(0, target_len, num=x.shape[1]),
+                        np.arange(target_len),
+                        pat[starts[i] : ends[i], dim],
+                    ).T
+            return ret
+        else:
+            return x
+
+
+class WindowWarp(object):
+    """https://halshs.archives-ouvertes.fr/halshs-01357973/document"""
+
+    def __init__(self, p, window_ratio=0.1, scales=[0.5, 2.0]):
+        self.p = p
+        self.window_ratio = window_ratio
+        self.scales = scales
+
+    def __call__(self, x):
+        if random.random() < self.p:
+            warp_scales = np.random.choice(self.scales, x.shape[0])
+            warp_size = np.ceil(self.window_ratio * x.shape[1]).astype(int)
+            window_steps = np.arange(warp_size)
+
+            window_starts = np.random.randint(
+                low=1, high=x.shape[1] - warp_size - 1, size=(x.shape[0])
+            ).astype(int)
+            window_ends = (window_starts + warp_size).astype(int)
+
+            ret = np.zeros_like(x)
+            for i, pat in enumerate(x):
+                for dim in range(x.shape[2]):
+                    start_seg = pat[: window_starts[i], dim]
+                    window_seg = np.interp(
+                        np.linspace(
+                            0,
+                            warp_size - 1,
+                            num=int(warp_size * warp_scales[i]),
+                        ),
+                        window_steps,
+                        pat[window_starts[i] : window_ends[i], dim],
+                    )
+                    end_seg = pat[window_ends[i] :, dim]
+                    warped = np.concatenate((start_seg, window_seg, end_seg))
+                    ret[i, :, dim] = np.interp(
+                        np.arange(x.shape[1]),
+                        np.linspace(0, x.shape[1] - 1.0, num=warped.size),
+                        warped,
+                    ).T
+            return ret
+        else:
+            return x
