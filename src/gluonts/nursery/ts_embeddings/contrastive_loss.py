@@ -213,6 +213,16 @@ class BarlowTwins(torch.nn.Module):
 
 
 class MoCo(torch.nn.Module):
+    """
+    Momentum Contrast loss (MoCo-v2) from http://arxiv.org/abs/1911.05722
+    
+    Options:
+        dim: dimension of embedding
+        keys: number of elements in the queue
+        momentum: encoder momentum value for update
+        temperature: temperature for the logits
+    """
+
     def __init__(
         self,
         encoder_q,
@@ -243,6 +253,9 @@ class MoCo(torch.nn.Module):
         self.queue = F.normalize(self.queue, dim=0)
 
         self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
+
+        # labels: positives are the first rank.
+        # This is essentially a classification problem alongside all the samples
         self.register_buffer(
             "labels", torch.zeros(batch_size, dtype=torch.long)
         )
@@ -260,6 +273,10 @@ class MoCo(torch.nn.Module):
             )
 
     def _dequeue_and_enqueue(self, keys):
+        """
+        Remove the oldest key from queue and save the newest one
+        in a round-robin fashion.
+        """
         batch_size = keys.shape[0]
 
         ptr = int(self.queue_ptr)
