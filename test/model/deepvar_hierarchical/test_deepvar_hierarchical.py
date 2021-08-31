@@ -63,7 +63,7 @@ train_datasets = sine7(
         ),
     ],
 )
-def test_deephier(
+def test_deepvar_hierarchical(
     likelihood_weight,
     CRPS_weight,
     coherent_train_samples,

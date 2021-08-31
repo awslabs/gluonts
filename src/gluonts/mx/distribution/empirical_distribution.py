@@ -33,9 +33,10 @@ class EmpiricalDistribution(Distribution):
     """
 
     @validated()
-    def __init__(self, samples: Tensor) -> None:
+    def __init__(self, samples: Tensor, event_dim: int = 1) -> None:
         self.samples = samples
         self.sorted_samples = self.F.sort(self.samples, axis=0)
+        self._event_dim = event_dim
 
     @property
     def F(self):
@@ -43,15 +44,15 @@ class EmpiricalDistribution(Distribution):
 
     @property
     def batch_shape(self) -> Tuple:
-        return self.samples.shape[1:-1]
+        return self.samples.shape[1:-self.event_dim]
 
     @property
     def event_shape(self) -> Tuple:
-        return self.samples.shape[-1:]
+        return self.samples.shape[-self.event_dim:]
 
     @property
     def event_dim(self) -> int:
-        return 1
+        return self._event_dim
 
     @property
     def mean(self) -> Tensor:
@@ -145,9 +146,11 @@ class EmpiricalDistribution(Distribution):
         )
 
         # CRPS for each target dimension. Shape: `(*batch_shape, *event_shape)`
-        crps_per_dim = F.sum(qlosses, axis=-1)
+        crps = F.sum(qlosses, axis=-1)
 
-        # Total CRPS. Shape: `(*batch_shape, 1)`
-        crps_total = F.sum(crps_per_dim, axis=-1, keepdims=True)
+        if self.event_dim > 0:
+            # Total CRPS: sum over all but the axes corresponding to the batch shape.
+            # Shape: `(*batch_shape)`
+            crps = F.sum(crps, exclude=True, axis=list(range(0, len(self.batch_shape))))
 
-        return crps_total
+        return crps.expand_dims(axis=-1)

@@ -155,175 +155,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
                 self.M_broadcast, samples.expand_dims(-1)
             ).squeeze(axis=-1)
 
-    def train_hybrid_forward(
-        self,
-        F,
-        target_dimension_indicator: Tensor,
-        past_time_feat: Tensor,
-        past_target_cdf: Tensor,
-        past_observed_values: Tensor,
-        past_is_pad: Tensor,
-        future_time_feat: Tensor,
-        future_target_cdf: Tensor,
-        future_observed_values: Tensor,
-    ) -> Tuple[Tensor, ...]:
-        """
-        Computes the loss for training DeepVARHierarchical model, all inputs tensors representing
-        time series have NTC layout.
-
-        Parameters
-        ----------
-        F
-        target_dimension_indicator
-            Indices of the target dimension (batch_size, target_dim)
-        past_time_feat
-            Dynamic features of past time series (batch_size, history_length,
-            num_features)
-        past_target_cdf
-            Past marginal CDF transformed target values (batch_size,
-            history_length, target_dim)
-        past_observed_values
-            Indicator whether or not the values were observed (batch_size,
-            history_length, target_dim)
-        past_is_pad
-            Indicator whether the past target values have been padded
-            (batch_size, history_length)
-        future_time_feat
-            Future time features (batch_size, prediction_length, num_features)
-        future_target_cdf
-            Future marginal CDF transformed target values (batch_size,
-            prediction_length, target_dim)
-        future_observed_values
-            Indicator whether or not the future values were observed
-            (batch_size, prediction_length, target_dim)
-
-        Returns
-        -------
-        distr
-            Loss with shape (batch_size, 1)
-        likelihoods
-            Likelihoods for each time step
-            (batch_size, context + prediction_length, 1)
-        distr_args
-            Distribution arguments (context + prediction_length,
-            number_of_arguments)
-        """
-
-        seq_len = self.context_length + self.prediction_length
-
-        # unroll the decoder in "training mode", i.e. by providing future data
-        # as well
-        rnn_outputs, _, scale, lags_scaled, inputs = self.unroll_encoder(
-            F=F,
-            past_time_feat=past_time_feat,
-            past_target_cdf=past_target_cdf,
-            past_observed_values=past_observed_values,
-            past_is_pad=past_is_pad,
-            future_time_feat=future_time_feat,
-            future_target_cdf=future_target_cdf,
-            target_dimension_indicator=target_dimension_indicator,
-        )
-
-        # put together target sequence
-        # (batch_size, seq_len, target_dim)
-        target = F.concat(
-            past_target_cdf.slice_axis(
-                axis=1, begin=-self.context_length, end=None
-            ),
-            future_target_cdf,
-            dim=1,
-        )
-
-        # assert_shape(target, (-1, seq_len, self.target_dim))
-
-        distr, distr_args = self.distr(
-            time_features=inputs,
-            rnn_outputs=rnn_outputs,
-            scale=scale,
-            lags_scaled=lags_scaled,
-            target_dimension_indicator=target_dimension_indicator,
-            seq_len=self.context_length + self.prediction_length,
-        )
-
-        # Determine which epoch we are currently in.
-        self.batch_no += 1
-        epoch_no = self.batch_no // self.num_batches_per_epoch + 1
-        epoch_frac = epoch_no / self.epochs
-
-        # Sample from multivariate Gaussian distribution if we are using CRPS or LH-sample loss
-        # Samples shape: (num_samples, batch_size, seq_len, target_dim)
-        if self.sample_LH or (self.CRPS_weight > 0.0):
-            raw_samples = distr.sample_rep(
-                num_samples=self.num_samples_for_loss, dtype="float32"
-            )
-
-            if (
-                self.coherent_train_samples
-                and epoch_frac > self.warmstart_epoch_frac
-            ):
-                coherent_samples = self.reconcile_samples(raw_samples)
-                assert_shape(coherent_samples, raw_samples.shape)
-                samples = coherent_samples
-            else:
-                samples = raw_samples
-
-        if self.sample_LH:  # likelihoods on samples
-            # Compute mean and variance
-            mu = samples.mean(axis=0)
-            var = mx.nd.square(samples - samples.mean(axis=0)).mean(axis=0)
-            likelihoods = (
-                -LowrankMultivariateGaussian(
-                    dim=samples.shape[-1], rank=0, mu=mu, D=var
-                )
-                .log_prob(target)
-                .expand_dims(axis=-1)
-            )
-        else:  # likelihoods on network params
-            likelihoods = -distr.log_prob(target).expand_dims(axis=-1)
-        assert_shape(likelihoods, (-1, seq_len, 1))
-
-        # Pick loss function approach. This avoids sampling if we are only training with likelihoods on params
-        if self.CRPS_weight > 0.0:
-            loss_CRPS = EmpiricalDistribution(samples=samples).crps_univariate(
-                obs=target
-            )
-            loss_unmasked = (
-                self.CRPS_weight * loss_CRPS
-                + self.likelihood_weight * likelihoods
-            )
-        else:  # CRPS_weight = 0.0 (asserted non-negativity above)
-            loss_unmasked = likelihoods
-
-        # get mask values
-        past_observed_values = F.broadcast_minimum(
-            past_observed_values, 1 - past_is_pad.expand_dims(axis=-1)
-        )
-
-        # (batch_size, subseq_length, target_dim)
-        observed_values = F.concat(
-            past_observed_values.slice_axis(
-                axis=1, begin=-self.context_length, end=None
-            ),
-            future_observed_values,
-            dim=1,
-        )
-
-        # mask the loss at one time step if one or more observations is missing
-        # in the target dimensions (batch_size, subseq_length, 1)
-        loss_weights = observed_values.min(axis=-1, keepdims=True)
-
-        assert_shape(loss_weights, (-1, seq_len, 1))  # -1 is batch axis size
-
-        loss = weighted_average(
-            F=F, x=loss_unmasked, weights=loss_weights, axis=1
-        )
-
-        assert_shape(loss, (-1, -1, 1))
-
-        self.distribution = distr
-
-        return (loss, likelihoods) + distr_args
-
     def reconciliation_error(self, samples):
         r"""
         Computes the reconciliation error defined by the L-infinity norm of the constraint violation:
@@ -351,6 +182,74 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
                 mx.nd.linalg_gemm2(A_broadcast, samples, transpose_b=True)
             )
         ).asnumpy()[0]
+
+    def loss(self, target, distr):
+        """
+        Computes (unmasked) loss given the output of the network in the form of distribution.
+        The actual loss is determined by the hyper-parameters `CRPS_weight`, `likelihood_weight` and `sample_LH`.
+
+        Parameters
+        ----------
+        target
+            Tensor with shape (batch_size, seq_len, target_dim)
+        distr
+            Distribution instances
+
+        Returns
+        -------
+        Loss
+            Tensor with shape (batch_size, seq_length, 1)
+
+        """
+        # Determine which epoch we are currently in.
+        self.batch_no += 1
+        epoch_no = self.batch_no // self.num_batches_per_epoch + 1
+        epoch_frac = epoch_no / self.epochs
+
+        # Sample from multivariate Gaussian distribution if we are using CRPS or LH-sample loss
+        # Samples shape: (num_samples, batch_size, seq_len, target_dim)
+        if self.sample_LH or (self.CRPS_weight > 0.0):
+            raw_samples = distr.sample_rep(
+                num_samples=self.num_samples_for_loss, dtype="float32"
+            )
+
+            if (
+                    self.coherent_train_samples
+                    and epoch_frac > self.warmstart_epoch_frac
+            ):
+                coherent_samples = self.reconcile_samples(raw_samples)
+                assert_shape(coherent_samples, raw_samples.shape)
+                samples = coherent_samples
+            else:
+                samples = raw_samples
+
+        if self.sample_LH:  # likelihoods on samples
+            # Compute mean and variance
+            mu = samples.mean(axis=0)
+            var = mx.nd.square(samples - samples.mean(axis=0)).mean(axis=0)
+            neg_likelihoods = (
+                -LowrankMultivariateGaussian(
+                    dim=samples.shape[-1], rank=0, mu=mu, D=var
+                )
+                    .log_prob(target)
+                    .expand_dims(axis=-1)
+            )
+        else:  # likelihoods on network params
+            neg_likelihoods = -distr.log_prob(target).expand_dims(axis=-1)
+
+        # Pick loss function approach. This avoids sampling if we are only training with likelihoods on params
+        if self.CRPS_weight > 0.0:
+            loss_CRPS = EmpiricalDistribution(samples=samples).crps_univariate(
+                obs=target
+            )
+            loss_unmasked = (
+                    self.CRPS_weight * loss_CRPS
+                    + self.likelihood_weight * neg_likelihoods
+            )
+        else:  # CRPS_weight = 0.0 (asserted non-negativity above)
+            loss_unmasked = neg_likelihoods
+
+        return loss_unmasked
 
 
 class DeepVARHierarchicalTrainingNetwork(
@@ -410,13 +309,12 @@ class DeepVARHierarchicalPredictionNetwork(
         **kwargs,
     ) -> None:
         super().__init__(num_parallel_samples=num_parallel_samples, **kwargs)
-        self._post_process_samples = coherent_pred_samples
-
+        self.coherent_pred_samples = coherent_pred_samples
         self.assert_reconciliation = assert_reconciliation
 
     def post_process_samples(self, samples: Tensor):
         """
-        Reconcile samples.
+        Reconciled samples if `coherent_pred_samples` is True.
 
         Parameters
         ----------
@@ -428,12 +326,14 @@ class DeepVARHierarchicalPredictionNetwork(
             Tensor of coherent samples.
 
         """
-        coherent_samples = self.reconcile_samples(samples=samples)
+        if not self.coherent_pred_samples:
+            return samples
+        else:
+            coherent_samples = self.reconcile_samples(samples=samples)
+            assert_shape(coherent_samples, samples.shape)
 
-        assert_shape(coherent_samples, samples.shape)
+            # assert that A*X_proj ~ 0
+            if self.assert_reconciliation:
+                assert self.reconciliation_error(samples=coherent_samples) < 1e-2
 
-        # assert that A*X_proj ~ 0
-        if self.assert_reconciliation:
-            assert self.reconciliation_error(samples=coherent_samples) < 1e-2
-
-        return coherent_samples
+            return coherent_samples

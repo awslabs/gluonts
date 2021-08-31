@@ -411,6 +411,11 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
         return distr, distr_args
 
+    def loss(self, target, distr):
+        # we sum the last axis to have the same shape for all likelihoods
+        # (batch_size, subseq_length, 1)
+        return -distr.log_prob(target).expand_dims(axis=-1)
+
     def train_hybrid_forward(
         self,
         F,
@@ -501,11 +506,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             seq_len=self.context_length + self.prediction_length,
         )
 
-        # we sum the last axis to have the same shape for all likelihoods
-        # (batch_size, subseq_length, 1)
-        likelihoods = -distr.log_prob(target).expand_dims(axis=-1)
-
-        assert_shape(likelihoods, (-1, seq_len, 1))
+        loss = self.loss(target=target, distr=distr)
+        assert_shape(loss, (-1, seq_len, 1))
 
         past_observed_values = F.broadcast_minimum(
             past_observed_values, 1 - past_is_pad.expand_dims(axis=-1)
@@ -526,15 +528,15 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
         assert_shape(loss_weights, (-1, seq_len, 1))
 
-        loss = weighted_average(
-            F=F, x=likelihoods, weights=loss_weights, axis=1
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=loss_weights, axis=1
         )
 
-        assert_shape(loss, (-1, -1, 1))
+        assert_shape(weighted_loss, (-1, -1, 1))
 
         self.distribution = distr
 
-        return (loss, likelihoods) + distr_args
+        return (weighted_loss, loss) + distr_args
 
     def sampling_decoder(
         self,
@@ -621,8 +623,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
             # (batch_size, 1, target_dim)
             new_samples = distr.sample()
-            if self._post_process_samples:
-                new_samples = self.post_process_samples(new_samples)
+            new_samples = self.post_process_samples(new_samples)
 
             # (batch_size, seq_len, target_dim)
             future_samples.append(new_samples)
@@ -806,7 +807,6 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
     def __init__(self, num_parallel_samples: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.num_parallel_samples = num_parallel_samples
-        self._post_process_samples = False
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to
@@ -863,3 +863,19 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             past_is_pad=past_is_pad,
             future_time_feat=future_time_feat,
         )
+
+    def post_process_samples(self, samples: Tensor) -> Tensor:
+        """
+        Identity map.
+
+        Parameters
+        ----------
+        samples
+            Tensor of shape (num_parallel_samples*batch_size, 1, target_dim)
+
+        Returns
+        -------
+            Tensor of samples with the same shape.
+
+        """
+        return samples
