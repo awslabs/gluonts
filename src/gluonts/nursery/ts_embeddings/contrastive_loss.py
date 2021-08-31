@@ -17,6 +17,8 @@ import torch.nn.functional as F
 import numpy
 from typing import Optional, Any, Tuple
 
+from .pt_augmentation import RandomApply, Jitter, Scaling
+
 
 class NT_Xent_Loss(torch.nn.modules.loss._Loss):
     """
@@ -36,6 +38,7 @@ class NT_Xent_Loss(torch.nn.modules.loss._Loss):
         if self.compared_length is None:
             self.compared_length = numpy.inf
         self.temperature = temperature
+        self.transformation = RandomApply([Jitter(p=0.5), Scaling(p=0.5)])
 
     def get_representations(self, batch) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -66,28 +69,33 @@ class NT_Xent_Loss(torch.nn.modules.loss._Loss):
         end_positive = beginning_positive + length_pos_neg
 
         representation = self.encoder(
-            torch.cat(
-                [
-                    batch[
-                        j : j + 1,
-                        :,
-                        beginning_batches[j] : beginning_batches[j] + random_length,
+            self.transformation(
+                torch.cat(
+                    [
+                        batch[
+                            j : j + 1,
+                            :,
+                            beginning_batches[j] : beginning_batches[j]
+                            + random_length,
+                        ]
+                        for j in range(batch_size)
                     ]
-                    for j in range(batch_size)
-                ]
+                )
             )
         )  # Anchors representations.
 
         positive_representation = self.encoder(
-            torch.cat(
-                [
-                    batch[
-                        j : j + 1,
-                        :,
-                        end_positive[j] - length_pos_neg : end_positive[j],
+            self.transformation(
+                torch.cat(
+                    [
+                        batch[
+                            j : j + 1,
+                            :,
+                            end_positive[j] - length_pos_neg : end_positive[j],
+                        ]
+                        for j in range(batch_size)
                     ]
-                    for j in range(batch_size)
-                ]
+                )
             )
         )  # Positive samples representations
 
@@ -108,8 +116,7 @@ class NT_Xent_Loss(torch.nn.modules.loss._Loss):
         # neg = torch.clip(neg, eps, numpy.inf)
 
         pos = torch.exp(
-            torch.sum(norm_rep * norm_augmented_rep, dim=-1)
-            / self.temperature
+            torch.sum(norm_rep * norm_augmented_rep, dim=-1) / self.temperature
         )
         pos = torch.cat([pos, pos], dim=0)
 
@@ -215,7 +222,7 @@ class BarlowTwins(torch.nn.Module):
 class MoCo(torch.nn.Module):
     """
     Momentum Contrast loss (MoCo-v2) from http://arxiv.org/abs/1911.05722
-    
+
     Options:
         dim: dimension of embedding
         keys: number of elements in the queue
